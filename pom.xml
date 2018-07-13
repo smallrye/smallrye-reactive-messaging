@@ -23,7 +23,12 @@
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <rxjava.version>2.1.15</rxjava.version>
     <rxjava2-interop.version>0.2.9</rxjava2-interop.version>
+    <weld-core.version>3.0.4.Final</weld-core.version>
   </properties>
+
+  <modules>
+    <module>smallrye-reactive-messaging-provider</module>
+  </modules>
   
   <dependencyManagement>
     <dependencies>
@@ -58,6 +63,12 @@
       <artifactId>rxjava2-jdk8-interop</artifactId>
       <version>${rxjava2-interop.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.jboss.weld.se</groupId>
+      <artifactId>weld-se-core</artifactId>
+      <version>${weld-core.version}</version>
+    </dependency>
+
 
     <dependency>
       <groupId>junit</groupId>
