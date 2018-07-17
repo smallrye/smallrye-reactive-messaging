@@ -4,6 +4,8 @@ import io.reactivex.Flowable;
 import io.reactivex.FlowableTransformer;
 import io.smallrye.reactive.messaging.utils.ConnectableProcessor;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
@@ -11,11 +13,12 @@ import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import java.lang.reflect.Method;
 
 public class Mediator {
+
+  private static final Logger LOGGER = LogManager.getLogger(Mediator.class);
 
   private final MediatorConfiguration config;
   private final StreamRegistry registry;
@@ -25,7 +28,7 @@ public class Mediator {
   private Flowable<? extends Message> flowable;
   private Object instance;
 
-  public Mediator(MediatorConfiguration configuration, StreamRegistry registry) {
+  Mediator(MediatorConfiguration configuration, StreamRegistry registry) {
     this.config = configuration;
     this.registry = registry;
     this.output = new ConnectableProcessor<>();
@@ -34,12 +37,7 @@ public class Mediator {
   private FlowableTransformer wrap(boolean produceRawItems) {
     return flow -> {
       if (produceRawItems) {
-        return flow
-          .map(DefaultMessage::create)
-          .doOnError(t -> {
-            System.out.println("ERROR: " + t);
-          })
-          .doOnNext(x -> System.out.println(" Emitting " + x));
+        return flow.map(DefaultMessage::create);
       }
       return flow;
     };
@@ -47,13 +45,10 @@ public class Mediator {
 
   private FlowableTransformer unwrap(boolean consumeRawItems) {
     return flow -> {
-      System.out.println("Consuming raw items: " + consumeRawItems);
       if (consumeRawItems) {
         return flow
           .cast(Message.class)
-          .doOnNext(x -> System.out.println("Received... " + x))
-          .map(i -> ((Message) i).getPayload())
-          .doOnNext(i -> System.out.println(">>>>>> " + i));
+          .map(i -> ((Message) i).getPayload());
       }
       return flow;
     };
@@ -91,8 +86,8 @@ public class Mediator {
         // Receive individual items
         // Check if the method expect a payload or a message
         // Same for the returned type
-        boolean consumePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getIncomingType(), Message.class);
-        boolean producePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getOutputType(), Message.class);
+        boolean consumePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getParameterType(), Message.class);
+        boolean producePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getReturnType(), Message.class);
 
         flowable = source
           .compose(flow -> {
@@ -169,7 +164,9 @@ public class Mediator {
     if (subscriber != null) {
       output.subscribe(subscriber);
     }
-    flowable.subscribe(output);
+    flowable
+      .doOnError(t -> LOGGER.error("Error caught when executing {}", config.methodAsString(), t))
+      .subscribe(output);
   }
 
   public MediatorConfiguration getConfiguration() {

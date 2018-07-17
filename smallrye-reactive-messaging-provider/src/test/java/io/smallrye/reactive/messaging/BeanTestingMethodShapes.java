@@ -27,6 +27,9 @@ public class BeanTestingMethodShapes {
   static List<String> methodProducingAProcessorBuilder = new ArrayList<>();
   static List<String> methodProducingAProcessor = new ArrayList<>();
   static List<String> methodConsumingItemsAndProducingItems = new ArrayList<>();
+  static List<String> methodConsumingMessagesAndProducingItems = new ArrayList<>();
+  static List<String> methodConsumingItemsAndProducingMessages = new ArrayList<>();
+  static List<String> methodConsumingMessagesAndProducingMessages = new ArrayList<>();
 
   @Produces
   @Named("numbers")
@@ -76,6 +79,30 @@ public class BeanTestingMethodShapes {
     return ReactiveStreams.<Message<String>>builder()
       .map(Message::getPayload)
       .peek(s -> methodConsumingItemsAndProducingItems.add(s)).ignore().build();
+  }
+
+  @Produces
+  @Named("methodConsumingMessagesAndProducingItems")
+  public Subscriber<Message<String>> methodConsumingMessagesAndProducingItems() {
+    return ReactiveStreams.<Message<String>>builder()
+      .map(Message::getPayload)
+      .peek(s -> methodConsumingMessagesAndProducingItems.add(s)).ignore().build();
+  }
+
+  @Produces
+  @Named("methodConsumingMessagesAndProducingMessages")
+  public Subscriber<Message<String>> methodConsumingMessagesAndProducingMessages() {
+    return ReactiveStreams.<Message<String>>builder()
+      .map(Message::getPayload)
+      .peek(s -> methodConsumingMessagesAndProducingMessages.add(s)).ignore().build();
+  }
+
+  @Produces
+  @Named("methodConsumingItemsAndProducingMessages")
+  public Subscriber<Message<String>> methodConsumingItemsAndProducingMessages() {
+    return ReactiveStreams.<Message<String>>builder()
+      .map(Message::getPayload)
+      .peek(s -> methodConsumingItemsAndProducingMessages.add(s)).ignore().build();
   }
 
   @Produces
@@ -154,6 +181,7 @@ public class BeanTestingMethodShapes {
   @Incoming(topic = "numbers-as-messages")
   @Outgoing(topic = "methodConsumingMessagesAndProducingItems")
   public String mediatorConsumingMessagesAndProducingItems(Message<Integer> item) {
+    System.out.println("Got called...");
     return Integer.toString(item.getPayload() + 1);
   }
 

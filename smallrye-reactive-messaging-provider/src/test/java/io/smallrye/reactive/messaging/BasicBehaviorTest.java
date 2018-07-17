@@ -61,6 +61,21 @@ public class BasicBehaviorTest {
     assertThat(BeanTestingMethodShapes.methodConsumingItemsAndProducingItems).containsExactly("2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
   }
 
+  @Test
+  public void testMethodConsumingMessagesAndProducingMessages() {
+    assertThat(BeanTestingMethodShapes.methodConsumingMessagesAndProducingMessages).containsExactly("2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+  }
+
+  @Test
+  public void testMethodConsumingMessagesAndProducingItems() {
+    assertThat(BeanTestingMethodShapes.methodConsumingMessagesAndProducingItems).containsExactly("2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+  }
+
+  @Test
+  public void testMethodConsumingItemsAndProducingMessages() {
+    assertThat(BeanTestingMethodShapes.methodConsumingItemsAndProducingMessages).containsExactly("2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+  }
+
 
 
 

@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging;
 
-import io.reactivex.Flowable;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.apache.logging.log4j.LogManager;

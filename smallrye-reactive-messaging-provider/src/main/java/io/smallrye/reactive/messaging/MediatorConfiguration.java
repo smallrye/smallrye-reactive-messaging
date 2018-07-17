@@ -154,7 +154,7 @@ public class MediatorConfiguration {
         || ClassUtils.isAssignable(type, PublisherBuilder.class)
         ) {
         // Extract the internal type - for all these type it's the first (unique) parameter
-        consumeAsStream = true;
+        consumeAsStream = ClassUtils.isAssignable(type, Publisher.class)  || ClassUtils.isAssignable(type, PublisherBuilder.class);
         Type enclosed = parameterizedType.getActualTypeArguments()[0];
         return (Class) enclosed;
       }
