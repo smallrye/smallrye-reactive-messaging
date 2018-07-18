@@ -18,10 +18,3 @@ test:
   stage: test
   script:
     - mvn $MAVEN_CLI_OPTS test
-
-install:
-  stage: install
-  script:
-    - mvn $MAVEN_CLI_OPTS install
-  only:
-    - master
