@@ -31,11 +31,17 @@ public class ReactiveMessagingExtension implements Extension {
   private List<Mediator> mediators = new ArrayList<>();
 
 
-  <T> void processAnnotatedType(@Observes @WithAnnotations(Incoming.class) ProcessAnnotatedType<T> pat) {
+  <T> void processAnnotatedType(@Observes @WithAnnotations({Incoming.class, Outgoing.class}) ProcessAnnotatedType<T> pat) {
     LOGGER.info("scanning type: " + pat.getAnnotatedType().getJavaClass().getName());
     Set<AnnotatedMethod<? super T>> methods = pat.getAnnotatedType().getMethods();
     methods.stream()
       .filter(method -> method.isAnnotationPresent(Incoming.class))
+      .forEach(method -> collected.add(pat, method.getJavaMember()));
+
+    // For method with only @Outgoing
+    methods.stream()
+      .filter(method -> method.isAnnotationPresent(Outgoing.class))
+      .filter(method -> ! method.isAnnotationPresent(Incoming.class))
       .forEach(method -> collected.add(pat, method.getJavaMember()));
   }
 

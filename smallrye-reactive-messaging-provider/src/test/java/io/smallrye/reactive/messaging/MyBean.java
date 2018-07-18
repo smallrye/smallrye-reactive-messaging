@@ -42,9 +42,6 @@ public class MyBean {
   @Produces
   @Named("my-output")
   Subscriber<Message<String>> output() {
-    return ReactiveStreams.<Message<String>>builder().forEach(s -> {
-      COLLECTOR.add(s.getPayload());
-      System.out.println("received " + s);
-    }).build();
+    return ReactiveStreams.<Message<String>>builder().forEach(s -> COLLECTOR.add(s.getPayload())).build();
   }
 }

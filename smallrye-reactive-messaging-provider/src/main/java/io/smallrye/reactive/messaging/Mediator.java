@@ -148,7 +148,34 @@ public class Mediator {
   }
 
   private Flowable createPublisher() {
-    return invoke();
+    Object result = invoke();
+    boolean mustWrap = config.isProducingPayloads();
+    if (result == null) {
+      throw new IllegalArgumentException("The method " + config.methodAsString() + " must not return `null` to produce a Publisher");
+    }
+    if (result instanceof Flowable) {
+      if (mustWrap) {
+        return ((Flowable) result).map(DefaultMessage::create);
+      } else {
+        return (Flowable) result;
+      }
+    }
+    if (result instanceof Publisher) {
+      if (mustWrap) {
+        return Flowable.fromPublisher((Publisher) result).map(DefaultMessage::create);
+      } else {
+        return Flowable.fromPublisher((Publisher) result);
+      }
+    }
+    if (result instanceof PublisherBuilder) {
+      if (mustWrap) {
+        return Flowable.fromPublisher(((PublisherBuilder) result).buildRs()).map(DefaultMessage::create);
+      } else {
+        return Flowable.fromPublisher(((PublisherBuilder) result).buildRs());
+      }
+
+    }
+    throw new IllegalArgumentException("Not support result type to create a Publisher: " + result.getClass());
   }
 
   private void lookForSourceOrDie(String name) {
