@@ -102,7 +102,6 @@ public class Mediator {
           });
       }
     } else {
-      //TODO Test types
       flowable = createPublisher();
     }
 
