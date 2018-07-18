@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.reflect.TypeUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -27,12 +28,10 @@ public class MediatorConfiguration {
 
   private Outgoing outgoing;
 
-  private Class<?> returnedPayloadType;
-
-  private Class<?> consumedPayloadType;
-  private String mediatorName;
-
   private boolean consumeAsStream;
+
+  private Type consumedPayloadType;
+  private Type producedPayloadType;
 
   public MediatorConfiguration(Method method, Class<?> beanClass) {
     this.method = Objects.requireNonNull(method, "'method' must be set");
@@ -45,20 +44,15 @@ public class MediatorConfiguration {
       throw new IllegalStateException("The method " + methodAsString() + " does not return a result but is annotated with @Outgoing. " +
         "The method must return 'something'");
     }
-    returnedPayloadType = extractReturnedPayloadType();
+    validateOutgoingSignature();
     return this;
   }
 
   public MediatorConfiguration setIncoming(Incoming incoming) {
     this.incoming = incoming;
-    consumedPayloadType = extractConsumedPayloadType();
+    validateIncomingSignature();
     return this;
   }
-
-  public String getName() {
-    return mediatorName;
-  }
-
 
   public String getOutgoingTopic() {
     if (outgoing == null) {
@@ -75,17 +69,13 @@ public class MediatorConfiguration {
     return outgoing.provider().getName();
   }
 
-  public Class<?> getOutputType() {
-    return returnedPayloadType;
-  }
-
-  private Class<?> extractReturnedPayloadType() {
+  private void validateOutgoingSignature() {
     if (outgoing == null) {
-      return null;
+      return;
     }
     Class<?> type = method.getReturnType();
     ParameterizedType parameterizedType = null;
-    if (method.getGenericReturnType() instanceof  ParameterizedType) {
+    if (method.getGenericReturnType() instanceof ParameterizedType) {
       parameterizedType = (ParameterizedType) method.getGenericReturnType();
     }
 
@@ -93,7 +83,8 @@ public class MediatorConfiguration {
     // TODO We should still check for CompletionStage<Void>, or Publisher<Void> which would be invalid.
 
     if (parameterizedType == null) {
-      return type;
+      producedPayloadType = type;
+      return;
     }
 
     if (ClassUtils.isAssignable(type, Publisher.class)
@@ -103,24 +94,24 @@ public class MediatorConfiguration {
       ) {
       // Extract the internal type - for all these type it's the first (unique) parameter
       Type enclosed = parameterizedType.getActualTypeArguments()[0];
-      // TODO Should we do an instanceOf here?
-      return (Class) enclosed;
+      producedPayloadType = enclosed;
+      return;
     }
 
     if (ClassUtils.isAssignable(type, ProcessorBuilder.class)
-     || ClassUtils.isAssignable(type, Processor.class)) {
+      || ClassUtils.isAssignable(type, Processor.class)) {
       // Extract the internal type - for all these type it's the second parameter
       Type enclosed = parameterizedType.getActualTypeArguments()[1];
-      // TODO Should we do an instanceOf here?
-      return (Class) enclosed;
+      producedPayloadType = enclosed;
+      return;
     }
 
     throw new IllegalStateException("Unable to determine the type of message returned by the method: " + methodAsString());
   }
 
-  private Class<?> extractConsumedPayloadType() {
+  private void validateIncomingSignature() {
     if (incoming == null) {
-      return null;
+      return;
     }
     if (method.getParameterCount() == 0) {
       // The method must returned a ProcessorBuilder or a Processor, in this case, the consumed type is the first parameter.
@@ -133,35 +124,26 @@ public class MediatorConfiguration {
         throw new IllegalStateException("Unable to determine the consumed type for " + methodAsString() + " - when the method does not has parameters, " +
           "the return type must be Processor or ProcessorBuilder.");
       }
+      consumedPayloadType = parameterizedType.getActualTypeArguments()[0];
+      // TODO this won't work for implementation having a single parameter, or more...
+      producedPayloadType = parameterizedType.getActualTypeArguments()[1];
       consumeAsStream = true;
-      return (Class<?>) parameterizedType.getActualTypeArguments()[1];
     }
 
     if (method.getParameterCount() == 1) {
       // we need to check the parameter.
       Class<?> type = method.getParameterTypes()[0];
-      ParameterizedType parameterizedType = null;
-      if (method.getGenericParameterTypes()[0] instanceof  ParameterizedType) {
-        parameterizedType = (ParameterizedType) method.getGenericParameterTypes()[0];
+      Type paramType = method.getGenericParameterTypes()[0];
+      consumeAsStream = ClassUtils.isAssignable(type, Publisher.class)  || ClassUtils.isAssignable(type, PublisherBuilder.class);
+      if (paramType instanceof ParameterizedType) {
+        consumedPayloadType = ((ParameterizedType) paramType).getActualTypeArguments()[0];
+      } else {
+        consumedPayloadType = type;
       }
-
-      if (parameterizedType == null) {
-        return type;
-      }
-
-      if (ClassUtils.isAssignable(type, Publisher.class)
-        || ClassUtils.isAssignable(type, Message.class)
-        || ClassUtils.isAssignable(type, PublisherBuilder.class)
-        ) {
-        // Extract the internal type - for all these type it's the first (unique) parameter
-        consumeAsStream = ClassUtils.isAssignable(type, Publisher.class)  || ClassUtils.isAssignable(type, PublisherBuilder.class);
-        Type enclosed = parameterizedType.getActualTypeArguments()[0];
-        return (Class) enclosed;
-      }
-
     }
 
-    throw new IllegalStateException("Unable to determine the consumed type for " + methodAsString());
+    // TODO validate the converters,
+    // TODO validate the types in the parameters
   }
 
   public String getIncomingTopic() {
@@ -181,20 +163,12 @@ public class MediatorConfiguration {
     return incoming.provider().getName();
   }
 
-  public Class<?> getIncomingType() {
-    return consumedPayloadType;
-  }
-
   public boolean isPublisher() {
-    return returnedPayloadType != null;
+    return outgoing != null;
   }
 
   public boolean isSubscriber() {
-    return consumedPayloadType != null;
-  }
-
-  public boolean isProcessor() {
-    return isPublisher()  && isSubscriber();
+    return incoming != null;
   }
 
   public Class<?> getReturnType() {
@@ -211,10 +185,6 @@ public class MediatorConfiguration {
     return null;
   }
 
-  public String getOutgoingName() {
-   return mediatorName;
-  }
-
   public String methodAsString() {
     return beanClass.getName() + "#" + method.getName();
   }
@@ -223,20 +193,8 @@ public class MediatorConfiguration {
     return method.getReturnType().equals(Void.TYPE);
   }
 
-  public MediatorConfiguration setNamed(Named named) {
-    if (named != null) {
-      mediatorName = named.value();
-      // TODO Validation - only mediator with an outgoing annotation can be named
-    }
-    return this;
-  }
-
   public Method getMethod() {
     return method;
-  }
-
-  public boolean isReturnTypeASubTypeOf(Class<?> clazz) {
-    return ! isVoid() && isClassASubTypeOf(method.getReturnType(), clazz);
   }
 
   public static boolean isClassASubTypeOf(Class<?> maybeChild, Class<?> maybeParent) {
@@ -251,11 +209,11 @@ public class MediatorConfiguration {
     return consumeAsStream;
   }
 
-  public boolean consumeItems() {
-    return consumedPayloadType != null && ! consumedPayloadType.equals(Message.class);
+  public boolean isConsumingPayloads() {
+    return consumedPayloadType != null && !TypeUtils.isAssignable(consumedPayloadType, Message.class);
   }
 
-  public boolean produceItems() {
-    return returnedPayloadType != null  && ! returnedPayloadType.equals(Message.class);
+  public boolean isProducingPayloads() {
+    return producedPayloadType != null && !TypeUtils.isAssignable(producedPayloadType, Message.class);
   }
 }

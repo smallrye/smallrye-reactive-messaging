@@ -1,19 +1,17 @@
 package io.smallrye.reactive.messaging;
 
-import org.jboss.weld.environment.se.Weld;
 import org.junit.Test;
 
-public class ReactiveMessagingExtensionTest {
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ReactiveMessagingExtensionTest extends WeldTestBase {
 
 
   @Test
   public void test() {
-    Weld weld = new Weld()
-      .property("javax.enterprise.inject.scan.implicit", true);
-    weld
-      .initialize();
-
-    weld.shutdown();
+    weld.addBeanClass(MyBean.class);
+    weld.initialize();
+    assertThat(MyBean.COLLECTOR).containsExactly("FOO", "FOO", "BAR", "BAR");
   }
 
 }

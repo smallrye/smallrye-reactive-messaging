@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
-import io.reactivex.FlowableTransformer;
 import io.smallrye.reactive.messaging.utils.ConnectableProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -34,53 +33,50 @@ public class Mediator {
     this.output = new ConnectableProcessor<>();
   }
 
-  private FlowableTransformer wrap(boolean produceRawItems) {
-    return flow -> {
-      if (produceRawItems) {
-        return flow.map(DefaultMessage::create);
-      }
-      return flow;
-    };
-  }
 
-  private FlowableTransformer unwrap(boolean consumeRawItems) {
-    return flow -> {
-      if (consumeRawItems) {
-        return flow
-          .cast(Message.class)
-          .map(i -> ((Message) i).getPayload());
-      }
-      return flow;
-    };
-  }
-
-
+  @SuppressWarnings("unchecked")
   public void initialize(Object instance) {
     this.instance = instance;
     if (config.isSubscriber()) {
       lookForSourceOrDie(config.getIncomingTopic());
     }
     if (config.isPublisher()) {
-      lookForSinkOrDie(config.getOutgoingTopic());
+      lookForSink(config.getOutgoingTopic());
     }
 
     if (source != null) {
       if (config.consumeAsStream()) {
-        Object[] args = computeArgumentForMethod(source);
+        boolean consumePayloads = config.isConsumingPayloads();
+        boolean producingPayloads = config.isProducingPayloads();
+        Object[] args = computeArgumentForMethod(source, consumePayloads);
         Object result = invoke(args);
-        boolean consumeItem = config.consumeItems();
-        boolean produceItem = config.produceItems();
         if (result instanceof Processor) {
           Processor processor = (Processor) result;
-          flowable = Flowable.fromPublisher(
-            ReactiveStreams.fromPublisher(source).via(processor).buildRs());
+          if (consumePayloads) {
+            flowable = Flowable.fromPublisher(
+              ReactiveStreams.fromPublisher(source.map(Message::getPayload)).via(processor).buildRs());
+          } else {
+            flowable = Flowable.fromPublisher(
+              ReactiveStreams.fromPublisher(source).via(processor).buildRs());
+          }
         } else if (result instanceof PublisherBuilder) {
           flowable = Flowable.fromPublisher(((PublisherBuilder) result).buildRs());
         } else if (result instanceof Publisher) {
           flowable = Flowable.fromPublisher((Publisher) result);
         } else if (result instanceof ProcessorBuilder) {
           ProcessorBuilder pb = (ProcessorBuilder) result;
-          flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(source).via(pb).buildRs());
+          if (consumePayloads) {
+            flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(source.map(Message::getPayload)).via(pb).buildRs());
+          } else {
+            flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(source).via(pb).buildRs());
+          }
+        }
+        if (producingPayloads) {
+          flowable = flowable
+            // The cast is used to indicate that we are not expecting a message, but objects at that point.
+            // without the mapper cannot be called (cast exception)
+            .cast(Object.class)
+            .map(DefaultMessage::create);
         }
       } else {
         // Receive individual items
@@ -92,7 +88,7 @@ public class Mediator {
         flowable = source
           .compose(flow -> {
             if (consumePayload) {
-              return flow.map(Message::getPayload).cast(Object.class);
+              return flow.map(Message::getPayload);
             }
             return flow.cast(Object.class);
           })
@@ -116,7 +112,7 @@ public class Mediator {
     return invoke(item);
   }
 
-  private Object[] computeArgumentForMethod(Flowable<?> source) {
+  private Object[] computeArgumentForMethod(Flowable<? extends Message> source, boolean consumeItems) {
     Method method = config.getMethod();
     if (method.getParameterCount() == 0) {
       return new Object[0];
@@ -124,9 +120,17 @@ public class Mediator {
     // Only supported case right now is 1
     Class<?> paramClass = method.getParameterTypes()[0];
     if (MediatorConfiguration.isClassASubTypeOf(paramClass, PublisherBuilder.class)) {
-      return new Object[] {ReactiveStreams.fromPublisher(source)};
+      if (consumeItems) {
+        return new Object[] {ReactiveStreams.fromPublisher(source).map(Message::getPayload)};
+      } else {
+        return new Object[]{ReactiveStreams.fromPublisher(source)};
+      }
     } else if (MediatorConfiguration.isClassASubTypeOf(paramClass, Publisher.class)) {
-      return new Object[] { source };
+      if (consumeItems) {
+        return new Object[] {source.map(Message::getPayload)};
+      } else {
+        return new Object[]{source};
+      }
     }
 
     throw new IllegalArgumentException("Not supported parameter type: " + paramClass.getName());
@@ -149,15 +153,14 @@ public class Mediator {
 
   private void lookForSourceOrDie(String name) {
     this.source = registry.getPublisher(name)
-      .orElseThrow(() -> new IllegalStateException("Cannot find publisher named: " + name));
+      .orElseThrow(() -> new IllegalStateException("Cannot find publisher named: " + name + " for method " + config.methodAsString()));
   }
 
-  private void lookForSinkOrDie(String name) {
+  private void lookForSink(String name) {
     if (StringUtils.isBlank(name)) {
       return;
     }
-    subscriber = registry.getSubscriber(name)
-      .orElseThrow(() -> new IllegalStateException("Cannot find subscriber named: " + name));
+    subscriber = registry.getSubscriber(name).orElse(null);
   }
 
   public void run() {

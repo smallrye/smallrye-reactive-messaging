@@ -7,6 +7,8 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
@@ -47,13 +49,24 @@ public class ReactiveMessagingExtension implements Extension {
   void collectPublisherAndSubscriberProducer(@Observes ProcessProducer producer) {
     // TODO extend class test to be sure they accept and produce messages
     boolean isPublisher = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), Publisher.class);
+    boolean isPublisherBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), PublisherBuilder.class);
     boolean isSubscriber = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), Subscriber.class);
+    boolean isSubscriberBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), SubscriberBuilder.class);
+    // TODO Support publisher and subscriber not consuming / producing messages
     if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isPublisher) {
       LOGGER.info("Found a publisher producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
       collected.addPublisher(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
     }
+    if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isPublisherBuilder) {
+      LOGGER.info("Found a publisher builder producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
+      collected.addPublisher(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
+    }
     if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isSubscriber) {
       LOGGER.info("Found a subscriber producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
+      collected.addSubscriber(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
+    }
+    if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isSubscriberBuilder) {
+      LOGGER.info("Found a subscriber builder producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
       collected.addSubscriber(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
     }
   }
@@ -67,11 +80,23 @@ public class ReactiveMessagingExtension implements Extension {
     this.factory = beanManager.createInstance().select(MediatorFactory.class).stream().findFirst()
       .orElseThrow(() -> new IllegalStateException("Unable to find the " + MediatorFactory.class.getName() + " component"));
 
-    collected.publisherProducers.forEach((name, producer) ->
-      registry.register(name, (Publisher<? extends Message>) producer.produce(beanManager.createCreationalContext(null))));
+    collected.publisherProducers.forEach((name, producer) -> {
+      Object produced = producer.produce(beanManager.createCreationalContext(null));
+      if (produced instanceof Publisher) {
+        registry.register(name, (Publisher<? extends Message>) produced);
+      } else if (produced instanceof PublisherBuilder) {
+        registry.register(name, ((PublisherBuilder<? extends Message>) produced).buildRs());
+      }
+    });
 
-    collected.subscriberProducers.forEach((name, producer) ->
-      registry.register(name, (Subscriber<? extends Message>) producer.produce(beanManager.createCreationalContext(null))));
+    collected.subscriberProducers.forEach((name, producer) -> {
+      Object produced = producer.produce(beanManager.createCreationalContext(null));
+      if (produced instanceof Subscriber) {
+        registry.register(name, (Subscriber<? extends Message>) produced);
+      } else if (produced instanceof  SubscriberBuilder) {
+        registry.register(name, ((SubscriberBuilder) produced).build());
+      }
+    });
 
     collected.mediators.forEach((method, meta) -> createMediator(meta));
 
@@ -84,12 +109,11 @@ public class ReactiveMessagingExtension implements Extension {
 
   private void createMediator(MediatorConfiguration configuration) {
     Mediator mediator = factory.create(configuration);
-    LOGGER.info("Mediator created for " + configuration.methodAsString());
+    LOGGER.info("Mediator created for {}", configuration.methodAsString());
     mediators.add(mediator);
-    if (mediator.getConfiguration().getName() != null) {
-      registry.register(mediator.getConfiguration().getName(), mediator.getPublisher());
+    if (mediator.getConfiguration().getOutgoingTopic() != null) {
+      registry.register(mediator.getConfiguration().getOutgoingTopic(), mediator.getPublisher());
     }
-    // TODO Should we register it?
   }
 
   private void getOrCreateVertxInstance(BeanManager beanManager) {
@@ -133,8 +157,7 @@ public class ReactiveMessagingExtension implements Extension {
   private MediatorConfiguration createMediatorConfiguration(ProcessAnnotatedType pat, Method met) {
     return new MediatorConfiguration(met, pat.getAnnotatedType().getJavaClass())
       .setIncoming(met.getAnnotation(Incoming.class))
-      .setOutgoing(met.getAnnotation(Outgoing.class))
-      .setNamed(met.getAnnotation(Named.class));
+      .setOutgoing(met.getAnnotation(Outgoing.class));
   }
 
 
