@@ -19,7 +19,7 @@ test:
   script:
     - mvn $MAVEN_CLI_OPTS test
 
-deploy:
+install:
   stage: install
   script:
     - mvn $MAVEN_CLI_OPTS install
