@@ -47,12 +47,12 @@ public class ReactiveMessagingExtension implements Extension {
   }
 
   void collectPublisherAndSubscriberProducer(@Observes ProcessProducer producer) {
-    // TODO extend class test to be sure they accept and produce messages
     boolean isPublisher = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), Publisher.class);
     boolean isPublisherBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), PublisherBuilder.class);
     boolean isSubscriber = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), Subscriber.class);
     boolean isSubscriberBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), SubscriberBuilder.class);
-    // TODO Support publisher and subscriber not consuming / producing messages
+    // TODO Support publisher and subscriber not consuming / producing messages, if not, wrap the payload into messages
+    // TODO is it abusing the @Named annotation?
     if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isPublisher) {
       LOGGER.info("Found a publisher producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
       collected.addPublisher(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
@@ -98,7 +98,7 @@ public class ReactiveMessagingExtension implements Extension {
       }
     });
 
-    collected.mediators.forEach((method, meta) -> createMediator(meta));
+    collected.mediators.forEach(this::createMediator);
 
     mediators.forEach(mediator -> {
       mediator.initialize(beanManager.createInstance().select(mediator.getConfiguration().getBeanClass()).get());
@@ -134,8 +134,7 @@ public class ReactiveMessagingExtension implements Extension {
     private Map<String, Producer> publisherProducers = new HashMap<>();
     private Map<String, Producer> subscriberProducers = new HashMap<>();
 
-    // TODO shouldn't ist be a list
-    private Map<Method, MediatorConfiguration> mediators = new HashMap<>();
+    private List<MediatorConfiguration> mediators = new ArrayList<>();
 
     void addPublisher(String name, Producer producer) {
       if (publisherProducers.put(name, producer) != null) {
@@ -150,15 +149,13 @@ public class ReactiveMessagingExtension implements Extension {
     }
 
     void add(ProcessAnnotatedType pat, Method method) {
-      mediators.put(method, createMediatorConfiguration(pat, method));
+      mediators.add(createMediatorConfiguration(pat, method));
+    }
+
+    private MediatorConfiguration createMediatorConfiguration(ProcessAnnotatedType pat, Method met) {
+      return new MediatorConfiguration(met, pat.getAnnotatedType().getJavaClass())
+        .setIncoming(met.getAnnotation(Incoming.class))
+        .setOutgoing(met.getAnnotation(Outgoing.class));
     }
   }
-
-  private MediatorConfiguration createMediatorConfiguration(ProcessAnnotatedType pat, Method met) {
-    return new MediatorConfiguration(met, pat.getAnnotatedType().getJavaClass())
-      .setIncoming(met.getAnnotation(Incoming.class))
-      .setOutgoing(met.getAnnotation(Outgoing.class));
-  }
-
-
 }
