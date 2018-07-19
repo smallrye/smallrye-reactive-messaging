@@ -1,8 +1,10 @@
 package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.impl.StreamRegistryImpl;
+import io.smallrye.reactive.messaging.providers.MyDummyFactories;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -21,10 +23,15 @@ public class WeldTestBase {
   public void setUp() {
     weld = new Weld();
 
-    weld.addBeanClass(StreamManager.class);
+    weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addBeanClass(MediatorFactory.class);
     weld.addBeanClass(StreamRegistryImpl.class);
     weld.addBeanClass(StreamFactoryImpl.class);
+    weld.addBeanClass(ConfiguredStreamFactory.class);
+
+    // Messaging provider
+    weld.addBeanClass(MyDummyFactories.class);
+
     weld.addExtension(new ReactiveMessagingExtension());
 
     weld.addBeanClass(MyCollector.class);

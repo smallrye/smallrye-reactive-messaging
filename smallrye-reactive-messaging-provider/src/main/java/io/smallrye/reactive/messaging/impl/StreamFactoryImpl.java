@@ -17,6 +17,7 @@ import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 @ApplicationScoped
@@ -45,7 +46,8 @@ public class StreamFactoryImpl implements StreamFactory {
   @Override
   public synchronized CompletionStage<Publisher<? extends Message>> createPublisherAndRegister(String name, Map<String, String> config) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
-    String type = config.get("type");
+    String type = Optional.ofNullable(config.get("type")).map(Object::toString)
+      .orElseThrow(() -> new IllegalArgumentException("Invalid publisher, no type for " + name));
     return createPublisher(type, config)
       .thenApply(publisher -> this.registry.register(name, publisher));
   }
@@ -53,7 +55,8 @@ public class StreamFactoryImpl implements StreamFactory {
   @Override
   public synchronized CompletionStage<Subscriber<? extends Message>> createSubscriberAndRegister(String name, Map<String, String> config) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
-    String type = config.get("type");
+    String type = Optional.ofNullable(config.get("type")).map(Object::toString)
+      .orElseThrow(() -> new IllegalArgumentException("Invalid subscriber, no type for " + name));
     return createSubscriber(type, config)
       .thenApply(subscriber -> this.registry.register(name, subscriber));
   }
@@ -66,7 +69,7 @@ public class StreamFactoryImpl implements StreamFactory {
       throw new IllegalArgumentException("Unknown type: " + type + ", known types are: " + publisherFactories.keySet());
     }
     // TODO Can we have null configuration ?
-    return factory.create(vertx, config);
+    return factory.createPublisher(vertx, config);
   }
 
   @Override
@@ -77,6 +80,6 @@ public class StreamFactoryImpl implements StreamFactory {
       throw new IllegalArgumentException("Unknown type: " + type + ", known types are: " + subscriberFactories.keySet());
     }
     // TODO Can we have null configuration ?
-    return factory.create(vertx, config);
+    return factory.createSubscriber(vertx, config);
   }
 }

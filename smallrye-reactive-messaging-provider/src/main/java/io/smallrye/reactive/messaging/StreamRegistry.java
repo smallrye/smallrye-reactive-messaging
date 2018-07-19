@@ -15,7 +15,7 @@ public interface StreamRegistry {
 
   Subscriber<? extends Message> register(String name, Subscriber<? extends Message> subscriber);
 
-  Optional<Flowable<? extends Message>> getPublisher(String name);
+  Optional<Publisher<? extends Message>> getPublisher(String name);
 
   Optional<Subscriber<? extends Message>> getSubscriber(String name);
 

@@ -22,7 +22,8 @@ public class Mediator {
   private final MediatorConfiguration config;
   private final StreamRegistry registry;
   private final ConnectableProcessor output;
-  private Flowable<? extends Message> source;
+  private final ConnectableProcessor input;
+  private Publisher<? extends Message> source;
   private Subscriber<? extends Message> subscriber;
   private Flowable<? extends Message> flowable;
   private Object instance;
@@ -30,7 +31,8 @@ public class Mediator {
   Mediator(MediatorConfiguration configuration, StreamRegistry registry) {
     this.config = configuration;
     this.registry = registry;
-    this.output = new ConnectableProcessor<>();
+    this.output = new ConnectableProcessor<>("output: " + configuration.getOutgoingTopic());
+    this.input = new ConnectableProcessor<>("input: " +configuration.getIncomingTopic());
   }
 
 
@@ -45,19 +47,20 @@ public class Mediator {
     }
 
     if (source != null) {
+      Flowable<? extends Message> flow = Flowable.fromPublisher(input);
       if (config.consumeAsStream()) {
         boolean consumePayloads = config.isConsumingPayloads();
         boolean producingPayloads = config.isProducingPayloads();
-        Object[] args = computeArgumentForMethod(source, consumePayloads);
+        Object[] args = computeArgumentForMethod(flow, consumePayloads);
         Object result = invoke(args);
         if (result instanceof Processor) {
           Processor processor = (Processor) result;
           if (consumePayloads) {
             flowable = Flowable.fromPublisher(
-              ReactiveStreams.fromPublisher(source.map(Message::getPayload)).via(processor).buildRs());
+              ReactiveStreams.fromPublisher(flow.map(Message::getPayload)).via(processor).buildRs());
           } else {
             flowable = Flowable.fromPublisher(
-              ReactiveStreams.fromPublisher(source).via(processor).buildRs());
+              ReactiveStreams.fromPublisher(flow).via(processor).buildRs());
           }
         } else if (result instanceof PublisherBuilder) {
           flowable = Flowable.fromPublisher(((PublisherBuilder) result).buildRs());
@@ -66,9 +69,9 @@ public class Mediator {
         } else if (result instanceof ProcessorBuilder) {
           ProcessorBuilder pb = (ProcessorBuilder) result;
           if (consumePayloads) {
-            flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(source.map(Message::getPayload)).via(pb).buildRs());
+            flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(flow.map(Message::getPayload)).via(pb).buildRs());
           } else {
-            flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(source).via(pb).buildRs());
+            flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(flow).via(pb).buildRs());
           }
         }
         if (producingPayloads) {
@@ -85,19 +88,19 @@ public class Mediator {
         boolean consumePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getParameterType(), Message.class);
         boolean producePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getReturnType(), Message.class);
 
-        flowable = source
-          .compose(flow -> {
+        flowable = flow
+          .compose(f -> {
             if (consumePayload) {
-              return flow.map(Message::getPayload);
+              return f.map(Message::getPayload);
             }
-            return flow.cast(Object.class);
+            return f.cast(Object.class);
           })
           .map(this::invokeMethodWithItem)
-          .compose(flow -> {
+          .compose(f -> {
             if (producePayload) {
-              return flow.map(DefaultMessage::create);
+              return f.map(DefaultMessage::create);
             } else {
-              return flow.cast(Message.class);
+              return f.cast(Message.class);
             }
           });
       }
@@ -186,16 +189,26 @@ public class Mediator {
     if (StringUtils.isBlank(name)) {
       return;
     }
-    subscriber = registry.getSubscriber(name).orElse(null);
+    this.subscriber = registry.getSubscriber(name).orElse(null);
   }
 
   public void run() {
-    if (subscriber != null) {
-      output.subscribe(subscriber);
+
+    if (subscriber != null  && ! output.isConnected()) {
+        output.subscribe(subscriber);
     }
+
     flowable
       .doOnError(t -> LOGGER.error("Error caught when executing {}", config.methodAsString(), t))
       .subscribe(output);
+
+    if (source != null) {
+      if (source instanceof ConnectableProcessor  && ! ((ConnectableProcessor) source).isConnected()) {
+        source.subscribe(input);
+      } else if (! (source instanceof ConnectableProcessor)) {
+        source.subscribe(input);
+      }
+    }
   }
 
   public MediatorConfiguration getConfiguration() {
@@ -204,5 +217,9 @@ public class Mediator {
 
   public Publisher<? extends Message> getPublisher() {
     return output;
+  }
+
+  public Subscriber<? extends Message> getSubscriber() {
+    return input;
   }
 }

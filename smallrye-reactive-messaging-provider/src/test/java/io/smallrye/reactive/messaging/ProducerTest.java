@@ -5,6 +5,7 @@ import io.smallrye.reactive.messaging.beans.*;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import java.util.ArrayList;
@@ -25,9 +26,9 @@ public class ProducerTest extends WeldTestBase {
 
   private void assertThatProducerWasPublished(WeldContainer container) {
     assertThat(registry(container).getPublisherNames()).contains("producer");
-    Optional<Flowable<? extends Message>> producer = registry(container).getPublisher("producer");
+    Optional<Publisher<? extends Message>> producer = registry(container).getPublisher("producer");
     assertThat(producer).isNotEmpty()
-      .flatMap(flowable -> flowable.map(Message::getPayload).toList().to(s -> Optional.of(s.blockingGet())))
+      .flatMap(publisher -> Flowable.fromPublisher(publisher).map(Message::getPayload).toList().to(s -> Optional.of(s.blockingGet())))
       .contains(Arrays.asList("a", "b", "c"));
   }
 

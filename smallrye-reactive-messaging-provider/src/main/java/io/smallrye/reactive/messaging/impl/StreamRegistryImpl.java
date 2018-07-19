@@ -13,7 +13,7 @@ import java.util.*;
 public class StreamRegistryImpl implements StreamRegistry {
 
   private static final String NAME_MUST_BE_SET = "'name' must be set";
-  private final Map<String, Flowable<? extends Message>> publishers = new HashMap<>();
+  private final Map<String, Publisher<? extends Message>> publishers = new HashMap<>();
   private final Map<String, Subscriber<? extends Message>> subscribers = new HashMap<>();
 
 
@@ -34,7 +34,7 @@ public class StreamRegistryImpl implements StreamRegistry {
   }
 
   @Override
-  public synchronized Optional<Flowable<? extends Message>> getPublisher(String name) {
+  public synchronized Optional<Publisher<? extends Message>> getPublisher(String name) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
     return Optional.ofNullable(publishers.get(name));
   }

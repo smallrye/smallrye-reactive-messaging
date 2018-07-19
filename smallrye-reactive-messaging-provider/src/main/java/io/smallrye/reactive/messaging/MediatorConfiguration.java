@@ -11,7 +11,6 @@ import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
-import javax.inject.Named;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;

@@ -20,8 +20,8 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
     PROCESSING, // Processing started
     FAILED, // Caught an error, final state
     COMPLETE // Completed, final state
+    ;
   }
-
   /**
    * Reference of the subscriber if any.
    * If set the state is HAS_SUBSCRIBER+
@@ -47,14 +47,27 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
    */
   private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
 
+  private final String name;
+
+  public ConnectableProcessor(String name) {
+    this.name = name;
+  }
+
+  @Override
+  public String toString() {
+    return "ConnectableProcessor{" +
+      "name='" + name + '\'' +
+      '}';
+  }
+
   @Override
   public void subscribe(Subscriber<? super T> subscriber) {
     Objects.requireNonNull(subscriber);
 
     // Set the subscriber, if we already have one report an error as we do not support multicasting.
     if (!this.subscriber.compareAndSet(null, subscriber)) {
+      // TODO Quite unhappy with this.
       subscriber.onSubscribe(new EmptySubscription());
-      subscriber.onError(new IllegalStateException("Multicasting not supported"));
       return;
     }
 
@@ -143,6 +156,10 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
     }
   }
 
+  public boolean isConnected() {
+    return this.subscriber.get() != null;
+  }
+
   @Override
   public void onError(Throwable throwable) {
     Objects.requireNonNull(throwable);
@@ -151,7 +168,7 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
       subscriber.get().onError(throwable);
       state.set(State.FAILED);
     } else if (state.get() == State.FAILED || state.get() == State.COMPLETE || state.get() == State.IDLE) {
-      throw new IllegalStateException("Invalid transition, cannot handle onError in " + state.get().name());
+      throw new IllegalStateException("Invalid transition, cannot handle onError in " + state.get().name(), throwable);
     } else {
       state.set(State.FAILED);
     }

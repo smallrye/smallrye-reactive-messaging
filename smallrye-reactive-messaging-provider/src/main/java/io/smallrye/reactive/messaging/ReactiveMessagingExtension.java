@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.apache.logging.log4j.LogManager;
@@ -57,7 +58,6 @@ public class ReactiveMessagingExtension implements Extension {
     boolean isPublisherBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), PublisherBuilder.class);
     boolean isSubscriber = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), Subscriber.class);
     boolean isSubscriberBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), SubscriberBuilder.class);
-    // TODO Support publisher and subscriber not consuming / producing messages, if not, wrap the payload into messages
     // TODO is it abusing the @Named annotation?
     if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isPublisher) {
       LOGGER.info("Found a publisher producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
@@ -86,30 +86,36 @@ public class ReactiveMessagingExtension implements Extension {
     this.factory = beanManager.createInstance().select(MediatorFactory.class).stream().findFirst()
       .orElseThrow(() -> new IllegalStateException("Unable to find the " + MediatorFactory.class.getName() + " component"));
 
-    collected.publisherProducers.forEach((name, producer) -> {
-      Object produced = producer.produce(beanManager.createCreationalContext(null));
-      if (produced instanceof Publisher) {
-        registry.register(name, (Publisher<? extends Message>) produced);
-      } else if (produced instanceof PublisherBuilder) {
-        registry.register(name, ((PublisherBuilder<? extends Message>) produced).buildRs());
-      }
-    });
+    ConfiguredStreamFactory configuredStreamFactory = beanManager.createInstance().select(ConfiguredStreamFactory.class).stream().findFirst()
+      .orElseThrow(() -> new IllegalStateException("Unable to find the " + ConfiguredStreamFactory.class.getName() + " component"));
 
-    collected.subscriberProducers.forEach((name, producer) -> {
-      Object produced = producer.produce(beanManager.createCreationalContext(null));
-      if (produced instanceof Subscriber) {
-        registry.register(name, (Subscriber<? extends Message>) produced);
-      } else if (produced instanceof  SubscriberBuilder) {
-        registry.register(name, ((SubscriberBuilder) produced).build());
-      }
-    });
+    configuredStreamFactory.initialize()
+      .thenAccept(v -> {
+        collected.publisherProducers.forEach((name, producer) -> {
+          Object produced = producer.produce(beanManager.createCreationalContext(null));
+          if (produced instanceof Publisher) {
+            registry.register(name, (Publisher<? extends Message>) produced);
+          } else if (produced instanceof PublisherBuilder) {
+            registry.register(name, ((PublisherBuilder<? extends Message>) produced).buildRs());
+          }
+        });
 
-    collected.mediators.forEach(this::createMediator);
+        collected.subscriberProducers.forEach((name, producer) -> {
+          Object produced = producer.produce(beanManager.createCreationalContext(null));
+          if (produced instanceof Subscriber) {
+            registry.register(name, (Subscriber<? extends Message>) produced);
+          } else if (produced instanceof  SubscriberBuilder) {
+            registry.register(name, ((SubscriberBuilder) produced).build());
+          }
+        });
 
-    mediators.forEach(mediator -> {
-      mediator.initialize(beanManager.createInstance().select(mediator.getConfiguration().getBeanClass()).get());
-      mediator.run();
-    });
+        collected.mediators.forEach(this::createMediator);
+
+        mediators.forEach(mediator -> {
+          mediator.initialize(beanManager.createInstance().select(mediator.getConfiguration().getBeanClass()).get());
+          mediator.run();
+        });
+      });
   }
 
 
@@ -117,8 +123,12 @@ public class ReactiveMessagingExtension implements Extension {
     Mediator mediator = factory.create(configuration);
     LOGGER.info("Mediator created for {}", configuration.methodAsString());
     mediators.add(mediator);
+    // TODO This should be bean somehow...
     if (mediator.getConfiguration().getOutgoingTopic() != null) {
       registry.register(mediator.getConfiguration().getOutgoingTopic(), mediator.getPublisher());
+    }
+    if (mediator.getConfiguration().getIncomingTopic() != null) {
+      registry.register(mediator.getConfiguration().getIncomingTopic(), mediator.getSubscriber());
     }
   }
 
@@ -128,7 +138,7 @@ public class ReactiveMessagingExtension implements Extension {
       hasVertxBeenInitializedHere = true;
       return Vertx.vertx();
     });
-    LOGGER.info("Vert.x instance: " + vertx);
+    LOGGER.debug("Vert.x instance: " + vertx);
   }
 
   public Vertx vertx() {
