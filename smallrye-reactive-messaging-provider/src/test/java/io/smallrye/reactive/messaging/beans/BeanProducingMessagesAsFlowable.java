@@ -4,7 +4,6 @@ import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.DefaultMessage;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 

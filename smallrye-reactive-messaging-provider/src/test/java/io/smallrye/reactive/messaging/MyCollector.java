@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class MyCollector {
 
-  List<Message<String>> result = new ArrayList<>();
+  final List<Message<String>> result = new ArrayList<>();
 
 
   @Produces
@@ -25,7 +25,7 @@ public class MyCollector {
   public Subscriber<Message<String>> sink() {
     CompletionSubscriber<Message<String>, List<Message<String>>> subscriber = ReactiveStreams.<Message<String>>builder()
       .toList().build();
-    subscriber.getCompletion().thenAccept(list -> result.addAll(list));
+    subscriber.getCompletion().thenAccept(result::addAll);
     return subscriber;
   }
 

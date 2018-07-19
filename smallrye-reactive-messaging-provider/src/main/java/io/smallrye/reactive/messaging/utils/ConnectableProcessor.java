@@ -20,7 +20,6 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
     PROCESSING, // Processing started
     FAILED, // Caught an error, final state
     COMPLETE // Completed, final state
-    ;
   }
   /**
    * Reference of the subscriber if any.
@@ -156,8 +155,8 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
     }
   }
 
-  public boolean isConnected() {
-    return this.subscriber.get() != null;
+  public boolean isNotConnected() {
+    return this.subscriber.get() == null;
   }
 
   @Override

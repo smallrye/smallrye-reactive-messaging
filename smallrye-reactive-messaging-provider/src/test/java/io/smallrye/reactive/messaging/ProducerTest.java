@@ -39,15 +39,15 @@ public class ProducerTest extends WeldTestBase {
     assertThatSubscriberWasPublished(container);
   }
 
+  @SuppressWarnings("unchecked")
   private void assertThatSubscriberWasPublished(WeldContainer container) {
     assertThat(registry(container).getSubscriberNames()).contains("subscriber");
     Optional<Subscriber<? extends Message>> subscriber = registry(container).getSubscriber("subscriber");
     assertThat(subscriber).isNotEmpty();
     List<String> list = new ArrayList<>();
-    Subscriber<Message> actualSubscriber = (Subscriber<Message>) subscriber.get();
     Flowable.just("a", "b", "c").map(DefaultMessage::create)
       .doOnNext(m -> list.add(m.getPayload()))
-      .subscribe(actualSubscriber);
+      .subscribe(((Subscriber<Message>) subscriber.orElseThrow(() -> new AssertionError("Subscriber should be present"))));
     assertThat(list).containsExactly("a", "b", "c");
   }
 

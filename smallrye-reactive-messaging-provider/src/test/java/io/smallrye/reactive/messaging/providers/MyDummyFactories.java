@@ -25,7 +25,7 @@ public class MyDummyFactories implements PublisherFactory, SubscriberFactory {
     return Dummy.class;
   }
 
-  private List<String> list = new ArrayList<>();
+  private final List<String> list = new ArrayList<>();
   private boolean completed = false;
 
   public void reset() {

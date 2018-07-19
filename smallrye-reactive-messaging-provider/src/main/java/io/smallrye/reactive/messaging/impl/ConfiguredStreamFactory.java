@@ -38,8 +38,8 @@ public class ConfiguredStreamFactory {
   private final ReactiveMessagingExtension extension;
   private final StreamRegistry registry;
 
-  private Map<String, Publisher<? extends Message>> sources = new HashMap<>();
-  private Map<String, Subscriber<? extends Message>> sinks = new HashMap<>();
+  private final Map<String, Publisher<? extends Message>> sources = new HashMap<>();
+  private final Map<String, Subscriber<? extends Message>> sinks = new HashMap<>();
 
   @Inject
   public ConfiguredStreamFactory(@Any Instance<PublisherFactory> sourceFactories, @Any Instance<SubscriberFactory> sinkFactories,

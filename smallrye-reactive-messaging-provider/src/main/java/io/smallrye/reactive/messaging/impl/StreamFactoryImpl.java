@@ -28,7 +28,7 @@ public class StreamFactoryImpl implements StreamFactory {
   private final Vertx vertx;
   private final StreamRegistry registry;
 
-  private Map<String, PublisherFactory> publisherFactories = new HashMap<>();
+  private final Map<String, PublisherFactory> publisherFactories = new HashMap<>();
   private Map<String, SubscriberFactory> subscriberFactories = new HashMap<>();
 
 

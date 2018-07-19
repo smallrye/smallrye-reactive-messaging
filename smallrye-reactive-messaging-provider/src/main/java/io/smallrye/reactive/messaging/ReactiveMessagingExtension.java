@@ -26,10 +26,10 @@ public class ReactiveMessagingExtension implements Extension {
   private Vertx vertx;
   private boolean hasVertxBeenInitializedHere = false;
 
-  private Collected collected = new Collected();
+  private final Collected collected = new Collected();
   private StreamRegistry registry;
   private MediatorFactory factory;
-  private List<Mediator> mediators = new ArrayList<>();
+  private final List<Mediator> mediators = new ArrayList<>();
 
 
   <T> void processAnnotatedType(@Observes @WithAnnotations({Incoming.class, Outgoing.class}) ProcessAnnotatedType<T> pat) {
@@ -147,10 +147,10 @@ public class ReactiveMessagingExtension implements Extension {
 
 
   private class Collected {
-    private Map<String, Producer> publisherProducers = new HashMap<>();
-    private Map<String, Producer> subscriberProducers = new HashMap<>();
+    private final Map<String, Producer> publisherProducers = new HashMap<>();
+    private final Map<String, Producer> subscriberProducers = new HashMap<>();
 
-    private List<MediatorConfiguration> mediators = new ArrayList<>();
+    private final List<MediatorConfiguration> mediators = new ArrayList<>();
 
     void addPublisher(String name, Producer producer) {
       if (publisherProducers.put(name, producer) != null) {

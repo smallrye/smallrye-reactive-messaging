@@ -20,8 +20,6 @@ public class ConfiguredSourceAndSinkTest extends WeldTestBase {
     MyDummyFactories bean = container.getBeanManager().createInstance().select(MyDummyFactories.class).get();
     assertThat(bean.list()).containsExactly("8", "10", "12");
     assertThat(bean.gotCompletion()).isTrue();
-
-
   }
 
 }

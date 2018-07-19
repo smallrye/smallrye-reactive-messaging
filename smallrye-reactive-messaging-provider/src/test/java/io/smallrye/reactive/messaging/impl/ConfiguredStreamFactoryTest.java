@@ -67,6 +67,7 @@ public class ConfiguredStreamFactoryTest {
       return getOptionalValue(s, aClass).orElseThrow(() -> new IllegalArgumentException("Key not found: " + s));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> getOptionalValue(String s, Class<T> aClass) {
       return Optional.ofNullable((T) backend.get(s));

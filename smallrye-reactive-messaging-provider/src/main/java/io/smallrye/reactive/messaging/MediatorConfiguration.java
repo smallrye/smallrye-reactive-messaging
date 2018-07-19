@@ -92,16 +92,14 @@ public class MediatorConfiguration {
       || ClassUtils.isAssignable(type, PublisherBuilder.class)
       ) {
       // Extract the internal type - for all these type it's the first (unique) parameter
-      Type enclosed = parameterizedType.getActualTypeArguments()[0];
-      producedPayloadType = enclosed;
+      producedPayloadType = parameterizedType.getActualTypeArguments()[0];
       return;
     }
 
     if (ClassUtils.isAssignable(type, ProcessorBuilder.class)
       || ClassUtils.isAssignable(type, Processor.class)) {
       // Extract the internal type - for all these type it's the second parameter
-      Type enclosed = parameterizedType.getActualTypeArguments()[1];
-      producedPayloadType = enclosed;
+      producedPayloadType = parameterizedType.getActualTypeArguments()[1];
       return;
     }
 

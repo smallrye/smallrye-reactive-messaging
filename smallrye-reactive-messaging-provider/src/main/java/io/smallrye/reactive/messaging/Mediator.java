@@ -194,7 +194,7 @@ public class Mediator {
 
   public void run() {
 
-    if (subscriber != null  && ! output.isConnected()) {
+    if (subscriber != null  && output.isNotConnected()) {
         output.subscribe(subscriber);
     }
 
@@ -203,7 +203,7 @@ public class Mediator {
       .subscribe(output);
 
     if (source != null) {
-      if (source instanceof ConnectableProcessor  && ! ((ConnectableProcessor) source).isConnected()) {
+      if (source instanceof ConnectableProcessor  && ((ConnectableProcessor) source).isNotConnected()) {
         source.subscribe(input);
       } else if (! (source instanceof ConnectableProcessor)) {
         source.subscribe(input);

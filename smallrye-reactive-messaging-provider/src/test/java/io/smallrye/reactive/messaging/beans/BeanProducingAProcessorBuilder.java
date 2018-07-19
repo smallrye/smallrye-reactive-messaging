@@ -7,7 +7,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
-import org.reactivestreams.Processor;
 
 import javax.enterprise.context.ApplicationScoped;
 

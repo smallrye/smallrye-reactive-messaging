@@ -6,7 +6,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
-import org.reactivestreams.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 
