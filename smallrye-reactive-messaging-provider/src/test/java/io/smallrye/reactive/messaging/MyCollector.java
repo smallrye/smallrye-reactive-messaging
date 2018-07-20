@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class MyCollector {
 
-  final List<Message<String>> result = new ArrayList<>();
+  private final List<Message<String>> result = new ArrayList<>();
 
 
   @Produces
