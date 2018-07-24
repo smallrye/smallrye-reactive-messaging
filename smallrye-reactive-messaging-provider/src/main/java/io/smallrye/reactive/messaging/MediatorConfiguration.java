@@ -93,6 +93,7 @@ public class MediatorConfiguration {
       ) {
       // Extract the internal type - for all these type it's the first (unique) parameter
       producedPayloadType = parameterizedType.getActualTypeArguments()[0];
+      System.out.println(producedPayloadType);
       return;
     }
 
@@ -212,5 +213,19 @@ public class MediatorConfiguration {
 
   public boolean isProducingPayloads() {
     return producedPayloadType != null && !TypeUtils.isAssignable(producedPayloadType, Message.class);
+  }
+
+  public boolean isReturningCompletionStageOfMessage() {
+    Class<?> type = method.getReturnType();
+    if (! isClassASubTypeOf(type, CompletionStage.class)) {
+      return false;
+    }
+    Type grt = method.getGenericReturnType();
+    if (grt instanceof ParameterizedType) {
+      ParameterizedType pt = (ParameterizedType) grt;
+      Type param = pt.getActualTypeArguments()[0];
+      return TypeUtils.isAssignable(param, Message.class);
+    }
+    return false;
   }
 }

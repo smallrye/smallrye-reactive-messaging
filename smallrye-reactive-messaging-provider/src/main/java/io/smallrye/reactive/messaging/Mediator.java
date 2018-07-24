@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import hu.akarnokd.rxjava2.interop.SingleInterop;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.utils.ConnectableProcessor;
 import org.apache.commons.lang3.StringUtils;
@@ -14,6 +15,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.CompletionStage;
 
 public class Mediator {
 
@@ -86,7 +88,9 @@ public class Mediator {
         // Check if the method expect a payload or a message
         // Same for the returned type
         boolean consumePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getParameterType(), Message.class);
-        boolean producePayload = ! MediatorConfiguration.isClassASubTypeOf(config.getReturnType(), Message.class);
+        boolean produceACompletionStage = MediatorConfiguration.isClassASubTypeOf(config.getReturnType(), CompletionStage.class);
+        boolean producePayload = (! produceACompletionStage  && ! MediatorConfiguration.isClassASubTypeOf(config.getReturnType(), Message.class))
+          ||  (produceACompletionStage  && ! config.isReturningCompletionStageOfMessage());
 
         flowable = flow
           .compose(f -> {
@@ -96,6 +100,13 @@ public class Mediator {
             return f.cast(Object.class);
           })
           .map(this::invokeMethodWithItem)
+          .compose(f -> {
+            if (produceACompletionStage) {
+              return f.concatMap(item -> SingleInterop.fromFuture(((CompletionStage) item)).toFlowable());
+            } else {
+              return f;
+            }
+          })
           .compose(f -> {
             if (producePayload) {
               return f.map(DefaultMessage::create);
