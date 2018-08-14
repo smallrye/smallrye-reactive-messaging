@@ -81,7 +81,7 @@ public class Mediator {
             // The cast is used to indicate that we are not expecting a message, but objects at that point.
             // without the mapper cannot be called (cast exception)
             .cast(Object.class)
-            .map(DefaultMessage::create);
+            .map(Message::of);
         }
       } else {
         // Receive individual items
@@ -109,7 +109,7 @@ public class Mediator {
           })
           .compose(f -> {
             if (producePayload) {
-              return f.map(DefaultMessage::create);
+              return f.map(Message::of);
             } else {
               return f.cast(Message.class);
             }
@@ -168,21 +168,21 @@ public class Mediator {
     }
     if (result instanceof Flowable) {
       if (mustWrap) {
-        return ((Flowable) result).map(DefaultMessage::create);
+        return ((Flowable) result).map(Message::of);
       } else {
         return (Flowable) result;
       }
     }
     if (result instanceof Publisher) {
       if (mustWrap) {
-        return Flowable.fromPublisher((Publisher) result).map(DefaultMessage::create);
+        return Flowable.fromPublisher((Publisher) result).map(Message::of);
       } else {
         return Flowable.fromPublisher((Publisher) result);
       }
     }
     if (result instanceof PublisherBuilder) {
       if (mustWrap) {
-        return Flowable.fromPublisher(((PublisherBuilder) result).buildRs()).map(DefaultMessage::create);
+        return Flowable.fromPublisher(((PublisherBuilder) result).buildRs()).map(Message::of);
       } else {
         return Flowable.fromPublisher(((PublisherBuilder) result).buildRs());
       }

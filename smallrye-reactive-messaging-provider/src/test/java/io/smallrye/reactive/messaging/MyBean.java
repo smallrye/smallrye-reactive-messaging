@@ -36,7 +36,7 @@ public class MyBean {
   @Produces
   @Named("my-dummy-stream")
   Publisher<Message<String>> stream() {
-    return Flowable.just("foo", "bar").map(DefaultMessage::create);
+    return Flowable.just("foo", "bar").map(Message::of);
   }
 
   @Produces

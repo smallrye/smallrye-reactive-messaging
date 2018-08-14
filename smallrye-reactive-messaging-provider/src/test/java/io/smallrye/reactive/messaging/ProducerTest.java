@@ -45,7 +45,7 @@ public class ProducerTest extends WeldTestBase {
     Optional<Subscriber<? extends Message>> subscriber = registry(container).getSubscriber("subscriber");
     assertThat(subscriber).isNotEmpty();
     List<String> list = new ArrayList<>();
-    Flowable.just("a", "b", "c").map(DefaultMessage::create)
+    Flowable.just("a", "b", "c").map(Message::of)
       .doOnNext(m -> list.add(m.getPayload()))
       .subscribe(((Subscriber<Message>) subscriber.orElseThrow(() -> new AssertionError("Subscriber should be present"))));
     assertThat(list).containsExactly("a", "b", "c");

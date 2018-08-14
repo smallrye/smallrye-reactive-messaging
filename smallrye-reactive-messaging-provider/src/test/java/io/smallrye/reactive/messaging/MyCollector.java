@@ -32,7 +32,7 @@ public class MyCollector {
   @Produces
   @Named("count")
   public Publisher<Message<Integer>> source() {
-    return Flowable.range(0, 10).map(DefaultMessage::create);
+    return Flowable.range(0, 10).map(Message::of);
   }
 
   public List<String> payloads() {

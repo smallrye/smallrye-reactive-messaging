@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.providers;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.DefaultMessage;
 import io.smallrye.reactive.messaging.spi.PublisherFactory;
 import io.smallrye.reactive.messaging.spi.SubscriberFactory;
 import io.vertx.reactivex.core.Vertx;
@@ -50,7 +49,7 @@ public class MyDummyFactories implements PublisherFactory, SubscriberFactory {
   @Override
   public CompletionStage<Publisher<? extends Message>> createPublisher(Vertx vertx, Map<String, String> config) {
     int increment = Integer.parseInt(config.getOrDefault("increment", "1"));
-    return CompletableFuture.completedFuture(Flowable.just(1, 2, 3).map(i -> i + increment).map(DefaultMessage::create));
+    return CompletableFuture.completedFuture(Flowable.just(1, 2, 3).map(i -> i + increment).map(Message::of));
   }
 
   public boolean gotCompletion() {
