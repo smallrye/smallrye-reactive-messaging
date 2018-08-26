@@ -10,7 +10,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class BeanProducingMessagesAsFlowable {
 
 
-  @Outgoing(topic = "sink")
+  @Outgoing("sink")
   public Flowable<Message<String>> publisher() {
     return Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i))
       .map(Message::of);

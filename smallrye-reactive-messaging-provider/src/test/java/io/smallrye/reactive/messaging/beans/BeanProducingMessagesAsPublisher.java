@@ -11,7 +11,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class BeanProducingMessagesAsPublisher {
 
 
-  @Outgoing(topic = "sink")
+  @Outgoing("sink")
   public Publisher<Message<String>> publisher() {
     return Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i)).map(Message::of);
   }

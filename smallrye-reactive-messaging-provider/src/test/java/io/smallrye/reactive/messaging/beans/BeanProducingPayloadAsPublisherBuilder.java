@@ -11,7 +11,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class BeanProducingPayloadAsPublisherBuilder {
 
 
-  @Outgoing(topic = "sink")
+  @Outgoing("sink")
   public PublisherBuilder<String> publisher() {
     return ReactiveStreams.fromPublisher(Flowable.range(1, 10))
       .flatMapPublisher(i -> Flowable.just(i, i))

@@ -10,8 +10,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class BeanConsumingItemAsPublisherBuilderAndPublishingItemAsPublisherBuilder {
 
-  @Incoming(topic = "count")
-  @Outgoing(topic = "sink")
+  @Incoming("count")
+  @Outgoing("sink")
   public PublisherBuilder<String> process(PublisherBuilder<Integer> source) {
     return source
       .map(i -> i + 1)

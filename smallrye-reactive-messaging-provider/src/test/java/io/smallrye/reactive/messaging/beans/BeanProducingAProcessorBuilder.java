@@ -12,8 +12,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class BeanProducingAProcessorBuilder {
 
-  @Incoming(topic = "count")
-  @Outgoing(topic = "sink")
+  @Incoming("count")
+  @Outgoing("sink")
   public ProcessorBuilder<Message<Integer>, Message<String>> process() {
     return ReactiveStreams.<Message<Integer>>builder()
       .map(Message::getPayload)

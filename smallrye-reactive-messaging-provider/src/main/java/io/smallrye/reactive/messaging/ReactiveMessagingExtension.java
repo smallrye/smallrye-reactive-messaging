@@ -18,6 +18,8 @@ import javax.enterprise.inject.spi.*;
 import javax.inject.Named;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class ReactiveMessagingExtension implements Extension {
 
@@ -86,10 +88,11 @@ public class ReactiveMessagingExtension implements Extension {
     this.factory = beanManager.createInstance().select(MediatorFactory.class).stream().findFirst()
       .orElseThrow(() -> new IllegalStateException("Unable to find the " + MediatorFactory.class.getName() + " component"));
 
-    ConfiguredStreamFactory configuredStreamFactory = beanManager.createInstance().select(ConfiguredStreamFactory.class).stream().findFirst()
-      .orElseThrow(() -> new IllegalStateException("Unable to find the " + ConfiguredStreamFactory.class.getName() + " component"));
+    Collection<StreamRegistar> registars = beanManager.createInstance().select(StreamRegistar.class).stream().collect(Collectors.toList());
 
-    configuredStreamFactory.initialize()
+    CompletableFuture.allOf(
+      registars.stream().map(StreamRegistar::initialize).toArray(CompletableFuture[]::new)
+    )
       .thenAccept(v -> {
         collected.publisherProducers.forEach((name, producer) -> {
           Object produced = producer.produce(beanManager.createCreationalContext(null));

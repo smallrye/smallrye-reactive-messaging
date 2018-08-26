@@ -9,8 +9,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class BeanConsumingItemsAndProducingMessages {
 
-  @Incoming(topic = "count")
-  @Outgoing(topic = "sink")
+  @Incoming("count")
+  @Outgoing("sink")
   public Message<String> process(int value) {
     return Message.of(Integer.toString(value + 1));
   }

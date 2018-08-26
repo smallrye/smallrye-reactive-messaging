@@ -11,8 +11,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class BeanConsumingMsgAsFlowableAndPublishingMsgAsPublisher {
 
-  @Incoming(topic = "count")
-  @Outgoing(topic = "sink")
+  @Incoming("count")
+  @Outgoing("sink")
   public Publisher<Message<String>> process(Flowable<Message<Integer>> source) {
     return source
       .map(Message::getPayload)

@@ -11,8 +11,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class BeanProducingAProcessorOfItem {
 
-  @Incoming(topic = "count")
-  @Outgoing(topic = "sink")
+  @Incoming("count")
+  @Outgoing("sink")
   public Processor<Integer, String> process() {
     return ReactiveStreams.<Integer>builder()
       .map(i -> i + 1)

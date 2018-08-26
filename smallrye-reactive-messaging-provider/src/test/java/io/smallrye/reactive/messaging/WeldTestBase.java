@@ -10,6 +10,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.Collections;
 import java.util.List;
 
 public class WeldTestBase {
@@ -32,9 +33,18 @@ public class WeldTestBase {
     // Messaging provider
     weld.addBeanClass(MyDummyFactories.class);
 
+    List<Class> beans = getBeans();
+    beans.forEach(c -> weld.addBeanClass(c));
+
     weld.addExtension(new ReactiveMessagingExtension());
 
     weld.addBeanClass(MyCollector.class);
+
+
+  }
+
+  public List<Class> getBeans() {
+    return Collections.emptyList();
   }
 
   @After

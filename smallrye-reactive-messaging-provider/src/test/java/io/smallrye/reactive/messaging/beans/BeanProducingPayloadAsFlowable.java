@@ -9,7 +9,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class BeanProducingPayloadAsFlowable {
 
 
-  @Outgoing(topic = "sink")
+  @Outgoing("sink")
   public Flowable<String> publisher() {
     return Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i));
   }

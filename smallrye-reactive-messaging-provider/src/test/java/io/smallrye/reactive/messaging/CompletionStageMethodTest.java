@@ -3,12 +3,14 @@ package io.smallrye.reactive.messaging;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.beans.*;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Ignore("These test must be rewritten as the spec mandates that CS result are discarded")
 public class CompletionStageMethodTest extends WeldTestBase {
 
   private static final List<String> LIST =

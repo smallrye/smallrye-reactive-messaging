@@ -57,7 +57,7 @@ public class MediatorConfiguration {
     if (outgoing == null) {
       return null;
     }
-    return outgoing.topic();
+    return outgoing.value();
   }
 
   public String getOutgoingProviderType() {
@@ -148,10 +148,11 @@ public class MediatorConfiguration {
     if (incoming == null) {
       return null;
     }
-    if (Strings.isBlank(incoming.topic())) {
-     throw new IllegalArgumentException("The @Incoming annotation must contain a non-blank topic");
+    if (Strings.isBlank(incoming.value())) {
+      // TODO is that true?
+     throw new IllegalArgumentException("The @Incoming annotation must contain a non-blank value");
     }
-    return incoming.topic();
+    return incoming.value();
   }
 
   public String getIncomingProviderType() {

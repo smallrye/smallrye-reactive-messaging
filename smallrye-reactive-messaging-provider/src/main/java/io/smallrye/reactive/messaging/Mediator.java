@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging;
 
-import hu.akarnokd.rxjava2.interop.SingleInterop;
 import io.reactivex.Flowable;
+import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.utils.ConnectableProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -99,14 +99,17 @@ public class Mediator {
             }
             return f.cast(Object.class);
           })
-          .map(this::invokeMethodWithItem)
-          .compose(f -> {
-            if (produceACompletionStage) {
-              return f.concatMap(item -> SingleInterop.fromFuture(((CompletionStage) item)).toFlowable());
-            } else {
-              return f;
-            }
-          })
+          .flatMap(item ->
+            Flowable.just(item)
+              .map(this::invokeMethodWithItem)
+              .compose(f -> {
+                if (produceACompletionStage) {
+                  return f.flatMap(cs -> fromCompletionStage((CompletionStage) cs), 1);
+                } else {
+                  return f;
+                }
+              })
+              .retry(1)) // TODO make it configurable
           .compose(f -> {
             if (producePayload) {
               return f.map(Message::of);
@@ -232,5 +235,25 @@ public class Mediator {
 
   public Subscriber<? extends Message> getSubscriber() {
     return input;
+  }
+
+  /**
+   * Returns a Flowable that emits the completion when the CompletionStage receives a value. Propagate the error when an error is passed.
+   * @param <T> the value type
+   * @param future the source CompletionStage instance
+   * @return the new Completable instance
+   */
+  public static <T> Flowable<T> fromCompletionStage(CompletionStage<T> future) {
+    UnicastProcessor<T> cs = UnicastProcessor.create();
+
+    future.whenComplete((v, e) -> {
+      if (e != null) {
+        cs.onError(e);
+      } else {
+        cs.onComplete();
+      }
+    });
+
+    return cs;
   }
 }

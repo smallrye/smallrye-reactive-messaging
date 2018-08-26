@@ -12,7 +12,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class BeanProducingMessagesAsPublisherBuilder {
 
 
-  @Outgoing(topic = "sink")
+  @Outgoing("sink")
   public PublisherBuilder<Message<String>> publisher() {
     return ReactiveStreams.fromPublisher(Flowable.range(1, 10))
       .flatMapPublisher(i -> Flowable.just(i, i))

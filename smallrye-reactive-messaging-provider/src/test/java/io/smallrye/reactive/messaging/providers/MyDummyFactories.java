@@ -19,13 +19,13 @@ import java.util.concurrent.CompletionStage;
 
 @ApplicationScoped
 public class MyDummyFactories implements PublisherFactory, SubscriberFactory {
+  private final List<String> list = new ArrayList<>();
+  private boolean completed = false;
+
   @Override
   public Class<? extends MessagingProvider> type() {
     return Dummy.class;
   }
-
-  private final List<String> list = new ArrayList<>();
-  private boolean completed = false;
 
   public void reset() {
     list.clear();

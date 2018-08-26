@@ -20,14 +20,14 @@ public class MyBean {
 
   static final List<String> COLLECTOR = new ArrayList<>();
 
-  @Incoming(topic = "my-dummy-stream")
-  @Outgoing(topic = "toUpperCase")
+  @Incoming("my-dummy-stream")
+  @Outgoing("toUpperCase")
   public Publisher<String> toUppercase(Flowable<String> input) {
     return input.map(String::toUpperCase);
   }
 
-  @Incoming(topic = "toUpperCase")
-  @Outgoing(topic = "my-output")
+  @Incoming("toUpperCase")
+  @Outgoing("my-output")
   public PublisherBuilder<String> duplicate(PublisherBuilder<String> input) {
     return input.flatMap(s -> ReactiveStreams.of(s, s));
   }

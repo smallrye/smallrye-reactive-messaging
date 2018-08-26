@@ -11,8 +11,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class BeanConsumingMsgAsPublisherBuilderAndPublishingMsgAsPublisherBuilder {
 
-  @Incoming(topic = "count")
-  @Outgoing(topic = "sink")
+  @Incoming("count")
+  @Outgoing("sink")
   public PublisherBuilder<Message<String>> process(PublisherBuilder<Message<Integer>> source) {
     return source
       .map(Message::getPayload)

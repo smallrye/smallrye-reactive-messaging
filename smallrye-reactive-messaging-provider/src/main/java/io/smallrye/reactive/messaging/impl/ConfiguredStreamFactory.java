@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.impl;
 
 import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.spi.PublisherFactory;
 import io.smallrye.reactive.messaging.spi.SubscriberFactory;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
  * Look for stream factories and createPublisher instances.
  */
 @ApplicationScoped
-public class ConfiguredStreamFactory {
+public class ConfiguredStreamFactory implements StreamRegistar {
 
   private static final Logger LOGGER = LogManager.getLogger(ConfiguredStreamFactory.class);
   public static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
@@ -74,6 +75,7 @@ public class ConfiguredStreamFactory {
     return configs;
   }
 
+  @Override
   public CompletionStage<Void> initialize() {
     LOGGER.info("Stream manager initializing...");
     Map<String, Map<String, String>> sourceConfiguration = extractConfigurationFor(SOURCE_CONFIG_PREFIX, config);
