@@ -1,8 +1,6 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.vertx.reactivex.core.Vertx;
-import org.apache.commons.lang3.reflect.TypeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -14,7 +12,9 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
+import javax.enterprise.util.TypeLiteral;
 import javax.inject.Named;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -55,28 +55,88 @@ public class ReactiveMessagingExtension implements Extension {
     }
   }
 
-  void collectPublisherAndSubscriberProducer(@Observes ProcessProducer producer) {
-    boolean isPublisher = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), Publisher.class);
-    boolean isPublisherBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), PublisherBuilder.class);
-    boolean isSubscriber = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), Subscriber.class);
-    boolean isSubscriberBuilder = TypeUtils.isAssignable(producer.getAnnotatedMember().getBaseType(), SubscriberBuilder.class);
-    // TODO is it abusing the @Named annotation?
-    if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isPublisher) {
-      LOGGER.info("Found a publisher producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
-      collected.addPublisher(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
+  <X extends Publisher<? extends Message<?>>> void wrapPublisherProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
+    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
+      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
+      LOGGER.info("Found a publisher producer named: " + name);
+
+      Producer<X> oldProducer = pp.getProducer();
+
+      pp.configureProducer().produceWith(creationalContext -> {
+        StreamRegistry reg = getRegistry(bm);
+        if (reg.getPublisherNames().contains(name)) {
+          LOGGER.warn("Found the Publisher producer named '{}', however this name was already used by {}", name, reg.getPublisher(name).toString());
+        }
+        reg.register(name, oldProducer.produce(creationalContext));
+        return (X) reg.getPublisher(name).get();
+      });
     }
-    if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isPublisherBuilder) {
-      LOGGER.info("Found a publisher builder producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
-      collected.addPublisher(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
+  }
+
+  <X extends PublisherBuilder<? extends Message>> void wrapPublisherBuilderProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
+    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
+      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
+      LOGGER.info("Found a publisher builder producer named: " + name);
+
+      Producer<X> oldProducer = pp.getProducer();
+
+      pp.configureProducer().produceWith(creationalContext -> {
+        StreamRegistry reg = getRegistry(bm);
+        X res = oldProducer.produce(creationalContext);
+
+        if (reg.getPublisherNames().contains(name)) {
+          LOGGER.warn("Found the Publisher producer (as a builder) named '{}', however this name was already used by {}", name, reg.getPublisher(name).toString());
+        }
+        reg.register(name, res.buildRs());
+        return res;
+      });
     }
-    if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isSubscriber) {
-      LOGGER.info("Found a subscriber producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
-      collected.addSubscriber(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
+  }
+
+  <X extends Subscriber<? extends Message<?>>> void wrapSubscriberProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
+    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
+      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
+      LOGGER.info("Found a subscriber producer named: " + name);
+
+      Producer<X> oldProducer = pp.getProducer();
+
+      pp.configureProducer().produceWith(creationalContext -> {
+        StreamRegistry reg = getRegistry(bm);
+        if (reg.getSubscriberNames().contains(name)) {
+          LOGGER.warn("Found the Subscriber producer named '{}', however this name was already used by {}", name, reg.getSubscriber(name).toString());
+        }
+        reg.register(name, oldProducer.produce(creationalContext));
+        return (X) reg.getSubscriber(name).get();
+      });
     }
-    if (producer.getAnnotatedMember().isAnnotationPresent(Named.class) && isSubscriberBuilder) {
-      LOGGER.info("Found a subscriber builder producer named: " + producer.getAnnotatedMember().getAnnotation(Named.class).value());
-      collected.addSubscriber(producer.getAnnotatedMember().getAnnotation(Named.class).value(), producer.getProducer());
+  }
+
+  <X extends SubscriberBuilder<? extends Message, ?>> void wrapSubscriberBuilderProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
+    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
+      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
+      LOGGER.info("Found a subscriber builder producer named: " + name);
+
+      Producer<X> oldProducer = pp.getProducer();
+
+      pp.configureProducer().produceWith(creationalContext -> {
+        StreamRegistry reg = getRegistry(bm);
+        X res = oldProducer.produce(creationalContext);
+
+        if (reg.getSubscriberNames().contains(name)) {
+          LOGGER.warn("Found the Subscriber producer (as a builder) named '{}', however this name was already used by {}", name, reg.getSubscriber(name).toString());
+        }
+        reg.register(name, res.build());
+        return res;
+      });
     }
+  }
+
+  private StreamRegistry getRegistry(BeanManager bm) {
+    if (registry == null) {
+      registry = bm.createInstance().select(StreamRegistry.class).stream().findFirst()
+        .orElseThrow(() -> new IllegalStateException("Unable to find the " + StreamRegistry.class.getName() + " component"));
+    }
+    return registry;
   }
 
   void afterBeanDiscovery(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
@@ -90,26 +150,26 @@ public class ReactiveMessagingExtension implements Extension {
 
     Collection<StreamRegistar> registars = beanManager.createInstance().select(StreamRegistar.class).stream().collect(Collectors.toList());
 
+    Instance<Object> instance = beanManager.createInstance();
+
     CompletableFuture.allOf(
       registars.stream().map(StreamRegistar::initialize).toArray(CompletableFuture[]::new)
     )
       .thenAccept(v -> {
-        collected.publisherProducers.forEach((name, producer) -> {
-          Object produced = producer.produce(beanManager.createCreationalContext(null));
-          if (produced instanceof Publisher) {
-            registry.register(name, (Publisher<? extends Message>) produced);
-          } else if (produced instanceof PublisherBuilder) {
-            registry.register(name, ((PublisherBuilder<? extends Message>) produced).buildRs());
-          }
-        });
 
-        collected.subscriberProducers.forEach((name, producer) -> {
-          Object produced = producer.produce(beanManager.createCreationalContext(null));
-          if (produced instanceof Subscriber) {
-            registry.register(name, (Subscriber<? extends Message>) produced);
-          } else if (produced instanceof  SubscriberBuilder) {
-            registry.register(name, ((SubscriberBuilder) produced).build());
-          }
+        //requesting an instance for each Publisher and Subscriber bean
+
+        instance.select(new TypeLiteral<Publisher<?>>() {
+        }).forEach(d -> {
+        });
+        instance.select(new TypeLiteral<PublisherBuilder<?>>() {
+        }).forEach(d -> {
+        });
+        instance.select(new TypeLiteral<Subscriber<?>>() {
+        }).forEach(d -> {
+        });
+        instance.select(new TypeLiteral<SubscriberBuilder<?, ?>>() {
+        }).forEach(d -> {
         });
 
         collected.mediators.forEach(this::createMediator);
@@ -120,7 +180,6 @@ public class ReactiveMessagingExtension implements Extension {
         });
       });
   }
-
 
   private void createMediator(MediatorConfiguration configuration) {
     Mediator mediator = factory.create(configuration);
@@ -150,22 +209,8 @@ public class ReactiveMessagingExtension implements Extension {
 
 
   private class Collected {
-    private final Map<String, Producer> publisherProducers = new HashMap<>();
-    private final Map<String, Producer> subscriberProducers = new HashMap<>();
 
     private final List<MediatorConfiguration> mediators = new ArrayList<>();
-
-    void addPublisher(String name, Producer producer) {
-      if (publisherProducers.put(name, producer) != null) {
-        LOGGER.warn("Found the Publisher producer named '{}', however this name was already used by {}", name, producer);
-      }
-    }
-
-    void addSubscriber(String name, Producer producer) {
-      if (subscriberProducers.put(name, producer) != null) {
-        LOGGER.warn("Found the Subscriber producer named '{}', however this name was already used by {}", name, producer);
-      }
-    }
 
     void add(ProcessAnnotatedType pat, Method method) {
       mediators.add(createMediatorConfiguration(pat, method));
