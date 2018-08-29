@@ -1,6 +1,9 @@
 package io.smallrye.reactive.messaging.utils;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Processor;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -8,10 +11,11 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * A processor forwarding to a subscriber. This is used to connect a "next to be" producer.
+ * TODO
  */
-public class ConnectableProcessor<T> implements Processor<T, T> {
+public class StreamConnector<T> implements Processor<T, T> {
 
+  private final static Logger LOGGER = LogManager.getLogger(StreamConnector.class);
 
   private enum State {
     IDLE, // Start state
@@ -48,15 +52,23 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
 
   private final String name;
 
-  public ConnectableProcessor(String name) {
+  public StreamConnector(String name) {
     this.name = name;
   }
 
   @Override
   public String toString() {
-    return "ConnectableProcessor{" +
-      "name='" + name + '\'' +
-      '}';
+    return name;
+  }
+
+  public void connectUpstream(Publisher<T> publisher) {
+    publisher.subscribe(this);
+    LOGGER.debug("{} is now in state {}", name, state);
+  }
+
+  public void connectDownStream(Subscriber<? super  T> subscriber) {
+    subscribe(subscriber);
+    LOGGER.debug("{} is now in state {}", name, state);
   }
 
   @Override
@@ -79,15 +91,14 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
       } else if (state.get() == State.COMPLETE) {
         manageSubscribeInCompleteState(subscriber);
       } else if (state.get() == State.HAS_SUBSCRIPTION) {
-        manageSubscribeInTheHasSubscriptionState(subscriber);
+        manageSubscribeWhenWeHaveASubscriptionAlready(subscriber);
       } else {
         throw new RuntimeException("Illegal transition - subscribe happened in the " + state.get().name() + " state");
       }
-
     }
   }
 
-  private void manageSubscribeInTheHasSubscriptionState(Subscriber<? super T> subscriber) {
+  private void manageSubscribeWhenWeHaveASubscriptionAlready(Subscriber<? super T> subscriber) {
     // We already have a subscription, use it.
     // However, we could complete of failed in the meantime.
     subscriber.onSubscribe(
@@ -153,10 +164,6 @@ public class ConnectableProcessor<T> implements Processor<T, T> {
     } else {
       state.set(State.COMPLETE);
     }
-  }
-
-  public boolean isNotConnected() {
-    return this.subscriber.get() == null;
   }
 
   @Override

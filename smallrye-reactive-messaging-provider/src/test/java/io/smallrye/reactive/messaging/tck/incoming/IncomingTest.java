@@ -15,6 +15,7 @@ import java.util.List;
 import static io.smallrye.reactive.messaging.tck.incoming.Bean.*;
 import static org.junit.Assert.assertTrue;
 
+@Ignore("Work on the TCK")
 public class IncomingTest extends WeldTestBase  {
 
   @Override
@@ -90,6 +91,7 @@ public class IncomingTest extends WeldTestBase  {
   }
 
   @Test
+  @Ignore("Discuss retry")
   public void completionStageMethodShouldRetryMessagesThatFailSynchronously() {
     WeldContainer container = weld.initialize();
     MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();

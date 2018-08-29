@@ -176,22 +176,42 @@ public class ReactiveMessagingExtension implements Extension {
 
         mediators.forEach(mediator -> {
           mediator.initialize(beanManager.createInstance().select(mediator.getConfiguration().getBeanClass()).get());
-          mediator.run();
+          if (mediator.getConfiguration().isPublisher()) {
+            registry.register(mediator.getConfiguration().getOutgoing(), mediator.getOutput());
+          }
+          if (mediator.getConfiguration().isSubscriber()) {
+            registry.register(mediator.getConfiguration().getIncoming(), mediator.getInput());
+          }
         });
+
+        connectTheMediators();
       });
+  }
+
+  private void connectTheMediators() {
+    for (Mediator mediator : mediators) {
+      if (mediator.getConfiguration().isSubscriber()) {
+        // Search for the source
+        Publisher<? extends Message> publisher = registry.getPublisher(mediator.getConfiguration().getIncoming()).orElseThrow(() ->
+          new RuntimeException("Unable to find the data stream named " + mediator.getConfiguration().getIncoming()));
+        mediator.connect(publisher);
+      }
+
+      if (mediator.getConfiguration().isPublisher()) {
+        // Search for the sink
+        Subscriber<? extends Message> subscriber = registry.getSubscriber(mediator.getConfiguration().getOutgoing()).orElseThrow(() ->
+          new RuntimeException("Unable to find the data stream named " + mediator.getConfiguration().getOutgoing()));
+        mediator.connect(subscriber);
+      }
+    }
+
+
   }
 
   private void createMediator(MediatorConfiguration configuration) {
     Mediator mediator = factory.create(configuration);
     LOGGER.info("Mediator created for {}", configuration.methodAsString());
     mediators.add(mediator);
-    // TODO This should be bean somehow...
-    if (mediator.getConfiguration().getOutgoingTopic() != null) {
-      registry.register(mediator.getConfiguration().getOutgoingTopic(), mediator.getPublisher());
-    }
-    if (mediator.getConfiguration().getIncomingTopic() != null) {
-      registry.register(mediator.getConfiguration().getIncomingTopic(), mediator.getSubscriber());
-    }
   }
 
   private void getOrCreateVertxInstance(BeanManager beanManager) {

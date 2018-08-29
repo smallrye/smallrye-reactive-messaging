@@ -2,8 +2,7 @@ package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
 import io.reactivex.processors.UnicastProcessor;
-import io.smallrye.reactive.messaging.utils.ConnectableProcessor;
-import org.apache.commons.lang3.StringUtils;
+import io.smallrye.reactive.messaging.utils.StreamConnector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -22,33 +21,31 @@ public class Mediator {
   private static final Logger LOGGER = LogManager.getLogger(Mediator.class);
 
   private final MediatorConfiguration config;
-  private final StreamRegistry registry;
-  private final ConnectableProcessor output;
-  private final ConnectableProcessor input;
-  private Publisher<? extends Message> source;
-  private Subscriber<? extends Message> subscriber;
+  private final StreamConnector output;
+  private final StreamConnector input;
   private Flowable<? extends Message> flowable;
   private Object instance;
 
-  Mediator(MediatorConfiguration configuration, StreamRegistry registry) {
+  Mediator(MediatorConfiguration configuration) {
     this.config = configuration;
-    this.registry = registry;
-    this.output = new ConnectableProcessor<>("output: " + configuration.getOutgoingTopic());
-    this.input = new ConnectableProcessor<>("input: " +configuration.getIncomingTopic());
+    if (configuration.isPublisher()) {
+      this.output = new StreamConnector<>(getConfiguration().methodAsString() + "[output:" + configuration.getOutgoing() + "]");
+    } else {
+      this.output = null;
+    }
+    if (configuration.isSubscriber()) {
+      this.input = new StreamConnector<>(getConfiguration().methodAsString() + "[input: " + configuration.getIncoming() + "]");
+    } else {
+      this.input = null;
+    }
   }
 
 
   @SuppressWarnings("unchecked")
   public void initialize(Object instance) {
     this.instance = instance;
-    if (config.isSubscriber()) {
-      lookForSourceOrDie(config.getIncomingTopic());
-    }
-    if (config.isPublisher()) {
-      lookForSink(config.getOutgoingTopic());
-    }
 
-    if (source != null) {
+    if (this.input != null) {
       Flowable<? extends Message> flow = Flowable.fromPublisher(input);
       if (config.consumeAsStream()) {
         boolean consumePayloads = config.isConsumingPayloads();
@@ -194,46 +191,15 @@ public class Mediator {
     throw new IllegalArgumentException("Not support result type to create a Publisher: " + result.getClass());
   }
 
-  private void lookForSourceOrDie(String name) {
-    this.source = registry.getPublisher(name)
-      .orElseThrow(() -> new IllegalStateException("Cannot find publisher named: " + name + " for method " + config.methodAsString()));
-  }
-
-  private void lookForSink(String name) {
-    if (StringUtils.isBlank(name)) {
-      return;
-    }
-    this.subscriber = registry.getSubscriber(name).orElse(null);
-  }
-
-  public void run() {
-
-    if (subscriber != null  && output.isNotConnected()) {
-        output.subscribe(subscriber);
-    }
-
-    flowable
-      .doOnError(t -> LOGGER.error("Error caught when executing {}", config.methodAsString(), t))
-      .subscribe(output);
-
-    if (source != null) {
-      if (source instanceof ConnectableProcessor  && ((ConnectableProcessor) source).isNotConnected()) {
-        source.subscribe(input);
-      } else if (! (source instanceof ConnectableProcessor)) {
-        source.subscribe(input);
-      }
-    }
-  }
-
   public MediatorConfiguration getConfiguration() {
     return config;
   }
 
-  public Publisher<? extends Message> getPublisher() {
+  public Publisher<? extends Message> getOutput() {
     return output;
   }
 
-  public Subscriber<? extends Message> getSubscriber() {
+  public Subscriber<? extends Message> getInput() {
     return input;
   }
 
@@ -255,5 +221,22 @@ public class Mediator {
     });
 
     return cs;
+  }
+
+  public void connect(Publisher<? extends Message> publisher) {
+    if (input == null) {
+      throw new IllegalStateException("Cannot connect to upstream, the mediator does not expect a source");
+    }
+    LOGGER.info("Connecting {} to upstream '{}' ({})", config.methodAsString(), config.getIncoming(), publisher);
+    input.connectUpstream(publisher);
+  }
+
+  public void connect(Subscriber<? extends Message> subscriber) {
+    if (output == null) {
+      throw new IllegalStateException("Cannot connect to downstream, the mediator does not expect a sink");
+    }
+    LOGGER.info("Connecting {} to downstream '{}' ({})", config.methodAsString(), config.getOutgoing(), subscriber);
+    output.connectUpstream(flowable);
+    output.connectDownStream(subscriber);
   }
 }

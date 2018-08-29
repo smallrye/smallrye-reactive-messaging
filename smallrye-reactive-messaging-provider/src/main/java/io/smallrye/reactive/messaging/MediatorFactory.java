@@ -11,7 +11,7 @@ public class MediatorFactory {
 
 
   public Mediator create(MediatorConfiguration configuration) {
-    return new Mediator(configuration, registry);
+    return new Mediator(configuration);
   }
 
 }

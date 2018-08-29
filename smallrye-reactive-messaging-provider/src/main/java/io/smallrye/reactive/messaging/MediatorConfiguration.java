@@ -53,7 +53,7 @@ public class MediatorConfiguration {
     return this;
   }
 
-  public String getOutgoingTopic() {
+  public String getOutgoing() {
     if (outgoing == null) {
       return null;
     }
@@ -144,7 +144,7 @@ public class MediatorConfiguration {
     // TODO validate the types in the parameters
   }
 
-  public String getIncomingTopic() {
+  public String getIncoming() {
     if (incoming == null) {
       return null;
     }

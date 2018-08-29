@@ -37,7 +37,6 @@ public class StreamRegistryImpl implements StreamRegistry {
   public synchronized Optional<Publisher<? extends Message>> getPublisher(String name) {
     // TODO Should we also check for the config provider?
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
-    System.out.println("Retrieving publisher: " + name + " / " + publishers.get(name));
     return Optional.ofNullable(publishers.get(name));
   }
 
