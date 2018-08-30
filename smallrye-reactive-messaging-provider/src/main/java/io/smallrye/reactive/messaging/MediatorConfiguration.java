@@ -8,6 +8,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.SubscriberBuilder;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -123,10 +124,19 @@ public class MediatorConfiguration {
       if (method.getGenericReturnType() instanceof  ParameterizedType) {
         parameterizedType = (ParameterizedType) method.getGenericReturnType();
       }
-      if (parameterizedType == null  || ! (ClassUtils.isAssignable(ProcessorBuilder.class, type) || ClassUtils.isAssignable(Processor.class, type))) {
-        throw new IllegalStateException("Unable to determine the consumed type for " + methodAsString() + " - when the method does not has parameters, " +
-          "the return type must be Processor or ProcessorBuilder.");
+
+      // Supported types are: Processor, ProcessorBuilder, Subscriber, in all case the parameterized type must be set.
+      if (parameterizedType == null) {
+        throw new IllegalStateException("Unable to determine the consumed type for " + methodAsString() + " - expected a type parameter in the returned type");
       }
+
+      if (
+           !ClassUtils.isAssignable(ProcessorBuilder.class, type) && !ClassUtils.isAssignable(Processor.class, type)
+        && !ClassUtils.isAssignable(Subscriber.class, type) && !ClassUtils.isAssignable(SubscriberBuilder.class, type)
+        ) {
+        throw new IllegalStateException("Invalid returned type for " + methodAsString() + ", supported types are Processor, ProcessorBuilder, and Subscriber");
+      }
+
       consumedPayloadType = parameterizedType.getActualTypeArguments()[0];
       if (parameterizedType.getActualTypeArguments().length > 1) {
         // TODO this won't work for implementation having a single parameter, or more...

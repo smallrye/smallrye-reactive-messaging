@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
-import io.reactivex.functions.Consumer;
 import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.utils.StreamConnector;
 import org.apache.logging.log4j.LogManager;
@@ -10,6 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.SubscriberBuilder;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -28,9 +28,14 @@ public class Mediator {
   private Object instance;
 
   /**
-   * If the method return a subscriber or a subscriber builder, this is a reference on this subscriber.
+   * If the method returns a subscriber, this is a reference on this subscriber.
    */
   private Subscriber subscriber;
+
+  /**
+   * If the method returns a publisher or a publisher builder, this is a reference on this publisher.
+   */
+  private Publisher publisher;
 
   Mediator(MediatorConfiguration configuration) {
     this.config = configuration;
@@ -80,6 +85,9 @@ public class Mediator {
           }
         } else if (result instanceof Subscriber) {
           this.subscriber = (Subscriber) result;
+          if (consumePayloads) {
+            this.subscriber = ReactiveStreams.<Message<?>>builder().map(Message::getPayload).to(this.subscriber).build();
+          }
         }
 
         if (producingPayloads) {
@@ -129,6 +137,7 @@ public class Mediator {
       }
     } else {
       flowable = createPublisher();
+      publisher = flowable;
     }
 
   }
@@ -208,10 +217,16 @@ public class Mediator {
   }
 
   public Publisher<? extends Message> getOutput() {
+    if (publisher != null) {
+      return publisher;
+    }
     return output;
   }
 
   public Subscriber<? extends Message> getInput() {
+    if (subscriber != null) {
+      return subscriber;
+    }
     return input;
   }
 

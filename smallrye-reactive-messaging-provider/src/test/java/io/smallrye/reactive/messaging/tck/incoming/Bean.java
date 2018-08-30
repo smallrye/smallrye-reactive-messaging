@@ -32,7 +32,6 @@ public class Bean {
 
   @Incoming(VOID_METHOD)
   public CompletionStage<Void> handleVoidMethod(MockPayload payload) {
-    System.out.println("Receiving... " + payload);
     manager.getReceiver(VOID_METHOD).receiveMessage(payload);
     return CompletableFuture.completedFuture(null);
   }
@@ -53,7 +52,6 @@ public class Bean {
 
   @Incoming(NON_VOID_METHOD)
   public CompletionStage<String> handleNonVoidMethod(MockPayload payload) {
-    System.out.println("Called with " + payload);
     manager.getReceiver(NON_VOID_METHOD).receiveMessage(payload);
     return CompletableFuture.completedFuture("hello");
   }
