@@ -4,20 +4,16 @@ import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.SubscriberBuilder;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
-import javax.enterprise.util.TypeLiteral;
-import javax.inject.Named;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -55,90 +51,6 @@ public class ReactiveMessagingExtension implements Extension {
     }
   }
 
-  <X extends Publisher<? extends Message<?>>> void wrapPublisherProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
-    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
-      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
-      LOGGER.info("Found a publisher producer named: " + name);
-
-      Producer<X> oldProducer = pp.getProducer();
-
-      pp.configureProducer().produceWith(creationalContext -> {
-        StreamRegistry reg = getRegistry(bm);
-        if (reg.getPublisherNames().contains(name)) {
-          LOGGER.warn("Found the Publisher producer named '{}', however this name was already used by {}", name, reg.getPublisher(name).toString());
-        }
-        reg.register(name, oldProducer.produce(creationalContext));
-        return (X) reg.getPublisher(name).get();
-      });
-    }
-  }
-
-  <X extends PublisherBuilder<? extends Message>> void wrapPublisherBuilderProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
-    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
-      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
-      LOGGER.info("Found a publisher builder producer named: " + name);
-
-      Producer<X> oldProducer = pp.getProducer();
-
-      pp.configureProducer().produceWith(creationalContext -> {
-        StreamRegistry reg = getRegistry(bm);
-        X res = oldProducer.produce(creationalContext);
-
-        if (reg.getPublisherNames().contains(name)) {
-          LOGGER.warn("Found the Publisher producer (as a builder) named '{}', however this name was already used by {}", name, reg.getPublisher(name).toString());
-        }
-        reg.register(name, res.buildRs());
-        return res;
-      });
-    }
-  }
-
-  <X extends Subscriber<? extends Message<?>>> void wrapSubscriberProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
-    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
-      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
-      LOGGER.info("Found a subscriber producer named: " + name);
-
-      Producer<X> oldProducer = pp.getProducer();
-
-      pp.configureProducer().produceWith(creationalContext -> {
-        StreamRegistry reg = getRegistry(bm);
-        if (reg.getSubscriberNames().contains(name)) {
-          LOGGER.warn("Found the Subscriber producer named '{}', however this name was already used by {}", name, reg.getSubscriber(name).toString());
-        }
-        reg.register(name, oldProducer.produce(creationalContext));
-        return (X) reg.getSubscriber(name).get();
-      });
-    }
-  }
-
-  <X extends SubscriberBuilder<? extends Message, ?>> void wrapSubscriberBuilderProducer(@Observes ProcessProducer<?, X> pp, BeanManager bm) {
-    if (pp.getAnnotatedMember().isAnnotationPresent(Named.class)) {
-      String name = pp.getAnnotatedMember().getAnnotation(Named.class).value();
-      LOGGER.info("Found a subscriber builder producer named: " + name);
-
-      Producer<X> oldProducer = pp.getProducer();
-
-      pp.configureProducer().produceWith(creationalContext -> {
-        StreamRegistry reg = getRegistry(bm);
-        X res = oldProducer.produce(creationalContext);
-
-        if (reg.getSubscriberNames().contains(name)) {
-          LOGGER.warn("Found the Subscriber producer (as a builder) named '{}', however this name was already used by {}", name, reg.getSubscriber(name).toString());
-        }
-        reg.register(name, res.build());
-        return res;
-      });
-    }
-  }
-
-  private StreamRegistry getRegistry(BeanManager bm) {
-    if (registry == null) {
-      registry = bm.createInstance().select(StreamRegistry.class).stream().findFirst()
-        .orElseThrow(() -> new IllegalStateException("Unable to find the " + StreamRegistry.class.getName() + " component"));
-    }
-    return registry;
-  }
-
   void afterBeanDiscovery(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
     LOGGER.info("Deployment done... start processing");
     getOrCreateVertxInstance(beanManager);
@@ -156,28 +68,13 @@ public class ReactiveMessagingExtension implements Extension {
       registars.stream().map(StreamRegistar::initialize).toArray(CompletableFuture[]::new)
     )
       .thenAccept(v -> {
-
-        //requesting an instance for each Publisher and Subscriber bean
-
-        instance.select(new TypeLiteral<Publisher<?>>() {
-        }).forEach(d -> {
-        });
-        instance.select(new TypeLiteral<PublisherBuilder<?>>() {
-        }).forEach(d -> {
-        });
-        instance.select(new TypeLiteral<Subscriber<?>>() {
-        }).forEach(d -> {
-        });
-        instance.select(new TypeLiteral<SubscriberBuilder<?, ?>>() {
-        }).forEach(d -> {
-        });
-
         collected.mediators.forEach(this::createMediator);
 
         LOGGER.info("Initializing mediators");
         mediators.forEach(mediator -> {
           LOGGER.debug("Initializing {}", mediator.getConfiguration().methodAsString());
-          mediator.initialize(beanManager.createInstance().select(mediator.getConfiguration().getBeanClass()).get());
+          mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass()).get());
+
           if (mediator.getConfiguration().isPublisher()) {
             LOGGER.debug("Registering {} as publisher {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getOutgoing());
             registry.register(mediator.getConfiguration().getOutgoing(), mediator.getOutput());
