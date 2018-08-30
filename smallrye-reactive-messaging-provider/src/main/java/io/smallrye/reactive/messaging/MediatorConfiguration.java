@@ -10,6 +10,7 @@ import org.eclipse.microprofile.reactive.streams.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -31,10 +32,15 @@ public class MediatorConfiguration {
 
   private Type consumedPayloadType;
   private Type producedPayloadType;
+  private boolean isSubscriber;
 
   public MediatorConfiguration(Method method, Class<?> beanClass) {
     this.method = Objects.requireNonNull(method, "'method' must be set");
     this.beanClass =  Objects.requireNonNull(beanClass, "'beanClass' must be set");
+  }
+
+  public boolean isPlainSubscriber() {
+    return isSubscriber;
   }
 
   public MediatorConfiguration setOutgoing(Outgoing outgoing) {
@@ -93,7 +99,6 @@ public class MediatorConfiguration {
       ) {
       // Extract the internal type - for all these type it's the first (unique) parameter
       producedPayloadType = parameterizedType.getActualTypeArguments()[0];
-      System.out.println(producedPayloadType);
       return;
     }
 
@@ -123,9 +128,13 @@ public class MediatorConfiguration {
           "the return type must be Processor or ProcessorBuilder.");
       }
       consumedPayloadType = parameterizedType.getActualTypeArguments()[0];
-      // TODO this won't work for implementation having a single parameter, or more...
-      producedPayloadType = parameterizedType.getActualTypeArguments()[1];
+      if (parameterizedType.getActualTypeArguments().length > 1) {
+        // TODO this won't work for implementation having a single parameter, or more...
+        producedPayloadType = parameterizedType.getActualTypeArguments()[1];
+      }
       consumeAsStream = true;
+      isSubscriber = ClassUtils.isAssignable(Subscriber.class, type)
+        && ! ClassUtils.isAssignable(ProcessorBuilder.class, type) && ! ClassUtils.isAssignable(Processor.class, type);
     }
 
     if (method.getParameterCount() == 1) {

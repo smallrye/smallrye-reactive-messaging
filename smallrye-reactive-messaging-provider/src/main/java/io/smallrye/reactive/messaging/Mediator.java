@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
+import io.reactivex.functions.Consumer;
 import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.utils.StreamConnector;
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +26,11 @@ public class Mediator {
   private final StreamConnector input;
   private Flowable<? extends Message> flowable;
   private Object instance;
+
+  /**
+   * If the method return a subscriber or a subscriber builder, this is a reference on this subscriber.
+   */
+  private Subscriber subscriber;
 
   Mediator(MediatorConfiguration configuration) {
     this.config = configuration;
@@ -72,7 +78,10 @@ public class Mediator {
           } else {
             flowable = Flowable.fromPublisher(ReactiveStreams.fromPublisher(flow).via(pb).buildRs());
           }
+        } else if (result instanceof Subscriber) {
+          this.subscriber = (Subscriber) result;
         }
+
         if (producingPayloads) {
           flowable = flowable
             // The cast is used to indicate that we are not expecting a message, but objects at that point.
@@ -99,6 +108,7 @@ public class Mediator {
           .flatMap(item ->
             Flowable.just(item)
               .map(this::invokeMethodWithItem)
+
               .compose(f -> {
                 if (produceACompletionStage) {
                   return f.flatMap(cs -> fromCompletionStage((CompletionStage) cs), 1);
@@ -106,14 +116,16 @@ public class Mediator {
                   return f;
                 }
               })
-              .retry(1)) // TODO make it configurable
+              .retry(1) // TODO Definitely wrong.
+          )
           .compose(f -> {
             if (producePayload) {
               return f.map(Message::of);
             } else {
               return f.cast(Message.class);
             }
-          });
+          })
+          ;
       }
     } else {
       flowable = createPublisher();
@@ -228,7 +240,14 @@ public class Mediator {
       throw new IllegalStateException("Cannot connect to upstream, the mediator does not expect a source");
     }
     LOGGER.info("Connecting {} to upstream '{}' ({})", config.methodAsString(), config.getIncoming(), publisher);
-    input.connectUpstream(publisher);
+
+    // If the method returned a subscriber, use it.
+    if (subscriber != null) {
+      publisher.subscribe(subscriber);
+    } else {
+      // Otherwise connect to upstream.
+      input.connectUpstream(publisher);
+    }
   }
 
   public void connect(Subscriber<? extends Message> subscriber) {
@@ -238,5 +257,8 @@ public class Mediator {
     LOGGER.info("Connecting {} to downstream '{}' ({})", config.methodAsString(), config.getOutgoing(), subscriber);
     output.connectUpstream(flowable);
     output.connectDownStream(subscriber);
+    if (subscriber instanceof StreamConnector) {
+      ((StreamConnector<? extends Message>) subscriber).connectUpstream(output);
+    }
   }
 }

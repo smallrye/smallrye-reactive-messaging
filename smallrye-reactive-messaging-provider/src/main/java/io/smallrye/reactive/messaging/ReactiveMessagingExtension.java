@@ -174,38 +174,43 @@ public class ReactiveMessagingExtension implements Extension {
 
         collected.mediators.forEach(this::createMediator);
 
+        LOGGER.info("Initializing mediators");
         mediators.forEach(mediator -> {
+          LOGGER.debug("Initializing {}", mediator.getConfiguration().methodAsString());
           mediator.initialize(beanManager.createInstance().select(mediator.getConfiguration().getBeanClass()).get());
           if (mediator.getConfiguration().isPublisher()) {
+            LOGGER.debug("Registering {} as publisher {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getOutgoing());
             registry.register(mediator.getConfiguration().getOutgoing(), mediator.getOutput());
           }
           if (mediator.getConfiguration().isSubscriber()) {
+            LOGGER.debug("Registering {} as subscriber {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getIncoming());
             registry.register(mediator.getConfiguration().getIncoming(), mediator.getInput());
           }
         });
 
-        connectTheMediators();
+        try {
+          connectTheMediators();
+        } catch (Exception e) {
+          done.addDeploymentProblem(e);
+        }
       });
   }
 
   private void connectTheMediators() {
+    LOGGER.info("Connecting mediators");
+    // TODO Warnings when source of sinks are not found.
     for (Mediator mediator : mediators) {
       if (mediator.getConfiguration().isSubscriber()) {
-        // Search for the source
-        Publisher<? extends Message> publisher = registry.getPublisher(mediator.getConfiguration().getIncoming()).orElseThrow(() ->
-          new RuntimeException("Unable to find the data stream named " + mediator.getConfiguration().getIncoming()));
-        mediator.connect(publisher);
-      }
-
-      if (mediator.getConfiguration().isPublisher()) {
-        // Search for the sink
-        Subscriber<? extends Message> subscriber = registry.getSubscriber(mediator.getConfiguration().getOutgoing()).orElseThrow(() ->
-          new RuntimeException("Unable to find the data stream named " + mediator.getConfiguration().getOutgoing()));
-        mediator.connect(subscriber);
+        registry.getPublisher(mediator.getConfiguration().getIncoming()).ifPresent(mediator::connect);
       }
     }
 
-
+    for (Mediator mediator : mediators) {
+      if (mediator.getConfiguration().isPublisher()) {
+        // Search for the sink
+        registry.getSubscriber(mediator.getConfiguration().getOutgoing()).ifPresent(mediator::connect);
+      }
+    }
   }
 
   private void createMediator(MediatorConfiguration configuration) {

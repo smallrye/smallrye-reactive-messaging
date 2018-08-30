@@ -77,8 +77,7 @@ public class StreamConnector<T> implements Processor<T, T> {
 
     // Set the subscriber, if we already have one report an error as we do not support multicasting.
     if (!this.subscriber.compareAndSet(null, subscriber)) {
-      // TODO Quite unhappy with this.
-      subscriber.onSubscribe(new EmptySubscription());
+      // TODO Quite unhappy with this, not sure what need to be done. It's related to ordering.
       return;
     }
 
@@ -96,6 +95,7 @@ public class StreamConnector<T> implements Processor<T, T> {
         throw new RuntimeException("Illegal transition - subscribe happened in the " + state.get().name() + " state");
       }
     }
+    LOGGER.debug("{} is now in state {}", name, state);
   }
 
   private void manageSubscribeWhenWeHaveASubscriptionAlready(Subscriber<? super T> subscriber) {
@@ -114,6 +114,7 @@ public class StreamConnector<T> implements Processor<T, T> {
         throw new IllegalStateException("Illegal transition - subscribe called in the " + state.get().name() + " state");
       }
     }
+    LOGGER.debug("{} is now in state {}", name, state);
   }
 
   private void manageSubscribeInCompleteState(Subscriber<? super T> subscriber) {
@@ -141,6 +142,7 @@ public class StreamConnector<T> implements Processor<T, T> {
       subscriber.get().onSubscribe(new WrappedSubscription(subscription,
         () -> subscriber.set(new CancellationSubscriber<>())));
     }
+    LOGGER.debug("{} is now in state {}", name, state);
   }
 
   @Override
@@ -159,10 +161,12 @@ public class StreamConnector<T> implements Processor<T, T> {
     if (state.get() == State.PROCESSING) {
       subscriber.get().onComplete();
       state.set(State.COMPLETE);
+      LOGGER.debug("{} is now in state {}", name, state);
     } else if (state.get() == State.FAILED || state.get() == State.COMPLETE || state.get() == State.IDLE) {
       throw new IllegalStateException("Invalid transition, cannot handle onComplete in " + state.get().name());
     } else {
       state.set(State.COMPLETE);
+      LOGGER.debug("{} is now in state {}", name, state);
     }
   }
 
@@ -173,10 +177,12 @@ public class StreamConnector<T> implements Processor<T, T> {
     if (state.get() == State.PROCESSING) {
       subscriber.get().onError(throwable);
       state.set(State.FAILED);
+      LOGGER.debug("{} is now in state {}", name, state);
     } else if (state.get() == State.FAILED || state.get() == State.COMPLETE || state.get() == State.IDLE) {
       throw new IllegalStateException("Invalid transition, cannot handle onError in " + state.get().name(), throwable);
     } else {
       state.set(State.FAILED);
+      LOGGER.debug("{} is now in state {}", name, state);
     }
   }
 

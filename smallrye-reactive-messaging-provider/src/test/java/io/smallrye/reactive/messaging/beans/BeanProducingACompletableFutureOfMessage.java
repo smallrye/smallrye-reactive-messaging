@@ -14,7 +14,6 @@ public class BeanProducingACompletableFutureOfMessage {
   @Incoming("count")
   @Outgoing("sink")
   public CompletionStage<Message<String>> process(Message<Integer> value) {
-    System.out.println("Got " + value);
     return CompletableFuture.supplyAsync(() -> Integer.toString(value.getPayload() + 1))
       .thenApply(Message::of);
   }

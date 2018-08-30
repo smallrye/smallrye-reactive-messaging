@@ -18,7 +18,7 @@ public class ItemizedMethodTest extends WeldTestBase {
     Flowable.range(1, 10).map(i -> Integer.toString(i)).toList().blockingGet();
 
   @Test
-  public void testBeanConsumingMessagesAndProducingMessages() {
+  public void testBeanConsumingMessagesAndProducingMessages() throws InterruptedException {
     weld.addBeanClass(BeanConsumingMessagesAndProducingMessages.class);
     WeldContainer container = weld.initialize();
     MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();

@@ -10,8 +10,6 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,14 +31,12 @@ public class MyBean {
   }
 
 
-  @Produces
-  @Named("my-dummy-stream")
+  @Outgoing("my-dummy-stream")
   Publisher<Message<String>> stream() {
     return Flowable.just("foo", "bar").map(Message::of);
   }
 
-  @Produces
-  @Named("my-output")
+  @Incoming("my-output")
   Subscriber<Message<String>> output() {
     return ReactiveStreams.<Message<String>>builder().forEach(s -> COLLECTOR.add(s.getPayload())).build();
   }
