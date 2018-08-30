@@ -55,67 +55,69 @@ public class Bean {
     manager.getReceiver(NON_VOID_METHOD).receiveMessage(payload);
     return CompletableFuture.completedFuture("hello");
   }
+//
+//  private final AtomicBoolean syncFailed = new AtomicBoolean();
+//
+//  public AtomicBoolean getSyncFailed() {
+//    return syncFailed;
+//  }
+//
+//  @Incoming(SYNC_FAILING)
+//  public CompletionStage<Void> handleSyncFailing(MockPayload payload) {
+//    if (payload.getField1().equals("fail") && !syncFailed.getAndSet(true)) {
+//      manager.getReceiver(SYNC_FAILING).receiveMessage(payload);
+//      throw new QuietRuntimeException("failed");
+//    }
+//    else {
+//      manager.getReceiver(SYNC_FAILING).receiveMessage(payload);
+//      return CompletableFuture.completedFuture(null);
+//    }
+//  }
+//
+//  private final AtomicBoolean asyncFailed = new AtomicBoolean();
+//
+//  public AtomicBoolean getAsyncFailed() {
+//    return asyncFailed;
+//  }
+//
+//  @Incoming(ASYNC_FAILING)
+//  public CompletionStage<Void> handleAsyncFailing(MockPayload payload) {
+//    if (payload.getField1().equals("fail") && !asyncFailed.getAndSet(true)) {
+//      manager.getReceiver(ASYNC_FAILING).receiveMessage(payload);
+//      CompletableFuture<Void> future = new CompletableFuture<>();
+//      future.completeExceptionally(new QuietRuntimeException("failed"));
+//      return future;
+//    }
+//    else {
+//      manager.getReceiver(ASYNC_FAILING).receiveMessage(payload);
+//      return CompletableFuture.completedFuture(null);
+//    }
+//  }
+//
+//  private final AtomicBoolean wrappedFailed = new AtomicBoolean();
+//
+//  public AtomicBoolean getWrappedFailed() {
+//    return wrappedFailed;
+//  }
+//
+//  @Incoming(WRAPPED_MESSAGE)
+//  public CompletionStage<Void> handleWrapped(Message<MockPayload> msg) {
+//    if (msg.getPayload().getField1().equals("acknowledged") || wrappedFailed.get()) {
+//      manager.<MockPayload>getReceiver(WRAPPED_MESSAGE).receiveWrappedMessage(msg);
+//      return msg.ack();
+//    }
+//    else if (msg.getPayload().getField1().equals("fail")) {
+//      wrappedFailed.set(true);
+//      manager.<MockPayload>getReceiver(WRAPPED_MESSAGE).receiveWrappedMessage(msg);
+//      throw new QuietRuntimeException("failed");
+//    }
+//    else {
+//      manager.<MockPayload>getReceiver(WRAPPED_MESSAGE).receiveWrappedMessage(msg);
+//      return CompletableFuture.completedFuture(null);
+//    }
+//  }
 
-  private final AtomicBoolean syncFailed = new AtomicBoolean();
 
-  public AtomicBoolean getSyncFailed() {
-    return syncFailed;
-  }
-
-  @Incoming(SYNC_FAILING)
-  public CompletionStage<Void> handleSyncFailing(MockPayload payload) {
-    if (payload.getField1().equals("fail") && !syncFailed.getAndSet(true)) {
-      manager.getReceiver(SYNC_FAILING).receiveMessage(payload);
-      throw new QuietRuntimeException("failed");
-    }
-    else {
-      manager.getReceiver(SYNC_FAILING).receiveMessage(payload);
-      return CompletableFuture.completedFuture(null);
-    }
-  }
-
-  private final AtomicBoolean asyncFailed = new AtomicBoolean();
-
-  public AtomicBoolean getAsyncFailed() {
-    return asyncFailed;
-  }
-
-  @Incoming(ASYNC_FAILING)
-  public CompletionStage<Void> handleAsyncFailing(MockPayload payload) {
-    if (payload.getField1().equals("fail") && !asyncFailed.getAndSet(true)) {
-      manager.getReceiver(ASYNC_FAILING).receiveMessage(payload);
-      CompletableFuture<Void> future = new CompletableFuture<>();
-      future.completeExceptionally(new QuietRuntimeException("failed"));
-      return future;
-    }
-    else {
-      manager.getReceiver(ASYNC_FAILING).receiveMessage(payload);
-      return CompletableFuture.completedFuture(null);
-    }
-  }
-
-  private final AtomicBoolean wrappedFailed = new AtomicBoolean();
-
-  public AtomicBoolean getWrappedFailed() {
-    return wrappedFailed;
-  }
-
-  @Incoming(WRAPPED_MESSAGE)
-  public CompletionStage<Void> handleWrapped(Message<MockPayload> msg) {
-    if (msg.getPayload().getField1().equals("acknowledged") || wrappedFailed.get()) {
-      manager.<MockPayload>getReceiver(WRAPPED_MESSAGE).receiveWrappedMessage(msg);
-      return msg.ack();
-    }
-    else if (msg.getPayload().getField1().equals("fail")) {
-      wrappedFailed.set(true);
-      manager.<MockPayload>getReceiver(WRAPPED_MESSAGE).receiveWrappedMessage(msg);
-      throw new QuietRuntimeException("failed");
-    }
-    else {
-      manager.<MockPayload>getReceiver(WRAPPED_MESSAGE).receiveWrappedMessage(msg);
-      return CompletableFuture.completedFuture(null);
-    }
-  }
 //
 //  private final AtomicInteger acked = new AtomicInteger();
 //  private final AtomicBoolean outgoingWrappedFailed = new AtomicBoolean();

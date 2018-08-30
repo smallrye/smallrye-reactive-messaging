@@ -133,7 +133,6 @@ public class MockedReceiver<T> {
     }
 
     public void receiveMessage(T payload) {
-        System.out.println("Receiving a payload: " + payload + " on thread " + Thread.currentThread().getName());
         receiveWrappedMessage(new SimpleMessage<>(payload));
     }
 
@@ -187,7 +186,6 @@ public class MockedReceiver<T> {
 
         @Override
         public void onNext(Message<T> message) {
-            System.out.println("Receiving a message: " + message);
             receiveWrappedMessage(message);
             subscription.get().request(1);
         }

@@ -10,7 +10,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Ignore("These test must be rewritten as the spec mandates that CS result are discarded")
 public class CompletionStageMethodTest extends WeldTestBase {
 
   private static final List<String> LIST =

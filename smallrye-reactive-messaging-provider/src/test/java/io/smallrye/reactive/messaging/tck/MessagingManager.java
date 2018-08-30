@@ -57,7 +57,7 @@ public class MessagingManager implements StreamRegistar {
 
   public void createTopics(List<String> newTopics) {
     newTopics.forEach(name -> {
-      Source source = new Source();
+      Source source = new Source(name);
       topics.put(name, source);
       this.registry.register(name, source.source());
       this.registry.register(name, source.subscriber());
@@ -116,12 +116,18 @@ public class MessagingManager implements StreamRegistar {
 
   private class Source  {
 
+    public Source(String name) {
+      this.name = name;
+    }
+
+    private String name;
     private List<Message<MockPayload>> acknowledged = new ArrayList<>();
     private ReplayProcessor<Message<MockPayload>> processor = ReplayProcessor.create();
-    private Flowable<Message<MockPayload>> source = processor.filter(msg -> {
-      System.out.println("filtering? " + ! acknowledged.contains(msg) + " " + msg);
-      return ! acknowledged.contains(msg);
-    });
+    private Flowable<Message<MockPayload>> source = processor;
+//      .filter(msg -> {
+//        System.out.println("filtering? " + ! acknowledged.contains(msg) + " " + msg);
+//        return ! acknowledged.contains(msg);
+//      });
 
     public void sendWithAcknowledgement(MockPayload payload) {
       System.out.println("Sending with ACK " + payload);
@@ -135,6 +141,7 @@ public class MessagingManager implements StreamRegistar {
     }
 
     public void send(Message<MockPayload> msg) {
+      System.out.println("Sending message " + msg + " on " + name);
       processor.onNext(msg);
     }
 
