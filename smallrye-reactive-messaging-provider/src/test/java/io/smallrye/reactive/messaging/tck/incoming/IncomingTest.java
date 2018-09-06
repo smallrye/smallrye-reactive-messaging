@@ -51,7 +51,6 @@ public class IncomingTest extends WeldTestBase  {
   }
 
   @Test
-  @Ignore("Check TCK")
   public void completionStageMethodShouldNotProcessMessagesInParallel() {
     WeldContainer container = weld.initialize();
     MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();
@@ -90,28 +89,28 @@ public class IncomingTest extends WeldTestBase  {
     receiver.expectNoMessages("Didn't expect a message because didn't send one.");
   }
 
-//  @Test
-//  @Ignore("Discuss retry")
-//  public void completionStageMethodShouldRetryMessagesThatFailSynchronously() {
-//    WeldContainer container = weld.initialize();
-//    MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();
-//    Bean bean = container.getBeanManager().createInstance().select(Bean.class).get();
-//
-//    MockedReceiver<MockPayload> receiver = manager.getReceiver(SYNC_FAILING);
-//    MockPayload msg1 = new MockPayload("success", 1);
-//    MockPayload msg2 = new MockPayload("fail", 2);
-//    MockPayload msg3 = new MockPayload("success", 3);
-//
-//    manager.sendPayloads(SYNC_FAILING, msg1, msg2, msg3);
-//    // We should receive the fail message once, then failed should be true, then we should receive it again,
-//    // followed by the next message.
-//    receiver.expectNextMessageWithPayload(msg1);
-//    receiver.expectNextMessageWithPayload(msg2);
-//    assertTrue("Sync was not failed", bean.getSyncFailed().get());
-//    receiver.expectNextMessageWithPayload(msg2);
-//    receiver.expectNextMessageWithPayload(msg3);
-//  }
-//
+  @Test
+  @Ignore("Discuss retry")
+  public void completionStageMethodShouldRetryMessagesThatFailSynchronously() {
+    WeldContainer container = weld.initialize();
+    MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();
+    Bean bean = container.getBeanManager().createInstance().select(Bean.class).get();
+
+    MockedReceiver<MockPayload> receiver = manager.getReceiver(SYNC_FAILING);
+    MockPayload msg1 = new MockPayload("success", 1);
+    MockPayload msg2 = new MockPayload("fail", 2);
+    MockPayload msg3 = new MockPayload("success", 3);
+
+    manager.sendPayloads(SYNC_FAILING, msg1, msg2, msg3);
+    // We should receive the fail message once, then failed should be true, then we should receive it again,
+    // followed by the next message.
+    receiver.expectNextMessageWithPayload(msg1);
+    receiver.expectNextMessageWithPayload(msg2);
+    assertTrue("Sync was not failed", bean.getSyncFailed().get());
+    receiver.expectNextMessageWithPayload(msg2);
+    receiver.expectNextMessageWithPayload(msg3);
+  }
+
 //  @Test
 //  public void completionStageMethodShouldRetryMessagesThatFailAsynchronously() {
 //    WeldContainer container = weld.initialize();

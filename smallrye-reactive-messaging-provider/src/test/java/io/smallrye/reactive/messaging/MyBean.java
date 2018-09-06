@@ -20,7 +20,7 @@ public class MyBean {
 
   @Incoming("my-dummy-stream")
   @Outgoing("toUpperCase")
-  public Publisher<String> toUppercase(Flowable<String> input) {
+  public Flowable<String> toUppercase(Flowable<String> input) {
     return input.map(String::toUpperCase);
   }
 

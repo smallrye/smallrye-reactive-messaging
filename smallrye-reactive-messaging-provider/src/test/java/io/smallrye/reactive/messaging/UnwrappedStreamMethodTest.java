@@ -49,6 +49,14 @@ public class UnwrappedStreamMethodTest extends WeldTestBase {
   }
 
   @Test
+  public void testBeanProducingAProcessorOfMessages() {
+    weld.addBeanClass(BeanProducingAProcessorOfItem.class);
+    WeldContainer container = weld.initialize();
+    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    assertThat(collector.payloads()).isEqualTo(EXPECTED);
+  }
+
+  @Test
   public void testBeanProducingAProcessorBuilder() {
     weld.addBeanClass(BeanProducingAProcessorBuilderOfItem.class);
     WeldContainer container = weld.initialize();

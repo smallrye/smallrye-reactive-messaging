@@ -4,16 +4,16 @@ import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -27,7 +27,7 @@ public class ReactiveMessagingExtension implements Extension {
   private final Collected collected = new Collected();
   private StreamRegistry registry;
   private MediatorFactory factory;
-  private final List<Mediator> mediators = new ArrayList<>();
+  private final List<AbstractMediator> mediators = new ArrayList<>();
 
 
   <T> void processAnnotatedType(@Observes @WithAnnotations({Incoming.class, Outgoing.class}) ProcessAnnotatedType<T> pat) {
@@ -40,7 +40,7 @@ public class ReactiveMessagingExtension implements Extension {
     // For method with only @Outgoing
     methods.stream()
       .filter(method -> method.isAnnotationPresent(Outgoing.class))
-      .filter(method -> ! method.isAnnotationPresent(Incoming.class))
+      .filter(method -> !method.isAnnotationPresent(Incoming.class))
       .forEach(method -> collected.add(pat, method.getJavaMember()));
   }
 
@@ -68,50 +68,101 @@ public class ReactiveMessagingExtension implements Extension {
       registars.stream().map(StreamRegistar::initialize).toArray(CompletableFuture[]::new)
     )
       .thenAccept(v -> {
-        collected.mediators.forEach(this::createMediator);
-
-        LOGGER.info("Initializing mediators");
-        mediators.forEach(mediator -> {
-          LOGGER.debug("Initializing {}", mediator.getConfiguration().methodAsString());
-          mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass()).get());
-
-          if (mediator.getConfiguration().isPublisher()) {
-            LOGGER.debug("Registering {} as publisher {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getOutgoing());
-            registry.register(mediator.getConfiguration().getOutgoing(), mediator.getOutput());
-          }
-          if (mediator.getConfiguration().isSubscriber()) {
-            LOGGER.debug("Registering {} as subscriber {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getIncoming());
-            registry.register(mediator.getConfiguration().getIncoming(), mediator.getInput());
-          }
-        });
-
         try {
-          connectTheMediators();
+          Set<String> unmanagedSubscribers = registry.getSubscriberNames();
+          collected.mediators.forEach(this::createMediator);
+
+          LOGGER.info("Initializing mediators");
+          mediators.forEach(mediator -> {
+            LOGGER.debug("Initializing {}", mediator.getMethodAsString());
+            mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass()).get());
+
+            if (mediator.getConfiguration().shape() == Shape.PUBLISHER) {
+              LOGGER.debug("Registering {} as publisher {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getOutgoing());
+              registry.register(mediator.getConfiguration().getOutgoing(), mediator.getComputedPublisher());
+            }
+            if (mediator.getConfiguration().shape() == Shape.SUBSCRIBER) {
+              LOGGER.debug("Registering {} as subscriber {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getIncoming());
+              registry.register(mediator.getConfiguration().getIncoming(), mediator.getComputedSubscriber());
+            }
+          });
+
+          weaving(unmanagedSubscribers);
+
         } catch (Exception e) {
           done.addDeploymentProblem(e);
         }
       });
   }
 
-  private void connectTheMediators() {
+  private void weaving(Set<String> unmanagedSubscribers) {
     LOGGER.info("Connecting mediators");
-    // TODO Warnings when source of sinks are not found.
-    for (Mediator mediator : mediators) {
-      if (mediator.getConfiguration().isSubscriber()) {
-        registry.getPublisher(mediator.getConfiguration().getIncoming()).ifPresent(mediator::connect);
+    // At that point all the publisher have been registered in the registry
+
+    List<AbstractMediator> unsatisfied = getAllNonSatisfiedMediators();
+
+    while (!unsatisfied.isEmpty()) {
+      int numberOfUnsatisfiedBeforeLoop = unsatisfied.size();
+
+      unsatisfied.forEach(mediator -> {
+        LOGGER.info("Attempt to satisfied {}", mediator.getMethodAsString());
+        Optional<Publisher<? extends Message>> maybeSource = lookForSource(mediator);
+        maybeSource.ifPresent(publisher -> {
+          mediator.connectToUpstream(publisher);
+          LOGGER.info("Connecting {} to {} ({})", mediator.getMethodAsString(), mediator.configuration.getIncoming(), publisher);
+          if (mediator.configuration.getOutgoing() != null) {
+            registry.register(mediator.getConfiguration().getOutgoing(), mediator.getComputedPublisher());
+          }
+        });
+      });
+
+      unsatisfied = getAllNonSatisfiedMediators();
+      int numberOfUnsatisfiedAfterLoop = unsatisfied.size();
+
+      if (numberOfUnsatisfiedAfterLoop == numberOfUnsatisfiedBeforeLoop) {
+        // Stale!
+        LOGGER.warn("Impossible to weave mediators, some mediators are not connected: {}",
+          unsatisfied.stream().map(m -> m.configuration.methodAsString()).collect(Collectors.toList()));
+        LOGGER.warn("Available publishers: {}", registry.getPublisherNames());
+        // TODO What should we do - break the deployment, report a warning?
+        break;
       }
     }
 
-    for (Mediator mediator : mediators) {
-      if (mediator.getConfiguration().isPublisher()) {
-        // Search for the sink
-        registry.getSubscriber(mediator.getConfiguration().getOutgoing()).ifPresent(mediator::connect);
+    // Run
+    mediators.stream().filter(m -> m.configuration.shape() == Shape.SUBSCRIBER)
+      .filter(AbstractMediator::isConnected)
+      .forEach(AbstractMediator::run);
+
+    // We also need to connect mediator to un-managed subscribers
+    for (String name : unmanagedSubscribers) {
+      List<AbstractMediator> list = lookupForMediatorsWithMatchingDownstream(name);
+      for (AbstractMediator mediator : list) {
+        Subscriber subscriber = registry.getSubscriber(name)
+          .orElseThrow(() -> new IllegalStateException("Did the subscriber just left? " + name));
+        mediator.getComputedPublisher().subscribe(subscriber);
       }
     }
   }
 
+  private List<AbstractMediator> lookupForMediatorsWithMatchingDownstream(String name) {
+    return mediators.stream()
+      .filter(m -> m.configuration.getOutgoing() != null)
+      .filter(m -> m.configuration.getOutgoing().equalsIgnoreCase(name))
+      .collect(Collectors.toList());
+  }
+
+  private Optional<Publisher<? extends Message>> lookForSource(AbstractMediator mediator) {
+    String incoming = mediator.configuration.getIncoming();
+    return registry.getPublisher(incoming);
+  }
+
+  private List<AbstractMediator> getAllNonSatisfiedMediators() {
+    return mediators.stream().filter(mediator -> !mediator.isConnected()).collect(Collectors.toList());
+  }
+
   private void createMediator(MediatorConfiguration configuration) {
-    Mediator mediator = factory.create(configuration);
+    AbstractMediator mediator = factory.create(configuration);
     LOGGER.info("Mediator created for {}", configuration.methodAsString());
     mediators.add(mediator);
   }
@@ -139,9 +190,9 @@ public class ReactiveMessagingExtension implements Extension {
     }
 
     private MediatorConfiguration createMediatorConfiguration(ProcessAnnotatedType pat, Method met) {
-      return new MediatorConfiguration(met, pat.getAnnotatedType().getJavaClass())
-        .setIncoming(met.getAnnotation(Incoming.class))
-        .setOutgoing(met.getAnnotation(Outgoing.class));
+      MediatorConfiguration configuration = new MediatorConfiguration(met, pat.getAnnotatedType().getJavaClass());
+      configuration.compute(met.getAnnotation(Incoming.class), met.getAnnotation(Outgoing.class));
+      return configuration;
     }
   }
 }

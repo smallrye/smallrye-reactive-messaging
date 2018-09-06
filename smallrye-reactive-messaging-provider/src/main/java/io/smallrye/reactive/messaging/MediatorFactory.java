@@ -10,8 +10,15 @@ public class MediatorFactory {
   StreamRegistry registry;
 
 
-  public Mediator create(MediatorConfiguration configuration) {
-    return new Mediator(configuration);
+  public AbstractMediator create(MediatorConfiguration configuration) {
+    switch (configuration.shape()) {
+      case PROCESSOR: return new ProcessorMediator(configuration);
+      case SUBSCRIBER: return new SubscriberMediator(configuration);
+      case PUBLISHER: return new PublisherMediator(configuration);
+      case STREAM_TRANSFORMER: return new StreamTransformerMediator(configuration);
+      default: throw new IllegalArgumentException("Unsupported shape " + configuration.shape()
+        + " for method " + configuration.methodAsString());
+    }
   }
 
 }

@@ -5,7 +5,9 @@ import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.processors.MulticastProcessor;
+import io.reactivex.processors.PublishProcessor;
 import io.reactivex.processors.ReplayProcessor;
+import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.tck.incoming.Bean;
@@ -19,6 +21,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class MessagingManager implements StreamRegistar {
@@ -60,7 +63,6 @@ public class MessagingManager implements StreamRegistar {
       Source source = new Source(name);
       topics.put(name, source);
       this.registry.register(name, source.source());
-      this.registry.register(name, source.subscriber());
     });
   }
 
@@ -121,19 +123,23 @@ public class MessagingManager implements StreamRegistar {
     }
 
     private String name;
-    private List<Message<MockPayload>> acknowledged = new ArrayList<>();
-    private ReplayProcessor<Message<MockPayload>> processor = ReplayProcessor.create();
-    private Flowable<Message<MockPayload>> source = processor;
-//      .filter(msg -> {
-//        System.out.println("filtering? " + ! acknowledged.contains(msg) + " " + msg);
-//        return ! acknowledged.contains(msg);
-//      });
+    private List<Message<MockPayload>> inflights = new ArrayList<>();
+    private PublishProcessor<Message<MockPayload>> processor = PublishProcessor.create();
+    private Flowable<Message<MockPayload>> source = processor
+      .doOnCancel(() -> System.out.println("Cancellation caught"))
+      .doOnSubscribe((x) -> resend());
+
+    private void resend() {
+      System.out.println("Resending... " + inflights.stream().map(Message::getPayload).collect(Collectors.toList()));
+      new ArrayList<>(inflights).forEach(m -> sendWithAcknowledgement(m.getPayload()));
+    }
 
     public void sendWithAcknowledgement(MockPayload payload) {
       System.out.println("Sending with ACK " + payload);
       AtomicReference<Message<MockPayload>> reference = new AtomicReference<>();
       Message<MockPayload> msg = Message.of(payload, () -> {
-        acknowledged.add(reference.get());
+        System.out.println("Acknowledging " + payload);
+        inflights.remove(reference.get());
         return CompletableFuture.completedFuture(null);
       });
       reference.set(msg);
@@ -141,16 +147,15 @@ public class MessagingManager implements StreamRegistar {
     }
 
     public void send(Message<MockPayload> msg) {
+      inflights.add(msg);
       System.out.println("Sending message " + msg + " on " + name);
-      processor.onNext(msg);
+      if (processor != null) {
+        processor.onNext(msg);
+      }
     }
 
     public Flowable<Message<MockPayload>> source() {
       return source;
-    }
-
-    public Subscriber<Message<MockPayload>> subscriber() {
-      return processor;
     }
 
   }

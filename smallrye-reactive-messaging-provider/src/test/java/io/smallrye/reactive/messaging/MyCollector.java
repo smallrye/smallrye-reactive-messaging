@@ -15,19 +15,40 @@ import javax.enterprise.inject.Produces;
 import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class MyCollector {
 
   private final List<Message<String>> result = new ArrayList<>();
+  private AtomicReference<Throwable> error = new AtomicReference<>();
+  private AtomicBoolean completed = new AtomicBoolean();
 
   @Incoming("sink")
   public Subscriber<Message<String>> sink() {
-    CompletionSubscriber<Message<String>, List<Message<String>>> subscriber = ReactiveStreams.<Message<String>>builder()
-      .toList().build();
-    subscriber.getCompletion().thenAccept(result::addAll);
-    return subscriber;
+    return new Subscriber<Message<String>>() {
+      @Override
+      public void onSubscribe(Subscription s) {
+        s.request(20);
+      }
+
+      @Override
+      public void onNext(Message<String> message) {
+        result.add(message);
+      }
+
+      @Override
+      public void onError(Throwable t) {
+        error.set(t);
+      }
+
+      @Override
+      public void onComplete() {
+        completed.set(true);
+      }
+    };
   }
 
   @Outgoing("count")
@@ -42,6 +63,18 @@ public class MyCollector {
 
   public List<Message<String>> messages() {
     return result;
+  }
+
+  public boolean hasFailed() {
+    return error.get() != null;
+  }
+
+  public Throwable getError() {
+    return error.get();
+  }
+
+  public boolean hasCompleted() {
+    return completed.get();
   }
 
 }

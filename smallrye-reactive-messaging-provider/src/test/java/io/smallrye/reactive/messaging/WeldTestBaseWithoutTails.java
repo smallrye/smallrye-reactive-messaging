@@ -24,7 +24,6 @@ public class WeldTestBaseWithoutTails {
   public void setUp() {
     weld = new Weld();
 
-    weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addBeanClass(MediatorFactory.class);
     weld.addBeanClass(StreamRegistryImpl.class);
     weld.addBeanClass(StreamFactoryImpl.class);

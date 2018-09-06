@@ -2,13 +2,11 @@ package io.smallrye.reactive.messaging;
 
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
-import org.apache.logging.log4j.util.Strings;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.SubscriberBuilder;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -17,11 +15,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 public class MediatorConfiguration {
 
   private final Method method;
+
+  private Shape shape;
 
   private final Class<?> beanClass;
 
@@ -29,35 +30,329 @@ public class MediatorConfiguration {
 
   private Outgoing outgoing;
 
-  private boolean consumeAsStream;
+  /**
+   * What does the mediator products and how is it produced
+   */
+  private Production production = Production.NONE;
+  /**
+   * What does the mediator consumes and how is it produced
+   */
+  private Consumption consumption = Consumption.NONE;
 
-  private Type consumedPayloadType;
-  private Type producedPayloadType;
-  private boolean isSubscriber;
+  /**
+   * Use MicroProfile Stream Stream Ops Type.
+   */
+  private boolean useBuilderTypes = false;
+
+  public enum Production {
+    STREAM_OF_MESSAGE,
+    STREAM_OF_PAYLOAD,
+
+    INDIVIDUAL_PAYLOAD,
+    INDIVIDUAL_MESSAGE,
+    COMPLETION_STAGE_OF_PAYLOAD,
+    COMPLETION_STAGE_OF_MESSAGE,
+
+    NONE
+  }
+
+  public enum Consumption {
+    STREAM_OF_MESSAGE,
+    STREAM_OF_PAYLOAD,
+
+    MESSAGE,
+    PAYLOAD,
+
+    NONE
+  }
 
   public MediatorConfiguration(Method method, Class<?> beanClass) {
     this.method = Objects.requireNonNull(method, "'method' must be set");
     this.beanClass =  Objects.requireNonNull(beanClass, "'beanClass' must be set");
   }
 
-  public boolean isPlainSubscriber() {
-    return isSubscriber;
+  public Shape shape() {
+    return shape;
   }
 
-  public MediatorConfiguration setOutgoing(Outgoing outgoing) {
-    this.outgoing = outgoing;
-    if (outgoing != null  && isVoid()) {
-      throw new IllegalStateException("The method " + methodAsString() + " does not return a result but is annotated with @Outgoing. " +
-        "The method must return 'something'");
+  public void compute(Incoming incoming, Outgoing outgoing) {
+    if (incoming != null  && outgoing != null) {
+      // it can be either a processor or a stream transformer
+      if (isReturningAPublisherOrAPublisherBuilder()  && isConsumingAPublisherOrAPublisherBuilder()) {
+        shape = Shape.STREAM_TRANSFORMER;
+      } else {
+        shape = Shape.PROCESSOR;
+      }
+    } else if (incoming != null) {
+      shape = Shape.SUBSCRIBER;
+    } else {
+      shape = Shape.PUBLISHER;
     }
-    validateOutgoingSignature();
-    return this;
+
+    switch (shape) {
+      case SUBSCRIBER: validateSubscriber(incoming); break;
+      case PUBLISHER: validatePublisher(outgoing); break;
+      case PROCESSOR: validateProcessor(incoming, outgoing); break;
+      case STREAM_TRANSFORMER: validateStreamTransformer(incoming, outgoing); break;
+      default: throw new IllegalStateException("Unknown shape: " + shape);
+    }
   }
 
-  public MediatorConfiguration setIncoming(Incoming incoming) {
+  private void validateStreamTransformer(Incoming incoming, Outgoing outgoing) {
     this.incoming = incoming;
-    validateIncomingSignature();
-    return this;
+    this.outgoing = outgoing;
+    // 1.  Publisher<Message<O>> method(Publisher<Message<I>> publisher)
+    // 2. Publisher<O> method(Publisher<I> publisher)
+    // 3. PublisherBuilder<Message<O>> method(PublisherBuilder<Message<I>> publisher)
+    // 4. PublisherBuilder<O> method(PublisherBuilder<I> publisher)
+    validateMethodConsumingAndProducingAPublisher();
+  }
+
+
+  private void validateProcessor(Incoming incoming, Outgoing outgoing) {
+    this.incoming = incoming;
+    this.outgoing = outgoing;
+
+    // Supported signatures:
+    // 1.  Processor<Message<I>, Message<O>> method()
+    // 2.  Processor<I, O> method()
+    // 3.  ProcessorBuilder<Message<I>, Message<O>> method()
+    // 4.  ProcessorBuilder<I, O> method()
+
+    // 5.  Publisher<Message<O>> method(Message<I> msg)
+    // 6.  Publisher<O> method(I payload)
+    // 7.  PublisherBuilder<Message<O>> method(Message<I> msg)
+    // 8.  PublisherBuilder<O> method(I payload)
+
+    // 9. Message<O> method(Message<I> msg)
+    // 10. O method(I payload)
+    // 11. CompletionStage<O> method(I payload)
+    // 12. CompletionStage<Message<O>> method(Message<I> msg)
+
+    Class<?> returnType = method.getReturnType();
+    if (ClassUtils.isAssignable(returnType, Processor.class)  || ClassUtils.isAssignable(returnType, ProcessorBuilder.class)) {
+      // Case 1, 2 or 3, 4
+      validateMethodReturningAProcessor();
+    } else if (
+      ClassUtils.isAssignable(returnType, Publisher.class) || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
+      // Case 5, 6, 7, 8
+      if (method.getParameterCount() != 1) {
+        throw new IllegalArgumentException("Invalid method annotated with @Outgoing and @Incoming " + methodAsString()
+          + " - one parameter expected");
+      }
+      validateMethodConsumingSingleAndProducingAPublisher();
+    } else {
+      // Case 13, 14, 15, 16
+      Class<?> param = method.getParameterTypes()[0];
+      if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
+        // Case 15 or 16
+        Type type = getParameterFromReturnType(method, 0)
+          .orElseThrow(() -> getIncomingAndOutgoingError("Expected a type parameter in the return CompletionStage"));
+        production = TypeUtils.isAssignable(type, Message.class) ? Production.COMPLETION_STAGE_OF_MESSAGE : Production.COMPLETION_STAGE_OF_PAYLOAD;
+        consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
+      } else {
+        // Case 13 or 14
+        production = ClassUtils.isAssignable(returnType, Message.class) ? Production.INDIVIDUAL_MESSAGE : Production.INDIVIDUAL_PAYLOAD;
+        consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
+      }
+    }
+  }
+
+  private void validateMethodConsumingAndProducingAPublisher() {
+    // The mediator produces and consumes a stream
+    Type type = getParameterFromReturnType(method, 0)
+      .orElseThrow(() -> getOutgoingError("Expected a type parameter for the returned Publisher"));
+    production = TypeUtils.isAssignable(type, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
+
+    Type pType = getParameterFromMethodArgument(method, 0, 0)
+      .orElseThrow(() -> getIncomingError("Expected a type parameter for the consumed Publisher"));
+    consumption = TypeUtils.isAssignable(pType, Message.class) ? Consumption.STREAM_OF_MESSAGE : Consumption.STREAM_OF_PAYLOAD;
+
+    useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), PublisherBuilder.class);
+    // TODO Ensure that the parameter is also a publisher builder.
+  }
+
+  private void validateMethodConsumingSingleAndProducingAPublisher() {
+    Type type = getParameterFromReturnType(method, 0)
+      .orElseThrow(() -> getOutgoingError("Expected a type parameter for the returned Publisher"));
+    production =
+      TypeUtils.isAssignable(type, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
+
+    consumption = ClassUtils.isAssignable(method.getParameterTypes()[0], Message.class) ? Consumption.STREAM_OF_MESSAGE : Consumption.STREAM_OF_PAYLOAD;
+
+    useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), PublisherBuilder.class);
+  }
+
+  private void validateMethodReturningAProcessor() {
+    if (method.getParameterCount() != 0) {
+      throw getIncomingAndOutgoingError("the method must not have parameters");
+    }
+    Type type1 = getParameterFromReturnType(method, 0)
+      .orElseThrow(() -> getIncomingAndOutgoingError("Expected 2 type parameters for the returned Processor"));
+    consumption =  TypeUtils.isAssignable(type1, Message.class) ? Consumption.STREAM_OF_MESSAGE : Consumption.STREAM_OF_PAYLOAD;
+
+    Type type2 = getParameterFromReturnType(method, 1)
+      .orElseThrow(() -> getIncomingAndOutgoingError("Expected 2 type parameters for the returned Processor"));
+      production = TypeUtils.isAssignable(type2, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
+
+    useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), ProcessorBuilder.class);
+  }
+
+  private Optional<Type> getParameterFromReturnType(Method method, int index) {
+    Type type = method.getGenericReturnType();
+    if (!(type instanceof ParameterizedType)) {
+      return Optional.empty();
+    }
+    Type[] arguments = ((ParameterizedType) type).getActualTypeArguments();
+    if (arguments.length >= index + 1) {
+      return Optional.of(arguments[0]);
+    }
+    return Optional.empty();
+  }
+
+  private Optional<Type> getParameterFromMethodArgument(Method method, int argIndex, int index) {
+    Type[] types = method.getGenericParameterTypes();
+    if (types.length < argIndex) {
+      return Optional.empty();
+    }
+    Type type = method.getGenericReturnType();
+    if (!(type instanceof ParameterizedType)) {
+      return Optional.empty();
+    }
+    Type[] arguments = ((ParameterizedType) type).getActualTypeArguments();
+    if (arguments.length >= index + 1) {
+      return Optional.of(arguments[0]);
+    }
+    return Optional.empty();
+  }
+
+  private void validatePublisher(Outgoing outgoing) {
+    this.outgoing = outgoing;
+
+    // Supported signatures:
+    // 1. Publisher<Message<O>> method()
+    // 2. Publisher<O> method()
+    // 3. PublisherBuilder<Message<O>> method()
+    // 4. PublisherBuilder<O> method()
+    // 5. O method() O cannot be Void
+    // 6. Message<O> method()
+    // 7. CompletionStage<Message<O>> method()
+    // 8. CompletionStage<O> method()
+
+    Class<?> returnType = method.getReturnType();
+    Type type = method.getGenericReturnType();
+    if (type instanceof ParameterizedType) {
+      // Expect only 1 type
+      type = ((ParameterizedType) type).getActualTypeArguments()[0];
+    }
+
+    if (returnType == Void.TYPE) {
+      throw new IllegalArgumentException("Invalid method annotated with @Outgoing: " + methodAsString()
+        + " - the method must not be `void`");
+    }
+
+    if (method.getParameterCount() != 0) {
+      throw new IllegalArgumentException("Invalid method annotated with @Outgoing: " + methodAsString()
+        + " - no parameters expected");
+    }
+
+    consumption = Consumption.NONE;
+
+    if (ClassUtils.isAssignable(returnType, Publisher.class)) {
+      // Case 1 or 2
+      production = TypeUtils.isAssignable(Message.class, type) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
+      return;
+    }
+
+    if (ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
+      // Case 3 or 4
+      production = TypeUtils.isAssignable(Message.class, type) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
+      useBuilderTypes = true;
+      return;
+    }
+
+    if (ClassUtils.isAssignable(returnType, Message.class)) {
+      // Case 5
+      production = Production.INDIVIDUAL_MESSAGE;
+      return;
+    }
+
+    if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
+      // Case 7 and 8
+      Type t = getParameterFromReturnType(method, 0)
+        .orElseThrow(() -> getOutgoingError("expected a parameter for the returned CompletionStage"));
+      production = TypeUtils.isAssignable(t, Message.class) ? Production.COMPLETION_STAGE_OF_MESSAGE : Production.COMPLETION_STAGE_OF_PAYLOAD;
+      return;
+    }
+
+     // Case 6
+    production = Production.INDIVIDUAL_PAYLOAD;
+  }
+
+  private IllegalArgumentException getOutgoingError(String message) {
+    return new IllegalArgumentException("Invalid method annotated with @Outgoing: " + methodAsString() + " - " + message);
+  }
+
+  private IllegalArgumentException getIncomingError(String message) {
+    return new IllegalArgumentException("Invalid method annotated with @Incoming: " + methodAsString() + " - " + message);
+  }
+
+  private IllegalArgumentException getIncomingAndOutgoingError(String message) {
+    return new IllegalArgumentException("Invalid method annotated with @Incoming and @Outgoing: " + methodAsString() + " - " + message);
+  }
+
+  private void validateSubscriber(Incoming incoming) {
+    this.incoming = incoming;
+    this.production = Production.NONE;
+
+    // Supported signatures:
+    // 1. Subscriber<Message<I>> method()
+    // 2. Subscriber<I> method()
+    // 3. CompletionStage<?> method(Message<I> m)
+    // 4. CompletionStage<?> method(I i)
+    // 5. void/? method(Message<I> m)
+    // 6. void/? method(I i)
+
+    Class<?> returnType = method.getReturnType();
+    Optional<Type> type = getParameterFromReturnType(method, 0);
+
+    if (ClassUtils.isAssignable(returnType, Subscriber.class)) {
+      // Case 1 or 2.
+      // Validation -> No parameter
+      if (method.getParameterCount() != 0) {
+        // TODO Revisit it with injected parameters
+        throw getIncomingError("when returning a Subscriber, no parameters are expected");
+      }
+      Type p = type.orElseThrow(() -> getIncomingError("the returned Subscriber must declare a type parameter"));
+      // Need to distinguish 1 or 2
+      consumption = TypeUtils.isAssignable(p, Message.class) ? Consumption.STREAM_OF_MESSAGE : Consumption.STREAM_OF_PAYLOAD;
+      return;
+    }
+
+    if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
+      // Case 3 or 4
+      // Expected parameter 1, Message or payload
+      if (method.getParameterCount() != 1) {
+        // TODO Revisit it with injected parameters
+        throw getIncomingError("when returning a CompletionStage, one parameter is expected");
+      }
+
+      Class<?> param = method.getParameterTypes()[0];
+      // Distinction between 3 and 4
+      consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
+      return;
+    }
+
+    // Case 5 and 6, void | x with 1 parameter
+    if (method.getParameterCount() == 1) {
+      // TODO Revisit it with injected parameters
+      Class<?> param = method.getParameterTypes()[0];
+      // Distinction between 3 and 4
+      consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
+      return;
+    }
+
+    throw getIncomingError("Unsupported signature");
   }
 
   public String getOutgoing() {
@@ -67,109 +362,10 @@ public class MediatorConfiguration {
     return outgoing.value();
   }
 
-  public String getOutgoingProviderType() {
-    if (outgoing == null) {
-      return null;
-    }
-    // TODO Do we need to check if it's just MessagingProvider
-    return outgoing.provider().getName();
-  }
-
-  private void validateOutgoingSignature() {
-    if (outgoing == null) {
-      return;
-    }
-    Class<?> type = method.getReturnType();
-    ParameterizedType parameterizedType = null;
-    if (method.getGenericReturnType() instanceof ParameterizedType) {
-      parameterizedType = (ParameterizedType) method.getGenericReturnType();
-    }
-
-    // We know that the method cannot return null at the point.
-    // TODO We should still check for CompletionStage<Void>, or Publisher<Void> which would be invalid.
-
-    if (parameterizedType == null) {
-      producedPayloadType = type;
-      return;
-    }
-
-    if (ClassUtils.isAssignable(type, Publisher.class)
-      || ClassUtils.isAssignable(type, Message.class)
-      || ClassUtils.isAssignable(type, CompletionStage.class)
-      || ClassUtils.isAssignable(type, PublisherBuilder.class)
-      ) {
-      // Extract the internal type - for all these type it's the first (unique) parameter
-      producedPayloadType = parameterizedType.getActualTypeArguments()[0];
-      return;
-    }
-
-    if (ClassUtils.isAssignable(type, ProcessorBuilder.class)
-      || ClassUtils.isAssignable(type, Processor.class)) {
-      // Extract the internal type - for all these type it's the second parameter
-      producedPayloadType = parameterizedType.getActualTypeArguments()[1];
-      return;
-    }
-
-    throw new IllegalStateException("Unable to determine the type of message returned by the method: " + methodAsString());
-  }
-
-  private void validateIncomingSignature() {
-    if (incoming == null) {
-      return;
-    }
-    if (method.getParameterCount() == 0) {
-      // The method must returned a ProcessorBuilder or a Processor, in this case, the consumed type is the first parameter.
-      Class<?> type = method.getReturnType();
-      ParameterizedType parameterizedType = null;
-      if (method.getGenericReturnType() instanceof  ParameterizedType) {
-        parameterizedType = (ParameterizedType) method.getGenericReturnType();
-      }
-
-      // Supported types are: Processor, ProcessorBuilder, Subscriber, in all case the parameterized type must be set.
-      if (parameterizedType == null) {
-        throw new IllegalStateException("Unable to determine the consumed type for " + methodAsString() + " - expected a type parameter in the returned type");
-      }
-
-      if (
-           !ClassUtils.isAssignable(ProcessorBuilder.class, type) && !ClassUtils.isAssignable(Processor.class, type)
-        && !ClassUtils.isAssignable(Subscriber.class, type) && !ClassUtils.isAssignable(SubscriberBuilder.class, type)
-        ) {
-        throw new IllegalStateException("Invalid returned type for " + methodAsString() + ", supported types are Processor, ProcessorBuilder, and Subscriber");
-      }
-
-      consumedPayloadType = parameterizedType.getActualTypeArguments()[0];
-      if (parameterizedType.getActualTypeArguments().length > 1) {
-        // TODO this won't work for implementation having a single parameter, or more...
-        producedPayloadType = parameterizedType.getActualTypeArguments()[1];
-      }
-      consumeAsStream = true;
-      isSubscriber = ClassUtils.isAssignable(Subscriber.class, type)
-        && ! ClassUtils.isAssignable(ProcessorBuilder.class, type) && ! ClassUtils.isAssignable(Processor.class, type);
-    }
-
-    if (method.getParameterCount() == 1) {
-      // we need to check the parameter.
-      Class<?> type = method.getParameterTypes()[0];
-      Type paramType = method.getGenericParameterTypes()[0];
-      consumeAsStream = ClassUtils.isAssignable(type, Publisher.class)  || ClassUtils.isAssignable(type, PublisherBuilder.class);
-      if (paramType instanceof ParameterizedType) {
-        consumedPayloadType = ((ParameterizedType) paramType).getActualTypeArguments()[0];
-      } else {
-        consumedPayloadType = type;
-      }
-    }
-
-    // TODO validate the converters,
-    // TODO validate the types in the parameters
-  }
 
   public String getIncoming() {
     if (incoming == null) {
       return null;
-    }
-    if (Strings.isBlank(incoming.value())) {
-      // TODO is that true?
-     throw new IllegalArgumentException("The @Incoming annotation must contain a non-blank value");
     }
     return incoming.value();
   }
@@ -181,70 +377,48 @@ public class MediatorConfiguration {
     return incoming.provider().getName();
   }
 
-  public boolean isPublisher() {
-    return outgoing != null;
-  }
-
-  public boolean isSubscriber() {
-    return incoming != null;
-  }
-
-  public Class<?> getReturnType() {
-    if (! isVoid()) {
-      return method.getReturnType();
+  public String getOutgoingProviderType() {
+    if (outgoing == null) {
+      return null;
     }
-    return null;
-  }
-
-  public Class<?> getParameterType() {
-    if (method.getParameterCount() == 1) {
-      return method.getParameterTypes()[0];
-    }
-    return null;
+    return outgoing.provider().getName();
   }
 
   public String methodAsString() {
     return beanClass.getName() + "#" + method.getName();
   }
 
-  private boolean isVoid() {
-    return method.getReturnType().equals(Void.TYPE);
-  }
-
   public Method getMethod() {
     return method;
-  }
-
-  public static boolean isClassASubTypeOf(Class<?> maybeChild, Class<?> maybeParent) {
-    return maybeParent.isAssignableFrom(maybeChild);
   }
 
   public Class<?> getBeanClass() {
     return beanClass;
   }
 
-  public boolean consumeAsStream() {
-    return consumeAsStream;
+  public Consumption consumption() {
+    return consumption;
   }
 
-  public boolean isConsumingPayloads() {
-    return consumedPayloadType != null && !TypeUtils.isAssignable(consumedPayloadType, Message.class);
+  public Production production() {
+    return production;
   }
 
-  public boolean isProducingPayloads() {
-    return producedPayloadType != null && !TypeUtils.isAssignable(producedPayloadType, Message.class);
+  public boolean usesBuilderTypes() {
+    return useBuilderTypes;
   }
 
-  public boolean isReturningCompletionStageOfMessage() {
-    Class<?> type = method.getReturnType();
-    if (! isClassASubTypeOf(type, CompletionStage.class)) {
-      return false;
-    }
-    Type grt = method.getGenericReturnType();
-    if (grt instanceof ParameterizedType) {
-      ParameterizedType pt = (ParameterizedType) grt;
-      Type param = pt.getActualTypeArguments()[0];
-      return TypeUtils.isAssignable(param, Message.class);
+  private boolean isReturningAPublisherOrAPublisherBuilder() {
+    Class<?> returnType = method.getReturnType();
+    return ClassUtils.isAssignable(returnType, Publisher.class) || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
+  }
+
+
+  private boolean isConsumingAPublisherOrAPublisherBuilder() {
+    Class<?>[] types = method.getParameterTypes();
+    if (types.length >= 1) {
+      Class<?> type = types[0];
+      return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils.isAssignable(type, PublisherBuilder.class);
     }
     return false;
   }

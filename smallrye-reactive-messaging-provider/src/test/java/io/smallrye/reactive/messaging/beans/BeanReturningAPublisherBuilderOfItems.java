@@ -11,7 +11,8 @@ public class BeanReturningAPublisherBuilderOfItems {
 
   @Outgoing("producer")
   public Publisher<String> create() {
-    return ReactiveStreams.of("a", "b", "c").buildRs();
+    return ReactiveStreams.of("a", "b", "c")
+      .buildRs();
   }
 
 }

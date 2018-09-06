@@ -16,7 +16,10 @@ public class BeanReturningASubscriberOfPayloads {
 
   @Incoming("count")
   public Subscriber<String> create() {
-    return ReactiveStreams.<String>builder().forEach(m -> list.add(m))
+    return ReactiveStreams.<String>builder().forEach(m -> {
+      System.out.println("Receiving " + m);
+      list.add(m);
+    })
       .build();
   }
 
