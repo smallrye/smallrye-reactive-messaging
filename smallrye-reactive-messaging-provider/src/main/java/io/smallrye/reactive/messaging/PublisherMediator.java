@@ -94,7 +94,6 @@ public class PublisherMediator extends AbstractMediator {
   private <P> void produceAPublisherOfPayloads(Object bean) {
     Publisher<P> pub = invoke(bean);
     this.publisher = ReactiveStreams.fromPublisher(pub)
-      .peek(p -> System.out.println("Getting a " + p + " from the producer"))
       .map(Message::of).buildRs();
   }
 

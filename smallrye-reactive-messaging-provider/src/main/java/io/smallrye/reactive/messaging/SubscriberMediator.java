@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging;
 
-import io.reactivex.Flowable;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -10,13 +9,18 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class SubscriberMediator extends AbstractMediator {
 
   private Publisher<Message> source;
   private Subscriber subscriber;
+
+  /**
+   * Keep track of the subscription to cancel it once the scope is terminated.
+   */
+  private AtomicReference<Subscription> subscription = new AtomicReference<>();
 
 
   // Supported signatures:
@@ -82,7 +86,7 @@ public class SubscriberMediator extends AbstractMediator {
     Subscriber delegating = new Subscriber() {
       @Override
       public void onSubscribe(Subscription s) {
-        System.out.println("Subscription attempt using " + s);
+        subscription.set(s);
         subscriber.onSubscribe(s);
       }
 
@@ -103,10 +107,7 @@ public class SubscriberMediator extends AbstractMediator {
       }
     };
 
-    Flowable.fromPublisher(this.source)
-      .doOnSubscribe(x -> System.out.println("In on subscribe"))
-      .doOnRequest(x -> System.out.println("Got request"))
-      .subscribe(delegating);
+    this.source.subscribe(delegating);
   }
 
   private void processMethodReturningVoid(Object bean) {
