@@ -16,7 +16,6 @@ public class SubscriberMediator extends AbstractMediator {
 
   private Publisher<Message> source;
   private Subscriber subscriber;
-
   /**
    * Keep track of the subscription to cancel it once the scope is terminated.
    */
@@ -115,16 +114,15 @@ public class SubscriberMediator extends AbstractMediator {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
         .flatMapCompletionStage(message -> {
           invoke(bean, message.getPayload());
-          return getAckOrCompletion(message);
+          return getAckOrCompletion(message).thenApply(x -> message);
         })
         .ignore()
         .build();
     } else {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
         .flatMapCompletionStage(message -> {
-          CompletionStage<?> stage = invoke(bean, message);
-          return stage
-            .thenCompose(x -> getAckOrCompletion(message));
+          invoke(bean, message);
+          return getAckOrCompletion(message).thenApply(x -> message);
         })
         .ignore()
         .build();
