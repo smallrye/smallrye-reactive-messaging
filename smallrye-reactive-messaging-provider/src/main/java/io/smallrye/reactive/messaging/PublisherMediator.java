@@ -32,8 +32,7 @@ public class PublisherMediator extends AbstractMediator {
 
   @Override
   public Publisher<Message> getComputedPublisher() {
-    Objects.requireNonNull(publisher);
-    return publisher;
+    return Objects.requireNonNull(publisher);
   }
 
   @Override
@@ -123,11 +122,4 @@ public class PublisherMediator extends AbstractMediator {
       .map(Message::of)
       .buildRs();
   }
-
-  @SuppressWarnings("unchecked")
-  public Publisher<Message> getPublisher() {
-    assert this.publisher != null;
-    return publisher;
-  }
-
 }
