@@ -121,7 +121,7 @@ public class ReactiveMessagingExtension implements Extension {
 
       if (numberOfUnsatisfiedAfterLoop == numberOfUnsatisfiedBeforeLoop) {
         // Stale!
-        LOGGER.warn("Impossible to weave mediators, some mediators are not connected: {}",
+        LOGGER.warn("Impossible to bind mediators, some mediators are not connected: {}",
           unsatisfied.stream().map(m -> m.configuration.methodAsString()).collect(Collectors.toList()));
         LOGGER.warn("Available publishers: {}", registry.getPublisherNames());
         // TODO What should we do - break the deployment, report a warning?
