@@ -186,7 +186,7 @@ public class ProcessorMediator extends AbstractMediator {
     Function<Message, PublisherBuilder<? extends Message>> function = message -> {
       PublisherBuilder builder = invoke(bean, message.getPayload());
       return ReactiveStreams.of(message)
-        .flatMapCompletionStage(this::getAckOrCompletion)
+        .flatMapCompletionStage(m -> getAckOrCompletion(m).thenApply(x -> m))
         .flatMap(v -> builder)
         .map(Message::of);
     };
@@ -198,7 +198,7 @@ public class ProcessorMediator extends AbstractMediator {
     Function<Message, PublisherBuilder<? extends Message>> function = message -> {
       Publisher publisher = invoke(bean, message.getPayload());
       return ReactiveStreams.of(message)
-        .flatMapCompletionStage(this::getAckOrCompletion)
+        .flatMapCompletionStage(m -> getAckOrCompletion(m).thenApply(x -> m))
         .flatMapPublisher(v -> publisher)
         .map(Message::of);
     };

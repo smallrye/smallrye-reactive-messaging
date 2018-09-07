@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class StreamMethodTest extends WeldTestBase {
+public class StreamTransformerShapeTest extends WeldTestBase {
 
   @Test
   public void testBeanConsumingMsgAsFlowableAndPublishingMsgAsFlowable() {
@@ -42,7 +42,7 @@ public class StreamMethodTest extends WeldTestBase {
 
   @Test
   public void testBeanProducingAProcessor() {
-    weld.addBeanClass(BeanProducingAProcessor.class);
+    weld.addBeanClass(BeanProducingAProcessorOfMessages.class);
     WeldContainer container = weld.initialize();
     MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -50,7 +50,7 @@ public class StreamMethodTest extends WeldTestBase {
 
   @Test
   public void testBeanProducingAProcessorBuilder() {
-    weld.addBeanClass(BeanProducingAProcessorBuilder.class);
+    weld.addBeanClass(BeanProducingAProcessorBuilderOfMessages.class);
     WeldContainer container = weld.initialize();
     MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);

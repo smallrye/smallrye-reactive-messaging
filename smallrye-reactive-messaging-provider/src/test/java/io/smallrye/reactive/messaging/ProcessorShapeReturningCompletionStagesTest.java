@@ -10,7 +10,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CompletionStageMethodTest extends WeldTestBase {
+public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
 
   private static final List<String> LIST =
     Flowable.range(1, 10).map(i -> Integer.toString(i)).toList().blockingGet();

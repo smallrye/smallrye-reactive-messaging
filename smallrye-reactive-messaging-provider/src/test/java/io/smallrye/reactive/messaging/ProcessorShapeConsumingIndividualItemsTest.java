@@ -12,13 +12,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ItemizedMethodTest extends WeldTestBase {
+public class ProcessorShapeConsumingIndividualItemsTest extends WeldTestBase {
 
   private static final List<String> LIST =
     Flowable.range(1, 10).map(i -> Integer.toString(i)).toList().blockingGet();
 
   @Test
-  public void testBeanConsumingMessagesAndProducingMessages() throws InterruptedException {
+  public void testBeanConsumingMessagesAndProducingMessages() {
     weld.addBeanClass(BeanConsumingMessagesAndProducingMessages.class);
     WeldContainer container = weld.initialize();
     MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();

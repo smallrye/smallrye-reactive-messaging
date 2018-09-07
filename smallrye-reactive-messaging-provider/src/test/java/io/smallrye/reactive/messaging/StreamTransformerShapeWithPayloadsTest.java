@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UnwrappedStreamMethodTest extends WeldTestBase {
+public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
 
   @Test
   public void testBeanConsumingItemAsFlowableAndPublishingItemAsFlowable() {
@@ -39,30 +39,5 @@ public class UnwrappedStreamMethodTest extends WeldTestBase {
     MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
-
-  @Test
-  public void testBeanProducingAProcessor() {
-    weld.addBeanClass(BeanProducingAProcessorOfItem.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
-    assertThat(collector.payloads()).isEqualTo(EXPECTED);
-  }
-
-  @Test
-  public void testBeanProducingAProcessorOfMessages() {
-    weld.addBeanClass(BeanProducingAProcessorOfItem.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
-    assertThat(collector.payloads()).isEqualTo(EXPECTED);
-  }
-
-  @Test
-  public void testBeanProducingAProcessorBuilder() {
-    weld.addBeanClass(BeanProducingAProcessorBuilderOfItem.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
-    assertThat(collector.payloads()).isEqualTo(EXPECTED);
-  }
-
 
 }
