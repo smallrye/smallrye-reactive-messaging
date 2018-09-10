@@ -120,10 +120,7 @@ public class SubscriberMediator extends AbstractMediator {
         .build();
     } else {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
-        .flatMapCompletionStage(message -> {
-          invoke(bean, message);
-          return getAckOrCompletion(message).thenApply(x -> message);
-        })
+        .peek(message -> invoke(bean, message))
         .ignore()
         .build();
     }
@@ -156,8 +153,9 @@ public class SubscriberMediator extends AbstractMediator {
     }
     Subscriber sub  = (Subscriber) result;
     if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
-      // TODO manage acknowledgment
+      // TODO Is it the expected behavior, the ack happen before the subscriber to be called.
       this.subscriber = ReactiveStreams.<Message>builder()
+        .flatMapCompletionStage(message -> getAckOrCompletion(message).thenApply(x -> message))
         .map(Message::getPayload)
         .to(sub)
         .build();
