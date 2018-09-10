@@ -198,12 +198,14 @@ public class ProcessorMediator extends AbstractMediator {
     Function<Message, PublisherBuilder<? extends Message>> function = message -> {
       Publisher publisher = invoke(bean, message.getPayload());
       return ReactiveStreams.of(message)
-        .flatMapCompletionStage(m -> getAckOrCompletion(m).thenApply(x -> m))
+        .flatMapCompletionStage(m -> getAckOrCompletion(m)
+          .thenApply(x -> m))
         .flatMapPublisher(v -> publisher)
         .map(Message::of);
     };
 
-    this.processor = ReactiveStreams.<Message>builder().flatMap(function).buildRs();
+    this.processor = ReactiveStreams.<Message>builder()
+      .flatMap(function).buildRs();
   }
 
   private void processMethodReturningIndividualMessageAndConsumingIndividualItem(Object bean) {

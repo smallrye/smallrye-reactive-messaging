@@ -1,5 +1,6 @@
-package io.smallrye.reactive.messaging;
+package io.smallrye.reactive.messaging.ack;
 
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.ack.BeanWithSubscribers;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
