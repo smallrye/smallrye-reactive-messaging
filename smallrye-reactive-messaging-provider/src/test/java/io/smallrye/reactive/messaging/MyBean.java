@@ -20,14 +20,17 @@ public class MyBean {
 
   @Incoming("my-dummy-stream")
   @Outgoing("toUpperCase")
-  public Flowable<String> toUppercase(Flowable<String> input) {
-    return input.map(String::toUpperCase);
+  public Flowable<Message<String>> toUppercase(Flowable<Message<String>> input) {
+    return input
+      .map(Message::getPayload)
+      .map(String::toUpperCase)
+      .map(Message::of);
   }
 
   @Incoming("toUpperCase")
   @Outgoing("my-output")
-  public PublisherBuilder<String> duplicate(PublisherBuilder<String> input) {
-    return input.flatMap(s -> ReactiveStreams.of(s, s));
+  public PublisherBuilder<Message<String>> duplicate(PublisherBuilder<Message<String>> input) {
+    return input.flatMap(s -> ReactiveStreams.of(s.getPayload(), s.getPayload()).map(Message::of));
   }
 
 

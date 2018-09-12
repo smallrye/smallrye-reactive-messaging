@@ -102,9 +102,12 @@ public class MediatorConfiguration {
     this.incoming = incoming;
     this.outgoing = outgoing;
     // 1.  Publisher<Message<O>> method(Publisher<Message<I>> publisher)
-    // 2. Publisher<O> method(Publisher<I> publisher)
+    // 2. Publisher<O> method(Publisher<I> publisher) - Dropped
     // 3. PublisherBuilder<Message<O>> method(PublisherBuilder<Message<I>> publisher)
-    // 4. PublisherBuilder<O> method(PublisherBuilder<I> publisher)
+    // 4. PublisherBuilder<O> method(PublisherBuilder<I> publisher) - Dropped
+
+    // The case 2 and 4 have been dropped because it is not possible to acknowledge the messages automatically as we can't know when
+    // the acknowledgment needs to happen. This has been discussed during the MP Reactive hangout, Sept. 11th, 2018.
     validateMethodConsumingAndProducingAPublisher();
   }
 
@@ -169,6 +172,28 @@ public class MediatorConfiguration {
     consumption = TypeUtils.isAssignable(pType, Message.class) ? Consumption.STREAM_OF_MESSAGE : Consumption.STREAM_OF_PAYLOAD;
 
     useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), PublisherBuilder.class);
+
+    // Validate method and be sure we are not in the case 2 and 4.
+    if (consumption == Consumption.STREAM_OF_PAYLOAD) {
+      throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported as the acknowledgement cannot be managed automatically. " +
+        "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
+    }
+
+    if (production == Production.STREAM_OF_PAYLOAD) {
+      throw getIncomingAndOutgoingError("Producing a stream of payload is not supported as the acknowledgement cannot be managed automatically. " +
+        "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
+    }
+
+    if (useBuilderTypes) {
+      //TODO Test validation.
+
+      // Ensure that the parameter is also using the MP Reactive Streams Operator types.
+      Class<?> paramClass = method.getParameterTypes()[0];
+      if (! ClassUtils.isAssignable(paramClass, PublisherBuilder.class)) {
+        throw getIncomingAndOutgoingError("If the method produces a PublisherBuilder, it needs to consume a PublisherBuilder.");
+      }
+    }
+
     // TODO Ensure that the parameter is also a publisher builder.
   }
 
@@ -247,13 +272,11 @@ public class MediatorConfiguration {
     }
 
     if (returnType == Void.TYPE) {
-      throw new IllegalArgumentException("Invalid method annotated with @Outgoing: " + methodAsString()
-        + " - the method must not be `void`");
+      throw getOutgoingError("the method must not be `void`");
     }
 
     if (method.getParameterCount() != 0) {
-      throw new IllegalArgumentException("Invalid method annotated with @Outgoing: " + methodAsString()
-        + " - no parameters expected");
+      throw getOutgoingError("no parameters expected");
     }
 
     consumption = Consumption.NONE;
