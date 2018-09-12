@@ -14,6 +14,7 @@ import javax.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -25,7 +26,6 @@ public class BeanWithStreamTransformers {
   static final String AUTO_ACKNOWLEDGMENT = "auto-acknowledgment";
   static final String MANUAL_ACKNOWLEDGMENT_BUILDER = "manual-acknowledgment-builder";
   static final String NO_ACKNOWLEDGMENT_BUILDER = "no-acknowledgment-builder";
-  static final String AUTO_ACKNOWLEDGMENT_BUILDER = "auto-acknowledgment-builder";
 
   private Map<String, List<String>> sink = new ConcurrentHashMap<>();
   private Map<String, List<String>> acknowledged = new ConcurrentHashMap<>();
@@ -41,33 +41,33 @@ public class BeanWithStreamTransformers {
   // TODO a sink should be able to receive more than one mediator.
 
   @Incoming("sink-manual")
-  public void sinkManual(Message<String> ignored) {
-    // do nothing
+  public CompletionStage<Void> sinkManual(Message<String> ignored) {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-auto")
-  public void sinkAuto(Message<String> ignored) {
-    // do nothing
+  public CompletionStage<Void> sinkAuto(Message<String> ignored) {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-no")
-  public void sinkNo(Message<String> ignored) {
-    // do nothing
+  public CompletionStage<Void> sinkNo(Message<String> ignored) {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-manual-builder")
-  public void sinkManualForBuilder(Message<String> ignored) {
-    // do nothing
+  public CompletionStage<Void> sinkManualForBuilder(Message<String> ignored) {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-auto-builder")
-  public void sinkAutoForBuilder(Message<String> ignored) {
-    // do nothing
+  public CompletionStage<Void> sinkAutoForBuilder(Message<String> ignored) {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-no-builder")
-  public void sinkNoForBuilder(Message<String> ignored) {
-    // do nothing
+  public CompletionStage<Void> sinkNoForBuilder(Message<String> ignored) {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Incoming(MANUAL_ACKNOWLEDGMENT)

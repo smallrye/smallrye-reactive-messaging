@@ -10,9 +10,14 @@ import javax.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * It is not supported to return `void` or an object (that it not a CompletionStage) when consuming a Message. So, we are checking method returning
+ * `CompletionStage<Void>`.
+ */
 @ApplicationScoped
 public class BeanWithSubscriberUsingVoidMethods {
 
@@ -31,10 +36,11 @@ public class BeanWithSubscriberUsingVoidMethods {
   }
 
   @Incoming(MANUAL_ACKNOWLEDGMENT)
-  public void subWithAck(Message<String> message) {
+  public CompletionStage<Void> subWithAck(Message<String> message) {
     this.sink.computeIfAbsent(MANUAL_ACKNOWLEDGMENT, x -> new CopyOnWriteArrayList<>()).add(message.getPayload());
-    // Blocking is bad, but no choice here
-    message.ack().toCompletableFuture().join();
+    // We cannot return a value or void by spec
+    // So we return the CompletionStage<Void>.
+    return message.ack();
   }
 
   @Outgoing(MANUAL_ACKNOWLEDGMENT)
@@ -48,8 +54,11 @@ public class BeanWithSubscriberUsingVoidMethods {
   }
 
   @Incoming(NO_ACKNOWLEDGMENT)
-  public void subWithNoAck(Message<String> message) {
+  public CompletionStage<Void> subWithNoAck(Message<String> message) {
     this.sink.computeIfAbsent(NO_ACKNOWLEDGMENT, x -> new CopyOnWriteArrayList<>()).add(message.getPayload());
+    // We cannot return a value or void by spec
+    // So we return the CompletionStage<Void>.
+    return CompletableFuture.completedFuture(null);
   }
 
   @Outgoing(NO_ACKNOWLEDGMENT)

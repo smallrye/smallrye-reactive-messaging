@@ -310,7 +310,7 @@ public class MediatorConfiguration {
     // 2. Subscriber<I> method()
     // 3. CompletionStage<?> method(Message<I> m)
     // 4. CompletionStage<?> method(I i)
-    // 5. void/? method(Message<I> m)
+    // 5. void/? method(Message<I> m) - this signature has been dropped as it forces blocking acknowledgment. Recommendation: use case 3.
     // 6. void/? method(I i)
 
     Class<?> returnType = method.getReturnType();
@@ -347,8 +347,14 @@ public class MediatorConfiguration {
     if (method.getParameterCount() == 1) {
       // TODO Revisit it with injected parameters
       Class<?> param = method.getParameterTypes()[0];
-      // Distinction between 3 and 4
+      // Distinction between 5 and 6
       consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
+
+      // Detect the case 5 that is not supported (anymore, decision taken during the MP reactive hangout Sept. 11th, 2018
+      if (consumption == Consumption.MESSAGE) {
+        throw getIncomingError("The signature is not supported as it requires 'blocking' acknowledgment, return a CompletionStage<Message<?> instead.");
+      }
+
       return;
     }
 

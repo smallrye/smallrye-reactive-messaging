@@ -27,7 +27,7 @@ public class SubscriberMediator extends AbstractMediator {
   // 2. Subscriber<I> method()
   // 3. CompletionStage<?> method(Message<I> m)
   // 4. CompletionStage<?> method(I i)
-  // 5. void/? method(Message<I> m)
+  // 5. void/? method(Message<I> m) - The support of this method has been removed (CES - Reactive Hangout 2018/09/11).
   // 6. void/? method(I i)
 
   public SubscriberMediator(MediatorConfiguration configuration) {
@@ -44,13 +44,13 @@ public class SubscriberMediator extends AbstractMediator {
       case STREAM_OF_PAYLOAD: // 2
         processMethodReturningASubscriber(bean);
         break;
-      case MESSAGE: // 3 or 5
+      case MESSAGE: // 3  (5 being dropped)
       case PAYLOAD: // 4 or 6
         if (ClassUtils.isAssignable(configuration.getMethod().getReturnType(), CompletionStage.class)) {
           // Case 3, 4
           processMethodReturningACompletionStage(bean);
         } else {
-          // Case 5 or 6
+          // Case 6 (5 being dropped)
           processMethodReturningVoid(bean);
         }
         break;
@@ -116,11 +116,6 @@ public class SubscriberMediator extends AbstractMediator {
           invoke(bean, message.getPayload());
           return getAckOrCompletion(message).thenApply(x -> message);
         })
-        .ignore()
-        .build();
-    } else {
-      this.subscriber = ReactiveStreams.<Message<?>>builder()
-        .peek(message -> invoke(bean, message))
         .ignore()
         .build();
     }

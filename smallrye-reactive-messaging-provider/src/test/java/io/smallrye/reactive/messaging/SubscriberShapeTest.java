@@ -5,6 +5,7 @@ import io.smallrye.reactive.messaging.beans.*;
 import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.jboss.weld.exceptions.DefinitionException;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
@@ -48,11 +50,16 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumeMessagesFromAMethodReturningVoid() {
+    // This case is not supported as it forces blocking acknowledgment.
+    // See the MediatorConfiguration class for details.
     weld.addBeanClass(BeanConsumingMessagesAndReturningVoid.class);
-    WeldContainer container = weld.initialize();
-    BeanConsumingMessagesAndReturningVoid collector = container.getBeanManager()
-      .createInstance().select(BeanConsumingMessagesAndReturningVoid.class).get();
-    assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    try {
+      weld.initialize();
+      fail("Expected failure - method validation should have failed");
+    } catch (DefinitionException e) {
+      // Check we have the right cause
+      assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
+    }
   }
 
   @Test
@@ -66,11 +73,17 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumeMessagesFromAMethodReturningSomething() {
+    // This case is not supported as it forces blocking acknowledgment.
+    // See the MediatorConfiguration class for details.
+
     weld.addBeanClass(BeanConsumingMessagesAndReturningSomething.class);
-    WeldContainer container = weld.initialize();
-    BeanConsumingMessagesAndReturningSomething collector = container.getBeanManager()
-      .createInstance().select(BeanConsumingMessagesAndReturningSomething.class).get();
-    assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    try {
+      weld.initialize();
+      fail("Expected failure - method validation should have failed");
+    } catch (DefinitionException e) {
+      // Check we have the right cause
+      assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
+    }
   }
 
   @Test
