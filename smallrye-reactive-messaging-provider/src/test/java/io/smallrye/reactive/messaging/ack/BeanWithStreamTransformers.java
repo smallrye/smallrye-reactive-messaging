@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.ack;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -41,31 +42,37 @@ public class BeanWithStreamTransformers {
   // TODO a sink should be able to receive more than one mediator.
 
   @Incoming("sink-manual")
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> sinkManual(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-auto")
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> sinkAuto(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-no")
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> sinkNo(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-manual-builder")
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> sinkManualForBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-auto-builder")
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> sinkAutoForBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-no-builder")
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> sinkNoForBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }

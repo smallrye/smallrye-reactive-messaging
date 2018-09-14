@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -29,6 +30,8 @@ public class MediatorConfiguration {
   private Incoming incoming;
 
   private Outgoing outgoing;
+
+  private Acknowledgment.Mode acknowledgment;
 
   /**
    * What does the mediator products and how is it produced
@@ -95,6 +98,17 @@ public class MediatorConfiguration {
       case PROCESSOR: validateProcessor(incoming, outgoing); break;
       case STREAM_TRANSFORMER: validateStreamTransformer(incoming, outgoing); break;
       default: throw new IllegalStateException("Unknown shape: " + shape);
+    }
+
+    Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
+    if (incoming != null) {
+      if (annotation != null) {
+        acknowledgment = annotation.value();
+      } else {
+        acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
+      }
+    } else if (annotation != null) {
+      throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: " + methodAsString());
     }
   }
 
@@ -450,5 +464,9 @@ public class MediatorConfiguration {
       return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils.isAssignable(type, PublisherBuilder.class);
     }
     return false;
+  }
+
+  public Acknowledgment.Mode getAcknowledgment() {
+    return acknowledgment;
   }
 }

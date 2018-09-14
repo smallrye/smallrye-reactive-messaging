@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.ack;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -31,6 +32,7 @@ public class BeanWithSubscriberUsingCompletionStageMethods {
   }
 
   @Incoming(MANUAL_ACKNOWLEDGMENT)
+  @Acknowledgment(Acknowledgment.Mode.MANUAL)
   public CompletionStage<Void> subWithAck(Message<String> message) {
     return CompletableFuture.runAsync(() ->
       this.sink.computeIfAbsent(MANUAL_ACKNOWLEDGMENT, x -> new CopyOnWriteArrayList<>()).add(message.getPayload()), executor)
@@ -48,6 +50,7 @@ public class BeanWithSubscriberUsingCompletionStageMethods {
   }
 
   @Incoming(NO_ACKNOWLEDGMENT)
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> subWithNoAck(Message<String> message) {
     this.sink.computeIfAbsent(NO_ACKNOWLEDGMENT, x -> new CopyOnWriteArrayList<>()).add(message.getPayload());
     return CompletableFuture.runAsync(this::nap);
@@ -62,6 +65,8 @@ public class BeanWithSubscriberUsingCompletionStageMethods {
         return CompletableFuture.completedFuture(null);
       }));
   }
+
+  // TODO POST, PRE, DEFAULT
 
   @Incoming(AUTO_ACKNOWLEDGMENT)
   public CompletionStage<Void> subWithAutoAck(String payload) {

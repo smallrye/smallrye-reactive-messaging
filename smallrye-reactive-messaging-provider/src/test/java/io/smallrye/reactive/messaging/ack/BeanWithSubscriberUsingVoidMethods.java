@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.ack;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -36,6 +37,7 @@ public class BeanWithSubscriberUsingVoidMethods {
   }
 
   @Incoming(MANUAL_ACKNOWLEDGMENT)
+  @Acknowledgment(Acknowledgment.Mode.MANUAL)
   public CompletionStage<Void> subWithAck(Message<String> message) {
     this.sink.computeIfAbsent(MANUAL_ACKNOWLEDGMENT, x -> new CopyOnWriteArrayList<>()).add(message.getPayload());
     // We cannot return a value or void by spec
@@ -54,6 +56,7 @@ public class BeanWithSubscriberUsingVoidMethods {
   }
 
   @Incoming(NO_ACKNOWLEDGMENT)
+  @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> subWithNoAck(Message<String> message) {
     this.sink.computeIfAbsent(NO_ACKNOWLEDGMENT, x -> new CopyOnWriteArrayList<>()).add(message.getPayload());
     // We cannot return a value or void by spec
@@ -70,6 +73,8 @@ public class BeanWithSubscriberUsingVoidMethods {
         return CompletableFuture.completedFuture(null);
       }));
   }
+
+  // TODO Post, PRe and Default
 
   @Incoming(AUTO_ACKNOWLEDGMENT)
   public void subWithAutoAck(String payload) {

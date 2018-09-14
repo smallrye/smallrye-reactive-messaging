@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,8 +10,10 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public class SubscriberMediator extends AbstractMediator {
 
@@ -112,30 +115,55 @@ public class SubscriberMediator extends AbstractMediator {
   private void processMethodReturningVoid(Object bean) {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
-        .flatMapCompletionStage(message -> {
+        .flatMapCompletionStage(managePreProcessingAck())
+        .map(message -> {
           invoke(bean, message.getPayload());
-          return getAckOrCompletion(message).thenApply(x -> message);
+          return message;
         })
+        .flatMapCompletionStage(managePostProcessingAck())
         .ignore()
         .build();
     }
   }
 
+  private Function<Message, ? extends CompletionStage<? extends Message>> managePostProcessingAck() {
+    return message -> {
+      if (configuration.getAcknowledgment() == Acknowledgment.Mode.POST_PROCESSING) {
+        return getAckOrCompletion(message).thenApply(x -> message);
+      } else {
+        return CompletableFuture.completedFuture(message);
+      }
+    };
+  }
+
+  private Function<Message, ? extends CompletionStage<? extends Message>> managePreProcessingAck() {
+    return message -> {
+      if (configuration.getAcknowledgment() == Acknowledgment.Mode.PRE_PROCESSING) {
+        return getAckOrCompletion(message).thenApply(x -> message);
+      }
+      return CompletableFuture.completedFuture(message);
+    };
+  }
+
   private void processMethodReturningACompletionStage(Object bean) {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
+        .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(message -> {
           CompletionStage<?> stage = invoke(bean, message.getPayload());
-          return stage.thenApply(x -> getAckOrCompletion(message)).thenApply(x -> message);
+          return stage.thenApply(x -> message);
         })
+        .flatMapCompletionStage(managePostProcessingAck())
         .ignore()
         .build();
     } else {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
+        .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(message -> {
           CompletionStage<?> completion = invoke(bean, message);
           return completion.thenApply(x -> message);
         })
+        .flatMapCompletionStage(managePostProcessingAck())
         .ignore()
         .build();
     }
@@ -150,9 +178,12 @@ public class SubscriberMediator extends AbstractMediator {
     if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
       // TODO Is it the expected behavior, the ack happen before the subscriber to be called.
       this.subscriber = ReactiveStreams.<Message>builder()
-        .flatMapCompletionStage(message -> getAckOrCompletion(message).thenApply(x -> message))
-        .map(Message::getPayload)
-        .to(sub)
+        .flatMapCompletionStage(managePreProcessingAck())
+        .onError(t -> sub.onError(t))
+        .onComplete(() -> sub.onComplete())
+        .peek(x -> sub.onNext(x.getPayload()))
+        .flatMapCompletionStage(managePostProcessingAck())
+        .ignore()
         .build();
     } else {
       this.subscriber = sub ;
