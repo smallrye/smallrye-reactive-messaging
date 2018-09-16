@@ -4,63 +4,95 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
-import static io.smallrye.reactive.messaging.ack.BeanWithSubscribers.*;
+import static io.smallrye.reactive.messaging.ack.BeanWithMethodsReturningSubscribers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 public class SubscriberAcknowledgementTest extends WeldTestBaseWithoutTails {
 
+  private <T> T installInitializeAndGet(Class<T> beanClass) {
+    weld.addBeanClass(beanClass);
+    WeldContainer container = weld.initialize();
+    return container.getBeanManager().createInstance().select(beanClass).get();
+  }
+
   @Test
   public void testManualAcknowledgementWithMethodReturningSubscriber() {
-    weld.addBeanClass(BeanWithSubscribers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscribers bean = container.getBeanManager().createInstance().select(BeanWithSubscribers.class).get();
-    await().until(() -> bean.acknowledged(MANUAL_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.acknowledged(MANUAL_ACKNOWLEDGMENT_MESSAGE).size() == 5);
+    await().until(() -> bean.received(MANUAL_ACKNOWLEDGMENT_MESSAGE).size() == 5);
+    assertThat(bean.acknowledged(MANUAL_ACKNOWLEDGMENT_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.received(MANUAL_ACKNOWLEDGMENT_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
   }
 
   @Test
-  public void testNoAcknowledgementWithMethodReturningSubscriber() {
-    weld.addBeanClass(BeanWithSubscribers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscribers bean = container.getBeanManager().createInstance().select(BeanWithSubscribers.class).get();
-    await().until(() -> bean.received(NO_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(NO_ACKNOWLEDGMENT)).isNull();
-    assertThat(bean.received(NO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+  public void testNoAcknowledgementMessageWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.received(NO_ACKNOWLEDGMENT_MESSAGE).size() == 5);
+    assertThat(bean.acknowledged(NO_ACKNOWLEDGMENT_MESSAGE)).isEmpty();
+    assertThat(bean.received(NO_ACKNOWLEDGMENT_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
   }
 
   @Test
-  public void testPreProcessingAcknowledgementWithMethodReturningSubscriber() {
-    weld.addBeanClass(BeanWithSubscribers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscribers bean = container.getBeanManager().createInstance().select(BeanWithSubscribers.class).get();
-    await().until(() -> bean.acknowledged(PRE_PROCESSING_ACK).size() == 5);
-    assertThat(bean.acknowledged(PRE_PROCESSING_ACK)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(PRE_PROCESSING_ACK)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.acknowledgeTimeStamps(PRE_PROCESSING_ACK).get(0)).isLessThan(bean.receivedTimeStamps(PRE_PROCESSING_ACK).get(0));
+  public void testNoAcknowledgementPayloadWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.received(NO_ACKNOWLEDGMENT_PAYLOAD).size() == 5);
+    assertThat(bean.acknowledged(NO_ACKNOWLEDGMENT_PAYLOAD)).isEmpty();
+    assertThat(bean.received(NO_ACKNOWLEDGMENT_PAYLOAD)).containsExactly("a", "b", "c", "d", "e");
   }
 
   @Test
-  public void testPostProcessingAcknowledgementWithMethodReturningSubscriber() {
-    weld.addBeanClass(BeanWithSubscribers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscribers bean = container.getBeanManager().createInstance().select(BeanWithSubscribers.class).get();
-    await().until(() -> bean.acknowledged(POST_PROCESSING_ACK).size() == 5);
-    assertThat(bean.acknowledged(POST_PROCESSING_ACK)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(POST_PROCESSING_ACK)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.acknowledgeTimeStamps(POST_PROCESSING_ACK).get(0)).isGreaterThan(bean.receivedTimeStamps(POST_PROCESSING_ACK).get(0));
+  public void testPreProcessingAcknowledgementMessageWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.acknowledged(PRE_PROCESSING_ACK_MESSAGE).size() == 5);
+    assertThat(bean.acknowledged(PRE_PROCESSING_ACK_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.received(PRE_PROCESSING_ACK_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.acknowledgeTimeStamps(PRE_PROCESSING_ACK_MESSAGE).get(0)).isLessThan(bean.receivedTimeStamps(PRE_PROCESSING_ACK_MESSAGE).get(0));
   }
 
   @Test
-  public void testDefaultProcessingAcknowledgementWithMethodReturningSubscriber() {
-    weld.addBeanClass(BeanWithSubscribers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscribers bean = container.getBeanManager().createInstance().select(BeanWithSubscribers.class).get();
-    await().until(() -> bean.acknowledged(DEFAULT_PROCESSING_ACK).size() == 5);
-    assertThat(bean.acknowledged(DEFAULT_PROCESSING_ACK)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(DEFAULT_PROCESSING_ACK)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.acknowledgeTimeStamps(POST_PROCESSING_ACK).get(0)).isGreaterThan(bean.receivedTimeStamps(POST_PROCESSING_ACK).get(0));
+  public void testPreProcessingAcknowledgementPayloadWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.acknowledged(PRE_PROCESSING_ACK_PAYLOAD).size() == 5);
+    assertThat(bean.acknowledged(PRE_PROCESSING_ACK_PAYLOAD)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.received(PRE_PROCESSING_ACK_PAYLOAD)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.acknowledgeTimeStamps(PRE_PROCESSING_ACK_PAYLOAD).get(0)).isLessThan(bean.receivedTimeStamps(PRE_PROCESSING_ACK_PAYLOAD).get(0));
+  }
+
+  @Test
+  public void testPostProcessingAcknowledgementMessageWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.acknowledged(POST_PROCESSING_ACK_MESSAGE).size() == 5);
+    assertThat(bean.acknowledged(POST_PROCESSING_ACK_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.received(POST_PROCESSING_ACK_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.acknowledgeTimeStamps(POST_PROCESSING_ACK_MESSAGE).get(0)).isGreaterThan(bean.receivedTimeStamps(POST_PROCESSING_ACK_MESSAGE).get(0));
+  }
+
+  @Test
+  public void testPostProcessingAcknowledgementPayloadWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.acknowledged(POST_PROCESSING_ACK_PAYLOAD).size() == 5);
+    assertThat(bean.acknowledged(POST_PROCESSING_ACK_PAYLOAD)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.received(POST_PROCESSING_ACK_PAYLOAD)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.acknowledgeTimeStamps(POST_PROCESSING_ACK_PAYLOAD).get(0)).isGreaterThan(bean.receivedTimeStamps(POST_PROCESSING_ACK_PAYLOAD).get(0));
+  }
+
+  @Test
+  public void testDefaultProcessingAcknowledgementMessageWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.acknowledged(DEFAULT_PROCESSING_ACK_MESSAGE).size() == 5);
+    assertThat(bean.acknowledged(DEFAULT_PROCESSING_ACK_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.received(DEFAULT_PROCESSING_ACK_MESSAGE)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.acknowledgeTimeStamps(DEFAULT_PROCESSING_ACK_MESSAGE).get(0)).isGreaterThan(bean.receivedTimeStamps(DEFAULT_PROCESSING_ACK_MESSAGE).get(0));
+  }
+
+  @Test
+  public void testDefaultProcessingAcknowledgementPayloadMessageWithMethodReturningSubscriber() {
+    BeanWithMethodsReturningSubscribers bean = installInitializeAndGet(BeanWithMethodsReturningSubscribers.class);
+    await().until(() -> bean.acknowledged(DEFAULT_PROCESSING_ACK_PAYLOAD).size() == 5);
+    assertThat(bean.acknowledged(DEFAULT_PROCESSING_ACK_PAYLOAD)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.received(DEFAULT_PROCESSING_ACK_PAYLOAD)).containsExactly("a", "b", "c", "d", "e");
+    assertThat(bean.acknowledgeTimeStamps(DEFAULT_PROCESSING_ACK_PAYLOAD).get(0)).isGreaterThan(bean.receivedTimeStamps(DEFAULT_PROCESSING_ACK_PAYLOAD).get(0));
   }
 
 

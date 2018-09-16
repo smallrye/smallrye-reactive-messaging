@@ -16,7 +16,6 @@ public class IncomingOnlyBeanProducingACompletableStage {
 
   @Incoming("count")
   public CompletionStage<Void> process(Message<String> value) {
-    System.out.println("Getting some value " + value.getPayload());
     list.add(Integer.valueOf(value.getPayload()));
     return CompletableFuture.completedFuture(null);
   }

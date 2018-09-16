@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.ack;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,14 +32,14 @@ public class SpiedBeanHelper {
 
   public List<String> received(String key) {
     if (processed.get(key) == null) {
-      return null;
+      return Collections.emptyList();
     }
     return processed.get(key).stream().map(Entry::value).collect(Collectors.toList());
   }
 
   public List<String> acknowledged(String key) {
     if (acknowledged.get(key) == null) {
-      return null;
+      return Collections.emptyList();
     }
     return acknowledged.get(key).stream().map(Entry::value).collect(Collectors.toList());
   }

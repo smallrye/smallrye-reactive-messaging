@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
+import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -174,19 +175,24 @@ public class SubscriberMediator extends AbstractMediator {
     if (!(result instanceof Subscriber)) {
       throw new IllegalStateException("Invalid return type: " + result + " - expected a Subscriber");
     }
-    Subscriber sub  = (Subscriber) result;
+    Subscriber sub = (Subscriber) result;
     if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
-      // TODO Is it the expected behavior, the ack happen before the subscriber to be called.
+      SubscriberWrapper<Object, Message> wrapper = new SubscriberWrapper<>(sub, x -> ((Message) x).getPayload());
       this.subscriber = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
-        .onError(t -> sub.onError(t))
-        .onComplete(() -> sub.onComplete())
-        .peek(x -> sub.onNext(x.getPayload()))
+        .via(wrapper)
         .flatMapCompletionStage(managePostProcessingAck())
         .ignore()
         .build();
     } else {
-      this.subscriber = sub ;
+      Subscriber<Message> casted = (Subscriber<Message>) sub;
+      this.subscriber = ReactiveStreams.<Message>builder()
+        .flatMapCompletionStage(managePreProcessingAck())
+        .via(new SubscriberWrapper<>(casted, Function.identity()))
+        .flatMapCompletionStage(managePostProcessingAck())
+        .ignore()
+        .build();
     }
+
   }
 }
