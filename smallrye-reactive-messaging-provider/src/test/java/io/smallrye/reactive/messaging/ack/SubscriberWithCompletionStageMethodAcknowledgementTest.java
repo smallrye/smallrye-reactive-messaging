@@ -1,44 +1,65 @@
 package io.smallrye.reactive.messaging.ack;
 
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.ack.BeanWithSubscriberUsingCompletionStageMethods;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
-import static io.smallrye.reactive.messaging.ack.BeanWithSubscriberUsingCompletionStageMethods.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningCompletionStage.*;
 
-public class SubscriberWithCompletionStageMethodAcknowledgementTest extends WeldTestBaseWithoutTails {
+public class SubscriberWithCompletionStageMethodAcknowledgementTest extends AcknowlegmentTestBase {
+
+  private final Class<SubscriberBeanWithMethodsReturningCompletionStage> beanClass = SubscriberBeanWithMethodsReturningCompletionStage.class;
 
   @Test
-  public void testManualAcknowledgement() {
-    weld.addBeanClass(BeanWithSubscriberUsingCompletionStageMethods.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscriberUsingCompletionStageMethods bean = container.getBeanManager().createInstance().select(BeanWithSubscriberUsingCompletionStageMethods.class).get();
-    await().until(() -> bean.acknowledged(MANUAL_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+  public void testManual() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertAcknowledgment(bean, MANUAL_ACKNOWLEDGMENT);
   }
 
   @Test
-  public void testNoAcknowledgement() {
-    weld.addBeanClass(BeanWithSubscriberUsingCompletionStageMethods.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscriberUsingCompletionStageMethods bean = container.getBeanManager().createInstance().select(BeanWithSubscriberUsingCompletionStageMethods.class).get();
-    await().until(() -> bean.received(NO_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(NO_ACKNOWLEDGMENT)).isNull();
-    assertThat(bean.received(NO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+  public void testNoAcknowledgementMessage() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertNoAcknowledgment(bean, NO_ACKNOWLEDGMENT_MESSAGE);
   }
 
   @Test
-  public void testAutoAcknowledgement() {
-    weld.addBeanClass(BeanWithSubscriberUsingCompletionStageMethods.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscriberUsingCompletionStageMethods bean = container.getBeanManager().createInstance().select(BeanWithSubscriberUsingCompletionStageMethods.class).get();
-    await().until(() -> bean.acknowledged(AUTO_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(AUTO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(AUTO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+  public void testNoAcknowledgementPayload() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertNoAcknowledgment(bean, NO_ACKNOWLEDGMENT_PAYLOAD);
+  }
+
+  @Test
+  public void testPreProcessingAcknowledgementMessage() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
+  }
+
+  @Test
+  public void testPreProcessingAcknowledgementPayload() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
+  }
+
+  @Test
+  public void testPostProcessingAcknowledgementMessage() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertPostAcknowledgment(bean, POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
+  }
+
+  @Test
+  public void testPostProcessingAcknowledgementPayload() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertPostAcknowledgment(bean, POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
+  }
+
+  @Test
+  public void testDefaultProcessingAcknowledgementMessage() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertPostAcknowledgment(bean, DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
+  }
+
+  @Test
+  public void testDefaultProcessingAcknowledgementPayload() {
+    SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    assertPostAcknowledgment(bean, DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
   }
 
 

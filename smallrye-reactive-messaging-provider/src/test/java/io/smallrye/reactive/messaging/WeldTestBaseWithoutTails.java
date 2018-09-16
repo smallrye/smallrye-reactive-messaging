@@ -50,4 +50,10 @@ public class WeldTestBaseWithoutTails {
   protected StreamRegistry registry(WeldContainer container) {
     return container.getBeanManager().createInstance().select(StreamRegistry.class).get();
   }
+
+  protected  <T> T installInitializeAndGet(Class<T> beanClass) {
+    weld.addBeanClass(beanClass);
+    WeldContainer container = weld.initialize();
+    return container.getBeanManager().createInstance().select(beanClass).get();
+  }
 }

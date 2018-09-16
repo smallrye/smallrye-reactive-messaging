@@ -1,13 +1,18 @@
 package io.smallrye.reactive.messaging.ack;
 
+import io.reactivex.Flowable;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.reactivestreams.Publisher;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class SpiedBeanHelper {
+
+  protected static final Executor EXECUTOR = Executors.newSingleThreadExecutor();
 
   private class Entry {
     final String value;
@@ -29,6 +34,16 @@ public class SpiedBeanHelper {
 
   private Map<String, List<Entry>> processed = new ConcurrentHashMap<>();
   private Map<String, List<Entry>> acknowledged = new ConcurrentHashMap<>();
+
+  protected Publisher<Message<String>> source(String id) {
+    return Flowable.fromArray("a", "b", "c", "d", "e")
+      .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
+          nap();
+          acknowledged(id, payload);
+          nap();
+        }, EXECUTOR))
+      );
+  }
 
   public List<String> received(String key) {
     if (processed.get(key) == null) {
@@ -54,6 +69,10 @@ public class SpiedBeanHelper {
 
   protected void processed(String name, String value) {
     processed.computeIfAbsent(name, x -> new CopyOnWriteArrayList<>()).add(new Entry(value));
+  }
+
+  protected void processed(String name, Message<String> value) {
+    processed.computeIfAbsent(name, x -> new CopyOnWriteArrayList<>()).add(new Entry(value.getPayload()));
   }
 
   protected void acknowledged(String name, String value) {

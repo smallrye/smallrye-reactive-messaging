@@ -1,23 +1,17 @@
 package io.smallrye.reactive.messaging.ack;
 
-import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.streams.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 @ApplicationScoped
-public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
+public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   public static final String MANUAL_ACKNOWLEDGMENT_MESSAGE = "manual-acknowledgment-message";
 
@@ -47,12 +41,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(MANUAL_ACKNOWLEDGMENT_MESSAGE)
   public Publisher<Message<String>> sourceToManualAckWithMessage() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
-        nap();
-        acknowledged(MANUAL_ACKNOWLEDGMENT_MESSAGE, payload);
-        }))
-      );
+    return source(MANUAL_ACKNOWLEDGMENT_MESSAGE);
   }
 
 
@@ -69,12 +58,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(NO_ACKNOWLEDGMENT_MESSAGE)
   public Publisher<Message<String>> sourceToNoAckWithMessage() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        nap();
-        acknowledged(NO_ACKNOWLEDGMENT_MESSAGE, payload);
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(NO_ACKNOWLEDGMENT_MESSAGE);
   }
 
 
@@ -91,12 +75,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(NO_ACKNOWLEDGMENT_PAYLOAD)
   public Publisher<Message<String>> sourceToNoAckWithPayload() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        nap();
-        acknowledged(NO_ACKNOWLEDGMENT_PAYLOAD, payload);
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(NO_ACKNOWLEDGMENT_PAYLOAD);
   }
 
   @Incoming(PRE_PROCESSING_ACK_MESSAGE)
@@ -112,14 +91,8 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(PRE_PROCESSING_ACK_MESSAGE)
   public Publisher<Message<String>> sourceToPreAckWithMessage() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        acknowledged(PRE_PROCESSING_ACK_MESSAGE, payload);
-        nap();
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(PRE_PROCESSING_ACK_MESSAGE);
   }
-
 
 
   @Incoming(PRE_PROCESSING_ACK_PAYLOAD)
@@ -135,12 +108,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(PRE_PROCESSING_ACK_PAYLOAD)
   public Publisher<Message<String>> sourceToPreAckWithPayload() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        acknowledged(PRE_PROCESSING_ACK_PAYLOAD, payload);
-        nap();
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(PRE_PROCESSING_ACK_PAYLOAD);
   }
 
   @Incoming(POST_PROCESSING_ACK_MESSAGE)
@@ -156,12 +124,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(POST_PROCESSING_ACK_MESSAGE)
   public Publisher<Message<String>> sourceToPostAckWithMessage() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        acknowledged(POST_PROCESSING_ACK_MESSAGE, payload);
-        nap();
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(POST_PROCESSING_ACK_MESSAGE);
   }
 
   @Incoming(POST_PROCESSING_ACK_PAYLOAD)
@@ -177,12 +140,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(POST_PROCESSING_ACK_PAYLOAD)
   public Publisher<Message<String>> sourceToPostAckWithPayload() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        acknowledged(POST_PROCESSING_ACK_PAYLOAD, payload);
-        nap();
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(POST_PROCESSING_ACK_PAYLOAD);
   }
 
   @Incoming(DEFAULT_PROCESSING_ACK_PAYLOAD)
@@ -197,12 +155,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(DEFAULT_PROCESSING_ACK_PAYLOAD)
   public Publisher<Message<String>> sourceToDefaultAckWithPayload() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        nap();
-        acknowledged(DEFAULT_PROCESSING_ACK_PAYLOAD, payload);
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(DEFAULT_PROCESSING_ACK_PAYLOAD);
   }
 
   @Incoming(DEFAULT_PROCESSING_ACK_MESSAGE)
@@ -217,12 +170,7 @@ public class BeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
 
   @Outgoing(DEFAULT_PROCESSING_ACK_MESSAGE)
   public Publisher<Message<String>> sourceToDefaultAckWithMessage() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        nap();
-        acknowledged(DEFAULT_PROCESSING_ACK_MESSAGE, payload);
-        return CompletableFuture.completedFuture(null);
-      }));
+    return source(DEFAULT_PROCESSING_ACK_MESSAGE);
   }
 
 

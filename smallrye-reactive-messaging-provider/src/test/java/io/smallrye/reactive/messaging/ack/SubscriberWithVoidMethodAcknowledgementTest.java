@@ -1,46 +1,40 @@
 package io.smallrye.reactive.messaging.ack;
 
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.ack.BeanWithSubscriberUsingVoidMethods;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
-import static io.smallrye.reactive.messaging.ack.BeanWithSubscriberUsingVoidMethods.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.*;
 
-public class SubscriberWithVoidMethodAcknowledgementTest extends WeldTestBaseWithoutTails {
+public class SubscriberWithVoidMethodAcknowledgementTest extends AcknowlegmentTestBase {
 
   @Test
   public void testManualAcknowledgement() {
-    weld.addBeanClass(BeanWithSubscriberUsingVoidMethods.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscriberUsingVoidMethods bean = container.getBeanManager().createInstance().select(BeanWithSubscriberUsingVoidMethods.class).get();
-    await().until(() -> bean.acknowledged(MANUAL_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+    SubscriberBeanWithMethodsReturningVoid bean = installInitializeAndGet(SubscriberBeanWithMethodsReturningVoid.class);
+    assertAcknowledgment(bean, MANUAL_ACKNOWLEDGMENT);
   }
 
   @Test
   public void testNoAcknowledgement() {
-    weld.addBeanClass(BeanWithSubscriberUsingVoidMethods.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscriberUsingVoidMethods bean = container.getBeanManager().createInstance().select(BeanWithSubscriberUsingVoidMethods.class).get();
-    await().until(() -> bean.received(NO_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(NO_ACKNOWLEDGMENT)).isNull();
-    assertThat(bean.received(NO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+    SubscriberBeanWithMethodsReturningVoid bean = installInitializeAndGet(SubscriberBeanWithMethodsReturningVoid.class);
+    assertNoAcknowledgment(bean, NO_ACKNOWLEDGMENT);
   }
 
   @Test
-  public void testAutoAcknowledgement() {
-    weld.addBeanClass(BeanWithSubscriberUsingVoidMethods.class);
-    WeldContainer container = weld.initialize();
-    BeanWithSubscriberUsingVoidMethods bean = container.getBeanManager().createInstance().select(BeanWithSubscriberUsingVoidMethods.class).get();
-    await().until(() -> bean.acknowledged(AUTO_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(AUTO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(AUTO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+  public void testDefaultAcknowledgement() {
+    SubscriberBeanWithMethodsReturningVoid bean = installInitializeAndGet(SubscriberBeanWithMethodsReturningVoid.class);
+    assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
   }
 
+  @Test
+  public void testPostAcknowledgement() {
+    SubscriberBeanWithMethodsReturningVoid bean = installInitializeAndGet(SubscriberBeanWithMethodsReturningVoid.class);
+    assertPostAcknowledgment(bean, POST_PROCESSING_ACKNOWLEDGMENT);
+  }
+
+  @Test
+  public void testPreAcknowledgement() {
+    SubscriberBeanWithMethodsReturningVoid bean = installInitializeAndGet(SubscriberBeanWithMethodsReturningVoid.class);
+    assertPreAcknowledgment(bean, PRE_PROCESSING_ACKNOWLEDGMENT);
+  }
 
 
 }
