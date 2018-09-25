@@ -18,7 +18,7 @@ public class BeanProducingAProcessorBuilderOfMessages {
     return ReactiveStreams.<Message<Integer>>builder()
       .map(Message::getPayload)
       .map(i -> i + 1)
-      .flatMapPublisher(i -> Flowable.just(i, i))
+      .flatMapRsPublisher(i -> Flowable.just(i, i))
       .map(i -> Integer.toString(i))
       .map(Message::of);
   }

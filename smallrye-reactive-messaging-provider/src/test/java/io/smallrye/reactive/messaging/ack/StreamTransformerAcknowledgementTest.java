@@ -1,54 +1,111 @@
 package io.smallrye.reactive.messaging.ack;
 
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
-public class StreamTransformerAcknowledgementTest extends WeldTestBaseWithoutTails {
+public class StreamTransformerAcknowledgementTest extends AcknowledgmentTestBase {
 
-  @Test
-  public void testManualAcknowledgement() {
-    weld.addBeanClass(BeanWithStreamTransformers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithStreamTransformers bean = container.getBeanManager().createInstance().select(BeanWithStreamTransformers.class).get();
-    await().until(() -> bean.acknowledged(MANUAL_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(MANUAL_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+  private final Class<BeanWithStreamTransformers> beanClass = BeanWithStreamTransformers.class;
+
+
+  @Before
+  public void initialize() {
+    acks = Arrays.asList("a", "b", "c", "d", "e");
+    expected = Arrays.asList("a", "a", "b", "b", "c", "c", "d", "d", "e", "e");
   }
 
   @Test
-  public void testNoAcknowledgement() {
-    weld.addBeanClass(BeanWithStreamTransformers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithStreamTransformers bean = container.getBeanManager().createInstance().select(BeanWithStreamTransformers.class).get();
-    await().until(() -> bean.received(NO_ACKNOWLEDGMENT).size() == 5);
-    assertThat(bean.acknowledged(NO_ACKNOWLEDGMENT)).isNull();
-    assertThat(bean.received(NO_ACKNOWLEDGMENT)).containsExactly("a", "b", "c", "d", "e");
+  public void testManualAck() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertAcknowledgment(bean, MANUAL_ACKNOWLEDGMENT);
   }
 
   @Test
-  public void testManualAcknowledgementWithBuilder() {
-    weld.addBeanClass(BeanWithStreamTransformers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithStreamTransformers bean = container.getBeanManager().createInstance().select(BeanWithStreamTransformers.class).get();
-    await().until(() -> bean.acknowledged(MANUAL_ACKNOWLEDGMENT_BUILDER).size() == 5);
-    assertThat(bean.acknowledged(MANUAL_ACKNOWLEDGMENT_BUILDER)).containsExactly("a", "b", "c", "d", "e");
-    assertThat(bean.received(MANUAL_ACKNOWLEDGMENT_BUILDER)).containsExactly("a", "b", "c", "d", "e");
+  public void testManualAckBuilder() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertAcknowledgment(bean, MANUAL_ACKNOWLEDGMENT_BUILDER);
   }
 
   @Test
-  public void testNoAcknowledgementWithBuilder() {
-    weld.addBeanClass(BeanWithStreamTransformers.class);
-    WeldContainer container = weld.initialize();
-    BeanWithStreamTransformers bean = container.getBeanManager().createInstance().select(BeanWithStreamTransformers.class).get();
-    await().until(() -> bean.received(NO_ACKNOWLEDGMENT_BUILDER).size() == 5);
-    assertThat(bean.acknowledged(NO_ACKNOWLEDGMENT_BUILDER)).isNull();
-    assertThat(bean.received(NO_ACKNOWLEDGMENT_BUILDER)).containsExactly("a", "b", "c", "d", "e");
+  public void testNoAck() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertNoAcknowledgment(bean, NO_ACKNOWLEDGMENT);
   }
 
+  @Test
+  public void testNoAckBuilder() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertNoAcknowledgment(bean, NO_ACKNOWLEDGMENT_BUILDER);
+  }
+
+  @Test
+  public void testPreAck() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PRE_ACKNOWLEDGMENT);
+  }
+
+  @Test
+  public void testPreAckBuilder() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PRE_ACKNOWLEDGMENT_BUILDER);
+  }
+
+  @Test
+  public void testDefaultAck() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
+  }
+
+  @Test
+  public void testDefaultAckBuilder() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_BUILDER);
+  }
+
+  @Test
+  public void testPayloadNoAck() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertNoAcknowledgment(bean, PAYLOAD_NO_ACKNOWLEDGMENT);
+  }
+
+  @Test
+  public void testPayloadNoAckBuilder() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertNoAcknowledgment(bean, PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER);
+  }
+
+  @Test
+  public void testPayloadPreAck() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PAYLOAD_PRE_ACKNOWLEDGMENT);
+  }
+
+  @Test
+  public void testPayloadPreAckBuilder() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER);
+  }
+
+  @Test
+  public void testPayloadDefaultAck() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PAYLOAD_PRE_ACKNOWLEDGMENT);
+  }
+
+  @Test
+  public void testPayloadDefaultAckBuilder() {
+    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
+    assertPreAcknowledgment(bean, PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER);
+  }
+
+
+  //TODO Test with and without message ?
+
+  // TODO Default
+  // TODO Post?
 
 }

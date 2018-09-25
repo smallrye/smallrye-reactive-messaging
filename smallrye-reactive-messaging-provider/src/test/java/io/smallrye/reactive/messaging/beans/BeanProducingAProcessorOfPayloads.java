@@ -16,7 +16,7 @@ public class BeanProducingAProcessorOfPayloads {
   public Processor<Integer, String> process() {
     return ReactiveStreams.<Integer>builder()
       .map(i -> i + 1)
-      .flatMapPublisher(i -> Flowable.just(i, i))
+      .flatMapRsPublisher(i -> Flowable.just(i, i))
       .map(i -> Integer.toString(i))
       .buildRs();
   }

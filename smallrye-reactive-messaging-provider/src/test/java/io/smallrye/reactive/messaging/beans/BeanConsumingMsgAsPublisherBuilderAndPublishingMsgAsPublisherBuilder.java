@@ -17,7 +17,7 @@ public class BeanConsumingMsgAsPublisherBuilderAndPublishingMsgAsPublisherBuilde
     return source
       .map(Message::getPayload)
       .map(i -> i + 1)
-      .flatMapPublisher(i -> Flowable.just(i, i))
+      .flatMapRsPublisher(i -> Flowable.just(i, i))
       .map(i -> Integer.toString(i))
       .map(Message::of);
   }

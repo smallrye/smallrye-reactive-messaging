@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningCompletionStage.*;
 
-public class SubscriberWithCompletionStageMethodAcknowledgementTest extends AcknowlegmentTestBase {
+public class SubscriberWithCompletionStageMethodAcknowledgementTest extends AcknowledgmentTestBase {
 
   private final Class<SubscriberBeanWithMethodsReturningCompletionStage> beanClass = SubscriberBeanWithMethodsReturningCompletionStage.class;
 

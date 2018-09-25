@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -8,6 +9,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 public abstract class AbstractMediator {
 
@@ -66,4 +68,24 @@ public abstract class AbstractMediator {
   }
 
   public abstract boolean isConnected();
+
+  protected Function<Message, ? extends CompletionStage<? extends Message>> managePostProcessingAck() {
+    return message -> {
+      if (configuration.getAcknowledgment() == Acknowledgment.Mode.POST_PROCESSING) {
+        return getAckOrCompletion(message).thenApply(x -> message);
+      } else {
+        return CompletableFuture.completedFuture(message);
+      }
+    };
+  }
+
+  protected Function<Message, ? extends CompletionStage<? extends Message>> managePreProcessingAck() {
+    return message -> {
+      if (configuration.getAcknowledgment() == Acknowledgment.Mode.PRE_PROCESSING) {
+        return getAckOrCompletion(message).thenApply(x -> message);
+      }
+      return CompletableFuture.completedFuture(message);
+    };
+  }
+
 }

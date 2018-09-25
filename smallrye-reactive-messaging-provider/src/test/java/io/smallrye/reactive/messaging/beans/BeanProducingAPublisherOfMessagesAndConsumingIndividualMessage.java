@@ -19,7 +19,7 @@ public class BeanProducingAPublisherOfMessagesAndConsumingIndividualMessage {
     return ReactiveStreams.of(message)
       .map(Message::getPayload)
       .map(i -> i + 1)
-      .flatMapPublisher(i -> Flowable.just(i, i))
+      .flatMapRsPublisher(i -> Flowable.just(i, i))
       .map(i -> Integer.toString(i))
       .map(Message::of)
       .buildRs();

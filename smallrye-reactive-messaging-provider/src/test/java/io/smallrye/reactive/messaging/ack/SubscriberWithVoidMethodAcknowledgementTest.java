@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.*;
 
-public class SubscriberWithVoidMethodAcknowledgementTest extends AcknowlegmentTestBase {
+public class SubscriberWithVoidMethodAcknowledgementTest extends AcknowledgmentTestBase {
 
   @Test
   public void testManualAcknowledgement() {

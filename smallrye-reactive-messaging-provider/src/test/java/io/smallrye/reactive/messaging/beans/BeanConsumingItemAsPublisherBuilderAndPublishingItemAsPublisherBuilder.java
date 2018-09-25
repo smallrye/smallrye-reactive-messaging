@@ -15,7 +15,7 @@ public class BeanConsumingItemAsPublisherBuilderAndPublishingItemAsPublisherBuil
   public PublisherBuilder<String> process(PublisherBuilder<Integer> source) {
     return source
       .map(i -> i + 1)
-      .flatMapPublisher(i -> Flowable.just(i, i))
+      .flatMapRsPublisher(i -> Flowable.just(i, i))
       .map(i -> Integer.toString(i));
   }
 

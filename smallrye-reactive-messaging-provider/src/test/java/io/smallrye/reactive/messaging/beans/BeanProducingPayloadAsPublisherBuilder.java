@@ -14,7 +14,7 @@ public class BeanProducingPayloadAsPublisherBuilder {
   @Outgoing("sink")
   public PublisherBuilder<String> publisher() {
     return ReactiveStreams.fromPublisher(Flowable.range(1, 10))
-      .flatMapPublisher(i -> Flowable.just(i, i))
+      .flatMapRsPublisher(i -> Flowable.just(i, i))
       .map(i -> Integer.toString(i));
   }
 

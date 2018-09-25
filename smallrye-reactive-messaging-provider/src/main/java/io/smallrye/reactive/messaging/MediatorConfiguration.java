@@ -92,6 +92,21 @@ public class MediatorConfiguration {
       shape = Shape.PUBLISHER;
     }
 
+    Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
+    if (incoming != null) {
+      if (annotation != null) {
+        acknowledgment = annotation.value();
+      } else {
+        if (shape == Shape.STREAM_TRANSFORMER) {
+          acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
+        } else {
+          acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
+        }
+      }
+    } else if (annotation != null) {
+      throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: " + methodAsString());
+    }
+
     switch (shape) {
       case SUBSCRIBER: validateSubscriber(incoming); break;
       case PUBLISHER: validatePublisher(outgoing); break;
@@ -100,16 +115,7 @@ public class MediatorConfiguration {
       default: throw new IllegalStateException("Unknown shape: " + shape);
     }
 
-    Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
-    if (incoming != null) {
-      if (annotation != null) {
-        acknowledgment = annotation.value();
-      } else {
-        acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
-      }
-    } else if (annotation != null) {
-      throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: " + methodAsString());
-    }
+
   }
 
   private void validateStreamTransformer(Incoming incoming, Outgoing outgoing) {
@@ -122,6 +128,8 @@ public class MediatorConfiguration {
 
     // The case 2 and 4 have been dropped because it is not possible to acknowledge the messages automatically as we can't know when
     // the acknowledgment needs to happen. This has been discussed during the MP Reactive hangout, Sept. 11th, 2018.
+
+    // But, they can be managed when ack is set to none or pre-processing(default)
     validateMethodConsumingAndProducingAPublisher();
   }
 
@@ -187,14 +195,19 @@ public class MediatorConfiguration {
 
     useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), PublisherBuilder.class);
 
+    // Post Acknowledgement is not supported
+    if (acknowledgment == Acknowledgment.Mode.POST_PROCESSING) {
+      throw getIncomingAndOutgoingError("Automatic post-processing acknowledgment is not supported.");
+    }
+
     // Validate method and be sure we are not in the case 2 and 4.
-    if (consumption == Consumption.STREAM_OF_PAYLOAD) {
-      throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported as the acknowledgement cannot be managed automatically. " +
+    if (consumption == Consumption.STREAM_OF_PAYLOAD && (acknowledgment == Acknowledgment.Mode.MANUAL)) {
+      throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
         "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
     }
 
-    if (production == Production.STREAM_OF_PAYLOAD) {
-      throw getIncomingAndOutgoingError("Producing a stream of payload is not supported as the acknowledgement cannot be managed automatically. " +
+    if (production == Production.STREAM_OF_PAYLOAD  && acknowledgment == Acknowledgment.Mode.MANUAL) {
+      throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
         "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
     }
 

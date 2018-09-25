@@ -61,7 +61,6 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
   @Incoming(PRE_PROCESSING_ACKNOWLEDGMENT)
   @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
   public void subWithPreAck(String payload) {
-    System.out.println("Processing " + payload);
     processed(PRE_PROCESSING_ACKNOWLEDGMENT, payload);
   }
 

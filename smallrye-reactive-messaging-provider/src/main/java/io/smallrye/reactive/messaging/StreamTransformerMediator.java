@@ -72,7 +72,10 @@ public class StreamTransformerMediator extends AbstractMediator {
 
   private void processMethodConsumingAPublisherBuilderOfMessages(Object bean) {
     function = publisher -> {
-      PublisherBuilder<Message> builder = invoke(bean, ReactiveStreams.fromPublisher(publisher));
+      PublisherBuilder<Message> prependedWithAck = ReactiveStreams.fromPublisher(publisher)
+        .flatMapCompletionStage(managePreProcessingAck());
+
+      PublisherBuilder<Message> builder = invoke(bean, prependedWithAck);
       Objects.requireNonNull(builder, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return builder.buildRs();
     };
@@ -80,7 +83,10 @@ public class StreamTransformerMediator extends AbstractMediator {
 
   private void processMethodConsumingAPublisherOfMessages(Object bean) {
     function = publisher -> {
-      Publisher<Message> result = invoke(bean, publisher);
+      Publisher<Message> prependedWithAck = ReactiveStreams.fromPublisher(publisher)
+        .flatMapCompletionStage(managePreProcessingAck())
+        .buildRs();
+      Publisher<Message> result = invoke(bean, prependedWithAck);
       Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return result;
     };
@@ -88,7 +94,9 @@ public class StreamTransformerMediator extends AbstractMediator {
 
   private void processMethodConsumingAPublisherBuilderOfPayload(Object bean) {
     function = publisher -> {
-      PublisherBuilder<Object> stream = ReactiveStreams.fromPublisher(publisher).map(Message::getPayload);
+      PublisherBuilder<Object> stream = ReactiveStreams.fromPublisher(publisher)
+        .flatMapCompletionStage(managePreProcessingAck())
+        .map(Message::getPayload);
       PublisherBuilder<Object> builder = invoke(bean, stream);
       Objects.requireNonNull(builder, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return builder
@@ -99,7 +107,9 @@ public class StreamTransformerMediator extends AbstractMediator {
 
   private void processMethodConsumingAPublisherOfPayload(Object bean) {
     function = publisher -> {
-      Publisher stream = ReactiveStreams.fromPublisher(publisher).map(Message::getPayload).buildRs();
+      Publisher stream = ReactiveStreams.fromPublisher(publisher)
+        .flatMapCompletionStage(managePreProcessingAck())
+        .map(Message::getPayload).buildRs();
       // Ability to inject a RX Flowable in method getting a Publisher.
       if (ClassUtils.isAssignable(configuration.getMethod().getParameterTypes()[0], Flowable.class)) {
         stream = Flowable.fromPublisher(publisher).map(Message::getPayload);

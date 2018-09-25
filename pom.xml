@@ -21,6 +21,7 @@
     <vertx.version>3.5.3</vertx.version>
     <log4j2.version>2.11.0</log4j2.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
+    <microprofile-reactive-streams.version>1.0-RC1</microprofile-reactive-streams.version>
     <rxjava.version>2.1.15</rxjava.version>
     <rxjava2-interop.version>0.2.9</rxjava2-interop.version>
     <weld-core.version>3.0.4.Final</weld-core.version>
@@ -55,6 +56,11 @@
       <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
       <artifactId>microprofile-reactive-messaging-api</artifactId>
       <version>${microprofile-reactive-messaging.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.reactive.streams</groupId>
+      <artifactId>microprofile-reactive-streams-operators</artifactId>
+      <version>${microprofile-reactive-streams.version}</version>
     </dependency>
 
     <dependency>

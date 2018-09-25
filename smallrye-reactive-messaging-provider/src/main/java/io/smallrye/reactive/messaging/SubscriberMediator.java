@@ -127,25 +127,6 @@ public class SubscriberMediator extends AbstractMediator {
     }
   }
 
-  private Function<Message, ? extends CompletionStage<? extends Message>> managePostProcessingAck() {
-    return message -> {
-      if (configuration.getAcknowledgment() == Acknowledgment.Mode.POST_PROCESSING) {
-        return getAckOrCompletion(message).thenApply(x -> message);
-      } else {
-        return CompletableFuture.completedFuture(message);
-      }
-    };
-  }
-
-  private Function<Message, ? extends CompletionStage<? extends Message>> managePreProcessingAck() {
-    return message -> {
-      if (configuration.getAcknowledgment() == Acknowledgment.Mode.PRE_PROCESSING) {
-        return getAckOrCompletion(message).thenApply(x -> message);
-      }
-      return CompletableFuture.completedFuture(message);
-    };
-  }
-
   private void processMethodReturningACompletionStage(Object bean) {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
