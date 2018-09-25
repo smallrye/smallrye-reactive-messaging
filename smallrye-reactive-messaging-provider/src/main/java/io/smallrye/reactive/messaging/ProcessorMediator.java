@@ -128,6 +128,7 @@ public class ProcessorMediator extends AbstractMediator {
 
   private void processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages(Object bean) {
     this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
       .map(msg -> (PublisherBuilder<Message>) invoke(bean, msg))
       .flatMap(Function.identity())
       .buildRs();
@@ -135,6 +136,7 @@ public class ProcessorMediator extends AbstractMediator {
 
   private void processMethodReturningAPublisherOfMessageAndConsumingMessages(Object bean) {
     this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
       .map(msg -> (Publisher<Message>) invoke(bean, msg))
       .flatMapRsPublisher(Function.identity())
       .buildRs();
@@ -183,29 +185,19 @@ public class ProcessorMediator extends AbstractMediator {
   }
 
   private void processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads(Object bean) {
-    Function<Message, PublisherBuilder<? extends Message>> function = message -> {
-      PublisherBuilder builder = invoke(bean, message.getPayload());
-      return ReactiveStreams.of(message)
-        .flatMapCompletionStage(m -> getAckOrCompletion(m).thenApply(x -> m))
-        .flatMap(v -> builder)
-        .map(Message::of);
-    };
-
-    this.processor = ReactiveStreams.<Message>builder().flatMap(function).buildRs();
+    this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
+      .flatMap(message -> invoke(bean, message.getPayload()))
+      .map(p -> (Message) Message.of(p))
+      .buildRs();
   }
 
   private void processMethodReturningAPublisherOfPayloadsAndConsumingPayloads(Object bean) {
-    Function<Message, PublisherBuilder<? extends Message>> function = message -> {
-      Publisher publisher = invoke(bean, message.getPayload());
-      return ReactiveStreams.of(message)
-        .flatMapCompletionStage(m -> getAckOrCompletion(m)
-          .thenApply(x -> m))
-        .flatMapRsPublisher(v -> publisher)
-        .map(Message::of);
-    };
-
     this.processor = ReactiveStreams.<Message>builder()
-      .flatMap(function).buildRs();
+      .flatMapCompletionStage(managePreProcessingAck())
+      .flatMapRsPublisher(message -> invoke(bean, message.getPayload()))
+      .map(p -> (Message) Message.of(p))
+      .buildRs();
   }
 
   private void processMethodReturningIndividualMessageAndConsumingIndividualItem(Object bean) {
