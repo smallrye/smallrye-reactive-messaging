@@ -16,6 +16,6 @@ public @interface Acknowledgment {
     POST_PROCESSING
   }
 
-  Mode value() default Mode.POST_PROCESSING;
+  Mode value();
 
 }

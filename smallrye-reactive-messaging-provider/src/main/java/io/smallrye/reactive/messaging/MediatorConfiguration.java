@@ -71,7 +71,7 @@ public class MediatorConfiguration {
 
   public MediatorConfiguration(Method method, Class<?> beanClass) {
     this.method = Objects.requireNonNull(method, "'method' must be set");
-    this.beanClass =  Objects.requireNonNull(beanClass, "'beanClass' must be set");
+    this.beanClass = Objects.requireNonNull(beanClass, "'beanClass' must be set");
   }
 
   public Shape shape() {
@@ -79,9 +79,9 @@ public class MediatorConfiguration {
   }
 
   public void compute(Incoming incoming, Outgoing outgoing) {
-    if (incoming != null  && outgoing != null) {
+    if (incoming != null && outgoing != null) {
       // it can be either a processor or a stream transformer
-      if (isReturningAPublisherOrAPublisherBuilder()  && isConsumingAPublisherOrAPublisherBuilder()) {
+      if (isReturningAPublisherOrAPublisherBuilder() && isConsumingAPublisherOrAPublisherBuilder()) {
         shape = Shape.STREAM_TRANSFORMER;
       } else {
         shape = Shape.PROCESSOR;
@@ -96,25 +96,38 @@ public class MediatorConfiguration {
     if (incoming != null) {
       if (annotation != null) {
         acknowledgment = annotation.value();
-      } else {
-        if (shape == Shape.STREAM_TRANSFORMER  || shape == Shape.PROCESSOR) {
-          acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
-        } else {
-          acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
-        }
       }
     } else if (annotation != null) {
       throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: " + methodAsString());
     }
 
     switch (shape) {
-      case SUBSCRIBER: validateSubscriber(incoming); break;
-      case PUBLISHER: validatePublisher(outgoing); break;
-      case PROCESSOR: validateProcessor(incoming, outgoing); break;
-      case STREAM_TRANSFORMER: validateStreamTransformer(incoming, outgoing); break;
-      default: throw new IllegalStateException("Unknown shape: " + shape);
+      case SUBSCRIBER:
+        validateSubscriber(incoming);
+        break;
+      case PUBLISHER:
+        validatePublisher(outgoing);
+        break;
+      case PROCESSOR:
+        validateProcessor(incoming, outgoing);
+        break;
+      case STREAM_TRANSFORMER:
+        validateStreamTransformer(incoming, outgoing);
+        break;
+      default:
+        throw new IllegalStateException("Unknown shape: " + shape);
     }
 
+    // setup default acknowledgement
+    if (acknowledgment == null) {
+      if (shape == Shape.STREAM_TRANSFORMER) {
+        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
+      } else if (shape == Shape.PROCESSOR && !(consumption == Consumption.PAYLOAD || consumption == Consumption.MESSAGE)) {
+        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
+      } else {
+        acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
+      }
+    }
 
   }
 
@@ -155,7 +168,7 @@ public class MediatorConfiguration {
     // 12. CompletionStage<Message<O>> method(Message<I> msg)
 
     Class<?> returnType = method.getReturnType();
-    if (ClassUtils.isAssignable(returnType, Processor.class)  || ClassUtils.isAssignable(returnType, ProcessorBuilder.class)) {
+    if (ClassUtils.isAssignable(returnType, Processor.class) || ClassUtils.isAssignable(returnType, ProcessorBuilder.class)) {
       // Case 1, 2 or 3, 4
       validateMethodReturningAProcessor();
     } else if (
@@ -206,7 +219,7 @@ public class MediatorConfiguration {
         "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
     }
 
-    if (production == Production.STREAM_OF_PAYLOAD  && acknowledgment == Acknowledgment.Mode.MANUAL) {
+    if (production == Production.STREAM_OF_PAYLOAD && acknowledgment == Acknowledgment.Mode.MANUAL) {
       throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
         "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
     }
@@ -216,7 +229,7 @@ public class MediatorConfiguration {
 
       // Ensure that the parameter is also using the MP Reactive Streams Operator types.
       Class<?> paramClass = method.getParameterTypes()[0];
-      if (! ClassUtils.isAssignable(paramClass, PublisherBuilder.class)) {
+      if (!ClassUtils.isAssignable(paramClass, PublisherBuilder.class)) {
         throw getIncomingAndOutgoingError("If the method produces a PublisherBuilder, it needs to consume a PublisherBuilder.");
       }
     }
@@ -241,11 +254,11 @@ public class MediatorConfiguration {
     }
     Type type1 = getParameterFromReturnType(method, 0)
       .orElseThrow(() -> getIncomingAndOutgoingError("Expected 2 type parameters for the returned Processor"));
-    consumption =  TypeUtils.isAssignable(type1, Message.class) ? Consumption.STREAM_OF_MESSAGE : Consumption.STREAM_OF_PAYLOAD;
+    consumption = TypeUtils.isAssignable(type1, Message.class) ? Consumption.STREAM_OF_MESSAGE : Consumption.STREAM_OF_PAYLOAD;
 
     Type type2 = getParameterFromReturnType(method, 1)
       .orElseThrow(() -> getIncomingAndOutgoingError("Expected 2 type parameters for the returned Processor"));
-      production = TypeUtils.isAssignable(type2, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
+    production = TypeUtils.isAssignable(type2, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
 
     useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), ProcessorBuilder.class);
   }
@@ -335,7 +348,7 @@ public class MediatorConfiguration {
       return;
     }
 
-     // Case 6
+    // Case 6
     production = Production.INDIVIDUAL_PAYLOAD;
   }
 

@@ -119,7 +119,7 @@ public class ProcessorMediator extends AbstractMediator {
         break;
       case COMPLETION_STAGE_OF_PAYLOAD:
         // Case 12
-        processMethodReturningACompletionStageOfPayloadndConsumingIndividualPayload(bean);
+        processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload(bean);
         break;
       default:
         throw new IllegalArgumentException("Unexpected production type: " + configuration.production());
@@ -203,9 +203,17 @@ public class ProcessorMediator extends AbstractMediator {
   private void processMethodReturningIndividualMessageAndConsumingIndividualItem(Object bean) {
     // Item can be message or payload
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-      this.processor = ReactiveStreams.<Message>builder().map(input -> (Message) invoke(bean, input.getPayload())).buildRs();
+      this.processor = ReactiveStreams.<Message>builder()
+        .flatMapCompletionStage(managePreProcessingAck())
+        .map(input -> (Message) invoke(bean, input.getPayload()))
+        .flatMapCompletionStage(managePostProcessingAck())
+        .buildRs();
     } else {
-      this.processor = ReactiveStreams.<Message>builder().map(input -> (Message) invoke(bean, input)).buildRs();
+      this.processor = ReactiveStreams.<Message>builder()
+        .flatMapCompletionStage(managePreProcessingAck())
+        .map(input -> (Message) invoke(bean, input))
+        .flatMapCompletionStage(managePostProcessingAck())
+        .buildRs();
     }
   }
 
@@ -213,16 +221,20 @@ public class ProcessorMediator extends AbstractMediator {
     // Item can be message or payload.
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.processor = ReactiveStreams.<Message>builder()
+        .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(input -> {
           Object result = invoke(bean, input.getPayload());
-          return getAckOrCompletion(input).thenApply(x -> (Message) Message.of(result));
+          return managePostProcessingAck().apply(input)
+            .thenApply(x -> (Message) Message.of(result));
         })
         .buildRs();
     } else {
+      // Message
       this.processor = ReactiveStreams.<Message>builder()
+        .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(input -> {
           Object result = invoke(bean, input);
-          return getAckOrCompletion(input).thenApply(x -> (Message) Message.of(result));
+          return managePostProcessingAck().apply(input).thenApply(x -> (Message) Message.of(result));
         })
         .buildRs();
     }
@@ -230,19 +242,24 @@ public class ProcessorMediator extends AbstractMediator {
 
   private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualMessage(Object bean) {
     this.processor = ReactiveStreams.<Message>builder()
-      .<Message>flatMapCompletionStage(input -> invoke(bean, input))
-      .buildRs();
-  }
-
-  private void processMethodReturningACompletionStageOfPayloadndConsumingIndividualPayload(Object bean) {
-    this.processor = ReactiveStreams.<Message>builder()
-      .flatMapCompletionStage(input -> {
-        CompletionStage<Object> cs = invoke(bean, input.getPayload());
-        return cs.thenCompose(p -> getAckOrCompletion(input).thenApply(x -> (Message) Message.of(p)));
+      .flatMapCompletionStage(managePreProcessingAck())
+      .<Message>flatMapCompletionStage(input -> {
+        CompletionStage<Message> cs = invoke(bean, input);
+        return cs.thenCompose(res -> managePostProcessingAck().apply(input).thenApply(x -> res));
       })
       .buildRs();
   }
 
+  private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload(Object bean) {
+    this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
+      .flatMapCompletionStage(input -> {
+        CompletionStage<Object> cs = invoke(bean, input.getPayload());
+        return cs
+          .thenCompose(res -> managePostProcessingAck().apply(input).thenApply(p -> (Message) Message.of(res)));
+      })
+      .buildRs();
+  }
 
   private boolean isReturningAPublisherOrAPublisherBuilder() {
     Class<?> returnType = configuration.getMethod().getReturnType();
