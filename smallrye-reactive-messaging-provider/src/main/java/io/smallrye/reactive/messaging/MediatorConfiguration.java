@@ -97,7 +97,7 @@ public class MediatorConfiguration {
       if (annotation != null) {
         acknowledgment = annotation.value();
       } else {
-        if (shape == Shape.STREAM_TRANSFORMER) {
+        if (shape == Shape.STREAM_TRANSFORMER  || shape == Shape.PROCESSOR) {
           acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
         } else {
           acknowledgment = Acknowledgment.Mode.POST_PROCESSING;

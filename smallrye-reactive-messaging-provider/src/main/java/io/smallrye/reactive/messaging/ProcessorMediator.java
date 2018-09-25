@@ -143,43 +143,43 @@ public class ProcessorMediator extends AbstractMediator {
   private void processMethodReturningAProcessorBuilderOfMessages(Object bean) {
     ProcessorBuilder<Message, Message> builder = Objects.requireNonNull(invoke(bean),
       "The method " + configuration.methodAsString() + " returned `null`");
-    processor = builder.buildRs();
+
+    this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
+      .via(builder)
+      .buildRs();
   }
 
   private void processMethodReturningAProcessorOfMessages(Object bean) {
-    processor = Objects.requireNonNull(invoke(bean), "The method " + configuration.methodAsString() + " returned `null`");
+    Processor<Message, Message> result = Objects.requireNonNull(invoke(bean), "The method " + configuration.methodAsString() + " returned `null`");
+    this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
+      .via(result)
+      .buildRs();
   }
 
-  private <I, O> void processMethodReturningAProcessorOfPayloads(Object bean) {
-    Function<Message<I>, PublisherBuilder<? extends Message<O>>> function = msg -> {
-      Processor<I, O> returnedProcessor = invoke(bean);
-      Objects.requireNonNull(returnedProcessor, "The method " + configuration.methodAsString()
-        + " has returned an invalid value: null");
-      I input = msg.getPayload();
-      return ReactiveStreams.of(input)
-        .via(returnedProcessor)
-        .map(Message::of)
-        .flatMapCompletionStage(output -> getAckOrCompletion(msg).thenApply(x -> output));
-    };
+  private void processMethodReturningAProcessorOfPayloads(Object bean) {
+    Processor returnedProcessor = invoke(bean);
 
-    ProcessorBuilder messageMessageProcessorBuilder = ReactiveStreams.<Message<I>>builder().flatMap(function);
-    this.processor = messageMessageProcessorBuilder.buildRs();
+    this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
+      .map(m -> m.getPayload())
+      .via(returnedProcessor)
+      .map(Message::of)
+      .buildRs();
   }
 
-  private <I, O> void processMethodReturningAProcessorBuilderOfPayloads(Object bean) {
-    ProcessorBuilder<I, O> returnedProcessorBuilder = invoke(bean);
+  private void processMethodReturningAProcessorBuilderOfPayloads(Object bean) {
+    ProcessorBuilder returnedProcessorBuilder = invoke(bean);
     Objects.requireNonNull(returnedProcessorBuilder, "The method " + configuration.methodAsString()
       + " has returned an invalid value: null");
-    Function<Message<I>, PublisherBuilder<? extends Message<O>>> function = msg -> {
-      I input = msg.getPayload();
-      return ReactiveStreams.of(input)
-        .via(returnedProcessorBuilder)
-        .map(Message::of)
-        .flatMapCompletionStage(output -> getAckOrCompletion(msg).thenApply(x -> output));
-    };
 
-    ProcessorBuilder messageMessageProcessorBuilder = ReactiveStreams.<Message<I>>builder().flatMap(function);
-    this.processor = messageMessageProcessorBuilder.buildRs();
+    this.processor = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
+      .map(m -> m.getPayload())
+      .via(returnedProcessorBuilder)
+      .map(Message::of)
+      .buildRs();
   }
 
   private void processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads(Object bean) {
