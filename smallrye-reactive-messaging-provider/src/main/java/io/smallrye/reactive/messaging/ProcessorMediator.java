@@ -243,7 +243,7 @@ public class ProcessorMediator extends AbstractMediator {
   private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualMessage(Object bean) {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
-      .<Message>flatMapCompletionStage(input -> {
+      .flatMapCompletionStage(input -> {
         CompletionStage<Message> cs = invoke(bean, input);
         return cs.thenCompose(res -> managePostProcessingAck().apply(input).thenApply(x -> res));
       })
