@@ -1,7 +1,9 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.beans.*;
-import org.jboss.weld.environment.se.WeldContainer;
+import io.smallrye.reactive.messaging.beans.BeanConsumingItemAsFlowableAndPublishingItemAsFlowable;
+import io.smallrye.reactive.messaging.beans.BeanConsumingItemAsFlowableAndPublishingItemAsPublisher;
+import io.smallrye.reactive.messaging.beans.BeanConsumingItemAsPublisherAndPublishingItemAsFlowable;
+import io.smallrye.reactive.messaging.beans.BeanConsumingItemAsPublisherBuilderAndPublishingItemAsPublisherBuilder;
 import org.jboss.weld.exceptions.DefinitionException;
 import org.junit.Test;
 
@@ -12,9 +14,9 @@ public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
 
   @Test
   public void testBeanConsumingItemAsFlowableAndPublishingItemAsFlowable() {
-    weld.addBeanClass(BeanConsumingItemAsFlowableAndPublishingItemAsFlowable.class);
+    initializer.addBeanClasses(BeanConsumingItemAsFlowableAndPublishingItemAsFlowable.class);
     try {
-      weld.initialize();
+      initializer.initialize();
       fail("Validation error expected");
     } catch (DefinitionException e) {
       assertThat(e).hasMessageContaining("@Incoming").hasMessageContaining("@Outgoing").hasMessageContaining("Publisher<Message<I>>");
@@ -23,9 +25,9 @@ public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
 
   @Test
   public void testBeanConsumingItemAsFlowableAndPublishingItemAsPublisher() {
-    weld.addBeanClass(BeanConsumingItemAsFlowableAndPublishingItemAsPublisher.class);
+    initializer.addBeanClasses(BeanConsumingItemAsFlowableAndPublishingItemAsPublisher.class);
     try {
-      weld.initialize();
+      initializer.initialize();
       fail("Validation error expected");
     } catch (DefinitionException e) {
       assertThat(e).hasMessageContaining("@Incoming").hasMessageContaining("@Outgoing").hasMessageContaining("Publisher<Message<I>>");
@@ -34,9 +36,9 @@ public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
 
   @Test
   public void testBeanConsumingItemAsPublisherAndPublishingItemAsFlowable() {
-    weld.addBeanClass(BeanConsumingItemAsPublisherAndPublishingItemAsFlowable.class);
+    initializer.addBeanClasses(BeanConsumingItemAsPublisherAndPublishingItemAsFlowable.class);
     try {
-      weld.initialize();
+      initializer.initialize();
       fail("Validation error expected");
     } catch (DefinitionException e) {
       assertThat(e).hasMessageContaining("@Incoming").hasMessageContaining("@Outgoing").hasMessageContaining("Publisher<Message<I>>");
@@ -46,9 +48,9 @@ public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
   @Test
   public void testBeanConsumingItemAsPublisherBuilderAndPublishingItemAsPublisherBuilder() {
     // Consuming or Producing a stream of payload is not supported (as automatic acknowledgement is non-deterministic)
-    weld.addBeanClass(BeanConsumingItemAsPublisherBuilderAndPublishingItemAsPublisherBuilder.class);
+    initializer.addBeanClasses(BeanConsumingItemAsPublisherBuilderAndPublishingItemAsPublisherBuilder.class);
     try {
-      weld.initialize();
+      initializer.initialize();
       fail("Validation error expected");
     } catch (DefinitionException e) {
       assertThat(e).hasMessageContaining("@Incoming").hasMessageContaining("@Outgoing").hasMessageContaining("Publisher<Message<I>>");

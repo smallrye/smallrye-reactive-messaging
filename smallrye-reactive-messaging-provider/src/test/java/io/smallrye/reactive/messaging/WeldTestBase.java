@@ -7,7 +7,7 @@ public class WeldTestBase extends WeldTestBaseWithoutTails{
   @Before
   public void setUp() {
     super.setUp();
-    weld.addBeanClass(MyCollector.class);
+    initializer.addBeanClasses(MyCollector.class);
   }
 
 }

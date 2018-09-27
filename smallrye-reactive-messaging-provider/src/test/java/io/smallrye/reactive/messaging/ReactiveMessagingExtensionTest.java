@@ -9,8 +9,8 @@ public class ReactiveMessagingExtensionTest extends WeldTestBase {
 
   @Test
   public void test() {
-    weld.addBeanClass(MyBean.class);
-    weld.initialize();
+    initializer.addBeanClasses(MyBean.class);
+    initializer.initialize();
     assertThat(MyBean.COLLECTOR).containsExactly("FOO", "FOO", "BAR", "BAR");
   }
 

@@ -1,18 +1,21 @@
 package io.smallrye.reactive.messaging.tck.incoming;
 
+import java.util.Arrays;
+import java.util.List;
+
+import javax.enterprise.inject.se.SeContainer;
+
 import io.smallrye.reactive.messaging.WeldTestBase;
 import io.smallrye.reactive.messaging.tck.MessagingManager;
 import io.smallrye.reactive.messaging.tck.MockPayload;
 import io.smallrye.reactive.messaging.tck.MockedReceiver;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static io.smallrye.reactive.messaging.tck.incoming.Bean.*;
+import static io.smallrye.reactive.messaging.tck.incoming.Bean.NON_PARALLEL;
+import static io.smallrye.reactive.messaging.tck.incoming.Bean.NON_VOID_METHOD;
+import static io.smallrye.reactive.messaging.tck.incoming.Bean.SYNC_FAILING;
+import static io.smallrye.reactive.messaging.tck.incoming.Bean.VOID_METHOD;
 import static org.junit.Assert.assertTrue;
 
 @Ignore("Work on the TCK")
@@ -46,15 +49,15 @@ public class IncomingTest extends WeldTestBase  {
   }
 
   private MessagingManager init() {
-    WeldContainer container = weld.initialize();
-    return container.getBeanManager().createInstance().select(MessagingManager.class).get();
+    SeContainer container = initializer.initialize();
+    return container.select(MessagingManager.class).get();
   }
 
   @Test
   public void completionStageMethodShouldNotProcessMessagesInParallel() {
-    WeldContainer container = weld.initialize();
-    MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();
-    Bean bean = container.getBeanManager().createInstance().select(Bean.class).get();
+    SeContainer container = initializer.initialize();
+    MessagingManager manager = container.select(MessagingManager.class).get();
+    Bean bean = container.select(Bean.class).get();
 
     MockedReceiver<MockPayload> receiver = manager.getReceiver(NON_PARALLEL);
     MockPayload msg1 = new MockPayload("mock", 1);
@@ -92,9 +95,9 @@ public class IncomingTest extends WeldTestBase  {
   @Test
   @Ignore("Discuss retry")
   public void completionStageMethodShouldRetryMessagesThatFailSynchronously() {
-    WeldContainer container = weld.initialize();
-    MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();
-    Bean bean = container.getBeanManager().createInstance().select(Bean.class).get();
+    SeContainer container = initializer.initialize();
+    MessagingManager manager = container.select(MessagingManager.class).get();
+    Bean bean = container.select(Bean.class).get();
 
     MockedReceiver<MockPayload> receiver = manager.getReceiver(SYNC_FAILING);
     MockPayload msg1 = new MockPayload("success", 1);
@@ -113,9 +116,9 @@ public class IncomingTest extends WeldTestBase  {
 
 //  @Test
 //  public void completionStageMethodShouldRetryMessagesThatFailAsynchronously() {
-//    WeldContainer container = weld.initialize();
-//    MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();
-//    Bean bean = container.getBeanManager().createInstance().select(Bean.class).get();
+//    SeContainer container = initializer.initialize();
+//    MessagingManager manager = container.select(MessagingManager.class).get();
+//    Bean bean = container.select(Bean.class).get();
 //
 //    MockedReceiver<MockPayload> receiver = manager.getReceiver(ASYNC_FAILING);
 //    MockPayload msg1 = new MockPayload("success", 1);
@@ -135,9 +138,9 @@ public class IncomingTest extends WeldTestBase  {
 //  @Test
 //  @Ignore("Check TCK")
 //  public void completionStageMethodShouldNotAutomaticallyAcknowledgeWrappedMessages() {
-//    WeldContainer container = weld.initialize();
-//    MessagingManager manager = container.getBeanManager().createInstance().select(MessagingManager.class).get();
-//    Bean bean = container.getBeanManager().createInstance().select(Bean.class).get();
+//    SeContainer container = initializer.initialize();
+//    MessagingManager manager = container.select(MessagingManager.class).get();
+//    Bean bean = container.select(Bean.class).get();
 //
 //    MockedReceiver<MockPayload> receiver = manager.getReceiver(WRAPPED_MESSAGE);
 //    MockPayload msg1 = new MockPayload("acknowledged", 1);

@@ -1,12 +1,15 @@
 package io.smallrye.reactive.messaging;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.beans.*;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.util.List;
+
+import javax.enterprise.inject.se.SeContainer;
+
+import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.beans.BeanProducingACompletableFuture;
+import io.smallrye.reactive.messaging.beans.BeanProducingACompletableFutureOfMessage;
+import io.smallrye.reactive.messaging.beans.BeanProducingACompletionStage;
+import io.smallrye.reactive.messaging.beans.BeanProducingACompletionStageOfMessage;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,33 +20,33 @@ public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
 
   @Test
   public void testBeanProducingACompletionStageOfMessage() {
-    weld.addBeanClass(BeanProducingACompletionStageOfMessage.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    initializer.addBeanClasses(BeanProducingACompletionStageOfMessage.class);
+    SeContainer container = initializer.initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
   @Test
   public void testBeanProducingACompletionStageOfPayloads() {
-    weld.addBeanClass(BeanProducingACompletionStage.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    initializer.addBeanClasses(BeanProducingACompletionStage.class);
+    SeContainer container = initializer.initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
   @Test
   public void testBeanProducingACompletableFutureOfMessage() {
-    weld.addBeanClass(BeanProducingACompletableFutureOfMessage.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    initializer.addBeanClasses(BeanProducingACompletableFutureOfMessage.class);
+    SeContainer container = initializer.initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
   @Test
   public void testBeanProducingACompletableFutureOfPayloads() {
-    weld.addBeanClass(BeanProducingACompletableFuture.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    initializer.addBeanClasses(BeanProducingACompletableFuture.class);
+    SeContainer container = initializer.initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
