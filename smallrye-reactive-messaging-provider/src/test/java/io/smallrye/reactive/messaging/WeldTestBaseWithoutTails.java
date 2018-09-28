@@ -35,6 +35,8 @@ public class WeldTestBaseWithoutTails {
     List<Class> beans = getBeans();
     beans.forEach(c -> weld.addBeanClass(c));
 
+    weld.disableDiscovery();
+
     weld.addExtension(new ReactiveMessagingExtension());
   }
 

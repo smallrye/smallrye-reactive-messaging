@@ -45,11 +45,18 @@ public class ConfiguredStreamFactory implements StreamRegistar {
   @Inject
   public ConfiguredStreamFactory(@Any Instance<PublisherFactory> sourceFactories, @Any Instance<SubscriberFactory> sinkFactories,
                                  @Any Instance<Config> config, @Any Instance<StreamRegistry> registry, ReactiveMessagingExtension extension) {
-    this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
-    this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
-    this.config = config.get();
+
     this.extension = extension;
     this.registry = registry.get();
+    if (config.isUnsatisfied()) {
+      this.sourceFactories = Collections.emptyList();
+      this.sinkFactories = Collections.emptyList();
+      this.config = null;
+    } else {
+      this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
+      this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
+      this.config = config.get();
+    }
   }
 
   static Map<String, Map<String, String>> extractConfigurationFor(String prefix, Config root) {
@@ -77,7 +84,13 @@ public class ConfiguredStreamFactory implements StreamRegistar {
 
   @Override
   public CompletionStage<Void> initialize() {
+    if (this.config == null) {
+      LOGGER.info("No MicroProfile Config found, skipping");
+      return CompletableFuture.completedFuture(null);
+    }
+
     LOGGER.info("Stream manager initializing...");
+
     Map<String, Map<String, String>> sourceConfiguration = extractConfigurationFor(SOURCE_CONFIG_PREFIX, config);
     Map<String, Map<String, String>> sinkConfiguration = extractConfigurationFor(SINK_CONFIG_PREFIX, config);
 

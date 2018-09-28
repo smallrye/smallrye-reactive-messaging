@@ -11,6 +11,8 @@ public class ConfiguredSourceAndSinkTest extends WeldTestBase {
   @Test
   public void test() {
     weld.addBeanClass(DummyBean.class);
+    // Inject a config provider
+    weld.addBeanClass(io.smallrye.config.inject.ConfigProducer.class);
 
     WeldContainer container = weld.initialize();
 
