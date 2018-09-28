@@ -17,7 +17,7 @@ public class AcknowledgmentTestBase extends WeldTestBaseWithoutTails {
   protected List<String> acks = Collections.emptyList();
 
   @Before
-  public void initialize() {
+  public void configure() {
     expected = Arrays.asList("a", "b", "c", "d", "e");
     acks = new ArrayList<>(expected);
   }

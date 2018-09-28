@@ -1,7 +1,9 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.beans.*;
-import org.jboss.weld.environment.se.WeldContainer;
+import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorBuilderOfMessages;
+import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorBuilderOfPayloads;
+import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorOfMessages;
+import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorOfPayloads;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,33 +12,33 @@ public class ProcessorShapeReturningProcessorTest extends WeldTestBase {
 
   @Test
   public void testBeanProducingAProcessorOfMessages() {
-    weld.addBeanClass(BeanProducingAProcessorOfMessages.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanProducingAProcessorOfMessages.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
   @Test
   public void testBeanProducingAProcessorBuilderOfMessages() {
-    weld.addBeanClass(BeanProducingAProcessorBuilderOfMessages.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanProducingAProcessorBuilderOfMessages.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
   @Test
   public void testBeanProducingAProcessorOfPayloads() {
-    weld.addBeanClass(BeanProducingAProcessorOfPayloads.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanProducingAProcessorOfPayloads.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
   @Test
   public void testBeanProducingAProcessorBuilderOfPayloads() {
-    weld.addBeanClass(BeanProducingAProcessorBuilderOfPayloads.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanProducingAProcessorBuilderOfPayloads.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 

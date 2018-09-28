@@ -5,7 +5,6 @@ import io.smallrye.reactive.messaging.beans.BeanConsumingItemsAndProducingItems;
 import io.smallrye.reactive.messaging.beans.BeanConsumingItemsAndProducingMessages;
 import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndProducingItems;
 import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndProducingMessages;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
 import java.util.List;
@@ -19,33 +18,33 @@ public class ProcessorShapeConsumingIndividualItemsTest extends WeldTestBase {
 
   @Test
   public void testBeanConsumingMessagesAndProducingMessages() {
-    weld.addBeanClass(BeanConsumingMessagesAndProducingMessages.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanConsumingMessagesAndProducingMessages.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
   @Test
   public void testBeanConsumingMessagesAndProducingItems() {
-    weld.addBeanClass(BeanConsumingMessagesAndProducingItems.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanConsumingMessagesAndProducingItems.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
   @Test
   public void testBeanConsumingItemsAndProducingMessages() {
-    weld.addBeanClass(BeanConsumingItemsAndProducingMessages.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanConsumingItemsAndProducingMessages.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
   @Test
   public void testBeanConsumingItemsAndProducingItems() {
-    weld.addBeanClass(BeanConsumingItemsAndProducingItems.class);
-    WeldContainer container = weld.initialize();
-    MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+    addBeanClass(BeanConsumingItemsAndProducingItems.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 

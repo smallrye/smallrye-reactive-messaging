@@ -1,18 +1,18 @@
 package io.smallrye.reactive.messaging;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.beans.*;
-import org.apache.commons.lang3.NotImplementedException;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.jboss.weld.exceptions.DefinitionException;
-import org.junit.Test;
-import org.reactivestreams.Subscriber;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import javax.enterprise.inject.se.SeContainer;
+
+import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.beans.*;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.jboss.weld.exceptions.DefinitionException;
+import org.junit.Test;
+import org.reactivestreams.Subscriber;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -27,24 +27,24 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testBeanProducingASubscriberOfMessages() {
-    weld.addBeanClass(BeanReturningASubscriberOfMessages.class);
-    WeldContainer container = weld.initialize();
-    BeanReturningASubscriberOfMessages collector = container.getBeanManager().createInstance().select(BeanReturningASubscriberOfMessages.class).get();
+    initializer.addBeanClasses(BeanReturningASubscriberOfMessages.class);
+    initialize();
+    BeanReturningASubscriberOfMessages collector = container.select(BeanReturningASubscriberOfMessages.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
   @Test
   public void testBeanProducingASubscriberOfPayloads() {
-    weld.addBeanClass(BeanReturningASubscriberOfPayloads.class);
-    WeldContainer container = weld.initialize();
-    BeanReturningASubscriberOfPayloads collector = container.getBeanManager().createInstance().select(BeanReturningASubscriberOfPayloads.class).get();
+    initializer.addBeanClasses(BeanReturningASubscriberOfPayloads.class);
+    initialize();
+    BeanReturningASubscriberOfPayloads collector = container.select(BeanReturningASubscriberOfPayloads.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
   @Test
   public void testThatWeCanProduceSubscriberOfMessage() {
-    weld.addBeanClass(BeanReturningASubscriberOfMessagesButDiscarding.class);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(BeanReturningASubscriberOfMessagesButDiscarding.class);
+    initialize();
     assertThatSubscriberWasPublished(container);
   }
 
@@ -52,9 +52,9 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
   public void testThatWeCanConsumeMessagesFromAMethodReturningVoid() {
     // This case is not supported as it forces blocking acknowledgment.
     // See the MediatorConfiguration class for details.
-    weld.addBeanClass(BeanConsumingMessagesAndReturningVoid.class);
+    initializer.addBeanClasses(BeanConsumingMessagesAndReturningVoid.class);
     try {
-      weld.initialize();
+      initialize();
       fail("Expected failure - method validation should have failed");
     } catch (DefinitionException e) {
       // Check we have the right cause
@@ -64,8 +64,8 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumePayloadsFromAMethodReturningVoid() {
-    weld.addBeanClass(BeanConsumingPayloadsAndReturningVoid.class);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(BeanConsumingPayloadsAndReturningVoid.class);
+    initialize();
     BeanConsumingPayloadsAndReturningVoid collector = container.getBeanManager()
       .createInstance().select(BeanConsumingPayloadsAndReturningVoid.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -76,9 +76,9 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     // This case is not supported as it forces blocking acknowledgment.
     // See the MediatorConfiguration class for details.
 
-    weld.addBeanClass(BeanConsumingMessagesAndReturningSomething.class);
+    initializer.addBeanClasses(BeanConsumingMessagesAndReturningSomething.class);
     try {
-      weld.initialize();
+      initialize();
       fail("Expected failure - method validation should have failed");
     } catch (DefinitionException e) {
       // Check we have the right cause
@@ -88,8 +88,8 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumePayloadsFromAMethodReturningSomething() {
-    weld.addBeanClass(BeanConsumingPayloadsAndReturningSomething.class);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(BeanConsumingPayloadsAndReturningSomething.class);
+    initialize();
     BeanConsumingPayloadsAndReturningSomething collector = container.getBeanManager()
       .createInstance().select(BeanConsumingPayloadsAndReturningSomething.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -97,8 +97,8 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumeMessagesFromAMethodReturningACompletionStage() {
-    weld.addBeanClass(BeanConsumingMessagesAndReturningACompletionStageOfVoid.class);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(BeanConsumingMessagesAndReturningACompletionStageOfVoid.class);
+    initialize();
     BeanConsumingMessagesAndReturningACompletionStageOfVoid collector = container.getBeanManager()
       .createInstance().select(BeanConsumingMessagesAndReturningACompletionStageOfVoid.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -106,8 +106,8 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumePayloadsFromAMethodReturningACompletionStage() {
-    weld.addBeanClass(BeanConsumingPayloadsAndReturningACompletionStageOfVoid.class);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(BeanConsumingPayloadsAndReturningACompletionStageOfVoid.class);
+    initialize();
     BeanConsumingPayloadsAndReturningACompletionStageOfVoid collector = container.getBeanManager()
       .createInstance().select(BeanConsumingPayloadsAndReturningACompletionStageOfVoid.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -115,8 +115,8 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumeMessagesFromAMethodReturningACompletionStageOfSomething() {
-    weld.addBeanClass(BeanConsumingMessagesAndReturningACompletionStageOfSomething.class);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(BeanConsumingMessagesAndReturningACompletionStageOfSomething.class);
+    initialize();
     BeanConsumingMessagesAndReturningACompletionStageOfSomething collector = container.getBeanManager()
       .createInstance().select(BeanConsumingMessagesAndReturningACompletionStageOfSomething.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -124,8 +124,8 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @Test
   public void testThatWeCanConsumePayloadsFromAMethodReturningACompletionStageOfSomething() {
-    weld.addBeanClass(BeanConsumingPayloadsAndReturningACompletionStageOfSomething.class);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(BeanConsumingPayloadsAndReturningACompletionStageOfSomething.class);
+    initialize();
     BeanConsumingPayloadsAndReturningACompletionStageOfSomething collector = container.getBeanManager()
       .createInstance().select(BeanConsumingPayloadsAndReturningACompletionStageOfSomething.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -133,7 +133,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
 
   @SuppressWarnings("unchecked")
-  private void assertThatSubscriberWasPublished(WeldContainer container) {
+  private void assertThatSubscriberWasPublished(SeContainer container) {
     assertThat(registry(container).getSubscriberNames()).contains("subscriber");
     Optional<Subscriber<? extends Message>> subscriber = registry(container).getSubscriber("subscriber");
     assertThat(subscriber).isNotEmpty();

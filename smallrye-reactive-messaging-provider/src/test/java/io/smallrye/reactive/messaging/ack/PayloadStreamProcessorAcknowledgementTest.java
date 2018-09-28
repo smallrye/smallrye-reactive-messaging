@@ -12,7 +12,7 @@ public class PayloadStreamProcessorAcknowledgementTest extends AcknowledgmentTes
   private final Class<BeanWithProcessorsProducingPayloadStreams> beanClass = BeanWithProcessorsProducingPayloadStreams.class;
 
   @Before
-  public void initialize() {
+  public void configure() {
     acks = Arrays.asList("a", "b", "c", "d", "e");
     expected = Arrays.asList("a", "a", "b", "b", "c", "c", "d", "d", "e", "e");
   }

@@ -5,39 +5,39 @@ import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.impl.StreamRegistryImpl;
 import io.smallrye.reactive.messaging.providers.MyDummyFactories;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Before;
 
+import javax.enterprise.inject.se.SeContainer;
+import javax.enterprise.inject.se.SeContainerInitializer;
 import java.util.Collections;
 import java.util.List;
 
 public class WeldTestBaseWithoutTails {
 
-  protected static final List<String> EXPECTED =
+  static final List<String> EXPECTED =
     Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i)).toList().blockingGet();
 
-  protected Weld weld;
+  protected SeContainerInitializer initializer;
+
+  protected SeContainer container;
 
   @Before
   public void setUp() {
-    weld = new Weld();
+    initializer = SeContainerInitializer.newInstance();
 
-    weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(StreamRegistryImpl.class);
-    weld.addBeanClass(StreamFactoryImpl.class);
-    weld.addBeanClass(ConfiguredStreamFactory.class);
-
-    // Messaging provider
-    weld.addBeanClass(MyDummyFactories.class);
+    initializer.addBeanClasses(MediatorFactory.class,
+                               StreamRegistryImpl.class,
+                               StreamFactoryImpl.class,
+                               ConfiguredStreamFactory.class,
+                               // Messaging provider
+                               MyDummyFactories.class);
 
     List<Class> beans = getBeans();
-    beans.forEach(c -> weld.addBeanClass(c));
+    initializer.addBeanClasses(beans.toArray(new Class<?>[0]));
+    initializer.disableDiscovery();
+    initializer.addExtensions(new ReactiveMessagingExtension());
 
-    weld.disableDiscovery();
-
-    weld.addExtension(new ReactiveMessagingExtension());
   }
 
   public List<Class> getBeans() {
@@ -46,16 +46,28 @@ public class WeldTestBaseWithoutTails {
 
   @After
   public void tearDown() {
-    weld.shutdown();
+    if (container != null) {
+      container.close();
+      container = null;
+    }
   }
 
-  protected StreamRegistry registry(WeldContainer container) {
-    return container.getBeanManager().createInstance().select(StreamRegistry.class).get();
+  protected StreamRegistry registry(SeContainer container) {
+    return container.select(StreamRegistry.class).get();
+  }
+
+  public void addBeanClass(Class<?> beanClass) {
+    initializer.addBeanClasses(beanClass);
+  }
+
+  public void initialize() {
+    assert container == null;
+    container = initializer.initialize();
   }
 
   protected  <T> T installInitializeAndGet(Class<T> beanClass) {
-    weld.addBeanClass(beanClass);
-    WeldContainer container = weld.initialize();
+    initializer.addBeanClasses(beanClass);
+    initialize();
     return container.getBeanManager().createInstance().select(beanClass).get();
   }
 }

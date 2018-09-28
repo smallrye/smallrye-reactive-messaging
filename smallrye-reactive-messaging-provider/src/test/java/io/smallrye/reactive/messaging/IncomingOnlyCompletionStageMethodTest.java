@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging;
 
 import io.smallrye.reactive.messaging.beans.IncomingOnlyBeanProducingACompletableStage;
 import io.smallrye.reactive.messaging.beans.IncomingOnlyBeanProducingANonVoidCompletableStage;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -20,22 +19,22 @@ public class IncomingOnlyCompletionStageMethodTest extends WeldTestBaseWithoutTa
 
   @Test
   public void testIncomingOnlyBeanProducingACompletionStageOfVoid() {
-    weld.addBeanClass(IncomingOnlyBeanProducingACompletableStage.class);
-    WeldContainer container = weld.initialize();
-    IncomingOnlyBeanProducingACompletableStage collector = container.getBeanManager().createInstance()
+    addBeanClass(IncomingOnlyBeanProducingACompletableStage.class);
+    initialize();
+    IncomingOnlyBeanProducingACompletableStage collector = container
       .select(IncomingOnlyBeanProducingACompletableStage.class).get();
     assertThat(collector.list()).isNotEmpty()
-    .containsExactly(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10);
+      .containsExactly(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10);
   }
 
   @Test
   public void testIncomingOnlyBeanProducingACompletionStageNonVoid() {
-    weld.addBeanClass(IncomingOnlyBeanProducingANonVoidCompletableStage.class);
-    WeldContainer container = weld.initialize();
-    IncomingOnlyBeanProducingANonVoidCompletableStage collector = container.getBeanManager().createInstance()
+    addBeanClass(IncomingOnlyBeanProducingANonVoidCompletableStage.class);
+    initialize();
+    IncomingOnlyBeanProducingANonVoidCompletableStage collector = container
       .select(IncomingOnlyBeanProducingANonVoidCompletableStage.class).get();
     assertThat(collector.list()).isNotEmpty()
-      .containsExactly(1, 1, 2, 2,  3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10);
+      .containsExactly(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10);
   }
 
 

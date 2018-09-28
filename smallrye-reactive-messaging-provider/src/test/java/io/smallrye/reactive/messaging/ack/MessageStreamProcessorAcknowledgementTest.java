@@ -12,7 +12,7 @@ public class MessageStreamProcessorAcknowledgementTest extends AcknowledgmentTes
   private final Class<BeanWithProcessorsProducingMessageStreams> beanClass = BeanWithProcessorsProducingMessageStreams.class;
 
   @Before
-  public void initialize() {
+  public void configure() {
     acks = Arrays.asList("a", "b", "c", "d", "e");
     expected = Arrays.asList("a", "a", "b", "b", "c", "c", "d", "d", "e", "e");
   }
