@@ -205,14 +205,18 @@ public class ProcessorMediator extends AbstractMediator {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
-        .map(input -> (Message) invoke(bean, input.getPayload()))
-        .flatMapCompletionStage(managePostProcessingAck())
+        .flatMapCompletionStage(input -> {
+          Message output = invoke(bean, input.getPayload());
+          return managePostProcessingAck().apply(input).thenApply(x -> output);
+        })
         .buildRs();
     } else {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
-        .map(input -> (Message) invoke(bean, input))
-        .flatMapCompletionStage(managePostProcessingAck())
+        .flatMapCompletionStage(input -> {
+          Message output = invoke(bean, input);
+          return managePostProcessingAck().apply(input).thenApply(x -> output);
+        })
         .buildRs();
     }
   }

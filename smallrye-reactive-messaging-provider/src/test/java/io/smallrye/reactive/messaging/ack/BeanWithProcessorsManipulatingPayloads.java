@@ -82,7 +82,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
   public String processorWithNoAck(String input) {
     processed(NO_ACKNOWLEDGMENT, input);
-    return input;
+    return input + "1";
   }
 
   @Outgoing(NO_ACKNOWLEDGMENT)
@@ -102,7 +102,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     return CompletableFuture.completedFuture(input)
       .thenApply(m -> {
         processed(NO_ACKNOWLEDGMENT_CS, input);
-        return m;
+        return m + "1";
       });
   }
 
@@ -121,7 +121,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
   public String processorWithPreAck(String input) {
     processed(PRE_ACKNOWLEDGMENT, input);
-    return input;
+    return input + "1";
   }
 
   @Outgoing(PRE_ACKNOWLEDGMENT)
@@ -139,7 +139,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_CS)
   public CompletionStage<String> processorWithPreAckCS(String input) {
     processed(PRE_ACKNOWLEDGMENT_CS, input);
-    return CompletableFuture.completedFuture(input);
+    return CompletableFuture.completedFuture(input + "1");
   }
 
   @Outgoing(PRE_ACKNOWLEDGMENT_CS)
@@ -158,7 +158,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   @Outgoing("sink-" + POST_ACKNOWLEDGMENT)
   public String processorWithPostAck(String input) {
     processed(POST_ACKNOWLEDGMENT, input);
-    return input;
+    return input + "1";
   }
 
   @Outgoing(POST_ACKNOWLEDGMENT)
@@ -176,7 +176,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   @Outgoing("sink-" + POST_ACKNOWLEDGMENT_CS)
   public CompletionStage<String> processorWithPostAckCS(String input) {
     processed(POST_ACKNOWLEDGMENT_CS, input);
-    return CompletableFuture.completedFuture(input);
+    return CompletableFuture.completedFuture(input + "1");
   }
 
   @Outgoing(POST_ACKNOWLEDGMENT_CS)
@@ -194,7 +194,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
   public String processorWithDefaultAck(String input) {
     processed(DEFAULT_ACKNOWLEDGMENT, input);
-    return input;
+    return input + "1";
   }
 
   @Outgoing(DEFAULT_ACKNOWLEDGMENT)
@@ -211,7 +211,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT_CS)
   public CompletionStage<String> processorWithDefaultAckCS(String input) {
     processed(DEFAULT_ACKNOWLEDGMENT_CS, input);
-    return CompletableFuture.completedFuture(input);
+    return CompletableFuture.completedFuture(input + "1");
   }
 
   @Outgoing(DEFAULT_ACKNOWLEDGMENT_CS)

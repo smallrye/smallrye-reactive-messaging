@@ -89,14 +89,12 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     return CompletableFuture.completedFuture(null);
   }
 
-
-
   @Incoming(MANUAL_ACKNOWLEDGMENT_CS)
   @Acknowledgment(Acknowledgment.Mode.MANUAL)
   @Outgoing("sink-" + MANUAL_ACKNOWLEDGMENT_CS)
   public CompletionStage<Message<String>> processorWithAck(Message<String> input) {
     processed(MANUAL_ACKNOWLEDGMENT_CS, input);
-    return input.ack().thenApply(x -> input);
+    return input.ack().thenApply(x -> Message.of(input.getPayload() + "1"));
   }
 
   @Outgoing(MANUAL_ACKNOWLEDGMENT_CS)
@@ -115,7 +113,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
   public Message<String> processorWithNoAck(Message<String> input) {
     processed(NO_ACKNOWLEDGMENT, input);
-    return input;
+    return Message.of(input.getPayload() + "1");
   }
 
   @Outgoing(NO_ACKNOWLEDGMENT)
@@ -135,7 +133,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     return CompletableFuture.completedFuture(input)
       .thenApply(m -> {
         processed(NO_ACKNOWLEDGMENT_CS, input);
-        return m;
+        return Message.of(m.getPayload() + "1");
       });
   }
 
@@ -154,7 +152,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
   public Message<String> processorWithPreAck(Message<String> input) {
     processed(PRE_ACKNOWLEDGMENT, input);
-    return input;
+    return Message.of(input.getPayload() + "1");
   }
 
   @Outgoing(PRE_ACKNOWLEDGMENT)
@@ -172,7 +170,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_CS)
   public CompletionStage<Message<String>> processorWithPreAckCS(Message<String> input) {
     processed(PRE_ACKNOWLEDGMENT_CS, input);
-    return CompletableFuture.completedFuture(input);
+    return CompletableFuture.completedFuture(Message.of(input.getPayload() + "1"));
   }
 
   @Outgoing(PRE_ACKNOWLEDGMENT_CS)
@@ -191,7 +189,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   @Outgoing("sink-" + POST_ACKNOWLEDGMENT)
   public Message<String> processorWithPostAck(Message<String> input) {
     processed(POST_ACKNOWLEDGMENT, input);
-    return input;
+    return Message.of(input.getPayload() + "1");
   }
 
   @Outgoing(POST_ACKNOWLEDGMENT)
@@ -209,7 +207,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   @Outgoing("sink-" + POST_ACKNOWLEDGMENT_CS)
   public CompletionStage<Message<String>> processorWithPostAckCS(Message<String> input) {
     processed(POST_ACKNOWLEDGMENT_CS, input);
-    return CompletableFuture.completedFuture(input);
+    return CompletableFuture.completedFuture(Message.of(input.getPayload() + "1"));
   }
 
   @Outgoing(POST_ACKNOWLEDGMENT_CS)
@@ -227,7 +225,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
   public Message<String> processorWithDefaultAck(Message<String> input) {
     processed(DEFAULT_ACKNOWLEDGMENT, input);
-    return input;
+    return Message.of(input.getPayload() + "1");
   }
 
   @Outgoing(DEFAULT_ACKNOWLEDGMENT)
@@ -244,7 +242,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT_CS)
   public CompletionStage<Message<String>> processorWithDefaultAckCS(Message<String> input) {
     processed(DEFAULT_ACKNOWLEDGMENT_CS, input);
-    return CompletableFuture.completedFuture(input);
+    return CompletableFuture.completedFuture(Message.of(input.getPayload() + "1"));
   }
 
   @Outgoing(DEFAULT_ACKNOWLEDGMENT_CS)
