@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
@@ -12,24 +13,24 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-import static io.smallrye.reactive.messaging.kafka.ConfigHelper.*;
-
 public class KafkaSource {
   private final Flowable<KafkaMessage> source;
 
   public <K, T> KafkaSource(Vertx vertx, Map<String, String> config) {
-    KafkaConsumer<K, T> consumer = KafkaConsumer.<K, T>create(vertx, config).subscribe(getOrDie(config, "topic"));
+    ConfigurationHelper conf = ConfigurationHelper.create(config);
+    KafkaConsumer<K, T> consumer = KafkaConsumer.<K, T>create(vertx, config).subscribe(conf.getOrDie("topic"));
     Flowable<KafkaConsumerRecord<K, T>> flowable = consumer.toFlowable();
 
-    if (getAsBoolean(config, "retry", true)) {
+
+    if (conf.getAsBoolean("retry", true)) {
       flowable = flowable
         .retryWhen(attempts ->
           attempts
-            .zipWith(Flowable.range(1, getAsInteger(config, "retry-attempts", 5)), (n, i) -> i)
+            .zipWith(Flowable.range(1, conf.getAsInteger( "retry-attempts", 5)), (n, i) -> i)
             .flatMap(i -> Flowable.timer(i, TimeUnit.SECONDS)));
     }
 
-    if (getAsBoolean(config, "multicast", false)) {
+    if (conf.getAsBoolean( "multicast", false)) {
       flowable = flowable.publish().autoConnect();
     }
 

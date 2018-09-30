@@ -28,7 +28,12 @@ public class ReactiveMessagingExtension implements Extension {
   private StreamRegistry registry;
   private MediatorFactory factory;
   private final List<AbstractMediator> mediators = new ArrayList<>();
+  private boolean initialized;
 
+
+  public boolean isInitialized() {
+    return initialized;
+  }
 
   <T> void processAnnotatedType(@Observes @WithAnnotations({Incoming.class, Outgoing.class}) ProcessAnnotatedType<T> pat) {
     LOGGER.info("scanning type: " + pat.getAnnotatedType().getJavaClass().getName());
@@ -88,7 +93,7 @@ public class ReactiveMessagingExtension implements Extension {
           });
 
           weaving(unmanagedSubscribers);
-
+          this.initialized = true;
         } catch (Exception e) {
           done.addDeploymentProblem(e);
         }

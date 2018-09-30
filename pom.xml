@@ -31,6 +31,7 @@
   <modules>
     <module>smallrye-reactive-messaging-provider</module>
     <module>smallrye-reactive-messaging-kafka</module>
+    <module>smallrye-reactive-messaging-mqtt</module>
   </modules>
 
   <dependencyManagement>

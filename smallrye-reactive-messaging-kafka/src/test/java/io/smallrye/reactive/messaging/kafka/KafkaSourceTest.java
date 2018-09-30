@@ -86,8 +86,6 @@ public class KafkaSourceTest extends KafkaTestBase {
     assertThat(messages2.stream().map(KafkaMessage::getPayload).collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
   }
 
-  // TODO Test retry
-
   @Test
   public void testRetry() throws IOException, InterruptedException {
     KafkaUsage usage = new KafkaUsage();
@@ -134,28 +132,10 @@ public class KafkaSourceTest extends KafkaTestBase {
 
   @Test
   public void testABeanConsumingTheKafkaMessages() {
-    Weld weld = new Weld();
-
-    weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(StreamRegistryImpl.class);
-    weld.addBeanClass(StreamFactoryImpl.class);
-    weld.addBeanClass(ConfiguredStreamFactory.class);
-    weld.addExtension(new ReactiveMessagingExtension());
-
-    weld.addBeanClass(KafkaMessagingProvider.class);
-    weld.addBeanClass(ConsumptionBean.class);
-
-    weld.disableDiscovery();
-
-    container = weld.initialize();
-
-    ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
-
+    ConsumptionBean bean = deploy();
     KafkaUsage usage = new KafkaUsage();
-
     List<Integer> list = bean.getResults();
     assertThat(list).isEmpty();
-
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
       usage.produceIntegers(10, null,
@@ -165,5 +145,18 @@ public class KafkaSourceTest extends KafkaTestBase {
     assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   }
 
+  private ConsumptionBean deploy() {
+    Weld weld = new Weld();
+    weld.addBeanClass(MediatorFactory.class);
+    weld.addBeanClass(StreamRegistryImpl.class);
+    weld.addBeanClass(StreamFactoryImpl.class);
+    weld.addBeanClass(ConfiguredStreamFactory.class);
+    weld.addExtension(new ReactiveMessagingExtension());
+    weld.addBeanClass(KafkaMessagingProvider.class);
+    weld.addBeanClass(ConsumptionBean.class);
+    weld.disableDiscovery();
+    container = weld.initialize();
+    return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+  }
 
 }

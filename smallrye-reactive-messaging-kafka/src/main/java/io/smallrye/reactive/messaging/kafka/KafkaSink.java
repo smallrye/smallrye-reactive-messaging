@@ -1,9 +1,10 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import io.reactivex.FlowableSubscriber;
+import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
+import io.vertx.kafka.client.producer.RecordMetadata;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -16,7 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static io.smallrye.reactive.messaging.kafka.ConfigHelper.*;
+import static io.smallrye.reactive.messaging.spi.ConfigurationHelper.*;
 
 public class KafkaSink {
   private final KafkaWriteStream stream;
@@ -28,21 +29,24 @@ public class KafkaSink {
 
   public KafkaSink(Vertx vertx, Map<String, String> config) {
     stream = KafkaWriteStream.create(vertx.getDelegate(), new HashMap<>(config));
-    partition = getAsInteger(config, "partition", 0);
-    timestamp = getAsLong(config, "timestamp");
-    key = get(config, "key");
-    topic = getOrDie(config, "topic");
+    ConfigurationHelper conf = ConfigurationHelper.create(config);
+    partition = conf.getAsInteger("partition", 0);
+    timestamp = conf.getAsLong( "timestamp");
+    key = conf.get("key");
+    topic = conf.getOrDie("topic");
 
     subscriber = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(message -> {
         ProducerRecord record
           = new ProducerRecord<>(topic, partition, timestamp.orElse(null), key, message.getPayload());
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture<RecordMetadata> future = new CompletableFuture<>();
 
-        Handler<AsyncResult> handler = ar -> {
+        Handler<AsyncResult<RecordMetadata>> handler = ar -> {
+          System.out.println("HERE: " + ar.succeeded());
           if (ar.succeeded()) {
-            future.complete(null);
+            future.complete(ar.result());
           } else {
+            ar.cause().printStackTrace();
             future.completeExceptionally(ar.cause());
           }
         };
