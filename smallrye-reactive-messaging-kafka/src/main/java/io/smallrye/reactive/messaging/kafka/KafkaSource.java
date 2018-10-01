@@ -35,7 +35,7 @@ public class KafkaSource {
     }
 
     this.source = flowable
-      .map(rec -> new KafkaMessage<>(consumer, rec));
+      .map(rec -> new ReceivedKafkaMessage<>(consumer, rec));
   }
 
   public static CompletionStage<Publisher<? extends Message>> create(Vertx vertx, Map<String, String> config) {

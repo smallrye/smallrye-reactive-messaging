@@ -186,6 +186,18 @@ public class KafkaUsage {
       });
   }
 
+  void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Consumer<ConsumerRecord<String, Integer>> consumer) {
+    AtomicLong readCounter = new AtomicLong();
+    this.consumeIntegers(
+      this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit),
+      completion,
+      Collections.singleton(topicName),
+      (record) -> {
+        consumer.accept(record);
+        readCounter.incrementAndGet();
+      });
+  }
+
   protected BooleanSupplier continueIfNotExpired(BooleanSupplier continuation,
                                                  long timeout, TimeUnit unit) {
     return new BooleanSupplier() {

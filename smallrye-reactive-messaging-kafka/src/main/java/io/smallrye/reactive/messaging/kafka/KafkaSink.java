@@ -37,8 +37,22 @@ public class KafkaSink {
 
     subscriber = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(message -> {
-        ProducerRecord record
-          = new ProducerRecord<>(topic, partition, timestamp.orElse(null), key, message.getPayload());
+        ProducerRecord record;
+        if (message instanceof  KafkaMessage) {
+          KafkaMessage km = ((KafkaMessage) message);
+          record = new ProducerRecord<>(
+            km.getTopic() == null ? this.topic : km.getTopic(),
+            km.getPartition() == null ? this.partition : km.getPartition(),
+            km.getTimestamp() == null ? this.timestamp.orElse(null) : km.getTimestamp(),
+            km.getKey() == null ? this.key  : km.getKey(),
+            km.getPayload(),
+            km.getHeaders().unwrap()
+          );
+        } else {
+          record
+            = new ProducerRecord<>(topic, partition, timestamp.orElse(null), key, message.getPayload());
+        }
+
         CompletableFuture<RecordMetadata> future = new CompletableFuture<>();
 
         Handler<AsyncResult<RecordMetadata>> handler = ar -> {

@@ -128,5 +128,42 @@ public class KafkaSinkTest extends KafkaTestBase {
     assertThat(expected).hasValue(10);
   }
 
+  @Test
+  public void testABeanProducingKafkaMessagesSentToKafka() throws InterruptedException {
+    Weld weld = new Weld();
+
+    weld.addBeanClass(MediatorFactory.class);
+    weld.addBeanClass(StreamRegistryImpl.class);
+    weld.addBeanClass(StreamFactoryImpl.class);
+    weld.addBeanClass(ConfiguredStreamFactory.class);
+    weld.addExtension(new ReactiveMessagingExtension());
+
+    weld.addBeanClass(KafkaMessagingProvider.class);
+    weld.addBeanClass(ProducingKafkaMessageBean.class);
+
+    weld.disableDiscovery();
+
+    container = weld.initialize();
+
+    KafkaUsage usage = new KafkaUsage();
+    CountDownLatch latch = new CountDownLatch(1);
+    AtomicInteger expected = new AtomicInteger(0);
+    List<String> keys = new ArrayList<>();
+    List<String> headers = new ArrayList<>();
+    usage.consumeIntegers("output-2", 10, 10, TimeUnit.SECONDS,
+      latch::countDown,
+      record -> {
+        keys.add(record.key());
+        String count = new String(record.headers().lastHeader("count").value());
+        headers.add(count);
+        expected.getAndIncrement();
+      });
+
+    assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    assertThat(expected).hasValue(10);
+    assertThat(keys).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+    assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+  }
+
 
 }
