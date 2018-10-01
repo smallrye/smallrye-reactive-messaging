@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.core.Is.is;
 
 public class MqttSinkTest extends MqttTestBase {
 
@@ -37,10 +39,10 @@ public class MqttSinkTest extends MqttTestBase {
   public void testSinkUsingInteger() throws InterruptedException {
     String topic = UUID.randomUUID().toString();
     CountDownLatch latch = new CountDownLatch(1);
-    AtomicInteger expected = new AtomicInteger(1);
+    AtomicInteger expected = new AtomicInteger(0);
     usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
       latch::countDown,
-      v -> v == expected.getAndIncrement());
+      v -> expected.getAndIncrement());
 
 
     Map<String, String> config = new HashMap<>();
@@ -55,16 +57,18 @@ public class MqttSinkTest extends MqttTestBase {
       .subscribe(subscriber);
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    await().untilAtomic(expected, is(10));
+    assertThat(expected).hasValue(10);
   }
 
   @Test
   public void testSinkUsingString() throws InterruptedException {
     String topic = UUID.randomUUID().toString();
     CountDownLatch latch = new CountDownLatch(1);
-    AtomicInteger expected = new AtomicInteger(1);
-    usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+    AtomicInteger expected = new AtomicInteger(0);
+    usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
       latch::countDown,
-      v -> v == expected.getAndIncrement());
+      v -> expected.getAndIncrement());
 
     Map<String, String> config = new HashMap<>();
     config.put("topic", topic);
@@ -79,6 +83,8 @@ public class MqttSinkTest extends MqttTestBase {
       .subscribe(subscriber);
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    await().untilAtomic(expected, is(10));
+    assertThat(expected).hasValue(10);
   }
 
   @Test
@@ -101,10 +107,7 @@ public class MqttSinkTest extends MqttTestBase {
     CountDownLatch latch = new CountDownLatch(10);
     usage.consumeIntegers("sink", 10, 10, TimeUnit.SECONDS,
       null,
-      v -> {
-        latch.countDown();
-        return true;
-      });
+      v -> latch.countDown());
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
   }

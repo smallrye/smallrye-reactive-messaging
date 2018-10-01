@@ -42,11 +42,9 @@ public class KafkaSink {
         CompletableFuture<RecordMetadata> future = new CompletableFuture<>();
 
         Handler<AsyncResult<RecordMetadata>> handler = ar -> {
-          System.out.println("HERE: " + ar.succeeded());
           if (ar.succeeded()) {
             future.complete(ar.result());
           } else {
-            ar.cause().printStackTrace();
             future.completeExceptionally(ar.cause());
           }
         };

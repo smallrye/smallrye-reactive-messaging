@@ -145,6 +145,7 @@ public class ReactiveMessagingExtension implements Extension {
       for (AbstractMediator mediator : list) {
         Subscriber subscriber = registry.getSubscriber(name)
           .orElseThrow(() -> new IllegalStateException("Did the subscriber just left? " + name));
+        LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
         mediator.getComputedPublisher().subscribe(subscriber);
       }
     }

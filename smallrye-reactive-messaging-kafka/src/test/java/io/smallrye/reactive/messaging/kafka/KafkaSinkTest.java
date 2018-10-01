@@ -44,10 +44,10 @@ public class KafkaSinkTest extends KafkaTestBase {
     KafkaUsage usage = new KafkaUsage();
     String topic = UUID.randomUUID().toString();
     CountDownLatch latch = new CountDownLatch(1);
-    AtomicInteger expected = new AtomicInteger(2);
+    AtomicInteger expected = new AtomicInteger(0);
     usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
       latch::countDown,
-      (k, v) -> v == expected.getAndIncrement());
+      (k, v) -> expected.getAndIncrement());
 
 
     Map<String, String> config = newCommonConfig();
@@ -61,6 +61,7 @@ public class KafkaSinkTest extends KafkaTestBase {
       .subscribe(sink.getSubscriber());
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    assertThat(expected).hasValue(10);
   }
 
   @Test
@@ -68,16 +69,16 @@ public class KafkaSinkTest extends KafkaTestBase {
     KafkaUsage usage = new KafkaUsage();
     String topic = UUID.randomUUID().toString();
     CountDownLatch latch = new CountDownLatch(1);
-    AtomicInteger expected = new AtomicInteger(2);
-    usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+    AtomicInteger expected = new AtomicInteger(0);
+    usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
       latch::countDown,
-      (k, v) -> v == expected.getAndIncrement());
+      (k, v) -> expected.getAndIncrement());
 
 
     Map<String, String> config = newCommonConfig();
     config.put("topic", topic);
-    config.put("value.serializer", IntegerSerializer.class.getName());
-    config.put("value.deserializer", IntegerDeserializer.class.getName());
+    config.put("value.serializer", StringSerializer.class.getName());
+    config.put("value.deserializer", StringDeserializer.class.getName());
     KafkaSink sink = new KafkaSink(vertx, config);
 
     Flowable.range(0, 10)
@@ -86,17 +87,15 @@ public class KafkaSinkTest extends KafkaTestBase {
       .subscribe(sink.getSubscriber());
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    assertThat(expected).hasValue(10);
   }
 
   private Map<String, String> newCommonConfig() {
-    String randomId = UUID.randomUUID().toString();
     Map<String, String> config = new HashMap<>();
     config.put("bootstrap.servers", "localhost:9092");
-    config.put("group.id", randomId);
     config.put("key.deserializer", StringDeserializer.class.getName());
     config.put("key.serializer", StringSerializer.class.getName());
-    config.put("enable.auto.commit", "false");
-    config.put("auto.offset.reset", "earliest");
+    config.put("acks", "1");
     return config;
   }
 
@@ -120,13 +119,13 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     KafkaUsage usage = new KafkaUsage();
     CountDownLatch latch = new CountDownLatch(1);
-    AtomicInteger expected = new AtomicInteger(1);
-    usage.consumeIntegers("sink", 10, 10, TimeUnit.SECONDS,
+    AtomicInteger expected = new AtomicInteger(0);
+    usage.consumeIntegers("output", 10, 10, TimeUnit.SECONDS,
       latch::countDown,
-      (k, v) -> v == expected.getAndIncrement());
+      (k, v) -> expected.getAndIncrement());
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-    System.out.println("Expected : " + expected.get());
+    assertThat(expected).hasValue(10);
   }
 
 

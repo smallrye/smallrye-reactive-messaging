@@ -23,9 +23,9 @@ import java.util.Map;
 public class ProducingBean {
 
   @Incoming("data")
-  @Outgoing("sink")
+  @Outgoing("output")
   @Acknowledgment(Acknowledgment.Mode.POST_PROCESSING)
-  public Message<Integer> process(KafkaMessage<String, Integer> input) {
+  public Message<Integer> process(Message<Integer> input) {
     return Message.of(input.getPayload() + 1);
   }
 
@@ -35,19 +35,17 @@ public class ProducingBean {
   }
 
   @Produces
-  public Config myKafkaSourceConfig() {
-    String prefix = "smallrye.messaging.sink.sink.";
+  public Config myKafkaSinkConfig() {
+    String prefix = "smallrye.messaging.sink.output.";
     Map<String, String> config = new HashMap<>();
     config.put(prefix + "type", Kafka.class.getName());
     config.put(prefix + "bootstrap.servers", "localhost:9092");
-    config.put(prefix + "group.id", "my-group");
     config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
     config.put(prefix + "key.serializer", StringSerializer.class.getName());
     config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
     config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-    config.put(prefix + "enable.auto.commit", "false");
-    config.put(prefix + "auto.offset.reset", "earliest");
-    config.put(prefix + "topic", "sink");
+    config.put(prefix + "acks", "1");
+    config.put(prefix + "topic", "output");
 
     return new MyKafkaConfig(config);
   }

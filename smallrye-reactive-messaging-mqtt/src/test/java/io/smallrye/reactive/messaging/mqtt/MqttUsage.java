@@ -10,7 +10,9 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.*;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class MqttUsage {
 
@@ -116,21 +118,19 @@ public class MqttUsage {
     this.consume(topic, continuation, completion, bytes -> consumerFunction.accept(Integer.valueOf(new String(bytes))));
   }
 
-  public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Predicate<String> consumer) {
+  public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Consumer<String> consumer) {
     AtomicLong readCounter = new AtomicLong();
     this.consumeStrings(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, s -> {
-      if (consumer.test(s)) {
-        readCounter.incrementAndGet();
-      }
+      consumer.accept(s);
+      readCounter.incrementAndGet();
     });
   }
 
-  public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Predicate<Integer> consumer) {
+  public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Consumer<Integer> consumer) {
     AtomicLong readCounter = new AtomicLong();
     this.consumeIntegers(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, s -> {
-      if (consumer.test(s)) {
-        readCounter.incrementAndGet();
-      }
+      consumer.accept(s);
+      readCounter.incrementAndGet();
     });
   }
 

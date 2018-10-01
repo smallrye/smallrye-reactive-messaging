@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiPredicate;
+import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -25,10 +25,6 @@ public class KafkaUsage {
 
   private static Logger LOGGER = LogManager.getLogger(KafkaUsage.class);
   private String brokers;
-
-  public KafkaUsage(String brokerList) {
-    this.brokers = brokerList;
-  }
 
   public KafkaUsage() {
     this.brokers = "localhost:9092";
@@ -91,7 +87,9 @@ public class KafkaUsage {
           LOGGER.info("Producer {}: sent message {}", producerName, record);
         }
       } finally {
-        if (completionCallback != null) completionCallback.run();
+        if (completionCallback != null) {
+          completionCallback.run();
+        }
         LOGGER.info("Stopping producer {}", producerName);
       }
     });
@@ -99,26 +97,11 @@ public class KafkaUsage {
     t.start();
   }
 
-  public void produceStrings(int messageCount, Runnable completionCallback, Supplier<ProducerRecord<String, String>> messageSupplier) {
-    Serializer<String> keySer = new StringSerializer();
-    String randomId = UUID.randomUUID().toString();
-    this.produce(randomId, messageCount, keySer, keySer, completionCallback, messageSupplier);
-  }
-
   public void produceIntegers(int messageCount, Runnable completionCallback, Supplier<ProducerRecord<String, Integer>> messageSupplier) {
     Serializer<String> keySer = new StringSerializer();
     Serializer<Integer> valSer = new IntegerSerializer();
     String randomId = UUID.randomUUID().toString();
     this.produce(randomId, messageCount, keySer, valSer, completionCallback, messageSupplier);
-  }
-
-  public void produceStrings(String topic, int messageCount, Runnable completionCallback, Supplier<String> valueSupplier) {
-    AtomicLong counter = new AtomicLong(0L);
-    this.produceStrings(messageCount, completionCallback, () -> {
-      long i = counter.incrementAndGet();
-      String keyAndValue = Long.toString(i);
-      return new ProducerRecord(topic, keyAndValue, valueSupplier.get());
-    });
   }
 
   /**
@@ -157,7 +140,9 @@ public class KafkaUsage {
           });
         }
       } finally {
-        if (completion != null) completion.run();
+        if (completion != null) {
+          completion.run();
+        }
         LOGGER.debug("Stopping consumer {}", clientId);
       }
     });
@@ -165,55 +150,40 @@ public class KafkaUsage {
     t.start();
   }
 
-  public void consumeStrings(BooleanSupplier continuation, Runnable completion, Collection<String> topics, Consumer<ConsumerRecord<String, String>> consumerFunction) {
+  private void consumeStrings(BooleanSupplier continuation, Runnable completion, Collection<String> topics, Consumer<ConsumerRecord<String, String>> consumerFunction) {
     Deserializer<String> keyDes = new StringDeserializer();
     String randomId = UUID.randomUUID().toString();
     OffsetCommitCallback offsetCommitCallback = null;
-    this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, continuation, (OffsetCommitCallback) offsetCommitCallback, completion, topics, consumerFunction);
+    this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, continuation, offsetCommitCallback, completion, topics, consumerFunction);
   }
 
-  public void consumeIntegers(BooleanSupplier continuation, Runnable completion, Collection<String> topics, Consumer<ConsumerRecord<String, Integer>> consumerFunction) {
+  private void consumeIntegers(BooleanSupplier continuation, Runnable completion, Collection<String> topics, Consumer<ConsumerRecord<String, Integer>> consumerFunction) {
     Deserializer<String> keyDes = new StringDeserializer();
     Deserializer<Integer> valDes = new IntegerDeserializer();
     String randomId = UUID.randomUUID().toString();
     OffsetCommitCallback offsetCommitCallback = null;
-    this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, (OffsetCommitCallback) offsetCommitCallback, completion, topics, consumerFunction);
+    this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, offsetCommitCallback, completion, topics, consumerFunction);
   }
 
-  public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, BiPredicate<String, String> consumer) {
+  public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, BiConsumer<String, String> consumer) {
     AtomicLong readCounter = new AtomicLong();
-    this.consumeStrings(this.continueIfNotExpired(() -> {
-      return readCounter.get() < (long) count;
-    }, timeout, unit), completion, Collections.singleton(topicName), (record) -> {
-      if (consumer.test(record.key(), record.value())) {
+    this.consumeStrings(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, Collections.singleton(topicName),
+      (record) -> {
+        consumer.accept(record.key(), record.value());
         readCounter.incrementAndGet();
-      }
-
-    });
+      });
   }
 
-  public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, BiPredicate<String, Integer> consumer) {
+  void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, BiConsumer<String, Integer> consumer) {
     AtomicLong readCounter = new AtomicLong();
     this.consumeIntegers(
       this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit),
       completion,
       Collections.singleton(topicName),
       (record) -> {
-        if (consumer.test(record.key(), record.value())) {
-          readCounter.incrementAndGet();
-        }
-
+        consumer.accept(record.key(), record.value());
+        readCounter.incrementAndGet();
       });
-  }
-
-  public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Runnable completion) {
-    this.consumeStrings(topicName, count, timeout, unit, completion, (key, value) -> {
-      return true;
-    });
-  }
-
-  public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion) {
-    this.consumeIntegers(topicName, count, timeout, unit, completion, (key, value) -> true);
   }
 
   protected BooleanSupplier continueIfNotExpired(BooleanSupplier continuation,
