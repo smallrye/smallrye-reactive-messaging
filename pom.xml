@@ -181,4 +181,24 @@
       <comments>A business-friendly OSS license</comments>
     </license>
   </licenses>
+
+  <repositories>
+    <repository>
+      <id>staging</id>
+      <url>https://oss.sonatype.org/content/repositories/orgeclipsemicroprofile-1119/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+    <repository>
+      <id>microprofile-snapshots</id>
+      <url>https://repo.eclipse.org/content/repositories/microprofile-snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 </project>
