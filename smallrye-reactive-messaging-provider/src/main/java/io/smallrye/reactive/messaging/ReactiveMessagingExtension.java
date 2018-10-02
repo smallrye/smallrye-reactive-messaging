@@ -19,12 +19,11 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import static io.smallrye.reactive.messaging.impl.VertxBeanRegistration.registerVertxBeanIfNeeded;
+
 public class ReactiveMessagingExtension implements Extension {
 
   private static final Logger LOGGER = LogManager.getLogger(ReactiveMessagingExtension.class);
-
-  private Vertx vertx;
-  private boolean hasVertxBeenInitializedHere = false;
 
   private final Collected collected = new Collected();
   private StreamRegistry registry;
@@ -38,7 +37,7 @@ public class ReactiveMessagingExtension implements Extension {
   }
 
   <T> void processAnnotatedType(@Observes @WithAnnotations({Incoming.class, Outgoing.class}) ProcessAnnotatedType<T> pat) {
-    LOGGER.info("scanning type: " + pat.getAnnotatedType().getJavaClass().getName());
+    LOGGER.info("Scanning Type: " + pat.getAnnotatedType().getJavaClass().getName());
     Set<AnnotatedMethod<? super T>> methods = pat.getAnnotatedType().getMethods();
     methods.stream()
       .filter(method -> method.isAnnotationPresent(Incoming.class))
@@ -52,15 +51,23 @@ public class ReactiveMessagingExtension implements Extension {
   }
 
   void shutdown(@Observes BeforeShutdown bs) {
-    if (hasVertxBeenInitializedHere) {
-      LOGGER.info("Closing vert.x");
-      vertx.close();
-    }
+    // TODO cleanup all subscriptions.
+  }
+
+  /**
+   * In this callback, regular beans have been found, we can declare new beans.
+   * @param discovery the discovery event
+   * @param beanManager the bean manager
+   */
+  void afterBeanDiscovery(@Observes AfterBeanDiscovery discovery, BeanManager beanManager) {
+    registerVertxBeanIfNeeded(discovery, beanManager);
+
+
   }
 
   void afterBeanDiscovery(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
     LOGGER.info("Deployment done... start processing");
-    getOrCreateVertxInstance(beanManager);
+
     this.registry = beanManager.createInstance().select(StreamRegistry.class).stream().findFirst()
       .orElseThrow(() -> new IllegalStateException("Unable to find the " + StreamRegistry.class.getName() + " component"));
 
@@ -210,20 +217,6 @@ public class ReactiveMessagingExtension implements Extension {
     LOGGER.info("Mediator created for {}", configuration.methodAsString());
     mediators.add(mediator);
   }
-
-  private void getOrCreateVertxInstance(BeanManager beanManager) {
-    // TODO It would be great to externalize the management of the Vert.x instance and allow the instance to be injected.
-    this.vertx = beanManager.createInstance().select(Vertx.class).stream().findFirst().orElseGet(() -> {
-      hasVertxBeenInitializedHere = true;
-      return Vertx.vertx();
-    });
-    LOGGER.debug("Vert.x instance: " + vertx);
-  }
-
-  public Vertx vertx() {
-    return vertx;
-  }
-
 
   private class Collected {
 

@@ -37,7 +37,7 @@ public class MyDummyFactories implements PublisherFactory, SubscriberFactory {
   }
 
   @Override
-  public CompletionStage<Subscriber<? extends Message>> createSubscriber(Vertx vertx, Map<String, String> config) {
+  public CompletionStage<Subscriber<? extends Message>> createSubscriber(Map<String, String> config) {
     return CompletableFuture.completedFuture(ReactiveStreams.<Message>builder()
       .peek(x -> list.add(x.getPayload().toString()))
       .onComplete(() -> completed = true)
@@ -47,7 +47,7 @@ public class MyDummyFactories implements PublisherFactory, SubscriberFactory {
   }
 
   @Override
-  public CompletionStage<Publisher<? extends Message>> createPublisher(Vertx vertx, Map<String, String> config) {
+  public CompletionStage<Publisher<? extends Message>> createPublisher(Map<String, String> config) {
     int increment = Integer.parseInt(config.getOrDefault("increment", "1"));
     return CompletableFuture.completedFuture(Flowable.just(1, 2, 3).map(i -> i + increment).map(Message::of));
   }

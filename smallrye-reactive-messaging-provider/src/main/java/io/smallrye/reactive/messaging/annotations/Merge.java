@@ -5,6 +5,8 @@ import java.lang.annotation.RetentionPolicy;
 
 /**
  * Temporary annotation - must be copied to spec.
+ *
+ * Experimental!
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Merge {

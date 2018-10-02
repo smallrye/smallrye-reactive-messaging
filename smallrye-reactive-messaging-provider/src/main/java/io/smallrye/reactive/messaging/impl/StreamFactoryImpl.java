@@ -1,11 +1,9 @@
 package io.smallrye.reactive.messaging.impl;
 
-import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.StreamFactory;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.spi.PublisherFactory;
 import io.smallrye.reactive.messaging.spi.SubscriberFactory;
-import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -25,7 +23,6 @@ public class StreamFactoryImpl implements StreamFactory {
 
   private static final String NAME_MUST_BE_SET = "'name' must be set";
 
-  private final Vertx vertx;
   private final StreamRegistry registry;
 
   private final Map<String, PublisherFactory> publisherFactories = new HashMap<>();
@@ -35,9 +32,7 @@ public class StreamFactoryImpl implements StreamFactory {
   @Inject
   public StreamFactoryImpl(@Any Instance<PublisherFactory> pubs,
                            @Any Instance<SubscriberFactory> subs,
-                           StreamRegistry registry,
-                           ReactiveMessagingExtension extension) {
-    this.vertx = extension.vertx();
+                           StreamRegistry registry) {
     this.registry = registry;
     pubs.stream().forEach(pf -> publisherFactories.put(pf.type().getName(), pf));
     subs.stream().forEach(pf -> subscriberFactories.put(pf.type().getName(), pf));
@@ -69,7 +64,7 @@ public class StreamFactoryImpl implements StreamFactory {
       throw new IllegalArgumentException("Unknown type: " + type + ", known types are: " + publisherFactories.keySet());
     }
     // TODO Can we have null configuration ?
-    return factory.createPublisher(vertx, config);
+    return factory.createPublisher(config);
   }
 
   @Override
@@ -80,6 +75,6 @@ public class StreamFactoryImpl implements StreamFactory {
       throw new IllegalArgumentException("Unknown type: " + type + ", known types are: " + subscriberFactories.keySet());
     }
     // TODO Can we have null configuration ?
-    return factory.createSubscriber(vertx, config);
+    return factory.createSubscriber(config);
   }
 }

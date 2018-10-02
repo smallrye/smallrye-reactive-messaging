@@ -17,6 +17,6 @@ public interface SubscriberFactory {
   Class<? extends MessagingProvider> type();
 
   //TODO Would be nice to pass a config here.
-  CompletionStage<Subscriber<? extends Message>> createSubscriber(Vertx vertx, Map<String, String> config);
+  CompletionStage<Subscriber<? extends Message>> createSubscriber(Map<String, String> config);
 
 }

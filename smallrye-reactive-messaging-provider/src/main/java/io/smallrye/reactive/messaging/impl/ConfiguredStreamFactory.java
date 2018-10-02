@@ -36,7 +36,6 @@ public class ConfiguredStreamFactory implements StreamRegistar {
   private final List<PublisherFactory> sourceFactories;
   private final List<SubscriberFactory> sinkFactories;
   private final Config config;
-  private final ReactiveMessagingExtension extension;
   private final StreamRegistry registry;
 
   private final Map<String, Publisher<? extends Message>> sources = new HashMap<>();
@@ -44,9 +43,8 @@ public class ConfiguredStreamFactory implements StreamRegistar {
 
   @Inject
   public ConfiguredStreamFactory(@Any Instance<PublisherFactory> sourceFactories, @Any Instance<SubscriberFactory> sinkFactories,
-                                 @Any Instance<Config> config, @Any Instance<StreamRegistry> registry, ReactiveMessagingExtension extension) {
+                                 @Any Instance<Config> config, @Any Instance<StreamRegistry> registry) {
 
-    this.extension = extension;
     this.registry = registry.get();
     if (config.isUnsatisfied()) {
       this.sourceFactories = Collections.emptyList();
@@ -122,7 +120,7 @@ public class ConfiguredStreamFactory implements StreamRegistar {
         + sourceFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
     );
 
-    return mySourceFactory.createPublisher(extension.vertx(), conf).thenAccept(p -> sources.put(name, p));
+    return mySourceFactory.createPublisher(conf).thenAccept(p -> sources.put(name, p));
   }
 
 
@@ -137,6 +135,6 @@ public class ConfiguredStreamFactory implements StreamRegistar {
           + sinkFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
         );
 
-      return mySinkFactory.createSubscriber(extension.vertx(), conf).thenAccept(p -> sinks.put(name, p));
+      return mySinkFactory.createSubscriber(conf).thenAccept(p -> sinks.put(name, p));
   }
 }
