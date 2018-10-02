@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import io.smallrye.reactive.messaging.annotations.Acknowledgment;
+import io.smallrye.reactive.messaging.annotations.Merge;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -46,6 +47,11 @@ public class MediatorConfiguration {
    * Use MicroProfile Stream Stream Ops Type.
    */
   private boolean useBuilderTypes = false;
+
+  /**
+   * The merge policy.
+   */
+  private Merge.Mode mergePolicy;
 
   public enum Production {
     STREAM_OF_MESSAGE,
@@ -127,6 +133,15 @@ public class MediatorConfiguration {
       } else {
         acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
       }
+    }
+
+    Merge merge = method.getAnnotation(Merge.class);
+    if (incoming != null) {
+      if (merge != null) {
+         this.mergePolicy = merge.value();
+      }
+    } else if (merge != null) {
+      throw getOutgoingError("The @Merge annotation is only supported for method annotated with @Incoming: " + methodAsString());
     }
 
   }
@@ -494,5 +509,9 @@ public class MediatorConfiguration {
 
   public Acknowledgment.Mode getAcknowledgment() {
     return acknowledgment;
+  }
+
+  public Merge.Mode getMerge() {
+    return mergePolicy;
   }
 }

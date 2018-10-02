@@ -5,7 +5,7 @@ import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
-import io.smallrye.reactive.messaging.impl.StreamRegistryImpl;
+import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -77,7 +77,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
   private ConsumptionBean deploy() {
     Weld weld = new Weld();
     weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(StreamRegistryImpl.class);
+    weld.addBeanClass(InternalStreamRegistry.class);
     weld.addBeanClass(StreamFactoryImpl.class);
     weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addExtension(new ReactiveMessagingExtension());

@@ -8,6 +8,7 @@ import java.util.Optional;
 import javax.enterprise.inject.se.SeContainer;
 
 import io.reactivex.Flowable;
+import io.reactivex.Single;
 import io.smallrye.reactive.messaging.beans.*;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
@@ -105,9 +106,9 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningPayloads.class);
     initialize();
 
-    Optional<Publisher<? extends Message>> producer = registry(container).getPublisher("infinite-producer");
+    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get()).map(Message::getPayload)
+    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
       .limit(3).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3);
   }
@@ -117,9 +118,9 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningMessages.class);
     initialize();
 
-    Optional<Publisher<? extends Message>> producer = registry(container).getPublisher("infinite-producer");
+    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get()).map(Message::getPayload)
+    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
       .limit(5).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4, 5);
   }
@@ -129,9 +130,9 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningCompletionStageOfMessage.class);
     initialize();
 
-    Optional<Publisher<? extends Message>> producer = registry(container).getPublisher("infinite-producer");
+    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get()).map(Message::getPayload)
+    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
       .limit(10).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   }
@@ -141,24 +142,19 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningCompletionStageOfPayload.class);
     initialize();
 
-    Optional<Publisher<? extends Message>> producer = registry(container).getPublisher("infinite-producer");
+    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get()).map(Message::getPayload)
+    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
       .limit(4).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4);
   }
 
   private void assertThatProducerWasPublished(SeContainer container) {
     assertThat(registry(container).getPublisherNames()).contains("producer");
-    Optional<Publisher<? extends Message>> producer = registry(container).getPublisher("producer");
-    assertThat(producer).isNotEmpty()
-      .flatMap(publisher -> Flowable.fromPublisher(publisher).map(Message::getPayload).toList().to(s -> Optional.of(s.blockingGet())))
-      .contains(Arrays.asList("a", "b", "c"));
+    List<Publisher<? extends Message>> producer = registry(container).getPublishers("producer");
+    assertThat(producer).isNotEmpty();
+    Single<List<Object>> list = Flowable.fromPublisher(producer.get(0)).map(Message::getPayload).toList();
+    assertThat(list.blockingGet()).containsExactly("a", "b", "c");
   }
-
-
-
-
-
 
 }

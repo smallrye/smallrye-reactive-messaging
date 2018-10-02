@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
-import io.smallrye.reactive.messaging.impl.StreamRegistryImpl;
+import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.providers.MyDummyFactories;
 import org.junit.After;
 import org.junit.Before;
@@ -27,7 +27,7 @@ public class WeldTestBaseWithoutTails {
     initializer = SeContainerInitializer.newInstance();
 
     initializer.addBeanClasses(MediatorFactory.class,
-                               StreamRegistryImpl.class,
+                               InternalStreamRegistry.class,
                                StreamFactoryImpl.class,
                                ConfiguredStreamFactory.class,
                                // Messaging provider

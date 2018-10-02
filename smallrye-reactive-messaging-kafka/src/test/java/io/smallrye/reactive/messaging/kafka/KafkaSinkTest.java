@@ -5,8 +5,7 @@ import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
-import io.smallrye.reactive.messaging.impl.StreamRegistryImpl;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -17,12 +16,10 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -105,7 +102,7 @@ public class KafkaSinkTest extends KafkaTestBase {
     Weld weld = new Weld();
 
     weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(StreamRegistryImpl.class);
+    weld.addBeanClass(InternalStreamRegistry.class);
     weld.addBeanClass(StreamFactoryImpl.class);
     weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addExtension(new ReactiveMessagingExtension());
@@ -133,7 +130,7 @@ public class KafkaSinkTest extends KafkaTestBase {
     Weld weld = new Weld();
 
     weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(StreamRegistryImpl.class);
+    weld.addBeanClass(InternalStreamRegistry.class);
     weld.addBeanClass(StreamFactoryImpl.class);
     weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addExtension(new ReactiveMessagingExtension());

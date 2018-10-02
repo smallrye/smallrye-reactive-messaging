@@ -48,16 +48,6 @@ public class MessagingManager implements StreamRegistar {
     return topics.keySet();
   }
 
-  public void deleteTopics(Collection<String> toDelete) {
-    toDelete.forEach(s -> {
-      Source source = topics.remove(s);
-      if (source != null) {
-        registry.unregisterPublisher(s);
-        registry.unregisterSubscriber(s);
-      }
-    });
-  }
-
   public void createTopics(List<String> newTopics) {
     newTopics.forEach(name -> {
       Source source = new Source(name);

@@ -15,8 +15,8 @@ public class ConfiguredSourceAndSinkTest extends WeldTestBase {
 
     initialize();
 
-    assertThat(registry(container).getPublisher("dummy-source")).isNotEmpty();
-    assertThat(registry(container).getPublisher("dummy-sink")).isNotEmpty();
+    assertThat(registry(container).getPublishers("dummy-source")).isNotEmpty();
+    assertThat(registry(container).getPublishers("dummy-sink")).isNotEmpty();
 
     MyDummyFactories bean = container.select(MyDummyFactories.class).get();
     assertThat(bean.list()).containsExactly("8", "10", "12");

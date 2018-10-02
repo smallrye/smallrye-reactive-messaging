@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging;
 
+import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.annotations.Merge;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,7 +113,8 @@ public class ReactiveMessagingExtension implements Extension {
 
       unsatisfied.forEach(mediator -> {
         LOGGER.info("Attempt to satisfied {}", mediator.getMethodAsString());
-        Optional<Publisher<? extends Message>> maybeSource = lookForSource(mediator);
+        List<Publisher<? extends Message>> sources = lookForSource(mediator);
+        Optional<Publisher<? extends Message>> maybeSource = getAggregatedSource(sources, mediator);
         maybeSource.ifPresent(publisher -> {
           mediator.connectToUpstream(publisher);
           LOGGER.info("Connecting {} to {} ({})", mediator.getMethodAsString(), mediator.configuration.getIncoming(), publisher);
@@ -143,11 +146,46 @@ public class ReactiveMessagingExtension implements Extension {
     for (String name : unmanagedSubscribers) {
       List<AbstractMediator> list = lookupForMediatorsWithMatchingDownstream(name);
       for (AbstractMediator mediator : list) {
-        Subscriber subscriber = registry.getSubscriber(name)
-          .orElseThrow(() -> new IllegalStateException("Did the subscriber just left? " + name));
-        LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
-        mediator.getComputedPublisher().subscribe(subscriber);
+        List<Subscriber<? extends Message>> subscribers = registry.getSubscribers(name);
+
+        if (subscribers.size() == 1) {
+          LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
+          mediator.getComputedPublisher().subscribe((Subscriber) subscribers.get(0));
+        } else if (subscribers.size() > 2) {
+          LOGGER.warn("{} subscribers consuming the stream {}", subscribers.size(), name);
+          subscribers.forEach(s -> {
+            LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
+            mediator.getComputedPublisher().subscribe((Subscriber) s);
+          });
+        }
       }
+    }
+  }
+
+  private Optional<Publisher<? extends Message>> getAggregatedSource(List<Publisher<? extends Message>> sources, AbstractMediator mediator) {
+    if (sources.isEmpty()) {
+      return Optional.empty();
+    }
+
+    if (sources.size() == 1) {
+      return Optional.of(sources.get(0));
+    }
+
+    Merge.Mode merge = mediator.getConfiguration().getMerge();
+    if (merge == null) {
+      LOGGER.warn("Applying merge policy for {}, {} sources found",mediator.getMethodAsString(), sources.size());
+      merge = Merge.Mode.MERGE;
+    }
+
+    switch (merge) {
+      case MERGE:
+        return Optional.of(Flowable.merge(sources));
+      case CONCAT:
+        return Optional.of(Flowable.concat(sources));
+      case ONE:
+        LOGGER.warn("Using the `ONE` merge strategy with {} sources for {}", sources.size(), mediator.getMethodAsString());
+        return Optional.of(sources.get(0));
+        default: throw new IllegalStateException("Unknown merge policy: " + merge);
     }
   }
 
@@ -158,9 +196,9 @@ public class ReactiveMessagingExtension implements Extension {
       .collect(Collectors.toList());
   }
 
-  private Optional<Publisher<? extends Message>> lookForSource(AbstractMediator mediator) {
+  private List<Publisher<? extends Message>> lookForSource(AbstractMediator mediator) {
     String incoming = mediator.configuration.getIncoming();
-    return registry.getPublisher(incoming);
+    return registry.getPublishers(incoming);
   }
 
   private List<AbstractMediator> getAllNonSatisfiedMediators() {

@@ -4,6 +4,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -14,13 +15,9 @@ public interface StreamRegistry {
 
   Subscriber<? extends Message> register(String name, Subscriber<? extends Message> subscriber);
 
-  Optional<Publisher<? extends Message>> getPublisher(String name);
+  List<Publisher<? extends Message>> getPublishers(String name);
 
-  Optional<Subscriber<? extends Message>> getSubscriber(String name);
-
-  Publisher<? extends Message> unregisterPublisher(String name);
-
-  Subscriber<? extends Message> unregisterSubscriber(String name);
+  List<Subscriber<? extends Message>> getSubscribers(String name);
 
   Set<String> getPublisherNames();
 

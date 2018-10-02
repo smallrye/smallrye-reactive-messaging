@@ -135,12 +135,12 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
   @SuppressWarnings("unchecked")
   private void assertThatSubscriberWasPublished(SeContainer container) {
     assertThat(registry(container).getSubscriberNames()).contains("subscriber");
-    Optional<Subscriber<? extends Message>> subscriber = registry(container).getSubscriber("subscriber");
+    List<Subscriber<? extends Message>> subscriber = registry(container).getSubscribers("subscriber");
     assertThat(subscriber).isNotEmpty();
     List<String> list = new ArrayList<>();
     Flowable.just("a", "b", "c").map(Message::of)
       .doOnNext(m -> list.add(m.getPayload()))
-      .subscribe(((Subscriber<Message>) subscriber.orElseThrow(() -> new AssertionError("Subscriber should be present"))));
+      .subscribe((Subscriber) subscriber.get(0));
     assertThat(list).containsExactly("a", "b", "c");
   }
 
