@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.providers;
 
-import javax.enterprise.inject.se.SeContainer;
-
 import io.smallrye.reactive.messaging.WeldTestBase;
 import org.junit.Test;
 
@@ -16,7 +14,7 @@ public class ConfiguredSourceAndSinkTest extends WeldTestBase {
     initialize();
 
     assertThat(registry(container).getPublishers("dummy-source")).isNotEmpty();
-    assertThat(registry(container).getPublishers("dummy-sink")).isNotEmpty();
+    assertThat(registry(container).getSubscribers("dummy-sink")).isNotEmpty();
 
     MyDummyFactories bean = container.select(MyDummyFactories.class).get();
     assertThat(bean.list()).containsExactly("8", "10", "12");

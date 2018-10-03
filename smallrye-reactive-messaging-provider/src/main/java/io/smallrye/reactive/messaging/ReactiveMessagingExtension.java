@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -11,6 +10,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
+import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
@@ -30,6 +30,7 @@ public class ReactiveMessagingExtension implements Extension {
   private MediatorFactory factory;
   private final List<AbstractMediator> mediators = new ArrayList<>();
   private boolean initialized;
+  private BeanManager manager;
 
 
   public boolean isInitialized() {
@@ -61,18 +62,19 @@ public class ReactiveMessagingExtension implements Extension {
    */
   void afterBeanDiscovery(@Observes AfterBeanDiscovery discovery, BeanManager beanManager) {
     registerVertxBeanIfNeeded(discovery, beanManager);
-
-
   }
 
-  void afterBeanDiscovery(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
+  private <T> T lookup(Class<T> beanClass) {
+    return manager.createInstance().select(beanClass).stream().findAny()
+      .orElseThrow(() -> new IllegalStateException("Unable to find the " + beanClass.getName() + " component"));
+  }
+
+  void afterDeploymentValidation(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
+    this.manager = beanManager;
+    this.registry = lookup(StreamRegistry.class);
+    this.factory = lookup(MediatorFactory.class);
+
     LOGGER.info("Deployment done... start processing");
-
-    this.registry = beanManager.createInstance().select(StreamRegistry.class).stream().findFirst()
-      .orElseThrow(() -> new IllegalStateException("Unable to find the " + StreamRegistry.class.getName() + " component"));
-
-    this.factory = beanManager.createInstance().select(MediatorFactory.class).stream().findFirst()
-      .orElseThrow(() -> new IllegalStateException("Unable to find the " + MediatorFactory.class.getName() + " component"));
 
     Collection<StreamRegistar> registars = beanManager.createInstance().select(StreamRegistar.class).stream().collect(Collectors.toList());
 
@@ -110,18 +112,18 @@ public class ReactiveMessagingExtension implements Extension {
   }
 
   private void weaving(Set<String> unmanagedSubscribers) {
+    // At that point all the publishers have been registered in the registry
     LOGGER.info("Connecting mediators");
-    // At that point all the publisher have been registered in the registry
-
     List<AbstractMediator> unsatisfied = getAllNonSatisfiedMediators();
 
+    List<LazySource> lazy = new ArrayList<>();
     while (!unsatisfied.isEmpty()) {
       int numberOfUnsatisfiedBeforeLoop = unsatisfied.size();
 
       unsatisfied.forEach(mediator -> {
         LOGGER.info("Attempt to satisfied {}", mediator.getMethodAsString());
-        List<Publisher<? extends Message>> sources = lookForSource(mediator);
-        Optional<Publisher<? extends Message>> maybeSource = getAggregatedSource(sources, mediator);
+        List<Publisher<? extends Message>> sources = registry.getPublishers(mediator.configuration.getIncoming());
+        Optional<Publisher<? extends Message>> maybeSource = getAggregatedSource(sources, mediator, lazy);
         maybeSource.ifPresent(publisher -> {
           mediator.connectToUpstream(publisher);
           LOGGER.info("Connecting {} to {} ({})", mediator.getMethodAsString(), mediator.configuration.getIncoming(), publisher);
@@ -143,6 +145,9 @@ public class ReactiveMessagingExtension implements Extension {
         break;
       }
     }
+
+    // Inject lazy sources
+    lazy.forEach(l -> l.configure(registry));
 
     // Run
     mediators.stream().filter(m -> m.configuration.shape() == Shape.SUBSCRIBER)
@@ -169,31 +174,22 @@ public class ReactiveMessagingExtension implements Extension {
     }
   }
 
-  private Optional<Publisher<? extends Message>> getAggregatedSource(List<Publisher<? extends Message>> sources, AbstractMediator mediator) {
+  private Optional<Publisher<? extends Message>> getAggregatedSource(List<Publisher<? extends Message>> sources,
+                                                                     AbstractMediator mediator,
+                                                                     List<LazySource> lazy) {
     if (sources.isEmpty()) {
       return Optional.empty();
     }
 
-    if (sources.size() == 1) {
-      return Optional.of(sources.get(0));
-    }
-
     Merge.Mode merge = mediator.getConfiguration().getMerge();
-    if (merge == null) {
-      LOGGER.warn("Applying merge policy for {}, {} sources found",mediator.getMethodAsString(), sources.size());
-      merge = Merge.Mode.MERGE;
+    if (merge != null) {
+      LazySource lazySource = new LazySource(mediator.configuration.getIncoming(), merge);
+      lazy.add(lazySource);
+      return Optional.of(lazySource);
     }
 
-    switch (merge) {
-      case MERGE:
-        return Optional.of(Flowable.merge(sources));
-      case CONCAT:
-        return Optional.of(Flowable.concat(sources));
-      case ONE:
-        LOGGER.warn("Using the `ONE` merge strategy with {} sources for {}", sources.size(), mediator.getMethodAsString());
-        return Optional.of(sources.get(0));
-        default: throw new IllegalStateException("Unknown merge policy: " + merge);
-    }
+    return Optional.of(sources.get(0));
+
   }
 
   private List<AbstractMediator> lookupForMediatorsWithMatchingDownstream(String name) {
@@ -201,11 +197,6 @@ public class ReactiveMessagingExtension implements Extension {
       .filter(m -> m.configuration.getOutgoing() != null)
       .filter(m -> m.configuration.getOutgoing().equalsIgnoreCase(name))
       .collect(Collectors.toList());
-  }
-
-  private List<Publisher<? extends Message>> lookForSource(AbstractMediator mediator) {
-    String incoming = mediator.configuration.getIncoming();
-    return registry.getPublishers(incoming);
   }
 
   private List<AbstractMediator> getAllNonSatisfiedMediators() {
@@ -230,6 +221,40 @@ public class ReactiveMessagingExtension implements Extension {
       MediatorConfiguration configuration = new MediatorConfiguration(met, pat.getAnnotatedType().getJavaClass());
       configuration.compute(met.getAnnotation(Incoming.class), met.getAnnotation(Outgoing.class));
       return configuration;
+    }
+  }
+
+  private class LazySource implements Publisher<Message> {
+    private Publisher<? extends Message> delegate;
+    private String source;
+    private Merge.Mode mode;
+
+    public LazySource(String source, Merge.Mode mode) {
+      this.source = source;
+      this.mode = mode;
+    }
+
+    public void configure(StreamRegistry registry) {
+      List<Publisher<? extends Message>> list = registry.getPublishers(source);
+      if (! list.isEmpty()) {
+        switch (mode) {
+          case MERGE: this.delegate = Flowable.merge(list); break;
+          case ONE: {
+            this.delegate = list.get(0);
+            if (list.size() > 1) {
+              LOGGER.warn("Multiple publisher found for {}, using the merge policy `ONE` takes the first found", source);
+            }
+            break;
+          }
+          case CONCAT: this.delegate = Flowable.concat(list); break;
+          default: throw new IllegalArgumentException("Unknown merge policy for " + source +  ": " + mode);
+        }
+      }
+    }
+
+    @Override
+    public void subscribe(Subscriber<? super Message> s) {
+      delegate.subscribe(s);
     }
   }
 }

@@ -13,7 +13,8 @@ public class DummyBean {
   @Incoming(value = "dummy-source", provider = Dummy.class)
   @Outgoing(value = "dummy-sink", provider = Dummy.class)
   public ProcessorBuilder<Integer, String> process() {
-    return ReactiveStreams.<Integer>builder().map(i -> i * 2).map(i -> Integer.toString(i));
+    return ReactiveStreams.<Integer>builder().map(i -> i * 2)
+      .map(i -> Integer.toString(i));
   }
 
 }
