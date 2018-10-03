@@ -23,7 +23,7 @@ public class StreamTransformerMediator extends AbstractMediator {
   @Override
   public void connectToUpstream(Publisher<? extends Message> publisher) {
     Objects.requireNonNull(function);
-    this.publisher = function.apply((Publisher) publisher);
+    this.publisher = decorate(function.apply((Publisher) publisher));
   }
 
   @Override

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
@@ -86,6 +87,22 @@ public abstract class AbstractMediator {
       }
       return CompletableFuture.completedFuture(message);
     };
+  }
+
+  public Publisher<Message> decorate(Publisher<Message> input) {
+    if (input == null) {
+      return null;
+    }
+    if (configuration.isMulticast()) {
+      System.out.println("Multicast found for " + getConfiguration().getOutgoing());
+      if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
+        return Flowable.fromPublisher(input).publish().autoConnect(configuration.getNumberOfSubscriberBeforeConnecting());
+      } else {
+        return Flowable.fromPublisher(input).publish().autoConnect();
+      }
+    } else {
+      return input;
+    }
   }
 
 }

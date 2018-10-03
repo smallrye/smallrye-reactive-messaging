@@ -27,7 +27,7 @@ public class ProcessorMediator extends AbstractMediator {
 
   public void connectToUpstream(Publisher<? extends Message> publisher) {
     assert processor != null;
-    this.publisher = ReactiveStreams.fromPublisher((Publisher) publisher).via(processor).buildRs();
+    this.publisher = decorate(ReactiveStreams.fromPublisher((Publisher) publisher).via(processor).buildRs());
   }
 
   @Override

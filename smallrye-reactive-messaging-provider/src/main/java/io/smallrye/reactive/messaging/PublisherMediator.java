@@ -78,48 +78,52 @@ public class PublisherMediator extends AbstractMediator {
 
   private void produceAPublisherBuilderOfMessages(Object bean) {
     PublisherBuilder<Message> builder = invoke(bean);
-    this.publisher = builder.buildRs();
+    setPublisher(builder.buildRs());
+  }
+
+  private void setPublisher(Publisher publisher) {
+    this.publisher = decorate(publisher);
   }
 
   private <P> void produceAPublisherBuilderOfPayloads(Object bean) {
     PublisherBuilder<P> builder = invoke(bean);
-    this.publisher = builder.map(Message::of).buildRs();
+    setPublisher(builder.map(Message::of).buildRs());
   }
 
   private void produceAPublisherOfMessages(Object bean) {
-    this.publisher = invoke(bean);
+    setPublisher(invoke(bean));
   }
 
   private <P> void produceAPublisherOfPayloads(Object bean) {
     Publisher<P> pub = invoke(bean);
-    this.publisher = ReactiveStreams.fromPublisher(pub)
-      .map(Message::of).buildRs();
+    setPublisher(ReactiveStreams.fromPublisher(pub)
+      .map(Message::of).buildRs());
   }
 
   private void produceIndividualMessages(Object bean) {
-    this.publisher = ReactiveStreams.generate(() -> {
+    setPublisher(ReactiveStreams.generate(() -> {
       Message message = invoke(bean);
       Objects.requireNonNull(message, "The method " + configuration.methodAsString() + " returned an invalid value: null");
       return message;
-    }).buildRs();
+    }).buildRs());
   }
 
   private <T> void produceIndividualPayloads(Object bean) {
-    this.publisher = ReactiveStreams.<T>generate(() -> invoke(bean))
+    setPublisher(ReactiveStreams.<T>generate(() -> invoke(bean))
       .map(Message::of)
-      .buildRs();
+      .buildRs());
   }
 
   private void produceIndividualCompletionStageOfMessages(Object bean) {
-    this.publisher = ReactiveStreams.<CompletionStage<Message>>generate(() -> invoke(bean))
+    setPublisher(ReactiveStreams.<CompletionStage<Message>>generate(() -> invoke(bean))
       .flatMapCompletionStage(Function.identity())
-      .buildRs();
+      .buildRs());
   }
 
   private <P> void produceIndividualCompletionStageOfPayloads(Object bean) {
-    this.publisher = ReactiveStreams.<CompletionStage<P>>generate(() -> invoke(bean))
+    setPublisher(ReactiveStreams.<CompletionStage<P>>generate(() -> invoke(bean))
       .flatMapCompletionStage(Function.identity())
       .map(Message::of)
-      .buildRs();
+      .buildRs());
   }
 }

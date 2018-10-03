@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging;
 
 import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.annotations.Multicast;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -33,6 +34,8 @@ public class MediatorConfiguration {
   private Outgoing outgoing;
 
   private Acknowledgment.Mode acknowledgment;
+
+  private Multicast multicast;
 
   /**
    * What does the mediator products and how is it produced
@@ -142,6 +145,14 @@ public class MediatorConfiguration {
       }
     } else if (merge != null) {
       throw getOutgoingError("The @Merge annotation is only supported for method annotated with @Incoming: " + methodAsString());
+    }
+
+    Multicast multicast = method.getAnnotation(Multicast.class);
+    System.out.println("Is multicast found? " + multicast);
+    if (outgoing != null) {
+      this.multicast = multicast;
+    } else if (multicast != null){
+      throw getIncomingError("The @Multicast annotation is only supported for method annotated with @Outgoing: " + methodAsString());
     }
 
   }
@@ -513,5 +524,17 @@ public class MediatorConfiguration {
 
   public Merge.Mode getMerge() {
     return mergePolicy;
+  }
+
+  public boolean isMulticast() {
+    return multicast != null;
+  }
+
+  public int getNumberOfSubscriberBeforeConnecting() {
+    if (! isMulticast()) {
+      return -1;
+    } else {
+      return multicast.value();
+    }
   }
 }
