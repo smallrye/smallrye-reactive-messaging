@@ -7,6 +7,7 @@ import java.lang.annotation.RetentionPolicy;
  * Configure if the annotated publisher should dispatch the messages to several subscribers.
  *
  * Experimental !
+ *
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Multicast {
