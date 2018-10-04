@@ -68,6 +68,10 @@ public class WeldTestBaseWithoutTails {
   protected  <T> T installInitializeAndGet(Class<T> beanClass) {
     initializer.addBeanClasses(beanClass);
     initialize();
-    return container.getBeanManager().createInstance().select(beanClass).get();
+    return get(beanClass);
+  }
+
+  protected <T> T get(Class<T> c) {
+    return container.getBeanManager().createInstance().select(c).get();
   }
 }
