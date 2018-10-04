@@ -29,6 +29,10 @@ public abstract class AbstractMediator {
     // Do nothing by default.
   }
 
+  public MediatorConfiguration configuration() {
+    return configuration;
+  }
+
   public abstract void initialize(Object bean);
 
   @SuppressWarnings("unchecked")
