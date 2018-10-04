@@ -75,11 +75,6 @@
       <version>${rxjava.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.github.akarnokd</groupId>
-      <artifactId>rxjava2-jdk8-interop</artifactId>
-      <version>${rxjava2-interop.version}</version>
-    </dependency>
-    <dependency>
       <groupId>javax.enterprise</groupId>
       <artifactId>cdi-api</artifactId>
       <version>2.0</version>
