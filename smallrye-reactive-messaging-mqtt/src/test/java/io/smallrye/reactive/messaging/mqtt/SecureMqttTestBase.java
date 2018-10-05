@@ -15,10 +15,7 @@ public class SecureMqttTestBase {
   @ClassRule
   public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.4.12")
     .withExposedPorts(1883)
-    .withFileSystemBind("src/test/resources/mosquitto-secure", "/mosquitto/config", BindMode.READ_WRITE)
-//    .withCopyFileToContainer(MountableFile.forHostPath("src/test/resources/mosquitto-secure/mosquitto.conf", 777), "/mosquitto/config")
-//    .withCopyFileToContainer(MountableFile.forHostPath("src/test/resources/mosquitto-secure/mqtt-pwd.txt", 777), "/mosquitto/config")
-    ;
+    .withFileSystemBind("src/test/resources/mosquitto-secure", "/mosquitto/config", BindMode.READ_WRITE);
 
   Vertx vertx;
   protected String address;
