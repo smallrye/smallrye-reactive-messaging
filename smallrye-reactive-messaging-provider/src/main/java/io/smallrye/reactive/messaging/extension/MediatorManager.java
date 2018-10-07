@@ -108,7 +108,7 @@ public class MediatorManager {
       int numberOfUnsatisfiedBeforeLoop = unsatisfied.size();
 
       unsatisfied.forEach(mediator -> {
-        LOGGER.info("Attempt to satisfied {}", mediator.getMethodAsString());
+        LOGGER.info("Attempt to resolve {}", mediator.getMethodAsString());
         List<Publisher<? extends Message>> sources = registry.getPublishers(mediator.configuration().getIncoming());
         Optional<Publisher<? extends Message>> maybeSource = getAggregatedSource(sources, mediator, lazy);
         maybeSource.ifPresent(publisher -> {

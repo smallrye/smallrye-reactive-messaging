@@ -10,7 +10,6 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.*;
-import javax.inject.Named;
 
 import static io.smallrye.reactive.messaging.impl.VertxBeanRegistration.registerVertxBeanIfNeeded;
 
@@ -36,7 +35,8 @@ public class ReactiveMessagingExtension implements Extension {
 
   /**
    * In this callback, regular beans have been found, we can declare new beans.
-   * @param discovery the discovery event
+   *
+   * @param discovery   the discovery event
    * @param beanManager the bean manager
    */
   void afterBeanDiscovery(@Observes AfterBeanDiscovery discovery, BeanManager beanManager) {

@@ -98,7 +98,6 @@ public abstract class AbstractMediator {
       return null;
     }
     if (configuration.isMulticast()) {
-      System.out.println("Multicast found for " + getConfiguration().getOutgoing());
       if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
         return Flowable.fromPublisher(input).publish().autoConnect(configuration.getNumberOfSubscriberBeforeConnecting());
       } else {

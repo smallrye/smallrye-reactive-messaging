@@ -43,7 +43,7 @@ public class ConfiguredStreamFactory implements StreamRegistar {
 
   @Inject
   public ConfiguredStreamFactory(@Any Instance<PublisherFactory> sourceFactories, @Any Instance<SubscriberFactory> sinkFactories,
-                                 @Any Instance<Config> config, @Any Instance<StreamRegistry> registry) {
+                                 Instance<Config> config, @Any Instance<StreamRegistry> registry) {
 
     this.registry = registry.get();
     if (config.isUnsatisfied()) {
@@ -53,7 +53,12 @@ public class ConfiguredStreamFactory implements StreamRegistar {
     } else {
       this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
       this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
-      this.config = config.get();
+      LOGGER.info("Found source types: " + sourceFactories.stream().map(PublisherFactory::type).collect(Collectors.toList()));
+      LOGGER.info("Found sink types: " + sinkFactories.stream().map(SubscriberFactory::type).collect(Collectors.toList()));
+      //TODO Should we try to merge all the config?
+      // For now take the first one.
+      this.config = config.stream().findFirst()
+        .orElseThrow(() -> new IllegalStateException("Unable to retrieve the config"));
     }
   }
 
