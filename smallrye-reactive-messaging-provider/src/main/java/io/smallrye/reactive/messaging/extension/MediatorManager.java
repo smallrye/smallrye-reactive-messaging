@@ -79,7 +79,11 @@ public class MediatorManager {
           LOGGER.info("Initializing mediators");
           mediators.forEach(mediator -> {
             LOGGER.debug("Initializing {}", mediator.getMethodAsString());
-            mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass()).get());
+            try {
+              mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass()).get());
+            } catch (Throwable e) {
+              e.printStackTrace();
+            }
 
             if (mediator.getConfiguration().shape() == Shape.PUBLISHER) {
               LOGGER.debug("Registering {} as publisher {}", mediator.getConfiguration().methodAsString(), mediator.getConfiguration().getOutgoing());
