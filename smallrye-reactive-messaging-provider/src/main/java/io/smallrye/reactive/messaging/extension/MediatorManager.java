@@ -82,7 +82,8 @@ public class MediatorManager {
             try {
               mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass()).get());
             } catch (Throwable e) {
-              e.printStackTrace();
+              LOGGER.fatal("Unable to initialize mediator {}", mediator.getMethodAsString(), e);
+              return;
             }
 
             if (mediator.getConfiguration().shape() == Shape.PUBLISHER) {
