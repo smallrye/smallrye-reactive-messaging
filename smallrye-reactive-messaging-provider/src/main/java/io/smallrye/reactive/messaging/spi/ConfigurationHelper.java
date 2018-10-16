@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.spi;
 
+import io.vertx.core.json.JsonObject;
+
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -60,4 +63,9 @@ public class ConfigurationHelper {
     }
   }
 
+  public JsonObject asJsonObject() {
+    JsonObject json = new JsonObject();
+    config.forEach(json::put);
+    return json;
+  }
 }
