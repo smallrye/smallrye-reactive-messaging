@@ -24,7 +24,6 @@ public class CamelTestBase {
   }
 
   public void initialize() {
-    weld.addBeanClass(CamelMessagingProvider.class);
     container = weld.initialize();
   }
 
