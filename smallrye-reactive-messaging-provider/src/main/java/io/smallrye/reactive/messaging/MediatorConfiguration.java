@@ -148,7 +148,6 @@ public class MediatorConfiguration {
     }
 
     Multicast multicast = method.getAnnotation(Multicast.class);
-    System.out.println("Is multicast found? " + multicast);
     if (outgoing != null) {
       this.multicast = multicast;
     } else if (multicast != null){
