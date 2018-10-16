@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.impl;
 
-import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.spi.PublisherFactory;
@@ -69,7 +68,7 @@ public class ConfiguredStreamFactory implements StreamRegistar {
       // $prefix.name.key=value
       if (key.startsWith(prefix)) {
         // Extract the name
-        String name = key.substring(prefix.length() +1);
+        String name = key.substring(prefix.length() + 1);
         if (name.contains(".")) {
           String tmp = name;
           name = tmp.substring(0, tmp.indexOf('.'));
@@ -103,15 +102,18 @@ public class ConfiguredStreamFactory implements StreamRegistar {
 
     CompletableFuture<Void> all = CompletableFuture.allOf(tasks.stream().map(CompletionStage::toCompletableFuture)
       .toArray((IntFunction<CompletableFuture<?>[]>) CompletableFuture[]::new));
-    return all.whenComplete((x, err) -> {
-      if (err == null) {
-        LOGGER.info("Publishers created during initialization: {}", sources.keySet());
-        LOGGER.info("Subscribers created during initialization: {}", sinks.keySet());
+    return all
+      .whenComplete((x, err) -> {
+        if (err == null) {
+          LOGGER.info("Publishers created during initialization: {}", sources.keySet());
+          LOGGER.info("Subscribers created during initialization: {}", sinks.keySet());
 
-        sources.forEach(registry::register);
-        sinks.forEach(registry::register);
-      }
-    });
+          sources.forEach(registry::register);
+          sinks.forEach(registry::register);
+        } else {
+          LOGGER.error("Unable to create the publisher or subscriber during initialization", err);
+        }
+      });
   }
 
   private CompletionStage createSourceFromConfig(String name, Map<String, String> conf) {
@@ -123,23 +125,23 @@ public class ConfiguredStreamFactory implements StreamRegistar {
     PublisherFactory mySourceFactory = sourceFactories.stream().filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
       .orElseThrow(() -> new IllegalArgumentException("Unknown source type for " + name + ", supported types are "
         + sourceFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
-    );
+      );
 
     return mySourceFactory.createPublisher(conf).thenAccept(p -> sources.put(name, p));
   }
 
 
-    private CompletionStage createSinkFromConfig(String name, Map<String, String> conf) {
-      // Extract the type and throw an exception if missing
-      String type = Optional.ofNullable(conf.get("type")).map(Object::toString)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid sink, no type for " + name));
+  private CompletionStage createSinkFromConfig(String name, Map<String, String> conf) {
+    // Extract the type and throw an exception if missing
+    String type = Optional.ofNullable(conf.get("type")).map(Object::toString)
+      .orElseThrow(() -> new IllegalArgumentException("Invalid sink, no type for " + name));
 
-      // Look for the factory and throw an exception if missing
-      SubscriberFactory mySinkFactory = sinkFactories.stream().filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
-        .orElseThrow(() -> new IllegalArgumentException("Unknown sink type for " + name + ", supported types are "
-          + sinkFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
-        );
+    // Look for the factory and throw an exception if missing
+    SubscriberFactory mySinkFactory = sinkFactories.stream().filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
+      .orElseThrow(() -> new IllegalArgumentException("Unknown sink type for " + name + ", supported types are "
+        + sinkFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
+      );
 
-      return mySinkFactory.createSubscriber(conf).thenAccept(p -> sinks.put(name, p));
+    return mySinkFactory.createSubscriber(conf).thenAccept(p -> sinks.put(name, p));
   }
 }
