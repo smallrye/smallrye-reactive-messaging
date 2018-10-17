@@ -34,6 +34,8 @@
     <module>smallrye-reactive-messaging-mqtt</module>
     <module>smallrye-reactive-messaging-camel</module>
     <module>smallrye-reactive-messaging-amqp</module>
+
+    <module>examples/quickstart</module>
   </modules>
 
   <dependencyManagement>
