@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.camel.incoming;
 
 import io.reactivex.Flowable;
 import org.apache.camel.CamelContext;
+import org.apache.camel.ProducerTemplate;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
@@ -22,7 +23,8 @@ public class BeanWithCamelSink {
   @Incoming("camel")
   public CompletionStage<Void> sink(String value) {
     values.add(value);
-    return camel.createProducerTemplate().asyncSendBody("file:./target?fileName=values.txt&fileExist=append", value).thenApply(x -> null);
+    ProducerTemplate template = camel.createProducerTemplate();
+    return template.asyncSendBody("file:./target?fileName=values.txt&fileExist=append", value).thenApply(x -> null);
   }
 
   @Outgoing("camel")

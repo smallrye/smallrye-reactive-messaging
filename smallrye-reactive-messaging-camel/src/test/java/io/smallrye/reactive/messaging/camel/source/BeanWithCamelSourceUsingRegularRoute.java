@@ -41,7 +41,7 @@ public class BeanWithCamelSourceUsingRegularRoute extends RouteBuilder  {
 
 
   @Override
-  public void configure() throws Exception {
+  public void configure() {
     from("seda:in").process(exchange -> exchange.getOut().setBody(exchange.getIn().getBody(String.class).toUpperCase())).to("seda:out");
   }
 }
