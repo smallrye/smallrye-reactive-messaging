@@ -91,9 +91,17 @@ public class MqttSink {
       return new Buffer(((JsonArray) payload).toBuffer());
     }
     if (payload instanceof String || payload.getClass().isPrimitive()) {
-      new Buffer(io.vertx.core.buffer.Buffer.buffer(payload.toString()));
+      return new Buffer(io.vertx.core.buffer.Buffer.buffer(payload.toString()));
     }
-
+    if (payload instanceof byte[]) {
+      return new Buffer(io.vertx.core.buffer.Buffer.buffer((byte[]) payload));
+    }
+    if (payload instanceof Buffer) {
+      return (Buffer) payload;
+    }
+    if (payload instanceof io.vertx.core.buffer.Buffer) {
+      return new Buffer((io.vertx.core.buffer.Buffer) payload);
+    }
     // Convert to Json
     return new Buffer(Json.encodeToBuffer(payload));
   }
