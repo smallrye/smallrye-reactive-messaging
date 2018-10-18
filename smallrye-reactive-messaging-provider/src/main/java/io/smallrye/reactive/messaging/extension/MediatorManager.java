@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 public class MediatorManager {
 
   private static final Logger LOGGER = LogManager.getLogger(MediatorManager.class);
+  public static final String STRICT_MODE_PROPERTY = "smallrye-messaging-strict-binding";
+  private final boolean strictMode;
 
   private final CollectedMediatorMetadata collected = new CollectedMediatorMetadata();
   // TODO Populate this list
@@ -37,6 +39,13 @@ public class MediatorManager {
   private StreamRegistry registry;
   private MediatorFactory factory;
   private boolean initialized;
+
+  public MediatorManager() {
+    strictMode = Boolean.parseBoolean(System.getProperty(STRICT_MODE_PROPERTY, "false"));
+    if (strictMode) {
+      LOGGER.debug("Strict mode enabled");
+    }
+  }
 
   public <T> void analyze(ProcessAnnotatedType<T> pat) {
     LOGGER.info("Scanning Type: " + pat.getAnnotatedType().getJavaClass().getName());
@@ -130,10 +139,15 @@ public class MediatorManager {
 
       if (numberOfUnsatisfiedAfterLoop == numberOfUnsatisfiedBeforeLoop) {
         // Stale!
-        LOGGER.warn("Impossible to bind mediators, some mediators are not connected: {}",
-          unsatisfied.stream().map(m -> m.configuration().methodAsString()).collect(Collectors.toList()));
-        LOGGER.warn("Available publishers: {}", registry.getPublisherNames());
-        // TODO What should we do - break the deployment, report a warning?
+        if (strictMode) {
+          throw new IllegalStateException("Impossible to bind mediators, some mediators are not connected: " +
+            unsatisfied.stream().map(m -> m.configuration().methodAsString()).collect(Collectors.toList()) +
+            ", available publishers:" + registry.getPublisherNames());
+        } else {
+          LOGGER.warn("Impossible to bind mediators, some mediators are not connected: {}",
+            unsatisfied.stream().map(m -> m.configuration().methodAsString()).collect(Collectors.toList()));
+          LOGGER.warn("Available publishers: {}", registry.getPublisherNames());
+        }
         break;
       }
     }

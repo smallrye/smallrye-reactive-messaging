@@ -4,6 +4,7 @@ import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.annotations.Multicast;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -56,8 +57,6 @@ public class MediatorConfiguration {
    */
   private Merge.Mode mergePolicy;
 
-  // TODO Test that incoming and outgoing have values
-
   public enum Production {
     STREAM_OF_MESSAGE,
     STREAM_OF_PAYLOAD,
@@ -90,6 +89,15 @@ public class MediatorConfiguration {
   }
 
   public void compute(Incoming incoming, Outgoing outgoing) {
+
+    if (incoming != null && StringUtils.isBlank(incoming.value())) {
+      throw getIncomingError("value is blank or null");
+    }
+
+    if (outgoing != null  && StringUtils.isBlank(outgoing.value())) {
+      throw getOutgoingError("value is blank or null");
+    }
+
     if (incoming != null && outgoing != null) {
       // it can be either a processor or a stream transformer
       if (isReturningAPublisherOrAPublisherBuilder() && isConsumingAPublisherOrAPublisherBuilder()) {
@@ -161,6 +169,7 @@ public class MediatorConfiguration {
   private void validateStreamTransformer(Incoming incoming, Outgoing outgoing) {
     this.incoming = incoming;
     this.outgoing = outgoing;
+
     // 1.  Publisher<Message<O>> method(Publisher<Message<I>> publisher)
     // 2. Publisher<O> method(Publisher<I> publisher) - Dropped
     // 3. PublisherBuilder<Message<O>> method(PublisherBuilder<Message<I>> publisher)

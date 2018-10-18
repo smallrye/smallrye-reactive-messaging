@@ -60,4 +60,8 @@ The value indicates the name of the stream. You can inject a stream as:
 The logging uses Log4j2. Configure it by adding a `log4j2.yaml` file in your _CLASSPATH_ (or in `src/main/resources`).
 The configuration is explained in the https://logging.apache.org/log4j/2.x/manual/configuration.html[Log4J2 configuration].
 
+=== Strict Binding Mode
 
+By default, SmallRye Reactive Messaging does not enforce whether all _mediators_ are connected. It just print a warning
+message. The strict mode fails the deployment if some "incoming" are not connected to "outgoing". To enable this mode,
+pass the `-Dsmallrye-messaging-strict-binding=true` to the command line.
