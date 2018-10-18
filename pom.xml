@@ -26,6 +26,12 @@
     <rxjava2-interop.version>0.2.9</rxjava2-interop.version>
     <weld-core.version>3.0.4.Final</weld-core.version>
     <jackson.version>2.9.5</jackson.version>
+    <smallrye-reactive-streams-ops.version>1.0.0-SNAPSHOT</smallrye-reactive-streams-ops.version>
+    <smallrye-config.version>1.3.1</smallrye-config.version>
+
+    <asciidoctor-maven-plugin.version>1.5.3</asciidoctor-maven-plugin.version>
+    <asciidoctorj.version>1.5.4</asciidoctorj.version>
+
   </properties>
 
   <modules>
@@ -36,6 +42,7 @@
     <module>smallrye-reactive-messaging-amqp</module>
 
     <module>examples/quickstart</module>
+    <module>examples/snippets</module>
   </modules>
 
   <dependencyManagement>
@@ -93,13 +100,13 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-streams-operators</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>${smallrye-reactive-streams-ops.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-streams-vertx-execution-model</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>${smallrye-reactive-streams-ops.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -200,4 +207,33 @@
       </snapshots>
     </repository>
   </repositories>
+
+  <profiles>
+    <profile>
+      <id>doc</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctor-maven-plugin</artifactId>
+            <version>${asciidoctor-maven-plugin.version}</version>
+            <configuration>
+              <backend>html</backend>
+              <sourceHighlighter>highlightjs</sourceHighlighter>
+              <attributes>
+                <toc>left</toc>
+                <version>${project.version}</version>
+                <weld-version>${weld-core.version}</weld-version>
+                <smallrye-streams-version>${smallrye-reactive-streams-ops.version}</smallrye-streams-version>
+                <smallrye-config-version>${smallrye-config.version}</smallrye-config-version>
+              </attributes>
+              <sourceDirectory>doc</sourceDirectory>
+              <imagesDir>assets</imagesDir>
+            </configuration>
+          </plugin>
+        </plugins>
+        <defaultGoal>generate-resources asciidoctor:process-asciidoc</defaultGoal>
+      </build>
+    </profile>
+  </profiles>
 </project>

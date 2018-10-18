@@ -1,0 +1,58 @@
+== Acknowledgement
+
+Messages may require acknowledgment to inform the transport layer that the message has been processed. Methods
+annotated with `@Incoming` and also be annotated with `io.smallrye.reactive.messaging.annotations.Acknowledgment` to
+configure the acknowledgement policies.
+
+Four policies are supported:
+
+* `NONE`: no acknowledgement
+* `MANUAL`: the developer is responsible for the acknowledgement. It can be perform using `Message.ack()`.
+* `PRE_PROCESSING`: the acknowledgement is managed automatically before the processing
+* `POST_PROCESSING`: the acknowledgement is managed automatically after the processing
+
+
+The following example describes how `PRE_PROCESSING` can be configured:
+
+[source,java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/Ack.java[tag=pre]
+----
+
+Manual acknowledgement can be achieved as follows:
+
+[source,java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/Ack.java[tag=manual]
+----
+
+Default acknowledgement depends on the method signature:
+
+[cols="50,20,30",options="header"]
+|===
+|**Signature** | **Default policy** | **Supported policy**
+
+|@Incoming Subscriber<Message<I>> method() |	Post-Processing	|  None, Pre, Post, Manual
+|@Incoming Subscriber<I> method()	| Post-Processing |	 None, Pre, Post
+|@Incoming void method(I msg)	| Post-Processing |	 None, Pre, Post
+|@Incoming CompletionStage<?> method(Message<I> msg) | Post-Processing | None, Pre, Post, Manual
+|@Incoming CompletionStage<?> method(I msg) | Post-Processing |	 None, Pre, Post
+
+|@Outgoing @Incoming Processor<Message<I>, Message<O>> method() | 	Pre-Processing	| None, Manual, Pre
+|@Outgoing @Incoming Processor<I, O> method() |		Pre-Processing	| None, Pre
+|@Outgoing @Incoming ProcessorBuilder<Message<I>, Message<O>> method()	|		Pre-Processing	| None, Manual, Pre
+|@Outgoing @Incoming ProcessorBuilder<I, O> method()	|		Pre-Processing	| None, Pre
+|@Outgoing @Incoming Publisher<Message<O>> method(Message<I> msg)	|		Pre-Processing	| None, Manual, Pre
+|@Outgoing @Incoming Publisher<O> method(I payload)	|		Pre-Processing	| None, Pre
+|@Outgoing @Incoming PublisherBuilder<Message<O>> method(Message<I> msg)	|		Pre-Processing	| None, Manual, Pre
+|@Outgoing @Incoming PublisherBuilder<O> method(I payload)	|		Pre-Processing	| None, Pre
+|@Outgoing @Incoming Message<O> method(Message<I> msg)	|	Post-Processing	| None, Manual, Pre, Post
+|@Outgoing @Incoming O method(I payload)	|	Post-Processing	| None, Pre, Post
+|@Outgoing @Incoming CompletionStage<Message<O>> method(Message<I> msg)	|	Post-Processing	| None, Manual, Pre, Post
+|@Outgoing @Incoming CompletionStage<O> method(I payload)	|	Post-Processing	| None, Pre, Post
+
+|@Outgoing @Incoming Publisher<Message<O>> method(Publisher<Message<I>> pub) | Pre-Processing	| None, Manual, Pre
+|@Outgoing @Incoming PublisherBuilder<Message<O>> method(PublisherBuilder<Message<I>> pub)	|	Pre-Processing	| None, Manual, Pre
+|@Outgoing @Incoming Publisher<O> method(Publisher<I> pub)	|	Pre-Processing	| None, Pre
+|@Outgoing @Incoming PublisherBuilder<O> method(PublisherBuilder<I> pub)	|	Pre-Processing	| None, Pre
+|===

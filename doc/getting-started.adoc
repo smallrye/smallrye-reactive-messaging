@@ -1,0 +1,117 @@
+== Getting Started
+
+=== Prerequisites
+
+Unfortunately, right now, there are no release of this project, so you need to build it by yourself. The build process
+ requires Apache Maven and Java 8+.  You need to build the SmallRye Reactive Stream Operators implementation first:
+
+```bash
+git clone git@github.com:smallrye/smallrye-reactive-streams-operators.git
+cd smallrye-reactive-streams-operators
+mvn clean install
+```
+
+Then, build this repository
+
+```bash
+cd $ROOT
+mvn clean install
+```
+
+[NOTE]
+====
+* SmallRye Reactive Messaging should work with any implementation of the Reactive Stream Operator.
+* Most of the example use Weld as CDI implementation, again, it does not contain any code specific to Weld and should
+work with any implementation of CDI 2.x.
+====
+
+=== Quickstart
+
+The easiest to start using SmallRye Reactive Messaging is to start it directly in a _main_ class.
+
+Creates a Maven project, and include the following dependency in your pom.xml:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye</groupId>
+  <artifactId>smallrye-reactive-messaging-provider</artifactId>
+  <version>{version}</version>
+</dependency>
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-streams-operators-cdi</artifactId>
+  <version>{smallrye-streams-version}</version>
+</dependency>
+<dependency>
+  <groupId>org.jboss.weld.se</groupId>
+  <artifactId>weld-se-core</artifactId>
+  <version>{weld-version}</version>
+</dependency>
+----
+
+Once created, create a class file with a `public static void main(String... args)` method:
+
+[source,java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/quickstart/Main.java[]
+----
+
+Then, we need CDI _beans_. For instance:
+
+[source, java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/quickstart/MyBean.java[]
+----
+
+Finally, you need an _empty_ `beans.xml`. Copy the following content to `src/main/resources/META-INF/beans.xml`:
+
+[source,xml]
+----
+<beans
+  xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="
+      http://xmlns.jcp.org/xml/ns/javaee
+      http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd">
+
+</beans>
+----
+
+Once everything is setup, you should be able to run the application using:
+
+```bash
+mvn compile exc:java -Dexec.mainClass=<Main fully qualified class name>
+```
+
+Running the previous example should give the following output:
+
+```
+>> HELLO
+>> SMALLRYE
+>> REACTIVE
+>> MESSAGE
+```
+
+[NOTE]
+====
+You can control the logging by creating a `log4j2.yaml` file in `src/main/resources`. The following content drastically
+reduces the amount of messages:
+```yaml
+Configuration:
+  status: info
+
+  Appenders:
+    Console:
+      name: Console
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+
+  Loggers:
+    Root:
+      level: warn
+      AppenderRef:
+        ref: Console
+```
+====
