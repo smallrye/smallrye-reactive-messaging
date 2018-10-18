@@ -13,6 +13,7 @@ import java.util.List;
 public class BeanInjectedWithAPublisherOfMessages {
 
   private final Publisher<Message<String>> constructor;
+
   @Inject
   @Stream("hello")
   private Publisher<Message<String>> field;

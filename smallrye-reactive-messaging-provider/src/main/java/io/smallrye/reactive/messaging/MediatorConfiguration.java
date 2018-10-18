@@ -56,6 +56,8 @@ public class MediatorConfiguration {
    */
   private Merge.Mode mergePolicy;
 
+  // TODO Test that incoming and outgoing have values
+
   public enum Production {
     STREAM_OF_MESSAGE,
     STREAM_OF_PAYLOAD,

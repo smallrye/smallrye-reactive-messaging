@@ -37,8 +37,6 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   static final String PAYLOAD_DEFAULT_ACKNOWLEDGMENT = "payload-default-acknowledgment";
   static final String PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER = "payload-default-acknowledgment-builder";
 
-  // TODO a sink should be able to receive more than one mediator.
-
   @Incoming("sink-" + MANUAL_ACKNOWLEDGMENT)
   @Acknowledgment(Acknowledgment.Mode.NONE)
   public CompletionStage<Void> sinkManual(Message<String> ignored) {

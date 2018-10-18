@@ -102,10 +102,4 @@ public class StreamTransformerAcknowledgementTest extends AcknowledgmentTestBase
     assertPreAcknowledgment(bean, PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER);
   }
 
-
-  //TODO Test with and without message ?
-
-  // TODO Default
-  // TODO Post?
-
 }
