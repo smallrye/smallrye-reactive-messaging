@@ -1,0 +1,68 @@
+== Connecting transports
+
+SmallRye Reactive Messaging supports various transport _protocols_. This section explains how you can configure these different
+ extensions. Before listing the supported transports, we need to explain the configuration format. SmallRye Reactive Messaging uses
+MicorProfile Config as main configuration source. To enable the configuration, add an implementation of MicroProfile
+Config in your _classpath_. For instance, add the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye</groupId>
+  <artifactId>smallrye-config</artifactId>
+  <version>{smallrye-config-version}</version>
+</dependency>
+----
+
+Then create a _properties_ file in `src/main/resources/META-INF/microprofile-config.properties` such as:
+
+[source]
+----
+# Configure the dummy source and sink
+smallrye.messaging.source.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
+smallrye.messaging.source.dummy-source.increment=3
+smallrye.messaging.sink.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy
+----
+
+Each _source_ and _sink_ are configured individually in this file:
+
+* a `source` consumes data from a message broker or something producing data and can be seen as an `@Outgoing`;
+* a `sink` consumes data from the application and forward it to a message broker or something consuming data. It can be
+ seen as an `@Incoming`
+
+The configuration format is the follow:
+
+[source]
+----
+smallrye.messaging.[source|sink].[name].[attribute]=[value]
+----
+1. the `[source|sink]` segment indicates if we are configuring a `source` or a `sink`
+2. the `[name]` segment configures the name of the `source` or `sink`
+3. the `[attribute]` segment is the name of the attribute to configure. Most of the time the attributes are specific to
+the transport layer
+4. the `[value]` is the value
+
+All `sources` and `sinks` must declare the `type` attribute matching the type of transport (also named `MessagingProvider`).
+
+Here is an example of a MQTT source (consuming data from a MQTT broker) and a Kafka sink (forwarding data to Kafka):
+
+[source]
+----
+# [Source - health] - Consume data from MQTT
+smallrye.messaging.source.health.topic=neo
+smallrye.messaging.source.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+smallrye.messaging.source.health.host=localhost
+smallrye.messaging.source.health.multicast=true
+# [/Source - health]
+
+# [Sink - data] - Produce data to Kafka
+smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+smallrye.messaging.sink.data.bootstrap.servers=localhost:9092
+smallrye.messaging.sink.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+smallrye.messaging.sink.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+smallrye.messaging.sink.data.acks=1
+# [/Sink - data]
+----
+
+
+

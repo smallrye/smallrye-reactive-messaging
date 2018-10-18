@@ -1,0 +1,67 @@
+== Advanced and Experimental features
+
+=== @Merge
+
+The `@Merge` annotation can be used on a method annotated with `@Incoming` to subscribed to all matching `@Outgoing
+streams. For example, if you have several method producing data to a stream named "sink", the following method receives
+all of them:
+
+[source,java]
+----
+@Incoming("sink")
+@Merge
+@Acknowledgment(Acknowledgment.Mode.NONE)
+public CompletionStage<Void> justASink(Message<String> ignored) {
+  return CompletableFuture.completedFuture(null);
+}
+----
+
+The `@Merge` annotation can be configured with a _merge policy_:
+
+* `ONE` - Pick the first source and use only this one.
+* `MERGE` - Merge the different sources. This strategy emits the items as they come. (default)
+* `CONCAT` - Concat the sources.
+
+
+=== @Multicast
+
+The `@Multicast` annotation can be used on a method annotation with `@Outgoing` to broadcast the emitted messages to all
+the matching subscribers:
+
+[source, java]
+----
+@Outgoing("Y")
+@Incoming("X")
+@Multicast
+public String process(String s) {
+  return s.toUpperCase();
+}
+----
+
+=== @Stream
+
+`@Stream` is a qualifier to inject a _stream_ into a regular CDI bean:
+
+[source,java]
+----
+@Inject
+@Stream("hello")
+private Publisher<Message<String>> field;
+----
+
+The value indicates the name of the stream. You can inject a stream as:
+
+* `Publisher<Message<X>>` or `Publisher<X>`
+* `PublisherBuilder<Message<X>>` or `PublisherBuilder<X>`
+* `Flowable<Message<X>>` or `Flowable<X>`
+
+=== Logging
+
+The logging uses Log4j2. Configure it by adding a `log4j2.yaml` file in your _CLASSPATH_ (or in `src/main/resources`).
+The configuration is explained in the https://logging.apache.org/log4j/2.x/manual/configuration.html[Log4J2 configuration].
+
+=== Strict Binding Mode
+
+By default, SmallRye Reactive Messaging does not enforce whether all _mediators_ are connected. It just print a warning
+message. The strict mode fails the deployment if some "incoming" are not connected to "outgoing". To enable this mode,
+pass the `-Dsmallrye-messaging-strict-binding=true` to the command line.

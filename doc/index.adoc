@@ -1,0 +1,38 @@
+= SmallRye Reactive Messaging
+Clement Escoffier;
+:revnumber: {version}
+:revdate: {localdate}
+:toc: macro
+:toclevels: 4
+:toc-title: SmallRye Reactive Messaging
+:doctype: book
+:icons: font
+:docinfo1:
+
+:weld-version: {weld-version}
+:smallrye-streams-version: {smallrye-streams-version}
+:smallrye-config-version: {smallrye-config-version}
+
+
+ifndef::ebook-format[:leveloffset: 1]
+
+ifdef::basebackend-html[toc::[]]
+
+:numbered:
+
+include::intro.adoc[]
+include::getting-started.adoc[]
+include::concepts.adoc[]
+include::sources.adoc[]
+include::sinks.adoc[]
+include::processor.adoc[]
+include::acknowledgment.adoc[]
+include::transports.adoc[]
+include::kafka.adoc[]
+//include::amqp.adoc[]
+include::camel.adoc[]
+include::mqtt.adoc[]
+
+include::advanced.adoc[]
+
+

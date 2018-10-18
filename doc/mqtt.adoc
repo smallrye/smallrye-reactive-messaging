@@ -1,0 +1,59 @@
+== Interacting using MQTT
+
+You can connect to a MQTT broker or server as a source or sink. The MQTT support is based on the
+https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client[Vert.x MQTT Client].
+
+=== Dependency
+
+To enable the MQTT support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye</groupId>
+  <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+=== Retrieving messages from MQTT
+
+[source]
+----
+smallrye.messaging.source.data.topic=data
+smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+smallrye.messaging.source.data.host=localhost
+smallrye.messaging.source.data.port=8883
+smallrye.messaging.source.data.username=username
+smallrye.messaging.source.data.password=secret
+smallrye.messaging.source.data.multicast=true
+----
+
+Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You can also receive
+`io.smallrye.reactive.messaging.mqtt.MqttMessage` which give you access to message metadata.
+
+=== Forwarding messages to MQTT
+
+[source]
+----
+smallrye.messaging.sink.data.topic=data
+smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+smallrye.messaging.sink.data.host=localhost
+smallrye.messaging.sink.data.port=8883
+smallrye.messaging.sink.data.username=username
+smallrye.messaging.sink.data.password=secret
+----
+
+The payload of message forwarded to MQTT must be:
+
+* a `io.vertx.core.json.JsonObject` or a `io.vertx.core.json.JsonArray`
+* a `String` or a primitive types
+* a `byte[]` or a Vert.x Buffer
+
+Other objects are mapped to JSON.
+
+=== Advanced configuration
+
+Check `io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource` and
+`io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink` for further details on the attributes.
+

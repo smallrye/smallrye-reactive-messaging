@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.smallrye</groupId>
+    <artifactId>smallrye-parent</artifactId>
+    <version>1</version>
+  </parent>
+
+  <artifactId>smallrye-reactive-messaging</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+
+  <name>MicroProfile Reactive Streams Messaging Implementation</name>
+  <description>An implementation of the MicroProfile Reactive Streams Messaging specification</description>
+
+  <packaging>pom</packaging>
+
+  <properties>
+    <vertx.version>3.5.4</vertx.version>
+    <log4j2.version>2.11.0</log4j2.version>
+    <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
+    <microprofile-reactive-streams.version>1.0-RC1</microprofile-reactive-streams.version>
+    <rxjava.version>2.1.15</rxjava.version>
+    <rxjava2-interop.version>0.2.9</rxjava2-interop.version>
+    <weld-core.version>3.0.4.Final</weld-core.version>
+    <jackson.version>2.9.5</jackson.version>
+    <smallrye-reactive-streams-ops.version>1.0.0-SNAPSHOT</smallrye-reactive-streams-ops.version>
+    <smallrye-config.version>1.3.1</smallrye-config.version>
+
+    <asciidoctor-maven-plugin.version>1.5.3</asciidoctor-maven-plugin.version>
+    <asciidoctorj.version>1.5.4</asciidoctorj.version>
+
+  </properties>
+
+  <modules>
+    <module>smallrye-reactive-messaging-provider</module>
+    <module>smallrye-reactive-messaging-kafka</module>
+    <module>smallrye-reactive-messaging-mqtt</module>
+    <module>smallrye-reactive-messaging-camel</module>
+    <module>smallrye-reactive-messaging-amqp</module>
+
+    <module>examples/quickstart</module>
+    <module>examples/snippets</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-stack-depchain</artifactId>
+        <version>${vertx.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.arquillian</groupId>
+        <artifactId>arquillian-bom</artifactId>
+        <version>1.4.0.Final</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+      <artifactId>microprofile-reactive-messaging-api</artifactId>
+      <version>${microprofile-reactive-messaging.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.reactive.streams</groupId>
+      <artifactId>microprofile-reactive-streams-operators</artifactId>
+      <version>${microprofile-reactive-streams.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-rx-java2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.reactivex.rxjava2</groupId>
+      <artifactId>rxjava</artifactId>
+      <version>${rxjava.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>javax.enterprise</groupId>
+      <artifactId>cdi-api</artifactId>
+      <version>2.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.weld.se</groupId>
+      <artifactId>weld-se-core</artifactId>
+      <version>${weld-core.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>${smallrye-reactive-streams-ops.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-streams-vertx-execution-model</artifactId>
+      <version>${smallrye-reactive-streams-ops.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+
+    <dependency>
+      <groupId>org.eclipse.microprofile.config</groupId>
+      <artifactId>microprofile-config-api</artifactId>
+      <version>1.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.7</version>
+    </dependency>
+
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.10.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>3.1.1</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- logging -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>${log4j2.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>${log4j2.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <defaultGoal>clean install</defaultGoal>
+  </build>
+
+  <developers>
+    <developer>
+      <id>cescoffier</id>
+      <name>Clement Escoffier</name>
+      <email>clement[AT]apache[DOT]org</email>
+      <url>https://github.com/cescoffier</url>
+    </developer>
+  </developers>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+      <comments>A business-friendly OSS license</comments>
+    </license>
+  </licenses>
+
+  <repositories>
+    <repository>
+      <id>staging</id>
+      <url>https://oss.sonatype.org/content/repositories/orgeclipsemicroprofile-1119/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+    <repository>
+      <id>microprofile-snapshots</id>
+      <url>https://repo.eclipse.org/content/repositories/microprofile-snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <profiles>
+    <profile>
+      <id>doc</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctor-maven-plugin</artifactId>
+            <version>${asciidoctor-maven-plugin.version}</version>
+            <configuration>
+              <backend>html</backend>
+              <sourceHighlighter>highlightjs</sourceHighlighter>
+              <attributes>
+                <toc>left</toc>
+                <version>${project.version}</version>
+                <weld-version>${weld-core.version}</weld-version>
+                <smallrye-streams-version>${smallrye-reactive-streams-ops.version}</smallrye-streams-version>
+                <smallrye-config-version>${smallrye-config.version}</smallrye-config-version>
+              </attributes>
+              <sourceDirectory>doc</sourceDirectory>
+              <imagesDir>assets</imagesDir>
+            </configuration>
+          </plugin>
+        </plugins>
+        <defaultGoal>generate-resources asciidoctor:process-asciidoc</defaultGoal>
+      </build>
+    </profile>
+  </profiles>
+</project>

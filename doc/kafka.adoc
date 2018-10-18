@@ -1,0 +1,103 @@
+== Interacting with Apache Kafka
+
+You can connect to Apache Kafka as a source or sink. The Kafka support is based on the
+https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka Client].
+
+=== Dependency
+
+To enable the Kafka support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye</groupId>
+  <artifactId>smallrye-reactive-messaging-kafka</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+=== Retrieving messages from Kafka
+
+To retrieve messages from a Kafka topic, you need the following configuration:
+
+[source]
+----
+# [Source - heartbeat] - Consume data from Kafka
+smallrye.messaging.source.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
+smallrye.messaging.source.kafka-heartbeat.topic=heartbeat
+smallrye.messaging.source.kafka-heartbeat.bootstrap.servers=localhost:9092
+smallrye.messaging.source.kafka-heartbeat.enable.auto.commit=false
+smallrye.messaging.source.kafka-heartbeat.group.id=demo
+smallrye.messaging.source.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
+smallrye.messaging.source.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
+# [/Source - heartbeat]
+----
+
+The `type` attribute is required to indicate you are configuring the Kafka transport. Supported attributes are listed
+in the following table:
+
+|===
+
+| Attribute | Mandatory | Default | Description
+
+| topic | true |  | The topic to consume
+| bootstrap.servers | true | | the comma separated list of servers (host:port)
+| key.deserializer | true | | the codec used to deserialize the key
+| value.deserializer | true | | the codec used to deserialize the value
+| group.id | true | | the group id
+| enable.auto.commit | false | false | whether or not the messages are committed automatically
+| retry | false | true | Whether it should retry to re-established the connection to the broker is it fails
+| retry-attempts | false | 5 | Number of retries
+| multicast | false | false | Whether the received messages can be dispatched to several `@Incoming`
+|===
+
+You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
+
+When consuming a message from Kafka, you can get the `Message` as a `io.smallrye.reactive.messaging.kafka.KafkaMessage`.
+It lets you access other metadata such as the headers, the message key (the payload being the value):
+
+[source,java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/kafka/KafkaConsumer.java[tag=kafka-message]
+----
+
+
+=== Forwarding messages to Kafka
+
+To send messages to a Kafka topic, you need the following configuration:
+
+[source]
+----
+# [Sink - data] - Produce data to Kafka
+smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+smallrye.messaging.sink.data.bootstrap.servers=localhost:9092
+smallrye.messaging.sink.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+smallrye.messaging.sink.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+smallrye.messaging.sink.data.acks=1
+# [/Sink - data]
+----
+
+The `type` attribute is required to indicate you are configuring the Kafka transport. Supported attributes are listed
+in the following table:
+
+|===
+
+| Attribute | Mandatory | Default | Description
+
+| topic | false |  | The topic to consume, if not set it must be set in the `message`
+| bootstrap.servers | true | | the comma separated list of servers (host:port)
+| key.serializer | true | | the codec used to serialize the key
+| value.serializer | true | | the codec used to serialize the value
+| key | false | | the key to be used, can be overridden by the message
+| partition | false | 0 | the partition
+| timestamp | false | `null` | the timestamp
+|===
+
+You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
+
+When sending a message to Kafka, you can send a Kafka message to configure various aspects such as the topic and key:
+
+[source,java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/kafka/KafkaProducer.java[tag=kafka-message]
+----
