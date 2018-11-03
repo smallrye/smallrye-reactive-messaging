@@ -32,6 +32,7 @@ include::kafka.adoc[]
 //include::amqp.adoc[]
 include::camel.adoc[]
 include::mqtt.adoc[]
+include::http.adoc[]
 
 include::advanced.adoc[]
 
