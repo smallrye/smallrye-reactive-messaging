@@ -12,11 +12,6 @@
 
   <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
 
-  <properties>
-    <kafka.version>2.0.0</kafka.version>
-    <debezium.version>0.8.3.Final</debezium.version>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.vertx</groupId>
@@ -31,7 +26,7 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
-      <version>1.9.1</version>
+      <version>1.10.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
