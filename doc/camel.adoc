@@ -90,7 +90,7 @@ The following configuration describe a sink using a Camel route:
 [source]
 ----
 smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.camel.Camel
-smallrye.messaging.sink.data.endpoint-uri", "seda:my-route"
+smallrye.messaging.sink.data.endpoint-uri:seda:my-route
 ----
 
 The `endpoint-uri` configures the route to use. It can be:
