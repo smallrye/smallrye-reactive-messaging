@@ -50,13 +50,17 @@ public class CamelMessagingProvider implements PublisherFactory, SubscriberFacto
     DefaultCamelReactiveStreamsServiceFactory factory = new DefaultCamelReactiveStreamsServiceFactory();
     ReactiveStreamsEngineConfiguration configuration = new ReactiveStreamsEngineConfiguration();
     if (!config.isUnsatisfied()) {
-      config.get().getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-max-size", Integer.class)
+      // TODO Ask ASD about this resolution issue
+      Config conf = config.stream().findFirst()
+        .orElseThrow(() -> new IllegalStateException("Unable to retrieve the config"));
+
+      conf.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-max-size", Integer.class)
         .ifPresent(configuration::setThreadPoolMaxSize);
 
-      config.get().getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-min-size", Integer.class)
+      conf.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-min-size", Integer.class)
         .ifPresent(configuration::setThreadPoolMinSize);
 
-      config.get().getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-name", String.class)
+      conf.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-name", String.class)
         .ifPresent(configuration::setThreadPoolName);
     }
     this.reactive = factory.newInstance(camel, configuration);
@@ -70,7 +74,7 @@ public class CamelMessagingProvider implements PublisherFactory, SubscriberFacto
   @Override
   public CompletionStage<Subscriber<? extends Message>> createSubscriber(Map<String, String> config) {
     String name = config.get("endpoint-uri");
-    Objects.requireNonNull(name, "The `endpoint-uri of the endpoint is required");
+    Objects.requireNonNull(name, "The `endpoint-uri` of the endpoint is required");
 
     Subscriber<Message> subscriber;
     if (name.startsWith("reactive-streams:")) {
@@ -78,7 +82,7 @@ public class CamelMessagingProvider implements PublisherFactory, SubscriberFacto
       name = name.substring("reactive-streams:".length());
       LOGGER.info("Creating subscriber from Camel stream named {}", name);
       subscriber = ReactiveStreams.<Message>builder()
-      .map(this::createExchangeFromMessage)
+        .map(this::createExchangeFromMessage)
         .to(reactive.streamSubscriber(name))
         .build();
     } else {
