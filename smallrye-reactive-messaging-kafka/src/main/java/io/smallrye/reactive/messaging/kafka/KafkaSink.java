@@ -32,6 +32,7 @@ public class KafkaSink {
 
   public KafkaSink(Vertx vertx, Map<String, String> config) {
     stream = KafkaWriteStream.create(vertx.getDelegate(), new HashMap<>(config));
+    stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
     ConfigurationHelper conf = ConfigurationHelper.create(config);
     partition = conf.getAsInteger("partition", 0);
     timestamp = conf.getAsLong( "timestamp");
