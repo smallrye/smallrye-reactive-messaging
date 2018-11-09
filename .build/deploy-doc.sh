@@ -12,7 +12,7 @@ echo "Cloning repo"
 cd target
 git clone -b gh-pages git@github.com:smallrye/smallrye-reactive-messaging.git site
 echo "Copy content"
-cp -R generated-docs site
+cp -R generated-docs/* site
 
 echo "Pushing"
 cd site
