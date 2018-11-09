@@ -40,6 +40,7 @@
     <module>smallrye-reactive-messaging-camel</module>
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-http</module>
+    <module>smallrye-reactive-messaging-vertx-eventbus</module>
 
     <module>examples/quickstart</module>
     <module>examples/snippets</module>

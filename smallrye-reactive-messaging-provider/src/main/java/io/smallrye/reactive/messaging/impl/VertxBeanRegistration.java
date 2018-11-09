@@ -4,6 +4,7 @@ import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
@@ -20,6 +21,7 @@ public class VertxBeanRegistration {
       discovery.addBean()
         .types(Vertx.class)
         .beanClass(Vertx.class)
+        .scope(ApplicationScoped.class)
         .produceWith(i -> Vertx.vertx())
         .disposeWith((vertx, i) -> vertx.close());
     }
