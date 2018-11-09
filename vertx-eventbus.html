@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.7.1">
-<title>Generating data</title>
+<title>Interacting with the Vert.x Eventbus</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -435,10 +435,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_generating_data">Generating data</a>
+<li><a href="#_interacting_with_the_vert_x_eventbus">Interacting with the Vert.x Eventbus</a>
 <ul class="sectlevel2">
-<li><a href="#_supported_signatures">Supported Signatures</a></li>
-<li><a href="#_examples">Examples</a></li>
+<li><a href="#_dependency">Dependency</a></li>
+<li><a href="#_retrieving_messages_from_the_event_bus">Retrieving messages from the event bus</a></li>
+<li><a href="#_sending_messages_to_the_event_bus">Sending messages to the event bus</a></li>
 </ul>
 </li>
 </ul>
@@ -446,117 +447,67 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_generating_data">Generating data</h2>
+<h2 id="_interacting_with_the_vert_x_eventbus">Interacting with the Vert.x Eventbus</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>To generate data (act as a data source), you need a method annotated with <code>@Outgoing</code>.</p>
+<p>The Vert.x Eventbus is the backbone of Vert.x applications. It allows different application components to interact in
+an asynchronous way.</p>
 </div>
 <div class="sect2">
-<h3 id="_supported_signatures">Supported Signatures</h3>
-<div class="ulist">
-<ul>
-<li>
-<p><code>@Outgoing Publisher&lt;Message&lt;O&gt;&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing Publisher&lt;O&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing PublisherBuilder&lt;Message&lt;O&gt;&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing PublisherBuilder&lt;O&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing Message&lt;O&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing O method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing CompletionStage&lt;Message&lt;O&gt;&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing CompletionStage&lt;O&gt; method()</code></p>
-</li>
-</ul>
-</div>
+<h3 id="_dependency">Dependency</h3>
 <div class="paragraph">
-<p>The first four variants generates a stream. The other methods generate each item individually.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_examples">Examples</h3>
-<div class="paragraph">
-<p>The following code snippet provides example of the different variants of signature.</p>
+<p>To enable the Vert.x EventBus support, you need the following dependency:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package io.smallrye.reactive.messaging.snippets;
-
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
-
-import javax.enterprise.context.ApplicationScoped;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
-
-@ApplicationScoped
-public class GenerateExamples {
-
-  /**
-   * Produces a simple stream. The produced payloads are automatically wrapped
-   * into Messages.
-   */
-  @Outgoing("data-1")
-  public PublisherBuilder&lt;String&gt; generate() {
-    return ReactiveStreams.of("a", "b", "c");
-  }
-
-  /**
-   * Produces a simple stream of Message.
-   */
-  @Outgoing("data-2")
-  public PublisherBuilder&lt;Message&lt;String&gt;&gt; generateMessages() {
-    return ReactiveStreams.of("a", "b", "c").map(Message::of);
-  }
-
-  private AtomicInteger counter = new AtomicInteger();
-
-  /**
-   * Generates a stream payload by payload.
-   */
-  @Outgoing("data-3")
-  public int count() {
-    return counter.incrementAndGet();
-  }
-
-  /**
-   * Generates a stream message by message.
-   */
-  @Outgoing("data-4")
-  public Message&lt;Integer&gt; countAsMessage() {
-    return Message.of(counter.incrementAndGet());
-  }
-
-  private Executor executor = Executors.newSingleThreadExecutor();
-
-  /**
-   * Generates a stream message by message. The next meesage is only generated
-   * when the value from the previous one is redeemed.
-   */
-  @Outgoing("data-5")
-  public CompletionStage&lt;Message&lt;Integer&gt;&gt; produceAsyncMessages() {
-    return CompletableFuture.supplyAsync(() -&gt; Message.of(counter.incrementAndGet()), executor);
-  }
-
-}</code></pre>
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus&lt;/artifactId&gt;
+  &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_retrieving_messages_from_the_event_bus">Retrieving messages from the event bus</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>smallrye.messaging.source.data.address=&lt;the-eventbus-address&gt;
+smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+smallrye.messaging.source.data.use-reply-as-ack=&lt;true|false&gt;
+smallrye.messaging.source.data.multicast=&lt;true|false&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>address</code> indicates from which event bus address the messages are retrieved. <code>use-reply-as-ack</code> instructs the
+framework to reply to the event bus message as acknowledgement mechanism. Finally, the <code>multicast</code> entry broadcasts the
+to many subscribers.</p>
+</div>
+<div class="paragraph">
+<p>The received messages are instance of <code>io.smallrye.reactive.messaging.eventbus.EventBusMessage</code>. The payload is the message
+body. From the <code>EventBusMessage</code>, you can retrieve the headers, address&#8230;&#8203;</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sending_messages_to_the_event_bus">Sending messages to the event bus</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>smallrye.messaging.source.data.address=&lt;the-eventbus-address&gt;
+smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+smallrye.messaging.source.data.publish=&lt;true|false&gt;
+smallrye.messaging.source.data.expect-reply=&lt;true|false&gt;
+smallrye.messaging.source.data.codec=&lt;codec-name&gt;
+smallrye.messaging.source.data.timeout=1000</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>address</code> indicates where the messages are sent. <code>publish</code> choose whether the message is sent to a single consumer (
+<code>false</code>) or broadcast (<code>true</code>). <code>expect-reply</code> indicates if you expect a reply. No other messages will be sent until the
+reply is received. <code>codec</code> is the name of the codec (it must have been registered explicitly). Finally, the <code>timeout</code>
+specifies the reply timeout.</p>
+</div>
+<div class="paragraph">
+<p>The event bus message is created from the Reactive Messaging message. The payload is passed as body.</p>
 </div>
 </div>
 </div>
@@ -564,7 +515,7 @@ public class GenerateExamples {
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-10-18 18:03:13 CEST
+Last updated 2018-11-09 21:27:18 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

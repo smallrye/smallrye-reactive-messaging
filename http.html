@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.7.1">
-<title>Generating data</title>
+<title>Emitting HTTP requests</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -435,10 +435,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_generating_data">Generating data</a>
+<li><a href="#_emitting_http_requests">Emitting HTTP requests</a>
 <ul class="sectlevel2">
-<li><a href="#_supported_signatures">Supported Signatures</a></li>
-<li><a href="#_examples">Examples</a></li>
+<li><a href="#_dependency">Dependency</a></li>
+<li><a href="#_forwarding_messages_to_http">Forwarding messages to HTTP</a></li>
 </ul>
 </li>
 </ul>
@@ -446,117 +446,56 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_generating_data">Generating data</h2>
+<h2 id="_emitting_http_requests">Emitting HTTP requests</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>To generate data (act as a data source), you need a method annotated with <code>@Outgoing</code>.</p>
+<p>You can also <em>push</em> the incming messages to a HTTP endpoint using the <em>HTTP connector</em>.</p>
 </div>
 <div class="sect2">
-<h3 id="_supported_signatures">Supported Signatures</h3>
-<div class="ulist">
-<ul>
-<li>
-<p><code>@Outgoing Publisher&lt;Message&lt;O&gt;&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing Publisher&lt;O&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing PublisherBuilder&lt;Message&lt;O&gt;&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing PublisherBuilder&lt;O&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing Message&lt;O&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing O method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing CompletionStage&lt;Message&lt;O&gt;&gt; method()</code></p>
-</li>
-<li>
-<p><code>@Outgoing CompletionStage&lt;O&gt; method()</code></p>
-</li>
-</ul>
-</div>
+<h3 id="_dependency">Dependency</h3>
 <div class="paragraph">
-<p>The first four variants generates a stream. The other methods generate each item individually.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_examples">Examples</h3>
-<div class="paragraph">
-<p>The following code snippet provides example of the different variants of signature.</p>
+<p>To enable the MQTT support, you need the following dependency:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package io.smallrye.reactive.messaging.snippets;
-
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
-
-import javax.enterprise.context.ApplicationScoped;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
-
-@ApplicationScoped
-public class GenerateExamples {
-
-  /**
-   * Produces a simple stream. The produced payloads are automatically wrapped
-   * into Messages.
-   */
-  @Outgoing("data-1")
-  public PublisherBuilder&lt;String&gt; generate() {
-    return ReactiveStreams.of("a", "b", "c");
-  }
-
-  /**
-   * Produces a simple stream of Message.
-   */
-  @Outgoing("data-2")
-  public PublisherBuilder&lt;Message&lt;String&gt;&gt; generateMessages() {
-    return ReactiveStreams.of("a", "b", "c").map(Message::of);
-  }
-
-  private AtomicInteger counter = new AtomicInteger();
-
-  /**
-   * Generates a stream payload by payload.
-   */
-  @Outgoing("data-3")
-  public int count() {
-    return counter.incrementAndGet();
-  }
-
-  /**
-   * Generates a stream message by message.
-   */
-  @Outgoing("data-4")
-  public Message&lt;Integer&gt; countAsMessage() {
-    return Message.of(counter.incrementAndGet());
-  }
-
-  private Executor executor = Executors.newSingleThreadExecutor();
-
-  /**
-   * Generates a stream message by message. The next meesage is only generated
-   * when the value from the previous one is redeemed.
-   */
-  @Outgoing("data-5")
-  public CompletionStage&lt;Message&lt;Integer&gt;&gt; produceAsyncMessages() {
-    return CompletableFuture.supplyAsync(() -&gt; Message.of(counter.incrementAndGet()), executor);
-  }
-
-}</code></pre>
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-http&lt;/artifactId&gt;
+  &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_forwarding_messages_to_http">Forwarding messages to HTTP</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>smallrye.messaging.sink.data.url=http://localhost:8089
+smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.http.Http</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Your method can also returns a <code>HttpMessage</code> to configure the <em>headers</em>, <em>query parameters</em>, the HTTP method (<code>POST</code>
+(default) or <code>PUT</code>):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Incoming("source")
+  @Outgoing("to-http")
+  public HttpMessage&lt;JsonObject&gt; consume(Message&lt;String&gt; incoming) {
+    return HttpMessage.HttpMessageBuilder.&lt;JsonObject&gt;create()
+      .withMethod("PUT")
+      .withPayload(new JsonObject().put("value", incoming.getPayload().toUpperCase()))
+      .withHeader("Content-Type", "application/json")
+      .build();
+  }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Supported payloads are:
+* String
+* Vert.x Buffers, byte array, <code>ByteBuffer</code>
+* Vert.x <code>JsonObject</code> and <code>JsonArray</code></p>
 </div>
 </div>
 </div>
@@ -564,7 +503,7 @@ public class GenerateExamples {
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-10-18 18:03:13 CEST
+Last updated 2018-11-03 09:58:14 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
