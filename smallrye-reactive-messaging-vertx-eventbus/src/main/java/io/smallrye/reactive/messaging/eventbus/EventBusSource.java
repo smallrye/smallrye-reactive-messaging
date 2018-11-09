@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.eventbus;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
 import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.eventbus.MessageConsumer;
@@ -10,10 +8,8 @@ import org.reactivestreams.Publisher;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 public class EventBusSource {
-
 
   private final String address;
   private final boolean ack;
@@ -21,7 +17,7 @@ public class EventBusSource {
   private final boolean multicast;
 
   public EventBusSource(Vertx vertx, ConfigurationHelper config) {
-    this.vertx = Objects.requireNonNull(vertx,"The vert.x instance must not be `null`");
+    this.vertx = Objects.requireNonNull(vertx, "The vert.x instance must not be `null`");
     this.address = config.getOrDie("address");
     this.multicast = config.getAsBoolean("multicast", false);
     this.ack = config.getAsBoolean("use-reply-as-ack", false);

@@ -1,12 +1,15 @@
 package io.smallrye.reactive.messaging.eventbus;
 
 import io.reactivex.Flowable;
+import io.reactivex.Single;
+import io.reactivex.schedulers.Schedulers;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
+import io.vertx.core.eventbus.DeliveryOptions;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -14,6 +17,7 @@ import org.junit.Test;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -81,6 +85,58 @@ public class EventBusSourceTest extends EventbusTestBase {
     assertThat(messages2.stream().map(EventBusMessage::getPayload)
       .collect(Collectors.toList()))
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  }
+
+  @Test
+  public void testAcknowledgement() {
+    String topic = UUID.randomUUID().toString();
+    Map<String, String> config = new HashMap<>();
+    config.put("address", topic);
+    config.put("use-reply-as-ack", "true");
+    EventBusSource source = new EventBusSource(vertx, ConfigurationHelper.create(config));
+
+    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.publisher())
+      .cast(EventBusMessage.class)
+      .flatMapSingle(m ->
+        Single
+          .fromFuture(m.ack().toCompletableFuture().thenApply(x -> m), Schedulers.computation()));
+
+    List<EventBusMessage> messages1 = new ArrayList<>();
+    flowable.forEach(messages1::add);
+
+    AtomicBoolean acked = new AtomicBoolean();
+    vertx.eventBus().send(topic, 1, rep -> {
+      acked.set(true);
+    });
+
+    await().untilTrue(acked);
+  }
+
+  @Test
+  public void testMessageHeader() {
+    String topic = UUID.randomUUID().toString();
+    Map<String, String> config = new HashMap<>();
+    config.put("address", topic);
+    EventBusSource source = new EventBusSource(vertx, ConfigurationHelper.create(config));
+
+    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.publisher())
+      .cast(EventBusMessage.class);
+
+    List<EventBusMessage> messages1 = new ArrayList<>();
+    flowable.forEach(messages1::add);
+
+    vertx.eventBus().send(topic, 1, new DeliveryOptions()
+      .addHeader("X-key", "value"));
+
+    await().until(() -> messages1.size() == 1);
+
+    EventBusMessage message = messages1.get(0);
+    assertThat(message.getHeader("X-key")).contains("value");
+    assertThat(message.getHeaders("X-key")).containsExactly("value");
+    assertThat(message.getAddress()).isEqualTo(topic);
+    assertThat(message.unwrap()).isNotNull();
+    assertThat(message.getReplyAddress()).isEmpty();
+
   }
 
   @Test

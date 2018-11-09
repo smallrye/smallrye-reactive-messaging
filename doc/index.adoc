@@ -33,6 +33,7 @@ include::kafka.adoc[]
 include::camel.adoc[]
 include::mqtt.adoc[]
 include::http.adoc[]
+include::vertx-eventbus.adoc[]
 
 include::advanced.adoc[]
 

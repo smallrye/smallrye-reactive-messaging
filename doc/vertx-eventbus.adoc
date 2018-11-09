@@ -1,0 +1,56 @@
+== Interacting with the Vert.x Eventbus
+
+The Vert.x Eventbus is the backbone of Vert.x applications. It allows different application components to interact in
+an asynchronous way.
+
+=== Dependency
+
+To enable the Vert.x EventBus support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye</groupId>
+  <artifactId>smallrye-reactive-messaging-vertx-eventbus</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+=== Retrieving messages from the event bus
+
+[source]
+----
+smallrye.messaging.source.data.address=<the-eventbus-address>
+smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+smallrye.messaging.source.data.use-reply-as-ack=<true|false>
+smallrye.messaging.source.data.multicast=<true|false>
+----
+
+The `address` indicates from which event bus address the messages are retrieved. `use-reply-as-ack` instructs the
+framework to reply to the event bus message as acknowledgement mechanism. Finally, the `multicast` entry broadcasts the
+to many subscribers.
+
+The received messages are instance of `io.smallrye.reactive.messaging.eventbus.EventBusMessage`. The payload is the message
+body. From the `EventBusMessage`, you can retrieve the headers, address...
+
+=== Sending messages to the event bus
+
+[source]
+----
+smallrye.messaging.source.data.address=<the-eventbus-address>
+smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+smallrye.messaging.source.data.publish=<true|false>
+smallrye.messaging.source.data.expect-reply=<true|false>
+smallrye.messaging.source.data.codec=<codec-name>
+smallrye.messaging.source.data.timeout=1000
+----
+
+The `address` indicates where the messages are sent. `publish` choose whether the message is sent to a single consumer (
+`false`) or broadcast (`true`). `expect-reply` indicates if you expect a reply. No other messages will be sent until the
+reply is received. `codec` is the name of the codec (it must have been registered explicitly). Finally, the `timeout`
+specifies the reply timeout.
+
+The event bus message is created from the Reactive Messaging message. The payload is passed as body.
+
+
+
