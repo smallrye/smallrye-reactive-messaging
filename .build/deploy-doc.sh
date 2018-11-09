@@ -16,6 +16,8 @@ cp -R generated-docs site
 
 echo "Pushing"
 cd site
+git add -A
+git commit -m "update site"
 git push origin gh-pages
 
 echo "Done"
