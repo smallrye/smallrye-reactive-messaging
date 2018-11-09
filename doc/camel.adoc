@@ -75,7 +75,7 @@ follows:
 [source]
 ----
 smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.camel.Camel
-smallrye.messaging.source.data.endpoint-uri", "seda:my-route"
+smallrye.messaging.source.data.endpoint-uri:seda:my-route
 ----
 
 The `endpoint-uri` configures the route to use. It can be:
