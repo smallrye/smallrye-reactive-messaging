@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.spi;
 
 import io.vertx.core.json.JsonObject;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,7 +21,7 @@ public class ConfigurationHelper {
   public String getOrDie(String key) {
     String value = get(key);
     if (value == null) {
-      throw new IllegalStateException("Invalid configuration - expected key `" + key + "` to be present in " + config);
+      throw new IllegalArgumentException("Invalid configuration - expected key `" + key + "` to be present in " + config);
     }
     return value;
   }
