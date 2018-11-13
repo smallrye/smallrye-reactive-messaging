@@ -61,12 +61,14 @@ public class AmqpSinkTest extends AmqpTestBase {
   @Test
   public void testSinkUsingString() {
     String topic = UUID.randomUUID().toString();
+
+    AmqpSink sink = getSink(topic);
+    await().until(sink::isOpen);
+
     AtomicInteger expected = new AtomicInteger(0);
     usage.consumeTenStrings(topic,
       v -> expected.getAndIncrement());
 
-    AmqpSink sink = getSink(topic);
-    await().until(sink::isOpen);
     @SuppressWarnings("unchecked")
     Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
 

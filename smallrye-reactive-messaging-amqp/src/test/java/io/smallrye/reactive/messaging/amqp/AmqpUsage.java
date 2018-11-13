@@ -1,9 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import io.vertx.proton.ProtonClient;
-import io.vertx.proton.ProtonConnection;
-import io.vertx.proton.ProtonReceiver;
-import io.vertx.proton.ProtonSender;
+import io.vertx.proton.*;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,12 +33,18 @@ class AmqpUsage {
     CountDownLatch latch = new CountDownLatch(1);
     vertx.runOnContext(x -> {
       client = ProtonClient.create(vertx.getDelegate());
-      client.connect(host, port, user, pwd, conn -> {
+      client.connect(new ProtonClientOptions().setReconnectAttempts(100), host, port, user, pwd, conn -> {
         if (conn.succeeded()) {
-          LOGGER.info("Connection to the AMQP broker succeeded");
           this.connection = conn.result();
           this.connection
-            .openHandler(connection -> latch.countDown())
+            .openHandler(connection -> {
+              if (connection.succeeded()) {
+                LOGGER.info("Connection to the AMQP broker succeeded");
+                latch.countDown();
+              } else {
+                LOGGER.error("Failed to establish a connection with the AMQP broker", connection.cause());
+              }
+            })
             .open();
         }
       });
@@ -113,6 +116,7 @@ class AmqpUsage {
    */
   private <T> void consume(String topic, BooleanSupplier continuation,
                            Consumer<AmqpMessage<T>> consumerFunction) {
+    CountDownLatch latch = new CountDownLatch(1);
     ProtonReceiver receiver = connection.createReceiver(topic);
     Thread t = new Thread(() -> {
       try {
@@ -123,7 +127,10 @@ class AmqpUsage {
             receiver.close();
           }
         })
-          .openHandler(r -> LOGGER.info("Starting consumer to read messages on {}", topic))
+          .openHandler(r -> {
+            LOGGER.info("Starting consumer to read messages on {}", topic);
+            latch.countDown();
+          })
           .open();
       } catch (Exception e) {
         LOGGER.error("Unable to receive messages from {}", topic, e);
@@ -131,6 +138,13 @@ class AmqpUsage {
     });
     t.setName(topic + "-thread");
     t.start();
+
+    try {
+      latch.await(1, TimeUnit.MINUTES);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
   }
 
   private void consumeStrings(String topic, BooleanSupplier continuation, Consumer<String> consumerFunction) {
