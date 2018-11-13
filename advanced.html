@@ -438,7 +438,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_advanced_and_experimental_features">Advanced and Experimental features</a>
 <ul class="sectlevel2">
 <li><a href="#_merge">@Merge</a></li>
-<li><a href="#_multicast">@Multicast</a></li>
+<li><a href="#_broadcast">@Broadcast</a></li>
 <li><a href="#_stream">@Stream</a></li>
 <li><a href="#_logging">Logging</a></li>
 <li><a href="#_strict_binding_mode">Strict Binding Mode</a></li>
@@ -486,16 +486,16 @@ public CompletionStage&lt;Void&gt; justASink(Message&lt;String&gt; ignored) {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_multicast">@Multicast</h3>
+<h3 id="_broadcast">@Broadcast</h3>
 <div class="paragraph">
-<p>The <code>@Multicast</code> annotation can be used on a method annotation with <code>@Outgoing</code> to broadcast the emitted messages to all
+<p>The <code>@Broadcast</code> annotation can be used on a method annotation with <code>@Outgoing</code> to broadcast the emitted messages to all
 the matching subscribers:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("Y")
 @Incoming("X")
-@Multicast
+@Broadcast
 public String process(String s) {
   return s.toUpperCase();
 }</code></pre>
@@ -551,7 +551,7 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-10-18 18:03:13 CEST
+Last updated 2018-11-13 13:48:23 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

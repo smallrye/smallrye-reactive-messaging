@@ -475,12 +475,12 @@ an asynchronous way.</p>
 <pre class="highlightjs highlight"><code>smallrye.messaging.source.data.address=&lt;the-eventbus-address&gt;
 smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
 smallrye.messaging.source.data.use-reply-as-ack=&lt;true|false&gt;
-smallrye.messaging.source.data.multicast=&lt;true|false&gt;</code></pre>
+smallrye.messaging.source.data.broadcast=&lt;true|false&gt;</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>The <code>address</code> indicates from which event bus address the messages are retrieved. <code>use-reply-as-ack</code> instructs the
-framework to reply to the event bus message as acknowledgement mechanism. Finally, the <code>multicast</code> entry broadcasts the
+framework to reply to the event bus message as acknowledgement mechanism. Finally, the <code>broadcast</code> entry broadcasts the
 to many subscribers.</p>
 </div>
 <div class="paragraph">
@@ -515,7 +515,7 @@ specifies the reply timeout.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-11-09 21:27:18 CET
+Last updated 2018-11-13 13:48:23 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
