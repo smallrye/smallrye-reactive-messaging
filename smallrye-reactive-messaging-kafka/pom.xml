@@ -13,7 +13,7 @@
   <artifactId>smallrye-reactive-messaging-kafka</artifactId>
 
   <properties>
-    <kafka.version>2.0.0</kafka.version>
+    <kafka.version>2.0.1</kafka.version>
     <debezium.version>0.8.3.Final</debezium.version>
   </properties>
 
