@@ -21,18 +21,18 @@ import java.util.function.Supplier;
 import static io.vertx.proton.ProtonHelper.message;
 import static org.awaitility.Awaitility.await;
 
-public class AmqpUsage {
+class AmqpUsage {
 
   private static Logger LOGGER = LogManager.getLogger(AmqpUsage.class);
   private ProtonClient client;
   private ProtonConnection connection;
 
 
-  public AmqpUsage(Vertx vertx, String host, int port) {
+  AmqpUsage(Vertx vertx, String host, int port) {
     this(vertx, host, port, "artemis", "simetraehcapa");
   }
 
-  public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
+  private AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
     CountDownLatch latch = new CountDownLatch(1);
     vertx.runOnContext(x -> {
       client = ProtonClient.create(vertx.getDelegate());
@@ -56,13 +56,11 @@ public class AmqpUsage {
 
   /**
    * Use the supplied function to asynchronously produce messages and write them to the broker.
-   *
-   * @param topic              the topic, must not be null
+   *  @param topic              the topic, must not be null
    * @param messageCount       the number of messages to produce; must be positive
-   * @param completionCallback the function to be called when the producer is completed; may be null
    * @param messageSupplier    the function to produce messages; may not be null
    */
-  public void produce(String topic, int messageCount, Runnable completionCallback, Supplier<Object> messageSupplier) {
+  void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
     CountDownLatch ready = new CountDownLatch(1);
     ProtonSender sender = connection.createSender(topic)
       .openHandler(s -> ready.countDown())
@@ -85,6 +83,7 @@ public class AmqpUsage {
           }
           message.setDurable(true);
           message.setTtl(10000);
+          message.setDeliveryCount(1);
           CountDownLatch latch = new CountDownLatch(1);
           sender.send(message, x ->
             latch.countDown()
@@ -95,9 +94,6 @@ public class AmqpUsage {
       } catch (Exception e) {
         LOGGER.error("Unable to send message", e);
       } finally {
-        if (completionCallback != null) {
-          completionCallback.run();
-        }
         sender.close();
       }
     });
@@ -105,30 +101,24 @@ public class AmqpUsage {
     t.start();
   }
 
-  public void produceStrings(String topic, int messageCount, Runnable completionCallback, Supplier<String> messageSupplier) {
-    this.produce(topic, messageCount, completionCallback, messageSupplier::get);
-  }
-
-  public void produceIntegers(String topic, int messageCount, Runnable completionCallback, Supplier<Integer> messageSupplier) {
-    this.produce(topic, messageCount, completionCallback, messageSupplier::get);
+  void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
+    this.produce(topic, 10, messageSupplier::get);
   }
 
   /**
    * Use the supplied function to asynchronously consume messages from the cluster.
-   *
-   * @param topic            the topic
+   *  @param topic            the topic
    * @param continuation     the function that determines if the consumer should continue; may not be null
-   * @param completion       the function to call when the consumer terminates; may be null
    * @param consumerFunction the function to consume the messages; may not be null
    */
-  public void consume(String topic, BooleanSupplier continuation, Runnable completion,
-                      Consumer<AmqpMessage> consumerFunction) {
+  private <T> void consume(String topic, BooleanSupplier continuation,
+                           Consumer<AmqpMessage<T>> consumerFunction) {
     ProtonReceiver receiver = connection.createReceiver(topic);
     Thread t = new Thread(() -> {
       try {
         receiver.handler((delivery, message) -> {
           LOGGER.info("Consumer {}: consuming message {}", topic, message.getBody());
-          consumerFunction.accept(new AmqpMessage(delivery, message));
+          consumerFunction.accept(new AmqpMessage<>(delivery, message));
           if (!continuation.getAsBoolean()) {
             receiver.close();
           }
@@ -137,56 +127,51 @@ public class AmqpUsage {
           .open();
       } catch (Exception e) {
         LOGGER.error("Unable to receive messages from {}", topic, e);
-      } finally {
-        if (completion != null) {
-          completion.run();
-        }
       }
     });
     t.setName(topic + "-thread");
     t.start();
   }
 
-  public void consumeStrings(String topic, BooleanSupplier continuation, Runnable completion, Consumer<String> consumerFunction) {
-    this.consume(topic, continuation, completion, value -> consumerFunction.accept(value.getPayload().toString()));
+  private void consumeStrings(String topic, BooleanSupplier continuation, Consumer<String> consumerFunction) {
+    this.consume(topic, continuation, value -> consumerFunction.accept(value.getPayload().toString()));
   }
 
-  public void consumeIntegers(String topic, BooleanSupplier continuation, Runnable completion, Consumer<Integer> consumerFunction) {
-    this.consume(topic, continuation, completion, value -> consumerFunction.accept((Integer) value.getPayload()));
+  private void consumeIntegers(String topic, BooleanSupplier continuation, Consumer<Integer> consumerFunction) {
+    this.consume(topic, continuation, value -> consumerFunction.accept((Integer) value.getPayload()));
   }
 
-  public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Consumer<String> consumer) {
+  void consumeTenStrings(String topicName, Consumer<String> consumer) {
     AtomicLong readCounter = new AtomicLong();
-    this.consumeStrings(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, s -> {
+    this.consumeStrings(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) 10), s -> {
       consumer.accept(s);
       readCounter.incrementAndGet();
     });
   }
 
-  public void consumeMessages(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Consumer<AmqpMessage> consumer) {
+  <T> void consumeTenMessages(String topicName, Consumer<AmqpMessage<T>> consumer) {
     AtomicLong readCounter = new AtomicLong();
-    this.consume(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, s -> {
+    this.<T>consume(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) 10), s -> {
       consumer.accept(s);
       readCounter.incrementAndGet();
     });
   }
 
-  public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, Consumer<Integer> consumer) {
+  void consumeTenIntegers(String topicName, Consumer<Integer> consumer) {
     AtomicLong readCounter = new AtomicLong();
-    this.consumeIntegers(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, s -> {
+    this.consumeIntegers(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) 10), s -> {
       consumer.accept(s);
       readCounter.incrementAndGet();
     });
   }
 
-  private BooleanSupplier continueIfNotExpired(BooleanSupplier continuation,
-                                               long timeout, TimeUnit unit) {
+  private BooleanSupplier continueIfNotExpired(BooleanSupplier continuation) {
     return new BooleanSupplier() {
       long stopTime = 0L;
 
       public boolean getAsBoolean() {
         if (this.stopTime == 0L) {
-          this.stopTime = System.currentTimeMillis() + unit.toMillis(timeout);
+          this.stopTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis((long) 10);
         }
 
         return continuation.getAsBoolean() && System.currentTimeMillis() <= this.stopTime;
@@ -194,7 +179,7 @@ public class AmqpUsage {
     };
   }
 
-  public void close() {
+  void close() {
     if (connection != null && !connection.isDisconnected()) {
       connection.close();
       connection.disconnect();

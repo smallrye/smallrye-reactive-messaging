@@ -12,10 +12,10 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
-import org.reactivestreams.Publisher;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -24,8 +24,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
+@RunWith(Parameterized.class)
 public class AmqpSourceTest extends AmqpTestBase {
 
+  @Parameterized.Parameters
+  public static Object[][] data() {
+    return new Object[10][0];
+  }
 
   private AmqpMessagingProvider provider;
 
@@ -42,29 +47,27 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSource() throws InterruptedException {
+  public void testSource() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = getConfig(topic);
     config.put("ttl", "10000");
 
     provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    Publisher<? extends Message> publisher = provider.createPublisher(config).toCompletableFuture().join();
 
     List<Message> messages = new ArrayList<>();
-
-    CountDownLatch latch = new CountDownLatch(1);
-    Flowable.fromPublisher(publisher)
-      .doOnRequest(x -> latch.countDown())
-      .forEach(messages::add);
-    latch.await();
-
-//     For some reason, we need to wait until the connection is established. To investigate...
-    Thread.sleep(2000);
+    AmqpSource source = provider.getSource(config).toCompletableFuture().join();
+    //noinspection ResultOfMethodCallIgnored
+    Flowable.fromPublisher(source.publisher())
+      .subscribe(
+        messages::add,
+        Throwable::printStackTrace
+      );
+    await().until(source::isOpen);
 
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
-      usage.produceIntegers(topic, 10, null,
+      usage.produceTenIntegers(topic,
         counter::getAndIncrement)).start();
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
@@ -74,7 +77,7 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testMulticast() throws InterruptedException {
+  public void testMulticast() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = new HashMap<>();
     config.put("address", topic);
@@ -86,26 +89,24 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     AmqpMessagingProvider provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    Publisher<? extends Message> publisher = provider.createPublisher(config).toCompletableFuture().join();
+    AmqpSource source = provider.getSource(config).toCompletableFuture().join();
 
     List<Message> messages1 = new ArrayList<>();
     List<Message> messages2 = new ArrayList<>();
-    Flowable<Message> flowable = Flowable.fromPublisher(publisher);
-    CountDownLatch latch = new CountDownLatch(2);
+    Flowable<? extends Message> flowable = Flowable.fromPublisher(source.publisher());
+
+    //noinspection ResultOfMethodCallIgnored
     flowable
-      .doOnSubscribe(s -> latch.countDown())
-      .doOnNext(m -> System.out.println("Subscriber 1 got " + m))
       .forEach(messages1::add);
+    //noinspection ResultOfMethodCallIgnored
     flowable
-      .doOnSubscribe(s -> latch.countDown())
-      .doOnNext(m -> System.out.println("Subscriber 2 got " + m))
       .forEach(messages2::add);
 
-    latch.await();
+    await().until(source::isOpen);
 
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
-      usage.produceIntegers(topic, 10, null,
+      usage.produceTenIntegers(topic,
         counter::getAndIncrement)).start();
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
@@ -127,9 +128,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     assertThat(list).isEmpty();
 
     AtomicInteger counter = new AtomicInteger();
-    new Thread(() ->
-      usage.produceIntegers("data", 10, null, counter::getAndIncrement))
-      .start();
+    usage.produceTenIntegers("data", counter::getAndIncrement);
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
     assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -145,25 +144,23 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSourceWithBinaryContent() throws InterruptedException {
+  public void testSourceWithBinaryContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = getConfig(topic);
     provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    Publisher<? extends Message> publisher = provider.createPublisher(config).toCompletableFuture().join();
 
-    List<Message> messages = new ArrayList<>();
+    List<Message<byte[]>> messages = new ArrayList<>();
+    AmqpSource source = provider.getSource(config).toCompletableFuture().join();
+    //noinspection ResultOfMethodCallIgnored
+    Flowable.fromPublisher(source.publisher())
+      .subscribe(
+        messages::add,
+        Throwable::printStackTrace
+      );
+    await().until(source::isOpen);
 
-    CountDownLatch latch = new CountDownLatch(1);
-    Flowable.fromPublisher(publisher)
-      .doOnRequest(x -> latch.countDown())
-      .forEach(messages::add);
-    latch.await();
-
-    // For some reason, we need to wait until the connection is established. To investigate...
-    Thread.sleep(2000);
-
-    usage.produce(topic, 1, null, () -> new AmqpValue(new Binary("hello".getBytes())));
+    usage.produce(topic, 1, () -> new AmqpValue(new Binary("hello".getBytes())));
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
     assertThat(messages.stream().map(Message::getPayload)
@@ -172,28 +169,26 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSourceWithMapContent() throws InterruptedException {
+  public void testSourceWithMapContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = getConfig(topic);
     provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    Publisher<? extends Message> publisher = provider.createPublisher(config).toCompletableFuture().join();
 
     List<Message<Map<String, String>>> messages = new ArrayList<>();
-
-    CountDownLatch latch = new CountDownLatch(1);
-    Flowable.fromPublisher(publisher)
-      .doOnRequest(x -> latch.countDown())
-      .forEach(messages::add);
-    latch.await();
-
-    // For some reason, we need to wait until the connection is established. To investigate...
-    Thread.sleep(2000);
+    AmqpSource source = provider.getSource(config).toCompletableFuture().join();
+    //noinspection ResultOfMethodCallIgnored
+    Flowable.fromPublisher(source.publisher())
+      .subscribe(
+        messages::add,
+        Throwable::printStackTrace
+      );
+    await().until(source::isOpen);
 
     Map<String, String> map = new HashMap<>();
     map.put("hello", "world");
     map.put("some", "content");
-    usage.produce(topic, 1, null, () -> new AmqpValue(map));
+    usage.produce(topic, 1, () -> new AmqpValue(map));
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
     Map<String, String> result = messages.get(0).getPayload();
@@ -202,28 +197,26 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSourceWithListContent() throws InterruptedException {
+  public void testSourceWithListContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = getConfig(topic);
     provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    Publisher<? extends Message> publisher = provider.createPublisher(config).toCompletableFuture().join();
 
     List<Message<List<String>>> messages = new ArrayList<>();
-
-    CountDownLatch latch = new CountDownLatch(1);
-    Flowable.fromPublisher(publisher)
-      .doOnRequest(x -> latch.countDown())
-      .forEach(messages::add);
-    latch.await();
-
-    // For some reason, we need to wait until the connection is established. To investigate...
-    Thread.sleep(2000);
+    AmqpSource source = provider.getSource(config).toCompletableFuture().join();
+    //noinspection ResultOfMethodCallIgnored
+    Flowable.fromPublisher(source.publisher())
+      .subscribe(
+        messages::add,
+        Throwable::printStackTrace
+      );
+    await().until(source::isOpen);
 
     List<String> list = new ArrayList<>();
     list.add("hello");
     list.add("world");
-    usage.produce(topic, 1, null, () -> new AmqpValue(list));
+    usage.produce(topic, 1, () -> new AmqpValue(list));
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
     List<String> result = messages.get(0).getPayload();
@@ -232,28 +225,26 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSourceWithSeqContent() throws InterruptedException {
+  public void testSourceWithSeqContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = getConfig(topic);
     provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    Publisher<? extends Message> publisher = provider.createPublisher(config).toCompletableFuture().join();
 
     List<Message<List<String>>> messages = new ArrayList<>();
-
-    CountDownLatch latch = new CountDownLatch(1);
-    Flowable.fromPublisher(publisher)
-      .doOnRequest(x -> latch.countDown())
-      .forEach(messages::add);
-    latch.await();
-
-    // For some reason, we need to wait until the connection is established. To investigate...
-    Thread.sleep(2000);
+    AmqpSource source = provider.getSource(config).toCompletableFuture().join();
+    //noinspection ResultOfMethodCallIgnored
+    Flowable.fromPublisher(source.publisher())
+      .subscribe(
+        messages::add,
+        Throwable::printStackTrace
+      );
+    await().until(source::isOpen);
 
     List<String> list = new ArrayList<>();
     list.add("hello");
     list.add("world");
-    usage.produce(topic, 1, null, () -> new AmqpSequence(list));
+    usage.produce(topic, 1, () -> new AmqpSequence(list));
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
     List<String> result = messages.get(0).getPayload();
@@ -262,28 +253,26 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSourceWithDataContent() throws InterruptedException {
+  public void testSourceWithDataContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = getConfig(topic);
     provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    Publisher<? extends Message> publisher = provider.createPublisher(config).toCompletableFuture().join();
 
     List<Message<byte[]>> messages = new ArrayList<>();
-
-    CountDownLatch latch = new CountDownLatch(1);
-    Flowable.fromPublisher(publisher)
-      .doOnRequest(x -> latch.countDown())
-      .forEach(messages::add);
-    latch.await();
-
-    // For some reason, we need to wait until the connection is established. To investigate...
-    Thread.sleep(2000);
+    AmqpSource source = provider.getSource(config).toCompletableFuture().join();
+    //noinspection ResultOfMethodCallIgnored
+    Flowable.fromPublisher(source.publisher())
+      .subscribe(
+        messages::add,
+        Throwable::printStackTrace
+      );
+    await().until(source::isOpen);
 
     List<String> list = new ArrayList<>();
     list.add("hello");
     list.add("world");
-    usage.produce(topic, 1, null, () -> new Data(new Binary(list.toString().getBytes())));
+    usage.produce(topic, 1, () -> new Data(new Binary(list.toString().getBytes())));
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
     byte[] result = messages.get(0).getPayload();

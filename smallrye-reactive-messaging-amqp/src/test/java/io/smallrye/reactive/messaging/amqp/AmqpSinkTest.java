@@ -7,6 +7,8 @@ import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.reactivestreams.Subscriber;
 
 import java.util.*;
@@ -19,7 +21,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
+@RunWith(Parameterized.class)
 public class AmqpSinkTest extends AmqpTestBase {
+
+  @Parameterized.Parameters
+  public static Object[][] data() {
+    return new Object[10][0];
+  }
 
   private WeldContainer container;
 
@@ -31,52 +39,42 @@ public class AmqpSinkTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSinkUsingInteger() throws InterruptedException {
+  public void testSinkUsingInteger() {
     String topic = UUID.randomUUID().toString();
-    CountDownLatch latch = new CountDownLatch(1);
     AtomicInteger expected = new AtomicInteger(0);
-    usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-      latch::countDown,
+    usage.consumeTenIntegers(topic,
       v -> expected.getAndIncrement());
 
-    Subscriber subscriber = getConfiguredSubscriber(topic);
+    AmqpSink sink = getSink(topic);
+    await().until(sink::isOpen);
+    @SuppressWarnings("unchecked")
+    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
 
     Flowable.range(0, 10)
       .map(v -> (Message) Message.of(v))
       .subscribe(subscriber);
 
-    assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     await().untilAtomic(expected, is(10));
     assertThat(expected).hasValue(10);
   }
 
   @Test
-  public void testSinkUsingString() throws InterruptedException {
+  public void testSinkUsingString() {
     String topic = UUID.randomUUID().toString();
-    CountDownLatch latch = new CountDownLatch(1);
     AtomicInteger expected = new AtomicInteger(0);
-    usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
-      latch::countDown,
+    usage.consumeTenStrings(topic,
       v -> expected.getAndIncrement());
 
-    Map<String, String> config = new HashMap<>();
-    config.put("address", topic);
-    config.put("host", address);
-    config.put("port", Integer.toString(port));
-    config.put("username", "artemis");
-    config.put("durable", "false");
-    config.put("password", new String("simetraehcapa".getBytes()));
-
-    AmqpMessagingProvider provider = new AmqpMessagingProvider(vertx);
-    provider.configure();
-    Subscriber subscriber = provider.createSubscriber(config).toCompletableFuture().join();
+    AmqpSink sink = getSink(topic);
+    await().until(sink::isOpen);
+    @SuppressWarnings("unchecked")
+    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
 
     Flowable.range(0, 10)
       .map(i -> Integer.toString(i))
       .map(Message::of)
       .subscribe(subscriber);
 
-    assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     await().untilAtomic(expected, is(10));
     assertThat(expected).hasValue(10);
   }
@@ -91,8 +89,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     container = weld.initialize();
 
     CountDownLatch latch = new CountDownLatch(10);
-    usage.consumeIntegers("sink", 10, 10, TimeUnit.SECONDS,
-      null,
+    usage.consumeTenIntegers("sink",
       v -> latch.countDown());
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -100,20 +97,21 @@ public class AmqpSinkTest extends AmqpTestBase {
 
 
   @Test
-  public void testSinkUsingAmqpMessage() throws InterruptedException {
+  public void testSinkUsingAmqpMessage() {
     String topic = UUID.randomUUID().toString();
-    CountDownLatch latch = new CountDownLatch(1);
     AtomicInteger expected = new AtomicInteger(0);
 
     List<AmqpMessage<String>> messages = new ArrayList<>();
-    usage.consumeMessages(topic, 10, 10, TimeUnit.SECONDS,
-      latch::countDown,
+    usage.<String>consumeTenMessages(topic,
       v -> {
         expected.getAndIncrement();
         messages.add(v);
       });
 
-    Subscriber subscriber = getConfiguredSubscriber(topic);
+    AmqpSink sink = getSink(topic);
+    await().until(sink::isOpen);
+    @SuppressWarnings("unchecked")
+    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
 
     Flowable.range(0, 10)
       .map(v -> {
@@ -123,7 +121,6 @@ public class AmqpSinkTest extends AmqpTestBase {
       })
       .subscribe(subscriber);
 
-    assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     await().untilAtomic(expected, is(10));
     assertThat(expected).hasValue(10);
 
@@ -135,20 +132,21 @@ public class AmqpSinkTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSinkUsingProtonMessage() throws InterruptedException {
+  public void testSinkUsingProtonMessage() {
     String topic = UUID.randomUUID().toString();
-    CountDownLatch latch = new CountDownLatch(1);
     AtomicInteger expected = new AtomicInteger(0);
 
     List<AmqpMessage<String>> messages = new ArrayList<>();
-    usage.consumeMessages(topic, 10, 10, TimeUnit.SECONDS,
-      latch::countDown,
+    usage.<String>consumeTenMessages(topic,
       v -> {
         expected.getAndIncrement();
         messages.add(v);
       });
 
-    Subscriber subscriber = getConfiguredSubscriber(topic);
+    AmqpSink sink = getSink(topic);
+    await().until(sink::isOpen);
+    @SuppressWarnings("unchecked")
+    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
 
     Flowable.range(0, 10)
       .map(v -> {
@@ -160,7 +158,6 @@ public class AmqpSinkTest extends AmqpTestBase {
       .map(Message::of)
       .subscribe(subscriber);
 
-    assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     await().untilAtomic(expected, is(10));
     assertThat(expected).hasValue(10);
 
@@ -171,7 +168,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     });
   }
 
-  private Subscriber getConfiguredSubscriber(String topic) {
+  private AmqpSink getSink(String topic) {
     Map<String, String> config = new HashMap<>();
     config.put("address", topic);
     config.put("host", address);
@@ -182,7 +179,8 @@ public class AmqpSinkTest extends AmqpTestBase {
 
     AmqpMessagingProvider provider = new AmqpMessagingProvider(vertx);
     provider.configure();
-    return provider.createSubscriber(config).toCompletableFuture().join();
+    return provider.getSink(config).toCompletableFuture().join();
   }
+
 
 }
