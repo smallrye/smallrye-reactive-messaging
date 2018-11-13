@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging;
 
 import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.annotations.Multicast;
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
@@ -36,7 +36,7 @@ public class MediatorConfiguration {
 
   private Acknowledgment.Mode acknowledgment;
 
-  private Multicast multicast;
+  private Broadcast broadcast;
 
   /**
    * What does the mediator products and how is it produced
@@ -157,11 +157,11 @@ public class MediatorConfiguration {
       throw getOutgoingError("The @Merge annotation is only supported for method annotated with @Incoming: " + methodAsString());
     }
 
-    Multicast multicast = method.getAnnotation(Multicast.class);
+    Broadcast broadcast = method.getAnnotation(Broadcast.class);
     if (outgoing != null) {
-      this.multicast = multicast;
-    } else if (multicast != null){
-      throw getIncomingError("The @Multicast annotation is only supported for method annotated with @Outgoing: " + methodAsString());
+      this.broadcast = broadcast;
+    } else if (broadcast != null){
+      throw getIncomingError("The @Broadcast annotation is only supported for method annotated with @Outgoing: " + methodAsString());
     }
 
   }
@@ -536,15 +536,15 @@ public class MediatorConfiguration {
     return mergePolicy;
   }
 
-  public boolean isMulticast() {
-    return multicast != null;
+  public boolean getBroadcast() {
+    return broadcast != null;
   }
 
   public int getNumberOfSubscriberBeforeConnecting() {
-    if (! isMulticast()) {
+    if (! getBroadcast()) {
       return -1;
     } else {
-      return multicast.value();
+      return broadcast.value();
     }
   }
 }

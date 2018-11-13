@@ -23,16 +23,16 @@ The `@Merge` annotation can be configured with a _merge policy_:
 * `CONCAT` - Concat the sources.
 
 
-=== @Multicast
+=== @Broadcast
 
-The `@Multicast` annotation can be used on a method annotation with `@Outgoing` to broadcast the emitted messages to all
+The `@Broadcast` annotation can be used on a method annotation with `@Outgoing` to broadcast the emitted messages to all
 the matching subscribers:
 
 [source, java]
 ----
 @Outgoing("Y")
 @Incoming("X")
-@Multicast
+@Broadcast
 public String process(String s) {
   return s.toUpperCase();
 }

@@ -77,13 +77,13 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testMulticast() {
+  public void testBroadcast() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = new HashMap<>();
     config.put("address", topic);
     config.put("host", address);
     config.put("port", Integer.toString(port));
-    config.put("multicast", "true");
+    config.put("broadcast", "true");
     config.put("username", "artemis");
     config.put("password", new String("simetraehcapa".getBytes()));
 

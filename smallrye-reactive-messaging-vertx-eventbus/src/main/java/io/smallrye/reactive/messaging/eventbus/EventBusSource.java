@@ -14,12 +14,12 @@ public class EventBusSource {
   private final String address;
   private final boolean ack;
   private final Vertx vertx;
-  private final boolean multicast;
+  private final boolean broadcast;
 
   public EventBusSource(Vertx vertx, ConfigurationHelper config) {
     this.vertx = Objects.requireNonNull(vertx, "The vert.x instance must not be `null`");
     this.address = config.getOrDie("address");
-    this.multicast = config.getAsBoolean("multicast", false);
+    this.broadcast = config.getAsBoolean("broadcast", false);
     this.ack = config.getAsBoolean("use-reply-as-ack", false);
   }
 
@@ -27,7 +27,7 @@ public class EventBusSource {
     MessageConsumer<Message> consumer = vertx.eventBus().consumer(address);
     return consumer.toFlowable()
       .compose(flow -> {
-        if (multicast) {
+        if (broadcast) {
           return flow.publish().autoConnect();
         } else {
           return flow;

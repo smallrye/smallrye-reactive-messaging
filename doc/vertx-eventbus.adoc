@@ -23,11 +23,11 @@ To enable the Vert.x EventBus support, you need the following dependency:
 smallrye.messaging.source.data.address=<the-eventbus-address>
 smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
 smallrye.messaging.source.data.use-reply-as-ack=<true|false>
-smallrye.messaging.source.data.multicast=<true|false>
+smallrye.messaging.source.data.broadcast=<true|false>
 ----
 
 The `address` indicates from which event bus address the messages are retrieved. `use-reply-as-ack` instructs the
-framework to reply to the event bus message as acknowledgement mechanism. Finally, the `multicast` entry broadcasts the
+framework to reply to the event bus message as acknowledgement mechanism. Finally, the `broadcast` entry broadcasts the
 to many subscribers.
 
 The received messages are instance of `io.smallrye.reactive.messaging.eventbus.EventBusMessage`. The payload is the message

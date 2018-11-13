@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.multicast;
+package io.smallrye.reactive.messaging.broadcast;
 
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import org.junit.Test;
@@ -6,15 +6,15 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-public class MulticastTest extends WeldTestBaseWithoutTails  {
+public class BroadcastTest extends WeldTestBaseWithoutTails  {
 
 
   @Test
-  public void testMulticast() {
-    addBeanClass(BeanUsingMulticast.class);
+  public void testBroadcast() {
+    addBeanClass(BeanUsingBroadcast.class);
     initialize();
 
-    BeanUsingMulticast bean = container.getBeanManager().createInstance().select(BeanUsingMulticast.class).get();
+    BeanUsingBroadcast bean = container.getBeanManager().createInstance().select(BeanUsingBroadcast.class).get();
 
     await().until(() -> bean.l1().size() == 4);
     await().until(() -> bean.l2().size() == 4);

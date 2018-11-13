@@ -16,13 +16,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class AmqpSource implements Closeable {
 
   private final ProtonReceiver receiver;
-  private final boolean multicast;
+  private final boolean broadcast;
   private AtomicBoolean open = new AtomicBoolean();
   private Flowable<? extends Message> publisher;
 
 
-  AmqpSource(ProtonConnection connection, String address, boolean multicast, JsonObject copy) {
-    this.multicast = multicast;
+  AmqpSource(ProtonConnection connection, String address, boolean broadcast, JsonObject copy) {
+    this.broadcast = broadcast;
     this.receiver = connection.createReceiver(address, new ProtonLinkOptions(copy));
   }
 
@@ -42,7 +42,7 @@ public class AmqpSource implements Closeable {
     receiver.handler(((delivery, message) -> processor.onNext(new AmqpMessage(delivery, message))));
 
     publisher = Flowable.fromPublisher(processor).compose(
-      flow -> multicast ? flow.publish().autoConnect() : flow
+      flow -> broadcast ? flow.publish().autoConnect() : flow
     );
     receiver.open();
     return future;
@@ -52,7 +52,7 @@ public class AmqpSource implements Closeable {
     return publisher;
   }
 
-  public boolean isOpen() {
+  boolean isOpen() {
     return open.get();
   }
 

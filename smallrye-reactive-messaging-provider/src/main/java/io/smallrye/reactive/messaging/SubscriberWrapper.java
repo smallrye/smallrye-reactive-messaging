@@ -33,7 +33,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
           // Ignored.
         }
       });
-      s.onError(new IllegalStateException("Multicasting not supported"));
+      s.onError(new IllegalStateException("Broadcast not supported"));
     }
   }
 

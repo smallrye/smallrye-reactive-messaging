@@ -56,13 +56,13 @@ public class MqttSourceTest extends MqttTestBase {
   }
 
   @Test
-  public void testMulticast() {
+  public void testBroadcast() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = new HashMap<>();
     config.put("topic", topic);
     config.put("host", address);
     config.put("port", Integer.toString(port));
-    config.put("multicast", "true");
+    config.put("broadcast", "true");
 
     MqttSource source = new MqttSource(vertx, config);
 

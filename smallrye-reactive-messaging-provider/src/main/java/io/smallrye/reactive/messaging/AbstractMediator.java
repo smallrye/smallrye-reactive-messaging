@@ -97,7 +97,7 @@ public abstract class AbstractMediator {
     if (input == null) {
       return null;
     }
-    if (configuration.isMulticast()) {
+    if (configuration.getBroadcast()) {
       if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
         return Flowable.fromPublisher(input).publish().autoConnect(configuration.getNumberOfSubscriberBeforeConnecting());
       } else {

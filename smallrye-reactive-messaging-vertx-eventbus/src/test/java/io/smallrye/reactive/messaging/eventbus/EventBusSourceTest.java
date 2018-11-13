@@ -58,11 +58,11 @@ public class EventBusSourceTest extends EventbusTestBase {
   }
 
   @Test
-  public void testMulticast() {
+  public void testBroadcast() {
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = new HashMap<>();
     config.put("address", topic);
-    config.put("multicast", "true");
+    config.put("broadcast", "true");
     EventBusSource source = new EventBusSource(vertx, ConfigurationHelper.create(config));
 
     List<EventBusMessage> messages1 = new ArrayList<>();

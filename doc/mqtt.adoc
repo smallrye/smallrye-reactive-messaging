@@ -26,7 +26,7 @@ smallrye.messaging.source.data.host=localhost
 smallrye.messaging.source.data.port=8883
 smallrye.messaging.source.data.username=username
 smallrye.messaging.source.data.password=secret
-smallrye.messaging.source.data.multicast=true
+smallrye.messaging.source.data.broadcast=true
 ----
 
 Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You can also receive

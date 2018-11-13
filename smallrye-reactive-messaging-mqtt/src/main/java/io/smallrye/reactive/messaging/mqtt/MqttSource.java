@@ -22,7 +22,7 @@ public class MqttSource {
   private final String server;
   private final String topic;
   private final int qos;
-  private final boolean multicast;
+  private final boolean broadcast;
 
   public MqttSource(Vertx vertx, Map<String, String> config) {
     ConfigurationHelper conf = ConfigurationHelper.create(config);
@@ -51,7 +51,7 @@ public class MqttSource {
     topic = conf.getOrDie("topic");
     client = MqttClient.create(vertx, options);
     qos = conf.getAsInteger("qos", 0);
-    multicast = conf.getAsBoolean("multicast", false);
+    broadcast = conf.getAsBoolean("broadcast", false);
   }
 
   public CompletableFuture<Publisher<? extends Message>> initialize() {
@@ -69,7 +69,7 @@ public class MqttSource {
             });
           });
           Flowable<Message> flowable = stream.toFlowable(BackpressureStrategy.BUFFER);
-          if (multicast) {
+          if (broadcast) {
             flowable = flowable.publish().autoConnect();
           }
           future.complete(flowable);

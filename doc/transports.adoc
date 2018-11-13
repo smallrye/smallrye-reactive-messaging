@@ -52,7 +52,7 @@ Here is an example of a MQTT source (consuming data from a MQTT broker) and a Ka
 smallrye.messaging.source.health.topic=neo
 smallrye.messaging.source.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
 smallrye.messaging.source.health.host=localhost
-smallrye.messaging.source.health.multicast=true
+smallrye.messaging.source.health.broadcast=true
 # [/Source - health]
 
 # [Sink - data] - Produce data to Kafka

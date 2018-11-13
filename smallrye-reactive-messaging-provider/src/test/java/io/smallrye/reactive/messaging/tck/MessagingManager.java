@@ -1,19 +1,11 @@
 package io.smallrye.reactive.messaging.tck;
 
-import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
-import io.reactivex.FlowableEmitter;
-import io.reactivex.FlowableOnSubscribe;
-import io.reactivex.processors.MulticastProcessor;
 import io.reactivex.processors.PublishProcessor;
-import io.reactivex.processors.ReplayProcessor;
-import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.tck.incoming.Bean;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -106,7 +98,7 @@ public class MessagingManager implements StreamRegistar {
     return CompletableFuture.completedFuture(null);
   }
 
-  private class Source  {
+  private class Source {
 
     public Source(String name) {
       this.name = name;

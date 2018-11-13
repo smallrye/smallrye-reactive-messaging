@@ -30,7 +30,7 @@ public class KafkaSource {
             .flatMap(i -> Flowable.timer(i, TimeUnit.SECONDS)));
     }
 
-    if (conf.getAsBoolean( "multicast", false)) {
+    if (conf.getAsBoolean( "broadcast", false)) {
       flowable = flowable.publish().autoConnect();
     }
 

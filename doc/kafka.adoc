@@ -48,7 +48,7 @@ in the following table:
 | enable.auto.commit | false | false | whether or not the messages are committed automatically
 | retry | false | true | Whether it should retry to re-established the connection to the broker is it fails
 | retry-attempts | false | 5 | Number of retries
-| multicast | false | false | Whether the received messages can be dispatched to several `@Incoming`
+| broadcast | false | false | Whether the received messages can be dispatched to several `@Incoming`
 |===
 
 You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].

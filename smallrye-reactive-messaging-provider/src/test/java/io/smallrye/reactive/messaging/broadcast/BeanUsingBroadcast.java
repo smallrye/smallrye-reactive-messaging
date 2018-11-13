@@ -1,7 +1,6 @@
-package io.smallrye.reactive.messaging.multicast;
+package io.smallrye.reactive.messaging.broadcast;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Multicast;
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
@@ -12,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
-public class BeanUsingMulticast {
+public class BeanUsingBroadcast {
 
   private List<String> l1 = new ArrayList<>();
   private List<String> l2 = new ArrayList<>();
@@ -29,7 +28,7 @@ public class BeanUsingMulticast {
 
   @Outgoing("Y")
   @Incoming("X")
-  @Multicast(2)
+  @Broadcast(2)
   public String process(String s) {
     return s.toUpperCase();
   }
@@ -39,11 +38,11 @@ public class BeanUsingMulticast {
     l1.add(i);
   }
 
-  public List<String> l1() {
+  List<String> l1() {
     return l1;
   }
 
-  public List<String> l2() {
+  List<String> l2() {
     return l2;
   }
 

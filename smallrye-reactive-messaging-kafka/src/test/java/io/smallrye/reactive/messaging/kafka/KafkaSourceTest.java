@@ -60,14 +60,14 @@ public class KafkaSourceTest extends KafkaTestBase {
 
 
   @Test
-  public void testMulticastSource() {
+  public void testBroadcast() {
     KafkaUsage usage = new KafkaUsage();
     String topic = UUID.randomUUID().toString();
     Map<String, String> config = newCommonConfig();
     config.put("topic", topic);
     config.put("value.serializer", IntegerSerializer.class.getName());
     config.put("value.deserializer", IntegerDeserializer.class.getName());
-    config.put("multicast", "true");
+    config.put("broadcast", "true");
     KafkaSource source = new KafkaSource(vertx, config);
 
     List<KafkaMessage> messages1 = new ArrayList<>();

@@ -84,12 +84,12 @@ public class AmqpMessagingProvider implements PublisherFactory, SubscriberFactor
   CompletionStage<AmqpSource> getSource(Map<String, String> config) {
     ConfigurationHelper conf = ConfigurationHelper.create(config);
     String address = conf.getOrDie("address");
-    boolean multicast = conf.getAsBoolean("multicast", false);
+    boolean broadcast = conf.getAsBoolean("broadcast", false);
     JsonObject copy = conf.asJsonObject();
 
     return connect(conf)
       .thenApply(conn -> {
-        AmqpSource source = new AmqpSource(conn, address, multicast, copy);
+        AmqpSource source = new AmqpSource(conn, address, broadcast, copy);
         closeable.add(source);
         return source;
       })
