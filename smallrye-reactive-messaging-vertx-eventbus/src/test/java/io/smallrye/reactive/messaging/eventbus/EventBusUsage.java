@@ -5,6 +5,7 @@ import io.vertx.core.eventbus.MessageConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
@@ -71,23 +72,32 @@ public class EventBusUsage {
    */
   public void consume(String topic, BooleanSupplier continuation,
                       Consumer<Object> consumerFunction) {
+    CountDownLatch done = new CountDownLatch(1);
     Thread t = new Thread(() -> {
       LOGGER.info("Starting consumer to read messages on {}", topic);
       try {
         MessageConsumer<Object> consumer = bus.consumer(topic);
-        consumer.handler(msg -> {
-          LOGGER.info("Consumer {}: consuming message {}", topic, msg.body());
-          consumerFunction.accept(msg.body());
-          if (!continuation.getAsBoolean()) {
-            consumer.unregister();
-          }
-        });
+        consumer
+          .handler(msg -> {
+            LOGGER.info("Consumer {}: consuming message {}", topic, msg.body());
+            consumerFunction.accept(msg.body());
+            if (!continuation.getAsBoolean()) {
+              consumer.unregister();
+            }
+          })
+          .completionHandler(x -> done.countDown());
       } catch (Exception e) {
         LOGGER.error("Unable to receive messages from {}", topic, e);
       }
     });
     t.setName(topic + "-thread");
     t.start();
+
+    try {
+      done.await(1, TimeUnit.MINUTES);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public void consumeStrings(String topic, BooleanSupplier continuation, Consumer<String> consumerFunction) {

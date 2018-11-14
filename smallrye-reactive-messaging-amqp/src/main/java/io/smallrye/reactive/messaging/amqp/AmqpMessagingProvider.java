@@ -55,6 +55,9 @@ public class AmqpMessagingProvider implements PublisherFactory, SubscriberFactor
     String host = config.getOrDie("host");
     int port = config.getAsInteger("port", 5672);
     ProtonClientOptions options = new ProtonClientOptions(config.asJsonObject());
+    if (options.getReconnectAttempts() <= 0){
+      options.setReconnectAttempts(100).setReconnectInterval(10);
+    }
 
     CompletableFuture<ProtonConnection> future = new CompletableFuture<>();
     client.connect(options, host, port, username, password, ar -> {
@@ -62,7 +65,13 @@ public class AmqpMessagingProvider implements PublisherFactory, SubscriberFactor
         future.completeExceptionally(ar.cause());
       } else {
         connection = ar.result().setContainer(config.get("containerId"));
-        connection.openHandler(x -> future.complete(x.result()));
+        connection.openHandler(x -> {
+          if (x.succeeded()) {
+            future.complete(x.result());
+          } else {
+            future.completeExceptionally(x.cause());
+          }
+        });
         connection.open();
       }
     });

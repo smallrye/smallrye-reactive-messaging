@@ -16,9 +16,9 @@ public class AmqpTestBase {
     .withExposedPorts(5672);
 
   Vertx vertx;
-  protected String address;
-  protected Integer port;
-  protected AmqpUsage usage;
+  String address;
+  Integer port;
+  AmqpUsage usage;
 
   @Before
   public void setup() {
@@ -42,6 +42,8 @@ public class AmqpTestBase {
     vertx.close(x -> latch.countDown());
 
     latch.await();
+
+    Thread.sleep(1000);
   }
 
 

@@ -14,6 +14,8 @@ import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.reactivestreams.Subscriber;
 
 import java.util.*;
@@ -26,7 +28,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
+@RunWith(Parameterized.class)
 public class EventBusSinkTest extends EventbusTestBase {
+
+
+  @Parameterized.Parameters
+  public static Object[][] data() {
+    return new Object[10][0];
+  }
 
   private WeldContainer container;
 
@@ -58,7 +67,6 @@ public class EventBusSinkTest extends EventbusTestBase {
     AtomicInteger expected = new AtomicInteger(0);
     usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
       v -> expected.getAndIncrement());
-
 
     Map<String, String> config = new HashMap<>();
     config.put("address", topic);

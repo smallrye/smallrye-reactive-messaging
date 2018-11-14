@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.proton.*;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
@@ -10,6 +12,7 @@ import org.apache.qpid.proton.message.Message;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -23,6 +26,7 @@ class AmqpUsage {
   private static Logger LOGGER = LogManager.getLogger(AmqpUsage.class);
   private ProtonClient client;
   private ProtonConnection connection;
+  private AtomicBoolean open = new AtomicBoolean();
 
 
   AmqpUsage(Vertx vertx, String host, int port) {
@@ -33,21 +37,9 @@ class AmqpUsage {
     CountDownLatch latch = new CountDownLatch(1);
     vertx.runOnContext(x -> {
       client = ProtonClient.create(vertx.getDelegate());
-      client.connect(new ProtonClientOptions().setReconnectAttempts(100), host, port, user, pwd, conn -> {
-        if (conn.succeeded()) {
-          this.connection = conn.result();
-          this.connection
-            .openHandler(connection -> {
-              if (connection.succeeded()) {
-                LOGGER.info("Connection to the AMQP broker succeeded");
-                latch.countDown();
-              } else {
-                LOGGER.error("Failed to establish a connection with the AMQP broker", connection.cause());
-              }
-            })
-            .open();
-        }
-      });
+      client.connect(new ProtonClientOptions()
+        .setReconnectInterval(10)
+        .setReconnectAttempts(100), host, port, user, pwd, getConnectionHandler(latch, host, port, user, pwd));
     });
     try {
       latch.await();
@@ -55,6 +47,41 @@ class AmqpUsage {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     }
+  }
+
+  private Handler<AsyncResult<ProtonConnection>> getConnectionHandler(CountDownLatch latch, String host, int port, String user, String pwd) {
+    return conn -> {
+    if (conn.succeeded()) {
+      this.connection = conn.result();
+      this.connection
+        .openHandler(connection -> {
+          if (connection.succeeded()) {
+            LOGGER.info("Connection to the AMQP broker succeeded");
+            open.set(true);
+            latch.countDown();
+          } else {
+            open.set(false);
+            LOGGER.error("Failed to establish a connection with the AMQP broker", connection.cause());
+          }
+        })
+        .closeHandler(c -> {
+          LOGGER.info("Closing " + c.succeeded());
+          if (c.failed()) {
+            LOGGER.info("Error receive during the closing", c.cause());
+          }
+          open.set(false);
+          LOGGER.info("Trying to re-open the connection");
+          client.connect(new ProtonClientOptions()
+            .setReconnectInterval(10)
+            .setReconnectAttempts(100), host, port, user, pwd, getConnectionHandler(latch, host, port, user, pwd));
+        })
+        .disconnectHandler(d -> {
+          LOGGER.info("Disconnecting");
+          open.set(false);
+        })
+        .open();
+    }
+  };
   }
 
   /**

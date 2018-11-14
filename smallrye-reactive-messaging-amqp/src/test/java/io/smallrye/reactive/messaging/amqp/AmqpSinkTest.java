@@ -30,11 +30,16 @@ public class AmqpSinkTest extends AmqpTestBase {
   }
 
   private WeldContainer container;
+  private AmqpSink sink;
 
   @After
   public void cleanup() {
     if (container != null) {
       container.close();
+    }
+
+    if (sink != null) {
+      sink.close();
     }
   }
 
@@ -45,7 +50,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     usage.consumeTenIntegers(topic,
       v -> expected.getAndIncrement());
 
-    AmqpSink sink = getSink(topic);
+    sink = getSink(topic);
     await().until(sink::isOpen);
     @SuppressWarnings("unchecked")
     Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
@@ -62,7 +67,7 @@ public class AmqpSinkTest extends AmqpTestBase {
   public void testSinkUsingString() {
     String topic = UUID.randomUUID().toString();
 
-    AmqpSink sink = getSink(topic);
+    sink = getSink(topic);
     await().until(sink::isOpen);
 
     AtomicInteger expected = new AtomicInteger(0);
@@ -110,7 +115,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         messages.add(v);
       });
 
-    AmqpSink sink = getSink(topic);
+    sink = getSink(topic);
     await().until(sink::isOpen);
     @SuppressWarnings("unchecked")
     Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
@@ -145,7 +150,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         messages.add(v);
       });
 
-    AmqpSink sink = getSink(topic);
+    sink = getSink(topic);
     await().until(sink::isOpen);
     @SuppressWarnings("unchecked")
     Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
