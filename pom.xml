@@ -21,11 +21,11 @@
     <vertx.version>3.5.4</vertx.version>
     <log4j2.version>2.11.1</log4j2.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
-    <microprofile-reactive-streams.version>1.0-RC1</microprofile-reactive-streams.version>
+    <microprofile-reactive-streams.version>1.0-RC2</microprofile-reactive-streams.version>
     <rxjava.version>2.2.3</rxjava.version>
     <weld-core.version>3.0.5.Final</weld-core.version>
     <jackson.version>2.9.7</jackson.version>
-    <smallrye-reactive-streams-ops.version>1.0.0-SNAPSHOT</smallrye-reactive-streams-ops.version>
+    <smallrye-reactive-streams-ops.version>0.2.1</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.4</smallrye-config.version>
 
     <asciidoctor-maven-plugin.version>1.5.7.1</asciidoctor-maven-plugin.version>
@@ -191,11 +191,12 @@
 
   <repositories>
     <repository>
-      <id>staging</id>
-      <url>https://oss.sonatype.org/content/repositories/orgeclipsemicroprofile-1119/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>bintray-jroper-maven</id>
+      <name>bintray</name>
+      <url>https://dl.bintray.com/jroper/maven</url>
     </repository>
     <repository>
       <id>microprofile-snapshots</id>
