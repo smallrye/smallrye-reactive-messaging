@@ -9,6 +9,7 @@
     <version>1</version>
   </parent>
 
+  <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
   <version>1.0.0-SNAPSHOT</version>
 

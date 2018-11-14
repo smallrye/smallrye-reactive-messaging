@@ -10,7 +10,7 @@ To enable the Camel support, you need the following dependency:
 [source,xml,subs=attributes+]
 ----
 <dependency>
-  <groupId>io.smallrye</groupId>
+  <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-camel</artifactId>
   <version>{version}</version>
 </dependency>

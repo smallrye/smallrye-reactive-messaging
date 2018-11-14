@@ -34,7 +34,7 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 [source,xml,subs=attributes+]
 ----
 <dependency>
-  <groupId>io.smallrye</groupId>
+  <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-provider</artifactId>
   <version>{version}</version>
 </dependency>
