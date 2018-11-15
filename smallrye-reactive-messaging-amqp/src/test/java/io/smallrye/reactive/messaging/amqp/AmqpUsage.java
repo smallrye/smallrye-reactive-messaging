@@ -51,44 +51,45 @@ class AmqpUsage {
 
   private Handler<AsyncResult<ProtonConnection>> getConnectionHandler(CountDownLatch latch, String host, int port, String user, String pwd) {
     return conn -> {
-    if (conn.succeeded()) {
-      this.connection = conn.result();
-      this.connection
-        .openHandler(connection -> {
-          if (connection.succeeded()) {
-            LOGGER.info("Connection to the AMQP broker succeeded");
-            open.set(true);
-            latch.countDown();
-          } else {
+      if (conn.succeeded()) {
+        this.connection = conn.result();
+        this.connection
+          .openHandler(connection -> {
+            if (connection.succeeded()) {
+              LOGGER.info("Connection to the AMQP broker succeeded");
+              open.set(true);
+              latch.countDown();
+            } else {
+              open.set(false);
+              LOGGER.error("Failed to establish a connection with the AMQP broker", connection.cause());
+            }
+          })
+          .closeHandler(c -> {
+            LOGGER.info("Closing " + c.succeeded());
+            if (c.failed()) {
+              LOGGER.info("Error receive during the closing", c.cause());
+            }
             open.set(false);
-            LOGGER.error("Failed to establish a connection with the AMQP broker", connection.cause());
-          }
-        })
-        .closeHandler(c -> {
-          LOGGER.info("Closing " + c.succeeded());
-          if (c.failed()) {
-            LOGGER.info("Error receive during the closing", c.cause());
-          }
-          open.set(false);
-          LOGGER.info("Trying to re-open the connection");
-          client.connect(new ProtonClientOptions()
-            .setReconnectInterval(10)
-            .setReconnectAttempts(100), host, port, user, pwd, getConnectionHandler(latch, host, port, user, pwd));
-        })
-        .disconnectHandler(d -> {
-          LOGGER.info("Disconnecting");
-          open.set(false);
-        })
-        .open();
-    }
-  };
+            LOGGER.info("Trying to re-open the connection");
+            client.connect(new ProtonClientOptions()
+              .setReconnectInterval(10)
+              .setReconnectAttempts(100), host, port, user, pwd, getConnectionHandler(latch, host, port, user, pwd));
+          })
+          .disconnectHandler(d -> {
+            LOGGER.info("Disconnecting");
+            open.set(false);
+          })
+          .open();
+      }
+    };
   }
 
   /**
    * Use the supplied function to asynchronously produce messages and write them to the broker.
-   *  @param topic              the topic, must not be null
-   * @param messageCount       the number of messages to produce; must be positive
-   * @param messageSupplier    the function to produce messages; may not be null
+   *
+   * @param topic           the topic, must not be null
+   * @param messageCount    the number of messages to produce; must be positive
+   * @param messageSupplier the function to produce messages; may not be null
    */
   void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
     CountDownLatch ready = new CountDownLatch(1);
@@ -137,14 +138,15 @@ class AmqpUsage {
 
   /**
    * Use the supplied function to asynchronously consume messages from the cluster.
-   *  @param topic            the topic
+   *
+   * @param topic            the topic
    * @param continuation     the function that determines if the consumer should continue; may not be null
    * @param consumerFunction the function to consume the messages; may not be null
    */
   private <T> void consume(String topic, BooleanSupplier continuation,
                            Consumer<AmqpMessage<T>> consumerFunction) {
     CountDownLatch latch = new CountDownLatch(1);
-    ProtonReceiver receiver = connection.createReceiver(topic);
+    ProtonReceiver receiver = getReceiver(topic);
     Thread t = new Thread(() -> {
       try {
         receiver.handler((delivery, message) -> {
@@ -172,6 +174,25 @@ class AmqpUsage {
       throw new RuntimeException(e);
     }
 
+  }
+
+  private ProtonReceiver getReceiver(String topic) {
+    int i = 0;
+    while (i < 10) {
+      try {
+        ProtonReceiver receiver = connection.createReceiver(topic);
+        return receiver;
+      } catch (Exception e) {
+        LOGGER.warn("Unable to create a receiver: {}", e.getMessage());
+        i = i + 1;
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e1) {
+          // Ignore me.
+        }
+      }
+    }
+    throw new RuntimeException("Unable to create a receiver after 10 attempts");
   }
 
   private void consumeStrings(String topic, BooleanSupplier continuation, Consumer<String> consumerFunction) {
