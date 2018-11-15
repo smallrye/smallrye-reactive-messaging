@@ -5,8 +5,6 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.PublisherInjectionManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.*;
@@ -21,8 +19,10 @@ public class ReactiveMessagingExtension implements Extension {
   private PublisherInjectionManager injections = new PublisherInjectionManager();
 
 
-  <T> void processClassesContainingMediators(@Observes @WithAnnotations({Incoming.class, Outgoing.class}) ProcessAnnotatedType<T> pat) {
-    mediators.analyze(pat);
+  <T> void processClassesContainingMediators(@Observes ProcessBean<T> bean) {
+    if (bean.getAnnotated() instanceof AnnotatedType) {
+      mediators.analyze((AnnotatedType<T>) bean.getAnnotated(), bean);
+    }
   }
 
   <T> void processClassesRequestingPublisher(@Observes @WithAnnotations({Stream.class}) ProcessAnnotatedType<T> pat) {
