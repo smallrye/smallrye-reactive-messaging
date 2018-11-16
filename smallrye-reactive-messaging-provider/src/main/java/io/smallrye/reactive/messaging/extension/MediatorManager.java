@@ -12,10 +12,8 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.AfterDeploymentValidation;
-import javax.enterprise.inject.spi.AnnotatedMethod;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.ProcessAnnotatedType;
+import javax.enterprise.inject.spi.*;
+import java.lang.annotation.Annotation;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -47,18 +45,19 @@ public class MediatorManager {
     }
   }
 
-  public <T> void analyze(ProcessAnnotatedType<T> pat) {
-    LOGGER.info("Scanning Type: " + pat.getAnnotatedType().getJavaClass().getName());
-    Set<AnnotatedMethod<? super T>> methods = pat.getAnnotatedType().getMethods();
+  public <T> void analyze(AnnotatedType<T> type, ProcessBean<T> bean) {
+    LOGGER.info("Scanning Type: " + type.getJavaClass().getName());
+    Set<AnnotatedMethod<? super T>> methods = type.getMethods();
+
     methods.stream()
       .filter(method -> method.isAnnotationPresent(Incoming.class))
-      .forEach(method -> collected.add(pat, method.getJavaMember()));
+      .forEach(method -> collected.add(type, method.getJavaMember(), bean.getBean().getQualifiers()));
 
     // For method with only @Outgoing
     methods.stream()
       .filter(method -> method.isAnnotationPresent(Outgoing.class))
       .filter(method -> !method.isAnnotationPresent(Incoming.class))
-      .forEach(method -> collected.add(pat, method.getJavaMember()));
+      .forEach(method -> collected.add(type, method.getJavaMember(), bean.getBean().getQualifiers()));
   }
 
   public void shutdown() {
@@ -89,7 +88,7 @@ public class MediatorManager {
           mediators.forEach(mediator -> {
             LOGGER.debug("Initializing {}", mediator.getMethodAsString());
             try {
-              mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass()).get());
+              mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass(), mediator.getConfiguration().getQualifiers().toArray(new Annotation[0])).get());
             } catch (Throwable e) {
               LOGGER.fatal("Unable to initialize mediator {}", mediator.getMethodAsString(), e);
               return;

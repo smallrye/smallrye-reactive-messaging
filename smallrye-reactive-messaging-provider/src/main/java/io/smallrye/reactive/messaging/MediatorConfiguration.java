@@ -15,16 +15,19 @@ import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 public class MediatorConfiguration {
 
   private final Method method;
+  private final Set<Annotation> qualifiers;
 
   private Shape shape;
 
@@ -79,9 +82,10 @@ public class MediatorConfiguration {
     NONE
   }
 
-  public MediatorConfiguration(Method method, Class<?> beanClass) {
+  public MediatorConfiguration(Method method, Class<?> beanClass, Set<Annotation> qualifiers) {
     this.method = Objects.requireNonNull(method, "'method' must be set");
     this.beanClass = Objects.requireNonNull(beanClass, "'beanClass' must be set");
+    this.qualifiers = Objects.requireNonNull(qualifiers, "the qualifiers must not be `null`");
   }
 
   public Shape shape() {
@@ -111,15 +115,28 @@ public class MediatorConfiguration {
       shape = Shape.PUBLISHER;
     }
 
-    Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
-    if (incoming != null) {
-      if (annotation != null) {
-        acknowledgment = annotation.value();
-      }
-    } else if (annotation != null) {
-      throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: " + methodAsString());
-    }
+    processAcknowledgement(incoming);
+    validate(incoming, outgoing);
+    processDefaultAcknowledgement();
+    processMerge(incoming);
+    processBroadcast(outgoing);
 
+  }
+
+  private void processDefaultAcknowledgement() {
+    // setup default acknowledgement
+    if (acknowledgment == null) {
+      if (shape == Shape.STREAM_TRANSFORMER) {
+        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
+      } else if (shape == Shape.PROCESSOR && !(consumption == Consumption.PAYLOAD || consumption == Consumption.MESSAGE)) {
+        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
+      } else {
+        acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
+      }
+    }
+  }
+
+  private void validate(Incoming incoming, Outgoing outgoing) {
     switch (shape) {
       case SUBSCRIBER:
         validateSubscriber(incoming);
@@ -136,18 +153,18 @@ public class MediatorConfiguration {
       default:
         throw new IllegalStateException("Unknown shape: " + shape);
     }
+  }
 
-    // setup default acknowledgement
-    if (acknowledgment == null) {
-      if (shape == Shape.STREAM_TRANSFORMER) {
-        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
-      } else if (shape == Shape.PROCESSOR && !(consumption == Consumption.PAYLOAD || consumption == Consumption.MESSAGE)) {
-        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
-      } else {
-        acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
-      }
+  private void processBroadcast(Outgoing outgoing) {
+    Broadcast bc = method.getAnnotation(Broadcast.class);
+    if (outgoing != null) {
+      this.broadcast = bc;
+    } else if (bc != null){
+      throw getIncomingError("The @Broadcast annotation is only supported for method annotated with @Outgoing: " + methodAsString());
     }
+  }
 
+  private void processMerge(Incoming incoming) {
     Merge merge = method.getAnnotation(Merge.class);
     if (incoming != null) {
       if (merge != null) {
@@ -156,14 +173,17 @@ public class MediatorConfiguration {
     } else if (merge != null) {
       throw getOutgoingError("The @Merge annotation is only supported for method annotated with @Incoming: " + methodAsString());
     }
+  }
 
-    Broadcast broadcast = method.getAnnotation(Broadcast.class);
-    if (outgoing != null) {
-      this.broadcast = broadcast;
-    } else if (broadcast != null){
-      throw getIncomingError("The @Broadcast annotation is only supported for method annotated with @Outgoing: " + methodAsString());
+  private void processAcknowledgement(Incoming incoming) {
+    Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
+    if (incoming != null) {
+      if (annotation != null) {
+        acknowledgment = annotation.value();
+      }
+    } else if (annotation != null) {
+      throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: " + methodAsString());
     }
-
   }
 
   private void validateStreamTransformer(Incoming incoming, Outgoing outgoing) {
@@ -538,6 +558,10 @@ public class MediatorConfiguration {
 
   public boolean getBroadcast() {
     return broadcast != null;
+  }
+
+  public Set<Annotation> getQualifiers() {
+    return qualifiers;
   }
 
   public int getNumberOfSubscriberBeforeConnecting() {
