@@ -1,17 +1,14 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.annotations.Acknowledgment;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
-import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -86,6 +83,7 @@ public class SubscriberMediator extends AbstractMediator {
     assert this.source != null;
     assert this.subscriber != null;
     final Logger logger = LogManager.getLogger(configuration.methodAsString());
+    AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
     Subscriber delegating = new Subscriber() {
       @Override
       public void onSubscribe(Subscription s) {
@@ -101,6 +99,7 @@ public class SubscriberMediator extends AbstractMediator {
       @Override
       public void onError(Throwable t) {
         logger.error("Error caught during the stream processing", t);
+        syncErrorCatcher.set(t);
         subscriber.onError(t);
       }
 
@@ -111,6 +110,11 @@ public class SubscriberMediator extends AbstractMediator {
     };
 
     this.source.subscribe(delegating);
+    // Check if a synchronous error has been caught
+    Throwable throwable = syncErrorCatcher.get();
+    if (throwable != null) {
+      throw new WeavingException(configuration.getIncoming(), throwable);
+    }
   }
 
   private void processMethodReturningVoid(Object bean) {

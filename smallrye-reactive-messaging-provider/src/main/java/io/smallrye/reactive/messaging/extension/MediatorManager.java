@@ -117,6 +117,7 @@ public class MediatorManager {
     LOGGER.info("Connecting mediators");
     List<AbstractMediator> unsatisfied = getAllNonSatisfiedMediators();
 
+    // This list contains the names of the streams that have bean connected and
     List<LazySource> lazy = new ArrayList<>();
     while (!unsatisfied.isEmpty()) {
       int numberOfUnsatisfiedBeforeLoop = unsatisfied.size();
@@ -127,7 +128,7 @@ public class MediatorManager {
         Optional<Publisher<? extends Message>> maybeSource = getAggregatedSource(sources, mediator, lazy);
         maybeSource.ifPresent(publisher -> {
           mediator.connectToUpstream(publisher);
-          LOGGER.info("Connecting {} to {} ({})", mediator.getMethodAsString(), mediator.configuration().getIncoming(), publisher);
+          LOGGER.info("Connecting {} to `{}` ({})", mediator.getMethodAsString(), mediator.configuration().getIncoming(), publisher);
           if (mediator.configuration().getOutgoing() != null) {
             registry.register(mediator.getConfiguration().getOutgoing(), mediator.getComputedPublisher());
           }
@@ -140,7 +141,7 @@ public class MediatorManager {
       if (numberOfUnsatisfiedAfterLoop == numberOfUnsatisfiedBeforeLoop) {
         // Stale!
         if (strictMode) {
-          throw new IllegalStateException("Impossible to bind mediators, some mediators are not connected: " +
+          throw new WeavingException("Impossible to bind mediators, some mediators are not connected: " +
             unsatisfied.stream().map(m -> m.configuration().methodAsString()).collect(Collectors.toList()) +
             ", available publishers:" + registry.getPublisherNames());
         } else {
@@ -220,6 +221,9 @@ public class MediatorManager {
       return Optional.of(lazySource);
     }
 
+    if (sources.size() > 1) {
+      throw new WeavingException(mediator.configuration().getIncoming(), mediator.getMethodAsString(), sources.size());
+    }
     return Optional.of(sources.get(0));
 
   }

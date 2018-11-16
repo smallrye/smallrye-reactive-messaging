@@ -25,13 +25,13 @@ class LazySource implements Publisher<Message> {
     if (! list.isEmpty()) {
       switch (mode) {
         case MERGE: this.delegate = Flowable.merge(list); break;
-        case ONE: {
+        case ONE:
           this.delegate = list.get(0);
           if (list.size() > 1) {
             logger.warn("Multiple publisher found for {}, using the merge policy `ONE` takes the first found", source);
           }
           break;
-        }
+
         case CONCAT: this.delegate = Flowable.concat(list); break;
         default: throw new IllegalArgumentException("Unknown merge policy for " + source +  ": " + mode);
       }
