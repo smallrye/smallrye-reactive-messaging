@@ -443,7 +443,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="details">
 <span id="author" class="author">Clement Escoffier</span><br>
 <span id="revnumber">version 1.0.0-SNAPSHOT,</span>
-<span id="revdate">2018-11-13</span>
+<span id="revdate">2018-12-05</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">SmallRye Reactive Messaging</div>
@@ -629,14 +629,14 @@ work with any implementation of CDI 2.x.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
-  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-provider&lt;/artifactId&gt;
   &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-streams-operators-cdi&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-streams-operators&lt;/artifactId&gt;
+  &lt;version&gt;0.3.1&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.jboss.weld.se&lt;/groupId&gt;
@@ -1584,7 +1584,7 @@ smallrye.messaging.sink.data.acks=1
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
-  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
   &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
@@ -1811,7 +1811,7 @@ almost any existing system.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
-  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-camel&lt;/artifactId&gt;
   &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
@@ -1965,7 +1965,7 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
-  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-mqtt&lt;/artifactId&gt;
   &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
@@ -2043,7 +2043,7 @@ smallrye.messaging.sink.data.password=secret</code></pre>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
-  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-http&lt;/artifactId&gt;
   &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
@@ -2097,7 +2097,7 @@ an asynchronous way.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
-  &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus&lt;/artifactId&gt;
   &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
