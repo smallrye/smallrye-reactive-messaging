@@ -53,13 +53,6 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
   @Override
   public CompletionStage<Void> ack() {
-    CompletableFuture<Void> future = new CompletableFuture<>();
-    consumer.commit(v -> {
-      if (v.succeeded()) {
-        future.complete(null);
-      } else {
-        future.completeExceptionally(v.cause());
-      }
-    });
-    return future;
+    consumer.commit();
+    return CompletableFuture.completedFuture(null);
   }}

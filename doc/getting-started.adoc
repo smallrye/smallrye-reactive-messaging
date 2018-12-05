@@ -40,7 +40,7 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 </dependency>
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-streams-operators-cdi</artifactId>
+  <artifactId>smallrye-reactive-streams-operators</artifactId>
   <version>{smallrye-streams-version}</version>
 </dependency>
 <dependency>
