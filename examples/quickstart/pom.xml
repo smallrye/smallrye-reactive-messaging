@@ -23,10 +23,11 @@
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>1.0.0-SNAPSHOT</version>
     </dependency>
+
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators-cdi</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>0.3.1</version>
     </dependency>
 
     <dependency>
