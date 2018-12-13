@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.extension;
 import io.reactivex.Flowable;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
 import javax.enterprise.util.TypeLiteral;

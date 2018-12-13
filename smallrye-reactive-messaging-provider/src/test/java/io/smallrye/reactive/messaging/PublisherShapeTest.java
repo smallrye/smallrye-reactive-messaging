@@ -11,7 +11,7 @@ import io.reactivex.Flowable;
 import io.reactivex.Single;
 import io.smallrye.reactive.messaging.beans.*;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 

@@ -4,7 +4,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.proton.*;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Subscriber;
 
 import java.io.Closeable;

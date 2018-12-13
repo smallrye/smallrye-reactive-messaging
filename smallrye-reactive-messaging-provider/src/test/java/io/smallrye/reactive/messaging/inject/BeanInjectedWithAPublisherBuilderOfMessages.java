@@ -3,8 +3,8 @@ package io.smallrye.reactive.messaging.inject;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;

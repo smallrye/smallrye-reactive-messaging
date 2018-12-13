@@ -3,8 +3,8 @@ package io.smallrye.reactive.messaging;
 import io.reactivex.Flowable;
 import org.apache.commons.lang3.ClassUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
 import java.util.Objects;

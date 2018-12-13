@@ -6,7 +6,7 @@ import io.smallrye.reactive.messaging.spi.SubscriberFactory;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
-import org.eclipse.microprofile.reactive.streams.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
