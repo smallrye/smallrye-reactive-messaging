@@ -40,7 +40,7 @@ public abstract class AbstractMediator {
     // Method overriding initialize MUST call super(bean).
     synchronized (this) {
       if (this.invoker == null) {
-        this.invoker = (args) -> {
+        this.invoker = args -> {
           try {
             return this.configuration.getMethod().invoke(bean, args);
           } catch (Exception e) {
