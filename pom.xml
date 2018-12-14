@@ -77,6 +77,11 @@
       <artifactId>microprofile-reactive-streams-operators-api</artifactId>
       <version>${microprofile-reactive-streams.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
+      <artifactId>microprofile-reactive-streams-operators-core</artifactId>
+      <version>${microprofile-reactive-streams.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.vertx</groupId>
