@@ -42,6 +42,7 @@ public class ProcessorMediator extends AbstractMediator {
 
   @Override
   public void initialize(Object bean) {
+    super.initialize(bean);
     // Supported signatures:
     // 1.  Processor<Message<I>, Message<O>> method()
     // 2.  Processor<I, O> method()
@@ -64,18 +65,18 @@ public class ProcessorMediator extends AbstractMediator {
         if (isReturningAProcessorOrAProcessorBuilder()) {
           if (configuration.usesBuilderTypes()) {
             // Case 3
-            processMethodReturningAProcessorBuilderOfMessages(bean);
+            processMethodReturningAProcessorBuilderOfMessages();
           } else {
             // Case 1
-            processMethodReturningAProcessorOfMessages(bean);
+            processMethodReturningAProcessorOfMessages();
           }
         } else if (isReturningAPublisherOrAPublisherBuilder()) {
           if (configuration.usesBuilderTypes()) {
             // Case 7
-            processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages(bean);
+            processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages();
           } else {
             // Case 5
-            processMethodReturningAPublisherOfMessageAndConsumingMessages(bean);
+            processMethodReturningAPublisherOfMessageAndConsumingMessages();
           }
         } else {
           throw new IllegalArgumentException("Invalid Processor - unsupported signature for " + configuration.methodAsString());
@@ -87,19 +88,19 @@ public class ProcessorMediator extends AbstractMediator {
           // Case 2, 4
           if (configuration.usesBuilderTypes()) {
             // Case 4
-            processMethodReturningAProcessorBuilderOfPayloads(bean);
+            processMethodReturningAProcessorBuilderOfPayloads();
           } else {
             // Case 2
-            processMethodReturningAProcessorOfPayloads(bean);
+            processMethodReturningAProcessorOfPayloads();
           }
         } else if (isReturningAPublisherOrAPublisherBuilder()) {
           // Case 6, 8
           if (configuration.usesBuilderTypes()) {
             // Case 8
-            processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads(bean);
+            processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads();
           } else {
             // Case 6
-            processMethodReturningAPublisherOfPayloadsAndConsumingPayloads(bean);
+            processMethodReturningAPublisherOfPayloadsAndConsumingPayloads();
           }
         } else {
           throw new IllegalArgumentException("Invalid Processor - unsupported signature for " + configuration.methodAsString());
@@ -107,43 +108,43 @@ public class ProcessorMediator extends AbstractMediator {
         break;
       case INDIVIDUAL_MESSAGE:
         // Case 9
-        processMethodReturningIndividualMessageAndConsumingIndividualItem(bean);
+        processMethodReturningIndividualMessageAndConsumingIndividualItem();
         break;
       case INDIVIDUAL_PAYLOAD:
         // Case 10
-        processMethodReturningIndividualPayloadAndConsumingIndividualItem(bean);
+        processMethodReturningIndividualPayloadAndConsumingIndividualItem();
         break;
       case COMPLETION_STAGE_OF_MESSAGE:
         // Case 11
-        processMethodReturningACompletionStageOfMessageAndConsumingIndividualMessage(bean);
+        processMethodReturningACompletionStageOfMessageAndConsumingIndividualMessage();
         break;
       case COMPLETION_STAGE_OF_PAYLOAD:
         // Case 12
-        processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload(bean);
+        processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload();
         break;
       default:
         throw new IllegalArgumentException("Unexpected production type: " + configuration.production());
     }
   }
 
-  private void processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages(Object bean) {
+  private void processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages() {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
-      .map(msg -> (PublisherBuilder<Message>) invoke(bean, msg))
+      .map(msg -> (PublisherBuilder<Message>) invoke(msg))
       .flatMap(Function.identity())
       .buildRs();
   }
 
-  private void processMethodReturningAPublisherOfMessageAndConsumingMessages(Object bean) {
+  private void processMethodReturningAPublisherOfMessageAndConsumingMessages() {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
-      .map(msg -> (Publisher<Message>) invoke(bean, msg))
+      .map(msg -> (Publisher<Message>) invoke(msg))
       .flatMapRsPublisher(Function.identity())
       .buildRs();
   }
 
-  private void processMethodReturningAProcessorBuilderOfMessages(Object bean) {
-    ProcessorBuilder<Message, Message> builder = Objects.requireNonNull(invoke(bean),
+  private void processMethodReturningAProcessorBuilderOfMessages() {
+    ProcessorBuilder<Message, Message> builder = Objects.requireNonNull(invoke(),
       "The method " + configuration.methodAsString() + " returned `null`");
 
     this.processor = ReactiveStreams.<Message>builder()
@@ -152,16 +153,16 @@ public class ProcessorMediator extends AbstractMediator {
       .buildRs();
   }
 
-  private void processMethodReturningAProcessorOfMessages(Object bean) {
-    Processor<Message, Message> result = Objects.requireNonNull(invoke(bean), "The method " + configuration.methodAsString() + " returned `null`");
+  private void processMethodReturningAProcessorOfMessages() {
+    Processor<Message, Message> result = Objects.requireNonNull(invoke(), "The method " + configuration.methodAsString() + " returned `null`");
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
       .via(result)
       .buildRs();
   }
 
-  private void processMethodReturningAProcessorOfPayloads(Object bean) {
-    Processor returnedProcessor = invoke(bean);
+  private void processMethodReturningAProcessorOfPayloads() {
+    Processor returnedProcessor = invoke();
 
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
@@ -171,8 +172,8 @@ public class ProcessorMediator extends AbstractMediator {
       .buildRs();
   }
 
-  private void processMethodReturningAProcessorBuilderOfPayloads(Object bean) {
-    ProcessorBuilder returnedProcessorBuilder = invoke(bean);
+  private void processMethodReturningAProcessorBuilderOfPayloads() {
+    ProcessorBuilder returnedProcessorBuilder = invoke();
     Objects.requireNonNull(returnedProcessorBuilder, "The method " + configuration.methodAsString()
       + " has returned an invalid value: null");
 
@@ -184,29 +185,29 @@ public class ProcessorMediator extends AbstractMediator {
       .buildRs();
   }
 
-  private void processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads(Object bean) {
+  private void processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads() {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
-      .flatMap(message -> invoke(bean, message.getPayload()))
+      .flatMap(message -> invoke(message.getPayload()))
       .map(p -> (Message) Message.of(p))
       .buildRs();
   }
 
-  private void processMethodReturningAPublisherOfPayloadsAndConsumingPayloads(Object bean) {
+  private void processMethodReturningAPublisherOfPayloadsAndConsumingPayloads() {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
-      .flatMapRsPublisher(message -> invoke(bean, message.getPayload()))
+      .flatMapRsPublisher(message -> invoke(message.getPayload()))
       .map(p -> (Message) Message.of(p))
       .buildRs();
   }
 
-  private void processMethodReturningIndividualMessageAndConsumingIndividualItem(Object bean) {
+  private void processMethodReturningIndividualMessageAndConsumingIndividualItem() {
     // Item can be message or payload
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(input -> {
-          Message output = invoke(bean, input.getPayload());
+          Message output = invoke(input.getPayload());
           return managePostProcessingAck().apply(input).thenApply(x -> output);
         })
         .buildRs();
@@ -214,20 +215,20 @@ public class ProcessorMediator extends AbstractMediator {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(input -> {
-          Message output = invoke(bean, input);
+          Message output = invoke(input);
           return managePostProcessingAck().apply(input).thenApply(x -> output);
         })
         .buildRs();
     }
   }
 
-  private void processMethodReturningIndividualPayloadAndConsumingIndividualItem(Object bean) {
+  private void processMethodReturningIndividualPayloadAndConsumingIndividualItem() {
     // Item can be message or payload.
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(input -> {
-          Object result = invoke(bean, input.getPayload());
+          Object result = invoke(input.getPayload());
           return managePostProcessingAck().apply(input)
             .thenApply(x -> (Message) Message.of(result));
         })
@@ -237,28 +238,28 @@ public class ProcessorMediator extends AbstractMediator {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(input -> {
-          Object result = invoke(bean, input);
+          Object result = invoke(input);
           return managePostProcessingAck().apply(input).thenApply(x -> (Message) Message.of(result));
         })
         .buildRs();
     }
   }
 
-  private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualMessage(Object bean) {
+  private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualMessage() {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
       .flatMapCompletionStage(input -> {
-        CompletionStage<Message> cs = invoke(bean, input);
+        CompletionStage<Message> cs = invoke(input);
         return cs.thenCompose(res -> managePostProcessingAck().apply(input).thenApply(x -> res));
       })
       .buildRs();
   }
 
-  private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload(Object bean) {
+  private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload() {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
       .flatMapCompletionStage(input -> {
-        CompletionStage<Object> cs = invoke(bean, input.getPayload());
+        CompletionStage<Object> cs = invoke(input.getPayload());
         return cs
           .thenCompose(res -> managePostProcessingAck().apply(input).thenApply(p -> (Message) Message.of(res)));
       })

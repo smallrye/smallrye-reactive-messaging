@@ -6,8 +6,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -15,10 +14,14 @@ import java.util.function.Function;
 public abstract class AbstractMediator {
 
   protected final MediatorConfiguration configuration;
-
+  private Invoker invoker;
 
   public AbstractMediator(MediatorConfiguration configuration) {
     this.configuration = configuration;
+  }
+
+  public synchronized void setInvoker(Invoker invoker) {
+    this.invoker = invoker;
   }
 
   public void run() {
@@ -33,18 +36,25 @@ public abstract class AbstractMediator {
     return configuration;
   }
 
-  public abstract void initialize(Object bean);
+  public void initialize(Object bean) {
+    // Method overriding initialize MUST call super(bean).
+    synchronized (this) {
+      if (this.invoker == null) {
+        this.invoker = (args) -> {
+          try {
+            return this.configuration.getMethod().invoke(bean, args);
+          } catch (Exception e) {
+            throw new ProcessingException(configuration.methodAsString(), e);
+          }
+        };
+      }
+    }
+  }
 
   @SuppressWarnings("unchecked")
-  protected <T> T invoke(Object bean, Object... args) {
-    try {
-      Method method = configuration.getMethod();
-      return (T) method.invoke(bean, args);
-    } catch (InvocationTargetException e) {
-      throw new ProcessingException(configuration.methodAsString(), e.getTargetException());
-    } catch (Exception e) {
-      throw new ProcessingException(configuration.methodAsString(), e);
-    }
+  protected <T> T invoke(Object... args) {
+    Objects.requireNonNull(this.invoker, "Invoker not initialized");
+    return (T) this.invoker.invoke(args);
   }
 
   protected CompletionStage<? extends Void> getAckOrCompletion(Message<?> message) {

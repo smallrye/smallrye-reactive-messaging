@@ -39,6 +39,7 @@ public class StreamTransformerMediator extends AbstractMediator {
 
   @Override
   public void initialize(Object bean) {
+    super.initialize(bean);
     // 1. Publisher<Message<O>> method(Publisher<Message<I>> publisher)
     // 2. Publisher<O> method(Publisher<I> publisher)
     // 3. PublisherBuilder<Message<O>> method(PublisherBuilder<Message<I>> publisher)
@@ -48,19 +49,19 @@ public class StreamTransformerMediator extends AbstractMediator {
       case STREAM_OF_MESSAGE:
         if (configuration.usesBuilderTypes()) {
           // Case 3
-          processMethodConsumingAPublisherBuilderOfMessages(bean);
+          processMethodConsumingAPublisherBuilderOfMessages();
         } else {
           // Case 1
-          processMethodConsumingAPublisherOfMessages(bean);
+          processMethodConsumingAPublisherOfMessages();
         }
         break;
       case STREAM_OF_PAYLOAD:
         if (configuration.usesBuilderTypes()) {
           // Case 4
-          processMethodConsumingAPublisherBuilderOfPayload(bean);
+          processMethodConsumingAPublisherBuilderOfPayload();
         } else {
           // Case 2
-          processMethodConsumingAPublisherOfPayload(bean);
+          processMethodConsumingAPublisherOfPayload();
         }
         break;
       default:
@@ -70,34 +71,34 @@ public class StreamTransformerMediator extends AbstractMediator {
     assert function != null;
   }
 
-  private void processMethodConsumingAPublisherBuilderOfMessages(Object bean) {
+  private void processMethodConsumingAPublisherBuilderOfMessages() {
     function = publisher -> {
       PublisherBuilder<Message> prependedWithAck = ReactiveStreams.fromPublisher(publisher)
         .flatMapCompletionStage(managePreProcessingAck());
 
-      PublisherBuilder<Message> builder = invoke(bean, prependedWithAck);
+      PublisherBuilder<Message> builder = invoke(prependedWithAck);
       Objects.requireNonNull(builder, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return builder.buildRs();
     };
   }
 
-  private void processMethodConsumingAPublisherOfMessages(Object bean) {
+  private void processMethodConsumingAPublisherOfMessages() {
     function = publisher -> {
       Publisher<Message> prependedWithAck = ReactiveStreams.fromPublisher(publisher)
         .flatMapCompletionStage(managePreProcessingAck())
         .buildRs();
-      Publisher<Message> result = invoke(bean, prependedWithAck);
+      Publisher<Message> result = invoke(prependedWithAck);
       Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return result;
     };
   }
 
-  private void processMethodConsumingAPublisherBuilderOfPayload(Object bean) {
+  private void processMethodConsumingAPublisherBuilderOfPayload() {
     function = publisher -> {
       PublisherBuilder<Object> stream = ReactiveStreams.fromPublisher(publisher)
         .flatMapCompletionStage(managePreProcessingAck())
         .map(Message::getPayload);
-      PublisherBuilder<Object> builder = invoke(bean, stream);
+      PublisherBuilder<Object> builder = invoke(stream);
       Objects.requireNonNull(builder, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return builder
         .map(o -> (Message) Message.of(o))
@@ -105,7 +106,7 @@ public class StreamTransformerMediator extends AbstractMediator {
     };
   }
 
-  private void processMethodConsumingAPublisherOfPayload(Object bean) {
+  private void processMethodConsumingAPublisherOfPayload() {
     function = publisher -> {
       Publisher stream = ReactiveStreams.fromPublisher(publisher)
         .flatMapCompletionStage(managePreProcessingAck())
@@ -114,7 +115,7 @@ public class StreamTransformerMediator extends AbstractMediator {
       if (ClassUtils.isAssignable(configuration.getMethod().getParameterTypes()[0], Flowable.class)) {
         stream = Flowable.fromPublisher(publisher).map(Message::getPayload);
       }
-      Publisher<Object> result = invoke(bean, stream);
+      Publisher<Object> result = invoke(stream);
       Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return ReactiveStreams.fromPublisher(result)
         .map(o -> (Message) Message.of(o))

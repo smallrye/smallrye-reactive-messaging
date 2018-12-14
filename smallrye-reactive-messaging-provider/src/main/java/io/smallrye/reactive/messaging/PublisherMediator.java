@@ -43,32 +43,33 @@ public class PublisherMediator extends AbstractMediator {
 
   @Override
   public void initialize(Object bean) {
+    super.initialize(bean);
     switch (configuration.production()) {
       case STREAM_OF_MESSAGE: // 1, 3
         if (configuration.usesBuilderTypes()) {
-          produceAPublisherBuilderOfMessages(bean);
+          produceAPublisherBuilderOfMessages();
         } else {
-          produceAPublisherOfMessages(bean);
+          produceAPublisherOfMessages();
         }
         break;
       case STREAM_OF_PAYLOAD: // 2, 4
         if (configuration.usesBuilderTypes()) {
-          produceAPublisherBuilderOfPayloads(bean);
+          produceAPublisherBuilderOfPayloads();
         } else {
-          produceAPublisherOfPayloads(bean);
+          produceAPublisherOfPayloads();
         }
         break;
       case INDIVIDUAL_PAYLOAD: // 5
-        produceIndividualPayloads(bean);
+        produceIndividualPayloads();
         break;
       case INDIVIDUAL_MESSAGE:  // 6
-        produceIndividualMessages(bean);
+        produceIndividualMessages();
         break;
       case COMPLETION_STAGE_OF_MESSAGE: // 8
-        produceIndividualCompletionStageOfMessages(bean);
+        produceIndividualCompletionStageOfMessages();
         break;
       case COMPLETION_STAGE_OF_PAYLOAD: // 7
-        produceIndividualCompletionStageOfPayloads(bean);
+        produceIndividualCompletionStageOfPayloads();
         break;
       default: throw new IllegalArgumentException("Unexpected production type: " + configuration.production());
     }
@@ -76,8 +77,8 @@ public class PublisherMediator extends AbstractMediator {
     assert this.publisher != null;
   }
 
-  private void produceAPublisherBuilderOfMessages(Object bean) {
-    PublisherBuilder<Message> builder = invoke(bean);
+  private void produceAPublisherBuilderOfMessages() {
+    PublisherBuilder<Message> builder = invoke();
     setPublisher(builder.buildRs());
   }
 
@@ -85,43 +86,43 @@ public class PublisherMediator extends AbstractMediator {
     this.publisher = decorate(publisher);
   }
 
-  private <P> void produceAPublisherBuilderOfPayloads(Object bean) {
-    PublisherBuilder<P> builder = invoke(bean);
+  private <P> void produceAPublisherBuilderOfPayloads() {
+    PublisherBuilder<P> builder = invoke();
     setPublisher(builder.map(Message::of).buildRs());
   }
 
-  private void produceAPublisherOfMessages(Object bean) {
-    setPublisher(invoke(bean));
+  private void produceAPublisherOfMessages() {
+    setPublisher(invoke());
   }
 
-  private <P> void produceAPublisherOfPayloads(Object bean) {
-    Publisher<P> pub = invoke(bean);
+  private <P> void produceAPublisherOfPayloads() {
+    Publisher<P> pub = invoke();
     setPublisher(ReactiveStreams.fromPublisher(pub)
       .map(Message::of).buildRs());
   }
 
-  private void produceIndividualMessages(Object bean) {
+  private void produceIndividualMessages() {
     setPublisher(ReactiveStreams.generate(() -> {
-      Message message = invoke(bean);
+      Message message = invoke();
       Objects.requireNonNull(message, "The method " + configuration.methodAsString() + " returned an invalid value: null");
       return message;
     }).buildRs());
   }
 
-  private <T> void produceIndividualPayloads(Object bean) {
-    setPublisher(ReactiveStreams.<T>generate(() -> invoke(bean))
+  private <T> void produceIndividualPayloads() {
+    setPublisher(ReactiveStreams.<T>generate(this::invoke)
       .map(Message::of)
       .buildRs());
   }
 
-  private void produceIndividualCompletionStageOfMessages(Object bean) {
-    setPublisher(ReactiveStreams.<CompletionStage<Message>>generate(() -> invoke(bean))
+  private void produceIndividualCompletionStageOfMessages() {
+    setPublisher(ReactiveStreams.<CompletionStage<Message>>generate(this::invoke)
       .flatMapCompletionStage(Function.identity())
       .buildRs());
   }
 
-  private <P> void produceIndividualCompletionStageOfPayloads(Object bean) {
-    setPublisher(ReactiveStreams.<CompletionStage<P>>generate(() -> invoke(bean))
+  private <P> void produceIndividualCompletionStageOfPayloads() {
+    setPublisher(ReactiveStreams.<CompletionStage<P>>generate(this::invoke)
       .flatMapCompletionStage(Function.identity())
       .map(Message::of)
       .buildRs());
