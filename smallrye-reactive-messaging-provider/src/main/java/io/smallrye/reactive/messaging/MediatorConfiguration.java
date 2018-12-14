@@ -379,7 +379,7 @@ public class MediatorConfiguration {
 
     if (ClassUtils.isAssignable(returnType, Publisher.class)) {
       // Case 1 or 2
-      production = TypeUtils.isAssignable(Message.class, type) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
+      production = TypeUtils.isAssignable(type, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
       return;
     }
 
