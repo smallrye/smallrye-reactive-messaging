@@ -47,11 +47,10 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
   private static <I> Serializer<I> instantiate(String className) {
     try {
       Class<Serializer<I>> clazz = (Class<Serializer<I>>) Serializer.class.getClassLoader().loadClass(className);
-      Serializer<I> serializer = clazz.newInstance();
+      Serializer<I> serializer = clazz.getDeclaredConstructor().newInstance();
       return serializer;
     } catch (Exception e) {
       throw new IllegalArgumentException("Unable to load the class " + className + " or unable to instantiate it");
     }
-
   }
 }
