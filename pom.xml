@@ -19,7 +19,7 @@
   <packaging>pom</packaging>
 
   <properties>
-    <vertx.version>3.6.0</vertx.version>
+    <vertx.version>3.6.1</vertx.version>
     <log4j2.version>2.11.1</log4j2.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0-RC4</microprofile-reactive-streams.version>
