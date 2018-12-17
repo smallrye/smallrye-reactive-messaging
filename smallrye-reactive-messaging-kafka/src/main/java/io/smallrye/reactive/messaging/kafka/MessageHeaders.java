@@ -7,6 +7,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,7 +57,7 @@ public class MessageHeaders {
   }
 
   public Optional<String> getOneAsString(String key) {
-    return getOneAsString(key).map(String::new);
+    return getOneAsString(key, StandardCharsets.UTF_8);
   }
 
   public Optional<String> getOneAsString(String key, Charset enc) {
@@ -72,7 +73,7 @@ public class MessageHeaders {
   }
 
   public List<String> getAllAsStrings(String key) {
-    return getAllAsBytes(key).stream().map(String::new).collect(Collectors.toList());
+    return getAllAsStrings(key, StandardCharsets.UTF_8);
   }
 
   public List<String> getAllAsStrings(String key, Charset enc) {
