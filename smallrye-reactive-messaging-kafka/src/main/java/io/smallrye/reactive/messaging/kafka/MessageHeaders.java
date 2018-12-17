@@ -32,11 +32,13 @@ public class MessageHeaders {
   }
 
   public MessageHeaders put(String key, ByteBuffer value) {
+    Objects.requireNonNull(value, "Null header values are not permitted");
     headers.add(new RecordHeader(key, value));
     return this;
   }
 
   public MessageHeaders put(String key, String value) {
+    Objects.requireNonNull(value, "Null header values are not permitted");
     headers.add(new RecordHeader(key, value.getBytes()));
     return this;
   }
