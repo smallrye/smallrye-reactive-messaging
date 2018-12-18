@@ -20,6 +20,7 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
     CONVERTERS.add(new ByteBufferSerializer());
     CONVERTERS.add(new JsonArraySerializer());
     CONVERTERS.add(new JsonObjectSerializer());
+    CONVERTERS.add(new CloudEventSerializer());
   }
 
   public static synchronized <I> Serializer<I> lookup(Object payload, String converterClassName) {

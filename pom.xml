@@ -28,7 +28,7 @@
     <jackson.version>2.9.7</jackson.version>
     <smallrye-reactive-streams-ops.version>0.4.0</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.4</smallrye-config.version>
-    <cloudevent.version>0.2.0</cloudevent.version>
+    <cloudevent.version>0.2.1</cloudevent.version>
 
     <asciidoctor-maven-plugin.version>1.5.7.1</asciidoctor-maven-plugin.version>
     <asciidoctorj.version>1.5.8.1</asciidoctorj.version>
