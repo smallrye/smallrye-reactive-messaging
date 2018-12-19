@@ -44,6 +44,14 @@ public class ConfiguredStreamFactory implements StreamRegistar {
 
   private final Map<String, Publisher<? extends Message>> sources = new HashMap<>();
   private final Map<String, Subscriber<? extends Message>> sinks = new HashMap<>();
+  
+  // CDI requirement for normal scoped beans 
+  ConfiguredStreamFactory() {
+      this.sourceFactories = null;
+      this.sinkFactories = null;
+      this.config = null;
+      this.registry = null;
+  }
 
   @Inject
   public ConfiguredStreamFactory(@Any Instance<PublisherFactory> sourceFactories, @Any Instance<SubscriberFactory> sinkFactories,

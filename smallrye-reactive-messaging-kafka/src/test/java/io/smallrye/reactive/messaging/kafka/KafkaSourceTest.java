@@ -1,7 +1,8 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
@@ -150,13 +151,7 @@ public class KafkaSourceTest extends KafkaTestBase {
   }
 
   private ConsumptionBean deploy() {
-    Weld weld = new Weld();
-    weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(InternalStreamRegistry.class);
-    weld.addBeanClass(StreamFactoryImpl.class);
-    weld.addBeanClass(ConfiguredStreamFactory.class);
-    weld.addExtension(new ReactiveMessagingExtension());
-    weld.addBeanClass(KafkaMessagingProvider.class);
+    Weld weld = baseWeld();
     weld.addBeanClass(ConsumptionBean.class);
     weld.disableDiscovery();
     container = weld.initialize();

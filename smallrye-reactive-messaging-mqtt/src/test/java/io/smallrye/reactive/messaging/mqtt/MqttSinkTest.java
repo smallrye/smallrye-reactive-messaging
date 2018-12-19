@@ -2,7 +2,8 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
@@ -89,26 +90,15 @@ public class MqttSinkTest extends MqttTestBase {
 
   @Test
   public void testABeanProducingMessagesSentToKafka() throws InterruptedException {
-    Weld weld = new Weld();
-
-    weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(InternalStreamRegistry.class);
-    weld.addBeanClass(StreamFactoryImpl.class);
-    weld.addBeanClass(ConfiguredStreamFactory.class);
-    weld.addExtension(new ReactiveMessagingExtension());
-
-    weld.addBeanClass(MqttMessagingProvider.class);
+    Weld weld = baseWeld();
     weld.addBeanClass(ProducingBean.class);
-
-    weld.disableDiscovery();
-
+    
     container = weld.initialize();
 
     CountDownLatch latch = new CountDownLatch(10);
     usage.consumeIntegers("sink", 10, 10, TimeUnit.SECONDS,
       null,
       v -> latch.countDown());
-
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
   }
 

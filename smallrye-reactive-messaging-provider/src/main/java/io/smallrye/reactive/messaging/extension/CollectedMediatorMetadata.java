@@ -1,31 +1,31 @@
 package io.smallrye.reactive.messaging.extension;
 
-import io.smallrye.reactive.messaging.MediatorConfiguration;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
-
-import javax.enterprise.inject.spi.AnnotatedType;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+
+import javax.enterprise.inject.spi.Bean;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import io.smallrye.reactive.messaging.MediatorConfiguration;
 
 class CollectedMediatorMetadata {
 
   private final List<MediatorConfiguration> mediators = new ArrayList<>();
 
-  void add(AnnotatedType type, Method method, Set<Annotation> qualifiers) {
-    mediators.add(createMediatorConfiguration(type, method, qualifiers));
+  void add(Method method, Bean<?> bean) {
+    mediators.add(createMediatorConfiguration(method, bean));
   }
 
-  private MediatorConfiguration createMediatorConfiguration(AnnotatedType type, Method met, Set<Annotation> qualifiers) {
-    MediatorConfiguration configuration = new MediatorConfiguration(met, type.getJavaClass(), qualifiers);
+  private MediatorConfiguration createMediatorConfiguration(Method met, Bean<?> bean) {
+    MediatorConfiguration configuration = new MediatorConfiguration(met, bean);
     configuration.compute(met.getAnnotation(Incoming.class), met.getAnnotation(Outgoing.class));
     return configuration;
   }
 
-  public List<MediatorConfiguration> mediators() {
+  List<MediatorConfiguration> mediators() {
     return mediators;
   }
 }

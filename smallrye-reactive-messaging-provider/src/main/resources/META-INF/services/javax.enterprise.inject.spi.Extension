@@ -1,1 +1,1 @@
-io.smallrye.reactive.messaging.ReactiveMessagingExtension
+io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension
