@@ -37,6 +37,18 @@
       <version>2.19.0</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>${smallrye-reactive-streams-ops.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <version>3.2.0</version>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 

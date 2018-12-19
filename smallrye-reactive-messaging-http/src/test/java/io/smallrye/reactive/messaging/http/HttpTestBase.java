@@ -43,6 +43,10 @@ public class HttpTestBase {
     return this;
   }
 
+  public <T> T get(Class<T> c) {
+    return container.getBeanManager().createInstance().select(c).get();
+  }
+
   public void awaitForRequest(int amount) {
     await().until(() -> wireMockRule.getServeEvents().getRequests().size() == amount);
   }

@@ -270,7 +270,6 @@ public class HttpSinkTest extends HttpTestBase {
     @Incoming("numbers")
     @Outgoing("http")
     public JsonObject sink(int i) {
-      System.out.println(">> " + i);
       return new JsonObject().put("value", i + 1);
     }
   }

@@ -30,6 +30,14 @@ public class ConfigurationHelper {
     return Objects.requireNonNull(config).get(Objects.requireNonNull(key));
   }
 
+  public String get(String key, String def) {
+    String val = Objects.requireNonNull(config).get(Objects.requireNonNull(key));
+    if (val == null) {
+      return  def;
+    }
+    return val;
+  }
+
   public boolean getAsBoolean(String key, boolean def) {
     String value = get(key);
     if (value == null) {

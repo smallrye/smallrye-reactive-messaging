@@ -71,7 +71,7 @@ public class HttpSink {
     }
 
     message.getHeaders().forEach((k, v) -> v.forEach(item -> request.headers().add(k, item)));
-    message.getQuery().forEach(request::addQueryParam);
+    message.getQuery().forEach((k,v) -> v.forEach(x -> request.addQueryParam(k, x)));
 
     return request;
   }

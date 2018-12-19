@@ -10,10 +10,10 @@ public class HttpMessage<T> implements Message<T> {
   private final T payload;
   private final String method;
   private final Map<String, List<String>> headers;
-  private final Map<String, String> query;
+  private final Map<String, List<String>> query;
   private final String url;
 
-  private HttpMessage(String method, String url, T payload, Map<String, String> query, Map<String, List<String>> headers) {
+  private HttpMessage(String method, String url, T payload, Map<String, List<String>> query, Map<String, List<String>> headers) {
     this.payload = payload;
     this.method = method;
     this.headers = headers;
@@ -34,7 +34,7 @@ public class HttpMessage<T> implements Message<T> {
     return headers;
   }
 
-  public Map<String, String> getQuery() {
+  public Map<String, List<String>> getQuery() {
     return query;
   }
 
@@ -46,7 +46,7 @@ public class HttpMessage<T> implements Message<T> {
     private T payload;
     private String method = "POST";
     private Map<String, List<String>> headers;
-    private Map<String, String> query;
+    private Map<String, List<String>> query;
     private String url;
 
     private HttpMessageBuilder() {
@@ -80,15 +80,23 @@ public class HttpMessage<T> implements Message<T> {
       return this;
     }
 
-    public HttpMessageBuilder<T> withQuery(Map<String, String> query) {
-      this.query = Objects.requireNonNull(query);
+    public HttpMessageBuilder<T> withHeader(String key, List<String> values) {
+      this.headers.put(Objects.requireNonNull(key), Objects.requireNonNull(values));
       return this;
     }
 
     public HttpMessageBuilder<T> withQueryParameter(String key, String value) {
-      this.query.put(Objects.requireNonNull(key), Objects.requireNonNull(value));
+      this.query.computeIfAbsent(Objects.requireNonNull(key),
+        k -> new ArrayList<>())
+        .add(Objects.requireNonNull(value));
       return this;
     }
+
+    public HttpMessageBuilder<T> withQueryParameter(String key, List<String> values) {
+      this.query.put(Objects.requireNonNull(key), Objects.requireNonNull(values));
+      return this;
+    }
+
 
     public HttpMessageBuilder<T> withUrl(String url) {
       this.url = url;
