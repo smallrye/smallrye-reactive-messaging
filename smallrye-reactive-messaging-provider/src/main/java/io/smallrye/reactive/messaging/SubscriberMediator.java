@@ -40,19 +40,20 @@ public class SubscriberMediator extends AbstractMediator {
 
   @Override
   public void initialize(Object bean) {
+    super.initialize(bean);
     switch (configuration.consumption()) {
       case STREAM_OF_MESSAGE: // 1
       case STREAM_OF_PAYLOAD: // 2
-        processMethodReturningASubscriber(bean);
+        processMethodReturningASubscriber();
         break;
       case MESSAGE: // 3  (5 being dropped)
       case PAYLOAD: // 4 or 6
         if (ClassUtils.isAssignable(configuration.getMethod().getReturnType(), CompletionStage.class)) {
           // Case 3, 4
-          processMethodReturningACompletionStage(bean);
+          processMethodReturningACompletionStage();
         } else {
           // Case 6 (5 being dropped)
-          processMethodReturningVoid(bean);
+          processMethodReturningVoid();
         }
         break;
       default:
@@ -117,12 +118,12 @@ public class SubscriberMediator extends AbstractMediator {
     }
   }
 
-  private void processMethodReturningVoid(Object bean) {
+  private void processMethodReturningVoid() {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .map(message -> {
-          invoke(bean, message.getPayload());
+          invoke(message.getPayload());
           return message;
         })
         .flatMapCompletionStage(managePostProcessingAck())
@@ -131,12 +132,12 @@ public class SubscriberMediator extends AbstractMediator {
     }
   }
 
-  private void processMethodReturningACompletionStage(Object bean) {
+  private void processMethodReturningACompletionStage() {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(message -> {
-          CompletionStage<?> stage = invoke(bean, message.getPayload());
+          CompletionStage<?> stage = invoke(message.getPayload());
           return stage.thenApply(x -> message);
         })
         .flatMapCompletionStage(managePostProcessingAck())
@@ -146,7 +147,7 @@ public class SubscriberMediator extends AbstractMediator {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .flatMapCompletionStage(message -> {
-          CompletionStage<?> completion = invoke(bean, message);
+          CompletionStage<?> completion = invoke(message);
           return completion.thenApply(x -> message);
         })
         .flatMapCompletionStage(managePostProcessingAck())
@@ -155,8 +156,8 @@ public class SubscriberMediator extends AbstractMediator {
     }
   }
 
-  private void processMethodReturningASubscriber(Object bean) {
-    Object result = invoke(bean);
+  private void processMethodReturningASubscriber() {
+    Object result = invoke();
     if (!(result instanceof Subscriber)) {
       throw new IllegalStateException("Invalid return type: " + result + " - expected a Subscriber");
     }
