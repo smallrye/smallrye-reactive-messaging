@@ -2,7 +2,11 @@ package io.smallrye.reactive.messaging.ack;
 
 import org.junit.Test;
 
-import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.*;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.DEFAULT_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.MANUAL_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.NO_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.POST_PROCESSING_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.PRE_PROCESSING_ACKNOWLEDGMENT;
 
 public class SubscriberWithVoidMethodAcknowledgementTest extends AcknowledgmentTestBase {
 

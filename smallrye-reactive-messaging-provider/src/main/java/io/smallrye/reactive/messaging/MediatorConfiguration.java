@@ -1,8 +1,8 @@
 package io.smallrye.reactive.messaging;
 
 import io.smallrye.reactive.messaging.annotations.Acknowledgment;
-import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import io.smallrye.reactive.messaging.annotations.Merge;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;

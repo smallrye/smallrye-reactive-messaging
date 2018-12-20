@@ -1,19 +1,29 @@
 package io.smallrye.reactive.messaging;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import javax.enterprise.inject.se.SeContainer;
-
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import io.smallrye.reactive.messaging.beans.*;
+import io.smallrye.reactive.messaging.beans.BeanProducingMessagesAsFlowable;
+import io.smallrye.reactive.messaging.beans.BeanProducingMessagesAsPublisher;
+import io.smallrye.reactive.messaging.beans.BeanProducingMessagesAsPublisherBuilder;
+import io.smallrye.reactive.messaging.beans.BeanProducingPayloadAsFlowable;
+import io.smallrye.reactive.messaging.beans.BeanProducingPayloadAsPublisher;
+import io.smallrye.reactive.messaging.beans.BeanProducingPayloadAsPublisherBuilder;
+import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherBuilderOfItems;
+import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherBuilderOfMessages;
+import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherOfItems;
+import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherOfMessages;
+import io.smallrye.reactive.messaging.beans.BeanReturningCompletionStageOfMessage;
+import io.smallrye.reactive.messaging.beans.BeanReturningCompletionStageOfPayload;
+import io.smallrye.reactive.messaging.beans.BeanReturningMessages;
+import io.smallrye.reactive.messaging.beans.BeanReturningPayloads;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
+
+import javax.enterprise.inject.se.SeContainer;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

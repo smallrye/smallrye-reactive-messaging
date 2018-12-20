@@ -1,16 +1,14 @@
 package io.smallrye.reactive.messaging.tck.incoming;
 
-import java.util.Arrays;
-import java.util.List;
-
-import javax.enterprise.inject.se.SeContainer;
-
 import io.smallrye.reactive.messaging.WeldTestBase;
 import io.smallrye.reactive.messaging.tck.MessagingManager;
 import io.smallrye.reactive.messaging.tck.MockPayload;
 import io.smallrye.reactive.messaging.tck.MockedReceiver;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static io.smallrye.reactive.messaging.tck.incoming.Bean.NON_PARALLEL;
 import static io.smallrye.reactive.messaging.tck.incoming.Bean.NON_VOID_METHOD;

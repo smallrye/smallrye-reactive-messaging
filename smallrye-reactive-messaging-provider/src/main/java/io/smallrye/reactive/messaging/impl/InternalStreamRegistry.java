@@ -6,7 +6,14 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 @ApplicationScoped
 public class InternalStreamRegistry implements StreamRegistry {

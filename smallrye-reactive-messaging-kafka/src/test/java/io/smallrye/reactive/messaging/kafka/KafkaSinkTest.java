@@ -4,8 +4,8 @@ import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
+import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -16,13 +16,16 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 public class KafkaSinkTest extends KafkaTestBase {
 

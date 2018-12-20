@@ -1,6 +1,11 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.beans.*;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsFlowableAndPublishingMsgAsFlowable;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsFlowableAndPublishingMsgAsPublisher;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsPublisherAndPublishingMsgAsFlowable;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsPublisherBuilderAndPublishingMsgAsPublisherBuilder;
+import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorBuilderOfMessages;
+import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorOfMessages;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

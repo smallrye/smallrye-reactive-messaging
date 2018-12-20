@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.providers;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.spi.PublisherFactory;
 import io.smallrye.reactive.messaging.spi.SubscriberFactory;
-import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;

@@ -5,7 +5,14 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.*;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.DEFAULT_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.DEFAULT_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.MANUAL_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.MANUAL_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.NO_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.NO_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.PRE_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithMessageProcessors.PRE_ACKNOWLEDGMENT_BUILDER;
 
 public class MessageProcessorAcknowledgementTest extends AcknowledgmentTestBase {
 

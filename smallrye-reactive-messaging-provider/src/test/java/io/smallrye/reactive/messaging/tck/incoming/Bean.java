@@ -4,7 +4,6 @@ import io.smallrye.reactive.messaging.tck.MessagingManager;
 import io.smallrye.reactive.messaging.tck.MockPayload;
 import io.smallrye.reactive.messaging.tck.QuietRuntimeException;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -13,7 +12,6 @@ import java.util.Deque;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
 public class Bean {

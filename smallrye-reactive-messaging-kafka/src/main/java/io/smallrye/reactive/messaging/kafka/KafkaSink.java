@@ -19,8 +19,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static io.smallrye.reactive.messaging.spi.ConfigurationHelper.*;
-
 public class KafkaSink {
   private static final Logger LOGGER = LogManager.getLogger(KafkaSink.class);
   private final KafkaWriteStream stream;

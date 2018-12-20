@@ -1,18 +1,26 @@
 package io.smallrye.reactive.messaging;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import javax.enterprise.inject.se.SeContainer;
-
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.beans.*;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningACompletionStageOfSomething;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningACompletionStageOfVoid;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningSomething;
+import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningVoid;
+import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningACompletionStageOfSomething;
+import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningACompletionStageOfVoid;
+import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningSomething;
+import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningVoid;
+import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfMessages;
+import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfMessagesButDiscarding;
+import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfPayloads;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.exceptions.DefinitionException;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
+
+import javax.enterprise.inject.se.SeContainer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;

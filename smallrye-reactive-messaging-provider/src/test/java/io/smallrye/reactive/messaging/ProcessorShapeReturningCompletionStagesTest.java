@@ -1,15 +1,13 @@
 package io.smallrye.reactive.messaging;
 
-import java.util.List;
-
-import javax.enterprise.inject.se.SeContainer;
-
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletableFuture;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletableFutureOfMessage;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletionStage;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletionStageOfMessage;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -5,7 +5,6 @@ import io.smallrye.reactive.messaging.camel.CamelMessage;
 import io.smallrye.reactive.messaging.camel.MyConfig;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;

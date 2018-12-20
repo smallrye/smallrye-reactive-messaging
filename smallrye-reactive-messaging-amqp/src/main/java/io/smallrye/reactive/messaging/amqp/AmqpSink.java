@@ -1,7 +1,11 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import io.vertx.core.json.JsonObject;
-import io.vertx.proton.*;
+import io.vertx.proton.ProtonConnection;
+import io.vertx.proton.ProtonDelivery;
+import io.vertx.proton.ProtonHelper;
+import io.vertx.proton.ProtonLinkOptions;
+import io.vertx.proton.ProtonSender;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;

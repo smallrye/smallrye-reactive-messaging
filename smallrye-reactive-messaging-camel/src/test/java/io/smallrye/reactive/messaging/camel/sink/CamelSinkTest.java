@@ -1,9 +1,6 @@
 package io.smallrye.reactive.messaging.camel.sink;
 
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
-import io.smallrye.reactive.messaging.camel.incoming.BeanWithCamelSink;
-import io.smallrye.reactive.messaging.camel.incoming.BeanWithCamelSubscriber;
-import io.smallrye.reactive.messaging.camel.incoming.BeanWithCamelSubscriberFromReactiveStreamRoute;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 public class CamelSinkTest extends CamelTestBase {
