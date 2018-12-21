@@ -56,6 +56,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
     sink = getSink(topic);
     await().until(sink::isOpen);
+
     @SuppressWarnings("unchecked")
     Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
 
@@ -63,7 +64,9 @@ public class AmqpSinkTest extends AmqpTestBase {
       .map(v -> (Message) Message.of(v))
       .subscribe(subscriber);
 
-    await().untilAtomic(expected, is(10));
+    await().until(() -> {
+      return expected.get() == 10;
+    });
     assertThat(expected).hasValue(10);
   }
 

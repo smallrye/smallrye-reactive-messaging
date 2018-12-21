@@ -180,7 +180,9 @@ class AmqpUsage {
         })
           .openHandler(r -> {
             LOGGER.info("Starting consumer to read messages on {}", topic);
-            latch.countDown();
+            if (r.succeeded()  && r.result().isOpen()) {
+              latch.countDown();
+            }
           })
           .open();
       } catch (Exception e) {
@@ -202,14 +204,14 @@ class AmqpUsage {
     int i = 0;
     while (i < 10) {
       try {
-        ProtonReceiver receiver = connection.createReceiver(topic);
-        return receiver;
+        return connection.createReceiver(topic);
       } catch (Exception e) {
         LOGGER.warn("Unable to create a receiver: {}", e.getMessage());
         i = i + 1;
         try {
           Thread.sleep(100);
         } catch (InterruptedException e1) {
+          Thread.currentThread().interrupt();
           // Ignore me.
         }
       }

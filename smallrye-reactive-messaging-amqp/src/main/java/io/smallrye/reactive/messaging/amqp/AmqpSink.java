@@ -32,7 +32,7 @@ public class AmqpSink implements Closeable {
     CompletableFuture<AmqpSink> future = new CompletableFuture<>();
     sender.openHandler(x -> {
       if (x.succeeded()) {
-        open.set(true);
+        open.set(x.result().isOpen());
         future.complete(this);
       } else {
         open.set(false);
