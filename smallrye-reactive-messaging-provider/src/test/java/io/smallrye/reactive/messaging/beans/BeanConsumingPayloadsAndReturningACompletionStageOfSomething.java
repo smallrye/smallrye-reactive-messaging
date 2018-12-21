@@ -7,11 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @ApplicationScoped
 public class BeanConsumingPayloadsAndReturningACompletionStageOfSomething {
 
-  private List<String> list = new ArrayList<>();
+  private List<String> list = new CopyOnWriteArrayList<>();
 
 
   @Incoming("count")

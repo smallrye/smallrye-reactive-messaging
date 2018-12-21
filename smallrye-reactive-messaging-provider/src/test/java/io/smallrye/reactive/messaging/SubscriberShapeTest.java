@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.awaitility.Awaitility.await;
 
 public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
@@ -109,6 +110,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     initialize();
     BeanConsumingMessagesAndReturningACompletionStageOfVoid collector = container.getBeanManager()
       .createInstance().select(BeanConsumingMessagesAndReturningACompletionStageOfVoid.class).get();
+    await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
@@ -118,6 +120,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     initialize();
     BeanConsumingPayloadsAndReturningACompletionStageOfVoid collector = container.getBeanManager()
       .createInstance().select(BeanConsumingPayloadsAndReturningACompletionStageOfVoid.class).get();
+    await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
@@ -127,6 +130,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     initialize();
     BeanConsumingMessagesAndReturningACompletionStageOfSomething collector = container.getBeanManager()
       .createInstance().select(BeanConsumingMessagesAndReturningACompletionStageOfSomething.class).get();
+    await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
@@ -136,6 +140,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     initialize();
     BeanConsumingPayloadsAndReturningACompletionStageOfSomething collector = container.getBeanManager()
       .createInstance().select(BeanConsumingPayloadsAndReturningACompletionStageOfSomething.class).get();
+    await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
   }
 
