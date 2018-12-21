@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class HttpSourceTest extends HttpTestBase {
 
@@ -26,6 +27,14 @@ public class HttpSourceTest extends HttpTestBase {
   public void setup() {
     addClasses(Receiver.class);
     initialize();
+
+    await()
+      .catchUncaughtExceptions()
+      .until(() -> {
+          Response response = RestAssured.get("/health").andReturn();
+          return response.statusCode() == 200;
+        }
+      );
   }
 
   @Test

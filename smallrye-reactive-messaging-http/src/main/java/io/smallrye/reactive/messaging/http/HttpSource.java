@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.http;
 import io.reactivex.processors.BehaviorProcessor;
 import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.MultiMap;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.http.HttpServer;
@@ -36,7 +37,13 @@ public class HttpSource {
       .flatMapCompletionStage(this::toMessage)
       .buildRs();
     server
-      .requestHandler(processor::onNext)
+      .requestHandler(req -> {
+        if (req.path().equalsIgnoreCase("/health")) {
+          req.response().setStatusCode(200).end(new JsonObject().put("status", "ok").encode());
+        } else {
+          processor.onNext(req);
+        }
+      })
       .listen(port, host, ar -> {
         if (ar.failed()) {
           future.completeExceptionally(ar.cause());
