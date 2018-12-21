@@ -4,12 +4,12 @@ import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import org.apache.commons.lang3.reflect.TypeUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.AnnotatedConstructor;
@@ -28,14 +28,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class PublisherInjectionManager {
 
-  private static final Logger LOGGER = LogManager.getLogger(PublisherInjectionManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PublisherInjectionManager.class);
 
-  Map<String, CollectedPublisherInjectionMetadata> collected = new HashMap<>();
+  private Map<String, CollectedPublisherInjectionMetadata> collected = new HashMap<>();
 
-  AtomicReference<StreamRegistry> registry = new AtomicReference<>();
+  private AtomicReference<StreamRegistry> registry = new AtomicReference<>();
 
   public <T> void analyze(ProcessAnnotatedType<T> pat) {
-    LOGGER.info("Scanning Type: " + pat.getAnnotatedType().getJavaClass().getName());
+    LOGGER.debug("Scanning Type: {}", pat.getAnnotatedType().getJavaClass().getName());
 
     Set<AnnotatedField<? super T>> fields = pat.getAnnotatedType().getFields();
     fields.stream()
@@ -112,10 +112,7 @@ public class PublisherInjectionManager {
         .addType(col.getMessageTypeForPublisher())
         .addType(new TypeLiteral<Flowable<Message>>() {})
         .addType(new TypeLiteral<Publisher<Message>>() {})
-        .createWith(i -> {
-          Publisher<? extends Message> publisher = get(col.getName());
-          return Flowable.fromPublisher(publisher);
-        });
+        .createWith(i -> Flowable.fromPublisher(get(col.getName())));
     }
 
     if (col.needPublisherBuilderOfMessageBean()) {
@@ -124,10 +121,7 @@ public class PublisherInjectionManager {
         .addQualifier(named(col.getName()))
         .addType(col.getMessageTypeForPublisherBuilder())
         .addType(new TypeLiteral<PublisherBuilder<Message>>() {})
-        .createWith(i -> {
-          Publisher<? extends Message> publisher = get(col.getName());
-          return ReactiveStreams.fromPublisher(publisher);
-        });
+        .createWith(i -> ReactiveStreams.fromPublisher(get(col.getName())));
     }
 
     if (col.needFlowableOfPayloadBean()) {
@@ -136,22 +130,15 @@ public class PublisherInjectionManager {
         .addQualifier(named(col.getName()))
         .addType(col.getPayloadTypeForFlowable())
         .addType(col.getPayloadTypeForPublisher())
-        .createWith(i -> {
-          Publisher<? extends Message> publisher = get(col.getName());
-          return Flowable.fromPublisher(publisher).map(Message::getPayload);
-        });
+        .createWith(i -> Flowable.fromPublisher(get(col.getName())).map(Message::getPayload));
     }
 
     if (col.isNeedPublisherBuilderOfPayloadBean()) {
       discovery.addBean()
         .beanClass(PublisherBuilder.class)
-        //.addType(col.getType())
         .addQualifier(named(col.getName()))
         .addType(col.getPayloadTypeForPublisherBuilder())
-        .createWith(i -> {
-          Publisher<? extends Message> publisher = get(col.getName());
-          return ReactiveStreams.fromPublisher(publisher).map(Message::getPayload);
-        });
+        .createWith(i -> ReactiveStreams.fromPublisher(get(col.getName())).map(Message::getPayload));
     }
   }
 

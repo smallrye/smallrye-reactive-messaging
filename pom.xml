@@ -20,7 +20,7 @@
 
   <properties>
     <vertx.version>3.6.0</vertx.version>
-    <log4j2.version>2.11.1</log4j2.version>
+    <slf4j-api.version>1.7.25</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0-RC4</microprofile-reactive-streams.version>
     <rxjava.version>2.2.4</rxjava.version>
@@ -66,6 +66,17 @@
         <version>1.4.1.Final</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>${slf4j-api.version}</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -155,21 +166,10 @@
 
     <!-- logging -->
     <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-      <version>${log4j2.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>${log4j2.version}</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>${jackson.version}</version>
-    </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
@@ -200,14 +200,6 @@
   </licenses>
 
   <repositories>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>bintray-jroper-maven</id>
-      <name>bintray</name>
-      <url>https://dl.bintray.com/jroper/maven</url>
-    </repository>
     <repository>
       <id>microprofile-snapshots</id>
       <url>https://repo.eclipse.org/content/repositories/microprofile-snapshots</url>

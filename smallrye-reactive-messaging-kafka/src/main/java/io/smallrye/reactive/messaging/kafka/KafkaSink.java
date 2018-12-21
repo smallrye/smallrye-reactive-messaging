@@ -7,11 +7,11 @@ import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.kafka.client.producer.RecordMetadata;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Subscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,8 +19,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-public class KafkaSink {
-  private static final Logger LOGGER = LogManager.getLogger(KafkaSink.class);
+class KafkaSink {
+  private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSink.class);
   private final KafkaWriteStream stream;
   private final int partition;
   private final Optional<Long> timestamp;
@@ -28,7 +28,7 @@ public class KafkaSink {
   private final String topic;
   private final Subscriber<Message> subscriber;
 
-  public KafkaSink(Vertx vertx, Map<String, String> config) {
+  KafkaSink(Vertx vertx, Map<String, String> config) {
     stream = KafkaWriteStream.create(vertx.getDelegate(), new HashMap<>(config));
     stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
     ConfigurationHelper conf = ConfigurationHelper.create(config);
@@ -87,11 +87,11 @@ public class KafkaSink {
 
   }
 
-  public static CompletionStage<Subscriber<? extends Message>> create(Vertx vertx, Map<String, String> config) {
+  static CompletionStage<Subscriber<? extends Message>> create(Vertx vertx, Map<String, String> config) {
     return CompletableFuture.completedFuture(new KafkaSink(vertx, config).subscriber);
   }
 
-  public Subscriber<Message> getSubscriber() {
+  Subscriber<Message> getSubscriber() {
     return subscriber;
   }
 }

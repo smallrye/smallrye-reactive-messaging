@@ -8,27 +8,19 @@ import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.WeavingException;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.AfterDeploymentValidation;
-import javax.enterprise.inject.spi.AnnotatedMethod;
-import javax.enterprise.inject.spi.AnnotatedType;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.ProcessBean;
+import javax.enterprise.inject.spi.*;
 import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -38,7 +30,7 @@ import java.util.stream.Collectors;
  */
 public class MediatorManager {
 
-  private static final Logger LOGGER = LogManager.getLogger(MediatorManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MediatorManager.class);
   public static final String STRICT_MODE_PROPERTY = "smallrye-messaging-strict-binding";
   private final boolean strictMode;
 
@@ -60,7 +52,7 @@ public class MediatorManager {
   }
 
   public <T> void analyze(AnnotatedType<T> type, ProcessBean<T> bean) {
-    LOGGER.info("Scanning Type: " + type.getJavaClass().getName());
+    LOGGER.debug("Scanning Type: {}", type.getJavaClass().getName());
     Set<AnnotatedMethod<? super T>> methods = type.getMethods();
 
     methods.stream()
@@ -104,7 +96,7 @@ public class MediatorManager {
             try {
               mediator.initialize(instance.select(mediator.getConfiguration().getBeanClass(), mediator.getConfiguration().getQualifiers().toArray(new Annotation[0])).get());
             } catch (Throwable e) {
-              LOGGER.fatal("Unable to initialize mediator {}", mediator.getMethodAsString(), e);
+              LOGGER.error("Unable to initialize mediator {}", mediator.getMethodAsString(), e);
               return;
             }
 

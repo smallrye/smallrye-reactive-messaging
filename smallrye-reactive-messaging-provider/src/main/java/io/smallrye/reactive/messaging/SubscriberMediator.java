@@ -1,13 +1,13 @@
 package io.smallrye.reactive.messaging;
 
 import org.apache.commons.lang3.ClassUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
@@ -83,7 +83,7 @@ public class SubscriberMediator extends AbstractMediator {
   public void run() {
     assert this.source != null;
     assert this.subscriber != null;
-    final Logger logger = LogManager.getLogger(configuration.methodAsString());
+    final Logger logger = LoggerFactory.getLogger(configuration.methodAsString());
     AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
     Subscriber delegating = new Subscriber() {
       @Override

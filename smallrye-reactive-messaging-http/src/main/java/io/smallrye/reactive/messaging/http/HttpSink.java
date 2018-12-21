@@ -7,25 +7,25 @@ import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.ext.web.client.HttpRequest;
 import io.vertx.reactivex.ext.web.client.WebClient;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Subscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class HttpSink {
 
-  private static final Logger LOGGER = LogManager.getLogger(HttpSink.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpSink.class);
 
   private final String url;
   private final WebClient client;
   private final String converterClass;
   private final Subscriber<? extends Message> subscriber;
 
-  public HttpSink(Vertx vertx, ConfigurationHelper config) {
+  HttpSink(Vertx vertx, ConfigurationHelper config) {
     WebClientOptions options = new WebClientOptions(config.asJsonObject());
     url = config.getOrDie("url");
     client = WebClient.create(vertx, options);
@@ -114,7 +114,7 @@ public class HttpSink {
     return future;
   }
 
-  public CompletionStage<Subscriber<? extends Message>> get() {
+  CompletionStage<Subscriber<? extends Message>> get() {
     return CompletableFuture.completedFuture(subscriber);
   }
 }

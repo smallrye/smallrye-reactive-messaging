@@ -4,12 +4,12 @@ import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.spi.PublisherFactory;
 import io.smallrye.reactive.messaging.spi.SubscriberFactory;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
@@ -32,9 +32,9 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class ConfiguredStreamFactory implements StreamRegistar {
 
-  private static final Logger LOGGER = LogManager.getLogger(ConfiguredStreamFactory.class);
-  public static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
-  public static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink";
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredStreamFactory.class);
+  private static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
+  private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink";
 
 
   private final List<PublisherFactory> sourceFactories;
@@ -57,8 +57,8 @@ public class ConfiguredStreamFactory implements StreamRegistar {
     } else {
       this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
       this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
-      LOGGER.info("Found source types: " + sourceFactories.stream().map(PublisherFactory::type).collect(Collectors.toList()));
-      LOGGER.info("Found sink types: " + sinkFactories.stream().map(SubscriberFactory::type).collect(Collectors.toList()));
+      LOGGER.info("Found source types: {}", sourceFactories.stream().map(PublisherFactory::type).collect(Collectors.toList()));
+      LOGGER.info("Found sink types: {}", sinkFactories.stream().map(SubscriberFactory::type).collect(Collectors.toList()));
       //TODO Should we try to merge all the config?
       // For now take the first one.
       this.config = config.stream().findFirst()

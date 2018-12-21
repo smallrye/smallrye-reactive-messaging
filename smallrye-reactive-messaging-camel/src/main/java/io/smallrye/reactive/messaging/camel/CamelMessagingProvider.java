@@ -10,14 +10,14 @@ import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsServi
 import org.apache.camel.component.reactive.streams.engine.DefaultCamelReactiveStreamsServiceFactory;
 import org.apache.camel.component.reactive.streams.engine.ReactiveStreamsEngineConfiguration;
 import org.apache.camel.impl.DefaultExchange;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
@@ -32,7 +32,8 @@ import java.util.concurrent.CompletionStage;
 @ApplicationScoped
 public class CamelMessagingProvider implements PublisherFactory, SubscriberFactory {
 
-  private static final Logger LOGGER = LogManager.getLogger(CamelMessagingProvider.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CamelMessagingProvider.class);
+  private static final String REACTIVE_STREAMS_SCHEME = "reactive-streams:";
 
   @Inject
   private CamelContext camel;
@@ -77,9 +78,9 @@ public class CamelMessagingProvider implements PublisherFactory, SubscriberFacto
     Objects.requireNonNull(name, "The `endpoint-uri` of the endpoint is required");
 
     Subscriber<Message> subscriber;
-    if (name.startsWith("reactive-streams:")) {
+    if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
       // The endpoint is a reactive streams.
-      name = name.substring("reactive-streams:".length());
+      name = name.substring(REACTIVE_STREAMS_SCHEME.length());
       LOGGER.info("Creating subscriber from Camel stream named {}", name);
       subscriber = ReactiveStreams.<Message>builder()
         .map(this::createExchangeFromMessage)
@@ -110,9 +111,9 @@ public class CamelMessagingProvider implements PublisherFactory, SubscriberFacto
     Objects.requireNonNull(name, "The `endpoint-uri of the endpoint is required");
 
     Publisher<Exchange> publisher;
-    if (name.startsWith("reactive-streams:")) {
+    if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
       // The endpoint is a reactive streams.
-      name = name.substring("reactive-streams:".length());
+      name = name.substring(REACTIVE_STREAMS_SCHEME.length());
       LOGGER.info("Creating publisher from Camel stream named {}", name);
       publisher = reactive.fromStream(name);
     } else {

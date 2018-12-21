@@ -3,8 +3,8 @@ package io.smallrye.reactive.messaging;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.PublisherInjectionManager;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
@@ -21,7 +21,7 @@ import static io.smallrye.reactive.messaging.impl.VertxBeanRegistration.register
 
 public class ReactiveMessagingExtension implements Extension {
 
-  private static final Logger LOGGER = LogManager.getLogger(ReactiveMessagingExtension.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveMessagingExtension.class);
 
   private MediatorManager mediators = new MediatorManager();
   private PublisherInjectionManager injections = new PublisherInjectionManager();
