@@ -5,7 +5,18 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.*;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.DEFAULT_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.DEFAULT_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.MANUAL_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.MANUAL_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.NO_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.NO_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.PAYLOAD_NO_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.PAYLOAD_PRE_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.PRE_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.PRE_ACKNOWLEDGMENT_BUILDER;
 
 public class StreamTransformerAcknowledgementTest extends AcknowledgmentTestBase {
 

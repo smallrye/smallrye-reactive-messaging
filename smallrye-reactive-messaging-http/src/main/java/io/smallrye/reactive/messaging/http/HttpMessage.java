@@ -3,7 +3,11 @@ package io.smallrye.reactive.messaging.http;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class HttpMessage<T> implements Message<T> {
 

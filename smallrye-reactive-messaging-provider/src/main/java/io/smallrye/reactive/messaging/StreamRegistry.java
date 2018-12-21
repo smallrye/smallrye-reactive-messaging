@@ -5,7 +5,6 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public interface StreamRegistry {

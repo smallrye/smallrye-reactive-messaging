@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.http.converters;
 
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.buffer.Buffer;
 
 import java.util.concurrent.CompletableFuture;

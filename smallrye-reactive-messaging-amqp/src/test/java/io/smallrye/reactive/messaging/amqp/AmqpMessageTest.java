@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.amqp;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Footer;
-import org.apache.qpid.proton.amqp.messaging.Header;
 import org.apache.qpid.proton.message.Message;
 import org.junit.Test;
 

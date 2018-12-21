@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
-import io.reactivex.FlowableSubscriber;
 import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;

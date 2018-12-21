@@ -2,8 +2,8 @@ package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
+import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.providers.MyDummyFactories;
 import org.junit.After;
 import org.junit.Before;

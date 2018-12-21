@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.spi;
 
 
-import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
 import org.reactivestreams.Subscriber;

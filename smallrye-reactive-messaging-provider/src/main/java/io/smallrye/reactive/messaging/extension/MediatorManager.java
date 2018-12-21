@@ -1,6 +1,12 @@
 package io.smallrye.reactive.messaging.extension;
 
-import io.smallrye.reactive.messaging.*;
+import io.smallrye.reactive.messaging.AbstractMediator;
+import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.Shape;
+import io.smallrye.reactive.messaging.StreamRegistar;
+import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.WeavingException;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,9 +18,17 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.*;
+import javax.enterprise.inject.spi.AfterDeploymentValidation;
+import javax.enterprise.inject.spi.AnnotatedMethod;
+import javax.enterprise.inject.spi.AnnotatedType;
+import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.inject.spi.ProcessBean;
 import java.lang.annotation.Annotation;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;

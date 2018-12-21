@@ -2,7 +2,15 @@ package io.smallrye.reactive.messaging.ack;
 
 import org.junit.Test;
 
-import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.*;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.DEFAULT_PROCESSING_ACK_MESSAGE;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.DEFAULT_PROCESSING_ACK_PAYLOAD;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.MANUAL_ACKNOWLEDGMENT_MESSAGE;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.NO_ACKNOWLEDGMENT_MESSAGE;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.NO_ACKNOWLEDGMENT_PAYLOAD;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.POST_PROCESSING_ACK_MESSAGE;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.POST_PROCESSING_ACK_PAYLOAD;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.PRE_PROCESSING_ACK_MESSAGE;
+import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.PRE_PROCESSING_ACK_PAYLOAD;
 
 public class SubscriberAcknowledgementTest extends AcknowledgmentTestBase {
 

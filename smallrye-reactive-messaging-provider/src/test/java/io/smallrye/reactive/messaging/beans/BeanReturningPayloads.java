@@ -1,8 +1,6 @@
 package io.smallrye.reactive.messaging.beans;
 
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.util.concurrent.atomic.AtomicInteger;

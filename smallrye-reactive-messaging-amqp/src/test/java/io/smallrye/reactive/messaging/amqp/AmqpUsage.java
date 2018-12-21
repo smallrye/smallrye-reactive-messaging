@@ -2,7 +2,11 @@ package io.smallrye.reactive.messaging.amqp;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.proton.*;
+import io.vertx.proton.ProtonClient;
+import io.vertx.proton.ProtonClientOptions;
+import io.vertx.proton.ProtonConnection;
+import io.vertx.proton.ProtonReceiver;
+import io.vertx.proton.ProtonSender;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

@@ -2,7 +2,15 @@ package io.smallrye.reactive.messaging.ack;
 
 import org.junit.Test;
 
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.*;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.DEFAULT_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.DEFAULT_ACKNOWLEDGMENT_CS;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.MANUAL_ACKNOWLEDGMENT_CS;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.NO_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.NO_ACKNOWLEDGMENT_CS;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.POST_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.POST_ACKNOWLEDGMENT_CS;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.PRE_ACKNOWLEDGMENT;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.PRE_ACKNOWLEDGMENT_CS;
 
 public class MessageTransformerAcknowledgementTest extends AcknowledgmentTestBase {
 
