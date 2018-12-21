@@ -2,11 +2,8 @@ package io.smallrye.reactive.messaging.amqp;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.proton.ProtonClient;
-import io.vertx.proton.ProtonClientOptions;
-import io.vertx.proton.ProtonConnection;
-import io.vertx.proton.ProtonReceiver;
-import io.vertx.proton.ProtonSender;
+import io.vertx.proton.*;
+import io.vertx.reactivex.core.Context;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,9 +25,11 @@ import static org.awaitility.Awaitility.await;
 class AmqpUsage {
 
   private static Logger LOGGER = LogManager.getLogger(AmqpUsage.class);
+  private final Vertx vertx;
   private ProtonClient client;
   private ProtonConnection connection;
   private AtomicBoolean open = new AtomicBoolean();
+  private Context context;
 
 
   AmqpUsage(Vertx vertx, String host, int port) {
@@ -39,7 +38,9 @@ class AmqpUsage {
 
   private AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
     CountDownLatch latch = new CountDownLatch(1);
-    vertx.runOnContext(x -> {
+    this.vertx = vertx;
+    context = this.vertx.getOrCreateContext();
+    context.runOnContext(x -> {
       client = ProtonClient.create(vertx.getDelegate());
       client.connect(new ProtonClientOptions()
         .setReconnectInterval(10)
@@ -120,6 +121,7 @@ class AmqpUsage {
           message.setTtl(10000);
           message.setDeliveryCount(1);
           CountDownLatch latch = new CountDownLatch(1);
+          sleep();
           sender.send(message, x ->
             latch.countDown()
           );
@@ -129,11 +131,27 @@ class AmqpUsage {
       } catch (Exception e) {
         LOGGER.error("Unable to send message", e);
       } finally {
-        sender.close();
+        closeQuietly(sender);
       }
     });
     t.setName(topic + "-thread");
     t.start();
+  }
+
+  private void sleep() {
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private void closeQuietly(ProtonSender sender) {
+    try {
+      sender.close();
+    } catch (Exception e) {
+      // Ignore me.
+    }
   }
 
   void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
@@ -246,10 +264,12 @@ class AmqpUsage {
   }
 
   void close() {
-    if (connection != null && !connection.isDisconnected()) {
-      connection.close();
-      connection.disconnect();
-      await().until(() -> connection.isDisconnected());
-    }
+    context.runOnContext(x -> {
+      if (connection != null && !connection.isDisconnected()) {
+        connection.close();
+        connection.disconnect();
+      }
+    });
+    await().until(() -> connection == null || connection.isDisconnected());
   }
 }
