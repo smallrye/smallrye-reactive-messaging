@@ -19,13 +19,13 @@
   <packaging>pom</packaging>
 
   <properties>
-    <vertx.version>3.6.0</vertx.version>
+    <vertx.version>3.6.2</vertx.version>
     <slf4j-api.version>1.7.25</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0-RC4</microprofile-reactive-streams.version>
     <rxjava.version>2.2.4</rxjava.version>
     <weld-core.version>3.0.5.Final</weld-core.version>
-    <jackson.version>2.9.7</jackson.version>
+    <jackson.version>2.9.8</jackson.version>
     <smallrye-reactive-streams-ops.version>0.4.0</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.5</smallrye-config.version>
     <cloudevent.version>0.2.1</cloudevent.version>
