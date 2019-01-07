@@ -7,15 +7,10 @@ import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.reactivestreams.Subscriber;
+import repeat.Repeat;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,13 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
-@RunWith(Parameterized.class)
 public class AmqpSinkTest extends AmqpTestBase {
-
-  @Parameterized.Parameters
-  public static Object[][] data() {
-    return new Object[10][0];
-  }
 
   private WeldContainer container;
   private AmqpSink sink;
@@ -94,17 +83,18 @@ public class AmqpSinkTest extends AmqpTestBase {
   }
 
   @Test
-  public void testABeanProducingMessagesSentToKafka() throws InterruptedException {
+  @Repeat(times = 3)
+  public void testABeanProducingMessagesSentToAMQP() throws InterruptedException {
     Weld weld = new Weld();
 
     weld.addBeanClass(AmqpMessagingProvider.class);
     weld.addBeanClass(ProducingBean.class);
 
-    container = weld.initialize();
-
     CountDownLatch latch = new CountDownLatch(10);
     usage.consumeTenIntegers("sink",
       v -> latch.countDown());
+
+    container = weld.initialize();
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
   }

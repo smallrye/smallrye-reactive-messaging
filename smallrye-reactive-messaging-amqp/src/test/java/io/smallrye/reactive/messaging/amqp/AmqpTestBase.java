@@ -4,7 +4,9 @@ import io.vertx.reactivex.core.Vertx;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
+import repeat.RepeatRule;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -14,6 +16,9 @@ public class AmqpTestBase {
   public static GenericContainer artemis = new GenericContainer("vromero/activemq-artemis:2.6.1-alpine")
     .withExposedPorts(8161)
     .withExposedPorts(5672);
+
+  @Rule
+  public RepeatRule rule = new RepeatRule();
 
   Vertx vertx;
   String address;

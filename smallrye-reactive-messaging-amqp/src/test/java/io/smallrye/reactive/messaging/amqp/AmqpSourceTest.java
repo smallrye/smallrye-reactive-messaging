@@ -29,13 +29,7 @@ import org.junit.runners.Parameterized;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 
-@RunWith(Parameterized.class)
 public class AmqpSourceTest extends AmqpTestBase {
-
-  @Parameterized.Parameters
-  public static Object[][] data() {
-    return new Object[10][0];
-  }
 
   private AmqpMessagingProvider provider;
 

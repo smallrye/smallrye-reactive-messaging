@@ -12,7 +12,9 @@ import org.jboss.weld.environment.se.Weld;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
+import repeat.RepeatRule;
 
 public class MqttTestBase {
 
@@ -24,6 +26,9 @@ public class MqttTestBase {
   protected String address;
   protected Integer port;
   protected MqttUsage usage;
+
+  @Rule
+  public RepeatRule rule = new RepeatRule();
 
   @Before
   public void setup() {
@@ -42,8 +47,8 @@ public class MqttTestBase {
     vertx.close();
     usage.close();
   }
-  
-  
+
+
   static Weld baseWeld() {
     Weld weld = new Weld();
     weld.disableDiscovery();

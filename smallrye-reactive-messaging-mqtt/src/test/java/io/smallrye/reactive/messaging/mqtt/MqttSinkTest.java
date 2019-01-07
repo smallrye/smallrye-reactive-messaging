@@ -13,6 +13,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
+import repeat.Repeat;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -89,16 +90,17 @@ public class MqttSinkTest extends MqttTestBase {
   }
 
   @Test
-  public void testABeanProducingMessagesSentToKafka() throws InterruptedException {
+  @Repeat(times = 5)
+  public void testABeanProducingMessagesSentToMQTT() throws InterruptedException {
     Weld weld = baseWeld();
     weld.addBeanClass(ProducingBean.class);
-    
-    container = weld.initialize();
 
     CountDownLatch latch = new CountDownLatch(10);
     usage.consumeIntegers("sink", 10, 10, TimeUnit.SECONDS,
       null,
       v -> latch.countDown());
+
+    container = weld.initialize();
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
   }
 
