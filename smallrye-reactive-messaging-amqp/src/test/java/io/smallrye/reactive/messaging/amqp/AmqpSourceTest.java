@@ -1,7 +1,18 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+import static org.awaitility.Awaitility.await;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
@@ -15,18 +26,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
-import static org.awaitility.Awaitility.await;
+import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.extension.MediatorManager;
 
 @RunWith(Parameterized.class)
 public class AmqpSourceTest extends AmqpTestBase {
@@ -143,7 +144,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     weld.addBeanClass(AmqpMessagingProvider.class);
     weld.addBeanClass(ConsumptionBean.class);
     container = weld.initialize();
-    await().until(() -> container.getBeanManager().getExtension(ReactiveMessagingExtension.class).isInitialized());
+    await().until(() -> container.select(MediatorManager.class).get().isInitialized());
     return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
   }
 

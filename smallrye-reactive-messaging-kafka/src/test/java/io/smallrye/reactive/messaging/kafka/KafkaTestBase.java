@@ -2,7 +2,15 @@ package io.smallrye.reactive.messaging.kafka;
 
 import io.debezium.kafka.KafkaCluster;
 import io.debezium.util.Testing;
+import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
+import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
+import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.vertx.reactivex.core.Vertx;
+
+import org.jboss.weld.environment.se.Weld;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -53,4 +61,17 @@ public class KafkaTestBase {
     kafka.startup();
   }
 
+  static Weld baseWeld() {
+    Weld weld = new Weld();
+    weld.addBeanClass(MediatorFactory.class);
+    weld.addBeanClass(MediatorManager.class);
+    weld.addBeanClass(InternalStreamRegistry.class);
+    weld.addBeanClass(StreamFactoryImpl.class);
+    weld.addBeanClass(ConfiguredStreamFactory.class);
+    weld.addExtension(new ReactiveMessagingExtension());
+    weld.addBeanClass(KafkaMessagingProvider.class);
+    weld.disableDiscovery();
+    return weld;
+  }
+  
 }

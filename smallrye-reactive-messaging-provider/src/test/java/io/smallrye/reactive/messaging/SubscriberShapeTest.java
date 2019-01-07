@@ -1,5 +1,20 @@
 package io.smallrye.reactive.messaging;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.awaitility.Awaitility.await;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.enterprise.inject.se.SeContainer;
+import javax.enterprise.inject.spi.DeploymentException;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.junit.Test;
+import org.reactivestreams.Subscriber;
+
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningACompletionStageOfSomething;
 import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningACompletionStageOfVoid;
@@ -12,19 +27,6 @@ import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningVoi
 import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfMessages;
 import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfMessagesButDiscarding;
 import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfPayloads;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.jboss.weld.exceptions.DefinitionException;
-import org.junit.Test;
-import org.reactivestreams.Subscriber;
-
-import javax.enterprise.inject.se.SeContainer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.awaitility.Awaitility.await;
 
 public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
@@ -65,7 +67,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     try {
       initialize();
       fail("Expected failure - method validation should have failed");
-    } catch (DefinitionException e) {
+    } catch (DeploymentException e) {
       // Check we have the right cause
       assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
     }
@@ -89,7 +91,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     try {
       initialize();
       fail("Expected failure - method validation should have failed");
-    } catch (DefinitionException e) {
+    } catch (DeploymentException e) {
       // Check we have the right cause
       assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
     }

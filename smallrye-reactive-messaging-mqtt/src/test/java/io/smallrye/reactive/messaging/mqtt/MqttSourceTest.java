@@ -1,15 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,8 +12,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.After;
+import org.junit.Test;
+
+import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.extension.MediatorManager;
 
 public class MqttSourceTest extends MqttTestBase {
 
@@ -97,7 +94,7 @@ public class MqttSourceTest extends MqttTestBase {
   @Test
   public void testABeanConsumingTheMQTTMessages() {
     ConsumptionBean bean = deploy();
-    await().until(() -> container.getBeanManager().getExtension(ReactiveMessagingExtension.class).isInitialized());
+    await().until(() -> container.select(MediatorManager.class).get().isInitialized());
 
     List<Integer> list = bean.getResults();
     assertThat(list).isEmpty();
@@ -112,17 +109,10 @@ public class MqttSourceTest extends MqttTestBase {
   }
 
   private ConsumptionBean deploy() {
-    Weld weld = new Weld();
-    weld.addBeanClass(MediatorFactory.class);
-    weld.addBeanClass(InternalStreamRegistry.class);
-    weld.addBeanClass(StreamFactoryImpl.class);
-    weld.addBeanClass(ConfiguredStreamFactory.class);
-    weld.addExtension(new ReactiveMessagingExtension());
-    weld.addBeanClass(MqttMessagingProvider.class);
+    Weld weld = baseWeld();
     weld.addBeanClass(ConsumptionBean.class);
-    weld.disableDiscovery();
     container = weld.initialize();
     return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
   }
-
+  
 }

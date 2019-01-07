@@ -1,17 +1,21 @@
 package io.smallrye.reactive.messaging;
 
+import java.util.Collections;
+import java.util.List;
+
+import javax.enterprise.inject.se.SeContainer;
+import javax.enterprise.inject.se.SeContainerInitializer;
+
+import org.junit.After;
+import org.junit.Before;
+
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.providers.MyDummyFactories;
-import org.junit.After;
-import org.junit.Before;
-
-import javax.enterprise.inject.se.SeContainer;
-import javax.enterprise.inject.se.SeContainerInitializer;
-import java.util.Collections;
-import java.util.List;
 
 public class WeldTestBaseWithoutTails {
 
@@ -27,6 +31,7 @@ public class WeldTestBaseWithoutTails {
     initializer = SeContainerInitializer.newInstance();
 
     initializer.addBeanClasses(MediatorFactory.class,
+                               MediatorManager.class,
                                InternalStreamRegistry.class,
                                StreamFactoryImpl.class,
                                ConfiguredStreamFactory.class,
@@ -37,7 +42,6 @@ public class WeldTestBaseWithoutTails {
     initializer.addBeanClasses(beans.toArray(new Class<?>[0]));
     initializer.disableDiscovery();
     initializer.addExtensions(new ReactiveMessagingExtension());
-
   }
 
   public List<Class> getBeans() {

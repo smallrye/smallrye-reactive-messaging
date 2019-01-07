@@ -1,6 +1,10 @@
 package io.smallrye.reactive.messaging.invalid;
 
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.spi.DeploymentException;
+
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -8,11 +12,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.After;
 import org.junit.Test;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DefinitionException;
-import javax.enterprise.inject.spi.DeploymentException;
-
-import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class InvalidConfigurationTest extends WeldTestBaseWithoutTails {
 
@@ -21,13 +21,13 @@ public class InvalidConfigurationTest extends WeldTestBaseWithoutTails {
     System.clearProperty(STRICT_MODE_PROPERTY);
   }
 
-  @Test(expected = DefinitionException.class)
+  @Test(expected = DeploymentException.class)
   public void testEmptyOutgoing() {
     addBeanClass(BeanWithEmptyOutgoing.class);
     initialize();
   }
 
-  @Test(expected = DefinitionException.class)
+  @Test(expected = DeploymentException.class)
   public void testEmptyIncoming() {
     addBeanClass(BeanWithEmptyIncoming.class);
     initialize();

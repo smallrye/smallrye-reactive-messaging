@@ -24,14 +24,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
+import javax.enterprise.inject.spi.Bean;
+
 public class MediatorConfiguration {
 
+  private final Bean<?> mediatorBean;
+    
   private final Method method;
-  private final Set<Annotation> qualifiers;
 
   private Shape shape;
-
-  private final Class<?> beanClass;
 
   private Incoming incoming;
 
@@ -59,6 +60,8 @@ public class MediatorConfiguration {
    * The merge policy.
    */
   private Merge.Mode mergePolicy;
+  
+  private Class<? extends Invoker> invokerClass;
 
   public enum Production {
     STREAM_OF_MESSAGE,
@@ -82,10 +85,9 @@ public class MediatorConfiguration {
     NONE
   }
 
-  public MediatorConfiguration(Method method, Class<?> beanClass, Set<Annotation> qualifiers) {
+  public MediatorConfiguration(Method method, Bean<?> bean) {
     this.method = Objects.requireNonNull(method, "'method' must be set");
-    this.beanClass = Objects.requireNonNull(beanClass, "'beanClass' must be set");
-    this.qualifiers = Objects.requireNonNull(qualifiers, "the qualifiers must not be `null`");
+    this.mediatorBean = Objects.requireNonNull(bean, "'bean' must be set");
   }
 
   public Shape shape() {
@@ -510,15 +512,11 @@ public class MediatorConfiguration {
   }
 
   public String methodAsString() {
-    return beanClass.getName() + "#" + method.getName();
+    return mediatorBean.getBeanClass().getName() + "#" + method.getName();
   }
 
   public Method getMethod() {
     return method;
-  }
-
-  public Class<?> getBeanClass() {
-    return beanClass;
   }
 
   public Consumption consumption() {
@@ -560,8 +558,8 @@ public class MediatorConfiguration {
     return broadcast != null;
   }
 
-  public Set<Annotation> getQualifiers() {
-    return qualifiers;
+  public Bean<?> getBean() {
+    return mediatorBean;
   }
 
   public int getNumberOfSubscriberBeforeConnecting() {
@@ -571,4 +569,9 @@ public class MediatorConfiguration {
       return broadcast.value();
     }
   }
+
+  public Class<? extends Invoker> getInvokerClass() {
+    return invokerClass;
+  }
+  
 }
