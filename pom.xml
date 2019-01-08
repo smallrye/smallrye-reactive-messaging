@@ -82,11 +82,12 @@
   </dependencyManagement>
 
   <dependencies>
-    <dependency>
-      <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
-      <artifactId>microprofile-reactive-messaging-api</artifactId>
-      <version>${microprofile-reactive-messaging.version}</version>
-    </dependency>
+    <!-- The API has been copied into the implementation to allow alpha releases and ease feedback -->
+    <!--<dependency>-->
+      <!--<groupId>org.eclipse.microprofile.reactive.messaging</groupId>-->
+      <!--<artifactId>microprofile-reactive-messaging-api</artifactId>-->
+      <!--<version>${microprofile-reactive-messaging.version}</version>-->
+    <!--</dependency>-->
     <dependency>
       <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
       <artifactId>microprofile-reactive-streams-operators-api</artifactId>
@@ -132,7 +133,6 @@
       <scope>test</scope>
     </dependency>
 
-
     <dependency>
       <groupId>org.eclipse.microprofile.config</groupId>
       <artifactId>microprofile-config-api</artifactId>
@@ -143,7 +143,6 @@
       <artifactId>commons-lang3</artifactId>
       <version>3.8.1</version>
     </dependency>
-
 
     <dependency>
       <groupId>junit</groupId>
