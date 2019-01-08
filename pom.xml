@@ -12,11 +12,42 @@
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
   <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
 
   <name>MicroProfile Reactive Streams Messaging Implementation</name>
   <description>An implementation of the MicroProfile Reactive Streams Messaging specification</description>
 
-  <packaging>pom</packaging>
+  <inceptionYear>2018</inceptionYear>
+  <organization>
+    <name>SmallRye</name>
+    <url>https://wwww.smallrye.io</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+      <comments>A business-friendly OSS license</comments>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>cescoffier</id>
+      <name>Clement Escoffier</name>
+      <email>clement[AT]apache[DOT]org</email>
+      <url>https://github.com/cescoffier</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git@github.com:smallrye/smallrye-reactive-messaging.git</connection>
+    <developerConnection>scm:git:git@github.com:smallrye/smallrye-reactive-messaging.git</developerConnection>
+    <url>https://github.com/smallrye/smallrye-reactive-messaging</url>
+    <tag>HEAD</tag>
+  </scm>
+
 
   <properties>
     <vertx.version>3.6.2</vertx.version>
@@ -178,25 +209,42 @@
 
   <build>
     <defaultGoal>clean install</defaultGoal>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.0.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.1.1</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>default-cli</id>
+            <goals>
+              <goal>aggregate</goal>
+            </goals>
+            <configuration>
+              <reportOutputDirectory>target/generated-docs/apidocs</reportOutputDirectory>
+              <excludePackageNames>*.quickstart:*.example:*.snippets</excludePackageNames>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
-
-  <developers>
-    <developer>
-      <id>cescoffier</id>
-      <name>Clement Escoffier</name>
-      <email>clement[AT]apache[DOT]org</email>
-      <url>https://github.com/cescoffier</url>
-    </developer>
-  </developers>
-
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-      <comments>A business-friendly OSS license</comments>
-    </license>
-  </licenses>
 
   <repositories>
     <repository>
