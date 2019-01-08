@@ -272,6 +272,10 @@ class AmqpUsage {
         connection.disconnect();
       }
     });
-    await().until(() -> connection == null || connection.isDisconnected());
+    try {
+      await().until(() -> connection == null || connection.isDisconnected());
+    } catch (Exception e) {
+      // Ignore...
+    }
   }
 }
