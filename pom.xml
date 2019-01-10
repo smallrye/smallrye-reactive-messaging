@@ -239,10 +239,12 @@
             <configuration>
               <reportOutputDirectory>target/generated-docs/apidocs</reportOutputDirectory>
               <excludePackageNames>*.quickstart:*.example:*.snippets</excludePackageNames>
-              <additionalOptions>-Xdoclint:none</additionalOptions>
             </configuration>
           </execution>
         </executions>
+        <configuration>
+          <additionalOptions>-Xdoclint:none</additionalOptions>
+        </configuration>
       </plugin>
     </plugins>
   </build>
