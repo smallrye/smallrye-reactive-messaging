@@ -52,7 +52,7 @@
     <vertx.version>3.6.2</vertx.version>
     <slf4j-api.version>1.7.25</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
-    <microprofile-reactive-streams.version>1.0-RC4</microprofile-reactive-streams.version>
+    <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
     <rxjava.version>2.2.5</rxjava.version>
     <weld-core.version>3.0.5.Final</weld-core.version>
     <jackson.version>2.9.8</jackson.version>
