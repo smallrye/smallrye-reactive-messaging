@@ -56,7 +56,7 @@
     <rxjava.version>2.2.5</rxjava.version>
     <weld-core.version>3.0.5.Final</weld-core.version>
     <jackson.version>2.9.8</jackson.version>
-    <smallrye-reactive-streams-ops.version>0.4.1</smallrye-reactive-streams-ops.version>
+    <smallrye-reactive-streams-ops.version>1.0.0</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.5</smallrye-config.version>
     <cloudevent.version>0.2.1</cloudevent.version>
 
@@ -153,6 +153,23 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>${smallrye-reactive-streams-ops.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-converter-api</artifactId>
+      <version>${smallrye-reactive-streams-ops.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-converter-rxjava2</artifactId>
+      <version>${smallrye-reactive-streams-ops.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-converter-reactor</artifactId>
       <version>${smallrye-reactive-streams-ops.version}</version>
       <scope>test</scope>
     </dependency>

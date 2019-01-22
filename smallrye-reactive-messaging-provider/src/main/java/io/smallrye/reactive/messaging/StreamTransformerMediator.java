@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
-import io.reactivex.Flowable;
+import io.smallrye.reactive.converters.ReactiveTypeConverter;
+import io.smallrye.reactive.converters.Registry;
 import org.apache.commons.lang3.ClassUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -8,6 +9,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class StreamTransformerMediator extends AbstractMediator {
@@ -87,6 +89,11 @@ public class StreamTransformerMediator extends AbstractMediator {
       Publisher<Message> prependedWithAck = ReactiveStreams.fromPublisher(publisher)
         .flatMapCompletionStage(managePreProcessingAck())
         .buildRs();
+      Class<?> parameterType = configuration.getMethod().getParameterTypes()[0];
+      Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
+      if (converter.isPresent()) {
+        prependedWithAck = (Publisher) converter.get().fromPublisher(prependedWithAck);
+      }
       Publisher<Message> result = invoke(prependedWithAck);
       Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return result;
@@ -111,9 +118,11 @@ public class StreamTransformerMediator extends AbstractMediator {
       Publisher stream = ReactiveStreams.fromPublisher(publisher)
         .flatMapCompletionStage(managePreProcessingAck())
         .map(Message::getPayload).buildRs();
-      // Ability to inject a RX Flowable in method getting a Publisher.
-      if (ClassUtils.isAssignable(configuration.getMethod().getParameterTypes()[0], Flowable.class)) {
-        stream = Flowable.fromPublisher(publisher).map(Message::getPayload);
+      // Ability to inject Publisher implementation in method getting a Publisher.
+      Class<?> parameterType = configuration.getMethod().getParameterTypes()[0];
+      Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
+      if (converter.isPresent()) {
+        stream = (Publisher) converter.get().fromPublisher(stream);
       }
       Publisher<Object> result = invoke(stream);
       Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");

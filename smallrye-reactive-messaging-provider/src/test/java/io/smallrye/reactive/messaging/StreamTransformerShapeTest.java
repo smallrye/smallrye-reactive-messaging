@@ -1,11 +1,6 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsFlowableAndPublishingMsgAsFlowable;
-import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsFlowableAndPublishingMsgAsPublisher;
-import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsPublisherAndPublishingMsgAsFlowable;
-import io.smallrye.reactive.messaging.beans.BeanConsumingMsgAsPublisherBuilderAndPublishingMsgAsPublisherBuilder;
-import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorBuilderOfMessages;
-import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorOfMessages;
+import io.smallrye.reactive.messaging.beans.*;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,8 +16,24 @@ public class StreamTransformerShapeTest extends WeldTestBase {
   }
 
   @Test
+  public void testBeanConsumingMsgAsFluxAndPublishingMsgAsFlux() {
+    addBeanClass(BeanConsumingMsgAsFluxAndPublishingMsgAsFlux.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
+    assertThat(collector.payloads()).isEqualTo(EXPECTED);
+  }
+
+  @Test
   public void testBeanConsumingMsgAsFlowableAndPublishingMsgAsPublisher() {
     addBeanClass(BeanConsumingMsgAsFlowableAndPublishingMsgAsPublisher.class);
+    initialize();
+    MyCollector collector = container.select(MyCollector.class).get();
+    assertThat(collector.payloads()).isEqualTo(EXPECTED);
+  }
+
+  @Test
+  public void testBeanConsumingMsgAsFluxAndPublishingMsgAsPublisher() {
+    addBeanClass(BeanConsumingMsgAsFluxAndPublishingMsgAsPublisher.class);
     initialize();
     MyCollector collector = container.select(MyCollector.class).get();
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
