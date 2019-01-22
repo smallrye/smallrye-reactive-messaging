@@ -56,7 +56,7 @@
     <rxjava.version>2.2.5</rxjava.version>
     <weld-core.version>3.0.5.Final</weld-core.version>
     <jackson.version>2.9.8</jackson.version>
-    <smallrye-reactive-streams-ops.version>0.4.0</smallrye-reactive-streams-ops.version>
+    <smallrye-reactive-streams-ops.version>0.4.1</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.5</smallrye-config.version>
     <cloudevent.version>0.2.1</cloudevent.version>
 
