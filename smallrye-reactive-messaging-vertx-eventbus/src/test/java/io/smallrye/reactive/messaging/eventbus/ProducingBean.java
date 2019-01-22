@@ -52,11 +52,7 @@ public class ProducingBean {
 
   @PostConstruct
   public void registerConsumer() {
-    System.out.println("Registering consumer..." + " / " + vertx);
-    vertx.eventBus().consumer("sink").handler(m -> {
-      System.out.println("Got message: " + m.body());
-      messages.add(m);
-    });
+    vertx.eventBus().consumer("sink").handler(m -> messages.add(m));
   }
 
   public List<io.vertx.reactivex.core.eventbus.Message> messages() {

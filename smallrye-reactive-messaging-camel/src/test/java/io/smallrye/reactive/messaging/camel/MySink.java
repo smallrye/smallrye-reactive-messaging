@@ -17,7 +17,6 @@ public class MySink {
 
   @Incoming("data")
   public void consume(String content) {
-    System.out.println("Consuming... " + content);
     list.add(content);
   }
 
@@ -25,7 +24,6 @@ public class MySink {
   public Config myConfig() {
     String prefix = "smallrye.messaging.source.data.";
     Map<String, String> config = new HashMap<>();
-//    config.put(prefix + "name", "route-1");
     config.putIfAbsent(prefix +  "name", "foo-out");
     config.put(prefix + "type", Camel.class.getName());
     return new MyConfig(config);

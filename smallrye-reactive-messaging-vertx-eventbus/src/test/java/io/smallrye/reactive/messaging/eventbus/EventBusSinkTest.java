@@ -170,7 +170,6 @@ public class EventBusSinkTest extends EventbusTestBase {
       last.set(m);
       if (m.body() < 8) {
         integers.add(m.body());
-        System.out.println("Replying for " + m.body());
         m.reply("foo");
       }
     });
