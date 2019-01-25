@@ -2,11 +2,12 @@ package io.smallrye.reactive.messaging.extension;
 
 import static io.smallrye.reactive.messaging.impl.VertxBeanRegistration.registerVertxBeanIfNeeded;
 
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.LogManager;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
@@ -15,13 +16,16 @@ import javax.enterprise.inject.spi.AfterDeploymentValidation;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.inject.spi.DeploymentException;
 import javax.enterprise.inject.spi.Extension;
-import javax.enterprise.inject.spi.ProcessAnnotatedType;
+import javax.enterprise.inject.spi.InjectionPoint;
+import javax.enterprise.inject.spi.ProcessInjectionPoint;
 import javax.enterprise.inject.spi.ProcessManagedBean;
-import javax.enterprise.inject.spi.WithAnnotations;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +36,8 @@ public class ReactiveMessagingExtension implements Extension {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveMessagingExtension.class);
 
-    private PublisherInjectionManager injections = new PublisherInjectionManager();
-
     private List<MediatorBean<?>> mediatorBeans = new ArrayList<>();
+    private List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
 
     <T> void processClassesContainingMediators(@Observes ProcessManagedBean<T> event) {
         AnnotatedType<?> annotatedType = event.getAnnotatedBeanClass();
@@ -44,9 +47,19 @@ public class ReactiveMessagingExtension implements Extension {
             mediatorBeans.add(new MediatorBean<>(event.getBean(), event.getAnnotatedBeanClass()));
         }
     }
-
-    <T> void processClassesRequestingPublisher(@Observes @WithAnnotations({ Stream.class }) ProcessAnnotatedType<T> pat) {
-        injections.analyze(pat);
+    
+    <T extends Publisher<?>> void processStreamPublisherInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
+        Stream stream = StreamProducer.getStreamQualifier(pip.getInjectionPoint());
+        if (stream != null) {
+            streamInjectionPoints.add(pip.getInjectionPoint());
+        }
+    }
+    
+    <T extends PublisherBuilder<?>> void processStreamPublisherBuilderInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
+        Stream stream = StreamProducer.getStreamQualifier(pip.getInjectionPoint());
+        if (stream != null) {
+            streamInjectionPoints.add(pip.getInjectionPoint());
+        }
     }
 
     /**
@@ -57,9 +70,6 @@ public class ReactiveMessagingExtension implements Extension {
      */
     void afterBeanDiscovery(@Observes AfterBeanDiscovery discovery, BeanManager beanManager) {
         registerVertxBeanIfNeeded(discovery, beanManager);
-        LOGGER.info("Creating synthetic beans for injection points");
-        injections.createBeans(discovery);
-
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -67,7 +77,6 @@ public class ReactiveMessagingExtension implements Extension {
         Instance<Object> instance = beanManager.createInstance();
         StreamRegistry registry = instance.select(StreamRegistry.class)
                 .get();
-        injections.setRegistry(registry);
 
         MediatorManager mediatorManager = instance.select(MediatorManager.class)
                 .get();
@@ -79,6 +88,18 @@ public class ReactiveMessagingExtension implements Extension {
         CompletableFuture<Void> future = mediatorManager.initializeAndRun();
         try {
             future.get();
+
+            // NOTE: We do not validate @Stream annotations added by portable extensions
+            Set<String> names = registry.getPublisherNames();
+            for (InjectionPoint ip : streamInjectionPoints) {
+                String name = StreamProducer.getStreamName(ip);
+                if (!names.contains(name)) {
+                    done.addDeploymentProblem(new DeploymentException("No stream found for name: " + name + ", injection point: " + ip));
+                }
+                // TODO validate the required type
+            }
+            streamInjectionPoints.clear();
+
         } catch (ExecutionException e) {
             done.addDeploymentProblem(e.getCause());
         } catch (InterruptedException e) {

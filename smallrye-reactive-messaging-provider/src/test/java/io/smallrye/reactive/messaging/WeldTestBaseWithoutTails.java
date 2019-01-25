@@ -12,10 +12,12 @@ import org.junit.Before;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.extension.StreamProducer;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.providers.MyDummyFactories;
+import io.vertx.core.http.StreamPriority;
 
 public class WeldTestBaseWithoutTails {
 
@@ -34,6 +36,7 @@ public class WeldTestBaseWithoutTails {
                                MediatorManager.class,
                                InternalStreamRegistry.class,
                                StreamFactoryImpl.class,
+                               StreamProducer.class,
                                ConfiguredStreamFactory.class,
                                // Messaging provider
                                MyDummyFactories.class);

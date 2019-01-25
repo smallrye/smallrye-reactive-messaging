@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.annotations;
 
+import javax.enterprise.util.Nonbinding;
 import javax.inject.Qualifier;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -26,5 +27,6 @@ public @interface Stream {
    *
    * @return the stream name, mandatory, non null and non-blank. It must matches one of the available streams.
    */
+  @Nonbinding
   String value();
 }
