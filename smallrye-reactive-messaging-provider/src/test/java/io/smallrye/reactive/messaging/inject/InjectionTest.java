@@ -1,9 +1,13 @@
 package io.smallrye.reactive.messaging.inject;
 
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
+
+import javax.enterprise.inject.spi.DeploymentException;
+
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class InjectionTest extends WeldTestBaseWithoutTails {
 
@@ -50,13 +54,21 @@ public class InjectionTest extends WeldTestBaseWithoutTails {
     assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
   }
 
-
-
   @Test
   public void testMultipleFieldInjection() {
     addBeanClass(SourceBean.class);
     BeanInjectedWithDifferentFlavorsOfTheSameStream bean = installInitializeAndGet(BeanInjectedWithDifferentFlavorsOfTheSameStream.class);
     assertThat(bean.consume()).hasSize(10);
+  }
+
+  @Test
+  public void testNonExistentStream() {
+    addBeanClass(SourceBean.class);
+    try {
+        installInitializeAndGet(BeanInjectedNonExistentStream.class);
+        fail();
+    } catch (DeploymentException expected) {
+    }
   }
 
 }
