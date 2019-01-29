@@ -19,7 +19,7 @@ import repeat.RepeatRule;
 public class MqttTestBase {
 
   @ClassRule
-  public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.4.12")
+  public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.5.5")
     .withExposedPorts(1883);
 
   Vertx vertx;
