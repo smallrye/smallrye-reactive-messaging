@@ -49,7 +49,7 @@
 
 
   <properties>
-    <vertx.version>3.6.2</vertx.version>
+    <vertx.version>3.6.3</vertx.version>
     <slf4j-api.version>1.7.25</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
