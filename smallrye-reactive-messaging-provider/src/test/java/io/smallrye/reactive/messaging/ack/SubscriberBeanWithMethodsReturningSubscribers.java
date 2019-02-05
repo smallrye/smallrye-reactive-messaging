@@ -21,9 +21,6 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
   public static final String PRE_PROCESSING_ACK_MESSAGE = "pre-processing-acknowledgment-message";
   public static final String PRE_PROCESSING_ACK_PAYLOAD = "pre-processing-acknowledgment-payload";
 
-  public static final String POST_PROCESSING_ACK_MESSAGE = "post-processing-acknowledgment-message";
-  public static final String POST_PROCESSING_ACK_PAYLOAD = "post-processing-acknowledgment-payload";
-
   public static final String DEFAULT_PROCESSING_ACK_MESSAGE = "default-processing-acknowledgment-message";
   public static final String DEFAULT_PROCESSING_ACK_PAYLOAD = "default-processing-acknowledgment-payload";
 
@@ -109,38 +106,6 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
   @Outgoing(PRE_PROCESSING_ACK_PAYLOAD)
   public Publisher<Message<String>> sourceToPreAckWithPayload() {
     return source(PRE_PROCESSING_ACK_PAYLOAD);
-  }
-
-  @Incoming(POST_PROCESSING_ACK_MESSAGE)
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
-  public Subscriber<Message<String>> subWithPostAckWithMessage() {
-    return ReactiveStreams.<Message<String>>builder()
-      .forEach(m -> {
-        processed(POST_PROCESSING_ACK_MESSAGE, m.getPayload());
-        microNap();
-      })
-      .build();
-  }
-
-  @Outgoing(POST_PROCESSING_ACK_MESSAGE)
-  public Publisher<Message<String>> sourceToPostAckWithMessage() {
-    return source(POST_PROCESSING_ACK_MESSAGE);
-  }
-
-  @Incoming(POST_PROCESSING_ACK_PAYLOAD)
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
-  public Subscriber<String> subWithPostAckWithPayload() {
-    return ReactiveStreams.<String>builder()
-      .forEach(m -> {
-        processed(POST_PROCESSING_ACK_PAYLOAD, m);
-        microNap();
-      })
-      .build();
-  }
-
-  @Outgoing(POST_PROCESSING_ACK_PAYLOAD)
-  public Publisher<Message<String>> sourceToPostAckWithPayload() {
-    return source(POST_PROCESSING_ACK_PAYLOAD);
   }
 
   @Incoming(DEFAULT_PROCESSING_ACK_PAYLOAD)

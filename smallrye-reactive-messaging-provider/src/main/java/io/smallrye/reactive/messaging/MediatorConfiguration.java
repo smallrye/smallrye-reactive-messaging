@@ -130,7 +130,11 @@ public class MediatorConfiguration {
     if (acknowledgment == null) {
       if (shape == Shape.STREAM_TRANSFORMER) {
         acknowledgment = Acknowledgment.Strategy.PRE_PROCESSING;
-      } else if (shape == Shape.PROCESSOR && !(consumption == Consumption.PAYLOAD || consumption == Consumption.MESSAGE)) {
+      } else if (shape == Shape.PROCESSOR
+        && !(consumption == Consumption.PAYLOAD || consumption == Consumption.MESSAGE)) {
+        acknowledgment = Acknowledgment.Strategy.PRE_PROCESSING;
+      } else if (shape == Shape.SUBSCRIBER
+        && (consumption == Consumption.STREAM_OF_PAYLOAD || consumption == Consumption.STREAM_OF_MESSAGE)) {
         acknowledgment = Acknowledgment.Strategy.PRE_PROCESSING;
       } else {
         acknowledgment = Acknowledgment.Strategy.POST_PROCESSING;
