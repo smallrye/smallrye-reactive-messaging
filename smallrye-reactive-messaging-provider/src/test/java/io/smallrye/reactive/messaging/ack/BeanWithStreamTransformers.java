@@ -38,92 +38,92 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   static final String PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER = "payload-default-acknowledgment-builder";
 
   @Incoming("sink-" + MANUAL_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkManual(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + NO_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkNo(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PAYLOAD_NO_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkNoMessage(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PRE_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPre(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkDefault(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + MANUAL_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkManualForBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + NO_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkNoForBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkNoForMessageBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PRE_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPreBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkDefaultBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPayloadDefault(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPayloadDefaultBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPayloadPreBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PAYLOAD_PRE_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPayloadPre(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
 
   @Incoming(NO_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
   public Publisher<Message<String>> processorWithNoAck(Publisher<Message<String>> input) {
     return ReactiveStreams.fromPublisher(input)
@@ -143,7 +143,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(NO_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<Message<String>> processorWithNoAckWithBuilder(PublisherBuilder<Message<String>> input) {
     return input
@@ -163,7 +163,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
 
   @Incoming(MANUAL_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.MANUAL)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   @Outgoing("sink-" + MANUAL_ACKNOWLEDGMENT)
   public Publisher<Message<String>> processorWithAck(Publisher<Message<String>> input) {
     return ReactiveStreams.fromPublisher(input)
@@ -185,7 +185,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(MANUAL_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.MANUAL)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   @Outgoing("sink-" + MANUAL_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<Message<String>> processorWithAckBuilder(PublisherBuilder<Message<String>> input) {
     return input
@@ -206,7 +206,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(PRE_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
   public Publisher<Message<String>> processorWitPreAck(Publisher<Message<String>> input) {
     return ReactiveStreams.fromPublisher(input)
@@ -226,7 +226,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(PRE_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<Message<String>> processorWithPreAckWithBuilder(PublisherBuilder<Message<String>> input) {
     return input
@@ -283,7 +283,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(PAYLOAD_NO_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   @Outgoing("sink-" + PAYLOAD_NO_ACKNOWLEDGMENT)
   public Publisher<String> processorWithNoAckMessage(Publisher<String> input) {
     return ReactiveStreams.fromPublisher(input)
@@ -303,7 +303,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   @Outgoing("sink-" + PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<String> processorWithNoAckWithPayloadBuilder(PublisherBuilder<String> input) {
     return input
@@ -359,7 +359,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(PAYLOAD_PRE_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   @Outgoing("sink-" + PAYLOAD_PRE_ACKNOWLEDGMENT)
   public Publisher<String> processorWithPrePayloadAck(Publisher<String> input) {
     return ReactiveStreams.fromPublisher(input)
@@ -379,7 +379,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   }
 
   @Incoming(PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   @Outgoing("sink-" + PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<String> processorWithPreAckWithBuilderWithPayload(PublisherBuilder<String> input) {
     return input

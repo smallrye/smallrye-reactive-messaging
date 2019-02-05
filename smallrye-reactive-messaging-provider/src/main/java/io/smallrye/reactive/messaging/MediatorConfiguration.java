@@ -29,7 +29,7 @@ import javax.enterprise.inject.spi.Bean;
 public class MediatorConfiguration {
 
   private final Bean<?> mediatorBean;
-    
+
   private final Method method;
 
   private Shape shape;
@@ -38,7 +38,7 @@ public class MediatorConfiguration {
 
   private Outgoing outgoing;
 
-  private Acknowledgment.Mode acknowledgment;
+  private Acknowledgment.Strategy acknowledgment;
 
   private Broadcast broadcast;
 
@@ -60,7 +60,7 @@ public class MediatorConfiguration {
    * The merge policy.
    */
   private Merge.Mode mergePolicy;
-  
+
   private Class<? extends Invoker> invokerClass;
 
   public enum Production {
@@ -129,11 +129,11 @@ public class MediatorConfiguration {
     // setup default acknowledgement
     if (acknowledgment == null) {
       if (shape == Shape.STREAM_TRANSFORMER) {
-        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
+        acknowledgment = Acknowledgment.Strategy.PRE_PROCESSING;
       } else if (shape == Shape.PROCESSOR && !(consumption == Consumption.PAYLOAD || consumption == Consumption.MESSAGE)) {
-        acknowledgment = Acknowledgment.Mode.PRE_PROCESSING;
+        acknowledgment = Acknowledgment.Strategy.PRE_PROCESSING;
       } else {
-        acknowledgment = Acknowledgment.Mode.POST_PROCESSING;
+        acknowledgment = Acknowledgment.Strategy.POST_PROCESSING;
       }
     }
   }
@@ -267,17 +267,17 @@ public class MediatorConfiguration {
     useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), PublisherBuilder.class);
 
     // Post Acknowledgement is not supported
-    if (acknowledgment == Acknowledgment.Mode.POST_PROCESSING) {
+    if (acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
       throw getIncomingAndOutgoingError("Automatic post-processing acknowledgment is not supported.");
     }
 
     // Validate method and be sure we are not in the case 2 and 4.
-    if (consumption == Consumption.STREAM_OF_PAYLOAD && (acknowledgment == Acknowledgment.Mode.MANUAL)) {
+    if (consumption == Consumption.STREAM_OF_PAYLOAD && (acknowledgment == Acknowledgment.Strategy.MANUAL)) {
       throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
         "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
     }
 
-    if (production == Production.STREAM_OF_PAYLOAD && acknowledgment == Acknowledgment.Mode.MANUAL) {
+    if (production == Production.STREAM_OF_PAYLOAD && acknowledgment == Acknowledgment.Strategy.MANUAL) {
       throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
         "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
     }
@@ -546,7 +546,7 @@ public class MediatorConfiguration {
     return false;
   }
 
-  public Acknowledgment.Mode getAcknowledgment() {
+  public Acknowledgment.Strategy getAcknowledgment() {
     return acknowledgment;
   }
 
@@ -573,5 +573,5 @@ public class MediatorConfiguration {
   public Class<? extends Invoker> getInvokerClass() {
     return invokerClass;
   }
-  
+
 }

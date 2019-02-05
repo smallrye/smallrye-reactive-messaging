@@ -25,7 +25,7 @@ public class ProducingKafkaMessageBean {
 
   @Incoming("data")
   @Outgoing("output-2")
-  @Acknowledgment(Acknowledgment.Mode.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public KafkaMessage<String, Integer> process(Message<Integer> input) {
     KafkaMessage<String, Integer> message = KafkaMessage.of(Integer.toString(input.getPayload()), input.getPayload() + 1);
     message.getHeaders().put("hello", "clement").put("count", Integer.toString(counter.incrementAndGet()));

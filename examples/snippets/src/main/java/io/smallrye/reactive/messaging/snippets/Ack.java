@@ -13,7 +13,7 @@ public class Ack {
   // tag::pre[]
   @Incoming("i")
   @Outgoing("j")
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   public String autoAck(String input) {
     return input.toUpperCase();
   }
@@ -22,7 +22,7 @@ public class Ack {
   // tag::manual[]
   @Incoming("i")
   @Outgoing("j")
-  @Acknowledgment(Acknowledgment.Mode.MANUAL)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public CompletionStage<Message<String>> manualAck(Message<String> input) {
     return CompletableFuture.supplyAsync(input::getPayload)
       .thenApply(Message::of)
