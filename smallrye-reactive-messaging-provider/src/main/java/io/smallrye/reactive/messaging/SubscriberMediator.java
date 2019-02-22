@@ -167,7 +167,6 @@ public class SubscriberMediator extends AbstractMediator {
       this.subscriber = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .via(wrapper)
-        .flatMapCompletionStage(managePostProcessingAck())
         .ignore()
         .build();
     } else {
@@ -175,7 +174,6 @@ public class SubscriberMediator extends AbstractMediator {
       this.subscriber = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .via(new SubscriberWrapper<>(casted, Function.identity()))
-        .flatMapCompletionStage(managePostProcessingAck())
         .ignore()
         .build();
     }
