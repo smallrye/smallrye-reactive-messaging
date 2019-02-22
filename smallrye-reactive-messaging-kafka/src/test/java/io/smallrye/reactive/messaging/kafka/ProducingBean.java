@@ -22,7 +22,7 @@ public class ProducingBean {
 
   @Incoming("data")
   @Outgoing("output")
-  @Acknowledgment(Acknowledgment.Mode.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public Message<Integer> process(Message<Integer> input) {
     return Message.of(input.getPayload() + 1);
   }

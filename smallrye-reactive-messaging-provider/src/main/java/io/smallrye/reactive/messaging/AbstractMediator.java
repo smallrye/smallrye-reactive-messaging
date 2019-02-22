@@ -86,7 +86,7 @@ public abstract class AbstractMediator {
 
   protected Function<Message, ? extends CompletionStage<? extends Message>> managePostProcessingAck() {
     return message -> {
-      if (configuration.getAcknowledgment() == Acknowledgment.Mode.POST_PROCESSING) {
+      if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
         return getAckOrCompletion(message).thenApply(x -> message);
       } else {
         return CompletableFuture.completedFuture(message);
@@ -96,7 +96,7 @@ public abstract class AbstractMediator {
 
   protected Function<Message, ? extends CompletionStage<? extends Message>> managePreProcessingAck() {
     return message -> {
-      if (configuration.getAcknowledgment() == Acknowledgment.Mode.PRE_PROCESSING) {
+      if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
         return getAckOrCompletion(message).thenApply(x -> message);
       }
       return CompletableFuture.completedFuture(message);
