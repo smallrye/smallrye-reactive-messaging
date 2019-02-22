@@ -2,8 +2,8 @@ package io.smallrye.reactive.messaging.eventbus;
 
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 
 public class EventBusUsage {
 
-  private static Logger LOGGER = LogManager.getLogger(EventBusUsage.class);
+  private static Logger LOGGER = LoggerFactory.getLogger(EventBusUsage.class);
   private final EventBus bus;
 
   public EventBusUsage(EventBus bus) {

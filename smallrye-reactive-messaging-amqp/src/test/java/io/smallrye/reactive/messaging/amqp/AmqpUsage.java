@@ -5,11 +5,11 @@ import io.vertx.core.Handler;
 import io.vertx.proton.*;
 import io.vertx.reactivex.core.Context;
 import io.vertx.reactivex.core.Vertx;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +24,7 @@ import static org.awaitility.Awaitility.await;
 
 class AmqpUsage {
 
-  private static Logger LOGGER = LogManager.getLogger(AmqpUsage.class);
+  private static Logger LOGGER = LoggerFactory.getLogger(AmqpUsage.class);
   private final Vertx vertx;
   private ProtonClient client;
   private ProtonConnection connection;
@@ -180,7 +180,7 @@ class AmqpUsage {
         })
           .openHandler(r -> {
             LOGGER.info("Starting consumer to read messages on {}", topic);
-            if (r.succeeded()  && r.result().isOpen()) {
+            if (r.succeeded() && r.result().isOpen()) {
               latch.countDown();
             }
           })

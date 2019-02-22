@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 
 public class MqttUsage {
 
-  private static Logger LOGGER = LogManager.getLogger(MqttUsage.class);
+  private static Logger LOGGER = LoggerFactory.getLogger(MqttUsage.class);
   private final IMqttClient client;
 
   public MqttUsage(String host, int port) {
