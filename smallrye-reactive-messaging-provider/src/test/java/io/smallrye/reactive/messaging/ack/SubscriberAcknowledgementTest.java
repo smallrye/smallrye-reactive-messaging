@@ -7,8 +7,6 @@ import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturn
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.MANUAL_ACKNOWLEDGMENT_MESSAGE;
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.NO_ACKNOWLEDGMENT_MESSAGE;
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.NO_ACKNOWLEDGMENT_PAYLOAD;
-import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.POST_PROCESSING_ACK_MESSAGE;
-import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.POST_PROCESSING_ACK_PAYLOAD;
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.PRE_PROCESSING_ACK_MESSAGE;
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.PRE_PROCESSING_ACK_PAYLOAD;
 
@@ -47,27 +45,15 @@ public class SubscriberAcknowledgementTest extends AcknowledgmentTestBase {
   }
 
   @Test
-  public void testPostProcessingAcknowledgementMessageWithMethodReturningSubscriber() {
-    SubscriberBeanWithMethodsReturningSubscribers bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, POST_PROCESSING_ACK_MESSAGE);
-  }
-
-  @Test
-  public void testPostProcessingAcknowledgementPayloadWithMethodReturningSubscriber() {
-    SubscriberBeanWithMethodsReturningSubscribers bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, POST_PROCESSING_ACK_PAYLOAD);
-  }
-
-  @Test
   public void testDefaultProcessingAcknowledgementMessageWithMethodReturningSubscriber() {
     SubscriberBeanWithMethodsReturningSubscribers bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, DEFAULT_PROCESSING_ACK_MESSAGE);
+    assertPreAcknowledgment(bean, DEFAULT_PROCESSING_ACK_MESSAGE);
   }
 
   @Test
   public void testDefaultProcessingAcknowledgementPayloadMessageWithMethodReturningSubscriber() {
     SubscriberBeanWithMethodsReturningSubscribers bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, DEFAULT_PROCESSING_ACK_PAYLOAD);
+    assertPreAcknowledgment(bean, DEFAULT_PROCESSING_ACK_PAYLOAD);
   }
 
 }

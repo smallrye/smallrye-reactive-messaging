@@ -27,44 +27,44 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
 
 
   @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkDefault(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkDefaultBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + NO_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkNo(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + NO_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkNoBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PRE_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPre(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + PRE_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> sinkPreBuilder(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
 
   @Incoming(NO_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
   public Publisher<String> processorWithNoAck(String input) {
     return ReactiveStreams.of(input)
@@ -84,7 +84,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
   }
 
   @Incoming(NO_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<String> processorWithNoAckWithBuilder(String message) {
     return ReactiveStreams.of(message)
@@ -104,7 +104,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
 
 
   @Incoming(PRE_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
   public Publisher<String> processorWithPreAck(String input) {
     return ReactiveStreams.of(input)
@@ -124,7 +124,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
   }
 
   @Incoming(PRE_ACKNOWLEDGMENT_BUILDER)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<String> processorWithPreAckBuilder(String input) {
     return ReactiveStreams.of(input)

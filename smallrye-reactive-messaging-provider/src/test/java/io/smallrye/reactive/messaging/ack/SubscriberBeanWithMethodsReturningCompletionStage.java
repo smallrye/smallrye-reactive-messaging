@@ -29,7 +29,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
 
 
   @Incoming(MANUAL_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.MANUAL)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public CompletionStage<Void> subWithAck(Message<String> message) {
     return CompletableFuture.runAsync(() -> processed(MANUAL_ACKNOWLEDGMENT, message), EXECUTOR)
       .thenCompose(x -> message.ack());
@@ -41,7 +41,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
   }
 
   @Incoming(NO_ACKNOWLEDGMENT_MESSAGE)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> subWithNoAckMessage(Message<String> message) {
     processed(NO_ACKNOWLEDGMENT_MESSAGE, message);
     return CompletableFuture.runAsync(this::nap);
@@ -53,7 +53,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
   }
 
   @Incoming(NO_ACKNOWLEDGMENT_PAYLOAD)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public CompletionStage<Void> subWithNoAckPayload(Message<String> message) {
     processed(NO_ACKNOWLEDGMENT_PAYLOAD, message);
     return CompletableFuture.runAsync(this::nap);
@@ -65,7 +65,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
   }
 
   @Incoming(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   public CompletionStage<Void> preProcessingWithMessage(Message<String> message) {
     return CompletableFuture.runAsync(() -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), EXECUTOR);
   }
@@ -76,7 +76,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
   }
 
   @Incoming(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   public CompletionStage<Void> preProcessingWithPayload(String payload) {
     return CompletableFuture.runAsync(() -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), EXECUTOR);
   }
@@ -87,7 +87,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
   }
 
   @Incoming(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
-  @Acknowledgment(Acknowledgment.Mode.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public CompletionStage<Void> postProcessingWithMessage(Message<String> message) {
     return CompletableFuture.runAsync(() -> processed(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), EXECUTOR);
   }
@@ -98,7 +98,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
   }
 
   @Incoming(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
-  @Acknowledgment(Acknowledgment.Mode.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public CompletionStage<Void> postProcessingWithPayload(String payload) {
     return CompletableFuture.runAsync(() -> processed(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), EXECUTOR);
   }

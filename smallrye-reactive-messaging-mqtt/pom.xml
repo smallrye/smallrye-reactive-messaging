@@ -30,7 +30,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.25</version>
+      <version>1.7.26</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -48,7 +48,7 @@
     <dependency>
       <groupId>org.eclipse.paho</groupId>
       <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
-      <version>1.2.0</version>
+      <version>1.2.1</version>
       <scope>test</scope>
     </dependency>
 

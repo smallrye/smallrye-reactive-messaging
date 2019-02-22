@@ -24,7 +24,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
 
 
   @Incoming(MANUAL_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.MANUAL)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public CompletionStage<Void> subWithAck(Message<String> message) {
     processed(MANUAL_ACKNOWLEDGMENT, message.getPayload());
     // We cannot return a value or void by spec
@@ -38,7 +38,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
   }
 
   @Incoming(NO_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.NONE)
   public void subWithNoAck(String payload) {
     processed(NO_ACKNOWLEDGMENT, payload);
   }
@@ -59,7 +59,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
   }
 
   @Incoming(PRE_PROCESSING_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   public void subWithPreAck(String payload) {
     processed(PRE_PROCESSING_ACKNOWLEDGMENT, payload);
   }
@@ -70,7 +70,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
   }
 
   @Incoming(POST_PROCESSING_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Mode.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public void subWithPostAck(String payload) {
     processed(POST_PROCESSING_ACKNOWLEDGMENT, payload);
   }
