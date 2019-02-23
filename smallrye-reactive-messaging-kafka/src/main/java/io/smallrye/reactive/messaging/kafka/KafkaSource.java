@@ -5,44 +5,52 @@ import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class KafkaSource {
-  private final Flowable<KafkaMessage> source;
+public class KafkaSource<K, V> {
+  private final PublisherBuilder<KafkaMessage> source;
+  private final KafkaConsumer<K, V> consumer;
 
-  public <K, T> KafkaSource(Vertx vertx, Map<String, String> config) {
+  KafkaSource(Vertx vertx, Config config) {
     ConfigurationHelper conf = ConfigurationHelper.create(config);
-    KafkaConsumer<K, T> consumer = KafkaConsumer.<K, T>create(vertx, config).subscribe(conf.getOrDie("topic"));
-    Flowable<KafkaConsumerRecord<K, T>> flowable = consumer.toFlowable();
+    Map<String, String> kafkaConfiguration = new HashMap<>();
+    conf.asJsonObject().forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
+    this.consumer = KafkaConsumer.create(vertx, kafkaConfiguration);
+    String topic = config.getOptionalValue("topic", String.class)
+      .orElseGet(() -> config.getValue("name", String.class));
+    Objects.requireNonNull(topic, "The topic must be set, or the name must be set");
+    Flowable<KafkaConsumerRecord<K, V>> flowable = consumer.toFlowable();
 
-
-    if (conf.getAsBoolean("retry", true)) {
+    if (config.getOptionalValue("retry", Boolean.class).orElse(true)) {
+      Integer max = config.getOptionalValue("retry-attempts", Integer.class).orElse(5);
       flowable = flowable
         .retryWhen(attempts ->
           attempts
-            .zipWith(Flowable.range(1, conf.getAsInteger( "retry-attempts", 5)), (n, i) -> i)
+            .zipWith(Flowable.range(1, max), (n, i) -> i)
             .flatMap(i -> Flowable.timer(i, TimeUnit.SECONDS)));
     }
 
-    if (conf.getAsBoolean( "broadcast", false)) {
+    if (config.getOptionalValue("broadcast", Boolean.class).orElse(false)) {
       flowable = flowable.publish().autoConnect();
     }
 
-    this.source = flowable
+    this.source = ReactiveStreams.fromPublisher(
+      flowable
+        .doOnSubscribe(s ->
+          // The Kafka subscription must happen on the subscription.
+          this.consumer.subscribe(topic)
+        ))
       .map(rec -> new ReceivedKafkaMessage<>(consumer, rec));
   }
 
-  public static CompletionStage<Publisher<? extends Message>> create(Vertx vertx, Map<String, String> config) {
-    return CompletableFuture.completedFuture(new KafkaSource(vertx, config).source);
-  }
-
-  public Flowable<KafkaMessage> getSource() {
+  PublisherBuilder<KafkaMessage> getSource() {
     return source;
   }
 }

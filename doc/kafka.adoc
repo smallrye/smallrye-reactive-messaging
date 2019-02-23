@@ -90,7 +90,6 @@ in the following table:
 | value.serializer | true | | the codec used to serialize the value
 | key | false | | the key to be used, can be overridden by the message
 | partition | false | 0 | the partition
-| timestamp | false | `null` | the timestamp
 |===
 
 You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
