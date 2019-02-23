@@ -35,7 +35,7 @@ public class ProducingBean {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.sink.sink.";
+    String prefix = "mp.messaging.provider.outgoing.sink.";
     Map<String, String> config = new HashMap<>();
     config.put(prefix + "address", "sink");
     config.put(prefix + "type", VertxEventBus.class.getName());
