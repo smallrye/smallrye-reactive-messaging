@@ -266,16 +266,14 @@ class AmqpUsage {
   }
 
   void close() {
+    AtomicBoolean called = new AtomicBoolean();
     context.runOnContext(x -> {
       if (connection != null && !connection.isDisconnected()) {
         connection.close();
         connection.disconnect();
       }
+      called.set(true);
     });
-    try {
-      await().until(() -> connection == null || connection.isDisconnected());
-    } catch (Exception e) {
-      // Ignore...
-    }
+    await().until(called::get);
   }
 }
