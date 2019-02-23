@@ -2,29 +2,22 @@ package io.smallrye.reactive.messaging.impl;
 
 import io.smallrye.reactive.messaging.StreamRegistry;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @ApplicationScoped
 public class InternalStreamRegistry implements StreamRegistry {
 
   private static final String NAME_MUST_BE_SET = "'name' must be set";
-  private final Map<String, List<Publisher<? extends Message>>> publishers = new HashMap<>();
-  private final Map<String, List<Subscriber<? extends Message>>> subscribers = new HashMap<>();
+  private final Map<String, List<PublisherBuilder<? extends Message>>> publishers = new HashMap<>();
+  private final Map<String, List<SubscriberBuilder<? extends Message, Void>>> subscribers = new HashMap<>();
 
 
   @Override
-  public synchronized Publisher<? extends Message> register(String name, Publisher<? extends Message> stream) {
+  public synchronized PublisherBuilder<? extends Message> register(String name, PublisherBuilder<? extends Message> stream) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
     Objects.requireNonNull(stream, "'stream' must be set");
     register(publishers, name, stream);
@@ -32,7 +25,7 @@ public class InternalStreamRegistry implements StreamRegistry {
   }
 
   @Override
-  public synchronized Subscriber<? extends Message> register(String name, Subscriber<? extends Message> subscriber) {
+  public synchronized SubscriberBuilder<? extends Message, Void> register(String name, SubscriberBuilder<? extends Message, Void> subscriber) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
     Objects.requireNonNull(subscriber, "'subscriber' must be set");
     register(subscribers, name, subscriber);
@@ -40,13 +33,13 @@ public class InternalStreamRegistry implements StreamRegistry {
   }
 
   @Override
-  public synchronized List<Publisher<? extends Message>> getPublishers(String name) {
+  public synchronized List<PublisherBuilder<? extends Message>> getPublishers(String name) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
     return publishers.getOrDefault(name, Collections.emptyList());
   }
 
   @Override
-  public synchronized List<Subscriber<? extends Message>> getSubscribers(String name) {
+  public synchronized List<SubscriberBuilder<? extends Message, Void>> getSubscribers(String name) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
     return subscribers.getOrDefault(name, Collections.emptyList());
   }
@@ -57,12 +50,12 @@ public class InternalStreamRegistry implements StreamRegistry {
   }
 
   @Override
-  public synchronized Set<String> getPublisherNames() {
+  public synchronized Set<String> getIncomingNames() {
     return new HashSet<>(publishers.keySet());
   }
 
   @Override
-  public synchronized Set<String> getSubscriberNames() {
+  public synchronized Set<String> getOutgoingNames() {
     return new HashSet<>(subscribers.keySet());
   }
 

@@ -1,78 +1,47 @@
 package io.smallrye.reactive.messaging.spi;
 
 import io.vertx.core.json.JsonObject;
+import org.eclipse.microprofile.config.Config;
 
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class ConfigurationHelper {
 
-  private final Map<String, String> config;
+  private final Config config;
 
-  private ConfigurationHelper(Map<String, String> conf) {
+  private ConfigurationHelper(Config conf) {
     this.config = conf;
   }
 
-  public static ConfigurationHelper create(Map<String, String> conf) {
+  public static ConfigurationHelper create(Config conf) {
     return new ConfigurationHelper(Objects.requireNonNull(conf));
   }
 
   public String getOrDie(String key) {
-    String value = get(key);
-    if (value == null) {
-      throw new IllegalArgumentException("Invalid configuration - expected key `" + key + "` to be present in " + config);
-    }
-    return value;
+    return config.getOptionalValue(key, String.class).orElseThrow(() ->
+      new IllegalArgumentException("Invalid configuration - expected key `" + key + "` to be present in " + config)
+    );
   }
 
   public String get(String key) {
-    return Objects.requireNonNull(config).get(Objects.requireNonNull(key));
+    return config.getValue(key, String.class);
   }
 
   public String get(String key, String def) {
-    String val = Objects.requireNonNull(config).get(Objects.requireNonNull(key));
-    if (val == null) {
-      return  def;
-    }
-    return val;
+    return config.getOptionalValue(key, String.class).orElse(def);
   }
 
   public boolean getAsBoolean(String key, boolean def) {
-    String value = get(key);
-    if (value == null) {
-      return def;
-    }
-    return Boolean.valueOf(value);
+    return config.getOptionalValue(key, Boolean.class).orElse(def);
   }
 
   public int getAsInteger(String key, int def) {
-    String value = get(key);
-    if (value == null) {
-      return def;
-    }
-    try {
-      return Integer.valueOf(value);
-    } catch (NumberFormatException e) {
-      return def;
-    }
-  }
-
-  public Optional<Long> getAsLong(String key) {
-    String value = get(key);
-    if (value == null) {
-      return Optional.empty();
-    }
-    try {
-      return Optional.of(Long.valueOf(value));
-    } catch (NumberFormatException e) {
-      return Optional.empty();
-    }
+    return config.getOptionalValue(key, Integer.class).orElse(def);
   }
 
   public JsonObject asJsonObject() {
     JsonObject json = new JsonObject();
-    config.forEach(json::put);
+    config.getPropertyNames().forEach(key -> json.put(key, config.getValue(key, Object.class)));
     return json;
   }
 }

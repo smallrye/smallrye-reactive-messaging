@@ -1,6 +1,9 @@
 package io.smallrye.reactive.messaging;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
@@ -10,11 +13,11 @@ import java.util.concurrent.CompletionStage;
 public interface StreamFactory {
 
 
-  CompletionStage<Publisher<? extends Message>> createPublisherAndRegister(String name, Map<String, String> config);
+  PublisherBuilder<? extends Message> createPublisherBuilderAndRegister(String name, Config config);
 
-  CompletionStage<Subscriber<? extends Message>> createSubscriberAndRegister(String name, Map<String, String> config);
+  SubscriberBuilder<? extends Message, Void> createSubscriberBuilderAndRegister(String name, Config config);
 
-  CompletionStage<Publisher<? extends Message>> createPublisher(String type, Map<String, String> config);
+  PublisherBuilder<? extends Message> createPublisherBuilder(String type, Config config);
 
-  CompletionStage<Subscriber<? extends Message>> createSubscriber(String type,  Map<String, String> config);
+  SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String type, Config config);
 }

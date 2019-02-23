@@ -1,23 +1,22 @@
 package io.smallrye.reactive.messaging.providers;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.spi.PublisherFactory;
-import io.smallrye.reactive.messaging.spi.SubscriberFactory;
+import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
+import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 @ApplicationScoped
-public class MyDummyFactories implements PublisherFactory, SubscriberFactory {
+public class MyDummyFactories implements IncomingConnectorFactory, OutgoingConnectorFactory {
   private final List<String> list = new ArrayList<>();
   private boolean completed = false;
 
@@ -36,19 +35,18 @@ public class MyDummyFactories implements PublisherFactory, SubscriberFactory {
   }
 
   @Override
-  public CompletionStage<Subscriber<? extends Message>> createSubscriber(Map<String, String> config) {
-    return CompletableFuture.completedFuture(ReactiveStreams.<Message>builder()
+  public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    return ReactiveStreams.<Message>builder()
       .peek(x -> list.add(x.getPayload().toString()))
       .onComplete(() -> completed = true)
-      .ignore()
-      .build()
-    );
+      .ignore();
   }
 
   @Override
-  public CompletionStage<Publisher<? extends Message>> createPublisher(Map<String, String> config) {
-    int increment = Integer.parseInt(config.getOrDefault("increment", "1"));
-    return CompletableFuture.completedFuture(Flowable.just(1, 2, 3).map(i -> i + increment).map(Message::of));
+  public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    int increment = config.getOptionalValue("increment", Integer.class).orElse(1);
+    return ReactiveStreams
+      .fromPublisher(Flowable.just(1, 2, 3).map(i -> i + increment).map(Message::of));
   }
 
   public boolean gotCompletion() {

@@ -3,6 +3,9 @@ package io.smallrye.reactive.messaging;
 import io.reactivex.Flowable;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
@@ -28,7 +31,7 @@ public abstract class AbstractMediator {
     // Do nothing by default.
   }
 
-  public void connectToUpstream(Publisher<? extends Message> publisher) {
+  public void connectToUpstream(PublisherBuilder<? extends Message> publisher) {
     // Do nothing by default.
   }
 
@@ -66,7 +69,7 @@ public abstract class AbstractMediator {
     }
   }
 
-  public Publisher<Message> getComputedPublisher() {
+  public PublisherBuilder<? extends Message> getStream() {
     return null;
   }
 
@@ -78,7 +81,7 @@ public abstract class AbstractMediator {
     return configuration.methodAsString();
   }
 
-  public Subscriber<Message> getComputedSubscriber() {
+  public SubscriberBuilder<Message, Void> getComputedSubscriber() {
     return null;
   }
 
@@ -103,15 +106,16 @@ public abstract class AbstractMediator {
     };
   }
 
-  public Publisher<Message> decorate(Publisher<Message> input) {
+  public PublisherBuilder<? extends Message> decorate(PublisherBuilder<? extends Message> input) {
     if (input == null) {
       return null;
     }
     if (configuration.getBroadcast()) {
+      Flowable<Message> flow = Flowable.fromPublisher(input.buildRs());
       if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
-        return Flowable.fromPublisher(input).publish().autoConnect(configuration.getNumberOfSubscriberBeforeConnecting());
+        return ReactiveStreams.fromPublisher(Flowable.fromPublisher(flow).publish().autoConnect(configuration.getNumberOfSubscriberBeforeConnecting()));
       } else {
-        return Flowable.fromPublisher(input).publish().autoConnect();
+        return ReactiveStreams.fromPublisher(Flowable.fromPublisher(flow).publish().autoConnect());
       }
     } else {
       return input;

@@ -2,7 +2,9 @@ package io.smallrye.reactive.messaging;
 
 import org.apache.commons.lang3.ClassUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -15,8 +17,8 @@ import java.util.function.Function;
 
 public class SubscriberMediator extends AbstractMediator {
 
-  private Publisher<Message> source;
-  private Subscriber subscriber;
+  private PublisherBuilder<Message> source;
+  private SubscriberBuilder subscriber;
   /**
    * Keep track of the subscription to cancel it once the scope is terminated.
    */
@@ -64,7 +66,7 @@ public class SubscriberMediator extends AbstractMediator {
   }
 
   @Override
-  public Subscriber<Message> getComputedSubscriber() {
+  public SubscriberBuilder<Message, Void> getComputedSubscriber() {
     return subscriber;
   }
 
@@ -74,8 +76,8 @@ public class SubscriberMediator extends AbstractMediator {
   }
 
   @Override
-  public void connectToUpstream(Publisher<? extends Message> publisher) {
-    this.source = (Publisher) publisher;
+  public void connectToUpstream(PublisherBuilder<? extends Message> publisher) {
+    this.source = (PublisherBuilder) publisher;
   }
 
   @SuppressWarnings("unchecked")
@@ -85,32 +87,33 @@ public class SubscriberMediator extends AbstractMediator {
     assert this.subscriber != null;
     final Logger logger = LoggerFactory.getLogger(configuration.methodAsString());
     AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
+    Subscriber delegate = this.subscriber.build();
     Subscriber delegating = new Subscriber() {
       @Override
       public void onSubscribe(Subscription s) {
         subscription.set(s);
-        subscriber.onSubscribe(s);
+        delegate.onSubscribe(s);
       }
 
       @Override
       public void onNext(Object o) {
-        subscriber.onNext(o);
+        delegate.onNext(o);
       }
 
       @Override
       public void onError(Throwable t) {
         logger.error("Error caught during the stream processing", t);
         syncErrorCatcher.set(t);
-        subscriber.onError(t);
+        delegate.onError(t);
       }
 
       @Override
       public void onComplete() {
-        subscriber.onComplete();
+        delegate.onComplete();
       }
     };
 
-    this.source.subscribe(delegating);
+    this.source.to(delegating).run();
     // Check if a synchronous error has been caught
     Throwable throwable = syncErrorCatcher.get();
     if (throwable != null) {
@@ -127,8 +130,7 @@ public class SubscriberMediator extends AbstractMediator {
           return message;
         })
         .flatMapCompletionStage(managePostProcessingAck())
-        .ignore()
-        .build();
+        .ignore();
     }
   }
 
@@ -141,8 +143,7 @@ public class SubscriberMediator extends AbstractMediator {
           return stage.thenApply(x -> message);
         })
         .flatMapCompletionStage(managePostProcessingAck())
-        .ignore()
-        .build();
+        .ignore();
     } else {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
         .flatMapCompletionStage(managePreProcessingAck())
@@ -151,8 +152,7 @@ public class SubscriberMediator extends AbstractMediator {
           return completion.thenApply(x -> message);
         })
         .flatMapCompletionStage(managePostProcessingAck())
-        .ignore()
-        .build();
+        .ignore();
     }
   }
 
@@ -167,15 +167,13 @@ public class SubscriberMediator extends AbstractMediator {
       this.subscriber = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .via(wrapper)
-        .ignore()
-        .build();
+        .ignore();
     } else {
       Subscriber<Message> casted = (Subscriber<Message>) sub;
       this.subscriber = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
         .via(new SubscriberWrapper<>(casted, Function.identity()))
-        .ignore()
-        .build();
+        .ignore();
     }
 
   }
