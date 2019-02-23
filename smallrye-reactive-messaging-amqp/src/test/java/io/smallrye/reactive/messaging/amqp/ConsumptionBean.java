@@ -33,7 +33,7 @@ public class ConsumptionBean {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.source.data.";
+    String prefix = "mp.messaging.provider.incoming.data.";
     Map<String, String> config = new HashMap<>();
     config.put(prefix + "address", "data");
     config.put(prefix + "type", Amqp.class.getName());
