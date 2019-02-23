@@ -23,13 +23,13 @@ To retrieve messages from a Kafka topic, you need the following configuration:
 [source]
 ----
 # [Source - heartbeat] - Consume data from Kafka
-smallrye.messaging.source.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.source.kafka-heartbeat.topic=heartbeat
-smallrye.messaging.source.kafka-heartbeat.bootstrap.servers=localhost:9092
-smallrye.messaging.source.kafka-heartbeat.enable.auto.commit=false
-smallrye.messaging.source.kafka-heartbeat.group.id=demo
-smallrye.messaging.source.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
-smallrye.messaging.source.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
+mp.messaging.provider.incoming.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.provider.incoming.kafka-heartbeat.topic=heartbeat
+mp.messaging.provider.incoming.kafka-heartbeat.bootstrap.servers=localhost:9092
+mp.messaging.provider.incoming.kafka-heartbeat.enable.auto.commit=false
+mp.messaging.provider.incoming.kafka-heartbeat.group.id=demo
+mp.messaging.provider.incoming.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
+mp.messaging.provider.incoming.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
 # [/Source - heartbeat]
 ----
 
@@ -69,11 +69,11 @@ To send messages to a Kafka topic, you need the following configuration:
 [source]
 ----
 # [Sink - data] - Produce data to Kafka
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.sink.data.bootstrap.servers=localhost:9092
-smallrye.messaging.sink.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
-smallrye.messaging.sink.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
-smallrye.messaging.sink.data.acks=1
+mp.messaging.provider.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.provider.outgoing.data.bootstrap.servers=localhost:9092
+mp.messaging.provider.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+mp.messaging.provider.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+mp.messaging.provider.outgoing.data.acks=1
 # [/Sink - data]
 ----
 

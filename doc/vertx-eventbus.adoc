@@ -20,10 +20,10 @@ To enable the Vert.x EventBus support, you need the following dependency:
 
 [source]
 ----
-smallrye.messaging.source.data.address=<the-eventbus-address>
-smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
-smallrye.messaging.source.data.use-reply-as-ack=<true|false>
-smallrye.messaging.source.data.broadcast=<true|false>
+mp.messaging.provider.incoming.data.address=<the-eventbus-address>
+mp.messaging.provider.incoming.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+mp.messaging.provider.incoming.data.use-reply-as-ack=<true|false>
+mp.messaging.provider.incoming.data.broadcast=<true|false>
 ----
 
 The `address` indicates from which event bus address the messages are retrieved. `use-reply-as-ack` instructs the
@@ -37,12 +37,12 @@ body. From the `EventBusMessage`, you can retrieve the headers, address...
 
 [source]
 ----
-smallrye.messaging.source.data.address=<the-eventbus-address>
-smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
-smallrye.messaging.source.data.publish=<true|false>
-smallrye.messaging.source.data.expect-reply=<true|false>
-smallrye.messaging.source.data.codec=<codec-name>
-smallrye.messaging.source.data.timeout=1000
+mp.messaging.provider.incoming.data.address=<the-eventbus-address>
+mp.messaging.provider.incoming.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+mp.messaging.provider.incoming.data.publish=<true|false>
+mp.messaging.provider.incoming.data.expect-reply=<true|false>
+mp.messaging.provider.incoming.data.codec=<codec-name>
+mp.messaging.provider.incoming.data.timeout=1000
 ----
 
 The `address` indicates where the messages are sent. `publish` choose whether the message is sent to a single consumer (
