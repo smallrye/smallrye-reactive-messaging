@@ -6,6 +6,7 @@ import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.tck.incoming.Bean;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -56,7 +57,7 @@ public class MessagingManager implements StreamRegistar {
     newTopics.forEach(name -> {
       Source source = new Source(name);
       topics.put(name, source);
-      this.registry.register(name, source.source());
+      this.registry.register(name, ReactiveStreams.fromPublisher(source.source()));
     });
   }
 
@@ -96,7 +97,7 @@ public class MessagingManager implements StreamRegistar {
   }
 
   @Override
-  public CompletionStage<Void> initialize() {
+  public void initialize() {
     createTopics(Arrays.asList(
       Bean.VOID_METHOD,
       Bean.NON_PARALLEL,
@@ -107,7 +108,6 @@ public class MessagingManager implements StreamRegistar {
       Bean.SYNC_FAILING,
       Bean.WRAPPED_MESSAGE
     ));
-    return CompletableFuture.completedFuture(null);
   }
 
   private class Source {
