@@ -30,7 +30,7 @@ public class ProducingBean {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.sink.sink.";
+    String prefix = "mp.messaging.provider.outgoing.sink.";
     Map<String, String> config = new HashMap<>();
     config.put(prefix + "topic", "sink");
     config.put(prefix + "type", Mqtt.class.getName());
