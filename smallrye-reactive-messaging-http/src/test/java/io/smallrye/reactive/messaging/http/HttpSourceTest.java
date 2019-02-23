@@ -181,7 +181,7 @@ public class HttpSourceTest extends HttpTestBase {
 
     @Produces
     public Config config() {
-      return new HttpSourceConfig("sink", "source");
+      return new HttpConnectorConfig("sink", "incoming", null);
     }
   }
 

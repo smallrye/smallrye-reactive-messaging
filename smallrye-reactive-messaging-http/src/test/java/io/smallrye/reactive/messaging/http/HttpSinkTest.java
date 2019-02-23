@@ -253,7 +253,7 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Produces
     public Config config() {
-      return new HttpSinkConfig("http", "sink","http://localhost:8089/items");
+      return new HttpConnectorConfig("http", "outgoing","http://localhost:8089/items");
     }
   }
 
@@ -266,7 +266,7 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Produces
     public Config config() {
-      return new HttpSinkConfig("http", "sink","http://localhost:8089/items").converter(PersonSerializer.class.getName());
+      return new HttpConnectorConfig("http", "outgoing","http://localhost:8089/items").converter(PersonSerializer.class.getName());
     }
   }
 

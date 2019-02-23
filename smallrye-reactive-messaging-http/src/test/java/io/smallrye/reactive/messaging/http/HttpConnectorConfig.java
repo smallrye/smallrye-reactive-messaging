@@ -8,15 +8,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class HttpSinkConfig implements Config {
+public class HttpConnectorConfig implements Config {
   private final Map<String, String> map;
   private final String prefix;
 
-  public HttpSinkConfig(String name, String type, String url) {
+  public HttpConnectorConfig(String name, String type, String url) {
     map = new HashMap<>();
-    prefix = "smallrye.messaging." + type + "." + name + ".";
+    prefix = "mp.messaging.provider." + type + "." + name + ".";
     map.put(prefix + "type", Http.class.getName());
-    map.put(prefix + "url", url);
+    if (url != null) {
+      map.put(prefix + "url", url);
+    }
   }
 
   @Override
