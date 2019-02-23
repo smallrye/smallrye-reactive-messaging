@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 public class ConfiguredStreamFactory implements StreamRegistar {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredStreamFactory.class);
-  private static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
-  private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink";
+  private static final String SOURCE_CONFIG_PREFIX = "mp.messaging.provider.incoming";
+  private static final String SINK_CONFIG_PREFIX = "mp.messaging.provider.outgoing";
 
 
   private final List<PublisherFactory> sourceFactories;
@@ -44,8 +44,8 @@ public class ConfiguredStreamFactory implements StreamRegistar {
 
   private final Map<String, Publisher<? extends Message>> sources = new HashMap<>();
   private final Map<String, Subscriber<? extends Message>> sinks = new HashMap<>();
-  
-  // CDI requirement for normal scoped beans 
+
+  // CDI requirement for normal scoped beans
   ConfiguredStreamFactory() {
       this.sourceFactories = null;
       this.sinkFactories = null;
@@ -65,8 +65,8 @@ public class ConfiguredStreamFactory implements StreamRegistar {
     } else {
       this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
       this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
-      LOGGER.info("Found source types: {}", sourceFactories.stream().map(PublisherFactory::type).collect(Collectors.toList()));
-      LOGGER.info("Found sink types: {}", sinkFactories.stream().map(SubscriberFactory::type).collect(Collectors.toList()));
+      LOGGER.info("Found incoming connectors: {}", sourceFactories.stream().map(PublisherFactory::type).collect(Collectors.toList()));
+      LOGGER.info("Found outgoing connectors: {}", sinkFactories.stream().map(SubscriberFactory::type).collect(Collectors.toList()));
       //TODO Should we try to merge all the config?
       // For now take the first one.
       this.config = config.stream().findFirst()
