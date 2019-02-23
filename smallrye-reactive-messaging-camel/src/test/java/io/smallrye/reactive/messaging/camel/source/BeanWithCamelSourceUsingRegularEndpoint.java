@@ -31,7 +31,7 @@ public class BeanWithCamelSourceUsingRegularEndpoint {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.source.data.";
+    String prefix = "mp.messaging.provider.incoming.data.";
     Map<String, String> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "seda:out");
     config.put(prefix + "type", Camel.class.getName());

@@ -32,7 +32,7 @@ public class BeanWithCamelSourceUsingRSEndpoint extends RouteBuilder {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.source.data.";
+    String prefix = "mp.messaging.provider.incoming.data.";
     Map<String, String> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "reactive-streams:out");
     config.put(prefix + "type", Camel.class.getName());

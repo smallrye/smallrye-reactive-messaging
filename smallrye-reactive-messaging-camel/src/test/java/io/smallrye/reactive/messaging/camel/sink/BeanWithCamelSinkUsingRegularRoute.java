@@ -27,7 +27,7 @@ public class BeanWithCamelSinkUsingRegularRoute extends RouteBuilder {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.sink.data.";
+    String prefix = "mp.messaging.provider.outgoing.data.";
     Map<String, String> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "seda:in");
     config.put(prefix + "type", Camel.class.getName());
