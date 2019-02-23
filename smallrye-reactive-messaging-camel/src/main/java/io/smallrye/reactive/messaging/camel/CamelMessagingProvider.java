@@ -1,9 +1,7 @@
 package io.smallrye.reactive.messaging.camel;
 
-import io.reactivex.Flowable;
-import io.reactivex.functions.Function;
-import io.smallrye.reactive.messaging.spi.PublisherFactory;
-import io.smallrye.reactive.messaging.spi.SubscriberFactory;
+import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
+import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
@@ -13,9 +11,10 @@ import org.apache.camel.impl.DefaultExchange;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,13 +23,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 @ApplicationScoped
-public class CamelMessagingProvider implements PublisherFactory, SubscriberFactory {
+public class CamelMessagingProvider implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CamelMessagingProvider.class);
   private static final String REACTIVE_STREAMS_SCHEME = "reactive-streams:";
@@ -73,42 +69,9 @@ public class CamelMessagingProvider implements PublisherFactory, SubscriberFacto
   }
 
   @Override
-  public CompletionStage<Subscriber<? extends Message>> createSubscriber(Map<String, String> config) {
-    String name = config.get("endpoint-uri");
-    Objects.requireNonNull(name, "The `endpoint-uri` of the endpoint is required");
-
-    Subscriber<Message> subscriber;
-    if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
-      // The endpoint is a reactive streams.
-      name = name.substring(REACTIVE_STREAMS_SCHEME.length());
-      LOGGER.info("Creating subscriber from Camel stream named {}", name);
-      subscriber = ReactiveStreams.<Message>builder()
-        .map(this::createExchangeFromMessage)
-        .to(reactive.streamSubscriber(name))
-        .build();
-    } else {
-      LOGGER.info("Creating publisher from Camel endpoint {}", name);
-      subscriber = ReactiveStreams.<Message>builder()
-        .map(this::createExchangeFromMessage)
-        .to(reactive.subscriber(name))
-        .build();
-    }
-    return CompletableFuture.completedFuture(subscriber);
-  }
-
-  private Exchange createExchangeFromMessage(Message message) {
-    if (message.getPayload() instanceof Exchange) {
-      return (Exchange) message.getPayload();
-    }
-    Exchange exchange = new DefaultExchange(camel);
-    exchange.getIn().setBody(message.getPayload());
-    return exchange;
-  }
-
-  @Override
-  public CompletionStage<Publisher<? extends Message>> createPublisher(Map<String, String> config) {
-    String name = config.get("endpoint-uri");
-    Objects.requireNonNull(name, "The `endpoint-uri of the endpoint is required");
+  public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    String name = config.getOptionalValue("endpoint-uri", String.class)
+      .orElseThrow(() -> new IllegalArgumentException("The `endpoint-uri of the endpoint is required"));
 
     Publisher<Exchange> publisher;
     if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
@@ -121,9 +84,39 @@ public class CamelMessagingProvider implements PublisherFactory, SubscriberFacto
       publisher = reactive.from(name);
     }
 
-    return CompletableFuture.completedFuture(
-      Flowable.fromPublisher(publisher)
-        .map((Function<Exchange, CamelMessage>) CamelMessage::new)
-    );
+    return
+      ReactiveStreams.fromPublisher(publisher)
+        .map((Function<Exchange, CamelMessage>) CamelMessage::new);
+  }
+
+  @Override
+  public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    String name = config.getOptionalValue("endpoint-uri", String.class)
+      .orElseThrow(() -> new IllegalArgumentException("The `endpoint-uri` of the endpoint is required"));
+
+    SubscriberBuilder<? extends Message, Void> subscriber;
+    if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
+      // The endpoint is a reactive streams.
+      name = name.substring(REACTIVE_STREAMS_SCHEME.length());
+      LOGGER.info("Creating subscriber from Camel stream named {}", name);
+      subscriber = ReactiveStreams.<Message>builder()
+        .map(this::createExchangeFromMessage)
+        .to(reactive.streamSubscriber(name));
+    } else {
+      LOGGER.info("Creating publisher from Camel endpoint {}", name);
+      subscriber = ReactiveStreams.<Message>builder()
+        .map(this::createExchangeFromMessage)
+        .to(reactive.subscriber(name));
+    }
+    return subscriber;
+  }
+
+  private Exchange createExchangeFromMessage(Message message) {
+    if (message.getPayload() instanceof Exchange) {
+      return (Exchange) message.getPayload();
+    }
+    Exchange exchange = new DefaultExchange(camel);
+    exchange.getIn().setBody(message.getPayload());
+    return exchange;
   }
 }

@@ -47,7 +47,6 @@ public class ConnectorConfig implements Config {
     this.injectNameProperty =
       StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
         .noneMatch(s -> s.equalsIgnoreCase(prefix + ".name"));
-    System.out.println("inject name property: " + injectNameProperty + " / " + overall.getPropertyNames() + " prefix: " + prefix);
   }
 
   @Override
