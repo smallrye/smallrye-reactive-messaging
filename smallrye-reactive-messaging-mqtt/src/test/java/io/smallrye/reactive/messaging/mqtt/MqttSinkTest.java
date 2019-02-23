@@ -47,13 +47,13 @@ public class MqttSinkTest extends MqttTestBase {
       v -> expected.getAndIncrement());
 
 
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("topic", topic);
     config.put("host", address);
-    config.put("port", Integer.toString(port));
-    MqttSink sink = new MqttSink(vertx, config);
+    config.put("port", port);
+    MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
 
-    Subscriber subscriber = sink.getSubscriber();
+    Subscriber subscriber = sink.getSink().build();
     Flowable.range(0, 10)
       .map(v -> (Message) Message.of(v))
       .subscribe(subscriber);
@@ -72,13 +72,13 @@ public class MqttSinkTest extends MqttTestBase {
       latch::countDown,
       v -> expected.getAndIncrement());
 
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("topic", topic);
     config.put("host", address);
-    config.put("port", Integer.toString(port));
-    MqttSink sink = new MqttSink(vertx, config);
+    config.put("port", port);
+    MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
 
-    Subscriber subscriber = sink.getSubscriber();
+    Subscriber subscriber = sink.getSink().build();
     Flowable.range(0, 10)
       .map(i -> Integer.toString(i))
       .map(Message::of)

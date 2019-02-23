@@ -7,10 +7,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-public class MyConfig implements Config {
-  private final Map<String, String> map;
+public class MapBasedConfig implements Config {
+  private final Map<String, Object> map;
 
-  public MyConfig(Map<String, String> map) {
+  public MapBasedConfig(Map<String, Object> map) {
     this.map = map;
   }
 

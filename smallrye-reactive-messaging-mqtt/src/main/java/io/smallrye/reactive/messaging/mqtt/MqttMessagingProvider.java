@@ -1,20 +1,19 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import io.smallrye.reactive.messaging.spi.PublisherFactory;
-import io.smallrye.reactive.messaging.spi.SubscriberFactory;
+import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
+import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
 import io.vertx.reactivex.core.Vertx;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
 @ApplicationScoped
-public class MqttMessagingProvider  implements PublisherFactory, SubscriberFactory {
+public class MqttMessagingProvider  implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
   @Inject
   private Vertx vertx;
@@ -25,12 +24,12 @@ public class MqttMessagingProvider  implements PublisherFactory, SubscriberFacto
   }
 
   @Override
-  public CompletionStage<Subscriber<? extends Message>> createSubscriber(Map<String, String> config) {
-    return new MqttSink(vertx, config).initialize();
+  public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    return new MqttSource(vertx, config).getSource();
   }
 
   @Override
-  public CompletionStage<Publisher<? extends Message>> createPublisher(Map<String, String> config) {
-    return new MqttSource(vertx, config).initialize();
+  public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    return new MqttSink(vertx, config).getSink();
   }
 }

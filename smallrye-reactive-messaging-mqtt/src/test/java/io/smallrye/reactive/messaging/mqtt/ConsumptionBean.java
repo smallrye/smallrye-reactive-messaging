@@ -32,16 +32,16 @@ public class ConsumptionBean {
   @Produces
   public Config myConfig() {
     String prefix = "mp.messaging.provider.incoming.data.";
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put(prefix + "topic", "data");
     config.put(prefix + "type", Mqtt.class.getName());
     config.put(prefix + "host", System.getProperty("mqtt-host"));
-    config.put(prefix + "port", System.getProperty("mqtt-port"));
+    config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
     if (System.getProperty("mqtt-user") != null) {
       config.put(prefix + "username", System.getProperty("mqtt-user"));
       config.put(prefix + "password", System.getProperty("mqtt-pwd"));
     }
-    return new MyConfig(config);
+    return new MapBasedConfig(config);
   }
 
 
