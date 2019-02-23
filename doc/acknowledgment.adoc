@@ -1,7 +1,7 @@
 == Acknowledgement
 
 Messages may require acknowledgment to inform the transport layer that the message has been processed. Methods
-annotated with `@Incoming` and also be annotated with `io.smallrye.reactive.messaging.annotations.Acknowledgment` to
+annotated with `@Incoming` and also be annotated with `org.eclipse.microprofile.reactive.messaging.Acknowledgment` to
 configure the acknowledgement policies.
 
 Four policies are supported:

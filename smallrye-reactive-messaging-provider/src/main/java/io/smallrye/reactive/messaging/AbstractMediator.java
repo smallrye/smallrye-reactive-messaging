@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;

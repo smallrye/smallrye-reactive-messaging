@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.eventbus;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;

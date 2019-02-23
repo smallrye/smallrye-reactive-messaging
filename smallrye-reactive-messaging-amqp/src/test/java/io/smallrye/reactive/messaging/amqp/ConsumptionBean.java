@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import io.smallrye.reactive.messaging.annotations.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;

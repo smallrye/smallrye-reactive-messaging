@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.annotations.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import org.apache.commons.lang3.ClassUtils;

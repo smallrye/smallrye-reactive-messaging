@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import io.smallrye.reactive.messaging.annotations.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;

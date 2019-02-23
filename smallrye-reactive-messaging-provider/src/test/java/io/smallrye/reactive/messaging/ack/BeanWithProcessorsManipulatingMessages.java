@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.ack;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
