@@ -34,16 +34,16 @@ public class ConsumptionBean {
   @Produces
   public Config myConfig() {
     String prefix = "mp.messaging.provider.incoming.data.";
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put(prefix + "address", "data");
     config.put(prefix + "type", Amqp.class.getName());
     config.put(prefix + "host", System.getProperty("amqp-host"));
-    config.put(prefix + "port", System.getProperty("amqp-port"));
+    config.put(prefix + "port", Integer.valueOf(System.getProperty("amqp-port")));
     if (System.getProperty("amqp-user") != null) {
       config.put(prefix + "username", System.getProperty("amqp-user"));
       config.put(prefix + "password", System.getProperty("amqp-pwd"));
     }
-    return new MyConfig(config);
+    return new MapBasedConfig(config);
   }
 
 

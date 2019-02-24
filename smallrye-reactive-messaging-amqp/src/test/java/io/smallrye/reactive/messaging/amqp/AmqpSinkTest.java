@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.amqp;
 import io.reactivex.Flowable;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -22,18 +23,20 @@ import static org.hamcrest.core.Is.is;
 
 public class AmqpSinkTest extends AmqpTestBase {
 
+  public static final String HELLO = "hello-";
   private WeldContainer container;
-  private AmqpSink sink;
+  private AmqpMessagingProvider provider;
 
   @After
   public void cleanup() {
+    if (provider != null) {
+      provider.close();
+    }
+
     if (container != null) {
       container.close();
     }
 
-    if (sink != null) {
-      sink.close();
-    }
   }
 
   @Test
@@ -43,19 +46,13 @@ public class AmqpSinkTest extends AmqpTestBase {
     usage.consumeTenIntegers(topic,
       v -> expected.getAndIncrement());
 
-    sink = getSink(topic);
-    await().until(sink::isOpen);
-
-    @SuppressWarnings("unchecked")
-    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
-
+    SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
+    //noinspection unchecked
     Flowable.range(0, 10)
       .map(v -> (Message) Message.of(v))
-      .subscribe(subscriber);
+      .subscribe((Subscriber) sink.build());
 
-    await().until(() -> {
-      return expected.get() == 10;
-    });
+    await().until(() -> expected.get() == 10);
     assertThat(expected).hasValue(10);
   }
 
@@ -63,20 +60,17 @@ public class AmqpSinkTest extends AmqpTestBase {
   public void testSinkUsingString() {
     String topic = UUID.randomUUID().toString();
 
-    sink = getSink(topic);
-    await().until(sink::isOpen);
+    SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
 
     AtomicInteger expected = new AtomicInteger(0);
     usage.consumeTenStrings(topic,
       v -> expected.getAndIncrement());
 
-    @SuppressWarnings("unchecked")
-    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
-
+    //noinspection unchecked
     Flowable.range(0, 10)
-      .map(i -> Integer.toString(i))
+      .map(Integer::valueOf)
       .map(Message::of)
-      .subscribe(subscriber);
+      .subscribe((Subscriber) sink.build());
 
     await().untilAtomic(expected, is(10));
     assertThat(expected).hasValue(10);
@@ -87,12 +81,12 @@ public class AmqpSinkTest extends AmqpTestBase {
   public void testABeanProducingMessagesSentToAMQP() throws InterruptedException {
     Weld weld = new Weld();
 
-    weld.addBeanClass(AmqpMessagingProvider.class);
-    weld.addBeanClass(ProducingBean.class);
-
     CountDownLatch latch = new CountDownLatch(10);
     usage.consumeTenIntegers("sink",
       v -> latch.countDown());
+
+    weld.addBeanClass(AmqpMessagingProvider.class);
+    weld.addBeanClass(ProducingBean.class);
 
     container = weld.initialize();
 
@@ -112,24 +106,22 @@ public class AmqpSinkTest extends AmqpTestBase {
         messages.add(v);
       });
 
-    sink = getSink(topic);
-    await().until(sink::isOpen);
-    @SuppressWarnings("unchecked")
-    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
+    SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
 
+    //noinspection unchecked
     Flowable.range(0, 10)
       .map(v -> {
-        AmqpMessage<String> message = new AmqpMessage<>("hello-" + v);
+        AmqpMessage<String> message = new AmqpMessage<>(HELLO + v);
         message.unwrap().setSubject("foo");
         return message;
       })
-      .subscribe(subscriber);
+      .subscribe((Subscriber) sink.build());
 
     await().untilAtomic(expected, is(10));
     assertThat(expected).hasValue(10);
 
     messages.forEach(m -> {
-      assertThat(m.getPayload()).isInstanceOf(String.class).startsWith("hello-");
+      assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
       assertThat(m.getSubject()).isEqualTo("foo");
       assertThat(m.delivery()).isNotNull();
     });
@@ -147,44 +139,41 @@ public class AmqpSinkTest extends AmqpTestBase {
         messages.add(v);
       });
 
-    sink = getSink(topic);
-    await().until(sink::isOpen);
-    @SuppressWarnings("unchecked")
-    Subscriber<Message> subscriber = (Subscriber<Message>) sink.subscriber();
+    SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
 
+    //noinspection unchecked
     Flowable.range(0, 10)
       .map(v -> {
         org.apache.qpid.proton.message.Message message = message();
-        message.setBody(new AmqpValue("hello-" + v));
+        message.setBody(new AmqpValue(HELLO + v));
         message.setSubject("bar");
         return message;
       })
       .map(Message::of)
-      .subscribe(subscriber);
+      .subscribe((Subscriber) sink.build());
 
     await().untilAtomic(expected, is(10));
     assertThat(expected).hasValue(10);
 
     messages.forEach(m -> {
-      assertThat(m.getPayload()).isInstanceOf(String.class).startsWith("hello-");
+      assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
       assertThat(m.getSubject()).isEqualTo("bar");
       assertThat(m.delivery()).isNotNull();
     });
   }
 
-  private AmqpSink getSink(String topic) {
-    Map<String, String> config = new HashMap<>();
+  private SubscriberBuilder<? extends Message, Void> createProviderAndSink(String topic) {
+    Map<String, Object> config = new HashMap<>();
     config.put("address", topic);
+    config.put("name", "the name");
     config.put("host", address);
-    config.put("durable", "false");
-    config.put("port", Integer.toString(port));
+    config.put("durable", false);
+    config.put("port", port);
     config.put("username", "artemis");
     config.put("password", new String("simetraehcapa".getBytes()));
 
-    AmqpMessagingProvider provider = new AmqpMessagingProvider(vertx);
-    provider.configure();
-    return provider.getSink(config).toCompletableFuture().join();
+    this.provider = new AmqpMessagingProvider(vertx);
+    return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
   }
-
 
 }

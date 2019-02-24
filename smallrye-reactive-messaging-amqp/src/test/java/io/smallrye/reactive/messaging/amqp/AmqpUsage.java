@@ -175,6 +175,7 @@ class AmqpUsage {
           LOGGER.info("Consumer {}: consuming message {}", topic, message.getBody());
           consumerFunction.accept(new AmqpMessage<>(delivery, message));
           if (!continuation.getAsBoolean()) {
+            LOGGER.info("Closing receiver");
             receiver.close();
           }
         })
