@@ -3,13 +3,10 @@ package io.smallrye.reactive.messaging.http;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class HttpConnectorConfig implements Config {
-  private final Map<String, String> map;
+  private final Map<String, Object> map;
   private final String prefix;
 
   public HttpConnectorConfig(String name, String type, String url) {
@@ -21,14 +18,21 @@ public class HttpConnectorConfig implements Config {
     }
   }
 
+  public HttpConnectorConfig(String name, Map<String, Object> conf) {
+    prefix = "mp.messaging.provider.outgoing." + name + ".";
+    this.map = conf;
+    conf.put(prefix + "type", Http.class.getName());
+  }
+
   @Override
   public <T> T getValue(String propertyName, Class<T> propertyType) {
-    return (T) map.get(propertyName);
+    return getOptionalValue(propertyName, propertyType)
+      .orElseThrow(() -> new NoSuchElementException("Configuration not found"));
   }
 
   @Override
   public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-    T value = getValue(propertyName, propertyType);
+    T value = (T) map.get(propertyName);
     return Optional.ofNullable(value);
   }
 

@@ -36,9 +36,9 @@ public class HttpMessageTest {
   @Before
   public void setUp() {
     vertx = Vertx.vertx();
-    Map<String, String> map = new LinkedHashMap<>();
+    Map<String, Object> map = new LinkedHashMap<>();
     map.put("url", "http://localhost:8089/items");
-    sink = new HttpSink(vertx, ConfigurationHelper.create(map));
+    sink = new HttpSink(vertx, new HttpConnectorConfig("foo", map));
   }
 
   @After
