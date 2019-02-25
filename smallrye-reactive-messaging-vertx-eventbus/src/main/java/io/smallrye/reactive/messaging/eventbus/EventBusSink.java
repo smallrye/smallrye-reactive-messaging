@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.eventbus;
 
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.reactivex.core.Vertx;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Subscriber;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -19,22 +19,23 @@ public class EventBusSink {
   private final String codec;
   private final int timeout;
 
-  EventBusSink(Vertx vertx, ConfigurationHelper config) {
+  EventBusSink(Vertx vertx, Config config) {
     this.vertx = Objects.requireNonNull(vertx, "Vert.x instance must not be `null`");
-    this.address = config.getOrDie("address");
-    this.publish = config.getAsBoolean("publish", false);
-    this.expectReply = config.getAsBoolean("expect-reply", false);
+    this.address = config.getOptionalValue("address", String.class)
+      .orElseThrow(() -> new IllegalArgumentException("`address` must be set"));
+    this.publish = config.getOptionalValue("publish", Boolean.class).orElse(false);
+    this.expectReply = config.getOptionalValue("expect-reply", Boolean.class).orElse(false);
 
     if (this.publish && this.expectReply) {
       throw new IllegalArgumentException("Cannot enable `publish` and `expect-reply` at the same time");
     }
 
-    this.codec = config.get("codec");
-    this.timeout = config.getAsInteger("timeout", -1);
+    this.codec = config.getOptionalValue("codec", String.class).orElse(null);
+    this.timeout = config.getOptionalValue("timeout", Integer.class).orElse(-1);
   }
 
 
-  Subscriber<Message> subscriber() {
+  SubscriberBuilder<? extends Message, Void> sink() {
     DeliveryOptions options = new DeliveryOptions();
     if (this.codec != null) {
       options.setCodecName(this.codec);
@@ -47,7 +48,7 @@ public class EventBusSink {
       .flatMapCompletionStage(msg -> {
         CompletableFuture<Message> future = new CompletableFuture<>();
         // TODO support getting an EventBusMessage as message.
-        if (! this.publish) {
+        if (!this.publish) {
           if (expectReply) {
             vertx.eventBus().send(address, msg.getPayload(), options, ar -> {
               if (ar.failed()) {
@@ -66,8 +67,7 @@ public class EventBusSink {
         }
         return future;
       })
-      .ignore()
-      .build();
+      .ignore();
   }
 
 
