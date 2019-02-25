@@ -15,6 +15,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -140,7 +141,7 @@ public class KafkaUsage {
       try (KafkaConsumer<K, V> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer)) {
         consumer.subscribe(new ArrayList<>(topics));
         while (continuation.getAsBoolean()) {
-          consumer.poll(10).forEach(record -> {
+          consumer.poll(Duration.ofMillis(10)).forEach(record -> {
             LOGGER.info("Consumer {}: consuming message {}", clientId, record);
             consumerFunction.accept(record);
             if (offsetCommitCallback != null) {

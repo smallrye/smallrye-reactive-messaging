@@ -35,7 +35,7 @@ public class ProducingBean {
   @Produces
   public Config myKafkaSinkConfig() {
     String prefix = "mp.messaging.provider.outgoing.output.";
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put(prefix + "type", Kafka.class.getName());
     config.put(prefix + "bootstrap.servers", "localhost:9092");
     config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
@@ -43,9 +43,10 @@ public class ProducingBean {
     config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
     config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
     config.put(prefix + "acks", "1");
+    config.put(prefix + "partition", 0);
     config.put(prefix + "topic", "output");
 
-    return new MyKafkaConfig(config);
+    return new MapBasedConfig(config);
   }
 
 }

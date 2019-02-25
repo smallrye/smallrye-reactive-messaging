@@ -50,6 +50,7 @@ public class KafkaSinkTest extends KafkaTestBase {
     config.put("topic", topic);
     config.put("value.serializer", IntegerSerializer.class.getName());
     config.put("value.deserializer", IntegerDeserializer.class.getName());
+    config.put("partition", 0);
     KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config));
 
     Flowable.range(0, 10)
@@ -75,6 +76,7 @@ public class KafkaSinkTest extends KafkaTestBase {
     config.put("topic", topic);
     config.put("value.serializer", StringSerializer.class.getName());
     config.put("value.deserializer", StringDeserializer.class.getName());
+    config.put("partition", 0);
     KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config));
 
     Flowable.range(0, 10)

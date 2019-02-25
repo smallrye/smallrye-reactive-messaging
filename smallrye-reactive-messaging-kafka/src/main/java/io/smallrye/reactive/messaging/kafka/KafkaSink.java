@@ -32,9 +32,9 @@ class KafkaSink {
     stream = KafkaWriteStream.create(vertx.getDelegate(), helper.asJsonObject().getMap());
     stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
 
-    partition = config.getOptionalValue("partition", Integer.class).orElse(0);
-    key = config.getValue("key", String.class);
-    topic = config.getValue("topic", String.class);
+    partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
+    key = config.getOptionalValue("key", String.class).orElse(null);
+    topic = config.getOptionalValue("topic", String.class).orElse(null);
     if (topic == null) {
       LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
     }
@@ -45,14 +45,22 @@ class KafkaSink {
         if (message instanceof KafkaMessage) {
           KafkaMessage km = ((KafkaMessage) message);
 
-          if (this.topic == null && ((KafkaMessage) message).getTopic() == null) {
+          if (this.topic == null && km.getTopic() == null) {
             LOGGER.error("Ignoring message - no topic set");
             return CompletableFuture.completedFuture(null);
           }
 
+          Integer actualPartition = null;
+          if (this.partition != -1) {
+            actualPartition = this.partition;
+          }
+          if (km.getPartition() != null) {
+            actualPartition = km.getPartition();
+          }
+
           record = new ProducerRecord<>(
             km.getTopic() == null ? this.topic : km.getTopic(),
-            km.getPartition() == null ? this.partition : km.getPartition(),
+            actualPartition,
             km.getTimestamp(),
             km.getKey() == null ? this.key : km.getKey(),
             km.getPayload(),
