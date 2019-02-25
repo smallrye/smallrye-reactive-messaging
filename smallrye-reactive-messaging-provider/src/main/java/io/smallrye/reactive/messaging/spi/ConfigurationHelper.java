@@ -24,7 +24,7 @@ public class ConfigurationHelper {
   }
 
   public String get(String key) {
-    return config.getValue(key, String.class);
+    return config.getOptionalValue(key, String.class).orElse(null);
   }
 
   public String get(String key, String def) {
