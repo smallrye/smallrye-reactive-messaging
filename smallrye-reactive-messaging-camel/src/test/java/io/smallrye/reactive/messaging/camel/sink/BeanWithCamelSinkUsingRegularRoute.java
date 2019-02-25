@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.camel.sink;
 
 import io.smallrye.reactive.messaging.camel.Camel;
-import io.smallrye.reactive.messaging.camel.MyConfig;
+import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 import org.apache.camel.builder.RouteBuilder;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -28,10 +28,10 @@ public class BeanWithCamelSinkUsingRegularRoute extends RouteBuilder {
   @Produces
   public Config myConfig() {
     String prefix = "mp.messaging.provider.outgoing.data.";
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "seda:in");
     config.put(prefix + "type", Camel.class.getName());
-    return new MyConfig(config);
+    return new MapBasedConfig(config);
   }
 
   @Override
