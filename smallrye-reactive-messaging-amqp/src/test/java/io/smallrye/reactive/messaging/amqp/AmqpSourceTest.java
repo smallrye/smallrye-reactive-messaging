@@ -74,7 +74,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
   @NotNull
   private <T> Subscriber<T> createSubscriber(List<T> messages, AtomicBoolean opened) {
-    //noinspection SubscriberImplementation
+    //noinspection SubscriberImplementation - Seriously IntelliJ ????
     return new Subscriber<T>() {
       Subscription sub;
 
