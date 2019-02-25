@@ -280,6 +280,12 @@
 
   <profiles>
     <profile>
+      <id>tck</id>
+      <modules>
+        <module>tck</module>
+      </modules>
+    </profile>
+    <profile>
       <id>doc</id>
       <build>
         <plugins>
