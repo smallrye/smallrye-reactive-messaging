@@ -43,7 +43,9 @@ public class AmqpSinkTest extends AmqpTestBase {
   public void testSinkUsingInteger() {
     String topic = UUID.randomUUID().toString();
     AtomicInteger expected = new AtomicInteger(0);
-    usage.consumeTenIntegers(topic,
+    usage.consumeIntegers(topic,
+      10,
+      1, TimeUnit.MINUTES,
       v -> expected.getAndIncrement());
 
     SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
@@ -82,7 +84,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     Weld weld = new Weld();
 
     CountDownLatch latch = new CountDownLatch(10);
-    usage.consumeTenIntegers("sink",
+    usage.consumeIntegers("sink", 10, 30, TimeUnit.SECONDS,
       v -> latch.countDown());
 
     weld.addBeanClass(AmqpMessagingProvider.class);

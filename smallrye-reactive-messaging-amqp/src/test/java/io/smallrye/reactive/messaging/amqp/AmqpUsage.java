@@ -1,50 +1,74 @@
+/*
+ * Copyright (c) 2018-2019 The original author or authors
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * and Apache License v2.0 which accompanies this distribution.
+ *
+ *        The Eclipse Public License is available at
+ *        http://www.eclipse.org/legal/epl-v10.html
+ *
+ *        The Apache License v2.0 is available at
+ *        http://www.opensource.org/licenses/apache2.0.php
+ *
+ * You may elect to redistribute this code under either of these licenses.
+ */
 package io.smallrye.reactive.messaging.amqp;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.proton.*;
-import io.vertx.reactivex.core.Context;
+import io.vertx.core.Context;
+import io.vertx.proton.ProtonClient;
+import io.vertx.proton.ProtonConnection;
+import io.vertx.proton.ProtonReceiver;
+import io.vertx.proton.ProtonSender;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Section;
-import org.apache.qpid.proton.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.eclipse.microprofile.reactive.messaging.Message;
 import static io.vertx.proton.ProtonHelper.message;
-import static org.awaitility.Awaitility.await;
 
-class AmqpUsage {
+public class AmqpUsage {
 
   private static Logger LOGGER = LoggerFactory.getLogger(AmqpUsage.class);
-  private final Vertx vertx;
+  private final Context context;
   private ProtonClient client;
   private ProtonConnection connection;
-  private AtomicBoolean open = new AtomicBoolean();
-  private Context context;
+
+  private List<ProtonSender> senders = new CopyOnWriteArrayList<>();
+  private List<ProtonReceiver> receivers = new CopyOnWriteArrayList<>();
 
 
-  AmqpUsage(Vertx vertx, String host, int port) {
+  public AmqpUsage(Vertx vertx, String host, int port) {
     this(vertx, host, port, "artemis", "simetraehcapa");
   }
 
-  private AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
+
+  public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
     CountDownLatch latch = new CountDownLatch(1);
-    this.vertx = vertx;
-    context = this.vertx.getOrCreateContext();
+    this.context = vertx.getDelegate().getOrCreateContext();
     context.runOnContext(x -> {
       client = ProtonClient.create(vertx.getDelegate());
-      client.connect(new ProtonClientOptions()
-        .setReconnectInterval(10)
-        .setReconnectAttempts(100), host, port, user, pwd, getConnectionHandler(latch, host, port, user, pwd));
+      client.connect(host, port, user, pwd, conn -> {
+        if (conn.succeeded()) {
+          LOGGER.info("Connection to the AMQP host succeeded");
+          this.connection = conn.result();
+          this.connection
+            .openHandler(connection -> latch.countDown())
+            .open();
+        }
+      });
     });
     try {
       latch.await();
@@ -54,76 +78,51 @@ class AmqpUsage {
     }
   }
 
-  private Handler<AsyncResult<ProtonConnection>> getConnectionHandler(CountDownLatch latch, String host, int port, String user, String pwd) {
-    return conn -> {
-      if (conn.succeeded()) {
-        this.connection = conn.result();
-        this.connection
-          .openHandler(connection -> {
-            if (connection.succeeded()) {
-              LOGGER.info("Connection to the AMQP broker succeeded");
-              open.set(true);
-              latch.countDown();
-            } else {
-              open.set(false);
-              LOGGER.error("Failed to establish a connection with the AMQP broker", connection.cause());
-            }
-          })
-          .closeHandler(c -> {
-            LOGGER.info("Closing " + c.succeeded());
-            if (c.failed()) {
-              LOGGER.info("Error receive during the closing", c.cause());
-            }
-            open.set(false);
-            LOGGER.info("Trying to re-open the connection");
-            client.connect(new ProtonClientOptions()
-              .setReconnectInterval(10)
-              .setReconnectAttempts(100), host, port, user, pwd, getConnectionHandler(latch, host, port, user, pwd));
-          })
-          .disconnectHandler(d -> {
-            LOGGER.info("Disconnecting");
-            open.set(false);
-          })
-          .open();
-      }
-    };
-  }
-
   /**
-   * Use the supplied function to asynchronously produce messages and write them to the broker.
+   * Use the supplied function to asynchronously produce messages and write them to the host.
    *
-   * @param topic           the topic, must not be null
-   * @param messageCount    the number of messages to produce; must be positive
-   * @param messageSupplier the function to produce messages; may not be null
+   * @param topic              the topic, must not be null
+   * @param messageCount       the number of messages to produce; must be positive
+   * @param messageSupplier    the function to produce messages; may not be null
    */
   void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
     CountDownLatch ready = new CountDownLatch(1);
-    ProtonSender sender = connection.createSender(topic)
-      .openHandler(s -> ready.countDown())
-      .open();
+    AtomicReference<ProtonSender> reference = new AtomicReference<>();
+    context.runOnContext(x -> {
+      ProtonSender sender = connection.createSender(topic);
+      reference.set(sender);
+      senders.add(sender);
+      sender
+        .openHandler(s -> ready.countDown())
+        .open();
+    });
+
     try {
       ready.await();
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+
     Thread t = new Thread(() -> {
       LOGGER.info("Starting AMQP sender to write {} messages", messageCount);
       try {
         for (int i = 0; i != messageCount; ++i) {
           Object payload = messageSupplier.get();
-          Message message = message();
+          org.apache.qpid.proton.message.Message message = message();
           if (payload instanceof Section) {
             message.setBody((Section) payload);
-          } else {
+          } else if (payload != null) {
             message.setBody(new AmqpValue(payload));
+          } else {
+            // Don't set a body.
           }
           message.setDurable(true);
           message.setTtl(10000);
-          message.setDeliveryCount(1);
           CountDownLatch latch = new CountDownLatch(1);
-          sleep();
-          sender.send(message, x ->
-            latch.countDown()
+          context.runOnContext((y) ->
+            reference.get().send(message, x ->
+              latch.countDown()
+            )
           );
           latch.await();
           LOGGER.info("Producer sent message {}", payload);
@@ -131,31 +130,17 @@ class AmqpUsage {
       } catch (Exception e) {
         LOGGER.error("Unable to send message", e);
       } finally {
-        closeQuietly(sender);
+        context.runOnContext(x -> reference.get().close());
       }
     });
     t.setName(topic + "-thread");
     t.start();
-  }
 
-  private void sleep() {
     try {
-      Thread.sleep(10);
+      ready.await();
     } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+      LOGGER.error("Interrupted while waiting for the ProtonSender to be opened", e);
     }
-  }
-
-  private void closeQuietly(ProtonSender sender) {
-    try {
-      sender.close();
-    } catch (Exception e) {
-      // Ignore me.
-    }
-  }
-
-  void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
-    this.produce(topic, 10, messageSupplier::get);
   }
 
   /**
@@ -165,63 +150,114 @@ class AmqpUsage {
    * @param continuation     the function that determines if the consumer should continue; may not be null
    * @param consumerFunction the function to consume the messages; may not be null
    */
-  private <T> void consume(String topic, BooleanSupplier continuation,
-                           Consumer<AmqpMessage<T>> consumerFunction) {
+  private void consume(String topic, BooleanSupplier continuation,
+                       Consumer<AmqpMessage> consumerFunction) {
     CountDownLatch latch = new CountDownLatch(1);
-    ProtonReceiver receiver = getReceiver(topic);
     Thread t = new Thread(() -> {
       try {
-        receiver.handler((delivery, message) -> {
-          LOGGER.info("Consumer {}: consuming message {}", topic, message.getBody());
-          consumerFunction.accept(new AmqpMessage<>(delivery, message));
-          if (!continuation.getAsBoolean()) {
-            LOGGER.info("Closing receiver");
-            receiver.close();
-          }
-        })
-          .openHandler(r -> {
-            LOGGER.info("Starting consumer to read messages on {}", topic);
-            if (r.succeeded() && r.result().isOpen()) {
-              latch.countDown();
+        context.runOnContext(x -> {
+          ProtonReceiver receiver = connection.createReceiver(topic);
+          receivers.add(receiver);
+
+          receiver.handler((delivery, message) -> {
+            LOGGER.info("Consumer {}: consuming message {}", topic, message.getBody());
+            consumerFunction.accept(new AmqpMessage(delivery, message));
+            if (!continuation.getAsBoolean()) {
+              receiver.close();
             }
           })
-          .open();
+            .openHandler(r -> {
+              LOGGER.info("Starting consumer to read messages on {}", topic);
+              latch.countDown();
+            })
+            .open();
+        });
       } catch (Exception e) {
         LOGGER.error("Unable to receive messages from {}", topic, e);
       }
     });
     t.setName(topic + "-thread");
     t.start();
-
     try {
-      latch.await(1, TimeUnit.MINUTES);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+      latch.await();
+    } catch (InterruptedException e) {
+      LOGGER.error("Interrupted while waiting for the ProtonReceiver to be opened", e);
     }
+  }
+
+  public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Consumer<Integer> consumer) {
+    AtomicLong readCounter = new AtomicLong();
+    this.consumeStrings(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), s -> {
+      consumer.accept(Integer.valueOf(s));
+      readCounter.incrementAndGet();
+    });
+  }
+
+  public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Consumer<String> consumer) {
+    AtomicLong readCounter = new AtomicLong();
+    this.consumeStrings(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), s -> {
+      consumer.accept(s);
+      readCounter.incrementAndGet();
+    });
+  }
+
+
+  private BooleanSupplier continueIfNotExpired(BooleanSupplier continuation,
+                                               long timeout, TimeUnit unit) {
+    return new BooleanSupplier() {
+      long stopTime = 0L;
+
+      public boolean getAsBoolean() {
+        if (this.stopTime == 0L) {
+          this.stopTime = System.currentTimeMillis() + unit.toMillis(timeout);
+        }
+
+        return continuation.getAsBoolean() && System.currentTimeMillis() <= this.stopTime;
+      }
+    };
+  }
+
+  public void close() throws InterruptedException {
+    CountDownLatch entities = new CountDownLatch(senders.size() + receivers.size());
+    context.runOnContext(ignored -> {
+      senders.forEach(sender -> {
+        if (sender.isOpen()) {
+          sender.closeHandler(x -> entities.countDown()).close();
+        } else {
+          entities.countDown();
+        }
+      });
+      receivers.forEach(receiver -> {
+        if (receiver.isOpen()) {
+          receiver.closeHandler(x -> entities.countDown()).close();
+        } else {
+          entities.countDown();
+        }
+      });
+    });
+
+    entities.await(30, TimeUnit.SECONDS);
+
+    if (connection != null && !connection.isDisconnected()) {
+      CountDownLatch latch = new CountDownLatch(1);
+      context.runOnContext(n ->
+        connection
+          .closeHandler(x -> latch.countDown())
+          .close());
+      latch.await(10, TimeUnit.SECONDS);
+    }
+
 
   }
 
-  private ProtonReceiver getReceiver(String topic) {
-    int i = 0;
-    while (i < 10) {
-      try {
-        return connection.createReceiver(topic);
-      } catch (Exception e) {
-        LOGGER.warn("Unable to create a receiver: {}", e.getMessage());
-        i = i + 1;
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e1) {
-          Thread.currentThread().interrupt();
-          // Ignore me.
-        }
-      }
-    }
-    throw new RuntimeException("Unable to create a receiver after 10 attempts");
+  void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
+    this.produce(topic, 10, messageSupplier::get);
   }
 
   private void consumeStrings(String topic, BooleanSupplier continuation, Consumer<String> consumerFunction) {
-    this.consume(topic, continuation, value -> consumerFunction.accept(value.getPayload().toString()));
+    this.consume(topic, continuation, value -> {
+      consumerFunction.accept(value.getPayload().toString());
+    });
   }
 
   private void consumeIntegers(String topic, BooleanSupplier continuation, Consumer<Integer> consumerFunction) {
@@ -265,16 +301,5 @@ class AmqpUsage {
       }
     };
   }
-
-  void close() {
-    AtomicBoolean called = new AtomicBoolean();
-    context.runOnContext(x -> {
-      if (connection != null && !connection.isDisconnected()) {
-        connection.close();
-        connection.disconnect();
-      }
-      called.set(true);
-    });
-    await().until(called::get);
-  }
 }
+
