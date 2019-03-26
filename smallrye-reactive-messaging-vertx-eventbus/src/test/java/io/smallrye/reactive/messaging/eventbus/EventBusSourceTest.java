@@ -1,34 +1,23 @@
 package io.smallrye.reactive.messaging.eventbus;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
+import io.reactivex.Flowable;
+import io.reactivex.Single;
+import io.reactivex.schedulers.Schedulers;
+import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.vertx.core.eventbus.DeliveryOptions;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
-import io.reactivex.schedulers.Schedulers;
-import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
-import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
-import io.vertx.core.eventbus.DeliveryOptions;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class EventBusSourceTest extends EventbusTestBase {
 
@@ -45,12 +34,12 @@ public class EventBusSourceTest extends EventbusTestBase {
   @Test
   public void testSource() {
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("address", topic);
-    EventBusSource source = new EventBusSource(vertx, ConfigurationHelper.create(config));
+    EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
 
     List<EventBusMessage> messages = new ArrayList<>();
-    Flowable.fromPublisher(source.publisher()).cast(EventBusMessage.class).forEach(messages::add);
+    Flowable.fromPublisher(source.source().buildRs()).cast(EventBusMessage.class).forEach(messages::add);
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
       usage.produceIntegers(topic, 10, true, null,
@@ -66,14 +55,14 @@ public class EventBusSourceTest extends EventbusTestBase {
   @Test
   public void testBroadcast() {
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("address", topic);
-    config.put("broadcast", "true");
-    EventBusSource source = new EventBusSource(vertx, ConfigurationHelper.create(config));
+    config.put("broadcast", true);
+    EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
 
     List<EventBusMessage> messages1 = new ArrayList<>();
     List<EventBusMessage> messages2 = new ArrayList<>();
-    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.publisher()).cast(EventBusMessage.class);
+    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.source().buildRs()).cast(EventBusMessage.class);
     flowable.forEach(messages1::add);
     flowable.forEach(messages2::add);
 
@@ -96,12 +85,12 @@ public class EventBusSourceTest extends EventbusTestBase {
   @Test
   public void testAcknowledgement() {
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("address", topic);
-    config.put("use-reply-as-ack", "true");
-    EventBusSource source = new EventBusSource(vertx, ConfigurationHelper.create(config));
+    config.put("use-reply-as-ack", true);
+    EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
 
-    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.publisher())
+    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.source().buildRs())
       .cast(EventBusMessage.class)
       .flatMapSingle(m ->
         Single
@@ -121,11 +110,11 @@ public class EventBusSourceTest extends EventbusTestBase {
   @Test
   public void testMessageHeader() {
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("address", topic);
-    EventBusSource source = new EventBusSource(vertx, ConfigurationHelper.create(config));
+    EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
 
-    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.publisher())
+    Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.source().buildRs())
       .cast(EventBusMessage.class);
 
     List<EventBusMessage> messages1 = new ArrayList<>();

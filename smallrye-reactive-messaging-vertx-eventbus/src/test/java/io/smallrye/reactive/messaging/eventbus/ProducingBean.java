@@ -35,11 +35,11 @@ public class ProducingBean {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.sink.sink.";
-    Map<String, String> config = new HashMap<>();
+    String prefix = "mp.messaging.provider.outgoing.sink.";
+    Map<String, Object> config = new HashMap<>();
     config.put(prefix + "address", "sink");
     config.put(prefix + "type", VertxEventBus.class.getName());
-    return new MyConfig(config);
+    return new MapBasedConfig(config);
   }
 
   // As we can't use the Usage class - not the same Vert.x instance, receive the message here.

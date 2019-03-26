@@ -1,30 +1,24 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.mqtt.MqttClient;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MqttSource {
 
-  private final String host;
-  private final int port;
-  private final MqttClient client;
-  private final String server;
-  private final String topic;
-  private final int qos;
-  private final boolean broadcast;
+  private final PublisherBuilder<MqttMessage> source;
+  private AtomicBoolean subscribed = new AtomicBoolean();
 
-  public MqttSource(Vertx vertx, Map<String, String> config) {
+  public MqttSource(Vertx vertx, Config config) {
     ConfigurationHelper conf = ConfigurationHelper.create(config);
     MqttClientOptions options = new MqttClientOptions();
     options.setClientId(conf.get("client-id"));
@@ -45,49 +39,50 @@ public class MqttSource {
     options.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(conf.getAsInteger("connect-timeout-seconds", 60)));
     options.setTrustAll(conf.getAsBoolean("trust-all", false));
 
-    host = conf.getOrDie("host");
-    port = conf.getAsInteger("port", options.isSsl() ? 8883 : 1883);
-    server = conf.get("server-name");
-    topic = conf.getOrDie("topic");
-    client = MqttClient.create(vertx, options);
-    qos = conf.getAsInteger("qos", 0);
-    broadcast = conf.getAsBoolean("broadcast", false);
-  }
+    String host = conf.getOrDie("host");
+    int port = conf.getAsInteger("port", options.isSsl() ? 8883 : 1883);
+    String server = conf.get("server-name");
+    String topic = conf.getOrDie("topic");
+    MqttClient client = MqttClient.create(vertx, options);
+    int qos = conf.getAsInteger("qos", 0);
+    boolean broadcast = conf.getAsBoolean("broadcast", false);
 
-  public CompletableFuture<Publisher<? extends Message>> initialize() {
-    CompletableFuture<Publisher<? extends Message>> future = new CompletableFuture<>();
-    client.rxConnect(port, host, server)
-      .subscribe(
-        x -> {
-          Observable<Message> stream = Observable.create(emitter -> {
-            client.publishHandler(message -> emitter.onNext(new MqttMessage(message)));
-            client.subscribe(topic, qos, done -> {
-              if (done.failed()) {
-                // Report on the flow
-                emitter.onError(done.cause());
-              }
-            });
-          });
-          Flowable<Message> flowable = stream.toFlowable(BackpressureStrategy.BUFFER);
-          if (broadcast) {
-            flowable = flowable.publish().autoConnect();
-          }
-          future.complete(flowable);
-        },
-        future::completeExceptionally
+    this.source =
+      ReactiveStreams.fromPublisher(
+        client.rxConnect(port, host, server)
+          .flatMapObservable(a ->
+            Observable.<MqttMessage>create(emitter -> {
+              client.publishHandler(message -> {
+                emitter.onNext(new MqttMessage(message));
+              });
+              client.subscribe(topic, qos, done -> {
+                if (done.failed()) {
+                  // Report on the flow
+                  emitter.onError(done.cause());
+                }
+                subscribed.set(done.succeeded());
+              });
+            }))
+          .toFlowable(BackpressureStrategy.BUFFER)
+          .compose(f -> {
+            if (broadcast) {
+              return f.publish().autoConnect();
+            } else {
+              return f;
+            }
+          })
+          .doOnCancel(() -> {
+            subscribed.set(false);
+            client.disconnect();
+          })
       );
-    return future;
   }
 
-  /**
-   * For testing purpose only.
-   * @return
-   */
-  public Flowable<MqttMessage> getSource() {
-    return (Flowable<MqttMessage>) initialize().join();
+  PublisherBuilder<MqttMessage> getSource() {
+    return source;
   }
 
-  // TODO Disconnect
-
-
+  public boolean isSubscribed() {
+    return subscribed.get();
+  }
 }

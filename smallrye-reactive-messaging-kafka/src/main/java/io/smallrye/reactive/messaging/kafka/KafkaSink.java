@@ -7,15 +7,15 @@ import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.kafka.client.producer.RecordMetadata;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -23,19 +23,18 @@ class KafkaSink {
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSink.class);
   private final KafkaWriteStream stream;
   private final int partition;
-  private final Optional<Long> timestamp;
   private final String key;
   private final String topic;
-  private final Subscriber<Message> subscriber;
+  private final SubscriberBuilder<? extends Message, Void> subscriber;
 
-  KafkaSink(Vertx vertx, Map<String, String> config) {
-    stream = KafkaWriteStream.create(vertx.getDelegate(), new HashMap<>(config));
+  KafkaSink(Vertx vertx, Config config) {
+    ConfigurationHelper helper = ConfigurationHelper.create(config);
+    stream = KafkaWriteStream.create(vertx.getDelegate(), helper.asJsonObject().getMap());
     stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
-    ConfigurationHelper conf = ConfigurationHelper.create(config);
-    partition = conf.getAsInteger("partition", 0);
-    timestamp = conf.getAsLong( "timestamp");
-    key = conf.get("key");
-    topic = conf.get("topic");
+
+    partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
+    key = config.getOptionalValue("key", String.class).orElse(null);
+    topic = config.getOptionalValue("topic", String.class).orElse(null);
     if (topic == null) {
       LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
     }
@@ -43,19 +42,27 @@ class KafkaSink {
     subscriber = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(message -> {
         ProducerRecord record;
-        if (message instanceof  KafkaMessage) {
+        if (message instanceof KafkaMessage) {
           KafkaMessage km = ((KafkaMessage) message);
 
-          if (this.topic == null  && ((KafkaMessage) message).getTopic() == null) {
+          if (this.topic == null && km.getTopic() == null) {
             LOGGER.error("Ignoring message - no topic set");
             return CompletableFuture.completedFuture(null);
           }
 
+          Integer actualPartition = null;
+          if (this.partition != -1) {
+            actualPartition = this.partition;
+          }
+          if (km.getPartition() != null) {
+            actualPartition = km.getPartition();
+          }
+
           record = new ProducerRecord<>(
             km.getTopic() == null ? this.topic : km.getTopic(),
-            km.getPartition() == null ? this.partition : km.getPartition(),
-            km.getTimestamp() == null ? this.timestamp.orElse(null) : km.getTimestamp(),
-            km.getKey() == null ? this.key  : km.getKey(),
+            actualPartition,
+            km.getTimestamp(),
+            km.getKey() == null ? this.key : km.getKey(),
             km.getPayload(),
             km.getHeaders().unwrap()
           );
@@ -66,7 +73,7 @@ class KafkaSink {
             return CompletableFuture.completedFuture(null);
           }
           record
-            = new ProducerRecord<>(topic, partition, timestamp.orElse(null), key, message.getPayload());
+            = new ProducerRecord<>(topic, partition, null, key, message.getPayload());
         }
 
         CompletableFuture<RecordMetadata> future = new CompletableFuture<>();
@@ -83,15 +90,11 @@ class KafkaSink {
         LOGGER.debug("Using stream {} to write the record {}", stream, record);
         stream.write(record, handler);
         return future;
-      }).ignore().build();
+      }).ignore();
 
   }
 
-  static CompletionStage<Subscriber<? extends Message>> create(Vertx vertx, Map<String, String> config) {
-    return CompletableFuture.completedFuture(new KafkaSink(vertx, config).subscriber);
-  }
-
-  Subscriber<Message> getSubscriber() {
+  SubscriberBuilder<? extends Message, Void> getSink() {
     return subscriber;
   }
 }

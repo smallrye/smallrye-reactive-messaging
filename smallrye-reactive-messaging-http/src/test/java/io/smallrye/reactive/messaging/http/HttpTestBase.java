@@ -58,10 +58,12 @@ public class HttpTestBase {
   }
 
   public List<LoggedRequest> requests() {
-    return wireMockRule.getServeEvents().getRequests().stream().map(ServeEvent::getRequest).collect(Collectors.toList());
+    return wireMockRule.getServeEvents().getRequests().stream()
+      .map(ServeEvent::getRequest).collect(Collectors.toList());
   }
 
   public List<String> bodies(String path) {
-    return requests().stream().filter(req -> req.getUrl().equalsIgnoreCase(path)).map(LoggedRequest::getBodyAsString).collect(Collectors.toList());
+    return requests().stream().filter(req -> req.getUrl().equalsIgnoreCase(path))
+      .map(LoggedRequest::getBodyAsString).collect(Collectors.toList());
   }
 }

@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 public abstract class Serializer<I> implements Converter<I, Buffer> {
 
-  private final static List<Serializer<?>> CONVERTERS = new ArrayList<>();
+  private static final List<Serializer<?>> CONVERTERS = new ArrayList<>();
 
   static {
     CONVERTERS.add(new StringSerializer());

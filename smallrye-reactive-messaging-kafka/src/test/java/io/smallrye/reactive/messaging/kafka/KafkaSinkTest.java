@@ -1,12 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
-import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -16,6 +10,7 @@ import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
+import org.reactivestreams.Subscriber;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,15 +46,16 @@ public class KafkaSinkTest extends KafkaTestBase {
       (k, v) -> expected.getAndIncrement());
 
 
-    Map<String, String> config = newCommonConfig();
+    Map<String, Object> config = newCommonConfig();
     config.put("topic", topic);
     config.put("value.serializer", IntegerSerializer.class.getName());
     config.put("value.deserializer", IntegerDeserializer.class.getName());
-    KafkaSink sink = new KafkaSink(vertx, config);
+    config.put("partition", 0);
+    KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config));
 
     Flowable.range(0, 10)
       .map(Message::of)
-      .subscribe(sink.getSubscriber());
+      .subscribe((Subscriber) sink.getSink().build());
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     assertThat(expected).hasValue(10);
@@ -76,25 +72,25 @@ public class KafkaSinkTest extends KafkaTestBase {
       (k, v) -> expected.getAndIncrement());
 
 
-    Map<String, String> config = newCommonConfig();
+    Map<String, Object> config = newCommonConfig();
     config.put("topic", topic);
     config.put("value.serializer", StringSerializer.class.getName());
     config.put("value.deserializer", StringDeserializer.class.getName());
-    KafkaSink sink = new KafkaSink(vertx, config);
+    config.put("partition", 0);
+    KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config));
 
     Flowable.range(0, 10)
       .map(i -> Integer.toString(i))
       .map(Message::of)
-      .subscribe(sink.getSubscriber());
+      .subscribe((Subscriber) sink.getSink().build());
 
     assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     assertThat(expected).hasValue(10);
   }
 
-  private Map<String, String> newCommonConfig() {
-    Map<String, String> config = new HashMap<>();
+  private Map<String, Object> newCommonConfig() {
+    Map<String, Object> config = new HashMap<>();
     config.put("bootstrap.servers", "localhost:9092");
-    config.put("key.deserializer", StringDeserializer.class.getName());
     config.put("key.serializer", StringSerializer.class.getName());
     config.put("acks", "1");
     return config;

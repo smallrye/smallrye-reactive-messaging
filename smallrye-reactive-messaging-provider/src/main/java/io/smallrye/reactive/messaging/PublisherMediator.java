@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 public class PublisherMediator extends AbstractMediator {
 
-  private Publisher publisher;
+  private PublisherBuilder<Message> publisher;
 
   // Supported signatures:
   // 1. Publisher<Message<O>> method()
@@ -31,7 +31,7 @@ public class PublisherMediator extends AbstractMediator {
   }
 
   @Override
-  public Publisher<Message> getComputedPublisher() {
+  public PublisherBuilder<Message> getStream() {
     return Objects.requireNonNull(publisher);
   }
 
@@ -79,26 +79,25 @@ public class PublisherMediator extends AbstractMediator {
 
   private void produceAPublisherBuilderOfMessages() {
     PublisherBuilder<Message> builder = invoke();
-    setPublisher(builder.buildRs());
+    setPublisher(builder);
   }
 
-  private void setPublisher(Publisher publisher) {
+  private void setPublisher(PublisherBuilder publisher) {
     this.publisher = decorate(publisher);
   }
 
   private <P> void produceAPublisherBuilderOfPayloads() {
     PublisherBuilder<P> builder = invoke();
-    setPublisher(builder.map(Message::of).buildRs());
+    setPublisher(builder.map(Message::of));
   }
 
   private void produceAPublisherOfMessages() {
-    setPublisher(invoke());
+    setPublisher(ReactiveStreams.fromPublisher(invoke()));
   }
 
   private <P> void produceAPublisherOfPayloads() {
     Publisher<P> pub = invoke();
-    setPublisher(ReactiveStreams.fromPublisher(pub)
-      .map(Message::of).buildRs());
+    setPublisher(ReactiveStreams.fromPublisher(pub).map(Message::of));
   }
 
   private void produceIndividualMessages() {
@@ -106,25 +105,22 @@ public class PublisherMediator extends AbstractMediator {
       Message message = invoke();
       Objects.requireNonNull(message, "The method " + configuration.methodAsString() + " returned an invalid value: null");
       return message;
-    }).buildRs());
+    }));
   }
 
   private <T> void produceIndividualPayloads() {
     setPublisher(ReactiveStreams.<T>generate(this::invoke)
-      .map(Message::of)
-      .buildRs());
+      .map(Message::of));
   }
 
   private void produceIndividualCompletionStageOfMessages() {
     setPublisher(ReactiveStreams.<CompletionStage<Message>>generate(this::invoke)
-      .flatMapCompletionStage(Function.identity())
-      .buildRs());
+      .flatMapCompletionStage(Function.identity()));
   }
 
   private <P> void produceIndividualCompletionStageOfPayloads() {
     setPublisher(ReactiveStreams.<CompletionStage<P>>generate(this::invoke)
       .flatMapCompletionStage(Function.identity())
-      .map(Message::of)
-      .buildRs());
+      .map(Message::of));
   }
 }

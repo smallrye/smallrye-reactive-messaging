@@ -7,8 +7,10 @@ import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.ext.web.client.HttpRequest;
 import io.vertx.reactivex.ext.web.client.WebClient;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,25 +18,24 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-public class HttpSink {
+class HttpSink {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpSink.class);
 
   private final String url;
   private final WebClient client;
   private final String converterClass;
-  private final Subscriber<? extends Message> subscriber;
+  private final SubscriberBuilder<? extends Message, Void> subscriber;
 
-  HttpSink(Vertx vertx, ConfigurationHelper config) {
-    WebClientOptions options = new WebClientOptions(config.asJsonObject());
-    url = config.getOrDie("url");
+  HttpSink(Vertx vertx, Config config) {
+    WebClientOptions options = new WebClientOptions(ConfigurationHelper.create(config).asJsonObject());
+    url = config.getOptionalValue("url", String.class).orElseThrow(() -> new IllegalArgumentException("The `url` must be set"));
     client = WebClient.create(vertx, options);
-    converterClass = config.get("converter");
+    converterClass = config.getOptionalValue("converter", String.class).orElse(null);
 
     subscriber = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(m -> send(m).thenApply(v -> m))
-      .ignore()
-      .build();
+      .ignore();
   }
 
   CompletionStage<Void> send(Message message) {
@@ -114,7 +115,7 @@ public class HttpSink {
     return future;
   }
 
-  CompletionStage<Subscriber<? extends Message>> get() {
-    return CompletableFuture.completedFuture(subscriber);
+  SubscriberBuilder<? extends Message, Void> sink() {
+    return subscriber;
   }
 }

@@ -12,6 +12,7 @@ import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.spi.DeploymentException;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
@@ -149,13 +150,13 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
   @SuppressWarnings("unchecked")
   private void assertThatSubscriberWasPublished(SeContainer container) {
-    assertThat(registry(container).getSubscriberNames()).contains("subscriber");
-    List<Subscriber<? extends Message>> subscriber = registry(container).getSubscribers("subscriber");
+    assertThat(registry(container).getOutgoingNames()).contains("subscriber");
+    List<SubscriberBuilder<? extends Message, Void>> subscriber = registry(container).getSubscribers("subscriber");
     assertThat(subscriber).isNotEmpty();
     List<String> list = new ArrayList<>();
     Flowable.just("a", "b", "c").map(Message::of)
       .doOnNext(m -> list.add(m.getPayload()))
-      .subscribe((Subscriber) subscriber.get(0));
+      .subscribe(((SubscriberBuilder) subscriber.get(0)).build());
     assertThat(list).containsExactly("a", "b", "c");
   }
 

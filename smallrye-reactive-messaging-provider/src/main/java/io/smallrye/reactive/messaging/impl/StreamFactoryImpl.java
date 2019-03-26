@@ -2,11 +2,12 @@ package io.smallrye.reactive.messaging.impl;
 
 import io.smallrye.reactive.messaging.StreamFactory;
 import io.smallrye.reactive.messaging.StreamRegistry;
-import io.smallrye.reactive.messaging.spi.PublisherFactory;
-import io.smallrye.reactive.messaging.spi.SubscriberFactory;
+import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
+import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
@@ -16,7 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
+
+import static io.smallrye.reactive.messaging.impl.ConnectorConfig.EMPTY_CONFIG;
 
 @ApplicationScoped
 public class StreamFactoryImpl implements StreamFactory {
@@ -25,13 +27,13 @@ public class StreamFactoryImpl implements StreamFactory {
 
   private final StreamRegistry registry;
 
-  private final Map<String, PublisherFactory> publisherFactories = new HashMap<>();
-  private Map<String, SubscriberFactory> subscriberFactories = new HashMap<>();
+  private final Map<String, IncomingConnectorFactory> publisherFactories = new HashMap<>();
+  private Map<String, OutgoingConnectorFactory> subscriberFactories = new HashMap<>();
 
 
   @Inject
-  public StreamFactoryImpl(@Any Instance<PublisherFactory> pubs,
-                           @Any Instance<SubscriberFactory> subs,
+  public StreamFactoryImpl(@Any Instance<IncomingConnectorFactory> pubs,
+                           @Any Instance<OutgoingConnectorFactory> subs,
                            StreamRegistry registry) {
     this.registry = registry;
     pubs.stream().forEach(pf -> publisherFactories.put(pf.type().getName(), pf));
@@ -39,42 +41,48 @@ public class StreamFactoryImpl implements StreamFactory {
   }
 
   @Override
-  public synchronized CompletionStage<Publisher<? extends Message>> createPublisherAndRegister(String name, Map<String, String> config) {
+  public synchronized PublisherBuilder<? extends Message> createPublisherBuilderAndRegister(String name, Config config) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
-    String type = Optional.ofNullable(config.get("type")).map(Object::toString)
+    String type = config.getOptionalValue("type", String.class)
       .orElseThrow(() -> new IllegalArgumentException("Invalid publisher, no type for " + name));
-    return createPublisher(type, config)
-      .thenApply(publisher -> this.registry.register(name, publisher));
+    PublisherBuilder<? extends Message> builder = createPublisherBuilder(type, config);
+    this.registry.register(name, builder);
+    return builder;
   }
 
   @Override
-  public synchronized CompletionStage<Subscriber<? extends Message>> createSubscriberAndRegister(String name, Map<String, String> config) {
+  public synchronized SubscriberBuilder<? extends Message, Void> createSubscriberBuilderAndRegister(String name, Config config) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
-    String type = Optional.ofNullable(config.get("type")).map(Object::toString)
+    String type = config.getOptionalValue("type", String.class)
       .orElseThrow(() -> new IllegalArgumentException("Invalid subscriber, no type for " + name));
-    return createSubscriber(type, config)
-      .thenApply(subscriber -> this.registry.register(name, subscriber));
+    SubscriberBuilder<? extends Message, Void> builder = createSubscriberBuilder(type, config);
+    this.registry.register(name, builder);
+    return builder;
   }
 
   @Override
-  public synchronized CompletionStage<Publisher<? extends Message>> createPublisher(String type, Map<String, String> config) {
-    PublisherFactory factory = publisherFactories.get(
+  public synchronized PublisherBuilder<? extends Message> createPublisherBuilder(String type, Config config) {
+    IncomingConnectorFactory factory = publisherFactories.get(
       Objects.requireNonNull(type, "'type' must be set, known types are: " + publisherFactories.keySet()));
     if (factory == null) {
       throw new IllegalArgumentException("Unknown type: " + type + ", known types are: " + publisherFactories.keySet());
     }
-    // TODO Can we have null configuration ?
-    return factory.createPublisher(config);
+    if (config == null) {
+      config = EMPTY_CONFIG;
+    }
+    return factory.getPublisherBuilder(config);
   }
 
   @Override
-  public CompletionStage<Subscriber<? extends Message>> createSubscriber(String type, Map<String, String> config) {
-    SubscriberFactory factory = subscriberFactories.get(
+  public SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String type, Config config) {
+    OutgoingConnectorFactory factory = subscriberFactories.get(
       Objects.requireNonNull(type, "'type' must be set, known types are: " + subscriberFactories.keySet()));
     if (factory == null) {
       throw new IllegalArgumentException("Unknown type: " + type + ", known types are: " + subscriberFactories.keySet());
     }
-    // TODO Can we have null configuration ?
-    return factory.createSubscriber(config);
+    if (config == null) {
+      config = EMPTY_CONFIG;
+    }
+    return factory.getSubscriberBuilder(config);
   }
 }

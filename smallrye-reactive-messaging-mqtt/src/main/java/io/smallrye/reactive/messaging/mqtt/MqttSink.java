@@ -9,14 +9,15 @@ import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.mqtt.MqttClient;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.CompletionSubscriber;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscriber;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MqttSink {
 
@@ -27,7 +28,9 @@ public class MqttSink {
   private final String topic;
   private final int qos;
 
-  public MqttSink(Vertx vertx, Map<String, String> config) {
+  private final SubscriberBuilder<? extends Message, Void> sink;
+
+  public MqttSink(Vertx vertx, Config config) {
     ConfigurationHelper conf = ConfigurationHelper.create(config);
     MqttClientOptions options = new MqttClientOptions();
     options.setClientId(conf.get("client-id"));
@@ -54,32 +57,40 @@ public class MqttSink {
     topic = conf.getOrDie("topic");
     client = MqttClient.create(vertx, options);
     qos = conf.getAsInteger("qos", 0);
-  }
 
-  public CompletableFuture<Subscriber<? extends Message>> initialize() {
-    CompletableFuture<Subscriber<? extends Message>> future = new CompletableFuture<>();
-    client.rxConnect(port, host, server)
-      .subscribe(
-        x -> {
-          CompletionSubscriber<Message, Void> subscriber = ReactiveStreams.<Message>builder()
-            .flatMapCompletionStage(message -> {
-              CompletableFuture<Integer> done = new CompletableFuture<>();
-              client.publish(topic, convert(message.getPayload()), MqttQoS.valueOf(qos), false, false, res -> {
-                if (res.failed()) {
-                  done.completeExceptionally(res.cause());
-                } else {
-                  done.complete(res.result());
-                }
-              });
-              return done;
-            })
-            .ignore()
-            .build();
-          future.complete(subscriber);
-        },
-        future::completeExceptionally
-      );
-    return future;
+    AtomicBoolean connected = new AtomicBoolean();
+    sink = ReactiveStreams.<Message>builder()
+      .flatMapCompletionStage(msg -> {
+        // If not connected, connect
+        if (connected.get()) {
+          //forwarding
+          return CompletableFuture.completedFuture(msg);
+        } else {
+          CompletableFuture<Message> future = new CompletableFuture<>();
+          client.connect(port, host, server, ar -> {
+            if (ar.failed()) {
+              future.completeExceptionally(ar.cause());
+            } else {
+              connected.set(true);
+              future.complete(msg);
+            }
+          });
+          return future;
+        }
+      })
+      .flatMapCompletionStage(msg -> {
+        CompletableFuture<Integer> done = new CompletableFuture<>();
+        client.publish(topic, convert(msg.getPayload()), MqttQoS.valueOf(qos), false, false, res -> {
+          if (res.failed()) {
+            done.completeExceptionally(res.cause());
+          } else {
+            done.complete(res.result());
+          }
+        });
+        return done;
+      })
+      .onComplete(client::disconnect)
+      .ignore();
   }
 
   private Buffer convert(Object payload) {
@@ -105,16 +116,9 @@ public class MqttSink {
     return new Buffer(Json.encodeToBuffer(payload));
   }
 
-
-  /**
-   * Testing purpose only.
-   * @return
-   */
-  public Subscriber<? extends Message> getSubscriber() {
-    return initialize().join();
+  public SubscriberBuilder<? extends Message, Void> getSink() {
+    return sink;
   }
-
-  // TODO Disconnect
 
 
 }

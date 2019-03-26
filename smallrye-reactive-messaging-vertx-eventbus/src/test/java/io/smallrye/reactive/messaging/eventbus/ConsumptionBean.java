@@ -33,11 +33,11 @@ public class ConsumptionBean {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.source.data.";
-    Map<String, String> config = new HashMap<>();
+    String prefix = "mp.messaging.provider.incoming.data.";
+    Map<String, Object> config = new HashMap<>();
     config.put(prefix + "address", "data");
     config.put(prefix + "type", VertxEventBus.class.getName());
-    return new MyConfig(config);
+    return new MapBasedConfig(config);
   }
 
   List<Integer> getResults() {
@@ -47,7 +47,7 @@ public class ConsumptionBean {
   @Inject
   Vertx vertx;
 
-  public void produce() {
+  void produce() {
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
       new EventBusUsage(vertx.eventBus().getDelegate())

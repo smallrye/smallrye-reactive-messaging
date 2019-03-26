@@ -5,23 +5,30 @@ import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
-public class MyConfig implements Config {
-  private final Map<String, String> map;
+/**
+ * An implementation of {@link Config} based on a simple {@link Map}.
+ * This class is just use to mock real configuration, so should only be used for tests.
+ * <p>
+ * Note that this implementation does not do any conversion, so you must pass the expected object instances.
+ */
+public class MapBasedConfig implements Config {
+  private final Map<String, Object> map;
 
-  public MyConfig(Map<String, String> map) {
+  MapBasedConfig(Map<String, Object> map) {
     this.map = map;
   }
 
   @Override
   public <T> T getValue(String propertyName, Class<T> propertyType) {
-    return (T) map.get(propertyName);
+    return getOptionalValue(propertyName, propertyType).orElseThrow(() -> new NoSuchElementException(propertyName));
   }
 
   @Override
   public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-    T value = getValue(propertyName, propertyType);
+    @SuppressWarnings("unchecked") T value = (T) map.get(propertyName);
     return Optional.ofNullable(value);
   }
 

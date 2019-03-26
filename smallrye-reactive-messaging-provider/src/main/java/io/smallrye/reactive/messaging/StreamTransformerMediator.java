@@ -14,22 +14,22 @@ import java.util.function.Function;
 
 public class StreamTransformerMediator extends AbstractMediator {
 
-  Function<Publisher<Message>, Publisher<Message>> function;
+  Function<PublisherBuilder<? extends Message>, PublisherBuilder<? extends Message>> function;
 
-  private Publisher<Message> publisher;
+  private PublisherBuilder<? extends Message> publisher;
 
   public StreamTransformerMediator(MediatorConfiguration configuration) {
     super(configuration);
   }
 
   @Override
-  public void connectToUpstream(Publisher<? extends Message> publisher) {
+  public void connectToUpstream(PublisherBuilder<? extends Message> publisher) {
     Objects.requireNonNull(function);
-    this.publisher = decorate(function.apply((Publisher) publisher));
+    this.publisher = decorate(function.apply(publisher));
   }
 
   @Override
-  public Publisher<Message> getComputedPublisher() {
+  public PublisherBuilder<? extends Message> getStream() {
     Objects.requireNonNull(publisher);
     return publisher;
   }
@@ -75,18 +75,18 @@ public class StreamTransformerMediator extends AbstractMediator {
 
   private void processMethodConsumingAPublisherBuilderOfMessages() {
     function = publisher -> {
-      PublisherBuilder<Message> prependedWithAck = ReactiveStreams.fromPublisher(publisher)
+      PublisherBuilder<Message> prependedWithAck = publisher
         .flatMapCompletionStage(managePreProcessingAck());
 
       PublisherBuilder<Message> builder = invoke(prependedWithAck);
       Objects.requireNonNull(builder, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
-      return builder.buildRs();
+      return builder;
     };
   }
 
   private void processMethodConsumingAPublisherOfMessages() {
     function = publisher -> {
-      Publisher<Message> prependedWithAck = ReactiveStreams.fromPublisher(publisher)
+      Publisher<Message> prependedWithAck = publisher
         .flatMapCompletionStage(managePreProcessingAck())
         .buildRs();
       Class<?> parameterType = configuration.getMethod().getParameterTypes()[0];
@@ -96,26 +96,24 @@ public class StreamTransformerMediator extends AbstractMediator {
       }
       Publisher<Message> result = invoke(prependedWithAck);
       Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
-      return result;
+      return ReactiveStreams.fromPublisher(result);
     };
   }
 
   private void processMethodConsumingAPublisherBuilderOfPayload() {
-    function = publisher -> {
-      PublisherBuilder<Object> stream = ReactiveStreams.fromPublisher(publisher)
+    function = builder -> {
+        PublisherBuilder<Object> unwrapped = builder
         .flatMapCompletionStage(managePreProcessingAck())
         .map(Message::getPayload);
-      PublisherBuilder<Object> builder = invoke(stream);
-      Objects.requireNonNull(builder, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
-      return builder
-        .map(o -> (Message) Message.of(o))
-        .buildRs();
+      PublisherBuilder<Object> result = invoke(unwrapped);
+      Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
+      return result.map(o -> (Message) Message.of(o));
     };
   }
 
   private void processMethodConsumingAPublisherOfPayload() {
-    function = publisher -> {
-      Publisher stream = ReactiveStreams.fromPublisher(publisher)
+    function = builder -> {
+      Publisher<Object> stream = builder
         .flatMapCompletionStage(managePreProcessingAck())
         .map(Message::getPayload).buildRs();
       // Ability to inject Publisher implementation in method getting a Publisher.
@@ -127,8 +125,7 @@ public class StreamTransformerMediator extends AbstractMediator {
       Publisher<Object> result = invoke(stream);
       Objects.requireNonNull(result, "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
       return ReactiveStreams.fromPublisher(result)
-        .map(o -> (Message) Message.of(o))
-        .buildRs();
+        .map(o -> (Message) Message.of(o));
     };
   }
 

@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -40,17 +41,18 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
   @Test
   public void testSecureSource() {
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("topic", topic);
     config.put("host", address);
-    config.put("port", Integer.toString(port));
+    config.put("port", port);
     config.put("username", "user");
     config.put("password", "foo");
-    MqttSource source = new MqttSource(vertx, config);
+    MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
 
     List<MqttMessage> messages = new ArrayList<>();
-    Flowable<MqttMessage> flowable = source.getSource();
-    flowable.forEach(messages::add);
+    PublisherBuilder<MqttMessage> stream = source.getSource();
+    stream.forEach(messages::add).run();
+    await().until(source::isSubscribed);
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
       usage.produceIntegers(topic, 10, null,

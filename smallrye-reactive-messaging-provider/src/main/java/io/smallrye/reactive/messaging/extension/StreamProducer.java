@@ -53,12 +53,12 @@ public class StreamProducer {
     @SuppressWarnings("rawtypes")
     private Publisher<? extends Message> getPublisher(InjectionPoint injectionPoint) {
         String name = getStreamName(injectionPoint);
-        List<Publisher<? extends Message>> list = streamRegistry.getPublishers(name);
+        List<PublisherBuilder<? extends Message>> list = streamRegistry.getPublishers(name);
         if (list.isEmpty()) {
-            throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: " + streamRegistry.getPublisherNames());
+            throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: " + streamRegistry.getIncomingNames());
         }
         // TODO Manage merge.
-        return list.get(0);
+        return list.get(0).buildRs();
     }
 
     private Type getFirstParameter(Type type) {

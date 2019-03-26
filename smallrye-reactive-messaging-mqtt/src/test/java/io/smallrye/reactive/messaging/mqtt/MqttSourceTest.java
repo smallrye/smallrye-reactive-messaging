@@ -1,24 +1,19 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
+import io.smallrye.reactive.messaging.extension.MediatorManager;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class MqttSourceTest extends MqttTestBase {
 
@@ -35,19 +30,21 @@ public class MqttSourceTest extends MqttTestBase {
   @Test
   public void testSource() {
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("topic", topic);
     config.put("host", address);
-    config.put("port", Integer.toString(port));
-    MqttSource source = new MqttSource(vertx, config);
+    config.put("port", port);
+    MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
 
     List<MqttMessage> messages = new ArrayList<>();
-    Flowable<MqttMessage> flowable = source.getSource();
-    flowable.forEach(messages::add);
+    PublisherBuilder<MqttMessage> stream = source.getSource();
+    stream.forEach(messages::add).run();
+    await().until(source::isSubscribed);
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
       usage.produceIntegers(topic, 10, null,
-        counter::getAndIncrement)).start();
+        counter::getAndIncrement)
+    ).start();
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
     assertThat(messages.stream().map(MqttMessage::getPayload)
@@ -59,19 +56,21 @@ public class MqttSourceTest extends MqttTestBase {
   @Test
   public void testBroadcast() {
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("topic", topic);
     config.put("host", address);
-    config.put("port", Integer.toString(port));
-    config.put("broadcast", "true");
+    config.put("port", port);
+    config.put("broadcast", true);
 
-    MqttSource source = new MqttSource(vertx, config);
+    MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
 
     List<MqttMessage> messages1 = new ArrayList<>();
     List<MqttMessage> messages2 = new ArrayList<>();
-    Flowable<MqttMessage> flowable = source.getSource();
-    flowable.forEach(messages1::add);
-    flowable.forEach(messages2::add);
+    PublisherBuilder<MqttMessage> stream = source.getSource();
+    stream.forEach(messages1::add).run();
+    stream.forEach(messages2::add).run();
+
+    await().until(source::isSubscribed);
 
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
@@ -114,5 +113,5 @@ public class MqttSourceTest extends MqttTestBase {
     container = weld.initialize();
     return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
   }
-  
+
 }

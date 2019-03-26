@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.camel.source;
 
 import io.smallrye.reactive.messaging.camel.Camel;
-import io.smallrye.reactive.messaging.camel.MyConfig;
+import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 import org.apache.camel.builder.RouteBuilder;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -32,11 +32,11 @@ public class BeanWithCamelSourceUsingRegularRoute extends RouteBuilder  {
 
   @Produces
   public Config myConfig() {
-    String prefix = "smallrye.messaging.source.data.";
-    Map<String, String> config = new HashMap<>();
+    String prefix = "mp.messaging.provider.incoming.data.";
+    Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "seda:out");
     config.put(prefix + "type", Camel.class.getName());
-    return new MyConfig(config);
+    return new MapBasedConfig(config);
   }
 
 

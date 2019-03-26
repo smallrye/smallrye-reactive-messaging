@@ -8,12 +8,15 @@ import io.vertx.reactivex.core.MultiMap;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.core.http.HttpServerRequest;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HttpSource {
 
@@ -22,20 +25,21 @@ public class HttpSource {
   private final Vertx vertx;
   private HttpServer server;
 
-  public HttpSource(Vertx vertx, ConfigurationHelper config) {
-    host = config.get("host", "0.0.0.0");
-    port = config.getAsInteger("port", 8080);
+  HttpSource(Vertx vertx, Config config) {
+    host = config.getOptionalValue("host", String.class).orElse("0.0.0.0");
+    port = config.getOptionalValue("port", Integer.class).orElse(8080);
     this.vertx = vertx;
   }
 
-  public CompletionStage<Publisher<? extends Message>> get() {
-    CompletableFuture<Publisher<? extends Message>> future = new CompletableFuture<>();
+  PublisherBuilder<? extends Message> source() {
+    CompletableFuture<HttpServer> future = new CompletableFuture<>();
     server = vertx.createHttpServer();
 
     BehaviorProcessor<HttpServerRequest> processor = BehaviorProcessor.create();
-    Publisher<? extends Message> publisher = ReactiveStreams.fromPublisher(processor)
-      .flatMapCompletionStage(this::toMessage)
-      .buildRs();
+    PublisherBuilder<? extends Message> publisher = ReactiveStreams.fromPublisher(processor
+      .delaySubscription(ReactiveStreams.fromCompletionStage(future).buildRs())
+    )
+      .flatMapCompletionStage(this::toMessage);
     server
       .requestHandler(req -> {
         if (req.path().equalsIgnoreCase("/health")) {
@@ -48,10 +52,10 @@ public class HttpSource {
         if (ar.failed()) {
           future.completeExceptionally(ar.cause());
         } else {
-          future.complete(publisher);
+          future.complete(ar.result());
         }
       });
-    return future;
+    return publisher;
   }
 
   public void stop() {

@@ -42,17 +42,16 @@ public class KafkaSourceTest extends KafkaTestBase {
   }
 
   @Test
-  public void testSource() throws IOException {
+  public void testSource() {
     KafkaUsage usage = new KafkaUsage();
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = newCommonConfig();
+    Map<String, Object> config = newCommonConfig();
     config.put("topic", topic);
-    config.put("value.serializer", IntegerSerializer.class.getName());
     config.put("value.deserializer", IntegerDeserializer.class.getName());
-    KafkaSource source = new KafkaSource(vertx, config);
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
 
     List<KafkaMessage> messages = new ArrayList<>();
-    source.getSource().forEach(messages::add);
+    source.getSource().forEach(messages::add).run();
 
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
@@ -68,17 +67,16 @@ public class KafkaSourceTest extends KafkaTestBase {
   public void testBroadcast() {
     KafkaUsage usage = new KafkaUsage();
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = newCommonConfig();
+    Map<String, Object> config = newCommonConfig();
     config.put("topic", topic);
-    config.put("value.serializer", IntegerSerializer.class.getName());
     config.put("value.deserializer", IntegerDeserializer.class.getName());
-    config.put("broadcast", "true");
-    KafkaSource source = new KafkaSource(vertx, config);
+    config.put("broadcast", true);
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
 
     List<KafkaMessage> messages1 = new ArrayList<>();
     List<KafkaMessage> messages2 = new ArrayList<>();
-    source.getSource().forEach(messages1::add);
-    source.getSource().forEach(messages2::add);
+    source.getSource().forEach(messages1::add).run();
+    source.getSource().forEach(messages2::add).run();
 
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
@@ -95,16 +93,15 @@ public class KafkaSourceTest extends KafkaTestBase {
   public void testRetry() throws IOException, InterruptedException {
     KafkaUsage usage = new KafkaUsage();
     String topic = UUID.randomUUID().toString();
-    Map<String, String> config = newCommonConfig();
+    Map<String, Object> config = newCommonConfig();
     config.put("topic", topic);
-    config.put("value.serializer", IntegerSerializer.class.getName());
     config.put("value.deserializer", IntegerDeserializer.class.getName());
-    config.put("retry", "true");
-    config.put("retry-attempts", "100");
+    config.put("retry", true);
+    config.put("retry-attempts", 100);
 
-    KafkaSource source = new KafkaSource(vertx, config);
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
     List<KafkaMessage> messages1 = new ArrayList<>();
-    source.getSource().forEach(messages1::add);
+    source.getSource().forEach(messages1::add).run();
 
     AtomicInteger counter = new AtomicInteger();
     new Thread(() ->
@@ -122,13 +119,12 @@ public class KafkaSourceTest extends KafkaTestBase {
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
   }
 
-  private Map<String, String> newCommonConfig() {
+  private Map<String, Object> newCommonConfig() {
     String randomId = UUID.randomUUID().toString();
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("bootstrap.servers", "localhost:9092");
     config.put("group.id", randomId);
     config.put("key.deserializer", StringDeserializer.class.getName());
-    config.put("key.serializer", StringSerializer.class.getName());
     config.put("enable.auto.commit", "false");
     config.put("auto.offset.reset", "earliest");
     return config;

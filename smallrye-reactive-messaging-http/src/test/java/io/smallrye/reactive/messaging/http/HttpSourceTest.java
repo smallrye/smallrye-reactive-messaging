@@ -25,6 +25,7 @@ public class HttpSourceTest extends HttpTestBase {
 
   @Before
   public void setup() {
+    RestAssured.reset();
     addClasses(Receiver.class);
     initialize();
 
@@ -117,14 +118,14 @@ public class HttpSourceTest extends HttpTestBase {
     Response response = RestAssured
       .given()
       .body("hello")
-      .put("/message")
+      .put("/message2")
       .thenReturn();
     assertThat(response.statusCode()).isEqualTo(202);
 
     response = RestAssured
       .given()
       .body(new JsonObject().put("foo", "bar").encode())
-      .put("/json")
+      .put("/json2")
       .thenReturn();
     assertThat(response.statusCode()).isEqualTo(202);
 
@@ -144,7 +145,6 @@ public class HttpSourceTest extends HttpTestBase {
       .post("/message")
       .thenReturn();
     assertThat(response.statusCode()).isEqualTo(202);
-
     response = RestAssured
       .given()
       .body(new JsonObject().put("foo", "bar").encode())
@@ -153,12 +153,11 @@ public class HttpSourceTest extends HttpTestBase {
       .post("/json")
       .thenReturn();
     assertThat(response.statusCode()).isEqualTo(202);
-
     List<Message> list = get(Receiver.class).list();
     assertThat(list).hasSize(2).allMatch(m -> m instanceof HttpMessage);
+
     assertThat(list.get(0).getPayload()).isInstanceOf(byte[].class).matches(b -> new String((byte[]) b).equalsIgnoreCase("hello"));
     assertThat(list.get(1).getPayload()).isInstanceOf(byte[].class).matches(b -> new String((byte[]) b).equalsIgnoreCase("{\"foo\":\"bar\"}"));
-
     assertThat(((HttpMessage) list.get(0)).getHeaders()).containsKeys("X-test", "Content-Type");
     assertThat(((HttpMessage) list.get(1)).getHeaders()).containsKeys("X-test", "Content-Type");
   }
@@ -171,6 +170,7 @@ public class HttpSourceTest extends HttpTestBase {
 
     @Incoming("sink")
     public CompletionStage<Void> receive(Message m) {
+      System.out.println("Reception of " + m);
       list.add(m);
       return CompletableFuture.completedFuture(null);
     }
@@ -181,7 +181,7 @@ public class HttpSourceTest extends HttpTestBase {
 
     @Produces
     public Config config() {
-      return new HttpSourceConfig("sink", "source");
+      return new HttpConnectorConfig("sink", "incoming", null);
     }
   }
 

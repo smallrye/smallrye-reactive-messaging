@@ -20,13 +20,13 @@ To enable the MQTT support, you need the following dependency:
 
 [source]
 ----
-smallrye.messaging.source.data.topic=data
-smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
-smallrye.messaging.source.data.host=localhost
-smallrye.messaging.source.data.port=8883
-smallrye.messaging.source.data.username=username
-smallrye.messaging.source.data.password=secret
-smallrye.messaging.source.data.broadcast=true
+mp.messaging.provider.incoming.data.topic=data
+mp.messaging.provider.incoming.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.provider.incoming.data.host=localhost
+mp.messaging.provider.incoming.data.port=8883
+mp.messaging.provider.incoming.data.username=username
+mp.messaging.provider.incoming.data.password=secret
+mp.messaging.provider.incoming.data.broadcast=true
 ----
 
 Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You can also receive
@@ -36,12 +36,12 @@ Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You c
 
 [source]
 ----
-smallrye.messaging.sink.data.topic=data
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
-smallrye.messaging.sink.data.host=localhost
-smallrye.messaging.sink.data.port=8883
-smallrye.messaging.sink.data.username=username
-smallrye.messaging.sink.data.password=secret
+mp.messaging.provider.outgoing.data.topic=data
+mp.messaging.provider.outgoing.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.provider.outgoing.data.host=localhost
+mp.messaging.provider.outgoing.data.port=8883
+mp.messaging.provider.outgoing.data.username=username
+mp.messaging.provider.outgoing.data.password=secret
 ----
 
 The payload of message forwarded to MQTT must be:

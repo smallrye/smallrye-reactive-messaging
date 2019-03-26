@@ -36,8 +36,8 @@ public class ConsumptionBean {
 
   @Produces
   public Config myKafkaSourceConfig() {
-    String prefix = "smallrye.messaging.source.data.";
-    Map<String, String> config = new HashMap<>();
+    String prefix = "mp.messaging.provider.incoming.data.";
+    Map<String, Object> config = new HashMap<>();
     config.put(prefix + "type", Kafka.class.getName());
     config.put(prefix + "bootstrap.servers", "localhost:9092");
     config.put(prefix + "group.id", "my-group");
@@ -49,7 +49,7 @@ public class ConsumptionBean {
     config.put(prefix + "auto.offset.reset", "earliest");
     config.put(prefix + "topic", "data");
 
-    return new MyKafkaConfig(config);
+    return new MapBasedConfig(config);
   }
 
 

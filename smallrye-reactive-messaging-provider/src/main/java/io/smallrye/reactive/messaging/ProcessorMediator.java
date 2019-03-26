@@ -16,7 +16,7 @@ import java.util.function.Function;
 public class ProcessorMediator extends AbstractMediator {
 
   private Processor<Message, Message> processor;
-  private Publisher<Message> publisher;
+  private PublisherBuilder<? extends Message> publisher;
 
   public ProcessorMediator(MediatorConfiguration configuration) {
     super(configuration);
@@ -25,13 +25,13 @@ public class ProcessorMediator extends AbstractMediator {
     }
   }
 
-  public void connectToUpstream(Publisher<? extends Message> publisher) {
+  public void connectToUpstream(PublisherBuilder<? extends Message> publisher) {
     assert processor != null;
-    this.publisher = decorate(ReactiveStreams.fromPublisher((Publisher) publisher).via(processor).buildRs());
+    this.publisher = decorate(publisher.via(processor));
   }
 
   @Override
-  public Publisher<Message> getComputedPublisher() {
+  public PublisherBuilder<? extends Message> getStream() {
     return Objects.requireNonNull(publisher);
   }
 

@@ -4,14 +4,17 @@ import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 class LazySource implements Publisher<Message> {
-  private Publisher<? extends Message> delegate;
+  private PublisherBuilder<? extends Message> delegate;
   private String source;
   private Merge.Mode mode;
 
@@ -21,10 +24,12 @@ class LazySource implements Publisher<Message> {
   }
 
   public void configure(StreamRegistry registry, Logger logger) {
-    List<Publisher<? extends Message>> list = registry.getPublishers(source);
-    if (! list.isEmpty()) {
+    List<PublisherBuilder<? extends Message>> list = registry.getPublishers(source);
+    if (!list.isEmpty()) {
       switch (mode) {
-        case MERGE: this.delegate = Flowable.merge(list); break;
+        case MERGE:
+          merge(list);
+          break;
         case ONE:
           this.delegate = list.get(0);
           if (list.size() > 1) {
@@ -32,14 +37,31 @@ class LazySource implements Publisher<Message> {
           }
           break;
 
-        case CONCAT: this.delegate = Flowable.concat(list); break;
-        default: throw new IllegalArgumentException("Unknown merge policy for " + source +  ": " + mode);
+        case CONCAT:
+          concat(list);
+          break;
+        default:
+          throw new IllegalArgumentException("Unknown merge policy for " + source + ": " + mode);
       }
     }
   }
 
+  private void merge(List<PublisherBuilder<? extends Message>> list) {
+    this.delegate =
+      ReactiveStreams.fromPublisher(
+        Flowable.merge(list.stream().map(PublisherBuilder::buildRs).map(Flowable::fromPublisher).collect(Collectors.toList()))
+      );
+  }
+
+  private void concat(List<PublisherBuilder<? extends Message>> list) {
+    this.delegate =
+      ReactiveStreams.fromPublisher(
+        Flowable.concat(list.stream().map(PublisherBuilder::buildRs).map(Flowable::fromPublisher).collect(Collectors.toList()))
+      );
+  }
+
   @Override
   public void subscribe(Subscriber<? super Message> s) {
-    delegate.subscribe(s);
+    delegate.to(s).run();
   }
 }

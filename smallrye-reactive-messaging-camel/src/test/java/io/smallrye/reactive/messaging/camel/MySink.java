@@ -23,10 +23,10 @@ public class MySink {
   @Produces
   public Config myConfig() {
     String prefix = "smallrye.messaging.source.data.";
-    Map<String, String> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "name", "foo-out");
     config.put(prefix + "type", Camel.class.getName());
-    return new MyConfig(config);
+    return new MapBasedConfig(config);
   }
 
   public List<String> list() {

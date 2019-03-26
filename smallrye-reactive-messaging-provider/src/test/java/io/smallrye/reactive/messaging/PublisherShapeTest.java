@@ -17,6 +17,7 @@ import io.smallrye.reactive.messaging.beans.BeanReturningCompletionStageOfPayloa
 import io.smallrye.reactive.messaging.beans.BeanReturningMessages;
 import io.smallrye.reactive.messaging.beans.BeanReturningPayloads;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
@@ -116,9 +117,9 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningPayloads.class);
     initialize();
 
-    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
+    List<PublisherBuilder<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
+    List<Object> list = producer.get(0).map(Message::getPayload)
       .limit(3).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3);
   }
@@ -128,9 +129,9 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningMessages.class);
     initialize();
 
-    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
+    List<PublisherBuilder<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
+    List<Object> list = producer.get(0).map(Message::getPayload)
       .limit(5).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4, 5);
   }
@@ -140,9 +141,9 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningCompletionStageOfMessage.class);
     initialize();
 
-    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
+    List<PublisherBuilder<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
+    List<Object> list = producer.get(0).map(Message::getPayload)
       .limit(10).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   }
@@ -152,19 +153,19 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     addBeanClass(BeanReturningCompletionStageOfPayload.class);
     initialize();
 
-    List<Publisher<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
+    List<PublisherBuilder<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
     assertThat(producer).isNotEmpty();
-    List<Object> list = ReactiveStreams.fromPublisher(producer.get(0)).map(Message::getPayload)
+    List<Object> list = producer.get(0).map(Message::getPayload)
       .limit(4).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4);
   }
 
   private void assertThatProducerWasPublished(SeContainer container) {
-    assertThat(registry(container).getPublisherNames()).contains("producer");
-    List<Publisher<? extends Message>> producer = registry(container).getPublishers("producer");
+    assertThat(registry(container).getIncomingNames()).contains("producer");
+    List<PublisherBuilder<? extends Message>> producer = registry(container).getPublishers("producer");
     assertThat(producer).isNotEmpty();
-    Single<List<Object>> list = Flowable.fromPublisher(producer.get(0)).map(Message::getPayload).toList();
-    assertThat(list.blockingGet()).containsExactly("a", "b", "c");
+    List<Object> list = producer.get(0).map(Message::getPayload).toList().run().toCompletableFuture().join();
+    assertThat(list).containsExactly("a", "b", "c");
   }
 
 }
