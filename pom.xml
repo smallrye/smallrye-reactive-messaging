@@ -53,7 +53,7 @@
     <slf4j-api.version>1.7.26</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
-    <rxjava.version>2.2.6</rxjava.version>
+    <rxjava.version>2.2.7</rxjava.version>
     <weld-core.version>3.1.0.Final</weld-core.version>
     <jackson.version>2.9.8</jackson.version>
     <smallrye-reactive-streams-ops.version>1.0.2</smallrye-reactive-streams-ops.version>
@@ -79,6 +79,8 @@
     <module>examples/quickstart</module>
     <module>examples/snippets</module>
     <module>examples/cloud-events</module>
+
+    <module>examples/kafka-quickstart</module>
   </modules>
 
   <dependencyManagement>
@@ -200,7 +202,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.12.0</version>
+      <version>3.12.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -231,7 +233,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -245,7 +247,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.1.0</version>
         <executions>
           <execution>
             <id>default-cli</id>

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.cloudevents;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.Extension;
 
@@ -61,7 +62,13 @@ public class DefaultCloudEventMessage<T> implements CloudEventMessage<T> {
   }
 
   @Override
+  @JsonIgnore
   public T getPayload() {
     return delegate.getData().orElseThrow(() -> new IllegalArgumentException("Invalid message - no payload"));
+  }
+
+  @Override
+  public String toString() {
+    return delegate.toString();
   }
 }

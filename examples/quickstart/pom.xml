@@ -23,6 +23,11 @@
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>0.0.5-SNAPSHOT</version>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-kafka</artifactId>
+      <version>0.0.5-SNAPSHOT</version>
+    </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
