@@ -23,22 +23,23 @@
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>0.0.5-SNAPSHOT</version>
     </dependency>
-    <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-kafka</artifactId>
-      <version>0.0.5-SNAPSHOT</version>
-    </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-streams-operators</artifactId>
-      <version>0.4.1</version>
+      <version>1.0.2</version>
     </dependency>
 
     <dependency>
       <groupId>org.jboss.weld.se</groupId>
       <artifactId>weld-se-core</artifactId>
       <version>${weld-core.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.26</version>
     </dependency>
   </dependencies>
 
