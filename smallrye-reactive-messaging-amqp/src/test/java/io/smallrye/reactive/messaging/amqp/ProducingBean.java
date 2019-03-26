@@ -30,7 +30,7 @@ public class ProducingBean {
 
   @Produces
   public Config myConfig() {
-    String prefix = "mp.messaging.provider.outgoing.sink.";
+    String prefix = "mp.messaging.outgoing.sink.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "address", "sink");
     config.put(prefix + "type", Amqp.class.getName());

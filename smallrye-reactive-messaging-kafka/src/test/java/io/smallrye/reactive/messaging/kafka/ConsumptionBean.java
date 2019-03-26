@@ -36,7 +36,7 @@ public class ConsumptionBean {
 
   @Produces
   public Config myKafkaSourceConfig() {
-    String prefix = "mp.messaging.provider.incoming.data.";
+    String prefix = "mp.messaging.incoming.data.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "type", Kafka.class.getName());
     config.put(prefix + "bootstrap.servers", "localhost:9092");

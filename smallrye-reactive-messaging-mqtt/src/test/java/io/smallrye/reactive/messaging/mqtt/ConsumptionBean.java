@@ -31,7 +31,7 @@ public class ConsumptionBean {
 
   @Produces
   public Config myConfig() {
-    String prefix = "mp.messaging.provider.incoming.data.";
+    String prefix = "mp.messaging.incoming.data.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "topic", "data");
     config.put(prefix + "type", Mqtt.class.getName());

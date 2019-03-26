@@ -27,7 +27,7 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 
   @Produces
   public Config myConfig() {
-    String prefix = "mp.messaging.provider.outgoing.data.";
+    String prefix = "mp.messaging.outgoing.data.";
     Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "reactive-streams:in");
     config.put(prefix + "type", Camel.class.getName());

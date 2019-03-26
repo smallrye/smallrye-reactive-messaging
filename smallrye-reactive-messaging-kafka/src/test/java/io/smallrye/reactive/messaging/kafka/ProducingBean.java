@@ -34,7 +34,7 @@ public class ProducingBean {
 
   @Produces
   public Config myKafkaSinkConfig() {
-    String prefix = "mp.messaging.provider.outgoing.output.";
+    String prefix = "mp.messaging.outgoing.output.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "type", Kafka.class.getName());
     config.put(prefix + "bootstrap.servers", "localhost:9092");

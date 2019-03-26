@@ -26,7 +26,7 @@ public class BeanWithCamelSinkUsingRegularEndpoint {
 
   @Produces
   public Config myConfig() {
-    String prefix = "mp.messaging.provider.outgoing.data.";
+    String prefix = "mp.messaging.outgoing.data.";
     Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "file:./target?fileName=values.txt&fileExist=append");
     config.put(prefix + "type", Camel.class.getName());
