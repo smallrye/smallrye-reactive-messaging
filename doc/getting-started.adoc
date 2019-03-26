@@ -1,30 +1,5 @@
 == Getting Started
 
-=== Prerequisites
-
-Unfortunately, right now, there are no release of this project, so you need to build it by yourself. The build process
- requires Apache Maven and Java 8+.  You need to build the SmallRye Reactive Stream Operators implementation first:
-
-```bash
-git clone git@github.com:smallrye/smallrye-reactive-streams-operators.git
-cd smallrye-reactive-streams-operators
-mvn clean install
-```
-
-Then, build this repository
-
-```bash
-cd $ROOT
-mvn clean install
-```
-
-[NOTE]
-====
-* SmallRye Reactive Messaging should work with any implementation of the Reactive Stream Operator.
-* Most of the example use Weld as CDI implementation, again, it does not contain any code specific to Weld and should
-work with any implementation of CDI 2.x.
-====
-
 === Quickstart
 
 The easiest to start using SmallRye Reactive Messaging is to start it directly in a _main_ class.
@@ -95,23 +70,15 @@ Running the previous example should give the following output:
 
 [NOTE]
 ====
-You can control the logging by creating a `log4j2.yaml` file in `src/main/resources`. The following content drastically
-reduces the amount of messages:
-```yaml
-Configuration:
-  status: info
-
-  Appenders:
-    Console:
-      name: Console
-      target: SYSTEM_OUT
-      PatternLayout:
-        Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
-
-  Loggers:
-    Root:
-      level: warn
-      AppenderRef:
-        ref: Console
-```
+Smallrye Reactive Messaging uses SLF4J as logger.
+Check the https://www.slf4j.org/manual.html[SLF4J documentation] to configure the logs.
+For testing purpose, you can simply add the following dependency to your `pom.xml` file:
+[source,xml]
+----
+<dependency>
+  <groupId>org.slf4j</groupId>
+  <artifactId>slf4j-simple</artifactId>
+  <version>1.7.26</version>
+</dependency>
+----
 ====
