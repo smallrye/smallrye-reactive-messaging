@@ -74,8 +74,8 @@ follows:
 
 [source]
 ----
-mp.messaging.provider.incoming.data.type=io.smallrye.reactive.messaging.camel.Camel
-mp.messaging.provider.incoming.data.endpoint-uri:seda:my-route
+mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.camel.Camel
+mp.messaging.incoming.data.endpoint-uri:seda:my-route
 ----
 
 The `endpoint-uri` configures the route to use. It can be:
@@ -89,8 +89,8 @@ The following configuration describe a sink using a Camel route:
 
 [source]
 ----
-mp.messaging.provider.outgoing.data.type=io.smallrye.reactive.messaging.camel.Camel
-mp.messaging.provider.outgoing.data.endpoint-uri:seda:my-route
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.camel.Camel
+mp.messaging.outgoing.data.endpoint-uri:seda:my-route
 ----
 
 The `endpoint-uri` configures the route to use. It can be:

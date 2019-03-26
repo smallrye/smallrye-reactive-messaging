@@ -19,9 +19,9 @@ Then create a _properties_ file in `src/main/resources/META-INF/microprofile-con
 [source]
 ----
 # Configure the dummy source and sink
-mp.messaging.provider.incoming.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
-mp.messaging.provider.incoming.dummy-source.increment=3
-mp.messaging.provider.outgoing.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy
+mp.messaging.incoming.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
+mp.messaging.incoming.dummy-source.increment=3
+mp.messaging.outgoing.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy
 ----
 
 Each _source_ and _sink_ are configured individually in this file:
@@ -49,18 +49,18 @@ Here is an example of a MQTT source (consuming data from a MQTT broker) and a Ka
 [source]
 ----
 # [Source - health] - Consume data from MQTT
-mp.messaging.provider.incoming.health.topic=neo
-mp.messaging.provider.incoming.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
-mp.messaging.provider.incoming.health.host=localhost
-mp.messaging.provider.incoming.health.broadcast=true
+mp.messaging.incoming.health.topic=neo
+mp.messaging.incoming.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.incoming.health.host=localhost
+mp.messaging.incoming.health.broadcast=true
 # [/Source - health]
 
 # [Sink - data] - Produce data to Kafka
-mp.messaging.provider.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
-mp.messaging.provider.outgoing.data.bootstrap.servers=localhost:9092
-mp.messaging.provider.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
-mp.messaging.provider.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
-mp.messaging.provider.outgoing.data.acks=1
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
+mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+mp.messaging.outgoing.data.acks=1
 # [/Sink - data]
 ----
 
