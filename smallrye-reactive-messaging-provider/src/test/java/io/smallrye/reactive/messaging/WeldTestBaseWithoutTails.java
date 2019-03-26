@@ -6,6 +6,7 @@ import java.util.List;
 import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.se.SeContainerInitializer;
 
+import io.smallrye.reactive.messaging.impl.LegacyConfiguredStreamFactory;
 import org.junit.After;
 import org.junit.Before;
 
@@ -38,6 +39,7 @@ public class WeldTestBaseWithoutTails {
                                StreamFactoryImpl.class,
                                StreamProducer.class,
                                ConfiguredStreamFactory.class,
+                               LegacyConfiguredStreamFactory.class,
                                // Messaging provider
                                MyDummyFactories.class);
 

@@ -23,14 +23,14 @@ import java.util.stream.Collectors;
 
 /**
  * Look for stream factories and get instances.
+ * This implementation use the "smallrye.messaging.source" and "smallrye.messaging.sink" prefixes.
  */
 @ApplicationScoped
-public class ConfiguredStreamFactory implements StreamRegistar {
+public class LegacyConfiguredStreamFactory implements StreamRegistar {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredStreamFactory.class);
-  private static final String SOURCE_CONFIG_PREFIX = "mp.messaging.incoming";
-  private static final String SINK_CONFIG_PREFIX = "mp.messaging.outgoing";
-
+  private static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
+  private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink";
 
   private final List<IncomingConnectorFactory> sourceFactories;
   private final List<OutgoingConnectorFactory> sinkFactories;
@@ -38,7 +38,7 @@ public class ConfiguredStreamFactory implements StreamRegistar {
   private final StreamRegistry registry;
 
   // CDI requirement for normal scoped beans
-  ConfiguredStreamFactory() {
+  LegacyConfiguredStreamFactory() {
     this.sourceFactories = null;
     this.sinkFactories = null;
     this.config = null;
@@ -46,10 +46,9 @@ public class ConfiguredStreamFactory implements StreamRegistar {
   }
 
   @Inject
-  public ConfiguredStreamFactory(@Any Instance<IncomingConnectorFactory> sourceFactories,
-                                 @Any Instance<OutgoingConnectorFactory> sinkFactories,
-                                 Instance<Config> config, @Any Instance<StreamRegistry> registry) {
-
+  public LegacyConfiguredStreamFactory(@Any Instance<IncomingConnectorFactory> sourceFactories,
+    @Any Instance<OutgoingConnectorFactory> sinkFactories,
+    Instance<Config> config, @Any Instance<StreamRegistry> registry) {
     this.registry = registry.get();
     if (config.isUnsatisfied()) {
       this.sourceFactories = Collections.emptyList();
@@ -58,8 +57,10 @@ public class ConfiguredStreamFactory implements StreamRegistar {
     } else {
       this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
       this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
-      LOGGER.info("Found incoming connectors: {}", sourceFactories.stream().map(IncomingConnectorFactory::type).collect(Collectors.toList()));
-      LOGGER.info("Found outgoing connectors: {}", sinkFactories.stream().map(OutgoingConnectorFactory::type).collect(Collectors.toList()));
+      LOGGER.info("Found incoming connectors: {}",
+        sourceFactories.stream().map(IncomingConnectorFactory::type).collect(Collectors.toList()));
+      LOGGER.info("Found outgoing connectors: {}",
+        sinkFactories.stream().map(OutgoingConnectorFactory::type).collect(Collectors.toList()));
       //TODO Should we try to merge all the config?
       // For now take the first one.
       this.config = config.stream().findFirst()
@@ -113,7 +114,8 @@ public class ConfiguredStreamFactory implements StreamRegistar {
       .orElseThrow(() -> new IllegalArgumentException("Invalid source, no type for " + name));
 
     // Look for the factory and throw an exception if missing
-    IncomingConnectorFactory mySourceFactory = sourceFactories.stream().filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
+    IncomingConnectorFactory mySourceFactory = sourceFactories.stream()
+      .filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
       .orElseThrow(() -> new IllegalArgumentException("Unknown source type for " + name + ", supported types are "
         + sourceFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
       );
@@ -121,14 +123,14 @@ public class ConfiguredStreamFactory implements StreamRegistar {
     return mySourceFactory.getPublisherBuilder(config);
   }
 
-
   private SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String name, Config config) {
     // Extract the type and throw an exception if missing
     String type = config.getOptionalValue("type", String.class)
       .orElseThrow(() -> new IllegalArgumentException("Invalid sink, no type for " + name));
 
     // Look for the factory and throw an exception if missing
-    OutgoingConnectorFactory mySinkFactory = sinkFactories.stream().filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
+    OutgoingConnectorFactory mySinkFactory = sinkFactories.stream()
+      .filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
       .orElseThrow(() -> new IllegalArgumentException("Unknown sink type for " + name + ", supported types are "
         + sinkFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
       );
