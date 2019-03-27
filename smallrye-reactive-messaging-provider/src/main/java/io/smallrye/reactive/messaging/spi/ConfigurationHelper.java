@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.spi;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.config.Config;
 
+import java.util.Iterator;
 import java.util.Objects;
 
 public class ConfigurationHelper {
@@ -41,7 +42,40 @@ public class ConfigurationHelper {
 
   public JsonObject asJsonObject() {
     JsonObject json = new JsonObject();
-    config.getPropertyNames().forEach(key -> json.put(key, config.getValue(key, Object.class)));
+    Iterable<String> propertyNames = config.getPropertyNames();
+    Iterator<String> iterator = propertyNames.iterator();
+    while (iterator.hasNext()) {
+      String key = iterator.next();
+
+      try {
+        int i = config.getValue(key, Integer.class);
+        json.put(key, i);
+        continue;
+      } catch (ClassCastException | NumberFormatException e) {
+        // Ignore me
+      }
+
+      try {
+        double d = config.getValue(key, Double.class);
+        json.put(key, d);
+        continue;
+      } catch (ClassCastException | NumberFormatException e) {
+        // Ignore me
+      }
+
+      try {
+        String value = config.getValue(key, String.class);
+        if (value.trim().equalsIgnoreCase("false")) {
+          json.put(key, false);
+        } else if (value.trim().equalsIgnoreCase("true")) {
+          json.put(key, true);
+        } else {
+          json.put(key, config.getValue(key, String.class));
+        }
+      } catch (ClassCastException e) {
+        // Ignore the entry
+      }
+    }
     return json;
   }
 }

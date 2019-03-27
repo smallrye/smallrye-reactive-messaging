@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka;
 import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.kafka.client.producer.RecordMetadata;
 import io.vertx.reactivex.core.Vertx;
@@ -26,7 +27,13 @@ class KafkaSink {
 
   KafkaSink(Vertx vertx, Config config) {
     ConfigurationHelper helper = ConfigurationHelper.create(config);
-    stream = KafkaWriteStream.create(vertx.getDelegate(), helper.asJsonObject().getMap());
+    JsonObject entries = helper.asJsonObject();
+
+    // Acks must be a string, even when "1".
+    if (entries.containsKey("acks")) {
+      entries.put("acks", entries.getValue("acks").toString());
+    }
+    stream = KafkaWriteStream.create(vertx.getDelegate(), entries.getMap());
     stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
 
     partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
