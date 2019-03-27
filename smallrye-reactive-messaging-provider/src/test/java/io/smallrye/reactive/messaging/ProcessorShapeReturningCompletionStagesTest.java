@@ -10,6 +10,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
 
@@ -21,6 +22,7 @@ public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
     addBeanClass(BeanProducingACompletionStageOfMessage.class);
     initialize();
     MyCollector collector = container.select(MyCollector.class).get();
+    await().until(() -> collector.payloads().size() == LIST.size());
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
