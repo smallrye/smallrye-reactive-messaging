@@ -445,7 +445,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sectionbody">
 <div class="paragraph">
 <p>Messages may require acknowledgment to inform the transport layer that the message has been processed. Methods
-annotated with <code>@Incoming</code> and also be annotated with <code>io.smallrye.reactive.messaging.annotations.Acknowledgment</code> to
+annotated with <code>@Incoming</code> and also be annotated with <code>org.eclipse.microprofile.reactive.messaging.Acknowledgment</code> to
 configure the acknowledgement policies.</p>
 </div>
 <div class="paragraph">
@@ -474,7 +474,7 @@ configure the acknowledgement policies.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Incoming("i")
   @Outgoing("j")
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   public String autoAck(String input) {
     return input.toUpperCase();
   }</code></pre>
@@ -487,7 +487,7 @@ configure the acknowledgement policies.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Incoming("i")
   @Outgoing("j")
-  @Acknowledgment(Acknowledgment.Mode.MANUAL)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public CompletionStage&lt;Message&lt;String&gt;&gt; manualAck(Message&lt;String&gt; input) {
     return CompletableFuture.supplyAsync(input::getPayload)
       .thenApply(Message::of)
@@ -624,7 +624,7 @@ configure the acknowledgement policies.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-25 19:27:00 CET
+Last updated 2019-02-25 19:28:47 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

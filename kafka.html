@@ -463,7 +463,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -476,13 +476,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># [Source - heartbeat] - Consume data from Kafka
-smallrye.messaging.source.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.source.kafka-heartbeat.topic=heartbeat
-smallrye.messaging.source.kafka-heartbeat.bootstrap.servers=localhost:9092
-smallrye.messaging.source.kafka-heartbeat.enable.auto.commit=false
-smallrye.messaging.source.kafka-heartbeat.group.id=demo
-smallrye.messaging.source.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
-smallrye.messaging.source.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
+mp.messaging.incoming.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.incoming.kafka-heartbeat.topic=heartbeat
+mp.messaging.incoming.kafka-heartbeat.bootstrap.servers=localhost:9092
+mp.messaging.incoming.kafka-heartbeat.enable.auto.commit=false
+mp.messaging.incoming.kafka-heartbeat.group.id=demo
+mp.messaging.incoming.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
+mp.messaging.incoming.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
 # [/Source - heartbeat]</code></pre>
 </div>
 </div>
@@ -588,11 +588,11 @@ It lets you access other metadata such as the headers, the message key (the payl
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># [Sink - data] - Produce data to Kafka
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.sink.data.bootstrap.servers=localhost:9092
-smallrye.messaging.sink.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
-smallrye.messaging.sink.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
-smallrye.messaging.sink.data.acks=1
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
+mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+mp.messaging.outgoing.data.acks=1
 # [/Sink - data]</code></pre>
 </div>
 </div>
@@ -650,12 +650,6 @@ in the following table:</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">the partition</p></td>
 </tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timestamp</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>null</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">the timestamp</p></td>
-</tr>
 </tbody>
 </table>
 <div class="paragraph">
@@ -667,7 +661,7 @@ in the following table:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Outgoing("to-kafka")
-  public KafkaMessage&lt;String, String&gt; consume(Message&lt;String&gt; incoming) {
+  public KafkaMessage&lt;String, String&gt; produce(Message&lt;String&gt; incoming) {
     return KafkaMessage.of("topic", "key", incoming.getPayload());
   }</code></pre>
 </div>
@@ -678,7 +672,7 @@ in the following table:</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-25 19:27:00 CET
+Last updated 2019-03-26 10:41:03 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

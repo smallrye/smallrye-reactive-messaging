@@ -464,9 +464,9 @@ Config in your <em>classpath</em>. For instance, add the following dependency:</
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># Configure the dummy source and sink
-smallrye.messaging.source.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
-smallrye.messaging.source.dummy-source.increment=3
-smallrye.messaging.sink.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy</code></pre>
+mp.messaging.incoming.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
+mp.messaging.incoming.dummy-source.increment=3
+mp.messaging.outgoing.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -517,18 +517,18 @@ the transport layer</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># [Source - health] - Consume data from MQTT
-smallrye.messaging.source.health.topic=neo
-smallrye.messaging.source.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
-smallrye.messaging.source.health.host=localhost
-smallrye.messaging.source.health.broadcast=true
+mp.messaging.incoming.health.topic=neo
+mp.messaging.incoming.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.incoming.health.host=localhost
+mp.messaging.incoming.health.broadcast=true
 # [/Source - health]
 
 # [Sink - data] - Produce data to Kafka
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.sink.data.bootstrap.servers=localhost:9092
-smallrye.messaging.sink.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
-smallrye.messaging.sink.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
-smallrye.messaging.sink.data.acks=1
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
+mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+mp.messaging.outgoing.data.acks=1
 # [/Sink - data]</code></pre>
 </div>
 </div>
@@ -537,7 +537,7 @@ smallrye.messaging.sink.data.acks=1
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-25 19:27:00 CET
+Last updated 2019-03-26 10:41:03 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

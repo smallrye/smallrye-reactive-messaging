@@ -437,7 +437,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel1">
 <li><a href="#_getting_started">Getting Started</a>
 <ul class="sectlevel2">
-<li><a href="#_prerequisites">Prerequisites</a></li>
 <li><a href="#_quickstart">Quickstart</a></li>
 </ul>
 </li>
@@ -448,51 +447,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect1">
 <h2 id="_getting_started">Getting Started</h2>
 <div class="sectionbody">
-<div class="sect2">
-<h3 id="_prerequisites">Prerequisites</h3>
-<div class="paragraph">
-<p>Unfortunately, right now, there are no release of this project, so you need to build it by yourself. The build process
- requires Apache Maven and Java 8+.  You need to build the SmallRye Reactive Stream Operators implementation first:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">git clone git@github.com:smallrye/smallrye-reactive-streams-operators.git
-cd smallrye-reactive-streams-operators
-mvn clean install</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Then, build this repository</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd $ROOT
-mvn clean install</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>SmallRye Reactive Messaging should work with any implementation of the Reactive Stream Operator.</p>
-</li>
-<li>
-<p>Most of the example use Weld as CDI implementation, again, it does not contain any code specific to Weld and should
-work with any implementation of CDI 2.x.</p>
-</li>
-</ul>
-</div>
-</td>
-</tr>
-</table>
-</div>
-</div>
 <div class="sect2">
 <h3 id="_quickstart">Quickstart</h3>
 <div class="paragraph">
@@ -506,17 +460,17 @@ work with any implementation of CDI 2.x.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-provider&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-streams-operators&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;version&gt;1.0.3&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.jboss.weld.se&lt;/groupId&gt;
   &lt;artifactId&gt;weld-se-core&lt;/artifactId&gt;
-  &lt;version&gt;3.0.5.Final&lt;/version&gt;
+  &lt;version&gt;3.1.0.Final&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -625,26 +579,17 @@ public class MyBean {
 </td>
 <td class="content">
 <div class="paragraph">
-<p>You can control the logging by creating a <code>log4j2.yaml</code> file in <code>src/main/resources</code>. The following content drastically
-reduces the amount of messages:</p>
+<p>Smallrye Reactive Messaging uses SLF4J as logger.
+Check the <a href="https://www.slf4j.org/manual.html">SLF4J documentation</a> to configure the logs.
+For testing purpose, you can simply add the following dependency to your <code>pom.xml</code> file:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">Configuration:
-  status: info
-
-  Appenders:
-    Console:
-      name: Console
-      target: SYSTEM_OUT
-      PatternLayout:
-        Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
-
-  Loggers:
-    Root:
-      level: warn
-      AppenderRef:
-        ref: Console</code></pre>
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.slf4j&lt;/groupId&gt;
+  &lt;artifactId&gt;slf4j-simple&lt;/artifactId&gt;
+  &lt;version&gt;1.7.26&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </td>
@@ -657,7 +602,7 @@ reduces the amount of messages:</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-12-05 15:58:48 CET
+Last updated 2019-03-26 09:21:25 CET
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

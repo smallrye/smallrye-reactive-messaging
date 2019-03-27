@@ -442,16 +442,15 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h1>SmallRye Reactive Messaging</h1>
 <div class="details">
 <span id="author" class="author">Clement Escoffier</span><br>
-<span id="revnumber">version 0.0.4,</span>
-<span id="revdate">2019-02-25</span>
+<span id="revnumber">version 0.0.5,</span>
+<span id="revdate">2019-03-27</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">SmallRye Reactive Messaging</div>
 <ul class="sectlevel2">
 <li><a href="#_getting_started">1. Getting Started</a>
 <ul class="sectlevel3">
-<li><a href="#_prerequisites">1.1. Prerequisites</a></li>
-<li><a href="#_quickstart">1.2. Quickstart</a></li>
+<li><a href="#_quickstart">1.1. Quickstart</a></li>
 </ul>
 </li>
 <li><a href="#_concepts">2. Concepts</a>
@@ -574,52 +573,7 @@ sourcing applications&#8230;&#8203;</p>
 <div class="sect2">
 <h3 id="_getting_started">1. Getting Started</h3>
 <div class="sect3">
-<h4 id="_prerequisites">1.1. Prerequisites</h4>
-<div class="paragraph">
-<p>Unfortunately, right now, there are no release of this project, so you need to build it by yourself. The build process
- requires Apache Maven and Java 8+.  You need to build the SmallRye Reactive Stream Operators implementation first:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">git clone git@github.com:smallrye/smallrye-reactive-streams-operators.git
-cd smallrye-reactive-streams-operators
-mvn clean install</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Then, build this repository</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd $ROOT
-mvn clean install</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>SmallRye Reactive Messaging should work with any implementation of the Reactive Stream Operator.</p>
-</li>
-<li>
-<p>Most of the example use Weld as CDI implementation, again, it does not contain any code specific to Weld and should
-work with any implementation of CDI 2.x.</p>
-</li>
-</ul>
-</div>
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_quickstart">1.2. Quickstart</h4>
+<h4 id="_quickstart">1.1. Quickstart</h4>
 <div class="paragraph">
 <p>The easiest to start using SmallRye Reactive Messaging is to start it directly in a <em>main</em> class.</p>
 </div>
@@ -631,17 +585,17 @@ work with any implementation of CDI 2.x.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-provider&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-streams-operators&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;version&gt;1.0.3&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.jboss.weld.se&lt;/groupId&gt;
   &lt;artifactId&gt;weld-se-core&lt;/artifactId&gt;
-  &lt;version&gt;3.0.5.Final&lt;/version&gt;
+  &lt;version&gt;3.1.0.Final&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -750,26 +704,17 @@ public class MyBean {
 </td>
 <td class="content">
 <div class="paragraph">
-<p>You can control the logging by creating a <code>log4j2.yaml</code> file in <code>src/main/resources</code>. The following content drastically
-reduces the amount of messages:</p>
+<p>Smallrye Reactive Messaging uses SLF4J as logger.
+Check the <a href="https://www.slf4j.org/manual.html">SLF4J documentation</a> to configure the logs.
+For testing purpose, you can simply add the following dependency to your <code>pom.xml</code> file:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">Configuration:
-  status: info
-
-  Appenders:
-    Console:
-      name: Console
-      target: SYSTEM_OUT
-      PatternLayout:
-        Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
-
-  Loggers:
-    Root:
-      level: warn
-      AppenderRef:
-        ref: Console</code></pre>
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.slf4j&lt;/groupId&gt;
+  &lt;artifactId&gt;slf4j-simple&lt;/artifactId&gt;
+  &lt;version&gt;1.7.26&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </td>
@@ -1303,7 +1248,7 @@ To describe your data transformation logic, you can create and return a <code>Pr
 <h3 id="_acknowledgement">6. Acknowledgement</h3>
 <div class="paragraph">
 <p>Messages may require acknowledgment to inform the transport layer that the message has been processed. Methods
-annotated with <code>@Incoming</code> and also be annotated with <code>io.smallrye.reactive.messaging.annotations.Acknowledgment</code> to
+annotated with <code>@Incoming</code> and also be annotated with <code>org.eclipse.microprofile.reactive.messaging.Acknowledgment</code> to
 configure the acknowledgement policies.</p>
 </div>
 <div class="paragraph">
@@ -1332,7 +1277,7 @@ configure the acknowledgement policies.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Incoming("i")
   @Outgoing("j")
-  @Acknowledgment(Acknowledgment.Mode.PRE_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
   public String autoAck(String input) {
     return input.toUpperCase();
   }</code></pre>
@@ -1345,7 +1290,7 @@ configure the acknowledgement policies.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Incoming("i")
   @Outgoing("j")
-  @Acknowledgment(Acknowledgment.Mode.MANUAL)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public CompletionStage&lt;Message&lt;String&gt;&gt; manualAck(Message&lt;String&gt; input) {
     return CompletableFuture.supplyAsync(input::getPayload)
       .thenApply(Message::of)
@@ -1501,9 +1446,9 @@ Config in your <em>classpath</em>. For instance, add the following dependency:</
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># Configure the dummy source and sink
-smallrye.messaging.source.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
-smallrye.messaging.source.dummy-source.increment=3
-smallrye.messaging.sink.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy</code></pre>
+mp.messaging.incoming.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
+mp.messaging.incoming.dummy-source.increment=3
+mp.messaging.outgoing.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1554,18 +1499,18 @@ the transport layer</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># [Source - health] - Consume data from MQTT
-smallrye.messaging.source.health.topic=neo
-smallrye.messaging.source.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
-smallrye.messaging.source.health.host=localhost
-smallrye.messaging.source.health.broadcast=true
+mp.messaging.incoming.health.topic=neo
+mp.messaging.incoming.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.incoming.health.host=localhost
+mp.messaging.incoming.health.broadcast=true
 # [/Source - health]
 
 # [Sink - data] - Produce data to Kafka
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.sink.data.bootstrap.servers=localhost:9092
-smallrye.messaging.sink.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
-smallrye.messaging.sink.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
-smallrye.messaging.sink.data.acks=1
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
+mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+mp.messaging.outgoing.data.acks=1
 # [/Sink - data]</code></pre>
 </div>
 </div>
@@ -1586,7 +1531,7 @@ smallrye.messaging.sink.data.acks=1
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1599,13 +1544,13 @@ smallrye.messaging.sink.data.acks=1
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># [Source - heartbeat] - Consume data from Kafka
-smallrye.messaging.source.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.source.kafka-heartbeat.topic=heartbeat
-smallrye.messaging.source.kafka-heartbeat.bootstrap.servers=localhost:9092
-smallrye.messaging.source.kafka-heartbeat.enable.auto.commit=false
-smallrye.messaging.source.kafka-heartbeat.group.id=demo
-smallrye.messaging.source.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
-smallrye.messaging.source.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
+mp.messaging.incoming.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.incoming.kafka-heartbeat.topic=heartbeat
+mp.messaging.incoming.kafka-heartbeat.bootstrap.servers=localhost:9092
+mp.messaging.incoming.kafka-heartbeat.enable.auto.commit=false
+mp.messaging.incoming.kafka-heartbeat.group.id=demo
+mp.messaging.incoming.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
+mp.messaging.incoming.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
 # [/Source - heartbeat]</code></pre>
 </div>
 </div>
@@ -1711,11 +1656,11 @@ It lets you access other metadata such as the headers, the message key (the payl
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code># [Sink - data] - Produce data to Kafka
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.sink.data.bootstrap.servers=localhost:9092
-smallrye.messaging.sink.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
-smallrye.messaging.sink.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
-smallrye.messaging.sink.data.acks=1
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
+mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+mp.messaging.outgoing.data.acks=1
 # [/Sink - data]</code></pre>
 </div>
 </div>
@@ -1773,12 +1718,6 @@ in the following table:</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">the partition</p></td>
 </tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timestamp</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>null</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">the timestamp</p></td>
-</tr>
 </tbody>
 </table>
 <div class="paragraph">
@@ -1790,7 +1729,7 @@ in the following table:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Outgoing("to-kafka")
-  public KafkaMessage&lt;String, String&gt; consume(Message&lt;String&gt; incoming) {
+  public KafkaMessage&lt;String, String&gt; produce(Message&lt;String&gt; incoming) {
     return KafkaMessage.of("topic", "key", incoming.getPayload());
   }</code></pre>
 </div>
@@ -1813,7 +1752,7 @@ almost any existing system.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-camel&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1883,8 +1822,8 @@ follows:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.camel.Camel
-smallrye.messaging.source.data.endpoint-uri:seda:my-route</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.camel.Camel
+mp.messaging.incoming.data.endpoint-uri:seda:my-route</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1908,8 +1847,8 @@ smallrye.messaging.source.data.endpoint-uri:seda:my-route</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.camel.Camel
-smallrye.messaging.sink.data.endpoint-uri:seda:my-route</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.camel.Camel
+mp.messaging.outgoing.data.endpoint-uri:seda:my-route</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1967,7 +1906,7 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-mqtt&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1976,13 +1915,13 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 <h4 id="_retrieving_messages_from_mqtt">10.2. Retrieving messages from MQTT</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.source.data.topic=data
-smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
-smallrye.messaging.source.data.host=localhost
-smallrye.messaging.source.data.port=8883
-smallrye.messaging.source.data.username=username
-smallrye.messaging.source.data.password=secret
-smallrye.messaging.source.data.broadcast=true</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.data.topic=data
+mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.incoming.data.host=localhost
+mp.messaging.incoming.data.port=8883
+mp.messaging.incoming.data.username=username
+mp.messaging.incoming.data.password=secret
+mp.messaging.incoming.data.broadcast=true</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1994,12 +1933,12 @@ smallrye.messaging.source.data.broadcast=true</code></pre>
 <h4 id="_forwarding_messages_to_mqtt">10.3. Forwarding messages to MQTT</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.sink.data.topic=data
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
-smallrye.messaging.sink.data.host=localhost
-smallrye.messaging.sink.data.port=8883
-smallrye.messaging.sink.data.username=username
-smallrye.messaging.sink.data.password=secret</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.topic=data
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.outgoing.data.host=localhost
+mp.messaging.outgoing.data.port=8883
+mp.messaging.outgoing.data.username=username
+mp.messaging.outgoing.data.password=secret</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2045,7 +1984,7 @@ smallrye.messaging.sink.data.password=secret</code></pre>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-http&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2054,8 +1993,8 @@ smallrye.messaging.sink.data.password=secret</code></pre>
 <h4 id="_forwarding_messages_to_http">11.2. Forwarding messages to HTTP</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.sink.data.url=http://localhost:8089
-smallrye.messaging.sink.data.type=io.smallrye.reactive.messaging.http.Http</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.url=http://localhost:8089
+mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.http.Http</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2099,7 +2038,7 @@ an asynchronous way.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus&lt;/artifactId&gt;
-  &lt;version&gt;0.0.4&lt;/version&gt;
+  &lt;version&gt;0.0.5&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2108,10 +2047,10 @@ an asynchronous way.</p>
 <h4 id="_retrieving_messages_from_the_event_bus">12.2. Retrieving messages from the event bus</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.source.data.address=&lt;the-eventbus-address&gt;
-smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
-smallrye.messaging.source.data.use-reply-as-ack=&lt;true|false&gt;
-smallrye.messaging.source.data.broadcast=&lt;true|false&gt;</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=&lt;the-eventbus-address&gt;
+mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+mp.messaging.incoming.data.use-reply-as-ack=&lt;true|false&gt;
+mp.messaging.incoming.data.broadcast=&lt;true|false&gt;</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2128,12 +2067,12 @@ body. From the <code>EventBusMessage</code>, you can retrieve the headers, addre
 <h4 id="_sending_messages_to_the_event_bus">12.3. Sending messages to the event bus</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.source.data.address=&lt;the-eventbus-address&gt;
-smallrye.messaging.source.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
-smallrye.messaging.source.data.publish=&lt;true|false&gt;
-smallrye.messaging.source.data.expect-reply=&lt;true|false&gt;
-smallrye.messaging.source.data.codec=&lt;codec-name&gt;
-smallrye.messaging.source.data.timeout=1000</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=&lt;the-eventbus-address&gt;
+mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+mp.messaging.incoming.data.publish=&lt;true|false&gt;
+mp.messaging.incoming.data.expect-reply=&lt;true|false&gt;
+mp.messaging.incoming.data.codec=&lt;codec-name&gt;
+mp.messaging.incoming.data.timeout=1000</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2203,7 +2142,11 @@ public String process(String s) {
 <div class="sect3">
 <h4 id="_stream">13.3. @Stream</h4>
 <div class="paragraph">
-<p><code>@Stream</code> is a qualifier to inject a <em>stream</em> into a regular CDI bean:</p>
+<p><code>@Stream</code> is a qualifier to inject a <em>stream</em> into a regular CDI bean.
+It&#8217;s used to bridge the <em>imperative</em> and <em>reactive</em> worlds, or retrieve streams managed by Reactive Messaging.</p>
+</div>
+<div class="paragraph">
+<p>You can retrieve a stream using:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2228,12 +2171,30 @@ private Publisher&lt;Message&lt;String&gt;&gt; field;</code></pre>
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>You must have a <code>@Outgoing("hello")</code> somewhere in your application (or in your configuration)</p>
+</div>
+<div class="paragraph">
+<p>You can also emits data to a stream using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject @Stream("hello")
+Emitter&lt;String&gt; emitter;
+
+// ...
+emitter.send("a").send("b");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can inject an <code>io.smallrye.reactive.messaging.annotations.Emitter&lt;T&gt;</code> or <code>io.smallrye.reactive.messaging.annotations.Emitter&lt;Message&lt;T&gt;&gt;</code>.
+To use an <code>Emitter</code> for the stream <code>hello</code>, you need a <code>@Incoming("hello")</code> somewhere in your code (or in your configuration).</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_logging">13.4. Logging</h4>
 <div class="paragraph">
-<p>The logging uses Log4j2. Configure it by adding a <code>log4j2.yaml</code> file in your <em>CLASSPATH</em> (or in <code>src/main/resources</code>).
-The configuration is explained in the <a href="https://logging.apache.org/log4j/2.x/manual/configuration.html">Log4J2 configuration</a>.</p>
+<p>The logging uses SLF4J, check the <a href="https://www.slf4j.org/">SLF4J web site</a> for further details.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2248,7 +2209,7 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.0.4<br>
+Version 0.0.5<br>
 Last updated 2018-11-09 21:27:18 CET
 </div>
 </div>
