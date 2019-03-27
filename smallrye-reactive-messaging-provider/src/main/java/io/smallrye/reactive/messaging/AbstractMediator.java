@@ -8,6 +8,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -56,8 +57,14 @@ public abstract class AbstractMediator {
 
   @SuppressWarnings("unchecked")
   protected <T> T invoke(Object... args) {
-    Objects.requireNonNull(this.invoker, "Invoker not initialized");
-    return (T) this.invoker.invoke(args);
+    try {
+      Objects.requireNonNull(this.invoker, "Invoker not initialized");
+      return (T) this.invoker.invoke(args);
+    } catch (RuntimeException e) {
+      LoggerFactory.getLogger(configuration().methodAsString())
+        .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
+      throw e;
+    }
   }
 
   protected CompletionStage<? extends Void> getAckOrCompletion(Message<?> message) {
