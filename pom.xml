@@ -53,7 +53,7 @@
     <slf4j-api.version>1.7.26</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
-    <rxjava.version>2.2.7</rxjava.version>
+    <rxjava.version>2.2.8</rxjava.version>
     <weld-core.version>3.1.0.Final</weld-core.version>
     <jackson.version>2.9.8</jackson.version>
     <smallrye-reactive-streams-ops.version>1.0.2</smallrye-reactive-streams-ops.version>
