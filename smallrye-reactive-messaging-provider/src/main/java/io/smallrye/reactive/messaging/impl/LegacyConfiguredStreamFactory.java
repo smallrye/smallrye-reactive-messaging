@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class LegacyConfiguredStreamFactory implements StreamRegistar {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredStreamFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LegacyConfiguredStreamFactory.class);
   private static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
   private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink";
 
@@ -57,10 +57,6 @@ public class LegacyConfiguredStreamFactory implements StreamRegistar {
     } else {
       this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
       this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
-      LOGGER.info("Found incoming connectors: {}",
-        sourceFactories.stream().map(IncomingConnectorFactory::type).collect(Collectors.toList()));
-      LOGGER.info("Found outgoing connectors: {}",
-        sinkFactories.stream().map(OutgoingConnectorFactory::type).collect(Collectors.toList()));
       //TODO Should we try to merge all the config?
       // For now take the first one.
       this.config = config.stream().findFirst()

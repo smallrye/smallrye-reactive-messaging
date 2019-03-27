@@ -5,7 +5,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -23,7 +22,6 @@ public class SubscriberMediator extends AbstractMediator {
    * Keep track of the subscription to cancel it once the scope is terminated.
    */
   private AtomicReference<Subscription> subscription = new AtomicReference<>();
-
 
   // Supported signatures:
   // 1. Subscriber<Message<I>> method()

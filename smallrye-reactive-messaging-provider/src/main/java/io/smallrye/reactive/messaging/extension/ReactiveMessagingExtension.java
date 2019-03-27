@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
 import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -24,6 +25,7 @@ public class ReactiveMessagingExtension implements Extension {
 
   private List<MediatorBean<?>> mediatorBeans = new ArrayList<>();
   private List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
+  private List<InjectionPoint> emitterInjectionPoints = new ArrayList<>();
 
   <T> void processClassesContainingMediators(@Observes ProcessManagedBean<T> event) {
     AnnotatedType<?> annotatedType = event.getAnnotatedBeanClass();
@@ -38,6 +40,13 @@ public class ReactiveMessagingExtension implements Extension {
     Stream stream = StreamProducer.getStreamQualifier(pip.getInjectionPoint());
     if (stream != null) {
       streamInjectionPoints.add(pip.getInjectionPoint());
+    }
+  }
+
+  <T extends Emitter<?>> void processStreamEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
+    Stream stream = StreamProducer.getStreamQualifier(pip.getInjectionPoint());
+    if (stream != null) {
+      emitterInjectionPoints.add(pip.getInjectionPoint());
     }
   }
 
@@ -85,6 +94,15 @@ public class ReactiveMessagingExtension implements Extension {
         // TODO validate the required type
       }
       streamInjectionPoints.clear();
+
+      names = registry.getOutgoingNames();
+      for (InjectionPoint ip : emitterInjectionPoints) {
+        String name = StreamProducer.getStreamName(ip);
+        if (!names.contains(name)) {
+          done.addDeploymentProblem(new DeploymentException("No stream found for name: " + name + ", injection point: " + ip));
+        }
+        // TODO validate the required type
+      }
 
     } catch (Exception e) {
       done.addDeploymentProblem(e.getCause());

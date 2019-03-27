@@ -71,7 +71,6 @@ public class ConnectorConfig implements Config {
       .filter(s -> s.startsWith(prefix + "."))
       .map(s -> s.substring((prefix + ".").length()))
       .collect(Collectors.toSet());
-    System.out.println(strings);
     if (injectNameProperty) {
       strings.add("name");
     }
