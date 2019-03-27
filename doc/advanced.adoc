@@ -40,7 +40,10 @@ public String process(String s) {
 
 === @Stream
 
-`@Stream` is a qualifier to inject a _stream_ into a regular CDI bean:
+`@Stream` is a qualifier to inject a _stream_ into a regular CDI bean.
+It's used to bridge the _imperative_ and _reactive_ worlds, or retrieve streams managed by Reactive Messaging.
+
+You can retrieve a stream using:
 
 [source,java]
 ----
@@ -55,10 +58,25 @@ The value indicates the name of the stream. You can inject a stream as:
 * `PublisherBuilder<Message<X>>` or `PublisherBuilder<X>`
 * `Flowable<Message<X>>` or `Flowable<X>`
 
+You must have a `@Outgoing("hello")` somewhere in your application (or in your configuration)
+
+You can also emits data to a stream using:
+
+[source, java]
+----
+@Inject @Stream("hello")
+Emitter<String> emitter;
+
+// ...
+emitter.send("a").send("b");
+----
+
+You can inject an `io.smallrye.reactive.messaging.annotations.Emitter<T>` or `io.smallrye.reactive.messaging.annotations.Emitter<Message<T>>`.
+To use an `Emitter` for the stream `hello`, you need a `@Incoming("hello")` somewhere in your code (or in your configuration).
+
 === Logging
 
-The logging uses Log4j2. Configure it by adding a `log4j2.yaml` file in your _CLASSPATH_ (or in `src/main/resources`).
-The configuration is explained in the https://logging.apache.org/log4j/2.x/manual/configuration.html[Log4J2 configuration].
+The logging uses SLF4J, check the https://www.slf4j.org/[SLF4J web site] for further details.
 
 === Strict Binding Mode
 
