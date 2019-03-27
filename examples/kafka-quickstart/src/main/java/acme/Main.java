@@ -1,10 +1,13 @@
 package acme;
 
+import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.se.SeContainerInitializer;
 
 public class Main {
 
   public static void main(String[] args) {
-    SeContainerInitializer.newInstance().initialize();
+    SeContainer container = SeContainerInitializer.newInstance().initialize();
+
+    container.getBeanManager().createInstance().select(BeanUsingAnEmitter.class).get().periodicallySendMessageToKafka();
   }
 }
