@@ -58,7 +58,8 @@ The value indicates the name of the stream. You can inject a stream as:
 * `PublisherBuilder<Message<X>>` or `PublisherBuilder<X>`
 * `Flowable<Message<X>>` or `Flowable<X>`
 
-You must have a `@Outgoing("hello")` somewhere in your application (or in your configuration)
+You must have a `@Incoming("hello")` somewhere in your application (meaning a method consuming messages transiting on the stream `hello`),
+ or a sink of message configured (`mp.messaging.outgoing.hello...`)
 
 You can also emits data to a stream using:
 

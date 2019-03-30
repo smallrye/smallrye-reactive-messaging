@@ -24,6 +24,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     bean.run();
     assertThat(bean.emitter()).isNotNull();
     assertThat(bean.list()).containsExactly("a", "b", "c");
+    assertThat(bean.emitter().isCancelled()).isTrue();
+    assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
   }
 
   @Test
@@ -33,7 +35,34 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     bean.run();
     assertThat(bean.emitter()).isNotNull();
     assertThat(bean.list()).containsExactly("a", "b", "c");
+    assertThat(bean.emitter().isCancelled()).isFalse();
+    assertThat(bean.emitter().isRequested()).isTrue();
   }
+
+  @Test
+  public void testTermination() {
+    addBeanClass(SourceBean.class);
+    MyBeanEmittingDataAfterTermination bean = installInitializeAndGet(MyBeanEmittingDataAfterTermination.class);
+    bean.run();
+    assertThat(bean.emitter()).isNotNull();
+    assertThat(bean.list()).containsExactly("a", "b");
+    assertThat(bean.emitter().isCancelled()).isTrue();
+    assertThat(bean.emitter().isRequested()).isFalse();
+    assertThat(bean.isCaught()).isTrue();
+  }
+
+  @Test
+  public void testTerminationWithError() {
+    addBeanClass(SourceBean.class);
+    MyBeanEmittingDataAfterTerminationWithError bean = installInitializeAndGet(MyBeanEmittingDataAfterTerminationWithError.class);
+    bean.run();
+    assertThat(bean.emitter()).isNotNull();
+    assertThat(bean.list()).containsExactly("a", "b");
+    assertThat(bean.emitter().isCancelled()).isTrue();
+    assertThat(bean.emitter().isRequested()).isFalse();
+    assertThat(bean.isCaught()).isTrue();
+  }
+
 
   @Test
   public void testWithNull() {
@@ -91,7 +120,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
       emitter.send(Message.of("a"));
       emitter.send(Message.of("b"));
       emitter.send(Message.of("c"));
-      emitter.complete();
     }
 
     @Incoming("foo")
@@ -135,6 +163,72 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         caught = true;
       }
       emitter.send("c").complete();
+    }
+
+    @Incoming("foo")
+    public void consume(String s) {
+      list.add(s);
+    }
+  }
+
+  @ApplicationScoped
+  public static class MyBeanEmittingDataAfterTermination {
+    @Inject @Stream("foo") Emitter<String> emitter;
+    private List<String> list = new CopyOnWriteArrayList<>();
+    private boolean caught;
+
+    public Emitter<String> emitter() {
+      return emitter;
+    }
+
+    public boolean isCaught() {
+      return true;
+    }
+
+    public List<String> list() {
+      return list;
+    }
+
+    public void run() {
+      emitter.send("a").send("b").complete();
+      try {
+        emitter.send("c");
+      } catch (IllegalStateException e) {
+        caught = true;
+      }
+    }
+
+    @Incoming("foo")
+    public void consume(String s) {
+      list.add(s);
+    }
+  }
+
+  @ApplicationScoped
+  public static class MyBeanEmittingDataAfterTerminationWithError {
+    @Inject @Stream("foo") Emitter<String> emitter;
+    private List<String> list = new CopyOnWriteArrayList<>();
+    private boolean caught;
+
+    public Emitter<String> emitter() {
+      return emitter;
+    }
+
+    public boolean isCaught() {
+      return true;
+    }
+
+    public List<String> list() {
+      return list;
+    }
+
+    public void run() {
+      emitter.send("a").send("b").error(new Exception("BOOM"));
+      try {
+        emitter.send("c");
+      } catch (IllegalStateException e) {
+        caught = true;
+      }
     }
 
     @Incoming("foo")

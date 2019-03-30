@@ -28,10 +28,13 @@ public class EmitterImpl<T> implements Emitter<T> {
   }
 
   @Override
-  public Emitter<T> send(T msg) {
-    FlowableEmitter<Message<? extends T>> emitter = verify();
+  public synchronized Emitter<T> send(T msg) {
     if (msg == null) {
       throw new IllegalArgumentException("`null` is not a valid value");
+    }
+    FlowableEmitter<Message<? extends T>> emitter = verify();
+    if (emitter.requested() == 0) {
+      throw new IllegalStateException("Unable to send a message to the stream using the emitter - no data requested");
     }
     if (msg instanceof Message) {
       //noinspection unchecked
@@ -42,24 +45,40 @@ public class EmitterImpl<T> implements Emitter<T> {
     return this;
   }
 
-  private FlowableEmitter<Message<? extends T>> verify() {
+  private synchronized FlowableEmitter<Message<? extends T>> verify() {
     FlowableEmitter<Message<? extends T>> emitter = internal.get();
     if (emitter == null) {
       throw new IllegalStateException("Stream not yet connected");
+    }
+    if (emitter.isCancelled()) {
+      throw new IllegalStateException("Stream has been terminated");
     }
     return emitter;
   }
 
   @Override
-  public void complete() {
+  public synchronized void complete() {
     verify().onComplete();
   }
 
   @Override
-  public void error(Exception e) {
+  public synchronized void error(Exception e) {
     if (e == null) {
       throw new IllegalArgumentException("`null` is not a valid exception");
     }
     verify().onError(e);
+  }
+
+  @Override
+  public synchronized boolean isCancelled() {
+    FlowableEmitter<Message<? extends T>> emitter = internal.get();
+    return emitter == null || emitter.isCancelled();
+  }
+
+
+  @Override
+  public boolean isRequested() {
+    FlowableEmitter<Message<? extends T>> emitter = internal.get();
+    return ! isCancelled()  && emitter.requested() > 0;
   }
 }

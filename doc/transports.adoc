@@ -34,9 +34,9 @@ The configuration format is the follow:
 
 [source]
 ----
-smallrye.messaging.[source|sink].[name].[attribute]=[value]
+mp.messaging.[outgoing|incoming].[name].[attribute]=[value]
 ----
-1. the `[source|sink]` segment indicates if we are configuring a `source` or a `sink`
+1. the `[outgoing|incoming]` segment indicates if we are configuring a _source_ of messages (`incoming) or a a _sink_ of messages (`outgoing`)
 2. the `[name]` segment configures the name of the `source` or `sink`
 3. the `[attribute]` segment is the name of the attribute to configure. Most of the time the attributes are specific to
 the transport layer
