@@ -4,8 +4,10 @@ import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +18,7 @@ import javax.enterprise.inject.spi.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.smallrye.reactive.messaging.impl.VertxBeanRegistration.registerVertxBeanIfNeeded;
 
@@ -73,6 +76,15 @@ public class ReactiveMessagingExtension implements Extension {
     StreamRegistry registry = instance.select(StreamRegistry.class)
       .get();
 
+    List<String> emitters = emitterInjectionPoints.stream().map(StreamProducer::getStreamName).collect(Collectors.toList());
+
+    for (String e : emitters) {
+      EmitterImpl emitter = new EmitterImpl();
+      Publisher<Message> publisher = emitter.getPublisher();
+      registry.register(e, ReactiveStreams.fromPublisher(publisher));
+      registry.register(e, emitter);
+    }
+
     MediatorManager mediatorManager = instance.select(MediatorManager.class)
       .get();
     for (MediatorBean mediatorBean : mediatorBeans) {
@@ -95,10 +107,10 @@ public class ReactiveMessagingExtension implements Extension {
       }
       streamInjectionPoints.clear();
 
-      names = registry.getOutgoingNames();
       for (InjectionPoint ip : emitterInjectionPoints) {
         String name = StreamProducer.getStreamName(ip);
-        if (!names.contains(name)) {
+        EmitterImpl<?> emitter = (EmitterImpl<?>) registry.getEmitter(name);
+        if (!emitter.isConnected()) {
           done.addDeploymentProblem(new DeploymentException("No stream found for name: " + name + ", injection point: " + ip));
         }
         // TODO validate the required type

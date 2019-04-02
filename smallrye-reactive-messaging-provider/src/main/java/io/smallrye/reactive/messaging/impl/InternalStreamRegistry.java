@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.impl;
 
 import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.annotations.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -14,6 +15,7 @@ public class InternalStreamRegistry implements StreamRegistry {
   private static final String NAME_MUST_BE_SET = "'name' must be set";
   private final Map<String, List<PublisherBuilder<? extends Message>>> publishers = new HashMap<>();
   private final Map<String, List<SubscriberBuilder<? extends Message, Void>>> subscribers = new HashMap<>();
+  private final Map<String, Emitter<?>> emitters = new HashMap<>();
 
 
   @Override
@@ -33,9 +35,22 @@ public class InternalStreamRegistry implements StreamRegistry {
   }
 
   @Override
+  public synchronized void register(String name, Emitter<?> emitter) {
+    Objects.requireNonNull(name, NAME_MUST_BE_SET);
+    Objects.requireNonNull(emitter, "'emitter' must be set");
+    emitters.put(name, emitter);
+  }
+
+  @Override
   public synchronized List<PublisherBuilder<? extends Message>> getPublishers(String name) {
     Objects.requireNonNull(name, NAME_MUST_BE_SET);
     return publishers.getOrDefault(name, Collections.emptyList());
+  }
+
+  @Override
+  public synchronized Emitter<?> getEmitter(String name) {
+    Objects.requireNonNull(name, NAME_MUST_BE_SET);
+    return emitters.get(name);
   }
 
   @Override
@@ -57,6 +72,11 @@ public class InternalStreamRegistry implements StreamRegistry {
   @Override
   public synchronized Set<String> getOutgoingNames() {
     return new HashSet<>(subscribers.keySet());
+  }
+
+  @Override
+  public synchronized Set<String> getEmitterNames() {
+    return new HashSet<>(emitters.keySet());
   }
 
 }

@@ -1,29 +1,24 @@
 package io.smallrye.reactive.messaging.extension;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.List;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
-import javax.inject.Inject;
-
+import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.annotations.Emitter;
+import io.smallrye.reactive.messaging.annotations.Stream;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.CompletionSubscriber;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.StreamRegistry;
-import io.smallrye.reactive.messaging.annotations.Stream;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
+import javax.enterprise.inject.spi.InjectionPoint;
+import javax.inject.Inject;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.List;
 
 @ApplicationScoped
 public class StreamProducer {
@@ -58,8 +53,7 @@ public class StreamProducer {
   @Produces
   @Stream("") // Stream name is ignored during type-safe resolution
   <T> Emitter<T> produceEmitter(InjectionPoint injectionPoint) {
-    SubscriberBuilder<? extends Message, Void> subscriber = getSubscriberBuilder(injectionPoint);
-    @SuppressWarnings("unchecked") EmitterImpl emitter = new EmitterImpl(subscriber.build());
+    Emitter emitter = getEmitter(injectionPoint);
     return cast(emitter);
   }
 
@@ -82,6 +76,16 @@ public class StreamProducer {
       throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: " + streamRegistry.getOutgoingNames());
     }
     return list.get(0);
+  }
+
+  @SuppressWarnings("rawtypes")
+  private Emitter getEmitter(InjectionPoint injectionPoint) {
+    String name = getStreamName(injectionPoint);
+    Emitter emitter= streamRegistry.getEmitter(name);
+    if (emitter == null) {
+      throw new IllegalStateException("Unable to find a emitter with the name " + name + ", available emitters are: " + streamRegistry.getEmitterNames());
+    }
+    return emitter;
   }
 
     private Type getFirstParameter(Type type) {

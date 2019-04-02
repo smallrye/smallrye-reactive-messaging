@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
 import io.smallrye.reactive.messaging.*;
+import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -207,12 +208,12 @@ public class MediatorManager {
       .filter(AbstractMediator::isConnected)
       .forEach(AbstractMediator::run);
 
-    // We also need to connect mediator to un-managed subscribers
+    // We also need to connect mediator and emitter to un-managed subscribers
     for (String name : unmanagedSubscribers) {
       List<AbstractMediator> list = lookupForMediatorsWithMatchingDownstream(name);
+      EmitterImpl emitter = (EmitterImpl) streamRegistry.getEmitter(name);
+      List<SubscriberBuilder<? extends Message, Void>> subscribers = streamRegistry.getSubscribers(name);
       for (AbstractMediator mediator : list) {
-        List<SubscriberBuilder<? extends Message, Void>> subscribers = streamRegistry.getSubscribers(name);
-
         if (subscribers.size() == 1) {
           LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
           mediator.getStream().to((SubscriberBuilder) subscribers.get(0)).run();
@@ -224,6 +225,18 @@ public class MediatorManager {
           });
         }
       }
+      if (list.isEmpty() && emitter != null) {
+          if (subscribers.size() == 1) {
+            LOGGER.info("Connecting emitter to sink {}", name);
+            ReactiveStreams.fromPublisher(emitter.getPublisher()).to(subscribers.get(0)).run();
+          } else if (subscribers.size() > 2) {
+            LOGGER.warn("{} subscribers consuming the stream {}", subscribers.size(), name);
+            subscribers.forEach(s -> {
+              LOGGER.info("Connecting emitter to sink {}", name);
+              ReactiveStreams.fromPublisher(emitter.getPublisher()).to(s).run();
+            });
+          }
+        }
     }
 
     initialized = true;

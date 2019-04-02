@@ -5,26 +5,29 @@ import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Subscriber;
+import org.reactivestreams.Publisher;
 
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class EmitterImpl<T> implements Emitter<T> {
 
   private final AtomicReference<FlowableEmitter<Message<? extends T>>> internal = new AtomicReference<>();
+  private final Flowable<Message<? extends T>> publisher;
 
-  EmitterImpl(Subscriber<Message< ? extends T>> subscriber) {
-    Objects.requireNonNull(subscriber);
-    Flowable<Message<? extends T>> flowable = Flowable.create(x -> {
+  EmitterImpl() {
+    publisher = Flowable.create(x -> {
       if (!internal.compareAndSet(null, x)) {
         x.onError(new Exception("Emitter already created"));
       }
     }, BackpressureStrategy.BUFFER);
-    flowable.subscribe(subscriber);
-    if (internal.get() == null) {
-      throw new IllegalStateException("Unable to connect to the stream");
-    }
+  }
+
+  public Publisher<Message<? extends T>> getPublisher() {
+    return publisher;
+  }
+
+  public boolean isConnected() {
+    return internal.get() != null;
   }
 
   @Override
@@ -75,10 +78,9 @@ public class EmitterImpl<T> implements Emitter<T> {
     return emitter == null || emitter.isCancelled();
   }
 
-
   @Override
   public boolean isRequested() {
     FlowableEmitter<Message<? extends T>> emitter = internal.get();
-    return ! isCancelled()  && emitter.requested() > 0;
+    return !isCancelled() && emitter.requested() > 0;
   }
 }
