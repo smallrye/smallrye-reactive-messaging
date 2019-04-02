@@ -110,4 +110,8 @@ class KafkaSink {
   SubscriberBuilder<? extends Message, Void> getSink() {
     return subscriber;
   }
+
+  void close() {
+    this.stream.close();
+  }
 }

@@ -68,4 +68,8 @@ public class KafkaSource<K, V> {
   PublisherBuilder<KafkaMessage> getSource() {
     return source;
   }
+
+  void close() {
+    this.consumer.close();
+  }
 }
