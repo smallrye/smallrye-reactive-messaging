@@ -9,6 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,13 +187,15 @@ public class MediatorManager {
           throw new WeavingException("Impossible to bind mediators, some mediators are not connected: " + unsatisfied.stream()
             .map(m -> m.configuration()
               .methodAsString())
-            .collect(Collectors.toList()) + ", available publishers:" + streamRegistry.getIncomingNames());
+            .collect(Collectors.toList()) + ", available publishers:" + streamRegistry.getIncomingNames() +", "
+            + "available emitters: " + streamRegistry.getEmitterNames());
         } else {
           LOGGER.warn("Impossible to bind mediators, some mediators are not connected: {}", unsatisfied.stream()
             .map(m -> m.configuration()
               .methodAsString())
             .collect(Collectors.toList()));
           LOGGER.warn("Available publishers: {}", streamRegistry.getIncomingNames());
+          LOGGER.warn("Available emitters: {}", streamRegistry.getEmitterNames());
         }
         break;
       }
@@ -288,4 +291,12 @@ public class MediatorManager {
 
   }
 
+  public void initializeEmitters(List<String> emitters) {
+    for (String e : emitters) {
+      EmitterImpl emitter = new EmitterImpl();
+      Publisher<Message> publisher = emitter.getPublisher();
+      streamRegistry.register(e, ReactiveStreams.fromPublisher(publisher));
+      streamRegistry.register(e, emitter);
+    }
+  }
 }

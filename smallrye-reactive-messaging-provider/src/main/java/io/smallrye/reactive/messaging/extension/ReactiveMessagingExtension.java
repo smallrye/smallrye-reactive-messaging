@@ -77,16 +77,10 @@ public class ReactiveMessagingExtension implements Extension {
       .get();
 
     List<String> emitters = emitterInjectionPoints.stream().map(StreamProducer::getStreamName).collect(Collectors.toList());
-
-    for (String e : emitters) {
-      EmitterImpl emitter = new EmitterImpl();
-      Publisher<Message> publisher = emitter.getPublisher();
-      registry.register(e, ReactiveStreams.fromPublisher(publisher));
-      registry.register(e, emitter);
-    }
-
     MediatorManager mediatorManager = instance.select(MediatorManager.class)
       .get();
+    mediatorManager.initializeEmitters(emitters);
+
     for (MediatorBean mediatorBean : mediatorBeans) {
       LOGGER.info("Analyzing mediator bean: {}", mediatorBean.bean);
       mediatorManager.analyze(mediatorBean.annotatedType, mediatorBean.bean);
