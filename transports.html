@@ -488,13 +488,13 @@ seen as an <code>@Incoming</code></p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.[source|sink].[name].[attribute]=[value]</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.[outgoing|incoming].[name].[attribute]=[value]</code></pre>
 </div>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>the <code>[source|sink]</code> segment indicates if we are configuring a <code>source</code> or a <code>sink</code></p>
+<p>the <code>[outgoing|incoming]</code> segment indicates if we are configuring a <em>source</em> of messages (<code>incoming) or a a <em>sink</em> of messages (`outgoing</code>)</p>
 </li>
 <li>
 <p>the <code>[name]</code> segment configures the name of the <code>source</code> or <code>sink</code></p>
@@ -537,7 +537,7 @@ mp.messaging.outgoing.data.acks=1
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-03-26 10:41:03 CET
+Last updated 2019-03-28 07:15:40 GMT
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

@@ -535,7 +535,8 @@ private Publisher&lt;Message&lt;String&gt;&gt; field;</code></pre>
 </ul>
 </div>
 <div class="paragraph">
-<p>You must have a <code>@Outgoing("hello")</code> somewhere in your application (or in your configuration)</p>
+<p>You must have a <code>@Incoming("hello")</code> somewhere in your application (meaning a method consuming messages transiting on the stream <code>hello</code>),
+ or a sink of message configured (<code>mp.messaging.outgoing.hello&#8230;&#8203;</code>)</p>
 </div>
 <div class="paragraph">
 <p>You can also emits data to a stream using:</p>
@@ -573,7 +574,7 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-03-27 13:32:56 CET
+Last updated 2019-03-28 07:17:04 GMT
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">

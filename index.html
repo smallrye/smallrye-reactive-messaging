@@ -442,8 +442,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h1>SmallRye Reactive Messaging</h1>
 <div class="details">
 <span id="author" class="author">Clement Escoffier</span><br>
-<span id="revnumber">version 0.0.5,</span>
-<span id="revdate">2019-03-27</span>
+<span id="revnumber">version 0.0.6,</span>
+<span id="revdate">2019-04-04</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">SmallRye Reactive Messaging</div>
@@ -585,7 +585,7 @@ sourcing applications&#8230;&#8203;</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-provider&lt;/artifactId&gt;
-  &lt;version&gt;0.0.5&lt;/version&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
@@ -1470,13 +1470,13 @@ seen as an <code>@Incoming</code></p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>smallrye.messaging.[source|sink].[name].[attribute]=[value]</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.[outgoing|incoming].[name].[attribute]=[value]</code></pre>
 </div>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>the <code>[source|sink]</code> segment indicates if we are configuring a <code>source</code> or a <code>sink</code></p>
+<p>the <code>[outgoing|incoming]</code> segment indicates if we are configuring a <em>source</em> of messages (<code>incoming) or a a <em>sink</em> of messages (`outgoing</code>)</p>
 </li>
 <li>
 <p>the <code>[name]</code> segment configures the name of the <code>source</code> or <code>sink</code></p>
@@ -1531,7 +1531,7 @@ mp.messaging.outgoing.data.acks=1
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;0.0.5&lt;/version&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1752,7 +1752,7 @@ almost any existing system.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-camel&lt;/artifactId&gt;
-  &lt;version&gt;0.0.5&lt;/version&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1906,7 +1906,7 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-mqtt&lt;/artifactId&gt;
-  &lt;version&gt;0.0.5&lt;/version&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1984,7 +1984,7 @@ mp.messaging.outgoing.data.password=secret</code></pre>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-http&lt;/artifactId&gt;
-  &lt;version&gt;0.0.5&lt;/version&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2038,7 +2038,7 @@ an asynchronous way.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus&lt;/artifactId&gt;
-  &lt;version&gt;0.0.5&lt;/version&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2172,7 +2172,8 @@ private Publisher&lt;Message&lt;String&gt;&gt; field;</code></pre>
 </ul>
 </div>
 <div class="paragraph">
-<p>You must have a <code>@Outgoing("hello")</code> somewhere in your application (or in your configuration)</p>
+<p>You must have a <code>@Incoming("hello")</code> somewhere in your application (meaning a method consuming messages transiting on the stream <code>hello</code>),
+ or a sink of message configured (<code>mp.messaging.outgoing.hello&#8230;&#8203;</code>)</p>
 </div>
 <div class="paragraph">
 <p>You can also emits data to a stream using:</p>
@@ -2209,8 +2210,8 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.0.5<br>
-Last updated 2018-11-09 21:27:18 CET
+Version 0.0.6<br>
+Last updated 2018-11-09 20:27:18 GMT
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
