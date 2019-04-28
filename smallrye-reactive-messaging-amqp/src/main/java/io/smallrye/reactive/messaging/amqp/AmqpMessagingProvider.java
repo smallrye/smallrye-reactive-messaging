@@ -38,14 +38,17 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmqpMessagingProvider.class);
 
-  private final ProtonClient client;
-  private final Context context;
+  private ProtonClient client;
+  private Context context;
   private List<Closeable> closeable = new ArrayList<>();
 
   /**
    * Keeps track of the receiver flows, to avoid recreating proton receiver and connections.
    */
   private final Map<String, Flowable<? extends Message>> receivers = new ConcurrentHashMap<>();
+
+  AmqpMessagingProvider() {
+  }
 
   @Inject
   AmqpMessagingProvider(Vertx vertx) {
