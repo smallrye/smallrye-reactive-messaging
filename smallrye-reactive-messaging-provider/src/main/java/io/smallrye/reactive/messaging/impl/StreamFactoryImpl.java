@@ -28,8 +28,13 @@ public class StreamFactoryImpl implements StreamFactory {
   private final StreamRegistry registry;
 
   private final Map<String, IncomingConnectorFactory> publisherFactories = new HashMap<>();
-  private Map<String, OutgoingConnectorFactory> subscriberFactories = new HashMap<>();
+  private final Map<String, OutgoingConnectorFactory> subscriberFactories = new HashMap<>();
 
+
+  public StreamFactoryImpl() {
+    // Default constructor is required - https://github.com/smallrye/smallrye-reactive-messaging/issues/97
+    this.registry = null;
+  }
 
   @Inject
   public StreamFactoryImpl(@Any Instance<IncomingConnectorFactory> pubs,
