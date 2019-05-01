@@ -156,10 +156,17 @@ public class SubscriberMediator extends AbstractMediator {
 
   private void processMethodReturningASubscriber() {
     Object result = invoke();
-    if (!(result instanceof Subscriber)) {
-      throw new IllegalStateException("Invalid return type: " + result + " - expected a Subscriber");
+    if (!(result instanceof Subscriber) && !(result instanceof SubscriberBuilder)) {
+      throw new IllegalStateException(
+        "Invalid return type: " + result + " - expected a Subscriber or a SubscriberBuilder");
     }
-    Subscriber sub = (Subscriber) result;
+
+    Subscriber sub;
+    if (result instanceof Subscriber) {
+      sub = (Subscriber) result;
+    } else {
+      sub = ((SubscriberBuilder) result).build();
+    }
     if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
       SubscriberWrapper<Object, Message> wrapper = new SubscriberWrapper<>(sub, x -> ((Message) x).getPayload());
       this.subscriber = ReactiveStreams.<Message>builder()
@@ -173,6 +180,5 @@ public class SubscriberMediator extends AbstractMediator {
         .via(new SubscriberWrapper<>(casted, Function.identity()))
         .ignore();
     }
-
   }
 }

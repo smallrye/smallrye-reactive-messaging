@@ -11,6 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -431,8 +432,8 @@ public class MediatorConfiguration {
     this.production = Production.NONE;
 
     // Supported signatures:
-    // 1. Subscriber<Message<I>> method()
-    // 2. Subscriber<I> method()
+    // 1. Subscriber<Message<I>> method() or SubscriberBuilder<Message<I>, ?> method()
+    // 2. Subscriber<I> method() or SubscriberBuilder<I, ?> method()
     // 3. CompletionStage<?> method(Message<I> m)
     // 4. CompletionStage<?> method(I i)
     // 5. void/? method(Message<I> m) - this signature has been dropped as it forces blocking acknowledgment. Recommendation: use case 3.
@@ -441,12 +442,13 @@ public class MediatorConfiguration {
     Class<?> returnType = method.getReturnType();
     Optional<Type> type = getParameterFromReturnType(method, 0);
 
-    if (ClassUtils.isAssignable(returnType, Subscriber.class)) {
+    if (ClassUtils.isAssignable(returnType, Subscriber.class)
+      || ClassUtils.isAssignable(returnType, SubscriberBuilder.class)) {
       // Case 1 or 2.
       // Validation -> No parameter
       if (method.getParameterCount() != 0) {
         // TODO Revisit it with injected parameters
-        throw getIncomingError("when returning a Subscriber, no parameters are expected");
+        throw getIncomingError("when returning a Subscriber or a SubscriberBuilder, no parameters are expected");
       }
       Type p = type.orElseThrow(() -> getIncomingError("the returned Subscriber must declare a type parameter"));
       // Need to distinguish 1 or 2
