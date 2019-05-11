@@ -31,6 +31,7 @@ public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
     addBeanClass(BeanProducingACompletionStage.class);
     initialize();
     MyCollector collector = container.select(MyCollector.class).get();
+    await().until(() -> collector.payloads().size() == LIST.size());
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
@@ -39,6 +40,7 @@ public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
     addBeanClass(BeanProducingACompletableFutureOfMessage.class);
     initialize();
     MyCollector collector = container.select(MyCollector.class).get();
+    await().until(() -> collector.payloads().size() == LIST.size());
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
@@ -47,6 +49,7 @@ public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
     addBeanClass(BeanProducingACompletableFuture.class);
     initialize();
     MyCollector collector = container.select(MyCollector.class).get();
+    await().until(() -> collector.payloads().size() == LIST.size());
     assertThat(collector.payloads()).isEqualTo(LIST);
   }
 
