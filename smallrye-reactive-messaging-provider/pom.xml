@@ -19,6 +19,11 @@
     </dependency>
 
     <dependency>
+      <groupId>javax.annotation</groupId>
+      <artifactId>javax.annotation-api</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.smallrye</groupId>
       <artifactId>smallrye-config</artifactId>
       <version>${smallrye-config.version}</version>
