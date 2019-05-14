@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye</groupId>
     <artifactId>smallrye-parent</artifactId>
-    <version>3</version>
+    <version>4</version>
   </parent>
 
   <groupId>io.smallrye.reactive</groupId>
@@ -54,13 +54,11 @@
     <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
     <rxjava.version>2.2.8</rxjava.version>
-    <weld-core.version>3.1.1.Final</weld-core.version>
     <jackson.version>2.9.8</jackson.version>
     <smallrye-reactive-streams-ops.version>1.0.3</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.7</smallrye-config.version>
     <cloudevent.version>0.2.1</cloudevent.version>
 
-    <asciidoctor-maven-plugin.version>1.6.0</asciidoctor-maven-plugin.version>
     <asciidoctorj.version>1.5.8.1</asciidoctorj.version>
 
   </properties>
@@ -91,13 +89,6 @@
         <version>${vertx.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.arquillian</groupId>
-        <artifactId>arquillian-bom</artifactId>
-        <version>1.4.1.Final</version>
-        <scope>import</scope>
-        <type>pom</type>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -143,13 +134,12 @@
     <dependency>
       <groupId>javax.enterprise</groupId>
       <artifactId>cdi-api</artifactId>
-      <version>2.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.weld.se</groupId>
       <artifactId>weld-se-core</artifactId>
-      <version>${weld-core.version}</version>
+      <version>${version.weld.core}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -196,19 +186,16 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.12.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>3.1.6</version>
       <scope>test</scope>
     </dependency>
 
@@ -233,12 +220,10 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.1.2</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -247,7 +232,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.1.0</version>
         <executions>
           <execution>
             <id>default-cli</id>
@@ -294,14 +278,13 @@
           <plugin>
             <groupId>org.asciidoctor</groupId>
             <artifactId>asciidoctor-maven-plugin</artifactId>
-            <version>${asciidoctor-maven-plugin.version}</version>
             <configuration>
               <backend>html</backend>
               <sourceHighlighter>highlightjs</sourceHighlighter>
               <attributes>
                 <toc>left</toc>
                 <version>${project.version}</version>
-                <weld-version>${weld-core.version}</weld-version>
+                <weld-version>${version.weld.core}</weld-version>
                 <smallrye-streams-version>${smallrye-reactive-streams-ops.version}</smallrye-streams-version>
                 <smallrye-config-version>${smallrye-config.version}</smallrye-config-version>
               </attributes>
