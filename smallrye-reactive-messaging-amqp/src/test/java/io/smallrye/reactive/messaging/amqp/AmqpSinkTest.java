@@ -44,8 +44,6 @@ public class AmqpSinkTest extends AmqpTestBase {
     String topic = UUID.randomUUID().toString();
     AtomicInteger expected = new AtomicInteger(0);
     usage.consumeIntegers(topic,
-      10,
-      1, TimeUnit.MINUTES,
       v -> expected.getAndIncrement());
 
     SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
@@ -65,12 +63,12 @@ public class AmqpSinkTest extends AmqpTestBase {
     SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
 
     AtomicInteger expected = new AtomicInteger(0);
-    usage.consumeTenStrings(topic,
+    usage.consumeStrings(topic,
       v -> expected.getAndIncrement());
 
     //noinspection unchecked
     Flowable.range(0, 10)
-      .map(Integer::valueOf)
+      .map(i -> Integer.toString(i))
       .map(Message::of)
       .subscribe((Subscriber) sink.build());
 
@@ -84,7 +82,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     Weld weld = new Weld();
 
     CountDownLatch latch = new CountDownLatch(10);
-    usage.consumeIntegers("sink", 10, 30, TimeUnit.SECONDS,
+    usage.consumeIntegers("sink",
       v -> latch.countDown());
 
     weld.addBeanClass(AmqpMessagingProvider.class);
@@ -102,10 +100,10 @@ public class AmqpSinkTest extends AmqpTestBase {
     AtomicInteger expected = new AtomicInteger(0);
 
     List<AmqpMessage<String>> messages = new ArrayList<>();
-    usage.<String>consumeTenMessages(topic,
+    usage.<String>consume(topic,
       v -> {
         expected.getAndIncrement();
-        messages.add(v);
+        messages.add(new AmqpMessage<>(v));
       });
 
     SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
@@ -125,20 +123,19 @@ public class AmqpSinkTest extends AmqpTestBase {
     messages.forEach(m -> {
       assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
       assertThat(m.getSubject()).isEqualTo("foo");
-      assertThat(m.delivery()).isNotNull();
     });
   }
 
   @Test
-  public void testSinkUsingProtonMessage() {
+  public void testSinkUsingVertxAmqpMessage() {
     String topic = UUID.randomUUID().toString();
     AtomicInteger expected = new AtomicInteger(0);
 
     List<AmqpMessage<String>> messages = new ArrayList<>();
-    usage.<String>consumeTenMessages(topic,
+    usage.<String>consume(topic,
       v -> {
         expected.getAndIncrement();
-        messages.add(v);
+        messages.add(new AmqpMessage<>(v));
       });
 
     SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
@@ -146,10 +143,10 @@ public class AmqpSinkTest extends AmqpTestBase {
     //noinspection unchecked
     Flowable.range(0, 10)
       .map(v -> {
-        org.apache.qpid.proton.message.Message message = message();
-        message.setBody(new AmqpValue(HELLO + v));
-        message.setSubject("bar");
-        return message;
+        return io.vertx.axle.ext.amqp.AmqpMessage.create()
+          .withBody(HELLO + v)
+          .subject("bar")
+          .build();
       })
       .map(Message::of)
       .subscribe((Subscriber) sink.build());
@@ -160,7 +157,6 @@ public class AmqpSinkTest extends AmqpTestBase {
     messages.forEach(m -> {
       assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
       assertThat(m.getSubject()).isEqualTo("bar");
-      assertThat(m.delivery()).isNotNull();
     });
   }
 

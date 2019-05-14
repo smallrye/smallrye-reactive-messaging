@@ -1,15 +1,20 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import io.reactivex.Flowable;
-import io.reactivex.processors.UnicastProcessor;
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
+import io.reactivex.functions.Function;
+import io.reactivex.processors.MulticastProcessor;
 import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
 import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
-import io.vertx.proton.*;
-import io.vertx.reactivex.core.Context;
+import io.vertx.axle.core.buffer.Buffer;
+import io.vertx.axle.ext.amqp.AmqpClient;
+import io.vertx.axle.ext.amqp.AmqpMessageBuilder;
+import io.vertx.axle.ext.amqp.AmqpReceiver;
+import io.vertx.axle.ext.amqp.AmqpSender;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.amqp.AmqpClientOptions;
+import io.vertx.ext.amqp.AmqpReceiverOptions;
 import io.vertx.reactivex.core.Vertx;
-import org.apache.qpid.proton.amqp.messaging.AmqpValue;
-import org.apache.qpid.proton.amqp.transport.DeliveryState;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
@@ -22,38 +27,26 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ApplicationScoped
 public class AmqpMessagingProvider implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmqpMessagingProvider.class);
+  private final Vertx vertx;
 
-  private ProtonClient client;
-  private Context context;
-  private List<Closeable> closeable = new ArrayList<>();
-
-  /**
-   * Keeps track of the receiver flows, to avoid recreating proton receiver and connections.
-   */
-  private final Map<String, Flowable<? extends Message>> receivers = new ConcurrentHashMap<>();
+  private AmqpClient client;
 
   AmqpMessagingProvider() {
+    this.vertx = null;
   }
 
   @Inject
   AmqpMessagingProvider(Vertx vertx) {
-    this.client = ProtonClient.create(vertx.getDelegate());
-    this.context = vertx.getOrCreateContext();
+    this.vertx = vertx;
   }
 
   @Override
@@ -62,8 +55,11 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
   }
 
 
-  private CompletionStage<ProtonConnection> connect(Config config) {
-    CompletableFuture<ProtonConnection> future = new CompletableFuture<>();
+  private synchronized AmqpClient getClient(Config config) {
+    // TODO Should we support having a single client (1 host) or multiple clients.
+    if (client != null) {
+      return client;
+    }
     String username = config.getOptionalValue("username", String.class).orElse(null);
     String password = config.getOptionalValue("password", String.class).orElse(null);
     String host = config.getOptionalValue("host", String.class)
@@ -71,30 +67,25 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
     int port = config.getOptionalValue("port", Integer.class).orElse(5672);
     String containerId = config.getOptionalValue("containerId", String.class).orElse(null);
 
-    this.context.runOnContext(ignored -> {
-      ProtonClientOptions options = new ProtonClientOptions(ConfigurationHelper.create(config).asJsonObject());
-      if (options.getReconnectAttempts() <= 0) {
-        options.setReconnectAttempts(100).setReconnectInterval(10).setConnectTimeout(1000);
-      }
+    AmqpClientOptions options = new AmqpClientOptions()
+      .setUsername(username)
+      .setPassword(password)
+      .setHost(host)
+      .setPort(port)
+      .setContainerId(containerId)
+      // TODO Make these values configurable:
+      .setReconnectAttempts(100)
+      .setReconnectInterval(10)
+      .setConnectTimeout(1000);
+    client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options);
+    return client;
+  }
 
-      client.connect(options, host, port, username, password, ar -> {
-        if (ar.failed()) {
-          future.completeExceptionally(ar.cause());
-        } else {
-          ProtonConnection connection = ar.result().setContainer(containerId);
-          connection.openHandler(x -> {
-            if (x.succeeded()) {
-              closeable.add(connection::close);
-              future.complete(x.result());
-            } else {
-              future.completeExceptionally(x.cause());
-            }
-          });
-          connection.open();
-        }
-      });
-    });
-    return future;
+  private Flowable<? extends Message> getStreamOfMessages(AmqpReceiver receiver) {
+    return Flowable.defer(
+        () -> Flowable.fromPublisher(receiver.toPublisher())
+      )
+      .map((Function<io.vertx.axle.ext.amqp.AmqpMessage, AmqpMessage>) AmqpMessage::new);
   }
 
   @Override
@@ -102,39 +93,21 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
     String address = config.getOptionalValue("address", String.class)
       .orElseThrow(() -> new IllegalArgumentException("Address must be set"));
     boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
+    boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
+    CompletionStage<AmqpReceiver> future = getClient(config)
+      .connect()
+      .thenCompose(connection -> connection.createReceiver(address, new AmqpReceiverOptions().setDurable(durable)));
 
-    String name = config.getValue("name", String.class);
+    PublisherBuilder<? extends Message> builder = ReactiveStreams
+      .fromCompletionStage(future)
+      .flatMapRsPublisher(this::getStreamOfMessages);
 
-    return ReactiveStreams.fromCompletionStage(connect(config).thenCompose(
-      c -> {
-        CompletableFuture<ProtonReceiver> future = new CompletableFuture<>();
-        ProtonReceiver receiver = c.createReceiver(address);
-        receiver.openHandler(x -> {
-          if (x.succeeded()) {
-            closeable.add(receiver::close);
-            future.complete(receiver);
-          } else {
-            future.completeExceptionally(x.cause());
-          }
-        });
-        receiver.open();
-        return future;
-      }
-    )).flatMapRsPublisher(receiver -> {
-      Flowable<? extends Message> existing = receivers.get(name);
-      if (existing != null) {
-        return existing;
-      } else {
-        UnicastProcessor<Message> processor = UnicastProcessor.create();
-        receiver.handler(((delivery, message) -> processor.onNext(new AmqpMessage(delivery, message))));
-        existing = processor
-          .compose(flow -> broadcast ? flow.publish().autoConnect() : flow
-          );
-        receivers.put(name, existing);
-        return existing;
-      }
-    });
+    if (broadcast) {
+      return builder.via(MulticastProcessor.create());
+    }
+    return builder;
   }
+
 
   @Override
   public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
@@ -143,78 +116,88 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
     boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
     long ttl = config.getOptionalValue("ttl", Long.class).orElse(0L);
 
-    AtomicReference<ProtonSender> sender = new AtomicReference<>();
-
+    AtomicReference<AmqpSender> sender = new AtomicReference<>();
     return ReactiveStreams.<Message>builder().flatMapCompletionStage(message -> {
-      ProtonSender actualProtonSender = sender.get();
-      if (actualProtonSender == null) {
-        return connect(config)
-          .thenApply(connection -> connection.createSender(address))
-          .thenCompose(ps -> {
-            CompletableFuture<ProtonSender> future = new CompletableFuture<>();
-            ps.openHandler(x -> {
-              if (x.failed()) {
-                future.completeExceptionally(x.cause());
-              } else {
-                sender.set(ps);
-                closeable.add(ps::close);
-                future.complete(ps);
-              }
-            });
-            ps.open();
-            return future;
-          }).thenCompose(ps -> send(ps, message, durable, ttl));
+      AmqpSender as = sender.get();
+      if (as == null) {
+        return getClient(config)
+          .createSender(address)
+          .thenApply(s -> {
+            sender.set(s);
+            return s;
+          })
+          .thenCompose(s -> send(s, message, durable, ttl));
       } else {
-        return send(actualProtonSender, message, durable, ttl);
+        return send(as, message, durable, ttl);
       }
     }).ignore();
   }
 
-  private CompletionStage<ProtonDelivery> send(ProtonSender sender, Message msg, boolean durable, long ttl) {
+  private CompletionStage<Message> send(AmqpSender sender, Message msg, boolean durable, long ttl) {
     LOGGER.info("Sending... {}", msg.getPayload());
-    CompletableFuture<ProtonDelivery> delivered = new CompletableFuture<>();
-    try {
-      org.apache.qpid.proton.message.Message amqp;
+    io.vertx.axle.ext.amqp.AmqpMessage amqp;
 
-      if (msg instanceof AmqpMessage) {
-        amqp = ((AmqpMessage) msg).unwrap();
-      } else if (msg.getPayload() instanceof org.apache.qpid.proton.message.Message) {
-        amqp = (org.apache.qpid.proton.message.Message) msg.getPayload();
-      } else {
-        amqp = ProtonHelper.message();
-        amqp.setBody(new AmqpValue(msg.getPayload()));
-        amqp.setDurable(durable);
-        if (ttl != 0) {
-          amqp.setTtl(ttl);
-        }
-      }
-      sender.send(amqp, delivery -> {
-        if (delivery.getRemoteState().getType() == DeliveryState.DeliveryStateType.Accepted) {
-          LOGGER.info("Message accepted by the AMQP broker");
-          delivered.complete(delivery);
-        } else {
-          LOGGER.info("Message rejected with delivery: {}", delivery.getRemoteState().getType());
-          delivered.completeExceptionally(new Exception("Unable to deliver message: " + delivery.getRemoteState().getType()));
-        }
-      });
-    } catch (Exception e) {
-      delivered.completeExceptionally(e);
+    if (msg instanceof AmqpMessage) {
+      amqp = ((AmqpMessage) msg).getAmqpMessage();
+    } else if (msg.getPayload() instanceof io.vertx.axle.ext.amqp.AmqpMessage) {
+      amqp = (io.vertx.axle.ext.amqp.AmqpMessage) msg.getPayload();
+    } else if (msg.getPayload() instanceof io.vertx.ext.amqp.AmqpMessage) {
+      amqp = new io.vertx.axle.ext.amqp.AmqpMessage((io.vertx.ext.amqp.AmqpMessage) msg.getPayload());
+    } else {
+      amqp = convertToAmqpMessage(msg.getPayload(), durable, ttl);
     }
-    return delivered;
+    return sender.sendWithAck(amqp).thenApply(x -> msg);
+  }
+
+  private io.vertx.axle.ext.amqp.AmqpMessage convertToAmqpMessage(Object payload, boolean durable, long ttl) {
+    AmqpMessageBuilder builder = io.vertx.axle.ext.amqp.AmqpMessage.create();
+
+    if (durable) {
+      builder.durable(true);
+    }
+    if (ttl > 0) {
+      builder.ttl(ttl);
+    }
+
+    if (payload instanceof String) {
+      builder.withBody((String) payload);
+    } else if (payload instanceof Boolean) {
+      builder.withBooleanAsBody((Boolean) payload);
+    } else if (payload instanceof Buffer) {
+      builder.withBufferAsBody((Buffer) payload);
+    } else if (payload instanceof Byte) {
+      builder.withByteAsBody((Byte) payload);
+    } else if (payload instanceof Character) {
+      builder.withCharAsBody((Character) payload);
+    } else if (payload instanceof Double) {
+      builder.withDoubleAsBody((Double) payload);
+    } else if (payload instanceof Float) {
+      builder.withFloatAsBody((Float) payload);
+    } else if (payload instanceof Instant) {
+      builder.withInstantAsBody((Instant) payload);
+    } else if (payload instanceof Integer) {
+      builder.withIntegerAsBody((Integer) payload);
+    } else if (payload instanceof JsonArray) {
+      builder.withJsonArrayAsBody((JsonArray) payload);
+    } else if (payload instanceof JsonObject) {
+      builder.withJsonObjectAsBody((JsonObject) payload);
+    } else if (payload instanceof Long) {
+      builder.withLongAsBody((Long) payload);
+    } else if (payload instanceof Short) {
+      builder.withShortAsBody((Short) payload);
+    } else if (payload instanceof UUID) {
+      builder.withUuidAsBody((UUID) payload);
+    } else {
+      builder.withBody(payload.toString());
+    }
+
+    return builder.build();
   }
 
   @PreDestroy
   public synchronized void close() {
-    // Reverse to get sender and receiver before the connection
-    Collections.reverse(closeable);
-    closeable.forEach(toBeClose -> {
-      try {
-        toBeClose.close();
-      } catch (IOException e) {
-        // Ignored.
-      }
-    });
-    closeable.clear();
-    receivers.clear();
+    if (client != null) {
+      client.close();
+    }
   }
 }

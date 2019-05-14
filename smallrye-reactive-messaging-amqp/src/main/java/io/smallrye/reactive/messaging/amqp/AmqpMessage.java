@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import io.vertx.axle.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.amqp.impl.AmqpMessageImpl;
 import io.vertx.proton.ProtonDelivery;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.Accepted;
@@ -24,39 +27,35 @@ import static io.vertx.proton.ProtonHelper.message;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
+  private final io.vertx.ext.amqp.AmqpMessage message;
 
-  private final ProtonDelivery delivery;
-  private final Message message;
-
-  public AmqpMessage(ProtonDelivery delivery, Message message) {
-    this.delivery = delivery;
-    this.message = message;
-  }
-
-  public AmqpMessage(Message message) {
-    this.message = message;
-    this.delivery = null;
+  public AmqpMessage(io.vertx.axle.ext.amqp.AmqpMessage delegate) {
+    this.message = delegate.getDelegate();
   }
 
   public AmqpMessage(T payload) {
-    this.message = message();
+    Message msg = message();
     if (payload instanceof Section) {
-      this.message.setBody((Section) payload);
+      msg.setBody((Section) payload);
     } else {
-      this.message.setBody(new AmqpValue(payload));
+      msg.setBody(new AmqpValue(payload));
     }
-    this.delivery = null;
+    this.message = new AmqpMessageImpl(msg);
+  }
+
+  public AmqpMessage(io.vertx.ext.amqp.AmqpMessage msg) {
+    this.message = msg;
   }
 
   @Override
   public T getPayload() {
-    return (T) convert((message.getBody()));
+    return (T) convert(message);
   }
 
-  private Object convert(Object body) {
+  private Object convert(io.vertx.ext.amqp.AmqpMessage msg) {
+    Object body = msg.unwrap().getBody();
     if (body instanceof AmqpValue) {
       Object value = ((AmqpValue) body).getValue();
-
       if (value instanceof Binary) {
         Binary bin = (Binary) value;
         byte[] bytes = new byte[bin.getLength()];
@@ -75,6 +74,10 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
       Binary bin = ((Data) body).getValue();
       byte[] bytes = new byte[bin.getLength()];
       System.arraycopy(bin.getArray(), bin.getArrayOffset(), bytes, 0, bin.getLength());
+
+      if ("application/json".equalsIgnoreCase(msg.contentType())) {
+        return Buffer.buffer(bytes).toJson();
+      }
       return bytes;
     }
 
@@ -83,20 +86,12 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
 
   @Override
   public CompletionStage<Void> ack() {
-    if (delivery == null) {
-      throw new IllegalStateException("Cannot acknowledge a message that is going to be sent");
-    }
-    // TODO is this really non-blocking?
-    delivery.disposition(Accepted.getInstance(), true);
+    ((AmqpMessageImpl) message).delivered();
     return CompletableFuture.completedFuture(null);
   }
 
   public Message unwrap() {
-    return message;
-  }
-
-  public ProtonDelivery delivery() {
-    return delivery;
+    return message.unwrap();
   }
 
   public boolean isDurable() {
@@ -104,90 +99,74 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
   }
 
   public long getDeliveryCount() {
-    return message.getDeliveryCount();
+    return message.deliveryCount();
   }
 
-  public short getPriority() {
-    return message.getPriority();
+  public int getPriority() {
+    return message.priority();
   }
 
   public long getTtl() {
-    return message.getTtl();
+    return message.ttl();
   }
 
   public Object getMessageId() {
-    return message.getMessageId();
+    return message.id();
   }
 
   public long getGroupSequence() {
-    return message.getGroupSequence();
+    return message.groupSequence();
   }
 
   public long getCreationTime() {
-    return message.getCreationTime();
+    return message.creationTime();
   }
 
   public String getAddress() {
-    return message.getAddress();
-  }
-
-  public byte[] getUserId() {
-    return message.getUserId();
+    return message.address();
   }
 
   public String getGroupId() {
-    return message.getGroupId();
+    return message.groupId();
   }
 
   public String getContentType() {
-    return message.getContentType();
+    return message.contentType();
   }
 
   public long getExpiryTime() {
-    return message.getExpiryTime();
+    return message.expiryTime();
   }
 
   public Object getCorrelationId() {
-    return message.getCorrelationId();
+    return message.correlationId();
   }
 
   public String getContentEncoding() {
-    return message.getContentEncoding();
+    return message.contentEncoding();
   }
 
   public String getSubject() {
-    return message.getSubject();
+    return message.subject();
   }
 
   public Header getHeader() {
-    return message.getHeader();
+    return message.unwrap().getHeader();
   }
 
-  public DeliveryAnnotations getDeliveryAnnotations() {
-    return message.getDeliveryAnnotations();
-  }
-
-  public MessageAnnotations getMessageAnnotations() {
-    return message.getMessageAnnotations();
-  }
-
-  public Properties getProperties() {
-    return message.getProperties();
-  }
-
-  public ApplicationProperties getApplicationProperties() {
-    return message.getApplicationProperties();
+  public JsonObject getApplicationProperties() {
+    return message.applicationProperties();
   }
 
   public Section getBody() {
-    return message.getBody();
-  }
-
-  public Footer getFooter() {
-    return message.getFooter();
+    return message.unwrap().getBody();
   }
 
   public MessageError getError() {
-    return message.getError();
+    return message.unwrap().getError();
+  }
+
+  public io.vertx.axle.ext.amqp.AmqpMessage getAmqpMessage() {
+    return new io.vertx.axle.ext.amqp.AmqpMessage(message);
   }
 }

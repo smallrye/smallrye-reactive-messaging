@@ -1,6 +1,10 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.vertx.axle.core.buffer.Buffer;
+import io.vertx.axle.ext.amqp.AmqpMessage;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
@@ -118,6 +122,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     provider = new AmqpMessagingProvider(vertx);
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
     Publisher<? extends Message> rs = builder.buildRs();
+    System.out.println(rs);
     List<Message> messages1 = new ArrayList<>();
     List<Message> messages2 = new ArrayList<>();
 
@@ -181,7 +186,8 @@ public class AmqpSourceTest extends AmqpTestBase {
     builder.to((Subscriber) createSubscriber(messages, opened)).run();
     await().until(opened::get);
 
-    usage.produce(topic, 1, () -> new AmqpValue(new Binary("foo".getBytes())));
+    usage.produce(topic, 1, () ->
+      AmqpMessage.create().withBufferAsBody(Buffer.buffer("foo".getBytes())).build());
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
     assertThat(messages.stream().map(Message::getPayload)
@@ -190,12 +196,12 @@ public class AmqpSourceTest extends AmqpTestBase {
   }
 
   @Test
-  public void testSourceWithMapContent() {
+  public void testSourceWithJsonObjectContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
     provider = new AmqpMessagingProvider(vertx);
 
-    List<Message<Map<String, String>>> messages = new ArrayList<>();
+    List<Message<JsonObject>> messages = new ArrayList<>();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
     AtomicBoolean opened = new AtomicBoolean();
 
@@ -203,14 +209,14 @@ public class AmqpSourceTest extends AmqpTestBase {
     builder.to((Subscriber) createSubscriber(messages, opened)).run();
     await().until(opened::get);
 
-    Map<String, String> map = new HashMap<>();
+    JsonObject json = new JsonObject();
     String id = UUID.randomUUID().toString();
-    map.put("key", id);
-    map.put("some", "content");
-    usage.produce(topic, 1, () -> new AmqpValue(map));
+    json.put("key", id);
+    json.put("some", "content");
+    usage.produce(topic, 1, () -> AmqpMessage.create().withJsonObjectAsBody(json).build());
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
-    Map<String, String> result = messages.get(0).getPayload();
+    JsonObject result = messages.get(0).getPayload();
     assertThat(result)
       .containsOnly(entry("key", id), entry("some", "content"));
   }
@@ -221,7 +227,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     Map<String, Object> config = getConfig(topic);
     provider = new AmqpMessagingProvider(vertx);
 
-    List<Message<List<String>>> messages = new ArrayList<>();
+    List<Message<JsonArray>> messages = new ArrayList<>();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
     AtomicBoolean opened = new AtomicBoolean();
 
@@ -229,14 +235,14 @@ public class AmqpSourceTest extends AmqpTestBase {
     builder.to((Subscriber) createSubscriber(messages, opened)).run();
     await().until(opened::get);
 
-    List<String> list = new ArrayList<>();
+    JsonArray list = new JsonArray();
     String id = UUID.randomUUID().toString();
     list.add("ola");
     list.add(id);
-    usage.produce(topic, 1, () -> new AmqpValue(list));
+    usage.produce(topic, 1, () -> AmqpMessage.create().withJsonArrayAsBody(list).build());
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
-    List<String> result = messages.get(0).getPayload();
+    JsonArray result = messages.get(0).getPayload();
     assertThat(result)
       .containsExactly("ola", id);
   }

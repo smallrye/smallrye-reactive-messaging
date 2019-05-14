@@ -17,9 +17,9 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-proton</artifactId>
-      <version>${vertx.version}</version>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-axle-amqp-client</artifactId>
+      <version>0.0.5-SNAPSHOT</version>
     </dependency>
 
     <dependency>
