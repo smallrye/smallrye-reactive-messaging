@@ -22,7 +22,7 @@ Then, looking at the output you can see messages successfully send to and retrie
 In addition to the commandline output, the application is composed by 3 components:
 
 * `BeanUsingAnEmitter` - a bean sending a changing hello message to MQTT topic every second.
-* `Sender` - a bean sending a fixed message to a MQTT topic every 5 seconds.
+* `Sender` - a bean sending a fixed message to a dynamic MQTT topic every 5 seconds.
 * `Receiver`  - on the consuming side, the `Receiver` retreives messages from a MQTT topic and writes the message content to `stdout`.
 
 The interaction with MQTT is managed by MicroProfile Reactive Messaging.

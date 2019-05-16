@@ -11,7 +11,7 @@ public class Receiver {
 
   @Incoming("my-topic")
   public CompletionStage<Void> consume(MqttMessage message) {
-    String payload = message.getPayload().toString();
+    String payload = new String(message.getPayload());
     System.out.println("received: " + payload + " from topic " + message.getTopic());
     return message.ack();
   }
