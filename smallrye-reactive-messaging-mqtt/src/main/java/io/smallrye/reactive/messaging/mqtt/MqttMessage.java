@@ -1,38 +1,33 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
-import io.vertx.reactivex.mqtt.messages.MqttPublishMessage;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-public class MqttMessage implements Message<byte[]> {
-  private final MqttPublishMessage message;
+public interface MqttMessage extends Message<byte[]> {
 
-  protected MqttMessage(MqttPublishMessage message) {
-    this.message = message;
+  static MqttMessage of(byte[] payload) {
+    return new SendingMqttMessage(null, payload, null, false);
   }
 
-  @Override
-  public byte[] getPayload() {
-    return this.message.payload().getDelegate().getBytes();
+  static MqttMessage of( String topic, byte[] payload) {
+    return new SendingMqttMessage(topic, payload, null, false);
   }
 
-  public int getMessageId() {
-    return message.messageId();
+  static MqttMessage of( String topic, byte[] payload, MqttQoS qos) {
+    return new SendingMqttMessage(topic, payload, qos, false);
   }
 
-  public MqttQoS getQosLevel() {
-    return message.qosLevel();
+  static MqttMessage of( String topic, byte[] payload, MqttQoS qos, boolean retain) {
+    return new SendingMqttMessage(topic, payload, qos, retain);
   }
 
-  public boolean isDuplicate() {
-    return message.isDup();
-  }
+  int getMessageId();
 
-  public boolean isRetain() {
-    return message.isRetain();
-  }
+  MqttQoS getQosLevel();
 
-  public String getTopic() {
-    return message.topicName();
-  }
+  boolean isDuplicate();
+
+  boolean isRetain();
+
+  String getTopic();
 }

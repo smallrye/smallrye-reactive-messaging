@@ -13,7 +13,6 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Subscriber;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -80,13 +79,26 @@ public class MqttSink {
       })
       .flatMapCompletionStage(msg -> {
         CompletableFuture<Integer> done = new CompletableFuture<>();
-        client.publish(topic, convert(msg.getPayload()), MqttQoS.valueOf(qos), false, false, res -> {
-          if (res.failed()) {
-            done.completeExceptionally(res.cause());
+        String topic = this.topic;
+        MqttQoS qos = MqttQoS.valueOf( this.qos );
+        boolean isRetain = false;
+
+        if (msg instanceof SendingMqttMessage) {
+          MqttMessage mm = ((SendingMqttMessage) msg);
+
+          topic = mm.getTopic() == null ? topic : mm.getTopic();
+          qos = mm.getQosLevel() == null ? qos : mm.getQosLevel();
+          isRetain = mm.isRetain();
+        }
+
+        client.publish( topic, convert( msg.getPayload() ), qos, false, isRetain, res -> {
+          if ( res.failed() ) {
+            done.completeExceptionally( res.cause() );
           } else {
-            done.complete(res.result());
+            done.complete( res.result() );
           }
         });
+
         return done;
       })
       .onComplete(client::disconnect)
