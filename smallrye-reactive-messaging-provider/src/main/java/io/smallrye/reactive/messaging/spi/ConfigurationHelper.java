@@ -51,7 +51,7 @@ public class ConfigurationHelper {
         int i = config.getValue(key, Integer.class);
         json.put(key, i);
         continue;
-      } catch (ClassCastException | NumberFormatException e) {
+      } catch (ClassCastException | IllegalArgumentException e) {
         // Ignore me
       }
 
@@ -59,7 +59,7 @@ public class ConfigurationHelper {
         double d = config.getValue(key, Double.class);
         json.put(key, d);
         continue;
-      } catch (ClassCastException | NumberFormatException e) {
+      } catch (ClassCastException | IllegalArgumentException e) {
         // Ignore me
       }
 
