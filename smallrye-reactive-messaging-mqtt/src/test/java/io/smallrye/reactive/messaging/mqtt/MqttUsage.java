@@ -1,9 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,16 +81,16 @@ public class MqttUsage {
    * @param topic            the topic
    * @param continuation     the function that determines if the consumer should continue; may not be null
    * @param completion       the function to call when the consumer terminates; may be null
-   * @param consumerFunction the function to consume the messages; may not be null
+   * @param messageListener  the function to consume the raw messages; may not be null
    */
-  public void consume(String topic, BooleanSupplier continuation, Runnable completion,
-                      java.util.function.Consumer<byte[]> consumerFunction) {
+  public void consumeRaw(String topic, BooleanSupplier continuation, Runnable completion,
+                         IMqttMessageListener messageListener) {
     Thread t = new Thread(() -> {
       LOGGER.info("Starting consumer to read messages on {}", topic);
       try {
         client.subscribe(topic, (top, msg) -> {
           LOGGER.info("Consumer {}: consuming message {}", topic, new String(msg.getPayload()));
-          consumerFunction.accept(msg.getPayload());
+          messageListener.messageArrived(top, msg);
           if (!continuation.getAsBoolean()) {
             client.unsubscribe(topic);
           }
@@ -108,6 +106,19 @@ public class MqttUsage {
     });
     t.setName(topic + "-thread");
     t.start();
+  }
+
+  /**
+   * Use the supplied function to asynchronously consume messages from the cluster.
+   *
+   * @param topic            the topic
+   * @param continuation     the function that determines if the consumer should continue; may not be null
+   * @param completion       the function to call when the consumer terminates; may be null
+   * @param consumerFunction the function to consume the raw messages; may not be null
+   */
+  public void consume(String topic, BooleanSupplier continuation, Runnable completion,
+                      java.util.function.Consumer<byte[]> consumerFunction) {
+    this.consumeRaw(topic, continuation, completion, (top, msg) -> consumerFunction.accept(msg.getPayload()));
   }
 
   public void consumeStrings(String topic, BooleanSupplier continuation, Runnable completion, Consumer<String> consumerFunction) {
@@ -130,6 +141,14 @@ public class MqttUsage {
     AtomicLong readCounter = new AtomicLong();
     this.consumeIntegers(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, s -> {
       consumer.accept(s);
+      readCounter.incrementAndGet();
+    });
+  }
+
+  public void consumeRaw(String topicName, int count, long timeout, TimeUnit unit, Runnable completion, IMqttMessageListener messageListener) {
+    AtomicLong readCounter = new AtomicLong();
+    this.consumeRaw(topicName, this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion, (top, msg) -> {
+      messageListener.messageArrived(top, msg);
       readCounter.incrementAndGet();
     });
   }
