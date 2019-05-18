@@ -4,10 +4,8 @@ import io.smallrye.reactive.messaging.StreamRegistry;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +18,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.smallrye.reactive.messaging.impl.VertxBeanRegistration.registerVertxBeanIfNeeded;
 
 public class ReactiveMessagingExtension implements Extension {
 
@@ -58,16 +55,6 @@ public class ReactiveMessagingExtension implements Extension {
     if (stream != null) {
       streamInjectionPoints.add(pip.getInjectionPoint());
     }
-  }
-
-  /**
-   * In this callback, regular beans have been found, we can declare new beans.
-   *
-   * @param discovery   the discovery event
-   * @param beanManager the bean manager
-   */
-  void afterBeanDiscovery(@Observes AfterBeanDiscovery discovery, BeanManager beanManager) {
-    registerVertxBeanIfNeeded(discovery, beanManager);
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})

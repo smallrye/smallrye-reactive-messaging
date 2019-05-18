@@ -41,7 +41,11 @@ public class KafkaTestBase {
 
   @AfterClass
   public static void afterClass() {
-    kafka.shutdown();
+    try {
+      kafka.shutdown();
+    } catch (Exception e) {
+      // Ignore it.
+    }
   }
 
   @Before
@@ -56,7 +60,11 @@ public class KafkaTestBase {
 
 
   public void restart(int i) throws IOException, InterruptedException {
-    kafka.shutdown();
+    try {
+      kafka.shutdown();
+    } catch (Exception e) {
+      // Ignore me.
+    }
     Thread.sleep(i * 1000);
     kafka.startup();
   }

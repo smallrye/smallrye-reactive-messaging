@@ -214,6 +214,7 @@ public class EventBusSinkTest extends EventbusTestBase {
   public void testABeanProducingMessagesSentToEventBus() {
     Weld weld = baseWeld();
     weld.addBeanClass(ProducingBean.class);
+    weld.addBeanClass(VertxProducer.class);
     container = weld.initialize();
     ProducingBean bean = container.getBeanManager().createInstance().select(ProducingBean.class).get();
 

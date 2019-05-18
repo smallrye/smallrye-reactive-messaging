@@ -151,6 +151,7 @@ public class EventBusSourceTest extends EventbusTestBase {
   private ConsumptionBean deploy() {
     Weld weld = baseWeld();
     weld.addBeanClass(ConsumptionBean.class);
+    weld.addBeanClass(VertxProducer.class);
     container = weld.initialize();
     return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
   }

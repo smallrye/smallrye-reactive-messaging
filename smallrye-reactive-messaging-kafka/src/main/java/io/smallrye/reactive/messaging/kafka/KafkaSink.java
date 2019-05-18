@@ -26,8 +26,7 @@ class KafkaSink {
   private final SubscriberBuilder<? extends Message, Void> subscriber;
 
   KafkaSink(Vertx vertx, Config config) {
-    ConfigurationHelper helper = ConfigurationHelper.create(config);
-    JsonObject entries = helper.asJsonObject();
+    JsonObject entries = JsonHelper.asJsonObject(config);
 
     // Acks must be a string, even when "1".
     if (entries.containsKey("acks")) {

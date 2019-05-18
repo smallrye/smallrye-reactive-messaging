@@ -28,7 +28,7 @@ class HttpSink {
   private final SubscriberBuilder<? extends Message, Void> subscriber;
 
   HttpSink(Vertx vertx, Config config) {
-    WebClientOptions options = new WebClientOptions(ConfigurationHelper.create(config).asJsonObject());
+    WebClientOptions options = new WebClientOptions(JsonHelper.asJsonObject(config));
     url = config.getOptionalValue("url", String.class).orElseThrow(() -> new IllegalArgumentException("The `url` must be set"));
     client = WebClient.create(vertx, options);
     converterClass = config.getOptionalValue("converter", String.class).orElse(null);

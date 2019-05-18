@@ -42,6 +42,7 @@ public class AmqpSourceTest extends AmqpTestBase {
   public void cleanup() {
     if (provider != null) {
       provider.close();
+      provider.terminate(null);
     }
 
     if (container != null) {
@@ -56,7 +57,8 @@ public class AmqpSourceTest extends AmqpTestBase {
     config.put("ttl", 10000);
     config.put("durable", false);
 
-    provider = new AmqpMessagingProvider(vertx);
+    provider = new AmqpMessagingProvider();
+    provider.init();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
     List<Message> messages = new ArrayList<>();
@@ -119,10 +121,10 @@ public class AmqpSourceTest extends AmqpTestBase {
     config.put("username", "artemis");
     config.put("password", new String("simetraehcapa".getBytes()));
 
-    provider = new AmqpMessagingProvider(vertx);
+    provider = new AmqpMessagingProvider();
+    provider.init();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
     Publisher<? extends Message> rs = builder.buildRs();
-    System.out.println(rs);
     List<Message> messages1 = new ArrayList<>();
     List<Message> messages2 = new ArrayList<>();
 
@@ -176,7 +178,8 @@ public class AmqpSourceTest extends AmqpTestBase {
   public void testSourceWithBinaryContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
-    provider = new AmqpMessagingProvider(vertx);
+    provider = new AmqpMessagingProvider();
+    provider.init();
 
     List<Message<byte[]>> messages = new ArrayList<>();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -199,7 +202,8 @@ public class AmqpSourceTest extends AmqpTestBase {
   public void testSourceWithJsonObjectContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
-    provider = new AmqpMessagingProvider(vertx);
+    provider = new AmqpMessagingProvider();
+    provider.init();
 
     List<Message<JsonObject>> messages = new ArrayList<>();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -225,7 +229,8 @@ public class AmqpSourceTest extends AmqpTestBase {
   public void testSourceWithListContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
-    provider = new AmqpMessagingProvider(vertx);
+    provider = new AmqpMessagingProvider();
+    provider.init();
 
     List<Message<JsonArray>> messages = new ArrayList<>();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -252,7 +257,8 @@ public class AmqpSourceTest extends AmqpTestBase {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
     List<Message<List<String>>> messages = new ArrayList<>();
-    provider = new AmqpMessagingProvider(vertx);
+    provider = new AmqpMessagingProvider();
+    provider.init();
 
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
     AtomicBoolean opened = new AtomicBoolean();
@@ -277,7 +283,8 @@ public class AmqpSourceTest extends AmqpTestBase {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
     List<Message<byte[]>> messages = new ArrayList<>();
-    provider = new AmqpMessagingProvider(vertx);
+    provider = new AmqpMessagingProvider();
+    provider.init();
 
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
     AtomicBoolean opened = new AtomicBoolean();

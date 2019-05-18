@@ -23,7 +23,6 @@ public class KafkaSource<K, V> {
   private final KafkaConsumer<K, V> consumer;
 
   KafkaSource(Vertx vertx, Config config) {
-    ConfigurationHelper conf = ConfigurationHelper.create(config);
     Map<String, String> kafkaConfiguration = new HashMap<>();
 
     String group = config.getOptionalValue("group.id", String.class).orElseGet(() -> {
@@ -32,7 +31,7 @@ public class KafkaSource<K, V> {
       return s;
     });
 
-    conf.asJsonObject().forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
+    JsonHelper.asJsonObject(config).forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
     kafkaConfiguration.put("group.id", group);
     this.consumer = KafkaConsumer.create(vertx, kafkaConfiguration);
     String topic = config.getOptionalValue("topic", String.class)

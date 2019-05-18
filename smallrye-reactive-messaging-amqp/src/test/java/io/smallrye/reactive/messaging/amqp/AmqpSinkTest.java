@@ -23,7 +23,7 @@ import static org.hamcrest.core.Is.is;
 
 public class AmqpSinkTest extends AmqpTestBase {
 
-  public static final String HELLO = "hello-";
+  private static final String HELLO = "hello-";
   private WeldContainer container;
   private AmqpMessagingProvider provider;
 
@@ -31,6 +31,7 @@ public class AmqpSinkTest extends AmqpTestBase {
   public void cleanup() {
     if (provider != null) {
       provider.close();
+      provider.terminate(null);
     }
 
     if (container != null) {
@@ -170,7 +171,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     config.put("username", "artemis");
     config.put("password", new String("simetraehcapa".getBytes()));
 
-    this.provider = new AmqpMessagingProvider(vertx);
+    this.provider = new AmqpMessagingProvider();
+    provider.init();
     return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
   }
 

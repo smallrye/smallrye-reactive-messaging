@@ -24,8 +24,12 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.BeforeDestroyed;
+import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.UUID;
@@ -36,24 +40,39 @@ import java.util.concurrent.atomic.AtomicReference;
 public class AmqpMessagingProvider implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmqpMessagingProvider.class);
-  private final Vertx vertx;
 
   private AmqpClient client;
 
-  AmqpMessagingProvider() {
-    this.vertx = null;
+  @Inject
+  private Instance<Vertx> instanceOfVertx;
+
+  private boolean internalVertxInstance = false;
+  private Vertx vertx;
+
+  public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    if (internalVertxInstance) {
+      vertx.close();
+    }
   }
 
-  @Inject
-  AmqpMessagingProvider(Vertx vertx) {
-    this.vertx = vertx;
+  @PostConstruct
+  void init() {
+    if (instanceOfVertx == null  || instanceOfVertx.isUnsatisfied()) {
+      internalVertxInstance = true;
+      this.vertx = Vertx.vertx();
+    } else {
+      this.vertx = instanceOfVertx.get();
+    }
+  }
+
+  AmqpMessagingProvider() {
+    this.vertx = null;
   }
 
   @Override
   public Class<? extends MessagingProvider> type() {
     return Amqp.class;
   }
-
 
   private synchronized AmqpClient getClient(Config config) {
     // TODO Should we support having a single client (1 host) or multiple clients.
@@ -83,8 +102,8 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
 
   private Flowable<? extends Message> getStreamOfMessages(AmqpReceiver receiver) {
     return Flowable.defer(
-        () -> Flowable.fromPublisher(receiver.toPublisher())
-      )
+      () -> Flowable.fromPublisher(receiver.toPublisher())
+    )
       .map((Function<io.vertx.axle.ext.amqp.AmqpMessage, AmqpMessage>) AmqpMessage::new);
   }
 
