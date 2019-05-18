@@ -80,6 +80,7 @@
     <module>examples/cloud-events</module>
 
     <module>examples/kafka-quickstart</module>
+    <module>examples/mqtt-quickstart</module>
   </modules>
 
   <dependencyManagement>

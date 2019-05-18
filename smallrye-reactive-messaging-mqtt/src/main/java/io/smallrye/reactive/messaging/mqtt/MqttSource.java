@@ -53,7 +53,7 @@ public class MqttSource {
           .flatMapObservable(a ->
             Observable.<MqttMessage>create(emitter -> {
               client.publishHandler(message -> {
-                emitter.onNext(new MqttMessage(message));
+                emitter.onNext(new ReceivingMqttMessage(message));
               });
               client.subscribe(topic, qos, done -> {
                 if (done.failed()) {

@@ -43,7 +43,7 @@ public class MqttTestBase {
   @After
   public void tearDown() {
     System.clearProperty("mqtt-host");
-    System.clearProperty("mqtt-posrt");
+    System.clearProperty("mqtt-post");
     vertx.close();
     usage.close();
   }
