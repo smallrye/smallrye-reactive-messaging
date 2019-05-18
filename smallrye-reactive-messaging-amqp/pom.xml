@@ -19,7 +19,7 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-axle-amqp-client</artifactId>
-      <version>0.0.5-SNAPSHOT</version>
+      <version>${axle.version}</version>
     </dependency>
 
     <dependency>
