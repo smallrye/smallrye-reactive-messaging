@@ -24,11 +24,11 @@ public class DynamicTopicProducingBean {
   @Incoming("data")
   @Outgoing("sink")
   @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
-  public MqttMessage process(Message<Integer> input) {
+  public MqttMessage<String> process(Message<Integer> input) {
     String topic = "T" + input.getPayload();
     topics.add(topic);
     System.out.println("Sending on topic: " + topic);
-    return MqttMessage.of( topic, input.getPayload().toString().getBytes(), MqttQoS.AT_LEAST_ONCE, false);
+    return MqttMessage.of( topic, input.getPayload().toString(), MqttQoS.AT_LEAST_ONCE, false);
   }
 
   @Outgoing("data")

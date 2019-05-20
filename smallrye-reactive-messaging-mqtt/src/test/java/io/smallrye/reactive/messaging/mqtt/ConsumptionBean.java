@@ -19,7 +19,7 @@ public class ConsumptionBean {
 
   @Incoming("data")
   @Outgoing("sink")
-  public Message<Integer> process(MqttMessage input) {
+  public Message<Integer> process(MqttMessage<byte[]> input) {
     String s = new String(input.getPayload());
     return Message.of(Integer.valueOf(s) + 1);
   }
