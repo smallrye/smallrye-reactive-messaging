@@ -9,7 +9,7 @@
   </parent>
 
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging</artifactId>
+  <artifactId>smallrye-reactive-messaging-1.0</artifactId>
   <version>0.0.10-SNAPSHOT</version>
   <packaging>pom</packaging>
 
@@ -61,6 +61,8 @@
 
     <asciidoctorj.version>1.5.8.1</asciidoctorj.version>
 
+    <!-- Used by release plugin to define git tag -->
+    <tagNameFormat>smallrye-reactive-messaging-1.0-@{project.version}</tagNameFormat>
   </properties>
 
   <modules>
@@ -287,6 +289,18 @@
         </plugins>
         <defaultGoal>generate-resources asciidoctor:process-asciidoc</defaultGoal>
       </build>
+    </profile>
+
+    <profile>
+      <id>release</id>
+      <activation>
+        <property>
+          <name>!release.maven.bug.always.be.active</name>
+        </property>
+      </activation>
+      <modules>
+        <module>release</module>
+      </modules>
     </profile>
   </profiles>
 </project>

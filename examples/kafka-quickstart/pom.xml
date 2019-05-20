@@ -4,7 +4,7 @@
 
   <parent>
     <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging</artifactId>
+    <artifactId>smallrye-reactive-messaging-1.0</artifactId>
     <version>0.0.10-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
@@ -15,8 +15,6 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <weld-core.version>3.1.1.Final</weld-core.version>
-
-    <maven.deploy.skip>true</maven.deploy.skip>
 
     <mainClass>acme.Main</mainClass>
   </properties>
@@ -35,12 +33,12 @@
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider</artifactId>
+      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
       <version>0.0.10-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-kafka</artifactId>
+      <artifactId>smallrye-reactive-messaging-kafka-1.0</artifactId>
       <version>0.0.10-SNAPSHOT</version>
       <exclusions>
         <exclusion>
@@ -97,6 +95,21 @@
         </executions>
         <configuration>
           <mainClass>${mainClass}</mainClass>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <configuration>
+          <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
         </configuration>
       </plugin>
     </plugins>
