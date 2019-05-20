@@ -5,7 +5,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>reactive-messaging-quickstart</artifactId>
-  <version>0.0.9-SNAPSHOT</version>
+  <version>0.0.9</version>
 
 
   <properties>
@@ -21,7 +21,7 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.9</version>
     </dependency>
 
     <dependency>
