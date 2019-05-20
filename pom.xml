@@ -10,7 +10,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
-  <version>0.0.9</version>
+  <version>0.0.10-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>MicroProfile Reactive Streams Messaging Implementation</name>
@@ -44,7 +44,7 @@
     <connection>scm:git:git@github.com:smallrye/smallrye-reactive-messaging.git</connection>
     <developerConnection>scm:git:git@github.com:smallrye/smallrye-reactive-messaging.git</developerConnection>
     <url>https://github.com/smallrye/smallrye-reactive-messaging</url>
-    <tag>smallrye-reactive-messaging-0.0.9</tag>
+    <tag>HEAD</tag>
   </scm>
 
 
