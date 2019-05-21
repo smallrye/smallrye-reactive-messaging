@@ -4,7 +4,7 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.reactivex.mqtt.messages.MqttPublishMessage;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-public class ReceivingMqttMessage implements MqttMessage {
+public class ReceivingMqttMessage implements MqttMessage<byte []> {
   final MqttPublishMessage message;
 
   ReceivingMqttMessage( MqttPublishMessage message ) {

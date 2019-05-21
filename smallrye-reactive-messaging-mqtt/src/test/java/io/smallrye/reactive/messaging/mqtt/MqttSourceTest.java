@@ -47,7 +47,7 @@ public class MqttSourceTest extends MqttTestBase {
     ).start();
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-    assertThat(messages.stream().map(MqttMessage::getPayload)
+    assertThat(messages.stream().map(MqttMessage<byte[]>::getPayload)
       .map(bytes -> Integer.valueOf(new String(bytes)))
       .collect(Collectors.toList()))
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -79,12 +79,12 @@ public class MqttSourceTest extends MqttTestBase {
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
-    assertThat(messages1.stream().map(MqttMessage::getPayload)
+    assertThat(messages1.stream().map(MqttMessage<byte[]>::getPayload)
       .map(bytes -> Integer.valueOf(new String(bytes)))
       .collect(Collectors.toList()))
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-    assertThat(messages2.stream().map(MqttMessage::getPayload)
+    assertThat(messages2.stream().map(MqttMessage<byte[]>::getPayload)
       .map(bytes -> Integer.valueOf(new String(bytes)))
       .collect(Collectors.toList()))
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);

@@ -1,30 +1,19 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
+import io.smallrye.reactive.messaging.extension.MediatorManager;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
-import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class SecureMqttSourceTest extends SecureMqttTestBase {
 
@@ -59,7 +48,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         counter::getAndIncrement)).start();
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-    assertThat(messages.stream().map(MqttMessage::getPayload)
+    assertThat(messages.stream().map(MqttMessage<byte[]>::getPayload)
       .map(bytes -> Integer.valueOf(new String(bytes)))
       .collect(Collectors.toList()))
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);

@@ -10,7 +10,7 @@ import java.util.concurrent.CompletionStage;
 public class Receiver {
 
   @Incoming("my-topic")
-  public CompletionStage<Void> consume(MqttMessage message) {
+  public CompletionStage<Void> consume(MqttMessage<byte[]> message) {
     String payload = new String(message.getPayload());
     System.out.println("received: " + payload + " from topic " + message.getTopic());
     return message.ack();

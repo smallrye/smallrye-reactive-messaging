@@ -17,7 +17,7 @@ public class Sender {
     CompletableFuture<MqttMessage> future = new CompletableFuture<>();
     delay(() -> {
       System.out.println("Sending message on dynamic topic: hello");
-      future.complete(MqttMessage.of("mqtt-" + LocalDate.now().toString(), "hello from dynamic topic".getBytes(), null, true));
+      future.complete(MqttMessage.of("mqtt-" + LocalDate.now().toString(), "hello from dynamic topic", null, true));
     });
     return future;
   }

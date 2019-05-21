@@ -2,22 +2,21 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 
-public final class SendingMqttMessage implements MqttMessage {
+public final class SendingMqttMessage<T> implements MqttMessage<T> {
 
   private final String topic;
-  private final byte[] payload;
+  private final T payload;
   private final MqttQoS qos;
   private final boolean isRetain;
 
-  SendingMqttMessage(String topic, byte[] payload, MqttQoS qos, boolean isRetain) {
+  SendingMqttMessage(String topic, T payload, MqttQoS qos, boolean isRetain) {
     this.topic = topic;
     this.payload = payload;
     this.qos = qos;
     this.isRetain = isRetain;
   }
 
-  @Override
-  public byte[] getPayload() {
+  public T getPayload() {
     return payload;
   }
 
