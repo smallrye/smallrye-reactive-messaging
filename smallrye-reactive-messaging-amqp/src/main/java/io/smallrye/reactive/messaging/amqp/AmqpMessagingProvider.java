@@ -165,7 +165,7 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
     } else {
       amqp = convertToAmqpMessage(msg.getPayload(), durable, ttl);
     }
-    return sender.sendWithAck(amqp).thenApply(x -> msg);
+    return sender.sendWithAck(amqp).thenCompose(x -> msg.ack()).thenApply(x -> msg);
   }
 
   private io.vertx.axle.ext.amqp.AmqpMessage convertToAmqpMessage(Object payload, boolean durable, long ttl) {

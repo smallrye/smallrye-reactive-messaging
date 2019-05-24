@@ -7,6 +7,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
 import org.apache.camel.component.reactive.streams.engine.DefaultCamelReactiveStreamsServiceFactory;
 import org.apache.camel.component.reactive.streams.engine.ReactiveStreamsEngineConfiguration;
+import org.apache.camel.spi.Synchronization;
 import org.apache.camel.support.DefaultExchange;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -117,6 +118,17 @@ public class CamelMessagingProvider implements IncomingConnectorFactory, Outgoin
     }
     Exchange exchange = new DefaultExchange(camel);
     exchange.getIn().setBody(message.getPayload());
+    exchange.addOnCompletion(new Synchronization() {
+      @Override
+      public void onComplete(Exchange exchange) {
+        message.ack();
+      }
+
+      @Override
+      public void onFailure(Exchange exchange) {
+        LOGGER.error("Exchange failed");
+      }
+    });
     return exchange;
   }
 }

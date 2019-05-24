@@ -66,6 +66,11 @@ public class HttpSource {
     HttpMessage.HttpMessageBuilder<byte[]> builder = HttpMessage.HttpMessageBuilder.create();
     builder.withMethod(request.method().name());
     builder.withUrl(request.path());
+    builder.withAck(() -> {
+      // Send the response when the message has been acked.
+      request.response().setStatusCode(202).end();
+      return CompletableFuture.completedFuture(null);
+    });
     MultiMap params = request.params();
     params.names().forEach(name -> builder.withQueryParameter(name, params.getAll(name)));
     MultiMap headers = request.headers();
@@ -82,7 +87,6 @@ public class HttpSource {
       builder.withPayload(new byte[0]); // Empty.
       future.complete(builder.build());
     }
-    request.response().setStatusCode(202).end();
     return future;
   }
 

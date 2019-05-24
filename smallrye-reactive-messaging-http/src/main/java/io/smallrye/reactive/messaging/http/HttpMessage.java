@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 public class HttpMessage<T> implements Message<T> {
 
@@ -16,6 +19,7 @@ public class HttpMessage<T> implements Message<T> {
   private final Map<String, List<String>> headers;
   private final Map<String, List<String>> query;
   private final String url;
+  private final Supplier<CompletionStage<Void>> ack;
 
   private HttpMessage(String method, String url, T payload, Map<String, List<String>> query, Map<String, List<String>> headers) {
     this.payload = payload;
@@ -23,6 +27,17 @@ public class HttpMessage<T> implements Message<T> {
     this.headers = headers;
     this.query = query;
     this.url = url;
+    this.ack = () -> CompletableFuture.completedFuture(null);
+  }
+
+  public HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
+                         Map<String, List<String>> headers, Supplier<CompletionStage<Void>> ack) {
+    this.payload = payload;
+    this.method = method;
+    this.headers = headers;
+    this.query = query;
+    this.url = url;
+    this.ack = ack;
   }
 
   @Override
@@ -32,6 +47,11 @@ public class HttpMessage<T> implements Message<T> {
 
   public String getMethod() {
     return method;
+  }
+
+  @Override
+  public CompletionStage<Void> ack() {
+    return ack.get();
   }
 
   public Map<String, List<String>> getHeaders() {
@@ -52,6 +72,7 @@ public class HttpMessage<T> implements Message<T> {
     private Map<String, List<String>> headers;
     private Map<String, List<String>> query;
     private String url;
+    private Supplier<CompletionStage<Void>> ack = () -> CompletableFuture.completedFuture(null);
 
     private HttpMessageBuilder() {
       headers = new HashMap<>();
@@ -107,8 +128,13 @@ public class HttpMessage<T> implements Message<T> {
       return this;
     }
 
+    public HttpMessageBuilder<T> withAck(Supplier<CompletionStage<Void>> ack) {
+      this.ack = ack;
+      return this;
+    }
+
     public HttpMessage<T> build() {
-      return new HttpMessage<>(method, url, payload, query, headers);
+      return new HttpMessage<>(method, url, payload, query, headers, ack);
     }
   }
 }

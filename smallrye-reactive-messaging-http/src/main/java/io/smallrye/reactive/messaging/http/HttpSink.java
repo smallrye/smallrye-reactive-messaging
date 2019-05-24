@@ -34,7 +34,7 @@ class HttpSink {
     converterClass = config.getOptionalValue("converter", String.class).orElse(null);
 
     subscriber = ReactiveStreams.<Message>builder()
-      .flatMapCompletionStage(m -> send(m).thenApply(v -> m))
+      .flatMapCompletionStage(m -> send(m).thenCompose(v -> m.ack()).thenApply(v -> m))
       .ignore();
   }
 
@@ -43,12 +43,14 @@ class HttpSink {
       Serializer<Object> serializer = Serializer.lookup(message.getPayload(), converterClass);
       HttpRequest request = toRequest((HttpMessage) message);
       return serializer.convert(message.getPayload())
-        .thenCompose(buffer -> invoke(request, buffer));
+        .thenCompose(buffer -> invoke(request, buffer))
+        .thenCompose(x -> message.ack());
     } else {
       Object payload = message.getPayload();
       Serializer<Object> serializer = Serializer.lookup(payload, converterClass);
       return serializer.convert(payload)
-        .thenCompose(this::invoke);
+        .thenCompose(this::invoke)
+        .thenCompose(x -> message.ack());
     }
   }
 

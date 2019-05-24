@@ -42,7 +42,7 @@ class KafkaSink {
       LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
     }
 
-    subscriber = ReactiveStreams.<Message>builder()
+    subscriber = ReactiveStreams.<Message<?>>builder()
       .flatMapCompletionStage(message -> {
         try {
           ProducerRecord record;
@@ -51,7 +51,7 @@ class KafkaSink {
 
             if (this.topic == null && km.getTopic() == null) {
               LOGGER.error("Ignoring message - no topic set");
-              return CompletableFuture.completedFuture(null);
+              return CompletableFuture.completedFuture(message);
             }
 
             Integer actualPartition = null;
@@ -74,7 +74,7 @@ class KafkaSink {
           } else {
             if (this.topic == null) {
               LOGGER.error("Ignoring message - no topic set");
-              return CompletableFuture.completedFuture(null);
+              return CompletableFuture.completedFuture(message);
             }
             if (partition == -1) {
               record = new ProducerRecord<>(topic, null, null, key, message.getPayload());
@@ -84,11 +84,11 @@ class KafkaSink {
             }
           }
 
-          CompletableFuture<RecordMetadata> future = new CompletableFuture<>();
+          CompletableFuture<Message> future = new CompletableFuture<>();
           Handler<AsyncResult<RecordMetadata>> handler = ar -> {
             if (ar.succeeded()) {
               LOGGER.info("Message {} sent successfully to Kafka topic {}", message, record.topic());
-              future.complete(ar.result());
+              future.complete(message);
             } else {
               LOGGER.error("Message {} was not sent to Kafka topic {}", message, record.topic(), ar.cause());
               future.completeExceptionally(ar.cause());
@@ -97,12 +97,14 @@ class KafkaSink {
 
           LOGGER.debug("Using stream {} to write the record {}", stream, record);
           stream.write(record, handler);
-          return future;
+          return future.thenCompose(x -> message.ack()).thenApply(x -> message);
         } catch (RuntimeException e) {
           LOGGER.error("Unable to send a record to Kafka ", e);
           return CompletableFuture.completedFuture(message);
         }
-      }).ignore();
+      })
+      .onError(t -> LOGGER.error("Unable to dispatch message to Kafka", t))
+      .ignore();
 
   }
 
