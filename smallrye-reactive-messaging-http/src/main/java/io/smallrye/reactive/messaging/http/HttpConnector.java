@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.http;
 
-import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
-import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
@@ -17,8 +17,10 @@ import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 @ApplicationScoped
-public class HttpMessagingProvider implements IncomingConnectorFactory, OutgoingConnectorFactory {
+@Connector(HttpConnector.CONNECTOR_NAME)
+public class HttpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
+  public static final String CONNECTOR_NAME = "smallrye-http";
   @Inject
   private Instance<Vertx> instanceOfVertx;
 
@@ -39,11 +41,6 @@ public class HttpMessagingProvider implements IncomingConnectorFactory, Outgoing
     } else {
       this.vertx = instanceOfVertx.get();
     }
-  }
-
-  @Override
-  public Class<? extends MessagingProvider> type() {
-    return Http.class;
   }
 
   @Override

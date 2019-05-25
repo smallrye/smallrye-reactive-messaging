@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.camel.source;
 
-import io.smallrye.reactive.messaging.camel.Camel;
+import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.CamelMessage;
 import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 import org.eclipse.microprofile.config.Config;
@@ -34,7 +34,7 @@ public class BeanWithCamelSourceUsingRegularEndpoint {
     String prefix = "mp.messaging.incoming.data.";
     Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "seda:out");
-    config.put(prefix + "type", Camel.class.getName());
+    config.put(prefix + "connector", CamelConnector.CONNECTOR_NAME);
     return new MapBasedConfig(config);
   }
 

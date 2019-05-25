@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.camel.sink;
 
-import io.smallrye.reactive.messaging.camel.Camel;
+import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -29,7 +29,7 @@ public class BeanWithCamelSinkUsingRegularEndpoint {
     String prefix = "mp.messaging.outgoing.data.";
     Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "file:./target?fileName=values.txt&fileExist=append");
-    config.put(prefix + "type", Camel.class.getName());
+    config.put(prefix + "connector", CamelConnector.CONNECTOR_NAME);
     return new MapBasedConfig(config);
   }
 

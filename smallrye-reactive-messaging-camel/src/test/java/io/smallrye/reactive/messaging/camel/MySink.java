@@ -24,8 +24,8 @@ public class MySink {
   public Config myConfig() {
     String prefix = "smallrye.messaging.source.data.";
     Map<String, Object> config = new HashMap<>();
-    config.putIfAbsent(prefix +  "name", "foo-out");
-    config.put(prefix + "type", Camel.class.getName());
+    config.putIfAbsent(prefix + "name", "foo-out");
+    config.put(prefix + "connector", CamelConnector.CONNECTOR_NAME);
     return new MapBasedConfig(config);
   }
 

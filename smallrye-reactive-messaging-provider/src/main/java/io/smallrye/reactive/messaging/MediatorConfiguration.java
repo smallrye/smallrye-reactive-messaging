@@ -503,20 +503,6 @@ public class MediatorConfiguration {
     return incoming.value();
   }
 
-  public String getIncomingProviderType() {
-    if (incoming == null) {
-      return null;
-    }
-    return incoming.provider().getName();
-  }
-
-  public String getOutgoingProviderType() {
-    if (outgoing == null) {
-      return null;
-    }
-    return outgoing.provider().getName();
-  }
-
   public String methodAsString() {
     return mediatorBean.getBeanClass().getName() + "#" + method.getName();
   }

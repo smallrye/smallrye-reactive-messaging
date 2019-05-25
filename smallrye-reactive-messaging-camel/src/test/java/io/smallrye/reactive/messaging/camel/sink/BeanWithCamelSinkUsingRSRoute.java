@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.camel.sink;
 
-import io.smallrye.reactive.messaging.camel.Camel;
+import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 import org.apache.camel.builder.RouteBuilder;
 import org.eclipse.microprofile.config.Config;
@@ -30,7 +30,7 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
     String prefix = "mp.messaging.outgoing.data.";
     Map<String, Object> config = new HashMap<>();
     config.putIfAbsent(prefix +  "endpoint-uri", "reactive-streams:in");
-    config.put(prefix + "type", Camel.class.getName());
+    config.put(prefix + "connector", CamelConnector.CONNECTOR_NAME);
     return new MapBasedConfig(config);
   }
 

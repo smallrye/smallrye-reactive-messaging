@@ -34,7 +34,7 @@ public class ConsumptionBean {
     String prefix = "mp.messaging.incoming.data.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "topic", "data");
-    config.put(prefix + "type", Mqtt.class.getName());
+    config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
     config.put(prefix + "host", System.getProperty("mqtt-host"));
     config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
     if (System.getProperty("mqtt-user") != null) {

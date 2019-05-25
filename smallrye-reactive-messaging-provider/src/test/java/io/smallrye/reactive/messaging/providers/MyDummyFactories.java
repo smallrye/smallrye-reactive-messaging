@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.providers;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
-import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -13,17 +13,12 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import javax.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @ApplicationScoped
+@Connector("dummy")
 public class MyDummyFactories implements IncomingConnectorFactory, OutgoingConnectorFactory {
   private final List<String> list = new ArrayList<>();
   private boolean completed = false;
-
-  @Override
-  public Class<? extends MessagingProvider> type() {
-    return Dummy.class;
-  }
 
   public void reset() {
     list.clear();

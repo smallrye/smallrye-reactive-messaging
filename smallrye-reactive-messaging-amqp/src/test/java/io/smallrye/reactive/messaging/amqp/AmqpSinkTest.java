@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import io.reactivex.Flowable;
-import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
@@ -25,7 +24,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
   private static final String HELLO = "hello-";
   private WeldContainer container;
-  private AmqpMessagingProvider provider;
+  private AmqpConnector provider;
 
   @After
   public void cleanup() {
@@ -86,7 +85,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     usage.consumeIntegers("sink",
       v -> latch.countDown());
 
-    weld.addBeanClass(AmqpMessagingProvider.class);
+    weld.addBeanClass(AmqpConnector.class);
     weld.addBeanClass(ProducingBean.class);
 
     container = weld.initialize();
@@ -171,7 +170,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     config.put("username", "artemis");
     config.put("password", new String("simetraehcapa".getBytes()));
 
-    this.provider = new AmqpMessagingProvider();
+    this.provider = new AmqpConnector();
     provider.init();
     return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
   }

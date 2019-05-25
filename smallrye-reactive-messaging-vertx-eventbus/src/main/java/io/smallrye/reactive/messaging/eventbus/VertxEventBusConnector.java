@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.eventbus;
 
-import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
-import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
@@ -17,10 +17,13 @@ import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 @ApplicationScoped
-public class VertxEventBusMessagingProvider implements OutgoingConnectorFactory, IncomingConnectorFactory {
+@Connector(VertxEventBusConnector.CONNECTOR_NAME)
+public class VertxEventBusConnector implements OutgoingConnectorFactory, IncomingConnectorFactory {
+
+  static final String CONNECTOR_NAME = "smallrye.vertx.eventbus";
 
   @Inject
-  private Instance<Vertx> instanceOfVertx;
+  Instance<Vertx> instanceOfVertx;
 
   private boolean internalVertxInstance = false;
   private Vertx vertx;
@@ -50,11 +53,6 @@ public class VertxEventBusMessagingProvider implements OutgoingConnectorFactory,
   @Override
   public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
     return new EventBusSink(vertx, config).sink();
-  }
-
-  @Override
-  public Class<? extends MessagingProvider> type() {
-    return VertxEventBus.class;
   }
 
 }

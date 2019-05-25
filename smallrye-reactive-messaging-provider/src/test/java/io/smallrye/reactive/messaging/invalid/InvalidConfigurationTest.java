@@ -59,7 +59,7 @@ public class InvalidConfigurationTest extends WeldTestBaseWithoutTails {
   @ApplicationScoped
   public static class BeanWithEmptyOutgoing {
 
-    @Outgoing
+    @Outgoing("")
     public PublisherBuilder<String> source() {
       return ReactiveStreams.of("a", "b", "c");
     }
@@ -68,7 +68,7 @@ public class InvalidConfigurationTest extends WeldTestBaseWithoutTails {
   @ApplicationScoped
   public static class BeanWithEmptyIncoming {
 
-    @Incoming
+    @Incoming("")
     public void source(String x) {
       // Do nothing.
     }

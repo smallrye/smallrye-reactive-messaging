@@ -33,7 +33,7 @@ public class ProducingBean {
     String prefix = "mp.messaging.outgoing.sink.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "topic", "sink");
-    config.put(prefix + "type", Mqtt.class.getName());
+    config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
     config.put(prefix + "host", System.getProperty("mqtt-host"));
     config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
     if (System.getProperty("mqtt-user") != null) {

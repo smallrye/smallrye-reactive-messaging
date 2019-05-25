@@ -12,7 +12,7 @@ public class HttpConnectorConfig implements Config {
   public HttpConnectorConfig(String name, String type, String url) {
     map = new HashMap<>();
     prefix = "mp.messaging." + type + "." + name + ".";
-    map.put(prefix + "type", Http.class.getName());
+    map.put(prefix + "connector", HttpConnector.CONNECTOR_NAME);
     if (url != null) {
       map.put(prefix + "url", url);
     }
@@ -21,7 +21,7 @@ public class HttpConnectorConfig implements Config {
   public HttpConnectorConfig(String name, Map<String, Object> conf) {
     prefix = "mp.messaging.outgoing." + name + ".";
     this.map = conf;
-    conf.put(prefix + "type", Http.class.getName());
+    map.put(prefix + "connector", HttpConnector.CONNECTOR_NAME);
   }
 
   @Override

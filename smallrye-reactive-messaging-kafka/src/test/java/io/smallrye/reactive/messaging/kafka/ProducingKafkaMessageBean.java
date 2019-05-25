@@ -41,7 +41,7 @@ public class ProducingKafkaMessageBean {
   public Config myKafkaSinkConfig() {
     String prefix = "mp.messaging.outgoing.output-2.";
     Map<String, Object> config = new HashMap<>();
-    config.put(prefix + "type", Kafka.class.getName());
+    config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
     config.put(prefix + "bootstrap.servers", "localhost:9092");
     config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
     config.put(prefix + "key.serializer", StringSerializer.class.getName());

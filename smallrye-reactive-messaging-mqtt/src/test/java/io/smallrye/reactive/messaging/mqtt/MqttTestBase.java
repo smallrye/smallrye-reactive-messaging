@@ -58,7 +58,7 @@ public class MqttTestBase {
     weld.addBeanClass(StreamFactoryImpl.class);
     weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addExtension(new ReactiveMessagingExtension());
-    weld.addBeanClass(MqttMessagingProvider.class);
+    weld.addBeanClass(MqttConnector.class);
     return weld;
   }
 

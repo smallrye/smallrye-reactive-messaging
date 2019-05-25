@@ -1,11 +1,13 @@
 package io.smallrye.reactive.messaging.providers;
 
 import io.smallrye.reactive.messaging.WeldTestBase;
+import io.smallrye.reactive.messaging.spi.ConnectorLiteral;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConfiguredSourceAndSinkTest extends WeldTestBase {
+public class ConnectorFactoryRegistrationTest extends WeldTestBase {
 
   @Test
   public void test() {
@@ -16,7 +18,7 @@ public class ConfiguredSourceAndSinkTest extends WeldTestBase {
     assertThat(registry(container).getPublishers("dummy-source")).isNotEmpty();
     assertThat(registry(container).getSubscribers("dummy-sink")).isNotEmpty();
 
-    MyDummyFactories bean = container.select(MyDummyFactories.class).get();
+    MyDummyFactories bean = container.select(MyDummyFactories.class, ConnectorLiteral.of("dummy")).get();
     assertThat(bean.list()).containsExactly("8", "10", "12");
     assertThat(bean.gotCompletion()).isTrue();
   }
@@ -30,7 +32,7 @@ public class ConfiguredSourceAndSinkTest extends WeldTestBase {
     assertThat(registry(container).getPublishers("legacy-dummy-source")).isNotEmpty();
     assertThat(registry(container).getSubscribers("legacy-dummy-sink")).isNotEmpty();
 
-    MyDummyFactories bean = container.select(MyDummyFactories.class).get();
+    MyDummyFactories bean = container.select(MyDummyFactories.class, ConnectorLiteral.of("dummy")).get();
     assertThat(bean.list()).containsExactly("8", "10", "12");
     assertThat(bean.gotCompletion()).isTrue();
   }

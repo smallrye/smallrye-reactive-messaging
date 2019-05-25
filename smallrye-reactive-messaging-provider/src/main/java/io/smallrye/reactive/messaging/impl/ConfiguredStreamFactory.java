@@ -2,10 +2,12 @@ package io.smallrye.reactive.messaging.impl;
 
 import io.smallrye.reactive.messaging.StreamRegistar;
 import io.smallrye.reactive.messaging.StreamRegistry;
-import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
-import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
+import io.smallrye.reactive.messaging.spi.ConnectorLiteral;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
@@ -14,11 +16,14 @@ import org.slf4j.LoggerFactory;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.BeanAttributes;
+import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -32,39 +37,51 @@ public class ConfiguredStreamFactory implements StreamRegistar {
   private static final String SINK_CONFIG_PREFIX = "mp.messaging.outgoing";
 
 
-  private final List<IncomingConnectorFactory> sourceFactories;
-  private final List<OutgoingConnectorFactory> sinkFactories;
-  private final Config config;
-  private final StreamRegistry registry;
+  private final Instance<IncomingConnectorFactory> incomingConnectorFactories;
+  private final Instance<OutgoingConnectorFactory> outgoingConnectorFactories;
+
+  protected final Config config;
+  protected final StreamRegistry registry;
 
   // CDI requirement for normal scoped beans
   ConfiguredStreamFactory() {
-    this.sourceFactories = null;
-    this.sinkFactories = null;
+    this.incomingConnectorFactories = null;
+    this.outgoingConnectorFactories = null;
     this.config = null;
     this.registry = null;
   }
 
   @Inject
-  public ConfiguredStreamFactory(@Any Instance<IncomingConnectorFactory> sourceFactories,
-                                 @Any Instance<OutgoingConnectorFactory> sinkFactories,
-                                 Instance<Config> config, @Any Instance<StreamRegistry> registry) {
+  public ConfiguredStreamFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
+                                 @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
+                                 Instance<Config> config, @Any Instance<StreamRegistry> registry,
+                                 BeanManager beanManager) {
 
     this.registry = registry.get();
     if (config.isUnsatisfied()) {
-      this.sourceFactories = Collections.emptyList();
-      this.sinkFactories = Collections.emptyList();
+      this.incomingConnectorFactories = null;
+      this.outgoingConnectorFactories = null;
       this.config = null;
     } else {
-      this.sourceFactories = sourceFactories.stream().collect(Collectors.toList());
-      this.sinkFactories = sinkFactories.stream().collect(Collectors.toList());
-      LOGGER.info("Found incoming connectors: {}", sourceFactories.stream().map(IncomingConnectorFactory::type).collect(Collectors.toList()));
-      LOGGER.info("Found outgoing connectors: {}", sinkFactories.stream().map(OutgoingConnectorFactory::type).collect(Collectors.toList()));
+      this.incomingConnectorFactories = incomingConnectorFactories;
+      this.outgoingConnectorFactories = outgoingConnectorFactories;
+      List<String> incomingConnectors = getConnectors(beanManager, IncomingConnectorFactory.class);
+      List<String> outgoingConnectors = getConnectors(beanManager, OutgoingConnectorFactory.class);
+      LOGGER.info("Found incoming connectors: {}", incomingConnectors);
+      LOGGER.info("Found outgoing connectors: {}", outgoingConnectors);
       //TODO Should we try to merge all the config?
       // For now take the first one.
       this.config = config.stream().findFirst()
         .orElseThrow(() -> new IllegalStateException("Unable to retrieve the config"));
     }
+  }
+
+  private List<String> getConnectors(BeanManager beanManager, Class<?> clazz) {
+    return beanManager.getBeans(clazz).stream()
+      .map(BeanAttributes::getQualifiers)
+      .flatMap(set -> set.stream().filter(a -> a.annotationType().equals(Connector.class)))
+      .map(annotation -> ((Connector) annotation).value())
+      .collect(Collectors.toList());
   }
 
   static Map<String, ConnectorConfig> extractConfigurationFor(String prefix, Config root) {
@@ -99,39 +116,50 @@ public class ConfiguredStreamFactory implements StreamRegistar {
     Map<String, ConnectorConfig> sourceConfiguration = extractConfigurationFor(SOURCE_CONFIG_PREFIX, config);
     Map<String, ConnectorConfig> sinkConfiguration = extractConfigurationFor(SINK_CONFIG_PREFIX, config);
 
+    register(sourceConfiguration, sinkConfiguration);
+  }
+
+  void register(Map<String, ConnectorConfig> sourceConfiguration, Map<String, ConnectorConfig> sinkConfiguration) {
     try {
       sourceConfiguration.forEach((name, conf) -> registry.register(name, createPublisherBuilder(name, conf)));
       sinkConfiguration.forEach((name, conf) -> registry.register(name, createSubscriberBuilder(name, conf)));
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       LOGGER.error("Unable to create the publisher or subscriber during initialization", e);
+      throw e;
+    }
+  }
+
+  private static Optional<String> getConnectorAttribute(Config config) {
+    Optional<String> optional = config.getOptionalValue("connector", String.class);
+    if (optional.isPresent()) {
+      return optional;
+    } else {
+      return config.getOptionalValue("type", String.class);
     }
   }
 
   private PublisherBuilder<? extends Message> createPublisherBuilder(String name, Config config) {
     // Extract the type and throw an exception if missing
-    String type = config.getOptionalValue("type", String.class)
-      .orElseThrow(() -> new IllegalArgumentException("Invalid source, no type for " + name));
+    String connector = getConnectorAttribute(config)
+      .orElseThrow(() -> new IllegalArgumentException("Invalid incoming configuration, " +
+        "no connector attribute for " + name));
 
     // Look for the factory and throw an exception if missing
-    IncomingConnectorFactory mySourceFactory = sourceFactories.stream().filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
-      .orElseThrow(() -> new IllegalArgumentException("Unknown source type for " + name + ", supported types are "
-        + sourceFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
-      );
+    IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
+      .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown connector for " + name + "."));
 
     return mySourceFactory.getPublisherBuilder(config);
   }
 
-
   private SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String name, Config config) {
     // Extract the type and throw an exception if missing
-    String type = config.getOptionalValue("type", String.class)
-      .orElseThrow(() -> new IllegalArgumentException("Invalid sink, no type for " + name));
+    String connector = getConnectorAttribute(config)
+      .orElseThrow(() -> new IllegalArgumentException("Invalid outgoing configuration, " +
+        "no connector attribute for " + name));
 
     // Look for the factory and throw an exception if missing
-    OutgoingConnectorFactory mySinkFactory = sinkFactories.stream().filter(factory -> factory.type().getName().equalsIgnoreCase(type)).findFirst()
-      .orElseThrow(() -> new IllegalArgumentException("Unknown sink type for " + name + ", supported types are "
-        + sinkFactories.stream().map(sf -> sf.type().getName()).collect(Collectors.toList()))
-      );
+    OutgoingConnectorFactory mySinkFactory = outgoingConnectorFactories.select(ConnectorLiteral.of(connector))
+      .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown connector for " + name + "."));
 
     return mySinkFactory.getSubscriberBuilder(config);
   }

@@ -21,7 +21,7 @@ To enable the AMQP support, you need the following dependency:
 [source]
 ----
 mp.messaging.incoming.data.address=data
-mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.amqp.Amqp
+mp.messaging.incoming.data.connector=smallrye-amqp
 mp.messaging.incoming.data.host=localhost
 mp.messaging.incoming.data.port=5672
 mp.messaging.incoming.data.username=username
@@ -42,7 +42,7 @@ Check the  https://vertx.io/docs/vertx-amqp-client/java/[documentation] of the c
 [source]
 ----
 mp.messaging.outgoing.data.address=data
-mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.amqp.Amqp
+mp.messaging.incoming.data.connector=smallrye-amqp
 mp.messaging.outgoing.data.host=localhost
 mp.messaging.outgoing.data.port=5672
 mp.messaging.outgoing.data.username=username

@@ -12,10 +12,11 @@ import java.util.stream.StreamSupport;
  */
 public class ConnectorConfig implements Config {
 
+  public static final String CHANNEL_NAME = "channel-name";
   private final String prefix;
   private final Config overall;
 
-  public static final Config EMPTY_CONFIG = new Config() {
+  static final Config EMPTY_CONFIG = new Config() {
 
     @Override
     public <T> T getValue(String propertyName, Class<T> propertyType) {
@@ -40,18 +41,19 @@ public class ConnectorConfig implements Config {
   private final String name;
   private final boolean injectNameProperty;
 
-  public ConnectorConfig(String prefix, Config overall, String name) {
+  ConnectorConfig(String prefix, Config overall, String channel) {
     this.prefix = Objects.requireNonNull(prefix, "the prefix must not be set");
     this.overall = Objects.requireNonNull(overall, "the config must not be set");
-    this.name = Objects.requireNonNull(name, "the name must be set");
+    this.name = Objects.requireNonNull(channel, "the channel name must be set");
     this.injectNameProperty =
       StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
         .noneMatch(s -> s.equalsIgnoreCase(prefix + ".name"));
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <T> T getValue(String propertyName, Class<T> propertyType) {
-    if ("name".equalsIgnoreCase(propertyName)  && injectNameProperty) {
+    if (CHANNEL_NAME.equalsIgnoreCase(propertyName)  && injectNameProperty) {
       return (T) name;
     }
     return overall.getValue(prefix + "." + propertyName, propertyType);
@@ -59,7 +61,7 @@ public class ConnectorConfig implements Config {
 
   @Override
   public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-    if ("name".equalsIgnoreCase(propertyName)  && injectNameProperty) {
+    if ("channel-name".equalsIgnoreCase(propertyName)  && injectNameProperty) {
       return Optional.of((T) name);
     }
     return overall.getOptionalValue(prefix + "." + propertyName, propertyType);
@@ -72,7 +74,7 @@ public class ConnectorConfig implements Config {
       .map(s -> s.substring((prefix + ".").length()))
       .collect(Collectors.toSet());
     if (injectNameProperty) {
-      strings.add("name");
+      strings.add("channel-name");
     }
     return strings;
   }

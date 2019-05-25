@@ -36,7 +36,7 @@ public class ConsumptionBean {
     String prefix = "mp.messaging.incoming.data.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "address", "data");
-    config.put(prefix + "type", Amqp.class.getName());
+    config.put(prefix + "connector", AmqpConnector.CONNECTOR_NAME);
     config.put(prefix + "host", System.getProperty("amqp-host"));
     config.put(prefix + "port", Integer.valueOf(System.getProperty("amqp-port")));
     if (System.getProperty("amqp-user") != null) {

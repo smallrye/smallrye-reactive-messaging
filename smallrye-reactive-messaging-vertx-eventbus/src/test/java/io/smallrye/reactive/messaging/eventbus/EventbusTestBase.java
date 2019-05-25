@@ -36,7 +36,7 @@ public class EventbusTestBase {
     weld.addBeanClass(StreamFactoryImpl.class);
     weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addExtension(new ReactiveMessagingExtension());
-    weld.addBeanClass(VertxEventBusMessagingProvider.class);
+    weld.addBeanClass(VertxEventBusConnector.class);
     weld.disableDiscovery();
     return weld;
   }

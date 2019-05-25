@@ -20,7 +20,7 @@ To enable the HTTP support, you need the following dependency:
 [source]
 ----
 mp.messaging.outgoing.data.url=http://localhost:8089
-mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.http.Http
+mp.messaging.outgoing.data.connector=smallrye-http
 ----
 
 Your method can also returns a `HttpMessage` to configure the _headers_, _query parameters_, the HTTP method (`POST`

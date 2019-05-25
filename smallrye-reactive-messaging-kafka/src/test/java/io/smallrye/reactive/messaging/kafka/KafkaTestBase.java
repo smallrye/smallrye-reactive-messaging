@@ -77,7 +77,7 @@ public class KafkaTestBase {
     weld.addBeanClass(StreamFactoryImpl.class);
     weld.addBeanClass(ConfiguredStreamFactory.class);
     weld.addExtension(new ReactiveMessagingExtension());
-    weld.addBeanClass(KafkaMessagingProvider.class);
+    weld.addBeanClass(KafkaConnector.class);
     weld.disableDiscovery();
     return weld;
   }

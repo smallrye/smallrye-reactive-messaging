@@ -7,7 +7,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
-import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -15,7 +14,6 @@ import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -34,7 +32,7 @@ import static org.awaitility.Awaitility.await;
 
 public class AmqpSourceTest extends AmqpTestBase {
 
-  private AmqpMessagingProvider provider;
+  private AmqpConnector provider;
 
   private WeldContainer container;
 
@@ -57,7 +55,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     config.put("ttl", 10000);
     config.put("durable", false);
 
-    provider = new AmqpMessagingProvider();
+    provider = new AmqpConnector();
     provider.init();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
@@ -121,7 +119,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     config.put("username", "artemis");
     config.put("password", new String("simetraehcapa".getBytes()));
 
-    provider = new AmqpMessagingProvider();
+    provider = new AmqpConnector();
     provider.init();
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
     Publisher<? extends Message> rs = builder.buildRs();
@@ -167,7 +165,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
   private ConsumptionBean deploy() {
     Weld weld = new Weld();
-    weld.addBeanClass(AmqpMessagingProvider.class);
+    weld.addBeanClass(AmqpConnector.class);
     weld.addBeanClass(ConsumptionBean.class);
     container = weld.initialize();
     await().until(() -> container.select(MediatorManager.class).get().isInitialized());
@@ -178,7 +176,7 @@ public class AmqpSourceTest extends AmqpTestBase {
   public void testSourceWithBinaryContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
-    provider = new AmqpMessagingProvider();
+    provider = new AmqpConnector();
     provider.init();
 
     List<Message<byte[]>> messages = new ArrayList<>();
@@ -202,7 +200,7 @@ public class AmqpSourceTest extends AmqpTestBase {
   public void testSourceWithJsonObjectContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
-    provider = new AmqpMessagingProvider();
+    provider = new AmqpConnector();
     provider.init();
 
     List<Message<JsonObject>> messages = new ArrayList<>();
@@ -229,7 +227,7 @@ public class AmqpSourceTest extends AmqpTestBase {
   public void testSourceWithListContent() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
-    provider = new AmqpMessagingProvider();
+    provider = new AmqpConnector();
     provider.init();
 
     List<Message<JsonArray>> messages = new ArrayList<>();
@@ -257,7 +255,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
     List<Message<List<String>>> messages = new ArrayList<>();
-    provider = new AmqpMessagingProvider();
+    provider = new AmqpConnector();
     provider.init();
 
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -283,7 +281,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = getConfig(topic);
     List<Message<byte[]>> messages = new ArrayList<>();
-    provider = new AmqpMessagingProvider();
+    provider = new AmqpConnector();
     provider.init();
 
     PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));

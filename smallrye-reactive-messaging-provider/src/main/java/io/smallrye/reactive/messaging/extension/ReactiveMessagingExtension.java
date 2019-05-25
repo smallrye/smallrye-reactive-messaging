@@ -82,7 +82,7 @@ public class ReactiveMessagingExtension implements Extension {
       for (InjectionPoint ip : streamInjectionPoints) {
         String name = StreamProducer.getStreamName(ip);
         if (!names.contains(name)) {
-          done.addDeploymentProblem(new DeploymentException("No stream found for name: " + name + ", injection point: " + ip));
+          done.addDeploymentProblem(new DeploymentException("No channel found for name: " + name + ", injection point: " + ip));
         }
         // TODO validate the required type
       }
@@ -92,13 +92,18 @@ public class ReactiveMessagingExtension implements Extension {
         String name = StreamProducer.getStreamName(ip);
         EmitterImpl<?> emitter = (EmitterImpl<?>) registry.getEmitter(name);
         if (!emitter.isConnected()) {
-          done.addDeploymentProblem(new DeploymentException("No stream found for name: " + name + ", injection point: " + ip));
+          done.addDeploymentProblem(new DeploymentException("No channel found for name: " + name + ", injection point: " + ip));
         }
         // TODO validate the required type
       }
 
     } catch (Exception e) {
-      done.addDeploymentProblem(e.getCause());
+      if (e.getCause() == null) {
+        done.addDeploymentProblem(e);
+      } else {
+        done.addDeploymentProblem(e.getCause());
+      }
+
     }
   }
 

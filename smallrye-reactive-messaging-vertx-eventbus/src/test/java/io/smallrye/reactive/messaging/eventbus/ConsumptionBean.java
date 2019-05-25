@@ -36,7 +36,7 @@ public class ConsumptionBean {
     String prefix = "mp.messaging.incoming.data.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "address", "data");
-    config.put(prefix + "type", VertxEventBus.class.getName());
+    config.put(prefix + "connector", VertxEventBusConnector.CONNECTOR_NAME);
     return new MapBasedConfig(config);
   }
 
@@ -54,4 +54,5 @@ public class ConsumptionBean {
         .produceIntegers("data", 10, true, null, counter::getAndIncrement))
       .start();
   }
+
 }

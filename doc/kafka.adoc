@@ -23,7 +23,7 @@ To retrieve messages from a Kafka topic, you need the following configuration:
 [source]
 ----
 # [Source - heartbeat] - Consume data from Kafka
-mp.messaging.incoming.kafka-heartbeat.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.incoming.kafka-heartbeat.connector=smallrye-kafka
 mp.messaging.incoming.kafka-heartbeat.topic=heartbeat
 mp.messaging.incoming.kafka-heartbeat.bootstrap.servers=localhost:9092
 mp.messaging.incoming.kafka-heartbeat.enable.auto.commit=false
@@ -33,7 +33,7 @@ mp.messaging.incoming.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.s
 # [/Source - heartbeat]
 ----
 
-The `type` attribute is required to indicate you are configuring the Kafka transport. Supported attributes are listed
+The `connector` attribute is required to indicate you are configuring the Kafka transport. Supported attributes are listed
 in the following table:
 
 |===
@@ -69,7 +69,7 @@ To send messages to a Kafka topic, you need the following configuration:
 [source]
 ----
 # [Sink - data] - Produce data to Kafka
-mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+mp.messaging.outgoing.data.connector=smallrye-kafka
 mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
 mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
 mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
@@ -77,7 +77,7 @@ mp.messaging.outgoing.data.acks=1
 # [/Sink - data]
 ----
 
-The `type` attribute is required to indicate you are configuring the Kafka transport. Supported attributes are listed
+The `connector` attribute is required to indicate you are configuring the Kafka transport. Supported attributes are listed
 in the following table:
 
 |===

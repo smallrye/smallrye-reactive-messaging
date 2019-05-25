@@ -33,7 +33,7 @@ public class ProducingBean {
     String prefix = "mp.messaging.outgoing.sink.";
     Map<String, Object> config = new HashMap<>();
     config.put(prefix + "address", "sink");
-    config.put(prefix + "type", Amqp.class.getName());
+    config.put(prefix + "connector", AmqpConnector.CONNECTOR_NAME);
     config.put(prefix + "host", System.getProperty("amqp-host"));
     config.put(prefix + "port", Integer.valueOf(System.getProperty("amqp-port")));
     config.put(prefix + "durable", true);

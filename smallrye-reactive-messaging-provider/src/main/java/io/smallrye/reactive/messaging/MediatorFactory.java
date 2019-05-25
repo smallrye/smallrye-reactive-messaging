@@ -6,10 +6,6 @@ import javax.inject.Inject;
 @ApplicationScoped
 public class MediatorFactory {
 
-  @Inject
-  StreamRegistry registry;
-
-
   public AbstractMediator create(MediatorConfiguration configuration) {
     switch (configuration.shape()) {
       case PROCESSOR: return new ProcessorMediator(configuration);

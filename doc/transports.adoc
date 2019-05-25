@@ -1,9 +1,11 @@
 == Connecting transports
 
-SmallRye Reactive Messaging supports various transport _protocols_. This section explains how you can configure these different
- extensions. Before listing the supported transports, we need to explain the configuration format. SmallRye Reactive Messaging uses
-MicorProfile Config as main configuration source. To enable the configuration, add an implementation of MicroProfile
-Config in your _classpath_. For instance, add the following dependency:
+SmallRye Reactive Messaging supports various transport _protocols_.
+This section explains how you can configure these different _connectors_.
+Before listing the supported transports, we need to explain the configuration format.
+SmallRye Reactive Messaging uses MicroProfile Config as main configuration source.
+To enable the configuration, add an implementation of MicroProfile Config in your _classpath_.
+For instance, add the following dependency:
 
 [source,xml,subs=attributes+]
 ----
@@ -18,50 +20,52 @@ Then create a _properties_ file in `src/main/resources/META-INF/microprofile-con
 
 [source]
 ----
-# Configure the dummy source and sink
-mp.messaging.incoming.dummy-source.type=io.smallrye.reactive.messaging.providers.Dummy
-mp.messaging.incoming.dummy-source.increment=3
-mp.messaging.outgoing.dummy-sink.type=io.smallrye.reactive.messaging.providers.Dummy
+# Configure two channels using a dummy connector
+mp.messaging.incoming.dummy-incoming-channel.connector=dummy
+mp.messaging.incoming.dummy-incoming-channel.attribute=value
+mp.messaging.outgoing.dummy-outgoing-channel.connector=dummy
+mp.messaging.outgoing.dummy-incoming-channel.attribute=value
 ----
 
-Each _source_ and _sink_ are configured individually in this file:
+Each channel (both incoming and outgoing) are configured individually in this file:
 
-* a `source` consumes data from a message broker or something producing data and can be seen as an `@Outgoing`;
-* a `sink` consumes data from the application and forward it to a message broker or something consuming data. It can be
- seen as an `@Incoming`
+* an `incoming` channel consumes data from a message broker or something producing data.
+ It can be connected to a method annotated with an `@Incoming` using the same channel name.
+* an `outgoing` consumes data from the application and forward it to a message broker or something consuming data.
+ It can be connected to a method annotated with an `@Outgoing` using the same channel name.
 
 The configuration format is the follow:
 
 [source]
 ----
-mp.messaging.[outgoing|incoming].[name].[attribute]=[value]
+mp.messaging.[outgoing|incoming].[channel-name].[attribute]=[value]
 ----
-1. the `[outgoing|incoming]` segment indicates if we are configuring a _source_ of messages (`incoming) or a a _sink_ of messages (`outgoing`)
-2. the `[name]` segment configures the name of the `source` or `sink`
-3. the `[attribute]` segment is the name of the attribute to configure. Most of the time the attributes are specific to
-the transport layer
+1. the `[outgoing|incoming]` segment indicates the direction of the channel
+2. the `[channel-name]` segment configures the name of the channel
+3. the `[attribute]` segment is the name of the attribute to configure.
+Most of the time the attributes are specific to the transport layer
 4. the `[value]` is the value
 
-All `sources` and `sinks` must declare the `type` attribute matching the type of transport (also named `MessagingProvider`).
+All `channels` must declare the `connector` attribute matching the name of the connector.
 
-Here is an example of a MQTT source (consuming data from a MQTT broker) and a Kafka sink (forwarding data to Kafka):
+Here is an example of a channel using a MQTT connector, consuming data from a MQTT broker, and a channel using a Kafka connector (forwarding data to Kafka):
 
 [source]
 ----
-# [Source - health] - Consume data from MQTT
+# [Channel - health] - Consume data from MQTT
 mp.messaging.incoming.health.topic=neo
-mp.messaging.incoming.health.type=io.smallrye.reactive.messaging.mqtt.Mqtt
+mp.messaging.incoming.health.connector=smallrye-mqtt
 mp.messaging.incoming.health.host=localhost
 mp.messaging.incoming.health.broadcast=true
-# [/Source - health]
+# [/Channel - health]
 
-# [Sink - data] - Produce data to Kafka
-mp.messaging.outgoing.data.type=io.smallrye.reactive.messaging.kafka.Kafka
+# [Channel - data] - Produce data to Kafka
+mp.messaging.outgoing.data.connector=smallrye-kafka
 mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
 mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
 mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
 mp.messaging.outgoing.data.acks=1
-# [/Sink - data]
+# [/Channel - data]
 ----
 
 

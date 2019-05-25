@@ -3,8 +3,6 @@ package io.smallrye.reactive.messaging.amqp;
 import io.reactivex.Flowable;
 import io.reactivex.functions.Function;
 import io.reactivex.processors.MulticastProcessor;
-import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
-import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
 import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.axle.ext.amqp.AmqpClient;
 import io.vertx.axle.ext.amqp.AmqpMessageBuilder;
@@ -17,7 +15,9 @@ import io.vertx.ext.amqp.AmqpReceiverOptions;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -37,9 +37,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ApplicationScoped
-public class AmqpMessagingProvider implements IncomingConnectorFactory, OutgoingConnectorFactory {
+@Connector(AmqpConnector.CONNECTOR_NAME)
+public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AmqpMessagingProvider.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnector.class);
+  public static final String CONNECTOR_NAME = "smallrye-amqp";
 
   private AmqpClient client;
 
@@ -65,13 +67,8 @@ public class AmqpMessagingProvider implements IncomingConnectorFactory, Outgoing
     }
   }
 
-  AmqpMessagingProvider() {
+  AmqpConnector() {
     this.vertx = null;
-  }
-
-  @Override
-  public Class<? extends MessagingProvider> type() {
-    return Amqp.class;
   }
 
   private synchronized AmqpClient getClient(Config config) {

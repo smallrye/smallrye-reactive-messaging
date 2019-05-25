@@ -21,7 +21,7 @@ To enable the Vert.x EventBus support, you need the following dependency:
 [source]
 ----
 mp.messaging.incoming.data.address=<the-eventbus-address>
-mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+mp.messaging.incoming.data.connector=smallrye-vertx-eventbus
 mp.messaging.incoming.data.use-reply-as-ack=<true|false>
 mp.messaging.incoming.data.broadcast=<true|false>
 ----
@@ -38,7 +38,7 @@ body. From the `EventBusMessage`, you can retrieve the headers, address...
 [source]
 ----
 mp.messaging.incoming.data.address=<the-eventbus-address>
-mp.messaging.incoming.data.type=io.smallrye.reactive.messaging.eventbus.VertxEventBus
+mp.messaging.incoming.data.connector=smallrye-vertx-eventbus
 mp.messaging.incoming.data.publish=<true|false>
 mp.messaging.incoming.data.expect-reply=<true|false>
 mp.messaging.incoming.data.codec=<codec-name>

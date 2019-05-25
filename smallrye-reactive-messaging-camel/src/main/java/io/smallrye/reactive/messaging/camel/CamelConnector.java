@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.camel;
 
-import io.smallrye.reactive.messaging.spi.IncomingConnectorFactory;
-import io.smallrye.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
@@ -11,7 +9,9 @@ import org.apache.camel.spi.Synchronization;
 import org.apache.camel.support.DefaultExchange;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.MessagingProvider;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -27,10 +27,12 @@ import javax.inject.Inject;
 import java.util.function.Function;
 
 @ApplicationScoped
-public class CamelMessagingProvider implements IncomingConnectorFactory, OutgoingConnectorFactory {
+@Connector(CamelConnector.CONNECTOR_NAME)
+public class CamelConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CamelMessagingProvider.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CamelConnector.class);
   private static final String REACTIVE_STREAMS_SCHEME = "reactive-streams:";
+  public static final String CONNECTOR_NAME = "smallrye-camel";
 
   @Inject
   private CamelContext camel;
@@ -62,11 +64,6 @@ public class CamelMessagingProvider implements IncomingConnectorFactory, Outgoin
         .ifPresent(configuration::setThreadPoolName);
     }
     this.reactive = factory.newInstance(camel, configuration);
-  }
-
-  @Override
-  public Class<? extends MessagingProvider> type() {
-    return Camel.class;
   }
 
   @Override

@@ -12,11 +12,6 @@ import java.util.concurrent.CompletionStage;
 
 public interface StreamFactory {
 
-
-  PublisherBuilder<? extends Message> createPublisherBuilderAndRegister(String name, Config config);
-
-  SubscriberBuilder<? extends Message, Void> createSubscriberBuilderAndRegister(String name, Config config);
-
   PublisherBuilder<? extends Message> createPublisherBuilder(String type, Config config);
 
   SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String type, Config config);
