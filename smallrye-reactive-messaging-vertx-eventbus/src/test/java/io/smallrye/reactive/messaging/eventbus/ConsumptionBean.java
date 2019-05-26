@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ApplicationScoped
 public class ConsumptionBean {
 
+  @Inject
+  Vertx vertx;
   private List<Integer> list = new ArrayList<>();
 
   @Incoming("data")
@@ -43,9 +45,6 @@ public class ConsumptionBean {
   List<Integer> getResults() {
     return list;
   }
-
-  @Inject
-  Vertx vertx;
 
   void produce() {
     AtomicInteger counter = new AtomicInteger();

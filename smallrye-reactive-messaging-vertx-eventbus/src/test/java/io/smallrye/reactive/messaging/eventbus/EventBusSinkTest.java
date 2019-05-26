@@ -1,19 +1,8 @@
 package io.smallrye.reactive.messaging.eventbus;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.hamcrest.core.Is.is;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
+import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.eventbus.codec.Person;
+import io.smallrye.reactive.messaging.eventbus.codec.PersonCodec;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
@@ -24,21 +13,25 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.eventbus.codec.Person;
-import io.smallrye.reactive.messaging.eventbus.codec.PersonCodec;
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.core.Is.is;
 
 @RunWith(Parameterized.class)
 public class EventBusSinkTest extends EventbusTestBase {
 
 
+  private WeldContainer container;
+
   @Parameterized.Parameters
   public static Object[][] data() {
     return new Object[10][0];
   }
-
-  private WeldContainer container;
 
   @After
   public void cleanup() {
@@ -179,7 +172,7 @@ public class EventBusSinkTest extends EventbusTestBase {
       .map(Message::of)
       .subscribe((Subscriber) subscriber.build());
 
-    await().until(() -> integers.size() == 8  && last.get().body() == 8);
+    await().until(() -> integers.size() == 8 && last.get().body() == 8);
     last.get().reply("bar");
     await().until(() -> last.get().body() == 9);
     last.get().reply("baz");

@@ -7,27 +7,15 @@ import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.vertx.reactivex.core.Vertx;
-
 import org.jboss.weld.environment.se.Weld;
 import org.junit.After;
 import org.junit.Before;
 
 public class EventbusTestBase {
 
-  Vertx vertx;
   protected EventBusUsage usage;
+  Vertx vertx;
 
-  @Before
-  public void setup() {
-    vertx = Vertx.vertx();
-    usage = new EventBusUsage(vertx.eventBus().getDelegate());
-  }
-
-  @After
-  public void tearDown() {
-    vertx.close();
-  }
-  
   static Weld baseWeld() {
     Weld weld = new Weld();
     weld.addBeanClass(MediatorFactory.class);
@@ -39,6 +27,17 @@ public class EventbusTestBase {
     weld.addBeanClass(VertxEventBusConnector.class);
     weld.disableDiscovery();
     return weld;
+  }
+
+  @Before
+  public void setup() {
+    vertx = Vertx.vertx();
+    usage = new EventBusUsage(vertx.eventBus().getDelegate());
+  }
+
+  @After
+  public void tearDown() {
+    vertx.close();
   }
 
 

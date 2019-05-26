@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.eventbus;
 
 import io.reactivex.Flowable;
-import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -21,12 +21,18 @@ import java.util.Map;
 @ApplicationScoped
 public class ProducingBean {
 
+  @Inject
+  Vertx vertx;
+  private List<io.vertx.reactivex.core.eventbus.Message> messages = new ArrayList<>();
+
   @Incoming("data")
   @Outgoing("sink")
   @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public Message<Integer> process(Message<Integer> input) {
     return Message.of(input.getPayload() + 1);
   }
+
+  // As we can't use the Usage class - not the same Vert.x instance, receive the message here.
 
   @Outgoing("data")
   public Publisher<Integer> source() {
@@ -41,14 +47,6 @@ public class ProducingBean {
     config.put(prefix + "connector", VertxEventBusConnector.CONNECTOR_NAME);
     return new MapBasedConfig(config);
   }
-
-  // As we can't use the Usage class - not the same Vert.x instance, receive the message here.
-
-  @Inject
-  Vertx vertx;
-
-  private List<io.vertx.reactivex.core.eventbus.Message> messages = new ArrayList<>();
-
 
   @PostConstruct
   public void registerConsumer() {
