@@ -143,7 +143,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     //noinspection unchecked
     Flowable.range(0, 10)
       .map(v -> {
-        return io.vertx.axle.ext.amqp.AmqpMessage.create()
+        return io.vertx.axle.amqp.AmqpMessage.create()
           .withBody(HELLO + v)
           .subject("bar")
           .build();

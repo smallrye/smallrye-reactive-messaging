@@ -3,15 +3,15 @@ package io.smallrye.reactive.messaging.amqp;
 import io.reactivex.Flowable;
 import io.reactivex.functions.Function;
 import io.reactivex.processors.MulticastProcessor;
+import io.vertx.amqp.AmqpClientOptions;
+import io.vertx.amqp.AmqpReceiverOptions;
+import io.vertx.axle.amqp.AmqpClient;
+import io.vertx.axle.amqp.AmqpMessageBuilder;
+import io.vertx.axle.amqp.AmqpReceiver;
+import io.vertx.axle.amqp.AmqpSender;
 import io.vertx.axle.core.buffer.Buffer;
-import io.vertx.axle.ext.amqp.AmqpClient;
-import io.vertx.axle.ext.amqp.AmqpMessageBuilder;
-import io.vertx.axle.ext.amqp.AmqpReceiver;
-import io.vertx.axle.ext.amqp.AmqpSender;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.amqp.AmqpClientOptions;
-import io.vertx.ext.amqp.AmqpReceiverOptions;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -59,7 +59,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
   @PostConstruct
   void init() {
-    if (instanceOfVertx == null  || instanceOfVertx.isUnsatisfied()) {
+    if (instanceOfVertx == null || instanceOfVertx.isUnsatisfied()) {
       internalVertxInstance = true;
       this.vertx = Vertx.vertx();
     } else {
@@ -101,7 +101,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     return Flowable.defer(
       () -> Flowable.fromPublisher(receiver.toPublisher())
     )
-      .map((Function<io.vertx.axle.ext.amqp.AmqpMessage, AmqpMessage>) AmqpMessage::new);
+      .map((Function<io.vertx.axle.amqp.AmqpMessage, AmqpMessage>) AmqpMessage::new);
   }
 
   @Override
@@ -151,22 +151,22 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
   private CompletionStage<Message> send(AmqpSender sender, Message msg, boolean durable, long ttl) {
     LOGGER.info("Sending... {}", msg.getPayload());
-    io.vertx.axle.ext.amqp.AmqpMessage amqp;
+    io.vertx.axle.amqp.AmqpMessage amqp;
 
     if (msg instanceof AmqpMessage) {
       amqp = ((AmqpMessage) msg).getAmqpMessage();
-    } else if (msg.getPayload() instanceof io.vertx.axle.ext.amqp.AmqpMessage) {
-      amqp = (io.vertx.axle.ext.amqp.AmqpMessage) msg.getPayload();
-    } else if (msg.getPayload() instanceof io.vertx.ext.amqp.AmqpMessage) {
-      amqp = new io.vertx.axle.ext.amqp.AmqpMessage((io.vertx.ext.amqp.AmqpMessage) msg.getPayload());
+    } else if (msg.getPayload() instanceof io.vertx.axle.amqp.AmqpMessage) {
+      amqp = (io.vertx.axle.amqp.AmqpMessage) msg.getPayload();
+    } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
+      amqp = new io.vertx.axle.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
     } else {
       amqp = convertToAmqpMessage(msg.getPayload(), durable, ttl);
     }
     return sender.sendWithAck(amqp).thenCompose(x -> msg.ack()).thenApply(x -> msg);
   }
 
-  private io.vertx.axle.ext.amqp.AmqpMessage convertToAmqpMessage(Object payload, boolean durable, long ttl) {
-    AmqpMessageBuilder builder = io.vertx.axle.ext.amqp.AmqpMessage.create();
+  private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Object payload, boolean durable, long ttl) {
+    AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create();
 
     if (durable) {
       builder.durable(true);

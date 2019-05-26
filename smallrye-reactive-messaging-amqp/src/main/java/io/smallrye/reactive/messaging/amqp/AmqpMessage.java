@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.amqp;
 
 import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.amqp.impl.AmqpMessageImpl;
+import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.proton.ProtonDelivery;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.Accepted;
@@ -27,9 +27,9 @@ import static io.vertx.proton.ProtonHelper.message;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
-  private final io.vertx.ext.amqp.AmqpMessage message;
+  private final io.vertx.amqp.AmqpMessage message;
 
-  public AmqpMessage(io.vertx.axle.ext.amqp.AmqpMessage delegate) {
+  public AmqpMessage(io.vertx.axle.amqp.AmqpMessage delegate) {
     this.message = delegate.getDelegate();
   }
 
@@ -43,7 +43,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     this.message = new AmqpMessageImpl(msg);
   }
 
-  public AmqpMessage(io.vertx.ext.amqp.AmqpMessage msg) {
+  public AmqpMessage(io.vertx.amqp.AmqpMessage msg) {
     this.message = msg;
   }
 
@@ -52,7 +52,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     return (T) convert(message);
   }
 
-  private Object convert(io.vertx.ext.amqp.AmqpMessage msg) {
+  private Object convert(io.vertx.amqp.AmqpMessage msg) {
     Object body = msg.unwrap().getBody();
     if (body instanceof AmqpValue) {
       Object value = ((AmqpValue) body).getValue();
@@ -166,7 +166,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     return message.unwrap().getError();
   }
 
-  public io.vertx.axle.ext.amqp.AmqpMessage getAmqpMessage() {
-    return new io.vertx.axle.ext.amqp.AmqpMessage(message);
+  public io.vertx.axle.amqp.AmqpMessage getAmqpMessage() {
+    return new io.vertx.axle.amqp.AmqpMessage(message);
   }
 }

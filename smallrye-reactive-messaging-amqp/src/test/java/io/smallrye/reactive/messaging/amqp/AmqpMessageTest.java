@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import io.vertx.ext.amqp.impl.AmqpMessageImpl;
+import io.vertx.amqp.impl.AmqpMessageImpl;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Footer;

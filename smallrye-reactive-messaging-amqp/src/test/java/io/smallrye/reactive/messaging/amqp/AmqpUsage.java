@@ -15,12 +15,12 @@
  */
 package io.smallrye.reactive.messaging.amqp;
 
-import io.vertx.axle.ext.amqp.AmqpClient;
-import io.vertx.axle.ext.amqp.AmqpMessage;
-import io.vertx.axle.ext.amqp.AmqpMessageBuilder;
-import io.vertx.ext.amqp.AmqpClientOptions;
-import io.vertx.ext.amqp.AmqpReceiverOptions;
-import io.vertx.ext.amqp.impl.AmqpMessageImpl;
+import io.vertx.amqp.AmqpClientOptions;
+import io.vertx.amqp.AmqpReceiverOptions;
+import io.vertx.amqp.impl.AmqpMessageImpl;
+import io.vertx.axle.amqp.AmqpClient;
+import io.vertx.axle.amqp.AmqpMessage;
+import io.vertx.axle.amqp.AmqpMessageBuilder;
 import io.vertx.proton.ProtonHelper;
 import io.vertx.reactivex.core.Vertx;
 import org.apache.qpid.proton.amqp.messaging.Section;
@@ -29,9 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -68,14 +65,14 @@ public class AmqpUsage {
             AmqpMessage msg;
             if (payload instanceof AmqpMessage) {
               msg = (AmqpMessage) payload;
-            } else if (payload instanceof io.vertx.ext.amqp.AmqpMessage) {
-              msg = new AmqpMessage((io.vertx.ext.amqp.AmqpMessage) payload);
+            } else if (payload instanceof io.vertx.amqp.AmqpMessage) {
+              msg = new AmqpMessage((io.vertx.amqp.AmqpMessage) payload);
             } else if (payload instanceof Section) {
               Message m = ProtonHelper.message();
               m.setBody((Section) payload);
               msg = new AmqpMessage(new AmqpMessageImpl(m));
             } else {
-              AmqpMessageBuilder builder = io.vertx.axle.ext.amqp.AmqpMessage.create()
+              AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create()
                 .durable(true)
                 .ttl(10000);
               if (payload instanceof Integer) {
@@ -115,7 +112,7 @@ public class AmqpUsage {
    * @param consumerFunction the function to consume the messages; may not be null
    */
   public void consume(String topic,
-                      Consumer<io.vertx.axle.ext.amqp.AmqpMessage> consumerFunction) {
+                      Consumer<io.vertx.axle.amqp.AmqpMessage> consumerFunction) {
     client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true),
       msg -> {
         LOGGER.info("Consumer {}: consuming message", topic);

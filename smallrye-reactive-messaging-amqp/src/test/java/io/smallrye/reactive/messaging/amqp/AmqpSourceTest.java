@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.amqp;
 
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.vertx.axle.core.buffer.Buffer;
-import io.vertx.axle.ext.amqp.AmqpMessage;
+import io.vertx.axle.amqp.AmqpMessage;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.qpid.proton.amqp.Binary;
