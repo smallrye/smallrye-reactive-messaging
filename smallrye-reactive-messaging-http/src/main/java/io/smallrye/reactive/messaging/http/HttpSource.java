@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.http;
 
 import io.reactivex.processors.BehaviorProcessor;
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.MultiMap;
@@ -12,11 +11,9 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HttpSource {
 

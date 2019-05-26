@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.http;
 
 import io.smallrye.reactive.messaging.http.converters.Serializer;
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
@@ -11,7 +10,6 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +72,7 @@ class HttpSink {
     }
 
     message.getHeaders().forEach((k, v) -> v.forEach(item -> request.headers().add(k, item)));
-    message.getQuery().forEach((k,v) -> v.forEach(x -> request.addQueryParam(k, x)));
+    message.getQuery().forEach((k, v) -> v.forEach(x -> request.addQueryParam(k, x)));
 
     return request;
   }

@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
@@ -38,7 +37,7 @@ public class KafkaSource<K, V> {
       .orElseGet(() -> config.getValue("name", String.class));
 
 
-      Objects.requireNonNull(topic, "The topic must be set, or the name must be set");
+    Objects.requireNonNull(topic, "The topic must be set, or the name must be set");
 
     Flowable<KafkaConsumerRecord<K, V>> flowable = consumer.toFlowable();
 

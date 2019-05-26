@@ -40,11 +40,6 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
       + CONVERTERS.stream().map(s -> s.input().getName()).collect(Collectors.toList()));
   }
 
-  @Override
-  public Class<? extends Buffer> ouput() {
-    return Buffer.class;
-  }
-
   private static <I> Serializer<I> instantiate(String className) {
     try {
       Class<Serializer<I>> clazz = (Class<Serializer<I>>) Serializer.class.getClassLoader().loadClass(className);
@@ -53,5 +48,10 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
     } catch (Exception e) {
       throw new IllegalArgumentException("Unable to load the class " + className + " or unable to instantiate it");
     }
+  }
+
+  @Override
+  public Class<? extends Buffer> ouput() {
+    return Buffer.class;
   }
 }

@@ -3,11 +3,7 @@ package io.smallrye.reactive.messaging.http;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -31,7 +27,7 @@ public class HttpMessage<T> implements Message<T> {
   }
 
   public HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
-                         Map<String, List<String>> headers, Supplier<CompletionStage<Void>> ack) {
+                     Map<String, List<String>> headers, Supplier<CompletionStage<Void>> ack) {
     this.payload = payload;
     this.method = method;
     this.headers = headers;

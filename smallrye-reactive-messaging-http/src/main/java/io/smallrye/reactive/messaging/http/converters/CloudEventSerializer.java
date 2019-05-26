@@ -9,7 +9,7 @@ import java.util.concurrent.CompletionStage;
 
 public class CloudEventSerializer extends Serializer<CloudEventMessage> {
 
- @Override
+  @Override
   public CompletionStage<Buffer> convert(CloudEventMessage payload) {
     return CompletableFuture.completedFuture(Buffer.buffer(Json.encode(payload)));
   }

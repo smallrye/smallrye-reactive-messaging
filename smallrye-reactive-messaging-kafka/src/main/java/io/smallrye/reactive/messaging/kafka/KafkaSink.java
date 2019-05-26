@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import io.smallrye.reactive.messaging.spi.ConfigurationHelper;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
