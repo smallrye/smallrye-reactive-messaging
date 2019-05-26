@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.impl;
 
 import io.smallrye.reactive.messaging.StreamFactory;
-import io.smallrye.reactive.messaging.spi.ConnectorLiteral;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;

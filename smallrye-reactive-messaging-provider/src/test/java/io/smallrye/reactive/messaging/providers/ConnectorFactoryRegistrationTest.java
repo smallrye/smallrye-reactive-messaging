@@ -1,8 +1,7 @@
 package io.smallrye.reactive.messaging.providers;
 
 import io.smallrye.reactive.messaging.WeldTestBase;
-import io.smallrye.reactive.messaging.spi.ConnectorLiteral;
-import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
