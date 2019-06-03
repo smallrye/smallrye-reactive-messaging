@@ -7,7 +7,6 @@ import io.smallrye.reactive.messaging.extension.StreamProducer;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import io.smallrye.reactive.messaging.providers.MyDummyFactories;
 import org.junit.After;
 import org.junit.Before;
@@ -33,7 +32,6 @@ public class WeldTestBaseWithoutTails {
     initializer.addBeanClasses(MediatorFactory.class,
       MediatorManager.class,
       InternalStreamRegistry.class,
-      StreamFactoryImpl.class,
       StreamProducer.class,
       ConfiguredStreamFactory.class,
       LegacyConfiguredStreamFactory.class,

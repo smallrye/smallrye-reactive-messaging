@@ -5,7 +5,6 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
 import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
-import io.smallrye.reactive.messaging.impl.StreamFactoryImpl;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
