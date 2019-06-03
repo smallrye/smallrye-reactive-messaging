@@ -58,6 +58,32 @@ public class MqttSinkTest extends MqttTestBase {
   }
 
   @Test
+  public void testSinkUsingChannelName() throws InterruptedException {
+    String topic = UUID.randomUUID().toString();
+    CountDownLatch latch = new CountDownLatch(1);
+    AtomicInteger expected = new AtomicInteger(0);
+    usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+      latch::countDown,
+      v -> expected.getAndIncrement());
+
+
+    Map<String, Object> config = new HashMap<>();
+    config.put("channel-name", topic);
+    config.put("host", address);
+    config.put("port", port);
+    MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
+
+    Subscriber subscriber = sink.getSink().build();
+    Flowable.range(0, 10)
+      .map(v -> (Message) Message.of(v))
+      .subscribe(subscriber);
+
+    assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    await().untilAtomic(expected, is(10));
+    assertThat(expected).hasValue(10);
+  }
+
+  @Test
   public void testSinkUsingString() throws InterruptedException {
     String topic = UUID.randomUUID().toString();
     CountDownLatch latch = new CountDownLatch(1);

@@ -4,6 +4,8 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
@@ -18,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MqttSink {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(MqttSink.class);
 
   private final String host;
   private final int port;
@@ -56,7 +60,7 @@ public class MqttSink {
     int def = options.isSsl() ? 8883 : 1883;
     port = config.getOptionalValue("port", Integer.class).orElse(def);
     server = config.getOptionalValue("server-name", String.class).orElse(null);
-    topic = config.getValue("topic", String.class);
+    topic = getTopicOrNull(config);
     client = MqttClient.create(vertx, options);
     qos = config.getOptionalValue("qos", Integer.class).orElse(0);
 
@@ -82,19 +86,24 @@ public class MqttSink {
       })
       .flatMapCompletionStage(msg -> {
         CompletableFuture<Integer> done = new CompletableFuture<>();
-        String topic = this.topic;
+        String actualTopictoBeUsed = this.topic;
         MqttQoS qos = MqttQoS.valueOf(this.qos);
         boolean isRetain = false;
 
         if (msg instanceof SendingMqttMessage) {
           MqttMessage mm = ((SendingMqttMessage) msg);
 
-          topic = mm.getTopic() == null ? topic : mm.getTopic();
+          actualTopictoBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
           qos = mm.getQosLevel() == null ? qos : mm.getQosLevel();
           isRetain = mm.isRetain();
         }
 
-        client.publish(topic, convert(msg.getPayload()), qos, false, isRetain, res -> {
+        if (actualTopictoBeUsed == null) {
+          LOGGER.error("Ignoring message - no topic set");
+          return CompletableFuture.completedFuture(msg);
+        }
+
+        client.publish(actualTopictoBeUsed, convert(msg.getPayload()), qos, false, isRetain, res -> {
           if (res.failed()) {
             done.completeExceptionally(res.cause());
           } else {
@@ -136,4 +145,10 @@ public class MqttSink {
   }
 
 
+  private String getTopicOrNull(Config config) {
+    return
+      config.getOptionalValue("topic", String.class)
+        .orElseGet(
+          () -> config.getOptionalValue("channel-name", String.class).orElse(null));
+  }
 }

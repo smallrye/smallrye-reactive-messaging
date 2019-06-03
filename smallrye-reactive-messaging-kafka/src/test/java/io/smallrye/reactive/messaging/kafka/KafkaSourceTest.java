@@ -62,6 +62,27 @@ public class KafkaSourceTest extends KafkaTestBase {
     assertThat(messages.stream().map(KafkaMessage::getPayload).collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
   }
 
+  @Test
+  public void testSourceWithChannelName() {
+    KafkaUsage usage = new KafkaUsage();
+    String topic = UUID.randomUUID().toString();
+    Map<String, Object> config = newCommonConfig();
+    config.put("channel-name", topic);
+    config.put("value.deserializer", IntegerDeserializer.class.getName());
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
+
+    List<KafkaMessage> messages = new ArrayList<>();
+    source.getSource().forEach(messages::add).run();
+
+    AtomicInteger counter = new AtomicInteger();
+    new Thread(() ->
+      usage.produceIntegers(10, null,
+        () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+    await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+    assertThat(messages.stream().map(KafkaMessage::getPayload).collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  }
+
 
   @Test
   public void testBroadcast() {

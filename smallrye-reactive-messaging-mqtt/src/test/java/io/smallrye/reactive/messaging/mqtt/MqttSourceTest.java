@@ -54,6 +54,32 @@ public class MqttSourceTest extends MqttTestBase {
   }
 
   @Test
+  public void testSourceUsingChannelName() {
+    String topic = UUID.randomUUID().toString();
+    Map<String, Object> config = new HashMap<>();
+    config.put("channel-name", topic);
+    config.put("host", address);
+    config.put("port", port);
+    MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+
+    List<MqttMessage> messages = new ArrayList<>();
+    PublisherBuilder<MqttMessage> stream = source.getSource();
+    stream.forEach(messages::add).run();
+    await().until(source::isSubscribed);
+    AtomicInteger counter = new AtomicInteger();
+    new Thread(() ->
+      usage.produceIntegers(topic, 10, null,
+        counter::getAndIncrement)
+    ).start();
+
+    await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+    assertThat(messages.stream().map(MqttMessage<byte[]>::getPayload)
+      .map(bytes -> Integer.valueOf(new String(bytes)))
+      .collect(Collectors.toList()))
+      .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  }
+
+  @Test
   public void testBroadcast() {
     String topic = UUID.randomUUID().toString();
     Map<String, Object> config = new HashMap<>();

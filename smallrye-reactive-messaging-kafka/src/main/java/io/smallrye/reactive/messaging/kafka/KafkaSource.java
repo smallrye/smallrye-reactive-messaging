@@ -33,9 +33,7 @@ public class KafkaSource<K, V> {
     JsonHelper.asJsonObject(config).forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
     kafkaConfiguration.put("group.id", group);
     this.consumer = KafkaConsumer.create(vertx, kafkaConfiguration);
-    String topic = config.getOptionalValue("topic", String.class)
-      .orElseGet(() -> config.getValue("name", String.class));
-
+    String topic = getTopicOrFail(config);
 
     Objects.requireNonNull(topic, "The topic must be set, or the name must be set");
 
@@ -69,5 +67,14 @@ public class KafkaSource<K, V> {
 
   void close() {
     this.consumer.close();
+  }
+
+  private String getTopicOrFail(Config config) {
+    return
+      config.getOptionalValue("topic", String.class)
+        .orElseGet(
+          () -> config.getOptionalValue("channel-name", String.class)
+            .orElseThrow(() -> new IllegalArgumentException("Topic attribute must be set"))
+        );
   }
 }

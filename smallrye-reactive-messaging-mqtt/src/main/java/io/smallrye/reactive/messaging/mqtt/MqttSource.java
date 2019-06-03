@@ -51,10 +51,7 @@ public class MqttSource {
     int def = options.isSsl() ? 8883 : 1883;
     int port = config.getOptionalValue("port", Integer.class).orElse(def);
     String server = config.getOptionalValue("server-name", String.class).orElse(null);
-    String topic = config.getOptionalValue("topic", String.class)
-      .orElseThrow(() ->
-      new NoSuchElementException("Invalid configuration - expected key `topic` to be present in " + config.getPropertyNames())
-    );
+    String topic = getTopicOrFail(config);
     MqttClient client = MqttClient.create(vertx, options);
     int qos = config.getOptionalValue("qos", Integer.class).orElse(0);
     boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
@@ -96,5 +93,14 @@ public class MqttSource {
 
   public boolean isSubscribed() {
     return subscribed.get();
+  }
+
+  private String getTopicOrFail(Config config) {
+    return
+      config.getOptionalValue("topic", String.class)
+        .orElseGet(
+          () -> config.getOptionalValue("channel-name", String.class)
+            .orElseThrow(() -> new IllegalArgumentException("Topic attribute must be set"))
+        );
   }
 }

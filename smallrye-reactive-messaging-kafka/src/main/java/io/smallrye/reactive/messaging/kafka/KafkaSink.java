@@ -36,7 +36,7 @@ class KafkaSink {
 
     partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
     key = config.getOptionalValue("key", String.class).orElse(null);
-    topic = config.getOptionalValue("topic", String.class).orElse(null);
+    topic = getTopicOrNull(config);
     if (topic == null) {
       LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
     }
@@ -61,15 +61,25 @@ class KafkaSink {
               actualPartition = km.getPartition();
             }
 
-            record = new ProducerRecord<>(
-              km.getTopic() == null ? this.topic : km.getTopic(),
-              actualPartition,
-              km.getTimestamp(),
-              km.getKey() == null ? this.key : km.getKey(),
-              km.getPayload(),
-              km.getHeaders().unwrap()
-            );
-            LOGGER.info("Sending message {} to Kafka topic '{}'", message, record.topic());
+            String actualTopicToBeUSed = topic;
+            if (km.getTopic() != null) {
+              actualTopicToBeUSed = km.getTopic();
+            }
+
+            if (actualTopicToBeUSed == null) {
+              LOGGER.error("Ignoring message - no topic set");
+              return CompletableFuture.completedFuture(message);
+            } else {
+              record = new ProducerRecord<>(
+                actualTopicToBeUSed,
+                actualPartition,
+                km.getTimestamp(),
+                km.getKey() == null ? this.key : km.getKey(),
+                km.getPayload(),
+                km.getHeaders().unwrap()
+              );
+              LOGGER.info("Sending message {} to Kafka topic '{}'", message, record.topic());
+            }
           } else {
             if (this.topic == null) {
               LOGGER.error("Ignoring message - no topic set");
@@ -113,5 +123,12 @@ class KafkaSink {
 
   void close() {
     this.stream.close();
+  }
+
+  private String getTopicOrNull(Config config) {
+    return
+      config.getOptionalValue("topic", String.class)
+        .orElseGet(
+          () -> config.getOptionalValue("channel-name", String.class).orElse(null));
   }
 }

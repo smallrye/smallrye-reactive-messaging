@@ -46,8 +46,34 @@ public class KafkaSinkTest extends KafkaTestBase {
       (k, v) -> expected.getAndIncrement());
 
 
-    Map<String, Object> config = newCommonConfig();
+    Map<String, Object> config = getConfig();
     config.put("topic", topic);
+    config.put("value.serializer", IntegerSerializer.class.getName());
+    config.put("value.deserializer", IntegerDeserializer.class.getName());
+    config.put("partition", 0);
+    KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config));
+
+    Flowable.range(0, 10)
+      .map(Message::of)
+      .subscribe((Subscriber) sink.getSink().build());
+
+    assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    assertThat(expected).hasValue(10);
+  }
+
+  @Test
+  public void testSinkUsingIntegerAndChannelName() throws InterruptedException {
+    KafkaUsage usage = new KafkaUsage();
+    String topic = UUID.randomUUID().toString();
+    CountDownLatch latch = new CountDownLatch(1);
+    AtomicInteger expected = new AtomicInteger(0);
+    usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+      latch::countDown,
+      (k, v) -> expected.getAndIncrement());
+
+
+    Map<String, Object> config = getConfig();
+    config.put("channel-name", topic);
     config.put("value.serializer", IntegerSerializer.class.getName());
     config.put("value.deserializer", IntegerDeserializer.class.getName());
     config.put("partition", 0);
@@ -72,7 +98,7 @@ public class KafkaSinkTest extends KafkaTestBase {
       (k, v) -> expected.getAndIncrement());
 
 
-    Map<String, Object> config = newCommonConfig();
+    Map<String, Object> config = getConfig();
     config.put("topic", topic);
     config.put("value.serializer", StringSerializer.class.getName());
     config.put("value.deserializer", StringDeserializer.class.getName());
@@ -88,7 +114,7 @@ public class KafkaSinkTest extends KafkaTestBase {
     assertThat(expected).hasValue(10);
   }
 
-  private Map<String, Object> newCommonConfig() {
+  private Map<String, Object> getConfig() {
     Map<String, Object> config = new HashMap<>();
     config.put("bootstrap.servers", "localhost:9092");
     config.put("key.serializer", StringSerializer.class.getName());

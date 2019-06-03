@@ -37,6 +37,8 @@ The `AmqpMessage` implements `Message` and provide additional metadata related t
 As the AMQP support is based on the Vert.x AMQP client, you can pass any configuration supported by the client.
 Check the  https://vertx.io/docs/vertx-amqp-client/java/[documentation] of the client for further details.
 
+NOTE: If the `address` attribute is not set the channel name is used instead.
+
 === Forwarding messages to AMQP
 
 [source]
@@ -65,4 +67,6 @@ The payload of the message must be one of the following type:
 * UUID
 
 Otherwise, the connector invokes `toString` on the wrapped payload.
+
+NOTE: If the `address` attribute is not set the channel name is used instead.
 

@@ -76,6 +76,34 @@ public class AmqpSourceTest extends AmqpTestBase {
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
   }
 
+  @Test
+  public void testSourceUsingChannelName() {
+    String topic = UUID.randomUUID().toString();
+    Map<String, Object> config = getConfigUsingChannelName(topic);
+    config.put("ttl", 10000);
+    config.put("durable", false);
+
+    provider = new AmqpConnector();
+    provider.init();
+    PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+
+    List<Message> messages = new ArrayList<>();
+
+    AtomicBoolean opened = new AtomicBoolean();
+    builder.buildRs().subscribe(createSubscriber(messages, opened));
+    await().until(opened::get);
+
+    AtomicInteger counter = new AtomicInteger();
+    new Thread(() ->
+      usage.produceTenIntegers(topic,
+        counter::getAndIncrement)).start();
+
+    await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+    assertThat(messages.stream().map(Message::getPayload)
+      .collect(Collectors.toList()))
+      .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  }
+
   @NotNull
   private <T> Subscriber<T> createSubscriber(List<T> messages, AtomicBoolean opened) {
     //noinspection SubscriberImplementation - Seriously IntelliJ ????
@@ -306,6 +334,18 @@ public class AmqpSourceTest extends AmqpTestBase {
   private Map<String, Object> getConfig(String topic) {
     Map<String, Object> config = new HashMap<>();
     config.put("address", topic);
+    config.put("host", address);
+    config.put("port", port);
+    config.put("name", "some name");
+    config.put("username", "artemis");
+    config.put("password", new String("simetraehcapa".getBytes()));
+    return config;
+  }
+
+  @NotNull
+  private Map<String, Object> getConfigUsingChannelName(String topic) {
+    Map<String, Object> config = new HashMap<>();
+    config.put("channel-name", topic);
     config.put("host", address);
     config.put("port", port);
     config.put("name", "some name");

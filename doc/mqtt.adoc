@@ -32,6 +32,8 @@ mp.messaging.incoming.data.broadcast=true
 Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You can also receive
 `io.smallrye.reactive.messaging.mqtt.MqttMessage` which give you access to message metadata.
 
+NOTE: If the `topic` attribute is not set the channel name is used instead.
+
 === Forwarding messages to MQTT
 
 [source]
@@ -51,6 +53,8 @@ The payload of message forwarded to MQTT must be:
 * a `byte[]` or a Vert.x Buffer
 
 Other objects are mapped to JSON.
+
+NOTE: If the `topic` attribute is not set the channel name is used instead.
 
 === Advanced configuration
 

@@ -160,9 +160,56 @@ public class AmqpSinkTest extends AmqpTestBase {
     });
   }
 
+  @Test
+  public void testSinkUsingAmqpMessageAndChannelNameProperty() {
+    String topic = UUID.randomUUID().toString();
+    AtomicInteger expected = new AtomicInteger(0);
+
+    List<AmqpMessage<String>> messages = new ArrayList<>();
+    usage.<String>consume(topic,
+      v -> {
+        expected.getAndIncrement();
+        messages.add(new AmqpMessage<>(v));
+      });
+
+    SubscriberBuilder<? extends Message, Void> sink = createProviderAndSinkUsingChannelName(topic);
+
+    //noinspection unchecked
+    Flowable.range(0, 10)
+      .map(v -> {
+        AmqpMessage<String> message = new AmqpMessage<>(HELLO + v);
+        message.unwrap().setSubject("foo");
+        return message;
+      })
+      .subscribe((Subscriber) sink.build());
+
+    await().untilAtomic(expected, is(10));
+    assertThat(expected).hasValue(10);
+
+    messages.forEach(m -> {
+      assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
+      assertThat(m.getSubject()).isEqualTo("foo");
+    });
+  }
+
   private SubscriberBuilder<? extends Message, Void> createProviderAndSink(String topic) {
     Map<String, Object> config = new HashMap<>();
     config.put("address", topic);
+    config.put("name", "the name");
+    config.put("host", address);
+    config.put("durable", false);
+    config.put("port", port);
+    config.put("username", "artemis");
+    config.put("password", new String("simetraehcapa".getBytes()));
+
+    this.provider = new AmqpConnector();
+    provider.init();
+    return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+  }
+
+  private SubscriberBuilder<? extends Message, Void> createProviderAndSinkUsingChannelName(String topic) {
+    Map<String, Object> config = new HashMap<>();
+    config.put("channel-name", topic);
     config.put("name", "the name");
     config.put("host", address);
     config.put("durable", false);

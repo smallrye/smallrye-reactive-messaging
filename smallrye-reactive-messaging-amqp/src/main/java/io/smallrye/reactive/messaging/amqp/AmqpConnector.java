@@ -104,10 +104,18 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
       .map((Function<io.vertx.axle.amqp.AmqpMessage, AmqpMessage>) AmqpMessage::new);
   }
 
+  private String getAddressOrFail(Config config) {
+    return
+      config.getOptionalValue("address", String.class)
+        .orElseGet(
+          () -> config.getOptionalValue("channel-name", String.class)
+            .orElseThrow(() -> new IllegalArgumentException("Address must be set"))
+        );
+  }
+
   @Override
   public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
-    String address = config.getOptionalValue("address", String.class)
-      .orElseThrow(() -> new IllegalArgumentException("Address must be set"));
+    String address = getAddressOrFail(config);
     boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
     boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
     CompletionStage<AmqpReceiver> future = getClient(config)
@@ -127,8 +135,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
   @Override
   public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
-    String address = config.getOptionalValue("address", String.class)
-      .orElseThrow(() -> new IllegalArgumentException("Address must be set"));
+    String address = getAddressOrFail(config);
     boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
     long ttl = config.getOptionalValue("ttl", Long.class).orElse(0L);
 
