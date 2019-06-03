@@ -10,7 +10,7 @@ import org.reactivestreams.Subscriber;
 import java.util.List;
 import java.util.Set;
 
-public interface StreamRegistry {
+public interface ChannelRegistry {
 
 
   PublisherBuilder<? extends Message> register(String name, PublisherBuilder<? extends Message> stream);

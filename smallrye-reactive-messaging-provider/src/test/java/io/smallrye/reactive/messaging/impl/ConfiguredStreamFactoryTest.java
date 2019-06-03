@@ -29,7 +29,7 @@ public class ConfiguredStreamFactoryTest {
 
 
     Config config = new DummyConfig(backend);
-    Map<String, ConnectorConfig> map = ConfiguredStreamFactory.extractConfigurationFor("io.prefix", config);
+    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
 
     assertThat(map).hasSize(2).containsKeys("name", "name2");
     ConnectorConfig config1 = map.get("name");
@@ -58,7 +58,7 @@ public class ConfiguredStreamFactoryTest {
     backend.put("io.prefix.name.k3.x", "v3");
 
     Config config = new DummyConfig(backend);
-    Map<String, ConnectorConfig> map = ConfiguredStreamFactory.extractConfigurationFor("io.prefix", config);
+    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
 
     assertThat(map).hasSize(1).containsKeys("name");
     ConnectorConfig config1 = map.get("name");
@@ -75,7 +75,7 @@ public class ConfiguredStreamFactoryTest {
     backend.put("io.prefix.name.k3.x", "v3");
 
     Config config = new DummyConfig(backend);
-    Map<String, ConnectorConfig> map = ConfiguredStreamFactory.extractConfigurationFor("io.prefix", config);
+    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
 
     assertThat(map).hasSize(1).containsKeys("name");
     ConnectorConfig config1 = map.get("name");

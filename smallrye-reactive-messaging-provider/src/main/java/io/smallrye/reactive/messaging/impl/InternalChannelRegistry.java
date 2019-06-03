@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.impl;
 
-import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -10,7 +10,7 @@ import javax.enterprise.context.ApplicationScoped;
 import java.util.*;
 
 @ApplicationScoped
-public class InternalStreamRegistry implements StreamRegistry {
+public class InternalChannelRegistry implements ChannelRegistry {
 
   private static final String NAME_MUST_BE_SET = "'name' must be set";
   private final Map<String, List<PublisherBuilder<? extends Message>>> publishers = new HashMap<>();

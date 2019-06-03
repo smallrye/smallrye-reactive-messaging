@@ -4,9 +4,9 @@ import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.extension.StreamProducer;
-import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
-import io.smallrye.reactive.messaging.impl.LegacyConfiguredStreamFactory;
+import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.MyDummyFactories;
 import org.junit.After;
 import org.junit.Before;
@@ -31,10 +31,10 @@ public class WeldTestBaseWithoutTails {
 
     initializer.addBeanClasses(MediatorFactory.class,
       MediatorManager.class,
-      InternalStreamRegistry.class,
+      InternalChannelRegistry.class,
       StreamProducer.class,
-      ConfiguredStreamFactory.class,
-      LegacyConfiguredStreamFactory.class,
+      ConfiguredChannelFactory.class,
+      LegacyConfiguredChannelFactory.class,
       // Messaging provider
       MyDummyFactories.class);
 
@@ -56,8 +56,8 @@ public class WeldTestBaseWithoutTails {
     }
   }
 
-  protected StreamRegistry registry(SeContainer container) {
-    return container.select(StreamRegistry.class).get();
+  protected ChannelRegistry registry(SeContainer container) {
+    return container.select(ChannelRegistry.class).get();
   }
 
   public void addBeanClass(Class<?> beanClass) {

@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.impl;
 
-import io.smallrye.reactive.messaging.StreamRegistar;
-import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.ChannelRegistar;
+import io.smallrye.reactive.messaging.ChannelRegistry;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -29,9 +29,9 @@ import java.util.stream.Collectors;
  * Look for stream factories and get instances.
  */
 @ApplicationScoped
-public class ConfiguredStreamFactory implements StreamRegistar {
+public class ConfiguredChannelFactory implements ChannelRegistar {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredStreamFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredChannelFactory.class);
   private static final String SOURCE_CONFIG_PREFIX = "mp.messaging.incoming";
   private static final String SINK_CONFIG_PREFIX = "mp.messaging.outgoing";
 
@@ -40,10 +40,10 @@ public class ConfiguredStreamFactory implements StreamRegistar {
   private final Instance<OutgoingConnectorFactory> outgoingConnectorFactories;
 
   protected final Config config;
-  protected final StreamRegistry registry;
+  protected final ChannelRegistry registry;
 
   // CDI requirement for normal scoped beans
-  ConfiguredStreamFactory() {
+  ConfiguredChannelFactory() {
     this.incomingConnectorFactories = null;
     this.outgoingConnectorFactories = null;
     this.config = null;
@@ -51,10 +51,10 @@ public class ConfiguredStreamFactory implements StreamRegistar {
   }
 
   @Inject
-  public ConfiguredStreamFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
-                                 @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
-                                 Instance<Config> config, @Any Instance<StreamRegistry> registry,
-                                 BeanManager beanManager) {
+  public ConfiguredChannelFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
+                                  @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
+                                  Instance<Config> config, @Any Instance<ChannelRegistry> registry,
+                                  BeanManager beanManager) {
 
     this.registry = registry.get();
     if (config.isUnsatisfied()) {

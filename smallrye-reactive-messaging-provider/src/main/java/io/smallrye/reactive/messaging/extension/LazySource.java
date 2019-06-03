@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -23,7 +23,7 @@ class LazySource implements Publisher<Message> {
     this.mode = mode;
   }
 
-  public void configure(StreamRegistry registry, Logger logger) {
+  public void configure(ChannelRegistry registry, Logger logger) {
     List<PublisherBuilder<? extends Message>> list = registry.getPublishers(source);
     if (!list.isEmpty()) {
       switch (mode) {

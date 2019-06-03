@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.extension;
 
-import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -60,7 +60,7 @@ public class ReactiveMessagingExtension implements Extension {
   @SuppressWarnings({"rawtypes", "unchecked"})
   void afterDeploymentValidation(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
     Instance<Object> instance = beanManager.createInstance();
-    StreamRegistry registry = instance.select(StreamRegistry.class)
+    ChannelRegistry registry = instance.select(ChannelRegistry.class)
       .get();
 
     List<String> emitters = emitterInjectionPoints.stream().map(StreamProducer::getStreamName).collect(Collectors.toList());

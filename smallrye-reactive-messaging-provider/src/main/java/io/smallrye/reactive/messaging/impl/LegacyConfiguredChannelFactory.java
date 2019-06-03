@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.impl;
 
-import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.ChannelRegistry;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
@@ -17,21 +17,21 @@ import java.util.Map;
  * This implementation use the "smallrye.messaging.source" and "smallrye.messaging.sink" prefixes.
  */
 @ApplicationScoped
-public class LegacyConfiguredStreamFactory extends ConfiguredStreamFactory {
+public class LegacyConfiguredChannelFactory extends ConfiguredChannelFactory {
 
   private static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
   private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink";
 
   // CDI requirement for normal scoped beans
-  LegacyConfiguredStreamFactory() {
+  LegacyConfiguredChannelFactory() {
     super();
   }
 
   @Inject
-  public LegacyConfiguredStreamFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
-                                       @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
-                                       Instance<Config> config, @Any Instance<StreamRegistry> registry,
-                                       BeanManager beanManager) {
+  public LegacyConfiguredChannelFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
+                                        @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
+                                        Instance<Config> config, @Any Instance<ChannelRegistry> registry,
+                                        BeanManager beanManager) {
     super(incomingConnectorFactories, outgoingConnectorFactories, config, registry, beanManager);
   }
 

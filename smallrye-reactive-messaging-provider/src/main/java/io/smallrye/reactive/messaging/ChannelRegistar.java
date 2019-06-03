@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging;
 
-public interface StreamRegistar {
+public interface ChannelRegistar {
   void initialize();
 
 }

@@ -42,13 +42,13 @@ public class MediatorManager {
 
   @Inject
   @Any
-  Instance<StreamRegistar> streamRegistars;
+  Instance<ChannelRegistar> streamRegistars;
 
   @Inject
   MediatorFactory mediatorFactory;
 
   @Inject
-  StreamRegistry streamRegistry;
+  ChannelRegistry channelRegistry;
 
   @Inject
   BeanManager beanManager;
@@ -88,8 +88,8 @@ public class MediatorManager {
     }
     LOGGER.info("Deployment done... start processing");
 
-    streamRegistars.stream().forEach(StreamRegistar::initialize);
-    Set<String> unmanagedSubscribers = streamRegistry.getOutgoingNames();
+    streamRegistars.stream().forEach(ChannelRegistar::initialize);
+    Set<String> unmanagedSubscribers = channelRegistry.getOutgoingNames();
     LOGGER.info("Initializing mediators");
     collected.mediators()
       .forEach(configuration -> {
@@ -122,7 +122,7 @@ public class MediatorManager {
               .methodAsString(),
             mediator.getConfiguration()
               .getOutgoing());
-          streamRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
+          channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
         }
         if (mediator.getConfiguration()
           .shape() == Shape.SUBSCRIBER) {
@@ -130,7 +130,7 @@ public class MediatorManager {
               .methodAsString(),
             mediator.getConfiguration()
               .getIncoming());
-          streamRegistry.register(mediator.getConfiguration().getIncoming(), mediator.getComputedSubscriber());
+          channelRegistry.register(mediator.getConfiguration().getIncoming(), mediator.getComputedSubscriber());
         }
       });
 
@@ -153,7 +153,7 @@ public class MediatorManager {
 
       unsatisfied.forEach(mediator -> {
         LOGGER.info("Attempt to resolve {}", mediator.getMethodAsString());
-        List<PublisherBuilder<? extends Message>> sources = streamRegistry.getPublishers(mediator.configuration().getIncoming());
+        List<PublisherBuilder<? extends Message>> sources = channelRegistry.getPublishers(mediator.configuration().getIncoming());
         Optional<PublisherBuilder<? extends Message>> maybeSource = getAggregatedSource(sources, mediator, lazy);
         maybeSource.ifPresent(publisher -> {
           mediator.connectToUpstream(publisher);
@@ -161,7 +161,7 @@ public class MediatorManager {
             .getIncoming(), publisher);
           if (mediator.configuration()
             .getOutgoing() != null) {
-            streamRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
+            channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
           }
         });
       });
@@ -175,22 +175,22 @@ public class MediatorManager {
           throw new WeavingException("Impossible to bind mediators, some mediators are not connected: " + unsatisfied.stream()
             .map(m -> m.configuration()
               .methodAsString())
-            .collect(Collectors.toList()) + ", available publishers:" + streamRegistry.getIncomingNames() +", "
-            + "available emitters: " + streamRegistry.getEmitterNames());
+            .collect(Collectors.toList()) + ", available publishers:" + channelRegistry.getIncomingNames() +", "
+            + "available emitters: " + channelRegistry.getEmitterNames());
         } else {
           LOGGER.warn("Impossible to bind mediators, some mediators are not connected: {}", unsatisfied.stream()
             .map(m -> m.configuration()
               .methodAsString())
             .collect(Collectors.toList()));
-          LOGGER.warn("Available publishers: {}", streamRegistry.getIncomingNames());
-          LOGGER.warn("Available emitters: {}", streamRegistry.getEmitterNames());
+          LOGGER.warn("Available publishers: {}", channelRegistry.getIncomingNames());
+          LOGGER.warn("Available emitters: {}", channelRegistry.getEmitterNames());
         }
         break;
       }
     }
 
     // Inject lazy sources
-    lazy.forEach(l -> l.configure(streamRegistry, LOGGER));
+    lazy.forEach(l -> l.configure(channelRegistry, LOGGER));
 
     // Run
     mediators.stream()
@@ -202,8 +202,8 @@ public class MediatorManager {
     // We also need to connect mediator and emitter to un-managed subscribers
     for (String name : unmanagedSubscribers) {
       List<AbstractMediator> list = lookupForMediatorsWithMatchingDownstream(name);
-      EmitterImpl emitter = (EmitterImpl) streamRegistry.getEmitter(name);
-      List<SubscriberBuilder<? extends Message, Void>> subscribers = streamRegistry.getSubscribers(name);
+      EmitterImpl emitter = (EmitterImpl) channelRegistry.getEmitter(name);
+      List<SubscriberBuilder<? extends Message, Void>> subscribers = channelRegistry.getSubscribers(name);
       for (AbstractMediator mediator : list) {
         if (subscribers.size() == 1) {
           LOGGER.info("Connecting method {} to outgoing channel {}", mediator.getMethodAsString(), name);
@@ -283,8 +283,8 @@ public class MediatorManager {
     for (String e : emitters) {
       EmitterImpl emitter = new EmitterImpl();
       Publisher<Message> publisher = emitter.getPublisher();
-      streamRegistry.register(e, ReactiveStreams.fromPublisher(publisher));
-      streamRegistry.register(e, emitter);
+      channelRegistry.register(e, ReactiveStreams.fromPublisher(publisher));
+      channelRegistry.register(e, emitter);
     }
   }
 }

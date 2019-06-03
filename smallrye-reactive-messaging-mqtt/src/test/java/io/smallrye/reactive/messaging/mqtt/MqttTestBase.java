@@ -3,8 +3,8 @@ package io.smallrye.reactive.messaging.mqtt;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.impl.ConfiguredStreamFactory;
-import io.smallrye.reactive.messaging.impl.InternalStreamRegistry;
+import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.vertx.reactivex.core.Vertx;
 
 import org.jboss.weld.environment.se.Weld;
@@ -53,8 +53,8 @@ public class MqttTestBase {
     weld.disableDiscovery();
     weld.addBeanClass(MediatorFactory.class);
     weld.addBeanClass(MediatorManager.class);
-    weld.addBeanClass(InternalStreamRegistry.class);
-    weld.addBeanClass(ConfiguredStreamFactory.class);
+    weld.addBeanClass(InternalChannelRegistry.class);
+    weld.addBeanClass(ConfiguredChannelFactory.class);
     weld.addExtension(new ReactiveMessagingExtension());
     weld.addBeanClass(MqttConnector.class);
     return weld;

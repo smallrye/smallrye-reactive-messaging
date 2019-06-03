@@ -12,32 +12,10 @@ import java.util.stream.StreamSupport;
  */
 public class ConnectorConfig implements Config {
 
-  public static final String CHANNEL_NAME = "channel-name";
+  private static final String CHANNEL_NAME = "channel-name";
   private final String prefix;
   private final Config overall;
 
-  static final Config EMPTY_CONFIG = new Config() {
-
-    @Override
-    public <T> T getValue(String propertyName, Class<T> propertyType) {
-      return null;
-    }
-
-    @Override
-    public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Iterable<String> getPropertyNames() {
-      return Collections.emptyList();
-    }
-
-    @Override
-    public Iterable<ConfigSource> getConfigSources() {
-      return Collections.emptyList();
-    }
-  };
   private final String name;
   private final boolean injectNameProperty;
 

@@ -26,7 +26,7 @@ public class EmitterImpl<T> implements Emitter<T> {
     return publisher;
   }
 
-  public boolean isConnected() {
+  boolean isConnected() {
     return internal.get() != null;
   }
 

@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 import org.apache.commons.lang3.reflect.TypeUtils;
@@ -24,7 +24,7 @@ import java.util.List;
 public class StreamProducer {
 
     @Inject
-    StreamRegistry streamRegistry;
+    ChannelRegistry channelRegistry;
 
     @Produces
     @Stream("") // Stream name is ignored during type-safe resolution
@@ -60,9 +60,9 @@ public class StreamProducer {
     @SuppressWarnings("rawtypes")
     private Publisher<? extends Message> getPublisher(InjectionPoint injectionPoint) {
         String name = getStreamName(injectionPoint);
-        List<PublisherBuilder<? extends Message>> list = streamRegistry.getPublishers(name);
+        List<PublisherBuilder<? extends Message>> list = channelRegistry.getPublishers(name);
         if (list.isEmpty()) {
-            throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: " + streamRegistry.getIncomingNames());
+            throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: " + channelRegistry.getIncomingNames());
         }
         // TODO Manage merge.
         return list.get(0).buildRs();
@@ -71,9 +71,9 @@ public class StreamProducer {
   @SuppressWarnings("rawtypes")
   private SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(InjectionPoint injectionPoint) {
     String name = getStreamName(injectionPoint);
-    List<SubscriberBuilder<? extends Message, Void>> list = streamRegistry.getSubscribers(name);
+    List<SubscriberBuilder<? extends Message, Void>> list = channelRegistry.getSubscribers(name);
     if (list.isEmpty()) {
-      throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: " + streamRegistry.getOutgoingNames());
+      throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: " + channelRegistry.getOutgoingNames());
     }
     return list.get(0);
   }
@@ -81,9 +81,9 @@ public class StreamProducer {
   @SuppressWarnings("rawtypes")
   private Emitter getEmitter(InjectionPoint injectionPoint) {
     String name = getStreamName(injectionPoint);
-    Emitter emitter= streamRegistry.getEmitter(name);
+    Emitter emitter= channelRegistry.getEmitter(name);
     if (emitter == null) {
-      throw new IllegalStateException("Unable to find a emitter with the name " + name + ", available emitters are: " + streamRegistry.getEmitterNames());
+      throw new IllegalStateException("Unable to find a emitter with the name " + name + ", available emitters are: " + channelRegistry.getEmitterNames());
     }
     return emitter;
   }

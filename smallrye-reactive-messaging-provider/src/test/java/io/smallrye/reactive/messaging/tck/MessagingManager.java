@@ -2,8 +2,8 @@ package io.smallrye.reactive.messaging.tck;
 
 import io.reactivex.Flowable;
 import io.reactivex.processors.PublishProcessor;
-import io.smallrye.reactive.messaging.StreamRegistar;
-import io.smallrye.reactive.messaging.StreamRegistry;
+import io.smallrye.reactive.messaging.ChannelRegistar;
+import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.tck.incoming.Bean;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -29,14 +28,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
-public class MessagingManager implements StreamRegistar {
+public class MessagingManager implements ChannelRegistar {
 
   private static final Message<MockPayload> DUMB = Message.of(new MockPayload());
 
   private Map<String, Source> topics = new HashMap<>();
 
   @Inject
-  private StreamRegistry registry;
+  private ChannelRegistry registry;
 
   private final Map<String, MockedReceiver<?>> receivers = new ConcurrentHashMap<>();
   private final Map<String, MockedSender<?>> senders = new ConcurrentHashMap<>();
