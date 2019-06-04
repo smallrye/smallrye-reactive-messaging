@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.providers;
+package io.smallrye.reactive.messaging.connectors;
 
 import io.reactivex.Flowable;
 import org.eclipse.microprofile.config.Config;
@@ -11,13 +11,14 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @ApplicationScoped
 @Connector("dummy")
-public class MyDummyFactories implements IncomingConnectorFactory, OutgoingConnectorFactory {
-  private final List<String> list = new ArrayList<>();
+public class MyDummyConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+  private final List<String> list = new CopyOnWriteArrayList<>();
+  private final List<Config> configs = new CopyOnWriteArrayList<>();
   private boolean completed = false;
 
   public void reset() {
@@ -31,6 +32,7 @@ public class MyDummyFactories implements IncomingConnectorFactory, OutgoingConne
 
   @Override
   public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    this.configs.add(config);
     return ReactiveStreams.<Message>builder()
       .peek(x -> list.add(x.getPayload().toString()))
       .onComplete(() -> completed = true)
@@ -39,12 +41,17 @@ public class MyDummyFactories implements IncomingConnectorFactory, OutgoingConne
 
   @Override
   public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    this.configs.add(config);
     int increment = config.getOptionalValue("increment", Integer.class).orElse(1);
     return ReactiveStreams
       .fromPublisher(Flowable.just(1, 2, 3).map(i -> i + increment).map(Message::of));
   }
 
-  public boolean gotCompletion() {
+  boolean gotCompletion() {
     return completed;
+  }
+
+  List<Config> getConfigs() {
+    return configs;
   }
 }

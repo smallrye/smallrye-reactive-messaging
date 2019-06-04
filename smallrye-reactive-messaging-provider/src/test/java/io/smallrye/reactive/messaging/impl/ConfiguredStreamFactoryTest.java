@@ -4,10 +4,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -92,6 +89,42 @@ public class ConfiguredStreamFactoryTest {
     ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
   }
 
+  @Test
+  public void testConnectorConfigurationLookup() {
+    Map<String, Object> backend = new HashMap<>();
+    backend.put("mp.messaging.connector.my-connector.a", "A");
+    backend.put("mp.messaging.connector.my-connector.b", "B");
+
+    backend.put("io.prefix.name.connector", "my-connector");
+    backend.put("io.prefix.name.k1", "v1");
+    backend.put("io.prefix.name.k2", "v2");
+    backend.put("io.prefix.name.b", "B2");
+
+    backend.put("io.prefix.name2.connector", "my-connector");
+    backend.put("io.prefix.name2.k1", "v12");
+    backend.put("io.prefix.name2.k2", "v22");
+    backend.put("io.prefix.name2.b", "B22");
+
+    Config config = new DummyConfig(backend);
+    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
+    assertThat(map).hasSize(2).containsKeys("name", "name2");
+    ConnectorConfig config1 = map.get("name");
+    assertThat(config1.getPropertyNames()).hasSize(6).contains("a", "b", "k1", "k2", "connector", "channel-name");
+    assertThat(config1.getValue("k1", String.class)).isEqualTo("v1");
+    assertThat(config1.getValue("a", String.class)).isEqualTo("A");
+    assertThat(config1.getValue("b", String.class)).isEqualTo("B2");
+    assertThat(config1.getOptionalValue("k1", String.class)).contains("v1");
+    assertThat(config1.getOptionalValue("a", String.class)).contains("A");
+    assertThat(config1.getOptionalValue("b", String.class)).contains("B2");
+    assertThat(config1.getOptionalValue("c", String.class)).isEmpty();
+
+    ConnectorConfig config2 = map.get("name2");
+    assertThat(config2.getPropertyNames()).hasSize(6).contains("a", "b", "k1", "k2", "connector", "channel-name");
+    assertThat(config2.getValue("k1", String.class)).isEqualTo("v12");
+    assertThat(config2.getValue("a", String.class)).isEqualTo("A");
+    assertThat(config2.getValue("b", String.class)).isEqualTo("B22");
+  }
+
 
   private class DummyConfig implements Config {
 
@@ -103,7 +136,7 @@ public class ConfiguredStreamFactoryTest {
 
     @Override
     public <T> T getValue(String s, Class<T> aClass) {
-      return getOptionalValue(s, aClass).orElseThrow(() -> new IllegalArgumentException("Key not found: " + s));
+      return getOptionalValue(s, aClass).orElseThrow(() -> new NoSuchElementException("Key not found: " + s));
     }
 
     @SuppressWarnings("unchecked")

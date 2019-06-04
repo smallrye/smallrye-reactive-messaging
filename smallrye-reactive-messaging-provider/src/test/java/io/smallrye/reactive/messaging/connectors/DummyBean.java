@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.providers;
+package io.smallrye.reactive.messaging.connectors;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;

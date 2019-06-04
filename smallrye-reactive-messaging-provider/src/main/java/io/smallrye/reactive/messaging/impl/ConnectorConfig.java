@@ -13,7 +13,8 @@ import java.util.stream.StreamSupport;
 public class ConnectorConfig implements Config {
 
   private static final String CHANNEL_NAME = "channel-name";
-  private static final String CONNECTOR = "connector";
+  private static final String CONNECTOR_ATTR = "connector";
+  private static final String CONNECTOR_PREFIX = "mp.messaging." + CONNECTOR_ATTR + ".";
 
   private final String prefix;
   private final Config overall;
@@ -26,23 +27,28 @@ public class ConnectorConfig implements Config {
     this.overall = Objects.requireNonNull(overall, "the config must not be set");
     this.name = Objects.requireNonNull(channel, "the channel name must be set");
 
-    Optional<String> value = overall.getOptionalValue(key(CONNECTOR), String.class);
+    Optional<String> value = overall.getOptionalValue(channelKey(CONNECTOR_ATTR), String.class);
     this.connector = value
-      .orElseGet(() -> overall.getOptionalValue(key("type"), String.class) // Legacy
+      .orElseGet(() -> overall.getOptionalValue(channelKey("type"), String.class) // Legacy
       .orElseThrow(() -> new IllegalArgumentException("Invalid channel configuration - " +
         "the `connector` attribute must be set for channel `" + name + "`")
       ));
+
     // Detect invalid channel-name attribute
     for (String key : overall.getPropertyNames()) {
-      if ((key(CHANNEL_NAME)).equalsIgnoreCase(key)) {
+      if ((channelKey(CHANNEL_NAME)).equalsIgnoreCase(key)) {
         throw new IllegalArgumentException("Invalid channel configuration -  the `channel-name` attribute cannot be used" +
           " in configuration (channel `" + name + "`)");
       }
     }
   }
 
-  private String key(String keyName) {
+  private String channelKey(String keyName) {
     return prefix + "." + name + "." + keyName;
+  }
+
+  private String connectorKey(String keyName) {
+    return CONNECTOR_PREFIX + connector + "." + keyName;
   }
 
   @SuppressWarnings("unchecked")
@@ -51,10 +57,23 @@ public class ConnectorConfig implements Config {
     if (CHANNEL_NAME.equalsIgnoreCase(propertyName)) {
       return (T) name;
     }
-    if (CONNECTOR.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
+    if (CONNECTOR_ATTR.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
       return (T) connector;
     }
-    return overall.getValue(key(propertyName), propertyType);
+
+    // First check if the channel configuration contains the desired attribute.
+    try {
+      return overall.getValue(channelKey(propertyName), propertyType);
+    } catch (NoSuchElementException e) {
+      // If not, check the connector configuration
+      try {
+        return overall.getValue(connectorKey(propertyName), propertyType);
+      } catch (NoSuchElementException e2) {
+        // Catch the exception to provide a more meaningful error messages.
+        throw new NoSuchElementException("Cannot find attribute `" + propertyName + "` for channel `" + name + "`. " +
+          "Has been tried: " + channelKey(propertyName) + " and " + connectorKey(propertyName));
+      }
+    }
   }
 
   @Override
@@ -62,18 +81,29 @@ public class ConnectorConfig implements Config {
     if (CHANNEL_NAME.equalsIgnoreCase(propertyName)) {
       return Optional.of((T) name);
     }
-    if (CONNECTOR.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
+    if (CONNECTOR_ATTR.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
       return Optional.of((T) connector);
     }
-    return overall.getOptionalValue(key(propertyName), propertyType);
+    // First check if the channel configuration contains the desired attribute.
+    Optional<T> maybe = overall.getOptionalValue(channelKey(propertyName), propertyType);
+    return maybe.isPresent() ?
+      maybe
+      : overall.getOptionalValue(connectorKey(propertyName), propertyType);
   }
 
   @Override
   public Iterable<String> getPropertyNames() {
+    // Compute the keys form the connector config
     Set<String> strings = StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
+      .filter(s -> s.startsWith(CONNECTOR_PREFIX + connector + "."))
+      .map(s -> s.substring((CONNECTOR_PREFIX + connector + ".").length()))
+      .collect(Collectors.toSet());
+
+    StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
       .filter(s -> s.startsWith(prefix + "." + name + "."))
       .map(s -> s.substring((prefix + "." + name + ".").length()))
-      .collect(Collectors.toSet());
+      .forEach(strings::add);
+
     strings.add(CHANNEL_NAME);
     return strings;
   }

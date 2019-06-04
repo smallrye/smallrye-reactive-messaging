@@ -7,7 +7,7 @@ import io.smallrye.reactive.messaging.extension.StreamProducer;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
-import io.smallrye.reactive.messaging.providers.MyDummyFactories;
+import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
 import org.junit.After;
 import org.junit.Before;
 
@@ -36,7 +36,7 @@ public class WeldTestBaseWithoutTails {
       ConfiguredChannelFactory.class,
       LegacyConfiguredChannelFactory.class,
       // Messaging provider
-      MyDummyFactories.class);
+      MyDummyConnector.class);
 
     List<Class> beans = getBeans();
     initializer.addBeanClasses(beans.toArray(new Class<?>[0]));

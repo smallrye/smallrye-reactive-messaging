@@ -22,7 +22,6 @@ import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -72,10 +71,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
       this.incomingConnectorFactories = incomingConnectorFactories;
       this.outgoingConnectorFactories = outgoingConnectorFactories;
       if (logConnectors) {
-        List<String> incomingConnectors = getConnectors(beanManager, IncomingConnectorFactory.class);
-        List<String> outgoingConnectors = getConnectors(beanManager, OutgoingConnectorFactory.class);
-        LOGGER.info("Found incoming connectors: {}", incomingConnectors);
-        LOGGER.info("Found outgoing connectors: {}", outgoingConnectors);
+        LOGGER.info("Found incoming connectors: {}", getConnectors(beanManager, IncomingConnectorFactory.class));
+        LOGGER.info("Found outgoing connectors: {}", getConnectors(beanManager, OutgoingConnectorFactory.class));
       }
       //TODO Should we try to merge all the config?
       // For now take the first one.
