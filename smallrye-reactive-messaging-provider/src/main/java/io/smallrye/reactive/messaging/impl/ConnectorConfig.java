@@ -17,21 +17,25 @@ public class ConnectorConfig implements Config {
   private final Config overall;
 
   private final String name;
-  private final boolean injectNameProperty;
 
   ConnectorConfig(String prefix, Config overall, String channel) {
     this.prefix = Objects.requireNonNull(prefix, "the prefix must not be set");
     this.overall = Objects.requireNonNull(overall, "the config must not be set");
     this.name = Objects.requireNonNull(channel, "the channel name must be set");
-    this.injectNameProperty =
-      StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
-        .noneMatch(s -> s.equalsIgnoreCase(prefix + ".name"));
+
+    // Detect invalid channel-name attribute
+    for (String key : overall.getPropertyNames()) {
+      if ((prefix + "." + CHANNEL_NAME).equalsIgnoreCase(key)) {
+        throw new IllegalArgumentException("The `channel-name` attribute cannot be used in configuration, " +
+          "it's automatically injected");
+      }
+    }
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public <T> T getValue(String propertyName, Class<T> propertyType) {
-    if (CHANNEL_NAME.equalsIgnoreCase(propertyName)  && injectNameProperty) {
+    if (CHANNEL_NAME.equalsIgnoreCase(propertyName)) {
       return (T) name;
     }
     return overall.getValue(prefix + "." + propertyName, propertyType);
@@ -39,7 +43,7 @@ public class ConnectorConfig implements Config {
 
   @Override
   public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-    if ("channel-name".equalsIgnoreCase(propertyName)  && injectNameProperty) {
+    if (CHANNEL_NAME.equalsIgnoreCase(propertyName)) {
       return Optional.of((T) name);
     }
     return overall.getOptionalValue(prefix + "." + propertyName, propertyType);
@@ -51,9 +55,7 @@ public class ConnectorConfig implements Config {
       .filter(s -> s.startsWith(prefix + "."))
       .map(s -> s.substring((prefix + ".").length()))
       .collect(Collectors.toSet());
-    if (injectNameProperty) {
-      strings.add("channel-name");
-    }
+    strings.add(CHANNEL_NAME);
     return strings;
   }
 

@@ -49,25 +49,7 @@ public class ConfiguredStreamFactoryTest {
   }
 
   @Test
-  public void testThatNameIsNotOverridden() {
-    Map<String, Object> backend = new HashMap<>();
-    backend.put("foo", "bar");
-    backend.put("io.prefix.name.name", "the name");
-    backend.put("io.prefix.name.k1", "v1");
-    backend.put("io.prefix.name.k2", "v2");
-    backend.put("io.prefix.name.k3.x", "v3");
-
-    Config config = new DummyConfig(backend);
-    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
-
-    assertThat(map).hasSize(1).containsKeys("name");
-    ConnectorConfig config1 = map.get("name");
-    assertThat(config1.getPropertyNames()).hasSize(4);
-    assertThat(config1.getValue("name", String.class)).isEqualTo("the name");
-  }
-
-  @Test
-  public void testThatNameIsInject() {
+  public void testThatChannelNameIsInjected() {
     Map<String, Object> backend = new HashMap<>();
     backend.put("foo", "bar");
     backend.put("io.prefix.name.k1", "v1");
@@ -76,11 +58,22 @@ public class ConfiguredStreamFactoryTest {
 
     Config config = new DummyConfig(backend);
     Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
-
     assertThat(map).hasSize(1).containsKeys("name");
     ConnectorConfig config1 = map.get("name");
     assertThat(config1.getPropertyNames()).hasSize(4);
     assertThat(config1.getValue("channel-name", String.class)).isEqualTo("name");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testThatChannelNameIsDetected() {
+    Map<String, Object> backend = new HashMap<>();
+    backend.put("foo", "bar");
+    backend.put("io.prefix.name.k1", "v1");
+    backend.put("io.prefix.name.channel-name", "v2");
+    backend.put("io.prefix.name.k3.x", "v3");
+
+    Config config = new DummyConfig(backend);
+    ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
   }
 
 
