@@ -56,6 +56,13 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                                   Instance<Config> config, @Any Instance<ChannelRegistry> registry,
                                   BeanManager beanManager) {
 
+    this(incomingConnectorFactories, outgoingConnectorFactories, config, registry, beanManager, true);
+  }
+
+  ConfiguredChannelFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
+                           @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
+                           Instance<Config> config, @Any Instance<ChannelRegistry> registry,
+                           BeanManager beanManager, boolean logConnectors) {
     this.registry = registry.get();
     if (config.isUnsatisfied()) {
       this.incomingConnectorFactories = null;
@@ -64,10 +71,12 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     } else {
       this.incomingConnectorFactories = incomingConnectorFactories;
       this.outgoingConnectorFactories = outgoingConnectorFactories;
-      List<String> incomingConnectors = getConnectors(beanManager, IncomingConnectorFactory.class);
-      List<String> outgoingConnectors = getConnectors(beanManager, OutgoingConnectorFactory.class);
-      LOGGER.info("Found incoming connectors: {}", incomingConnectors);
-      LOGGER.info("Found outgoing connectors: {}", outgoingConnectors);
+      if (logConnectors) {
+        List<String> incomingConnectors = getConnectors(beanManager, IncomingConnectorFactory.class);
+        List<String> outgoingConnectors = getConnectors(beanManager, OutgoingConnectorFactory.class);
+        LOGGER.info("Found incoming connectors: {}", incomingConnectors);
+        LOGGER.info("Found outgoing connectors: {}", outgoingConnectors);
+      }
       //TODO Should we try to merge all the config?
       // For now take the first one.
       this.config = config.stream().findFirst()

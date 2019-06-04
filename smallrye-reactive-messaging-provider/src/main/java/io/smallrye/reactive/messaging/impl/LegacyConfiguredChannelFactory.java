@@ -32,7 +32,7 @@ public class LegacyConfiguredChannelFactory extends ConfiguredChannelFactory {
                                         @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
                                         Instance<Config> config, @Any Instance<ChannelRegistry> registry,
                                         BeanManager beanManager) {
-    super(incomingConnectorFactories, outgoingConnectorFactories, config, registry, beanManager);
+    super(incomingConnectorFactories, outgoingConnectorFactories, config, registry, beanManager, false);
   }
 
   @Override
