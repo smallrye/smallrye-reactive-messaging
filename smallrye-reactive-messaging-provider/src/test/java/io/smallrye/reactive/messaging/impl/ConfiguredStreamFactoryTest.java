@@ -28,7 +28,7 @@ public class ConfiguredStreamFactoryTest {
 
 
     Config config = new DummyConfig(backend);
-    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
+    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
 
     assertThat(map).hasSize(2).containsKeys("name", "name2");
     ConnectorConfig config1 = map.get("name");
@@ -57,9 +57,10 @@ public class ConfiguredStreamFactoryTest {
     backend.put("io.prefix.name.k3.x", "v3");
 
     Config config = new DummyConfig(backend);
-    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
+    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
     assertThat(map).hasSize(1).containsKeys("name");
     ConnectorConfig config1 = map.get("name");
+    System.out.println(config1.getPropertyNames());
     assertThat(config1.getPropertyNames()).hasSize(5);
     assertThat(config1.getValue("channel-name", String.class)).isEqualTo("name");
   }
@@ -73,7 +74,7 @@ public class ConfiguredStreamFactoryTest {
     backend.put("io.prefix.name.k3.x", "v3");
 
     Config config = new DummyConfig(backend);
-    ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
+    ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -86,7 +87,7 @@ public class ConfiguredStreamFactoryTest {
     backend.put("io.prefix.name.k3.x", "v3");
 
     Config config = new DummyConfig(backend);
-    ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
+    ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
   }
 
   @Test
@@ -106,7 +107,7 @@ public class ConfiguredStreamFactoryTest {
     backend.put("io.prefix.name2.b", "B22");
 
     Config config = new DummyConfig(backend);
-    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
+    Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
     assertThat(map).hasSize(2).containsKeys("name", "name2");
     ConnectorConfig config1 = map.get("name");
     assertThat(config1.getPropertyNames()).hasSize(6).contains("a", "b", "k1", "k2", "connector", "channel-name");

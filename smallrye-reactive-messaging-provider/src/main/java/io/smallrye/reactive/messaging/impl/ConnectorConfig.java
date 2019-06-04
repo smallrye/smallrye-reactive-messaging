@@ -2,19 +2,18 @@ package io.smallrye.reactive.messaging.impl;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.*;
+
 /**
  * Implementation of config used to configured the different messaging provider / connector.
  */
 public class ConnectorConfig implements Config {
-
-  private static final String CHANNEL_NAME = "channel-name";
-  private static final String CONNECTOR_ATTR = "connector";
-  private static final String CONNECTOR_PREFIX = "mp.messaging." + CONNECTOR_ATTR + ".";
 
   private final String prefix;
   private final Config overall;
@@ -27,7 +26,7 @@ public class ConnectorConfig implements Config {
     this.overall = Objects.requireNonNull(overall, "the config must not be set");
     this.name = Objects.requireNonNull(channel, "the channel name must be set");
 
-    Optional<String> value = overall.getOptionalValue(channelKey(CONNECTOR_ATTR), String.class);
+    Optional<String> value = overall.getOptionalValue(channelKey(CONNECTOR_ATTRIBUTE), String.class);
     this.connector = value
       .orElseGet(() -> overall.getOptionalValue(channelKey("type"), String.class) // Legacy
       .orElseThrow(() -> new IllegalArgumentException("Invalid channel configuration - " +
@@ -36,7 +35,7 @@ public class ConnectorConfig implements Config {
 
     // Detect invalid channel-name attribute
     for (String key : overall.getPropertyNames()) {
-      if ((channelKey(CHANNEL_NAME)).equalsIgnoreCase(key)) {
+      if ((channelKey(CHANNEL_NAME_ATTRIBUTE)).equalsIgnoreCase(key)) {
         throw new IllegalArgumentException("Invalid channel configuration -  the `channel-name` attribute cannot be used" +
           " in configuration (channel `" + name + "`)");
       }
@@ -44,7 +43,7 @@ public class ConnectorConfig implements Config {
   }
 
   private String channelKey(String keyName) {
-    return prefix + "." + name + "." + keyName;
+    return prefix + name + "." + keyName;
   }
 
   private String connectorKey(String keyName) {
@@ -54,10 +53,10 @@ public class ConnectorConfig implements Config {
   @SuppressWarnings("unchecked")
   @Override
   public <T> T getValue(String propertyName, Class<T> propertyType) {
-    if (CHANNEL_NAME.equalsIgnoreCase(propertyName)) {
+    if (CHANNEL_NAME_ATTRIBUTE.equalsIgnoreCase(propertyName)) {
       return (T) name;
     }
-    if (CONNECTOR_ATTR.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
+    if (CONNECTOR_ATTRIBUTE.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
       return (T) connector;
     }
 
@@ -78,10 +77,10 @@ public class ConnectorConfig implements Config {
 
   @Override
   public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-    if (CHANNEL_NAME.equalsIgnoreCase(propertyName)) {
+    if (CHANNEL_NAME_ATTRIBUTE.equalsIgnoreCase(propertyName)) {
       return Optional.of((T) name);
     }
-    if (CONNECTOR_ATTR.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
+    if (CONNECTOR_ATTRIBUTE.equalsIgnoreCase(propertyName)  || "type".equalsIgnoreCase(propertyName)) {
       return Optional.of((T) connector);
     }
     // First check if the channel configuration contains the desired attribute.
@@ -100,11 +99,11 @@ public class ConnectorConfig implements Config {
       .collect(Collectors.toSet());
 
     StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
-      .filter(s -> s.startsWith(prefix + "." + name + "."))
-      .map(s -> s.substring((prefix + "." + name + ".").length()))
+      .filter(s -> s.startsWith(prefix + name + "."))
+      .map(s -> s.substring((prefix + name + ".").length()))
       .forEach(strings::add);
 
-    strings.add(CHANNEL_NAME);
+    strings.add(CHANNEL_NAME_ATTRIBUTE);
     return strings;
   }
 

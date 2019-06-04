@@ -35,13 +35,20 @@ import java.util.NoSuchElementException;
  * using MicroProfile Config. The following snippet gives an example for a hypothetical Kafka connector:
  *
  * <pre>
- * mp.messaging.outgoing.my-channel.connector=i.e.m.reactive.messaging.impl.kafka.Kafka
- * mp.messaging.outgoing.my-channel.bootstrap.servers=localhost:9092
+ * mp.messaging.outgoing.my-channel.connector=acme.kafka
  * mp.messaging.outgoing.my-channel.topic=my-topic
+ * mp.messaging.connector.acme.kafka.bootstrap.servers=localhost:9092
  * ...
  * </pre>
  * <p>
- * This configuration keys are structured as follows: {@code mp.messaging.[incoming|outgoing].channel-name.attribute}.
+ * The configuration keys are structured as follows: {@code mp.messaging.[incoming|outgoing].channel-name.attribute} or
+ * {@code mp.messaging.[connector].connector-name.attribute}. 
+ * Channel names are not expected to contain {@code .} so the first occurrence of a {@code .} in the channel-name portion
+ * of a property terminates the channel name and precedes the attribute name.
+ * For connector attributes, the longest string, inclusive of {@code .}s, that matches a loadable
+ * connector is used as a {@code connector-name}. The remainder, after a {@code .} separator, is the attribute name.  
+ * Configuration keys that begin
+ * {@code mp.messaging.incoming} are not used for {@link OutgoingConnectorFactory} configuration.
  * <p>
  * The {@code channel-name} segment in the configuration key corresponds to the name of the channel used in the
  * {@code Outgoing} annotation:
@@ -54,12 +61,17 @@ import java.util.NoSuchElementException;
  * </pre>
  * <p>
  * The set of attributes depend on the connector and transport layer (For example, bootstrap.servers is Kafka specific).
- * The {@code connector} attribute is mandatory and indicates the name of the connector. It must match the class
- * returned by the {@link Connector} qualifier used on the bean implementation.
+ * The {@code connector} attribute indicates the name of the connector.
+ * It will be matched to the value returned by the {@link Connector} qualifier 
+ * used on the relevant {@link OutgoingConnectorFactory} bean implementation.
  * This is how a reactive messaging implementation looks for the specific {@link OutgoingConnectorFactory} required for
- * a channel. In the previous configuration, the reactive messaging implementation would need to find the
+ * a channel. 
+ * Any {@code mp.messaging.connector} attributes for the channel's connector are also included in the set
+ * of relevant attributes. Where an attribute is present for both a channel and its connector the value of the channel
+ * specific attribute will take precedence.
+ * In the previous configuration, the reactive messaging implementation would need to find the
  * {@link OutgoingConnectorFactory} implementation qualified with the {@link Connector} qualifier with the value
- * {@code i.e.m.reactive.messaging.impl.kafka.Kafka} to create the {@code my-channel} <em>subscriber</em>. Note that if
+ * {@code acme.kafka} to create the {@code my-channel} <em>subscriber</em>. Note that if
  * the connector cannot be found, the deployment must be failed with a
  * {@link javax.enterprise.inject.spi.DeploymentException}.
  * <p>
@@ -81,7 +93,7 @@ import java.util.NoSuchElementException;
  * Note that a Reactive Messaging implementation must support the configuration format described here. Implementations
  * are free to provide additional support for other approaches.
  */
-public interface OutgoingConnectorFactory {
+public interface OutgoingConnectorFactory extends ConnectorFactory {
 
     /**
      * Creates a <em>channel</em> for the given configuration. The channel's configuration is associated with a
@@ -91,7 +103,8 @@ public interface OutgoingConnectorFactory {
      * Note that the connection to the <em>transport</em> or <em>broker</em> is generally postponed until the
      * subscription.
      *
-     * @param config the configuration, never {@code null}
+     * @param config the configuration, never {@code null}, must contain the {@link #CHANNEL_NAME_ATTRIBUTE}
+     *               attribute.
      * @return the created {@link SubscriberBuilder}, must not be {@code null}.
      * @throws IllegalArgumentException if the configuration is invalid.
      * @throws NoSuchElementException if the configuration does not contain an expected attribute.

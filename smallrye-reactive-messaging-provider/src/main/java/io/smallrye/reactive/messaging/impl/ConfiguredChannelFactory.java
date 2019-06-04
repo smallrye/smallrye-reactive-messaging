@@ -4,10 +4,7 @@ import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
@@ -31,9 +28,6 @@ import java.util.stream.Collectors;
 public class ConfiguredChannelFactory implements ChannelRegistar {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredChannelFactory.class);
-  private static final String SOURCE_CONFIG_PREFIX = "mp.messaging.incoming";
-  private static final String SINK_CONFIG_PREFIX = "mp.messaging.outgoing";
-
 
   private final Instance<IncomingConnectorFactory> incomingConnectorFactories;
   private final Instance<OutgoingConnectorFactory> outgoingConnectorFactories;
@@ -93,10 +87,10 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     Iterable<String> names = root.getPropertyNames();
     Map<String, ConnectorConfig> configs = new HashMap<>();
     names.forEach(key -> {
-      // $prefix.$name.key=value
+      // $prefix$name.key=value (the prefix ends with a .)
       if (key.startsWith(prefix)) {
         // Extract the name
-        String name = key.substring(prefix.length() + 1);
+        String name = key.substring(prefix.length());
         if (name.contains(".")) { // We must remove the part after the first dot
           String tmp = name;
           name = tmp.substring(0, tmp.indexOf('.'));
@@ -118,8 +112,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
     LOGGER.info("Stream manager initializing...");
 
-    Map<String, ConnectorConfig> sourceConfiguration = extractConfigurationFor(SOURCE_CONFIG_PREFIX, config);
-    Map<String, ConnectorConfig> sinkConfiguration = extractConfigurationFor(SINK_CONFIG_PREFIX, config);
+    Map<String, ConnectorConfig> sourceConfiguration = extractConfigurationFor(ConnectorFactory.INCOMING_PREFIX, config);
+    Map<String, ConnectorConfig> sinkConfiguration = extractConfigurationFor(ConnectorFactory.OUTGOING_PREFIX, config);
 
     register(sourceConfiguration, sinkConfiguration);
   }

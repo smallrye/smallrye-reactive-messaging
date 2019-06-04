@@ -19,8 +19,8 @@ import java.util.Map;
 @ApplicationScoped
 public class LegacyConfiguredChannelFactory extends ConfiguredChannelFactory {
 
-  private static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source";
-  private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink";
+  private static final String SOURCE_CONFIG_PREFIX = "smallrye.messaging.source.";
+  private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink.";
 
   // CDI requirement for normal scoped beans
   LegacyConfiguredChannelFactory() {
