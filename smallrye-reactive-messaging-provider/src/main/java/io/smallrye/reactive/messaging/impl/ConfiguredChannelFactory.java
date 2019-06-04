@@ -103,9 +103,9 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         if (name.contains(".")) { // We must remove the part after the first dot
           String tmp = name;
           name = tmp.substring(0, tmp.indexOf('.'));
-          configs.put(name, new ConnectorConfig(prefix + "." + name, root, name));
+          configs.put(name, new ConnectorConfig(prefix, root, name));
         } else {
-          configs.put(name, new ConnectorConfig(prefix + "." + name, root, name));
+          configs.put(name, new ConnectorConfig(prefix, root, name));
         }
       }
     });
@@ -137,20 +137,15 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     }
   }
 
-  private static Optional<String> getConnectorAttribute(Config config) {
-    Optional<String> optional = config.getOptionalValue("connector", String.class);
-    if (optional.isPresent()) {
-      return optional;
-    } else {
-      return config.getOptionalValue("type", String.class);
-    }
+  private static String getConnectorAttribute(Config config) {
+    // This method looks for connector and type.
+    // The availability has been checked when the config object has been created
+    return config.getValue("connector", String.class);
   }
 
   private PublisherBuilder<? extends Message> createPublisherBuilder(String name, Config config) {
     // Extract the type and throw an exception if missing
-    String connector = getConnectorAttribute(config)
-      .orElseThrow(() -> new IllegalArgumentException("Invalid incoming configuration, " +
-        "no connector attribute for " + name));
+    String connector = getConnectorAttribute(config);
 
     // Look for the factory and throw an exception if missing
     IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
@@ -161,9 +156,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
   private SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String name, Config config) {
     // Extract the type and throw an exception if missing
-    String connector = getConnectorAttribute(config)
-      .orElseThrow(() -> new IllegalArgumentException("Invalid outgoing configuration, " +
-        "no connector attribute for " + name));
+    String connector = getConnectorAttribute(config);
 
     // Look for the factory and throw an exception if missing
     OutgoingConnectorFactory mySinkFactory = outgoingConnectorFactories.select(ConnectorLiteral.of(connector))

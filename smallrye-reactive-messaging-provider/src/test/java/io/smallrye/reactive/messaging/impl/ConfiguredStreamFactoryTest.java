@@ -18,10 +18,12 @@ public class ConfiguredStreamFactoryTest {
   public void testSimpleExtraction() {
     Map<String, Object> backend = new HashMap<>();
     backend.put("foo", "bar");
+    backend.put("io.prefix.name.type", "my-connector"); // Legacy
     backend.put("io.prefix.name.k1", "v1");
     backend.put("io.prefix.name.k2", "v2");
     backend.put("io.prefix.name.k3.x", "v3");
 
+    backend.put("io.prefix.name2.connector", "my-connector");
     backend.put("io.prefix.name2.k1", "v1");
     backend.put("io.prefix.name2.k2", "v2");
     backend.put("io.prefix.name2.k3.x", "boo");
@@ -34,12 +36,12 @@ public class ConfiguredStreamFactoryTest {
     assertThat(map).hasSize(2).containsKeys("name", "name2");
     ConnectorConfig config1 = map.get("name");
     ConnectorConfig config2 = map.get("name2");
-    assertThat(config1.getPropertyNames()).hasSize(4).contains("k1", "k2", "k3.x", "channel-name");
+    assertThat(config1.getPropertyNames()).hasSize(5).contains("k1", "k2", "k3.x", "channel-name", "type");
     assertThat(config1.getValue("k1", String.class)).isEqualTo("v1");
     assertThat(config1.getValue("k2", String.class)).isEqualTo("v2");
     assertThat(config1.getValue("k3.x", String.class)).isEqualTo("v3");
     assertThat(config1.getValue("channel-name", String.class)).isEqualTo("name");
-    assertThat(config2.getPropertyNames()).hasSize(5).contains("k1", "k2", "k3.x", "another", "channel-name");
+    assertThat(config2.getPropertyNames()).hasSize(6).contains("k1", "k2", "k3.x", "another", "channel-name", "connector");
     assertThat(config2.getValue("k1", String.class)).isEqualTo("v1");
     assertThat(config2.getValue("k2", String.class)).isEqualTo("v2");
     assertThat(config2.getValue("k3.x", String.class)).isEqualTo("boo");
@@ -52,6 +54,7 @@ public class ConfiguredStreamFactoryTest {
   public void testThatChannelNameIsInjected() {
     Map<String, Object> backend = new HashMap<>();
     backend.put("foo", "bar");
+    backend.put("io.prefix.name.connector", "my-connector");
     backend.put("io.prefix.name.k1", "v1");
     backend.put("io.prefix.name.k2", "v2");
     backend.put("io.prefix.name.k3.x", "v3");
@@ -60,14 +63,27 @@ public class ConfiguredStreamFactoryTest {
     Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
     assertThat(map).hasSize(1).containsKeys("name");
     ConnectorConfig config1 = map.get("name");
-    assertThat(config1.getPropertyNames()).hasSize(4);
+    assertThat(config1.getPropertyNames()).hasSize(5);
     assertThat(config1.getValue("channel-name", String.class)).isEqualTo("name");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testThatMissingConnectorAttributeIsDetected() {
+    Map<String, Object> backend = new HashMap<>();
+    backend.put("foo", "bar");
+    backend.put("io.prefix.name.k1", "v1");
+    backend.put("io.prefix.name.k2", "v2");
+    backend.put("io.prefix.name.k3.x", "v3");
+
+    Config config = new DummyConfig(backend);
+    ConfiguredChannelFactory.extractConfigurationFor("io.prefix", config);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testThatChannelNameIsDetected() {
     Map<String, Object> backend = new HashMap<>();
     backend.put("foo", "bar");
+    backend.put("io.prefix.name.connector", "my-connector");
     backend.put("io.prefix.name.k1", "v1");
     backend.put("io.prefix.name.channel-name", "v2");
     backend.put("io.prefix.name.k3.x", "v3");
