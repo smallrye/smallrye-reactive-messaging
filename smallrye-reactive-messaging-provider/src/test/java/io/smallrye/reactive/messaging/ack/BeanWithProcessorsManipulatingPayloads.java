@@ -52,29 +52,28 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
   }
 
   @Incoming("sink-" + POST_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Strategy.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public CompletionStage<Void> sinkPost(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + POST_ACKNOWLEDGMENT_CS)
-  @Acknowledgment(Acknowledgment.Strategy.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public CompletionStage<Void> sinkPostCS(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Strategy.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public CompletionStage<Void> sinkDefault(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
 
   @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT_CS)
-  @Acknowledgment(Acknowledgment.Strategy.NONE)
+  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
   public CompletionStage<Void> sinkDefaultCS(Message<String> ignored) {
     return CompletableFuture.completedFuture(null);
   }
-
 
   @Incoming(NO_ACKNOWLEDGMENT)
   @Acknowledgment(Acknowledgment.Strategy.NONE)

@@ -27,9 +27,9 @@ public class ProducingBean {
 
   @Incoming("data")
   @Outgoing("sink")
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public Message<Integer> process(Message<Integer> input) {
-    return Message.of(input.getPayload() + 1);
+    return Message.of(input.getPayload() + 1, input::ack);
   }
 
   // As we can't use the Usage class - not the same Vert.x instance, receive the message here.

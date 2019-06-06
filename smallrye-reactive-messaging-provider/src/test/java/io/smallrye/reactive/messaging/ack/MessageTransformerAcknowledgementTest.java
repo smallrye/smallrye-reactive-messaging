@@ -2,15 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import org.junit.Test;
 
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.DEFAULT_ACKNOWLEDGMENT;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.DEFAULT_ACKNOWLEDGMENT_CS;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.MANUAL_ACKNOWLEDGMENT_CS;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.NO_ACKNOWLEDGMENT;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.NO_ACKNOWLEDGMENT_CS;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.POST_ACKNOWLEDGMENT;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.POST_ACKNOWLEDGMENT_CS;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.PRE_ACKNOWLEDGMENT;
-import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.PRE_ACKNOWLEDGMENT_CS;
+import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.*;
 
 public class MessageTransformerAcknowledgementTest extends AcknowledgmentTestBase {
 
@@ -47,27 +39,15 @@ public class MessageTransformerAcknowledgementTest extends AcknowledgmentTestBas
   }
 
   @Test
-  public void testPostAck() {
-    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, POST_ACKNOWLEDGMENT);
-  }
-
-  @Test
-  public void testPostAckCS() {
-    SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, POST_ACKNOWLEDGMENT_CS);
-  }
-
-  @Test
   public void testDefaultAck() {
     SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
+    assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
   }
 
   @Test
   public void testDefaultAckCS() {
     SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-    assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_CS);
+    assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_CS);
   }
 
 

@@ -24,9 +24,9 @@ public class ConsumptionBean {
 
   @Incoming("data")
   @Outgoing("sink")
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public Message<Integer> process(KafkaMessage<String, Integer> input) {
-    return Message.of(input.getPayload() + 1);
+    return Message.of(input.getPayload() + 1, input::ack);
   }
 
   @Incoming("sink")

@@ -1,12 +1,10 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import io.smallrye.reactive.messaging.extension.MediatorManager;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
-import repeat.Repeat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +12,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 public class DynamicMqttSinkTest extends MqttTestBase {
 
@@ -37,7 +34,6 @@ public class DynamicMqttSinkTest extends MqttTestBase {
     final List<String> topics = new ArrayList<>(10);
     usage.consumeRaw("#", 10, 10, TimeUnit.SECONDS, null,
       (topic, msg) -> {
-        System.out.println("Received on topic: " + topic);
         latch.countDown();
         topics.add(topic);
         rawMessages.add(msg);

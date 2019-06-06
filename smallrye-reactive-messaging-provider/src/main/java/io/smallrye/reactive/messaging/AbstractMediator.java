@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public abstract class AbstractMediator {
@@ -67,12 +68,12 @@ public abstract class AbstractMediator {
     }
   }
 
-  protected CompletionStage<? extends Void> getAckOrCompletion(Message<?> message) {
+  protected CompletionStage<Message> getAckOrCompletion(Message<?> message) {
     CompletionStage<Void> ack = message.ack();
     if (ack != null) {
-      return ack;
+      return ack.thenApply(x -> message);
     } else {
-      return CompletableFuture.completedFuture(null);
+      return CompletableFuture.completedFuture(message);
     }
   }
 
@@ -94,20 +95,11 @@ public abstract class AbstractMediator {
 
   public abstract boolean isConnected();
 
-  protected Function<Message, ? extends CompletionStage<? extends Message>> managePostProcessingAck() {
-    return message -> {
-      if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-        return getAckOrCompletion(message).thenApply(x -> message);
-      } else {
-        return CompletableFuture.completedFuture(message);
-      }
-    };
-  }
 
   protected Function<Message, ? extends CompletionStage<? extends Message>> managePreProcessingAck() {
     return message -> {
       if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
-        return getAckOrCompletion(message).thenApply(x -> message);
+        return getAckOrCompletion(message);
       }
       return CompletableFuture.completedFuture(message);
     };

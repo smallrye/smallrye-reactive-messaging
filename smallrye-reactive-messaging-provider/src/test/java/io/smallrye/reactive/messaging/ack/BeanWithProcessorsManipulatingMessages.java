@@ -24,9 +24,6 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
   static final String PRE_ACKNOWLEDGMENT = "pre-acknowledgment";
   static final String PRE_ACKNOWLEDGMENT_CS = "pre-acknowledgment-cs";
 
-  static final String POST_ACKNOWLEDGMENT = "post-acknowledgment";
-  static final String POST_ACKNOWLEDGMENT_CS = "post-acknowledgment-cs";
-
   static final String DEFAULT_ACKNOWLEDGMENT = "default-acknowledgment";
   static final String DEFAULT_ACKNOWLEDGMENT_CS = "default-acknowledgment-cs";
 
@@ -130,44 +127,6 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
         return CompletableFuture.completedFuture(null);
       }));
   }
-
-
-  @Incoming(POST_ACKNOWLEDGMENT)
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
-  @Outgoing("sink")
-  public Message<String> processorWithPostAck(Message<String> input) {
-    processed(POST_ACKNOWLEDGMENT, input);
-    return Message.of(input.getPayload() + "1");
-  }
-
-  @Outgoing(POST_ACKNOWLEDGMENT)
-  public Publisher<Message<String>> sourceToPostAck() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        nap();
-        acknowledged(POST_ACKNOWLEDGMENT, payload);
-        return CompletableFuture.completedFuture(null);
-      }));
-  }
-
-  @Incoming(POST_ACKNOWLEDGMENT_CS)
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
-  @Outgoing("sink")
-  public CompletionStage<Message<String>> processorWithPostAckCS(Message<String> input) {
-    processed(POST_ACKNOWLEDGMENT_CS, input);
-    return CompletableFuture.completedFuture(Message.of(input.getPayload() + "1"));
-  }
-
-  @Outgoing(POST_ACKNOWLEDGMENT_CS)
-  public Publisher<Message<String>> sourceToPostCSAck() {
-    return Flowable.fromArray("a", "b", "c", "d", "e")
-      .map(payload -> Message.of(payload, () -> {
-        nap();
-        acknowledged(POST_ACKNOWLEDGMENT_CS, payload);
-        return CompletableFuture.completedFuture(null);
-      }));
-  }
-
 
   @Incoming(DEFAULT_ACKNOWLEDGMENT)
   @Outgoing("sink")
