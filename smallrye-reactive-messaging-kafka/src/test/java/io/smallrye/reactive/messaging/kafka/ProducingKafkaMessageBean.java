@@ -17,6 +17,7 @@ import javax.enterprise.inject.Produces;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 @ApplicationScoped
 public class ProducingKafkaMessageBean {
@@ -25,9 +26,10 @@ public class ProducingKafkaMessageBean {
 
   @Incoming("data")
   @Outgoing("output-2")
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public KafkaMessage<String, Integer> process(Message<Integer> input) {
-    KafkaMessage<String, Integer> message = KafkaMessage.of(Integer.toString(input.getPayload()), input.getPayload() + 1);
+    KafkaMessage<String, Integer> message = KafkaMessage.of(
+      Integer.toString(input.getPayload()), input.getPayload() + 1).withAck(input::ack);
     message.getHeaders().put("hello", "clement").put("count", Integer.toString(counter.incrementAndGet()));
     return message;
   }

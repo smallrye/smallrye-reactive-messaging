@@ -20,10 +20,10 @@ public class ConsumptionBean {
 
   @Incoming("data")
   @Outgoing("sink")
-  @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public Message<Integer> process(AmqpMessage<Integer> input) {
     int value = input.getPayload();
-    return Message.of(value + 1);
+    return Message.of(value + 1, input::ack);
   }
 
   @Incoming("sink")

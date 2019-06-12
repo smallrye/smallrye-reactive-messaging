@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import org.apache.commons.lang3.ClassUtils;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -9,6 +10,7 @@ import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -156,7 +158,13 @@ public class ProcessorMediator extends AbstractMediator {
   private void processMethodReturningAProcessorOfMessages() {
     Processor<Message, Message> result = Objects.requireNonNull(invoke(), "The method " + configuration.methodAsString() + " returned `null`");
     this.processor = ReactiveStreams.<Message>builder()
-      .flatMapCompletionStage(managePreProcessingAck())
+      .<Message>flatMapCompletionStage(msg -> {
+        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
+          return msg.ack().thenApply((x -> msg));
+        } else {
+          return CompletableFuture.completedFuture(msg);
+        }
+      })
       .via(result)
       .buildRs();
   }
@@ -206,18 +214,12 @@ public class ProcessorMediator extends AbstractMediator {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
-        .flatMapCompletionStage(input -> {
-          Message output = invoke(input.getPayload());
-          return managePostProcessingAck().apply(input).thenApply(x -> output);
-        })
+        .map(input -> (Message) invoke(input.getPayload()))
         .buildRs();
     } else {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
-        .flatMapCompletionStage(input -> {
-          Message output = invoke(input);
-          return managePostProcessingAck().apply(input).thenApply(x -> output);
-        })
+        .map(input -> (Message) invoke(input))
         .buildRs();
     }
   }
@@ -227,19 +229,25 @@ public class ProcessorMediator extends AbstractMediator {
     if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
-        .flatMapCompletionStage(input -> {
+        .map(input -> {
           Object result = invoke(input.getPayload());
-          return managePostProcessingAck().apply(input)
-            .thenApply(x -> (Message) Message.of(result));
+          if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+            return Message.of(result, () -> input.ack());
+          } else {
+            return Message.of(result);
+          }
         })
         .buildRs();
     } else {
-      // Message
       this.processor = ReactiveStreams.<Message>builder()
         .flatMapCompletionStage(managePreProcessingAck())
-        .flatMapCompletionStage(input -> {
+        .map(input -> {
           Object result = invoke(input);
-          return managePostProcessingAck().apply(input).thenApply(x -> (Message) Message.of(result));
+          if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+            return Message.of(result, () -> input.ack());
+          } else {
+            return Message.of(result);
+          }
         })
         .buildRs();
     }
@@ -250,7 +258,7 @@ public class ProcessorMediator extends AbstractMediator {
       .flatMapCompletionStage(managePreProcessingAck())
       .flatMapCompletionStage(input -> {
         CompletionStage<Message> cs = invoke(input);
-        return cs.thenCompose(res -> managePostProcessingAck().apply(input).thenApply(x -> res));
+        return cs;
       })
       .buildRs();
   }
@@ -258,10 +266,16 @@ public class ProcessorMediator extends AbstractMediator {
   private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload() {
     this.processor = ReactiveStreams.<Message>builder()
       .flatMapCompletionStage(managePreProcessingAck())
-      .flatMapCompletionStage(input -> {
+      .<Message>flatMapCompletionStage(input -> {
         CompletionStage<Object> cs = invoke(input.getPayload());
         return cs
-          .thenCompose(res -> managePostProcessingAck().apply(input).thenApply(p -> (Message) Message.of(res)));
+          .thenApply(res -> Message.of(res, () -> {
+            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+              return input.ack();
+            } else {
+              return CompletableFuture.<Void>completedFuture(null);
+            }
+          }));
       })
       .buildRs();
   }

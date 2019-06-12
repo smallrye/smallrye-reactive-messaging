@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import org.apache.commons.lang3.ClassUtils;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -10,6 +11,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -120,16 +122,20 @@ public class SubscriberMediator extends AbstractMediator {
   }
 
   private void processMethodReturningVoid() {
-    if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-      this.subscriber = ReactiveStreams.<Message<?>>builder()
-        .flatMapCompletionStage(managePreProcessingAck())
-        .map(message -> {
-          invoke(message.getPayload());
-          return message;
-        })
-        .flatMapCompletionStage(managePostProcessingAck())
-        .ignore();
-    }
+    this.subscriber = ReactiveStreams.<Message<?>>builder()
+      .flatMapCompletionStage(managePreProcessingAck())
+      .map(message -> {
+        invoke(message.getPayload());
+        return message;
+      })
+      .flatMapCompletionStage(x -> {
+        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+          return getAckOrCompletion(x);
+        } else {
+          return CompletableFuture.completedFuture(x);
+        }
+      })
+      .ignore();
   }
 
   private void processMethodReturningACompletionStage() {
@@ -140,7 +146,13 @@ public class SubscriberMediator extends AbstractMediator {
           CompletionStage<?> stage = invoke(message.getPayload());
           return stage.thenApply(x -> message);
         })
-        .flatMapCompletionStage(managePostProcessingAck())
+        .flatMapCompletionStage(x -> {
+          if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+            return getAckOrCompletion(x);
+          } else {
+            return CompletableFuture.completedFuture(x);
+          }
+        })
         .ignore();
     } else {
       this.subscriber = ReactiveStreams.<Message<?>>builder()
@@ -149,7 +161,13 @@ public class SubscriberMediator extends AbstractMediator {
           CompletionStage<?> completion = invoke(message);
           return completion.thenApply(x -> message);
         })
-        .flatMapCompletionStage(managePostProcessingAck())
+        .flatMapCompletionStage(x -> {
+          if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+            return getAckOrCompletion(x);
+          } else {
+            return CompletableFuture.completedFuture(x);
+          }
+        })
         .ignore();
     }
   }

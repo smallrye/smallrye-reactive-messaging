@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.eventbus;
 
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -24,8 +25,9 @@ public class ConsumptionBean {
 
   @Incoming("data")
   @Outgoing("sink")
+  @Acknowledgment(Acknowledgment.Strategy.MANUAL)
   public Message<Integer> process(EventBusMessage<Integer> input) {
-    return Message.of(input.getPayload() + 1);
+    return Message.of(input.getPayload() + 1, input::ack);
   }
 
   @Incoming("sink")

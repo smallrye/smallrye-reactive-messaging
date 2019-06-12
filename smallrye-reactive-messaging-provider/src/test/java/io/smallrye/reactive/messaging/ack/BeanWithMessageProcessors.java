@@ -90,7 +90,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   public Processor<Message<String>, Message<String>> processorWithAck() {
     return ReactiveStreams.<Message<String>>builder()
       .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(MANUAL_ACKNOWLEDGMENT, m))
       .buildRs();
   }
@@ -111,7 +111,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
   public Processor<Message<String>, Message<String>> processorWithNoAck() {
     return ReactiveStreams.<Message<String>>builder()
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(NO_ACKNOWLEDGMENT, m))
       .buildRs();
   }
@@ -130,7 +130,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
   public Processor<Message<String>, Message<String>> processorWithAutoAck() {
     return ReactiveStreams.<Message<String>>builder()
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m))
       .buildRs();
   }
@@ -150,7 +150,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
   public Processor<Message<String>, Message<String>> processorWithPreAck() {
     return ReactiveStreams.<Message<String>>builder()
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(PRE_ACKNOWLEDGMENT, m))
       .buildRs();
   }
@@ -172,7 +172,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   public ProcessorBuilder<Message<String>, Message<String>> processorWithAckWithBuilder() {
     return ReactiveStreams.<Message<String>>builder()
       .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(MANUAL_ACKNOWLEDGMENT_BUILDER, m));
   }
 
@@ -192,7 +192,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT_BUILDER)
   public ProcessorBuilder<Message<String>, Message<String>> processorWithNoAckWithBuilder() {
     return ReactiveStreams.<Message<String>>builder()
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(NO_ACKNOWLEDGMENT_BUILDER, m));
   }
 
@@ -210,7 +210,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT_BUILDER)
   public ProcessorBuilder<Message<String>, Message<String>> processorWithAutoAckBuilder() {
     return ReactiveStreams.<Message<String>>builder()
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT_BUILDER, m));
   }
 
@@ -229,7 +229,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_BUILDER)
   public ProcessorBuilder<Message<String>, Message<String>> processorWithPreAckBuilder() {
     return ReactiveStreams.<Message<String>>builder()
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(PRE_ACKNOWLEDGMENT_BUILDER, m));
   }
 

@@ -45,7 +45,8 @@ public class MqttMessageTest {
 
   @Test
   public void testOfTopicPayloadAndQos() {
-    MqttMessage<String> message = MqttMessage.of( "topic2", "testWithQos", MqttQoS.EXACTLY_ONCE );
+    MqttMessage<String> message = MqttMessage.of( "topic2", "testWithQos",
+      MqttQoS.EXACTLY_ONCE);
 
     assertThat(message.getPayload()).isEqualTo("testWithQos");
     assertThat(message.getTopic()).isEqualTo("topic2");
@@ -57,7 +58,8 @@ public class MqttMessageTest {
 
   @Test
   public void testOfTopicPayloadQosAndRetain() {
-    MqttMessage<String> message = MqttMessage.of( "topic3", "testWithRetain", MqttQoS.EXACTLY_ONCE, true);
+    MqttMessage<String> message = MqttMessage.of( "topic3", "testWithRetain",
+      MqttQoS.EXACTLY_ONCE, true);
 
     assertThat(message.getPayload()).isEqualTo("testWithRetain");
     assertThat(message.getTopic()).isEqualTo("topic3");

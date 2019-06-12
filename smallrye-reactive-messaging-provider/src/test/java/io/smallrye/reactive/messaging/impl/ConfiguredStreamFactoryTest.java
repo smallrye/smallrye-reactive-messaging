@@ -60,7 +60,6 @@ public class ConfiguredStreamFactoryTest {
     Map<String, ConnectorConfig> map = ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
     assertThat(map).hasSize(1).containsKeys("name");
     ConnectorConfig config1 = map.get("name");
-    System.out.println(config1.getPropertyNames());
     assertThat(config1.getPropertyNames()).hasSize(5);
     assertThat(config1.getValue("channel-name", String.class)).isEqualTo("name");
   }

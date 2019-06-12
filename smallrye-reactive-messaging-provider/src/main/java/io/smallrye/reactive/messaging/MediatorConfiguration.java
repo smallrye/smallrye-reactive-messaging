@@ -131,8 +131,7 @@ public class MediatorConfiguration {
     if (acknowledgment == null) {
       if (shape == Shape.STREAM_TRANSFORMER) {
         acknowledgment = Acknowledgment.Strategy.PRE_PROCESSING;
-      } else if (shape == Shape.PROCESSOR
-        && !(consumption == Consumption.PAYLOAD || consumption == Consumption.MESSAGE)) {
+      } else if (shape == Shape.PROCESSOR && consumption != Consumption.PAYLOAD) {
         acknowledgment = Acknowledgment.Strategy.PRE_PROCESSING;
       } else if (shape == Shape.SUBSCRIBER
         && (consumption == Consumption.STREAM_OF_PAYLOAD || consumption == Consumption.STREAM_OF_MESSAGE)) {
@@ -243,19 +242,23 @@ public class MediatorConfiguration {
       }
       validateMethodConsumingSingleAndProducingAPublisher();
     } else {
-      // Case 13, 14, 15, 16
+      // Case 9, 10, 11, 12
       Class<?> param = method.getParameterTypes()[0];
       if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
-        // Case 15 or 16
+        // Case 11 or 12
         Type type = getParameterFromReturnType(method, 0)
           .orElseThrow(() -> getIncomingAndOutgoingError("Expected a type parameter in the return CompletionStage"));
         production = TypeUtils.isAssignable(type, Message.class) ? Production.COMPLETION_STAGE_OF_MESSAGE : Production.COMPLETION_STAGE_OF_PAYLOAD;
         consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
       } else {
-        // Case 13 or 14
+        // Case 9 or 10
         production = ClassUtils.isAssignable(returnType, Message.class) ? Production.INDIVIDUAL_MESSAGE : Production.INDIVIDUAL_PAYLOAD;
         consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
       }
+    }
+
+    if (production == Production.INDIVIDUAL_MESSAGE  && acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
+      throw new IllegalStateException("Unsupported acknowledgement policy - POST_PROCESSING not supported when producing messages");
     }
   }
 

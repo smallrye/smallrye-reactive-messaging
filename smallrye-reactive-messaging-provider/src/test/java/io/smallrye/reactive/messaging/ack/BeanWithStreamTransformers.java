@@ -127,7 +127,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
   public Publisher<Message<String>> processorWithNoAck(Publisher<Message<String>> input) {
     return ReactiveStreams.fromPublisher(input)
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(NO_ACKNOWLEDGMENT, m.getPayload()))
       .buildRs();
   }
@@ -147,7 +147,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + NO_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<Message<String>> processorWithNoAckWithBuilder(PublisherBuilder<Message<String>> input) {
     return input
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(NO_ACKNOWLEDGMENT_BUILDER, m.getPayload()));
   }
 
@@ -168,7 +168,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   public Publisher<Message<String>> processorWithAck(Publisher<Message<String>> input) {
     return ReactiveStreams.fromPublisher(input)
       .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(MANUAL_ACKNOWLEDGMENT, m.getPayload()))
       .buildRs();
   }
@@ -190,7 +190,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   public PublisherBuilder<Message<String>> processorWithAckBuilder(PublisherBuilder<Message<String>> input) {
     return input
       .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(MANUAL_ACKNOWLEDGMENT_BUILDER, m.getPayload()));
   }
 
@@ -210,7 +210,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
   public Publisher<Message<String>> processorWitPreAck(Publisher<Message<String>> input) {
     return ReactiveStreams.fromPublisher(input)
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(PRE_ACKNOWLEDGMENT, m.getPayload()))
       .buildRs();
   }
@@ -230,7 +230,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<Message<String>> processorWithPreAckWithBuilder(PublisherBuilder<Message<String>> input) {
     return input
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(PRE_ACKNOWLEDGMENT_BUILDER, m.getPayload()));
   }
 
@@ -249,7 +249,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
   public Publisher<Message<String>> processorWithDefAck(Publisher<Message<String>> input) {
     return ReactiveStreams.fromPublisher(input)
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m.getPayload()))
       .buildRs();
   }
@@ -268,7 +268,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<Message<String>> processorWithDefaultAckWithBuilder(PublisherBuilder<Message<String>> input) {
     return input
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
       .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT_BUILDER, m.getPayload()));
   }
 
@@ -287,7 +287,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PAYLOAD_NO_ACKNOWLEDGMENT)
   public Publisher<String> processorWithNoAckMessage(Publisher<String> input) {
     return ReactiveStreams.fromPublisher(input)
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(p -> ReactiveStreams.of(p, p))
       .peek(m -> processed(PAYLOAD_NO_ACKNOWLEDGMENT, m))
       .buildRs();
   }
@@ -307,7 +307,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<String> processorWithNoAckWithPayloadBuilder(PublisherBuilder<String> input) {
     return input
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(p -> ReactiveStreams.of(p, p))
       .peek(m -> processed(PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER, m));
   }
 
@@ -325,7 +325,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
   public Publisher<String> processorWithDefPayloadAck(Publisher<String> input) {
     return ReactiveStreams.fromPublisher(input)
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(p -> ReactiveStreams.of(p, p))
       .peek(m -> processed(PAYLOAD_DEFAULT_ACKNOWLEDGMENT, m))
       .buildRs();
   }
@@ -344,7 +344,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<String> processorWithDefaultAckWithBuilderUsingPayload(PublisherBuilder<String> input) {
     return input
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(p -> ReactiveStreams.of(p, p))
       .peek(m -> processed(PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER, m));
   }
 
@@ -363,7 +363,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PAYLOAD_PRE_ACKNOWLEDGMENT)
   public Publisher<String> processorWithPrePayloadAck(Publisher<String> input) {
     return ReactiveStreams.fromPublisher(input)
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(p -> ReactiveStreams.of(p, p))
       .peek(m -> processed(PAYLOAD_PRE_ACKNOWLEDGMENT, m))
       .buildRs();
   }
@@ -383,7 +383,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
   @Outgoing("sink-" + PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER)
   public PublisherBuilder<String> processorWithPreAckWithBuilderWithPayload(PublisherBuilder<String> input) {
     return input
-      .flatMap(m -> ReactiveStreams.of(m, m))
+      .flatMap(p -> ReactiveStreams.of(p, p))
       .peek(m -> processed(PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER, m));
   }
 
