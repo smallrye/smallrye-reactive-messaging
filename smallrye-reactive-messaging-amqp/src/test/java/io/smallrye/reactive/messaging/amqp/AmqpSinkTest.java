@@ -103,6 +103,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     usage.<String>consume(topic,
       v -> {
         expected.getAndIncrement();
+        v.getDelegate().accepted();
         messages.add(new AmqpMessage<>(v));
       });
 

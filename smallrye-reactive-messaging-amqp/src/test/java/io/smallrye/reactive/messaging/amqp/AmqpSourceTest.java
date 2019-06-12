@@ -71,7 +71,9 @@ public class AmqpSourceTest extends AmqpTestBase {
         counter::getAndIncrement)).start();
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-    assertThat(messages.stream().map(Message::getPayload)
+    assertThat(messages.stream()
+      .peek(m -> m.ack().toCompletableFuture().join())
+      .map(Message::getPayload)
       .collect(Collectors.toList()))
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
   }
@@ -99,7 +101,9 @@ public class AmqpSourceTest extends AmqpTestBase {
         counter::getAndIncrement)).start();
 
     await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-    assertThat(messages.stream().map(Message::getPayload)
+    assertThat(messages.stream()
+      .peek(m -> m.ack().toCompletableFuture().join())
+      .map(Message::getPayload)
       .collect(Collectors.toList()))
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
   }

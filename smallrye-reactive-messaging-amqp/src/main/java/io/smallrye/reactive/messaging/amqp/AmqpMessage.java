@@ -28,9 +28,11 @@ import static io.vertx.proton.ProtonHelper.message;
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
   private final io.vertx.amqp.AmqpMessage message;
+  private final boolean received;
 
   public AmqpMessage(io.vertx.axle.amqp.AmqpMessage delegate) {
     this.message = delegate.getDelegate();
+    this.received = true;
   }
 
   public AmqpMessage(T payload) {
@@ -41,10 +43,20 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
       msg.setBody(new AmqpValue(payload));
     }
     this.message = new AmqpMessageImpl(msg);
+    this.received = false;
   }
 
   public AmqpMessage(io.vertx.amqp.AmqpMessage msg) {
     this.message = msg;
+    this.received = false;
+  }
+
+  @Override
+  public CompletionStage<Void> ack() {
+    if (received) {
+      this.message.accepted();
+    }
+    return CompletableFuture.completedFuture(null);
   }
 
   @Override
@@ -84,11 +96,6 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     return body;
   }
 
-  @Override
-  public CompletionStage<Void> ack() {
-    ((AmqpMessageImpl) message).delivered();
-    return CompletableFuture.completedFuture(null);
-  }
 
   public Message unwrap() {
     return message.unwrap();

@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnector.class);
-  public static final String CONNECTOR_NAME = "smallrye-amqp";
+  static final String CONNECTOR_NAME = "smallrye-amqp";
 
   private AmqpClient client;
 
