@@ -75,6 +75,17 @@ public class MediatorManager {
       .forEach(method -> collected.add(method.getJavaMember(), bean));
   }
 
+  public <T> void analyze(Class<?> beanClass, Bean<T> bean) {
+    LOGGER.info("Scanning type: {}", beanClass);
+    Class<?> current = beanClass;
+    while (current != Object.class) {
+      Arrays.stream(current.getDeclaredMethods())
+        .filter(m -> m.isAnnotationPresent(Incoming.class) || m.isAnnotationPresent(Outgoing.class))
+        .forEach(m -> collected.add(m, bean));
+      current = current.getSuperclass();
+    }
+  }
+
   @PreDestroy
   void shutdown() {
     LOGGER.info("Cancel subscriptions");
@@ -206,24 +217,24 @@ public class MediatorManager {
       List<SubscriberBuilder<? extends Message, Void>> subscribers = channelRegistry.getSubscribers(name);
       for (AbstractMediator mediator : list) {
         if (subscribers.size() == 1) {
-          LOGGER.info("Connecting method {} to outgoing channel {}", mediator.getMethodAsString(), name);
+          LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
           mediator.getStream().to((SubscriberBuilder) subscribers.get(0)).run();
         } else if (subscribers.size() > 2) {
-          LOGGER.warn("{} subscribers consuming the channel {}", subscribers.size(), name);
+          LOGGER.warn("{} subscribers consuming the stream {}", subscribers.size(), name);
           subscribers.forEach(s -> {
-            LOGGER.info("Connecting method {} to outgoing channel {}", mediator.getMethodAsString(), name);
+            LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
             mediator.getStream().to((SubscriberBuilder) s).run();
           });
         }
       }
       if (list.isEmpty() && emitter != null) {
           if (subscribers.size() == 1) {
-            LOGGER.info("Connecting emitter to outgoing channel {}", name);
+            LOGGER.info("Connecting emitter to sink {}", name);
             ReactiveStreams.fromPublisher(emitter.getPublisher()).to(subscribers.get(0)).run();
           } else if (subscribers.size() > 2) {
             LOGGER.warn("{} subscribers consuming the stream {}", subscribers.size(), name);
             subscribers.forEach(s -> {
-              LOGGER.info("Connecting emitter to outgoing channel {}", name);
+              LOGGER.info("Connecting emitter to sink {}", name);
               ReactiveStreams.fromPublisher(emitter.getPublisher()).to(s).run();
             });
           }
