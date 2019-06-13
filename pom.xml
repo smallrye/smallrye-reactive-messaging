@@ -55,7 +55,7 @@
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
     <rxjava.version>2.2.9</rxjava.version>
     <smallrye-reactive-streams-ops.version>1.0.5</smallrye-reactive-streams-ops.version>
-    <smallrye-config.version>1.3.7</smallrye-config.version>
+    <smallrye-config.version>1.0.0</smallrye-config.version>
     <cloudevent.version>0.2.1</cloudevent.version>
     <axle.version>0.0.7</axle.version>
 
