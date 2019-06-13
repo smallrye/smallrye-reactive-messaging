@@ -75,6 +75,7 @@ public class MediatorManager {
       .forEach(method -> collected.add(method.getJavaMember(), bean));
   }
 
+  @SuppressWarnings("unused")
   public <T> void analyze(Class<?> beanClass, Bean<T> bean) {
     LOGGER.info("Scanning type: {}", beanClass);
     Class<?> current = beanClass;

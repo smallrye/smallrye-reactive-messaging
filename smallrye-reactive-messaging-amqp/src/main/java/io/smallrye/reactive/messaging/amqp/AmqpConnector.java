@@ -118,9 +118,12 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     String address = getAddressOrFail(config);
     boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
     boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
+    boolean autoAck = config.getOptionalValue("auto-acknowledgement", Boolean.class).orElse(false);
     CompletionStage<AmqpReceiver> future = getClient(config)
       .connect()
-      .thenCompose(connection -> connection.createReceiver(address, new AmqpReceiverOptions().setDurable(durable)));
+      .thenCompose(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
+        .setAutoAcknowledgement(autoAck)
+        .setDurable(durable)));
 
     PublisherBuilder<? extends Message> builder = ReactiveStreams
       .fromCompletionStage(future)
