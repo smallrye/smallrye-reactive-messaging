@@ -11,7 +11,7 @@ To enable the Kafka support, you need the following dependency:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-kafka</artifactId>
+  <artifactId>smallrye-reactive-messaging-kafka-1.0</artifactId>
   <version>{version}</version>
 </dependency>
 ----
@@ -26,9 +26,7 @@ To retrieve messages from a Kafka topic, you need the following configuration:
 mp.messaging.incoming.kafka-heartbeat.connector=smallrye-kafka
 mp.messaging.incoming.kafka-heartbeat.topic=heartbeat
 mp.messaging.incoming.kafka-heartbeat.bootstrap.servers=localhost:9092
-mp.messaging.incoming.kafka-heartbeat.enable.auto.commit=false
 mp.messaging.incoming.kafka-heartbeat.group.id=demo
-mp.messaging.incoming.kafka-heartbeat.key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
 mp.messaging.incoming.kafka-heartbeat.value.deserializer=io.vertx.kafka.client.serialization.JsonObjectDeserializer
 # [/Source - heartbeat]
 ----
@@ -41,10 +39,11 @@ in the following table:
 | Attribute | Mandatory | Default | Description
 
 | topic | true | the `channel-name` | The topic to consume, use the `channel-name` if not set
-| bootstrap.servers | true | | the comma separated list of servers (host:port)
-| key.deserializer | true | | the codec used to deserialize the key
+| bootstrap.servers | false | `localhost:9092` | the comma separated list of servers (host:port), Can also
+be set using the `kafka.bootstrap.servers` config property.
+| key.deserializer | false | | the codec used to deserialize the key, `String` by default
 | value.deserializer | true | | the codec used to deserialize the value
-| group.id | true | | the group id
+| group.id | false | | the group id, random if omitted
 | enable.auto.commit | false | false | whether or not the messages are committed automatically
 | retry | false | true | Whether it should retry to re-established the connection to the broker is it fails
 | retry-attempts | false | 5 | Number of retries
@@ -70,10 +69,7 @@ To send messages to a Kafka topic, you need the following configuration:
 ----
 # [Sink - data] - Produce data to Kafka
 mp.messaging.outgoing.data.connector=smallrye-kafka
-mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
-mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
 mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
-mp.messaging.outgoing.data.acks=1
 # [/Sink - data]
 ----
 
@@ -85,7 +81,8 @@ in the following table:
 | Attribute | Mandatory | Default | Description
 
 | topic | false | the `channel-name` | The topic to consume, if not set it must be set in the `message`
-| bootstrap.servers | true | | the comma separated list of servers (host:port)
+| bootstrap.servers | false | `localhost:9092` | the comma separated list of servers (host:port), Can also
+be set using the `kafka.bootstrap.servers` config property.
 | key.serializer | true | | the codec used to serialize the key
 | value.serializer | true | | the codec used to serialize the value
 | key | false | | the key to be used, can be overridden by the message
