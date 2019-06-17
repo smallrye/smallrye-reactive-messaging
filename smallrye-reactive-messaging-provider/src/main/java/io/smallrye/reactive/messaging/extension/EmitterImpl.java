@@ -1,11 +1,14 @@
 package io.smallrye.reactive.messaging.extension;
 
+import io.reactivex.BackpressureOverflowStrategy;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -13,13 +16,20 @@ public class EmitterImpl<T> implements Emitter<T> {
 
   private final AtomicReference<FlowableEmitter<Message<? extends T>>> internal = new AtomicReference<>();
   private final Flowable<Message<? extends T>> publisher;
+  private final String name;
 
-  EmitterImpl() {
-    publisher = Flowable.create(x -> {
-      if (!internal.compareAndSet(null, x)) {
-        x.onError(new Exception("Emitter already created"));
+  private static final Logger LOGGER = LoggerFactory.getLogger(EmitterImpl.class);
+
+  EmitterImpl(String name) {
+    this.name = name;
+    publisher = Flowable.<Message<? extends T>>create(fe -> {
+      if (!internal.compareAndSet(null, fe)) {
+        fe.onError(new Exception("Emitter already created"));
       }
-    }, BackpressureStrategy.BUFFER);
+    }, BackpressureStrategy.BUFFER)
+      .onBackpressureBuffer(128, () -> LOGGER.error("Buffer full for emitter {}", name),
+        BackpressureOverflowStrategy.ERROR);
+
   }
 
   public Publisher<Message<? extends T>> getPublisher() {
@@ -36,9 +46,6 @@ public class EmitterImpl<T> implements Emitter<T> {
       throw new IllegalArgumentException("`null` is not a valid value");
     }
     FlowableEmitter<Message<? extends T>> emitter = verify();
-    if (emitter.requested() == 0) {
-      throw new IllegalStateException("Unable to send a message to the stream using the emitter - no data requested");
-    }
     if (msg instanceof Message) {
       //noinspection unchecked
       emitter.onNext((Message) msg);

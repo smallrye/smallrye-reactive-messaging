@@ -293,7 +293,7 @@ public class MediatorManager {
 
   public void initializeEmitters(List<String> emitters) {
     for (String e : emitters) {
-      EmitterImpl emitter = new EmitterImpl();
+      EmitterImpl emitter = new EmitterImpl(e);
       Publisher<Message> publisher = emitter.getPublisher();
       channelRegistry.register(e, ReactiveStreams.fromPublisher(publisher));
       channelRegistry.register(e, emitter);
