@@ -27,7 +27,7 @@ public class KafkaTestBase {
   Vertx vertx;
 
   @BeforeClass
-  public static void beforeClass() throws IOException {
+  public static void startKafkaBroker() throws IOException {
     Properties props = new Properties();
     props.setProperty("zookeeper.connection.timeout.ms", "10000");
     File directory = Testing.Files.createTestingDirectory(System.getProperty("java.io.tmpdir"), true);
@@ -40,7 +40,7 @@ public class KafkaTestBase {
   }
 
   @AfterClass
-  public static void afterClass() {
+  public static void stopKafkaBroker() {
     try {
       kafka.shutdown();
     } catch (Exception e) {
