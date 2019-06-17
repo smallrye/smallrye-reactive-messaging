@@ -15,7 +15,7 @@
   <dependencies>
     <dependency>
       <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
-      <artifactId>microprofile-reactive-messaging-core-tck</artifactId>
+      <artifactId>microprofile-reactive-messaging-tck</artifactId>
       <version>${microprofile-reactive-messaging.version}</version>
     </dependency>
 
@@ -47,7 +47,7 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <dependenciesToScan>org.eclipse.microprofile.reactive.messaging:microprofile-reactive-messaging-core-tck</dependenciesToScan>
+          <dependenciesToScan>org.eclipse.microprofile.reactive.messaging:microprofile-reactive-messaging-tck</dependenciesToScan>
         </configuration>
       </plugin>
 

@@ -51,7 +51,7 @@
   <properties>
     <vertx.version>3.7.1</vertx.version>
     <slf4j-api.version>1.7.26</slf4j-api.version>
-    <microprofile-reactive-messaging.version>1.0-SNAPSHOT</microprofile-reactive-messaging.version>
+    <microprofile-reactive-messaging.version>1.0-RC1</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
     <rxjava.version>2.2.9</rxjava.version>
     <smallrye-reactive-streams-ops.version>1.0.5</smallrye-reactive-streams-ops.version>
