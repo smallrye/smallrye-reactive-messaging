@@ -15,7 +15,7 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 </dependency>
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-streams-operators</artifactId>
+  <artifactId>smallrye-reactive-streams-operators-1.0</artifactId>
   <version>{smallrye-streams-version}</version>
 </dependency>
 <dependency>

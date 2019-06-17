@@ -54,7 +54,7 @@
     <microprofile-reactive-messaging.version>1.0-RC1</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
     <rxjava.version>2.2.9</rxjava.version>
-    <smallrye-reactive-streams-ops.version>1.0.5</smallrye-reactive-streams-ops.version>
+    <smallrye-reactive-streams-ops.version>1.0.6</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.0.0</smallrye-config.version>
     <cloudevent.version>0.2.1</cloudevent.version>
     <axle.version>0.0.7</axle.version>
@@ -144,7 +144,7 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <artifactId>smallrye-reactive-streams-operators-1.0</artifactId>
       <version>${smallrye-reactive-streams-ops.version}</version>
       <scope>test</scope>
     </dependency>
@@ -167,7 +167,7 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-vertx-execution-model</artifactId>
+      <artifactId>smallrye-reactive-streams-vertx-execution-model-1.0</artifactId>
       <version>${smallrye-reactive-streams-ops.version}</version>
       <scope>test</scope>
     </dependency>
