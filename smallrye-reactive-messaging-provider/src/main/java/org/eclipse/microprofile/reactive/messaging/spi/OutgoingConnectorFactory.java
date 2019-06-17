@@ -18,11 +18,11 @@
  */
 package org.eclipse.microprofile.reactive.messaging.spi;
 
+import java.util.NoSuchElementException;
+
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-
-import java.util.NoSuchElementException;
 
 /**
  * SPI used to implement a connector managing a sink of messages for a specific <em>transport</em>. For example, to
@@ -42,11 +42,11 @@ import java.util.NoSuchElementException;
  * </pre>
  * <p>
  * The configuration keys are structured as follows: {@code mp.messaging.[incoming|outgoing].channel-name.attribute} or
- * {@code mp.messaging.[connector].connector-name.attribute}. 
+ * {@code mp.messaging.[connector].connector-name.attribute}.
  * Channel names are not expected to contain {@code .} so the first occurrence of a {@code .} in the channel-name portion
  * of a property terminates the channel name and precedes the attribute name.
  * For connector attributes, the longest string, inclusive of {@code .}s, that matches a loadable
- * connector is used as a {@code connector-name}. The remainder, after a {@code .} separator, is the attribute name.  
+ * connector is used as a {@code connector-name}. The remainder, after a {@code .} separator, is the attribute name.
  * Configuration keys that begin
  * {@code mp.messaging.incoming} are not used for {@link OutgoingConnectorFactory} configuration.
  * <p>
@@ -56,16 +56,16 @@ import java.util.NoSuchElementException;
  * <pre>
  * &#64;Outgoing("my-channel")
  * public CompletionStage&lt;String&gt; produce(String s) {
- *      // ...
+ *     // ...
  * }
  * </pre>
  * <p>
  * The set of attributes depend on the connector and transport layer (For example, bootstrap.servers is Kafka specific).
  * The {@code connector} attribute indicates the name of the connector.
- * It will be matched to the value returned by the {@link Connector} qualifier 
+ * It will be matched to the value returned by the {@link Connector} qualifier
  * used on the relevant {@link OutgoingConnectorFactory} bean implementation.
  * This is how a reactive messaging implementation looks for the specific {@link OutgoingConnectorFactory} required for
- * a channel. 
+ * a channel.
  * Any {@code mp.messaging.connector} attributes for the channel's connector are also included in the set
  * of relevant attributes. Where an attribute is present for both a channel and its connector the value of the channel
  * specific attribute will take precedence.
@@ -78,6 +78,7 @@ import java.util.NoSuchElementException;
  * The {@link #getSubscriberBuilder(Config)} is called for every <em>channel</em> that needs to be created. The
  * {@link Config} object passed to the method contains a subset of the global configuration, and with the prefixes removed.
  * So for the previous configuration, it would be:
+ * 
  * <pre>
  * bootstrap.servers = localhost:9092
  * topic = my-topic
@@ -104,7 +105,7 @@ public interface OutgoingConnectorFactory extends ConnectorFactory {
      * subscription.
      *
      * @param config the configuration, never {@code null}, must contain the {@link #CHANNEL_NAME_ATTRIBUTE}
-     *               attribute.
+     *        attribute.
      * @return the created {@link SubscriberBuilder}, must not be {@code null}.
      * @throws IllegalArgumentException if the configuration is invalid.
      * @throws NoSuchElementException if the configuration does not contain an expected attribute.

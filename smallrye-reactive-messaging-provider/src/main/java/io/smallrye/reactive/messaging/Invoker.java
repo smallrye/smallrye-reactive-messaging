@@ -2,6 +2,6 @@ package io.smallrye.reactive.messaging;
 
 public interface Invoker {
 
-  Object invoke(Object... args);
+    Object invoke(Object... args);
 
 }

@@ -1,24 +1,26 @@
 package io.smallrye.reactive.messaging.merge;
 
-import io.reactivex.Flowable;
-import io.reactivex.processors.UnicastProcessor;
-import io.smallrye.reactive.messaging.WeavingException;
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.annotations.Broadcast;
-import io.smallrye.reactive.messaging.annotations.Merge;
+import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.spi.DeploymentException;
+
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DeploymentException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.junit.Assert.fail;
+import io.reactivex.Flowable;
+import io.reactivex.processors.UnicastProcessor;
+import io.smallrye.reactive.messaging.WeavingException;
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.annotations.Broadcast;
+import io.smallrye.reactive.messaging.annotations.Merge;
 
 /**
  * Checks that the deployment fails when a subscriber has 2 many potential publishers and does not use the
@@ -26,156 +28,153 @@ import static org.junit.Assert.fail;
  */
 public class InvalidBindingTest extends WeldTestBaseWithoutTails {
 
+    @Test
+    public void testMissingMerge() {
+        addBeanClass(MySource1Bean.class);
+        addBeanClass(MySink1Bean.class);
+        addBeanClass(MySource2Bean.class);
 
-  @Test
-  public void testMissingMerge() {
-    addBeanClass(MySource1Bean.class);
-    addBeanClass(MySink1Bean.class);
-    addBeanClass(MySource2Bean.class);
-
-    try {
-      initialize();
-      fail("Invalid weaving not detected");
-    } catch (DeploymentException e) {
-      assertThat(e.getCause())
-        .isInstanceOf(WeavingException.class)
-        .hasMessageContaining("`source`")
-        .hasMessageContaining("#sink")
-        .hasMessageContaining("(2)");
-    }
-  }
-
-  @Test
-  public void testWithMerge() {
-    addBeanClass(MySource1Bean.class);
-    addBeanClass(MySinkWithMerge.class);
-    addBeanClass(MySource2Bean.class);
-
-    initialize();
-
-    MySinkWithMerge sink = container.getBeanManager().createInstance().select(MySinkWithMerge.class).get();
-    assertThat(sink.list().size()).isEqualTo(20);
-  }
-
-  @Test
-  public void testMissingBroadcast() {
-    addBeanClass(MySink2Bean.class);
-    addBeanClass(MySink1Bean.class);
-    addBeanClass(MyUnicastSourceBean.class);
-
-    try {
-      initialize();
-      fail("Invalid weaving not detected");
-    } catch (DeploymentException e) {
-      assertThat(e.getCause())
-        .isInstanceOf(WeavingException.class)
-        .hasMessageContaining("`source`")
-        .hasMessageContaining("Synchronous");
-    }
-  }
-
-  @Test
-  public void testWithBroadcast() {
-    addBeanClass(MySink2Bean.class);
-    addBeanClass(MySink1Bean.class);
-    addBeanClass(MyUnicastSourceBeanWithBroadcast.class);
-
-    initialize();
-
-    MySink2Bean sink2Bean = container.getBeanManager().createInstance().select(MySink2Bean.class).get();
-    MySink1Bean sink1Bean = container.getBeanManager().createInstance().select(MySink1Bean.class).get();
-    assertThat(sink2Bean.list()).containsExactly("a", "b");
-    assertThat(sink1Bean.list()).containsExactly("a", "b");
-  }
-
-  @ApplicationScoped
-  public static class MySource1Bean {
-
-    @Outgoing("source")
-    public Flowable<String> foo() {
-      return Flowable.range(0 ,10).map(i -> Integer.toString(i));
+        try {
+            initialize();
+            fail("Invalid weaving not detected");
+        } catch (DeploymentException e) {
+            assertThat(e.getCause())
+                    .isInstanceOf(WeavingException.class)
+                    .hasMessageContaining("`source`")
+                    .hasMessageContaining("#sink")
+                    .hasMessageContaining("(2)");
+        }
     }
 
-  }
+    @Test
+    public void testWithMerge() {
+        addBeanClass(MySource1Bean.class);
+        addBeanClass(MySinkWithMerge.class);
+        addBeanClass(MySource2Bean.class);
 
-  @ApplicationScoped
-  public static class MyUnicastSourceBean {
+        initialize();
 
-    @Outgoing("source")
-    public Publisher<String> foo() {
-      return ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs();
+        MySinkWithMerge sink = container.getBeanManager().createInstance().select(MySinkWithMerge.class).get();
+        assertThat(sink.list().size()).isEqualTo(20);
     }
 
-  }
+    @Test
+    public void testMissingBroadcast() {
+        addBeanClass(MySink2Bean.class);
+        addBeanClass(MySink1Bean.class);
+        addBeanClass(MyUnicastSourceBean.class);
 
-  @ApplicationScoped
-  public static class MyUnicastSourceBeanWithBroadcast {
-
-    @Outgoing("source")
-    @Broadcast(2)
-    public Publisher<String> foo() {
-      return ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs();
+        try {
+            initialize();
+            fail("Invalid weaving not detected");
+        } catch (DeploymentException e) {
+            assertThat(e.getCause())
+                    .isInstanceOf(WeavingException.class)
+                    .hasMessageContaining("`source`")
+                    .hasMessageContaining("Synchronous");
+        }
     }
 
-  }
+    @Test
+    public void testWithBroadcast() {
+        addBeanClass(MySink2Bean.class);
+        addBeanClass(MySink1Bean.class);
+        addBeanClass(MyUnicastSourceBeanWithBroadcast.class);
 
+        initialize();
 
-  @ApplicationScoped
-  public static class MySink1Bean {
-
-    List<String> list = new ArrayList<>();
-
-    @Incoming("source")
-    // No merge on purpose
-    public void sink(String s) {
-      list.add(s);
+        MySink2Bean sink2Bean = container.getBeanManager().createInstance().select(MySink2Bean.class).get();
+        MySink1Bean sink1Bean = container.getBeanManager().createInstance().select(MySink1Bean.class).get();
+        assertThat(sink2Bean.list()).containsExactly("a", "b");
+        assertThat(sink1Bean.list()).containsExactly("a", "b");
     }
 
-    public List<String> list() {
-      return list;
-    }
-  }
+    @ApplicationScoped
+    public static class MySource1Bean {
 
-  @ApplicationScoped
-  public static class MySinkWithMerge {
+        @Outgoing("source")
+        public Flowable<String> foo() {
+            return Flowable.range(0, 10).map(i -> Integer.toString(i));
+        }
 
-    List<String> list = new ArrayList<>();
-
-    @Incoming("source")
-    @Merge
-    public void sink(String s) {
-      list.add(s);
     }
 
-    public List<String> list() {
-      return list;
-    }
-  }
+    @ApplicationScoped
+    public static class MyUnicastSourceBean {
 
-  @ApplicationScoped
-  public static class MySink2Bean {
+        @Outgoing("source")
+        public Publisher<String> foo() {
+            return ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs();
+        }
 
-    List<String> list = new ArrayList<>();
-
-    @Incoming("source")
-    public void sink(String s) {
-      list.add(s);
     }
 
-    public List<String> list() {
-      return list;
-    }
-  }
+    @ApplicationScoped
+    public static class MyUnicastSourceBeanWithBroadcast {
 
-  @ApplicationScoped
-  public static class MySource2Bean {
+        @Outgoing("source")
+        @Broadcast(2)
+        public Publisher<String> foo() {
+            return ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs();
+        }
 
-    @Outgoing("source")
-    public Flowable<String> foo() {
-      return Flowable.range(10 ,10).map(i -> Integer.toString(i));
     }
 
-  }
+    @ApplicationScoped
+    public static class MySink1Bean {
 
+        List<String> list = new ArrayList<>();
+
+        @Incoming("source")
+        // No merge on purpose
+        public void sink(String s) {
+            list.add(s);
+        }
+
+        public List<String> list() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class MySinkWithMerge {
+
+        List<String> list = new ArrayList<>();
+
+        @Incoming("source")
+        @Merge
+        public void sink(String s) {
+            list.add(s);
+        }
+
+        public List<String> list() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class MySink2Bean {
+
+        List<String> list = new ArrayList<>();
+
+        @Incoming("source")
+        public void sink(String s) {
+            list.add(s);
+        }
+
+        public List<String> list() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class MySource2Bean {
+
+        @Outgoing("source")
+        public Flowable<String> foo() {
+            return Flowable.range(10, 10).map(i -> Integer.toString(i));
+        }
+
+    }
 
 }

@@ -1,28 +1,28 @@
 package io.smallrye.reactive.messaging.beans;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.enterprise.context.ApplicationScoped;
+
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Subscriber;
 
-import javax.enterprise.context.ApplicationScoped;
-import java.util.ArrayList;
-import java.util.List;
-
 @ApplicationScoped
 public class BeanReturningASubscriberOfMessages {
 
-  private List<String> list = new ArrayList<>();
+    private List<String> list = new ArrayList<>();
 
+    @Incoming("count")
+    public Subscriber<Message<String>> create() {
+        return ReactiveStreams.<Message<String>> builder().forEach(m -> list.add(m.getPayload()))
+                .build();
+    }
 
-  @Incoming("count")
-  public Subscriber<Message<String>> create() {
-    return ReactiveStreams.<Message<String>>builder().forEach(m -> list.add(m.getPayload()))
-      .build();
-  }
-
-  public List<String> payloads() {
-    return list;
-  }
+    public List<String> payloads() {
+        return list;
+    }
 
 }

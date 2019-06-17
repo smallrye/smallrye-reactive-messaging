@@ -19,14 +19,6 @@
 
 package io.smallrye.reactive.messaging.tck;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +27,14 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.reactivestreams.Processor;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 /**
  * Convenience helper for holding sent messages so that assertions can be run against them.
@@ -118,8 +118,7 @@ public class MockedSender<T> {
                     }
                 });
                 subscriber.onError(new RuntimeException("I only support one subscriber"));
-            }
-            else {
+            } else {
                 publishers.add(this);
                 subscriber.onSubscribe(this);
             }
@@ -139,8 +138,7 @@ public class MockedSender<T> {
                         if (demand != Long.MAX_VALUE) {
                             demand--;
                         }
-                    }
-                    else {
+                    } else {
                         break;
                     }
                 }

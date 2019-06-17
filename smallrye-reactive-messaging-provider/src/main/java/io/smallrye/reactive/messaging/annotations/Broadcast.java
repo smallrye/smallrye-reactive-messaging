@@ -12,10 +12,11 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Broadcast {
 
-  /**
-   * Indicates the number of subscribers required before dispatching the items.
-   * @return the value, 0 indicates immediate.
-   */
-  int value() default 0;
+    /**
+     * Indicates the number of subscribers required before dispatching the items.
+     * 
+     * @return the value, 0 indicates immediate.
+     */
+    int value() default 0;
 
 }

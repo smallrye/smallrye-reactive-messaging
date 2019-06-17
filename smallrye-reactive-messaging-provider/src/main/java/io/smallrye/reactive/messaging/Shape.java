@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging;
 
-public enum  Shape {
+public enum Shape {
 
-  PUBLISHER,
-  SUBSCRIBER,
-  PROCESSOR,
-  STREAM_TRANSFORMER
+    PUBLISHER,
+    SUBSCRIBER,
+    PROCESSOR,
+    STREAM_TRANSFORMER
 }

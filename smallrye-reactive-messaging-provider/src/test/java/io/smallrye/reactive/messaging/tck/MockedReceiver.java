@@ -1,13 +1,5 @@
 package io.smallrye.reactive.messaging.tck;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +8,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Processor;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 /**
  * Convenience helper for holding received messages so that assertions can be run against them.
@@ -40,9 +40,9 @@ public class MockedReceiver<T> {
     }
 
     public ProcessorBuilder<T, Void> createProcessor() {
-        return ReactiveStreams.<T>builder()
-            .<Message<T>>map(SimpleMessage::new)
-            .via(new MessageProcessor());
+        return ReactiveStreams.<T> builder()
+                .<Message<T>> map(SimpleMessage::new)
+                .via(new MessageProcessor());
     }
 
     public SubscriberBuilder<Message<T>, Void> createWrappedSubscriber() {
@@ -50,9 +50,9 @@ public class MockedReceiver<T> {
     }
 
     public SubscriberBuilder<T, Void> createSubscriber() {
-        return ReactiveStreams.<T>builder()
-            .<Message<T>>map(SimpleMessage::new)
-            .to(new MessageProcessor());
+        return ReactiveStreams.<T> builder()
+                .<Message<T>> map(SimpleMessage::new)
+                .to(new MessageProcessor());
     }
 
     /**
@@ -70,7 +70,8 @@ public class MockedReceiver<T> {
     public Message<T> expectNextMessageWithPayload(T payload) {
         Message<T> msg = receiveMessageWithPayload(payload, timeout.toMillis());
         if (!msg.getPayload().equals(payload)) {
-            throw new AssertionError("Expected a message on topic " + topic + " with payload " + payload + " but got " + msg.getPayload());
+            throw new AssertionError(
+                    "Expected a message on topic " + topic + " with payload " + payload + " but got " + msg.getPayload());
         }
         return msg;
     }
@@ -92,9 +93,9 @@ public class MockedReceiver<T> {
                 msg = receiveMessageWithPayload(payload, remaining);
             }
             return msg;
-        }
-        catch (ReceiveTimeoutException e) {
-            throw new AssertionError(e.getMessage() + ". Did receive and ignore the following payloads: " + String.join(", ", ignored));
+        } catch (ReceiveTimeoutException e) {
+            throw new AssertionError(
+                    e.getMessage() + ". Did receive and ignore the following payloads: " + String.join(", ", ignored));
         }
     }
 
@@ -105,10 +106,10 @@ public class MockedReceiver<T> {
         try {
             Message<T> msg = queue.poll(timeout.toMillis(), TimeUnit.MILLISECONDS);
             if (msg != null) {
-                throw new AssertionError(errorMsg + ": Expected no messages on topic " + topic + " but instead got message: " + msg);
+                throw new AssertionError(
+                        errorMsg + ": Expected no messages on topic " + topic + " but instead got message: " + msg);
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
@@ -126,14 +127,13 @@ public class MockedReceiver<T> {
         if (remaining > 0) {
             try {
                 msg = queue.poll(remaining, TimeUnit.MILLISECONDS);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
         if (msg == null) {
             throw new ReceiveTimeoutException("Timeout " + timeout.toMillis() +
-                "ms while waiting for a message on topic " + topic + " with payload " + payload);
+                    "ms while waiting for a message on topic " + topic + " with payload " + payload);
         }
         return msg;
     }
@@ -158,8 +158,7 @@ public class MockedReceiver<T> {
         public void onSubscribe(Subscription subscription) {
             if (!this.subscription.compareAndSet(null, subscription)) {
                 subscription.cancel();
-            }
-            else {
+            } else {
                 subscriptions.add(subscription);
                 subscription.request(1);
             }

@@ -11,8 +11,8 @@ import io.smallrye.reactive.messaging.annotations.Stream;
 @ApplicationScoped
 public class BeanInjectedNonExistentStream {
 
-  @Inject
-  @Stream("idonotexit")
-  private Flowable<Message<String>> field;
+    @Inject
+    @Stream("idonotexit")
+    private Flowable<Message<String>> field;
 
 }

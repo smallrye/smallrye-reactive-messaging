@@ -13,19 +13,19 @@ import io.smallrye.reactive.messaging.MediatorConfiguration;
 
 class CollectedMediatorMetadata {
 
-  private final List<MediatorConfiguration> mediators = new ArrayList<>();
+    private final List<MediatorConfiguration> mediators = new ArrayList<>();
 
-  void add(Method method, Bean<?> bean) {
-    mediators.add(createMediatorConfiguration(method, bean));
-  }
+    void add(Method method, Bean<?> bean) {
+        mediators.add(createMediatorConfiguration(method, bean));
+    }
 
-  private MediatorConfiguration createMediatorConfiguration(Method met, Bean<?> bean) {
-    MediatorConfiguration configuration = new MediatorConfiguration(met, bean);
-    configuration.compute(met.getAnnotation(Incoming.class), met.getAnnotation(Outgoing.class));
-    return configuration;
-  }
+    private MediatorConfiguration createMediatorConfiguration(Method met, Bean<?> bean) {
+        MediatorConfiguration configuration = new MediatorConfiguration(met, bean);
+        configuration.compute(met.getAnnotation(Incoming.class), met.getAnnotation(Outgoing.class));
+        return configuration;
+    }
 
-  List<MediatorConfiguration> mediators() {
-    return mediators;
-  }
+    List<MediatorConfiguration> mediators() {
+        return mediators;
+    }
 }

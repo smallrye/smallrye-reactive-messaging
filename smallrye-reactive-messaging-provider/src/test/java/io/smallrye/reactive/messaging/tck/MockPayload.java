@@ -40,7 +40,7 @@ public class MockPayload {
         }
         MockPayload that = (MockPayload) o;
         return field2 == that.field2 &&
-            Objects.equals(field1, that.field1);
+                Objects.equals(field1, that.field1);
     }
 
     @Override
@@ -52,8 +52,8 @@ public class MockPayload {
     @Override
     public String toString() {
         return "MockPayload{" +
-            "field1='" + field1 + '\'' +
-            ", field2=" + field2 +
-            '}';
+                "field1='" + field1 + '\'' +
+                ", field2=" + field2 +
+                '}';
     }
 }

@@ -16,75 +16,75 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class InvalidConfigurationTest extends WeldTestBaseWithoutTails {
 
-  @After
-  public void cleanup() {
-    System.clearProperty(STRICT_MODE_PROPERTY);
-  }
-
-  @Test(expected = DeploymentException.class)
-  public void testEmptyOutgoing() {
-    addBeanClass(BeanWithEmptyOutgoing.class);
-    initialize();
-  }
-
-  @Test(expected = DeploymentException.class)
-  public void testEmptyIncoming() {
-    addBeanClass(BeanWithEmptyIncoming.class);
-    initialize();
-  }
-
-  @Test
-  public void testIncompleteGraphWithoutStrictMode() {
-    addBeanClass(IncompleteGraphBean.class);
-    initialize();
-  }
-
-  @Test(expected = DeploymentException.class)
-  public void testIncompleteGraphWithStrictMode() {
-    tearDown();
-    System.setProperty(STRICT_MODE_PROPERTY, "true");
-    setUp();
-    addBeanClass(IncompleteGraphBean.class);
-    initialize();
-  }
-
-  @Test
-  public void testEmptyGraphWithStrictMode() {
-    tearDown();
-    System.setProperty(STRICT_MODE_PROPERTY, "true");
-    setUp();
-    initialize();
-  }
-
-  @ApplicationScoped
-  public static class BeanWithEmptyOutgoing {
-
-    @Outgoing("")
-    public PublisherBuilder<String> source() {
-      return ReactiveStreams.of("a", "b", "c");
-    }
-  }
-
-  @ApplicationScoped
-  public static class BeanWithEmptyIncoming {
-
-    @Incoming("")
-    public void source(String x) {
-      // Do nothing.
-    }
-  }
-
-  @ApplicationScoped
-  public static class IncompleteGraphBean {
-    @Incoming("foo")
-    public void source(String x) {
-      // Do nothing.
+    @After
+    public void cleanup() {
+        System.clearProperty(STRICT_MODE_PROPERTY);
     }
 
-    @Outgoing("not-foo")
-    public PublisherBuilder<String> source() {
-      return ReactiveStreams.of("a", "b", "c");
+    @Test(expected = DeploymentException.class)
+    public void testEmptyOutgoing() {
+        addBeanClass(BeanWithEmptyOutgoing.class);
+        initialize();
     }
-  }
+
+    @Test(expected = DeploymentException.class)
+    public void testEmptyIncoming() {
+        addBeanClass(BeanWithEmptyIncoming.class);
+        initialize();
+    }
+
+    @Test
+    public void testIncompleteGraphWithoutStrictMode() {
+        addBeanClass(IncompleteGraphBean.class);
+        initialize();
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testIncompleteGraphWithStrictMode() {
+        tearDown();
+        System.setProperty(STRICT_MODE_PROPERTY, "true");
+        setUp();
+        addBeanClass(IncompleteGraphBean.class);
+        initialize();
+    }
+
+    @Test
+    public void testEmptyGraphWithStrictMode() {
+        tearDown();
+        System.setProperty(STRICT_MODE_PROPERTY, "true");
+        setUp();
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanWithEmptyOutgoing {
+
+        @Outgoing("")
+        public PublisherBuilder<String> source() {
+            return ReactiveStreams.of("a", "b", "c");
+        }
+    }
+
+    @ApplicationScoped
+    public static class BeanWithEmptyIncoming {
+
+        @Incoming("")
+        public void source(String x) {
+            // Do nothing.
+        }
+    }
+
+    @ApplicationScoped
+    public static class IncompleteGraphBean {
+        @Incoming("foo")
+        public void source(String x) {
+            // Do nothing.
+        }
+
+        @Outgoing("not-foo")
+        public PublisherBuilder<String> source() {
+            return ReactiveStreams.of("a", "b", "c");
+        }
+    }
 
 }

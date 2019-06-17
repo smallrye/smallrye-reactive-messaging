@@ -19,9 +19,9 @@
 
 package io.smallrye.reactive.messaging.tck;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
-
 import java.util.Objects;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 public class SimpleMessage<T> implements Message<T> {
     private final T payload;
@@ -56,8 +56,8 @@ public class SimpleMessage<T> implements Message<T> {
     @Override
     public String toString() {
         return "SimpleMessage{" +
-            "payload=" + payload +
-            '}';
+                "payload=" + payload +
+                '}';
     }
 
     public static <T> SimpleMessage<T> wrap(T payload) {

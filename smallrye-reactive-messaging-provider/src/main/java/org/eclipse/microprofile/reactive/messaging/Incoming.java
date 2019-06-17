@@ -18,14 +18,13 @@
  */
 package org.eclipse.microprofile.reactive.messaging;
 
-
-import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+
+import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 /**
  * Used to signify a subscriber to incoming messages.

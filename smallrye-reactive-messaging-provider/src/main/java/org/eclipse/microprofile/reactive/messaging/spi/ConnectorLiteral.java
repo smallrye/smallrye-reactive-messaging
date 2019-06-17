@@ -56,4 +56,3 @@ public final class ConnectorLiteral extends AnnotationLiteral<Connector> impleme
         return value;
     }
 }
-

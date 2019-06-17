@@ -15,6 +15,15 @@
  */
 package io.smallrye.reactive.messaging.amqp;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.apache.qpid.proton.amqp.messaging.Section;
+import org.apache.qpid.proton.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageImpl;
@@ -23,123 +32,113 @@ import io.vertx.axle.amqp.AmqpMessage;
 import io.vertx.axle.amqp.AmqpMessageBuilder;
 import io.vertx.proton.ProtonHelper;
 import io.vertx.reactivex.core.Vertx;
-import org.apache.qpid.proton.amqp.messaging.Section;
-import org.apache.qpid.proton.message.Message;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class AmqpUsage {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(AmqpUsage.class);
-  private AmqpClient client;
+    private static Logger LOGGER = LoggerFactory.getLogger(AmqpUsage.class);
+    private AmqpClient client;
 
-  public AmqpUsage(Vertx vertx, String host, int port) {
-    this(vertx, host, port, "artemis", "simetraehcapa");
-  }
-
-
-  public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
-    this.client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()),
-      new AmqpClientOptions().setHost(host).setPort(port).setUsername(user).setPassword(pwd));
-  }
-
-  /**
-   * Use the supplied function to asynchronously produce messages and write them to the host.
-   *
-   * @param topic           the topic, must not be null
-   * @param messageCount    the number of messages to produce; must be positive
-   * @param messageSupplier the function to produce messages; may not be null
-   */
-  void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
-    CountDownLatch done = new CountDownLatch(messageCount);
-    client.createSender(topic).thenAccept(sender -> {
-      Thread t = new Thread(() -> {
-        LOGGER.info("Starting AMQP sender to write {} messages", messageCount);
-        try {
-          for (int i = 0; i != messageCount; ++i) {
-            Object payload = messageSupplier.get();
-            AmqpMessage msg;
-            if (payload instanceof AmqpMessage) {
-              msg = (AmqpMessage) payload;
-            } else if (payload instanceof io.vertx.amqp.AmqpMessage) {
-              msg = new AmqpMessage((io.vertx.amqp.AmqpMessage) payload);
-            } else if (payload instanceof Section) {
-              Message m = ProtonHelper.message();
-              m.setBody((Section) payload);
-              msg = new AmqpMessage(new AmqpMessageImpl(m));
-            } else {
-              AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create()
-                .durable(true)
-                .ttl(10000);
-              if (payload instanceof Integer) {
-                builder.withIntegerAsBody((Integer) payload);
-              } else {
-                builder.withBody(payload.toString());
-              }
-              msg = builder.build();
-            }
-
-            sender.sendWithAck(msg).thenAccept(x -> {
-              LOGGER.info("Producer sent message {}", payload);
-              done.countDown();
-            });
-
-          }
-        } catch (Exception e) {
-          LOGGER.error("Unable to send message", e);
-        }
-      });
-      t.setName(topic + "-thread");
-      t.start();
-    });
-
-    try {
-      done.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      // Ignore me
+    public AmqpUsage(Vertx vertx, String host, int port) {
+        this(vertx, host, port, "artemis", "simetraehcapa");
     }
-  }
 
-  /**
-   * Use the supplied function to asynchronously consume messages from the cluster.
-   *
-   * @param topic            the topic
-   * @param consumerFunction the function to consume the messages; may not be null
-   */
-  public void consume(String topic,
-                      Consumer<io.vertx.axle.amqp.AmqpMessage> consumerFunction) {
-    client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true),
-      msg -> {
-        LOGGER.info("Consumer {}: consuming message", topic);
-        consumerFunction.accept(msg);
-      }).toCompletableFuture().join();
-  }
+    public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
+        this.client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()),
+                new AmqpClientOptions().setHost(host).setPort(port).setUsername(user).setPassword(pwd));
+    }
 
-  public void consumeIntegers(String topic, Consumer<Integer> consumer) {
-    client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true),
-      msg -> {
-        LOGGER.info("Consumer {}: consuming message {}", topic, msg.bodyAsInteger());
-        consumer.accept(msg.bodyAsInteger());
-      }).toCompletableFuture().join();
-  }
+    /**
+     * Use the supplied function to asynchronously produce messages and write them to the host.
+     *
+     * @param topic the topic, must not be null
+     * @param messageCount the number of messages to produce; must be positive
+     * @param messageSupplier the function to produce messages; may not be null
+     */
+    void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
+        CountDownLatch done = new CountDownLatch(messageCount);
+        client.createSender(topic).thenAccept(sender -> {
+            Thread t = new Thread(() -> {
+                LOGGER.info("Starting AMQP sender to write {} messages", messageCount);
+                try {
+                    for (int i = 0; i != messageCount; ++i) {
+                        Object payload = messageSupplier.get();
+                        AmqpMessage msg;
+                        if (payload instanceof AmqpMessage) {
+                            msg = (AmqpMessage) payload;
+                        } else if (payload instanceof io.vertx.amqp.AmqpMessage) {
+                            msg = new AmqpMessage((io.vertx.amqp.AmqpMessage) payload);
+                        } else if (payload instanceof Section) {
+                            Message m = ProtonHelper.message();
+                            m.setBody((Section) payload);
+                            msg = new AmqpMessage(new AmqpMessageImpl(m));
+                        } else {
+                            AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create()
+                                    .durable(true)
+                                    .ttl(10000);
+                            if (payload instanceof Integer) {
+                                builder.withIntegerAsBody((Integer) payload);
+                            } else {
+                                builder.withBody(payload.toString());
+                            }
+                            msg = builder.build();
+                        }
 
-  public void close() {
-    client.close().toCompletableFuture().join();
-  }
+                        sender.sendWithAck(msg).thenAccept(x -> {
+                            LOGGER.info("Producer sent message {}", payload);
+                            done.countDown();
+                        });
 
-  void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
-    this.produce(topic, 10, messageSupplier::get);
-  }
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Unable to send message", e);
+                }
+            });
+            t.setName(topic + "-thread");
+            t.start();
+        });
 
-  public void consumeStrings(String topic, Consumer<String> consumerFunction) {
-    this.consume(topic, value -> {
-      consumerFunction.accept(value.bodyAsString());
-    });
-  }
+        try {
+            done.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            // Ignore me
+        }
+    }
+
+    /**
+     * Use the supplied function to asynchronously consume messages from the cluster.
+     *
+     * @param topic the topic
+     * @param consumerFunction the function to consume the messages; may not be null
+     */
+    public void consume(String topic,
+            Consumer<io.vertx.axle.amqp.AmqpMessage> consumerFunction) {
+        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true),
+                msg -> {
+                    LOGGER.info("Consumer {}: consuming message", topic);
+                    consumerFunction.accept(msg);
+                }).toCompletableFuture().join();
+    }
+
+    public void consumeIntegers(String topic, Consumer<Integer> consumer) {
+        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true),
+                msg -> {
+                    LOGGER.info("Consumer {}: consuming message {}", topic, msg.bodyAsInteger());
+                    consumer.accept(msg.bodyAsInteger());
+                }).toCompletableFuture().join();
+    }
+
+    public void close() {
+        client.close().toCompletableFuture().join();
+    }
+
+    void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
+        this.produce(topic, 10, messageSupplier::get);
+    }
+
+    public void consumeStrings(String topic, Consumer<String> consumerFunction) {
+        this.consume(topic, value -> {
+            consumerFunction.accept(value.bodyAsString());
+        });
+    }
 }
-

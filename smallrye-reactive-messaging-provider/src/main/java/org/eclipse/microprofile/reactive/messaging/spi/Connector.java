@@ -18,18 +18,18 @@
  */
 package org.eclipse.microprofile.reactive.messaging.spi;
 
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-import javax.inject.Qualifier;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import javax.inject.Qualifier;
 
 /**
  * Qualifier used on connector implementations to indicate the associated underlying transport.
  * <p>
- * The value indicates the name associated with  the bean implementing either
+ * The value indicates the name associated with the bean implementing either
  * {@link IncomingConnectorFactory} or {@link OutgoingConnectorFactory} or both.
  * <p>
  * Note that the given name is a user-facing interface used in the configuration.
@@ -41,8 +41,8 @@ public @interface Connector {
 
     /**
      * @return the name of the connector associated with the bean implementing {@link IncomingConnectorFactory}
-     * or {@link OutgoingConnectorFactory}. Must not be {@code null}. Returning {@code null} will cause a deployment
-     * failure.
+     *         or {@link OutgoingConnectorFactory}. Must not be {@code null}. Returning {@code null} will cause a deployment
+     *         failure.
      */
     String value();
 

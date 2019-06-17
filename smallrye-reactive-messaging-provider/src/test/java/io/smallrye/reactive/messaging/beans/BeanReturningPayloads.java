@@ -1,18 +1,19 @@
 package io.smallrye.reactive.messaging.beans;
 
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.concurrent.atomic.AtomicInteger;
+
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 @ApplicationScoped
 public class BeanReturningPayloads {
 
-  private AtomicInteger count = new AtomicInteger();
+    private AtomicInteger count = new AtomicInteger();
 
-  @Outgoing("infinite-producer")
-  public int create() {
-    return count.incrementAndGet();
-  }
+    @Outgoing("infinite-producer")
+    public int create() {
+        return count.incrementAndGet();
+    }
 
 }
