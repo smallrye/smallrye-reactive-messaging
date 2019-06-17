@@ -23,6 +23,7 @@ import java.util.Properties;
 public class KafkaTestBase {
 
   private static KafkaCluster kafka;
+  static final String SERVERS = "localhost:9092";
 
   Vertx vertx;
 

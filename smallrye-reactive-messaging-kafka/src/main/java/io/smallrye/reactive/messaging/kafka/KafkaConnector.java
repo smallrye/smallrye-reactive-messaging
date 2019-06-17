@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka;
 
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -25,6 +26,10 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
   public static final String CONNECTOR_NAME = "smallrye-kafka";
   @Inject
   private Instance<Vertx> instanceOfVertx;
+
+  @Inject
+  @ConfigProperty(name = "kafka.bootstrap.servers", defaultValue = "localhost:9092")
+  private Instance<String> servers;
 
   private List<KafkaSource> sources = new CopyOnWriteArrayList<>();
   private List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
@@ -53,14 +58,16 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
   @Override
   public PublisherBuilder<KafkaMessage> getPublisherBuilder(Config config) {
-    KafkaSource<Object, Object> source = new KafkaSource<>(vertx, config);
+    String s = servers.isUnsatisfied() ? null : servers.get();
+    KafkaSource<Object, Object> source = new KafkaSource<>(vertx, config, s);
     sources.add(source);
     return source.getSource();
   }
 
   @Override
   public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
-    KafkaSink sink = new KafkaSink(vertx, config);
+    String s = servers.isUnsatisfied() ? null : servers.get();
+    KafkaSink sink = new KafkaSink(vertx, config, s);
     sinks.add(sink);
     return sink.getSink();
   }

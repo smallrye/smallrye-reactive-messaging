@@ -40,7 +40,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     Map<String, Object> config = newCommonConfig();
     config.put("topic", topic);
     config.put("value.deserializer", IntegerDeserializer.class.getName());
-    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
 
     List<KafkaMessage> messages = new ArrayList<>();
     source.getSource().forEach(messages::add).run();
@@ -61,7 +61,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     Map<String, Object> config = newCommonConfig();
     config.put("channel-name", topic);
     config.put("value.deserializer", IntegerDeserializer.class.getName());
-    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
 
     List<KafkaMessage> messages = new ArrayList<>();
     source.getSource().forEach(messages::add).run();
@@ -84,7 +84,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     config.put("topic", topic);
     config.put("value.deserializer", IntegerDeserializer.class.getName());
     config.put("broadcast", true);
-    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
 
     List<KafkaMessage> messages1 = new ArrayList<>();
     List<KafkaMessage> messages2 = new ArrayList<>();
@@ -112,7 +112,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     config.put("retry", true);
     config.put("retry-attempts", 100);
 
-    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config));
+    KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
     List<KafkaMessage> messages1 = new ArrayList<>();
     source.getSource().forEach(messages1::add).run();
 

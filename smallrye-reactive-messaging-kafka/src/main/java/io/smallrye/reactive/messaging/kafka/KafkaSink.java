@@ -6,7 +6,12 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.kafka.client.producer.RecordMetadata;
 import io.vertx.reactivex.core.Vertx;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -24,14 +29,25 @@ class KafkaSink {
   private final String topic;
   private final SubscriberBuilder<? extends Message, Void> subscriber;
 
-  KafkaSink(Vertx vertx, Config config) {
-    JsonObject entries = JsonHelper.asJsonObject(config);
+  KafkaSink(Vertx vertx, Config config, String servers) {
+    JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config);
 
     // Acks must be a string, even when "1".
-    if (entries.containsKey("acks")) {
-      entries.put("acks", entries.getValue("acks").toString());
+    if (kafkaConfiguration.containsKey(ProducerConfig.ACKS_CONFIG)) {
+      kafkaConfiguration.put(ProducerConfig.ACKS_CONFIG, kafkaConfiguration.getValue(ProducerConfig.ACKS_CONFIG).toString());
     }
-    stream = KafkaWriteStream.create(vertx.getDelegate(), entries.getMap());
+
+    if (! kafkaConfiguration.containsKey(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
+      LOGGER.info("Setting {} to {}", ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
+      kafkaConfiguration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
+    }
+
+    if (! kafkaConfiguration.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
+      LOGGER.info("Key deserializer omitted, using String as default");
+      kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    }
+
+    stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
     stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
 
     partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
