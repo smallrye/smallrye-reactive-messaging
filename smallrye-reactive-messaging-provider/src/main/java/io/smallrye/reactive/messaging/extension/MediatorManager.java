@@ -79,7 +79,6 @@ public class MediatorManager {
 
     @SuppressWarnings("unused")
     public <T> void analyze(Class<?> beanClass, Bean<T> bean) {
-        LOGGER.info("Scanning type: {}", beanClass);
         Class<?> current = beanClass;
         while (current != Object.class) {
             Arrays.stream(current.getDeclaredMethods())
