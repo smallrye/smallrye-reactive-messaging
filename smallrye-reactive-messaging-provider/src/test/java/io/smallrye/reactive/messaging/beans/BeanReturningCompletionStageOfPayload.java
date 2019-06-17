@@ -16,6 +16,10 @@ public class BeanReturningCompletionStageOfPayload {
   private AtomicInteger count = new AtomicInteger();
   private ExecutorService executor = Executors.newSingleThreadExecutor();
 
+  public void close() {
+    executor.shutdown();
+  }
+
   @Outgoing("infinite-producer")
   public CompletionStage<Integer> create() {
     return CompletableFuture.supplyAsync(() -> count.incrementAndGet(), executor);

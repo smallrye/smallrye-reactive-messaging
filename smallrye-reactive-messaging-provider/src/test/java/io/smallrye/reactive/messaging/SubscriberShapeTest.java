@@ -115,6 +115,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
       .createInstance().select(BeanConsumingMessagesAndReturningACompletionStageOfVoid.class).get();
     await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    collector.close();
   }
 
   @Test
@@ -125,6 +126,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
       .createInstance().select(BeanConsumingPayloadsAndReturningACompletionStageOfVoid.class).get();
     await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    collector.close();
   }
 
   @Test
@@ -135,6 +137,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
       .createInstance().select(BeanConsumingMessagesAndReturningACompletionStageOfSomething.class).get();
     await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    collector.close();
   }
 
   @Test
@@ -145,6 +148,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
       .createInstance().select(BeanConsumingPayloadsAndReturningACompletionStageOfSomething.class).get();
     await().until(() -> collector.payloads().size() == EXPECTED.size());
     assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    collector.close();
   }
 
 

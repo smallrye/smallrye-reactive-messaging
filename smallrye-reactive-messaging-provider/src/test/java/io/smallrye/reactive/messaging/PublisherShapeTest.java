@@ -146,6 +146,7 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     List<Object> list = producer.get(0).map(Message::getPayload)
       .limit(10).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    container.select(BeanReturningCompletionStageOfMessage.class).get().close();
   }
 
   @Test
@@ -158,6 +159,7 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     List<Object> list = producer.get(0).map(Message::getPayload)
       .limit(4).toList().run().toCompletableFuture().join();
     assertThat(list).containsExactly(1, 2, 3, 4);
+    container.select(BeanReturningCompletionStageOfPayload.class).get().close();
   }
 
   private void assertThatProducerWasPublished(SeContainer container) {

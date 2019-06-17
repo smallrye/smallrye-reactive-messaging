@@ -17,6 +17,10 @@ public class BeanReturningCompletionStageOfMessage {
   private AtomicInteger count = new AtomicInteger();
   private ExecutorService executor = Executors.newSingleThreadExecutor();
 
+  public void close() {
+    executor.shutdown();
+  }
+
   @Outgoing("infinite-producer")
   public CompletionStage<Message<Integer>> create() {
     return CompletableFuture.supplyAsync(() -> Message.of(count.incrementAndGet()), executor);
