@@ -11,7 +11,7 @@ To enable the AMQP support, you need the following dependency:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-amqp</artifactId>
+  <artifactId>smallrye-reactive-messaging-amqp-1.0</artifactId>
   <version>{version}</version>
 </dependency>
 ----

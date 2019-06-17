@@ -10,7 +10,7 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-provider</artifactId>
+  <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
   <version>{version}</version>
 </dependency>
 <dependency>

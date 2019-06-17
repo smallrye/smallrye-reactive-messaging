@@ -11,7 +11,7 @@ To enable the MQTT support, you need the following dependency:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
+  <artifactId>smallrye-reactive-messaging-mqtt-1.0</artifactId>
   <version>{version}</version>
 </dependency>
 ----
