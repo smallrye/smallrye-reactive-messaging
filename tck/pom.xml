@@ -6,10 +6,9 @@
 
   <parent>
     <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging</artifactId>
+    <artifactId>smallrye-reactive-messaging-1.0</artifactId>
     <version>0.0.10-SNAPSHOT</version>
   </parent>
-
 
   <artifactId>tck</artifactId>
 
@@ -22,7 +21,7 @@
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider</artifactId>
+      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -49,6 +48,21 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <dependenciesToScan>org.eclipse.microprofile.reactive.messaging:microprofile-reactive-messaging-core-tck</dependenciesToScan>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <configuration>
+          <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
         </configuration>
       </plugin>
     </plugins>

@@ -4,11 +4,11 @@
 
   <parent>
     <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging</artifactId>
+    <artifactId>smallrye-reactive-messaging-1.0</artifactId>
     <version>0.0.10-SNAPSHOT</version>
   </parent>
 
-  <artifactId>smallrye-reactive-messaging-camel</artifactId>
+  <artifactId>smallrye-reactive-messaging-camel-1.0</artifactId>
 
   <properties>
     <camel.version>3.0.0-M2</camel.version>
@@ -32,7 +32,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>smallrye-reactive-messaging-provider</artifactId>
+      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
