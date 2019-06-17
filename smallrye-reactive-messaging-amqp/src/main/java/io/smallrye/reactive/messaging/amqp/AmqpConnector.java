@@ -14,6 +14,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -48,6 +49,23 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
   @Inject
   private Instance<Vertx> instanceOfVertx;
 
+
+  @Inject
+  @ConfigProperty(name = "amqp-port", defaultValue = "5672")
+  private Instance<Integer> configuredPort;
+
+  @Inject
+  @ConfigProperty(name = "amqp-server", defaultValue = "localhost")
+  private Instance<String> configuredHost;
+
+  @Inject
+  @ConfigProperty(name = "amqp-username")
+  private Instance<String> configuredUsername;
+
+  @Inject
+  @ConfigProperty(name = "amqp-password")
+  private Instance<String> configuredPassword;
+
   private boolean internalVertxInstance = false;
   private Vertx vertx;
 
@@ -76,25 +94,47 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     if (client != null) {
       return client;
     }
-    String username = config.getOptionalValue("username", String.class).orElse(null);
-    String password = config.getOptionalValue("password", String.class).orElse(null);
-    String host = config.getOptionalValue("host", String.class)
-      .orElseThrow(() -> new IllegalArgumentException("Host must be set"));
-    int port = config.getOptionalValue("port", Integer.class).orElse(5672);
-    String containerId = config.getOptionalValue("containerId", String.class).orElse(null);
+    try {
+      String username = config.getOptionalValue("username", String.class)
+        .orElse(this.configuredUsername == null || this.configuredUsername.isUnsatisfied() ? null : this.configuredUsername.get());
+      String password = config.getOptionalValue("password", String.class)
+        .orElse(this.configuredPassword == null || this.configuredPassword.isUnsatisfied() ? null : this.configuredPassword.get());
+      String host = config.getOptionalValue("host", String.class)
+        .orElseGet(() -> {
+          if (this.configuredHost == null || this.configuredHost.isUnsatisfied()) {
+            LOGGER.info("No AMQP host configured, using localhost");
+            return "localhost";
+          } else {
+            return this.configuredHost.get();
+          }
+        });
 
-    AmqpClientOptions options = new AmqpClientOptions()
-      .setUsername(username)
-      .setPassword(password)
-      .setHost(host)
-      .setPort(port)
-      .setContainerId(containerId)
-      // TODO Make these values configurable:
-      .setReconnectAttempts(100)
-      .setReconnectInterval(10)
-      .setConnectTimeout(1000);
-    client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options);
-    return client;
+      int port = config.getOptionalValue("port", Integer.class)
+        .orElseGet(() -> {
+          if (this.configuredPort == null || this.configuredPort.isUnsatisfied()) {
+            return 5672;
+          } else {
+            return this.configuredPort.get();
+          }
+        });
+
+      String containerId = config.getOptionalValue("containerId", String.class).orElse(null);
+
+      AmqpClientOptions options = new AmqpClientOptions()
+        .setUsername(username)
+        .setPassword(password)
+        .setHost(host)
+        .setPort(port)
+        .setContainerId(containerId)
+        // TODO Make these values configurable:
+        .setReconnectAttempts(100)
+        .setReconnectInterval(10)
+        .setConnectTimeout(1000);
+      client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options);
+      return client;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private Flowable<? extends Message> getStreamOfMessages(AmqpReceiver receiver) {

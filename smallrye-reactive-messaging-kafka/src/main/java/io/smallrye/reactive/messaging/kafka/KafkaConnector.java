@@ -23,7 +23,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Connector(KafkaConnector.CONNECTOR_NAME)
 public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
-  public static final String CONNECTOR_NAME = "smallrye-kafka";
+  static final String CONNECTOR_NAME = "smallrye-kafka";
+
   @Inject
   private Instance<Vertx> instanceOfVertx;
 

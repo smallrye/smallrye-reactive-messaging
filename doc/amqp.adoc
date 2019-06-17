@@ -70,3 +70,5 @@ Otherwise, the connector invokes `toString` on the wrapped payload.
 
 NOTE: If the `address` attribute is not set the channel name is used instead.
 
+The host, port, username and password can also be configured using the `amqp-host`, `amqp-port`, `amqp-username` and `amqp-password` configuration properties.
+
