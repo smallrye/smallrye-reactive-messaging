@@ -96,10 +96,10 @@ class KafkaSink {
           CompletableFuture<Message> future = new CompletableFuture<>();
           Handler<AsyncResult<RecordMetadata>> handler = ar -> {
             if (ar.succeeded()) {
-              LOGGER.info("Message {} sent successfully to Kafka topic {}", message, record.topic());
+              LOGGER.info("Message {} sent successfully to Kafka topic '{}'", message, record.topic());
               future.complete(message);
             } else {
-              LOGGER.error("Message {} was not sent to Kafka topic {}", message, record.topic(), ar.cause());
+              LOGGER.error("Message {} was not sent to Kafka topic '{}'", message, record.topic(), ar.cause());
               future.completeExceptionally(ar.cause());
             }
           };
