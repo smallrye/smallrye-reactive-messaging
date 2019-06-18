@@ -492,44 +492,51 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_forwarding_messages_to_kafka">8.3. Forwarding messages to Kafka</a></li>
 </ul>
 </li>
-<li><a href="#_integrating_with_apache_camel">9. Integrating with Apache Camel</a>
+<li><a href="#_interacting_using_amqp">9. Interacting using AMQP</a>
 <ul class="sectlevel3">
 <li><a href="#_dependency_2">9.1. Dependency</a></li>
-<li><a href="#_camel_reactive">9.2. Camel Reactive</a></li>
-<li><a href="#_using_camel_route_in_outgoing_method">9.3. Using Camel Route in @Outgoing method</a></li>
-<li><a href="#_using_camel_route_in_incoming_method">9.4. Using Camel Route in @Incoming method</a></li>
-<li><a href="#_retrieving_messages_from_a_camel_route">9.5. Retrieving messages from a Camel Route</a></li>
-<li><a href="#_forwarding_messages_to_a_camel_route">9.6. Forwarding messages to a Camel Route</a></li>
+<li><a href="#_retrieving_messages_from_mqtt">9.2. Retrieving messages from MQTT</a></li>
+<li><a href="#_forwarding_messages_to_amqp">9.3. Forwarding messages to AMQP</a></li>
 </ul>
 </li>
-<li><a href="#_interacting_using_mqtt">10. Interacting using MQTT</a>
+<li><a href="#_integrating_with_apache_camel">10. Integrating with Apache Camel</a>
 <ul class="sectlevel3">
 <li><a href="#_dependency_3">10.1. Dependency</a></li>
-<li><a href="#_retrieving_messages_from_mqtt">10.2. Retrieving messages from MQTT</a></li>
-<li><a href="#_forwarding_messages_to_mqtt">10.3. Forwarding messages to MQTT</a></li>
-<li><a href="#_advanced_configuration">10.4. Advanced configuration</a></li>
+<li><a href="#_camel_reactive">10.2. Camel Reactive</a></li>
+<li><a href="#_using_camel_route_in_outgoing_method">10.3. Using Camel Route in @Outgoing method</a></li>
+<li><a href="#_using_camel_route_in_incoming_method">10.4. Using Camel Route in @Incoming method</a></li>
+<li><a href="#_retrieving_messages_from_a_camel_route">10.5. Retrieving messages from a Camel Route</a></li>
+<li><a href="#_forwarding_messages_to_a_camel_route">10.6. Forwarding messages to a Camel Route</a></li>
 </ul>
 </li>
-<li><a href="#_emitting_http_requests">11. Emitting HTTP requests</a>
+<li><a href="#_interacting_using_mqtt">11. Interacting using MQTT</a>
 <ul class="sectlevel3">
 <li><a href="#_dependency_4">11.1. Dependency</a></li>
-<li><a href="#_forwarding_messages_to_http">11.2. Forwarding messages to HTTP</a></li>
+<li><a href="#_retrieving_messages_from_mqtt_2">11.2. Retrieving messages from MQTT</a></li>
+<li><a href="#_forwarding_messages_to_mqtt">11.3. Forwarding messages to MQTT</a></li>
+<li><a href="#_advanced_configuration">11.4. Advanced configuration</a></li>
 </ul>
 </li>
-<li><a href="#_interacting_with_the_vert_x_eventbus">12. Interacting with the Vert.x Eventbus</a>
+<li><a href="#_emitting_http_requests">12. Emitting HTTP requests</a>
 <ul class="sectlevel3">
 <li><a href="#_dependency_5">12.1. Dependency</a></li>
-<li><a href="#_retrieving_messages_from_the_event_bus">12.2. Retrieving messages from the event bus</a></li>
-<li><a href="#_sending_messages_to_the_event_bus">12.3. Sending messages to the event bus</a></li>
+<li><a href="#_forwarding_messages_to_http">12.2. Forwarding messages to HTTP</a></li>
 </ul>
 </li>
-<li><a href="#_advanced_and_experimental_features">13. Advanced and Experimental features</a>
+<li><a href="#_interacting_with_the_vert_x_eventbus">13. Interacting with the Vert.x Eventbus</a>
 <ul class="sectlevel3">
-<li><a href="#_merge">13.1. @Merge</a></li>
-<li><a href="#_broadcast">13.2. @Broadcast</a></li>
-<li><a href="#_stream">13.3. @Stream</a></li>
-<li><a href="#_logging">13.4. Logging</a></li>
-<li><a href="#_strict_binding_mode">13.5. Strict Binding Mode</a></li>
+<li><a href="#_dependency_6">13.1. Dependency</a></li>
+<li><a href="#_retrieving_messages_from_the_event_bus">13.2. Retrieving messages from the event bus</a></li>
+<li><a href="#_sending_messages_to_the_event_bus">13.3. Sending messages to the event bus</a></li>
+</ul>
+</li>
+<li><a href="#_advanced_and_experimental_features">14. Advanced and Experimental features</a>
+<ul class="sectlevel3">
+<li><a href="#_merge">14.1. @Merge</a></li>
+<li><a href="#_broadcast">14.2. @Broadcast</a></li>
+<li><a href="#_stream">14.3. @Stream</a></li>
+<li><a href="#_logging">14.4. Logging</a></li>
+<li><a href="#_strict_binding_mode">14.5. Strict Binding Mode</a></li>
 </ul>
 </li>
 </ul>
@@ -1744,13 +1751,134 @@ be set using the <code>kafka.bootstrap.servers</code> config property.</p></td>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_integrating_with_apache_camel">9. Integrating with Apache Camel</h3>
+<h3 id="_interacting_using_amqp">9. Interacting using AMQP</h3>
+<div class="paragraph">
+<p>You can connect to an AMQP broker or server as a source or sink.
+The AMQP support is based on the <a href="https://vertx.io/docs/vertx-amqp-client/java/">Vert.x AMQP Client</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="_dependency_2">9.1. Dependency</h4>
+<div class="paragraph">
+<p>To enable the AMQP support, you need the following dependency:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-amqp-1.0&lt;/artifactId&gt;
+  &lt;version&gt;0.0.10&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_retrieving_messages_from_mqtt">9.2. Retrieving messages from MQTT</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.incoming.data.host=localhost
+mp.messaging.incoming.data.port=5672
+mp.messaging.incoming.data.username=username
+mp.messaging.incoming.data.password=secret
+mp.messaging.incoming.data.broadcast=true
+mp.messaging.incoming.data.containerId=my-container-id</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Message coming from AMQP are <code>io.smallrye.reactive.messaging.amqp.AmqpMessage</code>.
+The payload must a a supported AMQP type.
+The <code>AmqpMessage</code> implements <code>Message</code> and provide additional metadata related to AMQP.</p>
+</div>
+<div class="paragraph">
+<p>As the AMQP support is based on the Vert.x AMQP client, you can pass any configuration supported by the client.
+Check the  <a href="https://vertx.io/docs/vertx-amqp-client/java/">documentation</a> of the client for further details.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If the <code>address</code> attribute is not set the channel name is used instead.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_forwarding_messages_to_amqp">9.3. Forwarding messages to AMQP</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.outgoing.data.host=localhost
+mp.messaging.outgoing.data.port=5672
+mp.messaging.outgoing.data.username=username
+mp.messaging.outgoing.data.password=secret
+mp.messaging.outgoing.data.containerId=my-container-id
+mp.messaging.outgoing.data.durable=true
+mp.messaging.outgoing.data.durable=10000</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The AMQP connector dispatches messages to the AMQP broker or server.
+You can send <em>bare</em> message or <code>io.smallrye.reactive.messaging.amqp.AmqpMessage</code>.</p>
+</div>
+<div class="paragraph">
+<p>The payload of the message must be one of the following type:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>String</p>
+</li>
+<li>
+<p>Boolean, Byte, Character, Double, Float, Integer, Long, Short</p>
+</li>
+<li>
+<p>Buffer</p>
+</li>
+<li>
+<p>Instant</p>
+</li>
+<li>
+<p>(Vert.x) JSON Array or JSON Object (send as binary with content type set to <code>application/json</code>)</p>
+</li>
+<li>
+<p>UUID</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Otherwise, the connector invokes <code>toString</code> on the wrapped payload.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If the <code>address</code> attribute is not set the channel name is used instead.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The host, port, username and password can also be configured using the <code>amqp-host</code>, <code>amqp-port</code>, <code>amqp-username</code> and <code>amqp-password</code> configuration properties.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_integrating_with_apache_camel">10. Integrating with Apache Camel</h3>
 <div class="paragraph">
 <p>You can receive messages from a Camel Route or send messages to a Camel route. It give you the ability to connect to
 almost any existing system.</p>
 </div>
 <div class="sect3">
-<h4 id="_dependency_2">9.1. Dependency</h4>
+<h4 id="_dependency_3">10.1. Dependency</h4>
 <div class="paragraph">
 <p>To enable the Camel support, you need the following dependency:</p>
 </div>
@@ -1765,7 +1893,7 @@ almost any existing system.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_camel_reactive">9.2. Camel Reactive</h4>
+<h4 id="_camel_reactive">10.2. Camel Reactive</h4>
 <div class="paragraph">
 <p>When using the dependency, your bean can retrieve a
  <code>org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService</code> object:</p>
@@ -1783,7 +1911,7 @@ private CamelReactiveStreamsService camel_reactive;</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_using_camel_route_in_outgoing_method">9.3. Using Camel Route in @Outgoing method</h4>
+<h4 id="_using_camel_route_in_outgoing_method">10.3. Using Camel Route in @Outgoing method</h4>
 <div class="paragraph">
 <p>Here is an example of method annotated with <code>@Outgoing</code> directly using a Camel route:</p>
 </div>
@@ -1797,7 +1925,7 @@ public Publisher&lt;Exchange&gt; source() {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_using_camel_route_in_incoming_method">9.4. Using Camel Route in @Incoming method</h4>
+<h4 id="_using_camel_route_in_incoming_method">10.4. Using Camel Route in @Incoming method</h4>
 <div class="paragraph">
 <p>Here is an example of method annotated with <code>@Incoming</code> directly using a Camel route:</p>
 </div>
@@ -1822,7 +1950,7 @@ public CompletionStage&lt;Void&gt; sink(String value) {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_retrieving_messages_from_a_camel_route">9.5. Retrieving messages from a Camel Route</h4>
+<h4 id="_retrieving_messages_from_a_camel_route">10.5. Retrieving messages from a Camel Route</h4>
 <div class="paragraph">
 <p>The previous example requires your code to deal with Maven route directly. It can be externalized to the configuration as
 follows:</p>
@@ -1848,7 +1976,7 @@ mp.messaging.incoming.data.endpoint-uri:seda:my-route</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_forwarding_messages_to_a_camel_route">9.6. Forwarding messages to a Camel Route</h4>
+<h4 id="_forwarding_messages_to_a_camel_route">10.6. Forwarding messages to a Camel Route</h4>
 <div class="paragraph">
 <p>The following configuration describe a sink using a Camel route:</p>
 </div>
@@ -1898,13 +2026,13 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_interacting_using_mqtt">10. Interacting using MQTT</h3>
+<h3 id="_interacting_using_mqtt">11. Interacting using MQTT</h3>
 <div class="paragraph">
 <p>You can connect to a MQTT broker or server as a source or sink. The MQTT support is based on the
 <a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x MQTT Client</a>.</p>
 </div>
 <div class="sect3">
-<h4 id="_dependency_3">10.1. Dependency</h4>
+<h4 id="_dependency_4">11.1. Dependency</h4>
 <div class="paragraph">
 <p>To enable the MQTT support, you need the following dependency:</p>
 </div>
@@ -1919,7 +2047,7 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_retrieving_messages_from_mqtt">10.2. Retrieving messages from MQTT</h4>
+<h4 id="_retrieving_messages_from_mqtt_2">11.2. Retrieving messages from MQTT</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.topic=data
@@ -1949,7 +2077,7 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </div>
 </div>
 <div class="sect3">
-<h4 id="_forwarding_messages_to_mqtt">10.3. Forwarding messages to MQTT</h4>
+<h4 id="_forwarding_messages_to_mqtt">11.3. Forwarding messages to MQTT</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.topic=data
@@ -1993,7 +2121,7 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </div>
 </div>
 <div class="sect3">
-<h4 id="_advanced_configuration">10.4. Advanced configuration</h4>
+<h4 id="_advanced_configuration">11.4. Advanced configuration</h4>
 <div class="paragraph">
 <p>Check <code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource</code> and
 <code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink</code> for further details on the attributes.</p>
@@ -2001,12 +2129,12 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </div>
 </div>
 <div class="sect2">
-<h3 id="_emitting_http_requests">11. Emitting HTTP requests</h3>
+<h3 id="_emitting_http_requests">12. Emitting HTTP requests</h3>
 <div class="paragraph">
 <p>You can also <em>push</em> the incoming messages to a HTTP endpoint using the <em>HTTP connector</em>.</p>
 </div>
 <div class="sect3">
-<h4 id="_dependency_4">11.1. Dependency</h4>
+<h4 id="_dependency_5">12.1. Dependency</h4>
 <div class="paragraph">
 <p>To enable the HTTP support, you need the following dependency:</p>
 </div>
@@ -2021,7 +2149,7 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </div>
 </div>
 <div class="sect3">
-<h4 id="_forwarding_messages_to_http">11.2. Forwarding messages to HTTP</h4>
+<h4 id="_forwarding_messages_to_http">12.2. Forwarding messages to HTTP</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.url=http://localhost:8089
@@ -2054,13 +2182,13 @@ mp.messaging.outgoing.data.connector=smallrye-http</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_interacting_with_the_vert_x_eventbus">12. Interacting with the Vert.x Eventbus</h3>
+<h3 id="_interacting_with_the_vert_x_eventbus">13. Interacting with the Vert.x Eventbus</h3>
 <div class="paragraph">
 <p>The Vert.x Eventbus is the backbone of Vert.x applications. It allows different application components to interact in
 an asynchronous way.</p>
 </div>
 <div class="sect3">
-<h4 id="_dependency_5">12.1. Dependency</h4>
+<h4 id="_dependency_6">13.1. Dependency</h4>
 <div class="paragraph">
 <p>To enable the Vert.x EventBus support, you need the following dependency:</p>
 </div>
@@ -2075,7 +2203,7 @@ an asynchronous way.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_retrieving_messages_from_the_event_bus">12.2. Retrieving messages from the event bus</h4>
+<h4 id="_retrieving_messages_from_the_event_bus">13.2. Retrieving messages from the event bus</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=&lt;the-eventbus-address&gt;
@@ -2095,7 +2223,7 @@ body. From the <code>EventBusMessage</code>, you can retrieve the headers, addre
 </div>
 </div>
 <div class="sect3">
-<h4 id="_sending_messages_to_the_event_bus">12.3. Sending messages to the event bus</h4>
+<h4 id="_sending_messages_to_the_event_bus">13.3. Sending messages to the event bus</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=&lt;the-eventbus-address&gt;
@@ -2118,9 +2246,9 @@ specifies the reply timeout.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_advanced_and_experimental_features">13. Advanced and Experimental features</h3>
+<h3 id="_advanced_and_experimental_features">14. Advanced and Experimental features</h3>
 <div class="sect3">
-<h4 id="_merge">13.1. @Merge</h4>
+<h4 id="_merge">14.1. @Merge</h4>
 <div class="paragraph">
 <p>The <code>@Merge</code> annotation can be used on a method annotated with <code>@Incoming</code> to subscribed to all matching `@Outgoing
 streams. For example, if you have several method producing data to a stream named "sink", the following method receives
@@ -2154,7 +2282,7 @@ public CompletionStage&lt;Void&gt; justASink(Message&lt;String&gt; ignored) {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_broadcast">13.2. @Broadcast</h4>
+<h4 id="_broadcast">14.2. @Broadcast</h4>
 <div class="paragraph">
 <p>The <code>@Broadcast</code> annotation can be used on a method annotation with <code>@Outgoing</code> to broadcast the emitted messages to all
 the matching subscribers:</p>
@@ -2171,7 +2299,7 @@ public String process(String s) {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_stream">13.3. @Stream</h4>
+<h4 id="_stream">14.3. @Stream</h4>
 <div class="paragraph">
 <p><code>@Stream</code> is a qualifier to inject a <em>stream</em> into a regular CDI bean.
 It&#8217;s used to bridge the <em>imperative</em> and <em>reactive</em> worlds, or retrieve streams managed by Reactive Messaging.</p>
@@ -2224,13 +2352,13 @@ To use an <code>Emitter</code> for the stream <code>hello</code>, you need a <co
 </div>
 </div>
 <div class="sect3">
-<h4 id="_logging">13.4. Logging</h4>
+<h4 id="_logging">14.4. Logging</h4>
 <div class="paragraph">
 <p>The logging uses SLF4J, check the <a href="https://www.slf4j.org/">SLF4J web site</a> for further details.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_strict_binding_mode">13.5. Strict Binding Mode</h4>
+<h4 id="_strict_binding_mode">14.5. Strict Binding Mode</h4>
 <div class="paragraph">
 <p>By default, SmallRye Reactive Messaging does not enforce whether all <em>mediators</em> are connected. It just print a warning
 message. The strict mode fails the deployment if some "incoming" are not connected to "outgoing". To enable this mode,
@@ -2242,7 +2370,7 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 <div id="footer">
 <div id="footer-text">
 Version 0.0.10<br>
-Last updated 2018-11-09 21:27:18 +0100
+Last updated 2019-06-18 10:48:59 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
