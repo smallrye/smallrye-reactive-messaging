@@ -83,10 +83,11 @@ in the following table:
 | topic | false | the `channel-name` | The topic to consume, if not set it must be set in the `message`
 | bootstrap.servers | false | `localhost:9092` | the comma separated list of servers (host:port), Can also
 be set using the `kafka.bootstrap.servers` config property.
-| key.serializer | true | | the codec used to serialize the key
+| key.serializer | false | `String` | the codec used to serialize the key, `String` if not set
 | value.serializer | true | | the codec used to serialize the value
 | key | false | | the key to be used, can be overridden by the message
-| partition | false | 0 | the partition
+| partition | false | none | the partition
+| waitForWriteCompletion | false | `false` | whether it needs to wait for the _write_ operation to complete before processing the next message
 |===
 
 You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].

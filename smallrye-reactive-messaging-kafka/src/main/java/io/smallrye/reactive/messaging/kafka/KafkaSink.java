@@ -25,6 +25,7 @@ class KafkaSink {
     private final int partition;
     private final String key;
     private final String topic;
+    private final boolean waitForWriteCompletion;
     private final SubscriberBuilder<? extends Message, Void> subscriber;
 
     KafkaSink(Vertx vertx, Config config, String servers) {
@@ -52,6 +53,7 @@ class KafkaSink {
         partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
         key = config.getOptionalValue("key", String.class).orElse(null);
         topic = getTopicOrNull(config);
+        waitForWriteCompletion = config.getOptionalValue("waitForWriteCompletion", Boolean.class).orElse(true);
         if (topic == null) {
             LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
         }
@@ -117,10 +119,15 @@ class KafkaSink {
                                 future.completeExceptionally(ar.cause());
                             }
                         };
-
-                        LOGGER.debug("Using stream {} to write the record {}", stream, record);
+                        CompletableFuture<? extends Message<?>> result = future.thenCompose(x -> message.ack())
+                                .thenApply(x -> message);
                         stream.write(record, handler);
-                        return future.thenCompose(x -> message.ack()).thenApply(x -> message);
+                        if (waitForWriteCompletion) {
+                            return result;
+                        } else {
+                            return CompletableFuture.completedFuture(message);
+                        }
+
                     } catch (RuntimeException e) {
                         LOGGER.error("Unable to send a record to Kafka ", e);
                         return CompletableFuture.completedFuture(message);

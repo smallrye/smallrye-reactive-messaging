@@ -18,6 +18,7 @@ import javax.inject.Inject;
 
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -102,8 +103,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
         @Outgoing("temperature-values")
         public Flowable<KafkaMessage<String, String>> generate() {
 
-            return Flowable.interval(100, TimeUnit.MILLISECONDS)
-                    .onBackpressureDrop()
+            return Flowable.interval(10, TimeUnit.MILLISECONDS)
                     .map(tick -> {
                         double temperature = new BigDecimal(random.nextGaussian() * 15)
                                 .setScale(1, RoundingMode.HALF_UP)
@@ -164,13 +164,17 @@ public class MissingBackPressureTest extends KafkaTestBase {
             String prefix = "mp.messaging.outgoing.temperature-values.";
             Map<String, Object> config = new HashMap<>();
             config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-            config.put(prefix + "bootstrap.servers", "localhost:9092");
-            config.put(prefix + "key.serializer", StringSerializer.class.getName());
             config.put(prefix + "value.serializer", StringSerializer.class.getName());
-            config.put(prefix + "acks", "1");
             config.put(prefix + "topic", "output");
+            config.put(prefix + "waitForWriteCompletion", false);
 
             return new MapBasedConfig(config);
+        }
+
+        @Produces
+        @ConfigProperty(name = "kafka.bootstrap.servers")
+        public String boot() {
+            return "localhost:9092";
         }
     }
 
