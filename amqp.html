@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.8">
-<title>Emitting HTTP requests</title>
+<title>Interacting using AMQP</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -435,10 +435,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_emitting_http_requests">Emitting HTTP requests</a>
+<li><a href="#_interacting_using_amqp">Interacting using AMQP</a>
 <ul class="sectlevel2">
 <li><a href="#_dependency">Dependency</a></li>
-<li><a href="#_forwarding_messages_to_http">Forwarding messages to HTTP</a></li>
+<li><a href="#_retrieving_messages_from_mqtt">Retrieving messages from MQTT</a></li>
+<li><a href="#_forwarding_messages_to_amqp">Forwarding messages to AMQP</a></li>
 </ul>
 </li>
 </ul>
@@ -446,56 +447,124 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_emitting_http_requests">Emitting HTTP requests</h2>
+<h2 id="_interacting_using_amqp">Interacting using AMQP</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>You can also <em>push</em> the incoming messages to a HTTP endpoint using the <em>HTTP connector</em>.</p>
+<p>You can connect to an AMQP broker or server as a source or sink.
+The AMQP support is based on the <a href="https://vertx.io/docs/vertx-amqp-client/java/">Vert.x AMQP Client</a>.</p>
 </div>
 <div class="sect2">
 <h3 id="_dependency">Dependency</h3>
 <div class="paragraph">
-<p>To enable the HTTP support, you need the following dependency:</p>
+<p>To enable the AMQP support, you need the following dependency:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-http-1.0&lt;/artifactId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-amqp-1.0&lt;/artifactId&gt;
   &lt;version&gt;0.0.10&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_forwarding_messages_to_http">Forwarding messages to HTTP</h3>
+<h3 id="_retrieving_messages_from_mqtt">Retrieving messages from MQTT</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.url=http://localhost:8089
-mp.messaging.outgoing.data.connector=smallrye-http</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.incoming.data.host=localhost
+mp.messaging.incoming.data.port=5672
+mp.messaging.incoming.data.username=username
+mp.messaging.incoming.data.password=secret
+mp.messaging.incoming.data.broadcast=true
+mp.messaging.incoming.data.containerId=my-container-id</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Your method can also returns a <code>HttpMessage</code> to configure the <em>headers</em>, <em>query parameters</em>, the HTTP method (<code>POST</code>
-(default) or <code>PUT</code>):</p>
+<p>Message coming from AMQP are <code>io.smallrye.reactive.messaging.amqp.AmqpMessage</code>.
+The payload must a a supported AMQP type.
+The <code>AmqpMessage</code> implements <code>Message</code> and provide additional metadata related to AMQP.</p>
 </div>
+<div class="paragraph">
+<p>As the AMQP support is based on the Vert.x AMQP client, you can pass any configuration supported by the client.
+Check the  <a href="https://vertx.io/docs/vertx-amqp-client/java/">documentation</a> of the client for further details.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If the <code>address</code> attribute is not set the channel name is used instead.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_forwarding_messages_to_amqp">Forwarding messages to AMQP</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">  @Incoming("source")
-  @Outgoing("to-http")
-  public HttpMessage&lt;JsonObject&gt; consume(Message&lt;String&gt; incoming) {
-    return HttpMessage.HttpMessageBuilder.&lt;JsonObject&gt;create()
-      .withMethod("PUT")
-      .withPayload(new JsonObject().put("value", incoming.getPayload().toUpperCase()))
-      .withHeader("Content-Type", "application/json")
-      .build();
-  }</code></pre>
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.outgoing.data.host=localhost
+mp.messaging.outgoing.data.port=5672
+mp.messaging.outgoing.data.username=username
+mp.messaging.outgoing.data.password=secret
+mp.messaging.outgoing.data.containerId=my-container-id
+mp.messaging.outgoing.data.durable=true
+mp.messaging.outgoing.data.durable=10000</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Supported payloads are:
-* String
-* Vert.x Buffers, byte array, <code>ByteBuffer</code>
-* Vert.x <code>JsonObject</code> and <code>JsonArray</code></p>
+<p>The AMQP connector dispatches messages to the AMQP broker or server.
+You can send <em>bare</em> message or <code>io.smallrye.reactive.messaging.amqp.AmqpMessage</code>.</p>
+</div>
+<div class="paragraph">
+<p>The payload of the message must be one of the following type:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>String</p>
+</li>
+<li>
+<p>Boolean, Byte, Character, Double, Float, Integer, Long, Short</p>
+</li>
+<li>
+<p>Buffer</p>
+</li>
+<li>
+<p>Instant</p>
+</li>
+<li>
+<p>(Vert.x) JSON Array or JSON Object (send as binary with content type set to <code>application/json</code>)</p>
+</li>
+<li>
+<p>UUID</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Otherwise, the connector invokes <code>toString</code> on the wrapped payload.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If the <code>address</code> attribute is not set the channel name is used instead.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The host, port, username and password can also be configured using the <code>amqp-host</code>, <code>amqp-port</code>, <code>amqp-username</code> and <code>amqp-password</code> configuration properties.</p>
 </div>
 </div>
 </div>
@@ -503,7 +572,7 @@ mp.messaging.outgoing.data.connector=smallrye-http</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-06-17 15:15:13 +0200
+Last updated 2019-06-17 16:45:16 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
