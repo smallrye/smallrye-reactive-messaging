@@ -45,8 +45,10 @@ public class AmqpSourceTest extends AmqpTestBase {
         }
 
         if (container != null) {
-            container.close();
+            container.shutdown();
         }
+
+        System.clearProperty("mp-config");
     }
 
     @Test
@@ -181,8 +183,8 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     @Test
     public void testABeanConsumingTheAMQPMessages() {
+        System.setProperty("mp-config", "incoming");
         ConsumptionBean bean = deploy();
-
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
 
@@ -197,6 +199,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         Weld weld = new Weld();
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
+
         container = weld.initialize();
         await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

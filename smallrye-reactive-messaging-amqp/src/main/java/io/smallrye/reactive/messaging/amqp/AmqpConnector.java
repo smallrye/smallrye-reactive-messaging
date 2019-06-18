@@ -1,7 +1,9 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -53,19 +55,19 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Inject
     @ConfigProperty(name = "amqp-port", defaultValue = "5672")
-    private Instance<Integer> configuredPort;
+    private Integer configuredPort;
 
     @Inject
     @ConfigProperty(name = "amqp-server", defaultValue = "localhost")
-    private Instance<String> configuredHost;
+    private String configuredHost;
 
     @Inject
     @ConfigProperty(name = "amqp-username")
-    private Instance<String> configuredUsername;
+    private Optional<String> configuredUsername;
 
     @Inject
     @ConfigProperty(name = "amqp-password")
-    private Instance<String> configuredPassword;
+    private Optional<String> configuredPassword;
 
     private boolean internalVertxInstance = false;
     private Vertx vertx;
@@ -97,27 +99,37 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         }
         try {
             String username = config.getOptionalValue("username", String.class)
-                    .orElse(this.configuredUsername == null || this.configuredUsername.isUnsatisfied() ? null
-                            : this.configuredUsername.get());
+                    .orElseGet(() -> {
+                        if (this.configuredUsername != null) {
+                            return this.configuredUsername.orElse(null);
+                        } else {
+                            return null;
+                        }
+                    });
             String password = config.getOptionalValue("password", String.class)
-                    .orElse(this.configuredPassword == null || this.configuredPassword.isUnsatisfied() ? null
-                            : this.configuredPassword.get());
+                    .orElseGet(() -> {
+                        if (this.configuredPassword != null) {
+                            return this.configuredPassword.orElse(null);
+                        } else {
+                            return null;
+                        }
+                    });
             String host = config.getOptionalValue("host", String.class)
                     .orElseGet(() -> {
-                        if (this.configuredHost == null || this.configuredHost.isUnsatisfied()) {
+                        if (this.configuredHost == null) {
                             LOGGER.info("No AMQP host configured, using localhost");
                             return "localhost";
                         } else {
-                            return this.configuredHost.get();
+                            return this.configuredHost;
                         }
                     });
 
             int port = config.getOptionalValue("port", Integer.class)
                     .orElseGet(() -> {
-                        if (this.configuredPort == null || this.configuredPort.isUnsatisfied()) {
+                        if (this.configuredPort == null) {
                             return 5672;
                         } else {
-                            return this.configuredPort.get();
+                            return this.configuredPort;
                         }
                     });
 
@@ -184,14 +196,36 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         return ReactiveStreams.<Message> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
+
             if (as == null) {
-                return getClient(config)
+                try {
+                    client = getClient(config);
+                } catch (Exception e) {
+                    LOGGER.error("Unable to create client", e);
+                    throw new IllegalStateException("Unable to create a client, probably a config error", e);
+                }
+
+                return client
                         .createSender(address)
                         .thenApply(s -> {
                             sender.set(s);
                             return s;
                         })
-                        .thenCompose(s -> send(s, message, durable, ttl));
+                        .thenCompose(s -> {
+                            try {
+                                return send(s, message, durable, ttl);
+                            } catch (Exception e) {
+                                LOGGER.error("Unable to send the message", e);
+                                CompletableFuture<Message> future = new CompletableFuture<>();
+                                future.completeExceptionally(e);
+                                return future;
+                            }
+                        })
+                        .whenComplete((m, e) -> {
+                            if (e != null) {
+                                LOGGER.error("Unable to send the AMQP message", e);
+                            }
+                        });
             } else {
                 return send(as, message, durable, ttl);
             }

@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static io.vertx.proton.ProtonHelper.message;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
@@ -35,8 +34,10 @@ public class AmqpSinkTest extends AmqpTestBase {
         }
 
         if (container != null) {
-            container.close();
+            container.shutdown();
         }
+
+        System.clearProperty("mp-config");
 
     }
 
@@ -88,6 +89,8 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ProducingBean.class);
+
+        System.setProperty("mp-config", "outgoing");
 
         container = weld.initialize();
 
