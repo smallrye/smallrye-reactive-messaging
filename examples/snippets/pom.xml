@@ -5,7 +5,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>reactive-messaging-snippets</artifactId>
-  <version>0.0.10-SNAPSHOT</version>
+  <version>0.0.10</version>
 
 
   <properties>
@@ -19,17 +19,17 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.10</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-kafka-1.0</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.10</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-http-1.0</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.10</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
@@ -40,7 +40,7 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-vertx-eventbus-1.0</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.10</version>
     </dependency>
 
     <dependency>

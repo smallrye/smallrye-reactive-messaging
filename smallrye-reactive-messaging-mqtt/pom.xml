@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging-1.0</artifactId>
-    <version>0.0.10-SNAPSHOT</version>
+    <version>0.0.10</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-mqtt-1.0</artifactId>
