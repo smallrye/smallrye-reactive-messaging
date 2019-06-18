@@ -32,7 +32,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Inject
     @ConfigProperty(name = "kafka.bootstrap.servers", defaultValue = "localhost:9092")
-    private Instance<String> servers;
+    private String servers;
 
     private List<KafkaSource> sources = new CopyOnWriteArrayList<>();
     private List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
@@ -61,7 +61,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public PublisherBuilder<KafkaMessage> getPublisherBuilder(Config config) {
-        String s = servers.isUnsatisfied() ? null : servers.get();
+        String s = servers;
         KafkaSource<Object, Object> source = new KafkaSource<>(vertx, config, s);
         sources.add(source);
         return source.getSource();
@@ -69,7 +69,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
-        String s = servers.isUnsatisfied() ? null : servers.get();
+        String s = servers;
         KafkaSink sink = new KafkaSink(vertx, config, s);
         sinks.add(sink);
         return sink.getSink();

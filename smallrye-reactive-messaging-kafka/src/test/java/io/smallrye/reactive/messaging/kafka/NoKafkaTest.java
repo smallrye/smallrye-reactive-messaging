@@ -19,9 +19,9 @@ import javax.enterprise.inject.Produces;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
@@ -166,13 +166,16 @@ public class NoKafkaTest {
             String prefix = "mp.messaging.outgoing.temperature-values.";
             Map<String, Object> config = new HashMap<>();
             config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-            config.put(prefix + "bootstrap.servers", "localhost:9092");
-            config.put(prefix + "key.serializer", StringSerializer.class.getName());
             config.put(prefix + "value.serializer", StringSerializer.class.getName());
-            config.put(prefix + "acks", "1");
             config.put(prefix + "topic", "output");
 
             return new MapBasedConfig(config);
+        }
+
+        @Produces
+        @ConfigProperty(name = "kafka.bootstrap.servers")
+        public String boot() {
+            return "localhost:9092";
         }
     }
 
@@ -183,12 +186,16 @@ public class NoKafkaTest {
             String prefix = "mp.messaging.incoming.temperature-values.";
             Map<String, Object> config = new HashMap<>();
             config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-            config.put(prefix + "bootstrap.servers", "localhost:9092");
-            config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
             config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
             config.put(prefix + "topic", "output");
 
             return new MapBasedConfig(config);
+        }
+
+        @Produces
+        @ConfigProperty(name = "kafka.bootstrap.servers")
+        public String boot() {
+            return "localhost:9092";
         }
     }
 

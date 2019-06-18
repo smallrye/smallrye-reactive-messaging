@@ -9,10 +9,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -40,12 +38,8 @@ public class ConsumptionBean {
         String prefix = "mp.messaging.incoming.data.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "bootstrap.servers", "localhost:9092");
         config.put(prefix + "group.id", "my-group");
-        config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
-        config.put(prefix + "key.serializer", StringSerializer.class.getName());
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
         config.put(prefix + "enable.auto.commit", "false");
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "topic", "data");
@@ -55,5 +49,11 @@ public class ConsumptionBean {
 
     public List<Integer> getResults() {
         return list;
+    }
+
+    @Produces
+    @ConfigProperty(name = "kafka.bootstrap.servers")
+    public String boot() {
+        return "localhost:9092";
     }
 }
