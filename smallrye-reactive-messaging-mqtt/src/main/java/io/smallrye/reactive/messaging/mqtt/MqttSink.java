@@ -31,7 +31,7 @@ public class MqttSink {
     private final String topic;
     private final int qos;
 
-    private final SubscriberBuilder<? extends Message, Void> sink;
+    private final SubscriberBuilder<? extends Message<?>, Void> sink;
 
     public MqttSink(Vertx vertx, Config config) {
         MqttClientOptions options = new MqttClientOptions();
@@ -66,7 +66,7 @@ public class MqttSink {
         qos = config.getOptionalValue("qos", Integer.class).orElse(0);
 
         AtomicBoolean connected = new AtomicBoolean();
-        sink = ReactiveStreams.<Message> builder()
+        sink = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
                     // If not connected, connect
                     if (connected.get()) {
@@ -141,7 +141,7 @@ public class MqttSink {
         return new Buffer(Json.encodeToBuffer(payload));
     }
 
-    public SubscriberBuilder<? extends Message, Void> getSink() {
+    public SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return sink;
     }
 

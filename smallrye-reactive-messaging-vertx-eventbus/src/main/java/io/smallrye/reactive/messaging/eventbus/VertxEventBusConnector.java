@@ -46,12 +46,12 @@ public class VertxEventBusConnector implements OutgoingConnectorFactory, Incomin
     }
 
     @Override
-    public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         return new EventBusSource(vertx, config).source();
     }
 
     @Override
-    public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         return new EventBusSink(vertx, config).sink();
     }
 

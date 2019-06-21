@@ -33,16 +33,16 @@ public class MyDummyConnector implements IncomingConnectorFactory, OutgoingConne
     }
 
     @Override
-    public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         this.configs.add(config);
-        return ReactiveStreams.<Message> builder()
+        return ReactiveStreams.<Message<?>> builder()
                 .peek(x -> list.add(x.getPayload().toString()))
                 .onComplete(() -> completed = true)
                 .ignore();
     }
 
     @Override
-    public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         this.configs.add(config);
         int increment = config.getOptionalValue("increment", Integer.class).orElse(1);
         return ReactiveStreams

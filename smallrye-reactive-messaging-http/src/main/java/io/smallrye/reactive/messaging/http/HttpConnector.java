@@ -45,12 +45,12 @@ public class HttpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         return new HttpSink(vertx, config).sink();
     }
 
     @Override
-    public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         return new HttpSource(vertx, config).source();
     }
 

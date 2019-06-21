@@ -16,7 +16,7 @@ import io.vertx.reactivex.mqtt.MqttClient;
 
 public class MqttSource {
 
-    private final PublisherBuilder<MqttMessage> source;
+    private final PublisherBuilder<MqttMessage<?>> source;
     private AtomicBoolean subscribed = new AtomicBoolean();
 
     public MqttSource(Vertx vertx, Config config) {
@@ -58,7 +58,7 @@ public class MqttSource {
 
         this.source = ReactiveStreams.fromPublisher(
                 client.rxConnect(port, host, server)
-                        .flatMapObservable(a -> Observable.<MqttMessage> create(emitter -> {
+                        .flatMapObservable(a -> Observable.<MqttMessage<?>> create(emitter -> {
                             client.publishHandler(message -> {
                                 emitter.onNext(new ReceivingMqttMessage(message));
                             });
@@ -84,11 +84,11 @@ public class MqttSource {
                         }));
     }
 
-    PublisherBuilder<MqttMessage> getSource() {
+    PublisherBuilder<MqttMessage<?>> getSource() {
         return source;
     }
 
-    public boolean isSubscribed() {
+    boolean isSubscribed() {
         return subscribed.get();
     }
 

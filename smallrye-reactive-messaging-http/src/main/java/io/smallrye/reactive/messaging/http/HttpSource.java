@@ -29,12 +29,12 @@ public class HttpSource {
         this.vertx = vertx;
     }
 
-    PublisherBuilder<? extends Message> source() {
+    PublisherBuilder<? extends Message<?>> source() {
         CompletableFuture<HttpServer> future = new CompletableFuture<>();
         server = vertx.createHttpServer();
 
         BehaviorProcessor<HttpServerRequest> processor = BehaviorProcessor.create();
-        PublisherBuilder<? extends Message> publisher = ReactiveStreams.fromPublisher(processor
+        PublisherBuilder<? extends Message<?>> publisher = ReactiveStreams.fromPublisher(processor
                 .delaySubscription(ReactiveStreams.fromCompletionStage(future).buildRs()))
                 .flatMapCompletionStage(this::toMessage);
         server

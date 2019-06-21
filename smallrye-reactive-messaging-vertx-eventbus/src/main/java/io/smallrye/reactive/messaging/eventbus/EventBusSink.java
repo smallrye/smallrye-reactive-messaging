@@ -35,7 +35,7 @@ public class EventBusSink {
         this.timeout = config.getOptionalValue("timeout", Integer.class).orElse(-1);
     }
 
-    SubscriberBuilder<? extends Message, Void> sink() {
+    SubscriberBuilder<? extends Message<?>, Void> sink() {
         DeliveryOptions options = new DeliveryOptions();
         if (this.codec != null) {
             options.setCodecName(this.codec);
@@ -44,7 +44,7 @@ public class EventBusSink {
             options.setSendTimeout(this.timeout);
         }
 
-        return ReactiveStreams.<Message> builder()
+        return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
                     CompletableFuture<Message> future = new CompletableFuture<>();
                     // TODO support getting an EventBusMessage as message.

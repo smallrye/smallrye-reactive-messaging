@@ -110,6 +110,6 @@ public interface OutgoingConnectorFactory extends ConnectorFactory {
      * @throws IllegalArgumentException if the configuration is invalid.
      * @throws NoSuchElementException if the configuration does not contain an expected attribute.
      */
-    SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config);
+    SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config);
 
 }

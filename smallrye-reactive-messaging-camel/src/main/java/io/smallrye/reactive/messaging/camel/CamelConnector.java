@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.camel;
 
-import java.util.function.Function;
-
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
@@ -71,7 +69,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @Override
-    public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String name = config.getOptionalValue("endpoint-uri", String.class)
                 .orElseThrow(() -> new IllegalArgumentException("The `endpoint-uri of the endpoint is required"));
 
@@ -87,25 +85,25 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         }
 
         return ReactiveStreams.fromPublisher(publisher)
-                .map((Function<Exchange, CamelMessage>) CamelMessage::new);
+                .map(m -> new CamelMessage<>(m));
     }
 
     @Override
-    public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         String name = config.getOptionalValue("endpoint-uri", String.class)
                 .orElseThrow(() -> new IllegalArgumentException("The `endpoint-uri` of the endpoint is required"));
 
-        SubscriberBuilder<? extends Message, Void> subscriber;
+        SubscriberBuilder<? extends Message<?>, Void> subscriber;
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
             name = name.substring(REACTIVE_STREAMS_SCHEME.length());
             LOGGER.info("Creating subscriber from Camel stream named {}", name);
-            subscriber = ReactiveStreams.<Message> builder()
+            subscriber = ReactiveStreams.<Message<?>> builder()
                     .map(this::createExchangeFromMessage)
                     .to(reactive.streamSubscriber(name));
         } else {
             LOGGER.info("Creating publisher from Camel endpoint {}", name);
-            subscriber = ReactiveStreams.<Message> builder()
+            subscriber = ReactiveStreams.<Message<?>> builder()
                     .map(this::createExchangeFromMessage)
                     .to(reactive.subscriber(name));
         }

@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.slf4j.Logger;
@@ -21,7 +22,7 @@ import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
 
 public class KafkaSource<K, V> {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
-    private final PublisherBuilder<KafkaMessage> source;
+    private final PublisherBuilder<? extends Message<?>> source;
     private final KafkaConsumer<K, V> consumer;
 
     KafkaSource(Vertx vertx, Config config, String servers) {
@@ -74,7 +75,7 @@ public class KafkaSource<K, V> {
                 .map(rec -> new ReceivedKafkaMessage<>(consumer, rec));
     }
 
-    PublisherBuilder<KafkaMessage> getSource() {
+    PublisherBuilder<? extends Message<?>> getSource() {
         return source;
     }
 

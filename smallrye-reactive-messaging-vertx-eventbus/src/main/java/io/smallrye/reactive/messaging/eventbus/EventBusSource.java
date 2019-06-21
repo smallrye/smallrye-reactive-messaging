@@ -26,8 +26,8 @@ class EventBusSource {
         this.ack = config.getOptionalValue("use-reply-as-ack", Boolean.class).orElse(false);
     }
 
-    PublisherBuilder<? extends Message> source() {
-        MessageConsumer<Message> consumer = vertx.eventBus().consumer(address);
+    PublisherBuilder<? extends Message<?>> source() {
+        MessageConsumer<Message<?>> consumer = vertx.eventBus().consumer(address);
         return ReactiveStreams.fromPublisher(consumer.toFlowable()
                 .compose(flow -> {
                     if (broadcast) {
@@ -39,7 +39,7 @@ class EventBusSource {
                 .map(this::adapt);
     }
 
-    private Message adapt(io.vertx.reactivex.core.eventbus.Message msg) {
+    private Message<?> adapt(io.vertx.reactivex.core.eventbus.Message msg) {
         if (this.ack) {
             return new EventBusMessage<>(msg, () -> {
                 msg.reply("OK");

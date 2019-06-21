@@ -24,7 +24,7 @@ class HttpSink {
     private final String url;
     private final WebClient client;
     private final String converterClass;
-    private final SubscriberBuilder<? extends Message, Void> subscriber;
+    private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
     HttpSink(Vertx vertx, Config config) {
         WebClientOptions options = new WebClientOptions(JsonHelper.asJsonObject(config));
@@ -33,7 +33,7 @@ class HttpSink {
         client = WebClient.create(vertx, options);
         converterClass = config.getOptionalValue("converter", String.class).orElse(null);
 
-        subscriber = ReactiveStreams.<Message> builder()
+        subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(m -> send(m).thenCompose(v -> m.ack()).thenApply(v -> m))
                 .ignore();
     }
@@ -120,7 +120,7 @@ class HttpSink {
         return future;
     }
 
-    SubscriberBuilder<? extends Message, Void> sink() {
+    SubscriberBuilder<? extends Message<?>, Void> sink() {
         return subscriber;
     }
 }

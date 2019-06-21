@@ -26,7 +26,7 @@ class KafkaSink {
     private final String key;
     private final String topic;
     private final boolean waitForWriteCompletion;
-    private final SubscriberBuilder<? extends Message, Void> subscriber;
+    private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
     KafkaSink(Vertx vertx, Config config, String servers) {
         JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config);
@@ -138,7 +138,7 @@ class KafkaSink {
 
     }
 
-    SubscriberBuilder<? extends Message, Void> getSink() {
+    SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return subscriber;
     }
 
