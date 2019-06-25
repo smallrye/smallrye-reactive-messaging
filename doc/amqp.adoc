@@ -55,7 +55,7 @@ mp.messaging.outgoing.data.durable=10000
 ----
 
 The AMQP connector dispatches messages to the AMQP broker or server.
-You can send _bare_ message or `io.smallrye.rincomingeactive.messaging.amqp.AmqpMessage`.
+You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
 
 The payload of the message must be one of the following type:
 
