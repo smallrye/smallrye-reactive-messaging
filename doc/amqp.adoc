@@ -16,7 +16,7 @@ To enable the AMQP support, you need the following dependency:
 </dependency>
 ----
 
-=== Retrieving messages from MQTT
+=== Retrieving messages from AMQP
 
 [source]
 ----
