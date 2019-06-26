@@ -39,7 +39,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
 
         List<MqttMessage> messages = new ArrayList<>();
-        PublisherBuilder<MqttMessage> stream = source.getSource();
+        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
         await().until(source::isSubscribed);
         AtomicInteger counter = new AtomicInteger();

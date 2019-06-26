@@ -46,12 +46,12 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         return new MqttSource(vertx, config).getSource();
     }
 
     @Override
-    public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         return new MqttSink(vertx, config).getSink();
     }
 }

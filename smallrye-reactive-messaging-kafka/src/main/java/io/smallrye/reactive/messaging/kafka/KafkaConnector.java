@@ -60,7 +60,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @Override
-    public PublisherBuilder<KafkaMessage> getPublisherBuilder(Config config) {
+    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String s = servers;
         KafkaSource<Object, Object> source = new KafkaSource<>(vertx, config, s);
         sources.add(source);
@@ -68,7 +68,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @Override
-    public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         String s = servers;
         KafkaSink sink = new KafkaSink(vertx, config, s);
         sinks.add(sink);

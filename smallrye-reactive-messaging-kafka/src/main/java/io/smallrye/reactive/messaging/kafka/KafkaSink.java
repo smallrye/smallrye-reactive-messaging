@@ -26,7 +26,7 @@ class KafkaSink {
     private final String key;
     private final String topic;
     private final boolean waitForWriteCompletion;
-    private final SubscriberBuilder<? extends Message, Void> subscriber;
+    private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
     KafkaSink(Vertx vertx, Config config, String servers) {
         JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config);
@@ -138,12 +138,16 @@ class KafkaSink {
 
     }
 
-    SubscriberBuilder<? extends Message, Void> getSink() {
+    SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return subscriber;
     }
 
     void close() {
-        this.stream.close();
+        try {
+            this.stream.close();
+        } catch (Exception e) {
+            LOGGER.debug("An error has been caught while closing the Kafka Write Stream", e);
+        }
     }
 
     private String getTopicOrNull(Config config) {

@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.Flowable;
-import io.reactivex.functions.Function;
 import io.reactivex.processors.MulticastProcessor;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
@@ -152,10 +151,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         }
     }
 
-    private Flowable<? extends Message> getStreamOfMessages(AmqpReceiver receiver) {
+    private Flowable<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
         return Flowable.defer(
                 () -> Flowable.fromPublisher(receiver.toPublisher()))
-                .map((Function<io.vertx.axle.amqp.AmqpMessage, AmqpMessage>) AmqpMessage::new);
+                .map(m -> new AmqpMessage<>(m));
     }
 
     private String getAddressOrFail(Config config) {
@@ -166,7 +165,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    public PublisherBuilder<? extends Message> getPublisherBuilder(Config config) {
+    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String address = getAddressOrFail(config);
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
         boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
@@ -177,7 +176,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)));
 
-        PublisherBuilder<? extends Message> builder = ReactiveStreams
+        PublisherBuilder<? extends Message<?>> builder = ReactiveStreams
                 .fromCompletionStage(future)
                 .flatMapRsPublisher(this::getStreamOfMessages);
 
@@ -188,13 +187,13 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    public SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(Config config) {
+    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         String address = getAddressOrFail(config);
         boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
         long ttl = config.getOptionalValue("ttl", Long.class).orElse(0L);
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        return ReactiveStreams.<Message> builder().flatMapCompletionStage(message -> {
+        return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
 
             if (as == null) {

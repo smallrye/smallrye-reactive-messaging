@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye</groupId>
     <artifactId>smallrye-parent</artifactId>
-    <version>7</version>
+    <version>8</version>
   </parent>
 
   <groupId>io.smallrye.reactive</groupId>
@@ -51,7 +51,7 @@
   <properties>
     <vertx.version>3.7.1</vertx.version>
     <slf4j-api.version>1.7.26</slf4j-api.version>
-    <microprofile-reactive-messaging.version>1.0-RC1</microprofile-reactive-messaging.version>
+    <microprofile-reactive-messaging.version>1.0-RC2</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
     <rxjava.version>2.2.10</rxjava.version>
     <smallrye-reactive-streams-ops.version>1.0.6</smallrye-reactive-streams-ops.version>
@@ -83,6 +83,8 @@
     <module>examples/kafka-quickstart</module>
     <module>examples/mqtt-quickstart</module>
     <module>examples/amqp-quickstart</module>
+
+    <module>tck</module>
   </modules>
 
   <dependencyManagement>
@@ -109,12 +111,11 @@
   </dependencyManagement>
 
   <dependencies>
-    <!-- The API has been copied into the implementation to allow alpha releases and ease feedback -->
-    <!--<dependency>-->
-      <!--<groupId>org.eclipse.microprofile.reactive.messaging</groupId>-->
-      <!--<artifactId>microprofile-reactive-messaging-api</artifactId>-->
-      <!--<version>${microprofile-reactive-messaging.version}</version>-->
-    <!--</dependency>-->
+    <dependency>
+      <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+      <artifactId>microprofile-reactive-messaging-api</artifactId>
+      <version>${microprofile-reactive-messaging.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
       <artifactId>microprofile-reactive-streams-operators-api</artifactId>
@@ -260,12 +261,6 @@
   </repositories>
 
   <profiles>
-    <profile>
-      <id>tck</id>
-      <modules>
-        <module>tck</module>
-      </modules>
-    </profile>
     <profile>
       <id>doc</id>
       <build>
