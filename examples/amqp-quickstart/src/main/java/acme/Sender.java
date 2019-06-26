@@ -17,7 +17,7 @@ public class Sender {
     public CompletionStage<AmqpMessage> send() {
         CompletableFuture<AmqpMessage> future = new CompletableFuture<>();
         delay(() -> {
-            System.out.println("Sending message on dynamic topic: hello");
+            System.out.println("Sending timed message (outgoing-data)");
             future.complete(new AmqpMessage("hello from sender"));
         });
         return future;
