@@ -143,7 +143,11 @@ class KafkaSink {
     }
 
     void close() {
-        this.stream.close();
+        try {
+            this.stream.close();
+        } catch (Exception e) {
+            LOGGER.debug("An error has been caught while closing the Kafka Write Stream", e);
+        }
     }
 
     private String getTopicOrNull(Config config) {

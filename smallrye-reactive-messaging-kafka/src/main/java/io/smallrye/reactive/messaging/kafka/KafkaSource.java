@@ -79,7 +79,11 @@ public class KafkaSource<K, V> {
     }
 
     void close() {
-        this.consumer.close();
+        try {
+            this.consumer.close();
+        } catch (Exception e) {
+            LOGGER.debug("An exception has been caught while closing the Kafka consumer", e);
+        }
     }
 
     private String getTopicOrFail(Config config) {
