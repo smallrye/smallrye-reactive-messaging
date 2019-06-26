@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -41,7 +42,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
 
-        List<KafkaMessage> messages = new ArrayList<>();
+        List<Message<?>> messages = new ArrayList<>();
         source.getSource().forEach(messages::add).run();
 
         AtomicInteger counter = new AtomicInteger();
@@ -49,8 +50,8 @@ public class KafkaSourceTest extends KafkaTestBase {
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-        assertThat(messages.stream().map(KafkaMessage::getPayload).collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4,
-                5, 6, 7, 8, 9);
+        assertThat(messages.stream().map(m -> ((KafkaMessage<String, Integer>) m).getPayload())
+                .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
     @Test
@@ -63,7 +64,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
 
         List<KafkaMessage> messages = new ArrayList<>();
-        source.getSource().forEach(messages::add).run();
+        source.getSource().forEach(m -> messages.add((KafkaMessage) m)).run();
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
@@ -86,8 +87,8 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         List<KafkaMessage> messages1 = new ArrayList<>();
         List<KafkaMessage> messages2 = new ArrayList<>();
-        source.getSource().forEach(messages1::add).run();
-        source.getSource().forEach(messages2::add).run();
+        source.getSource().forEach(m -> messages1.add((KafkaMessage) m)).run();
+        source.getSource().forEach(m -> messages2.add((KafkaMessage) m)).run();
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
@@ -113,7 +114,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
         List<KafkaMessage> messages1 = new ArrayList<>();
-        source.getSource().forEach(messages1::add).run();
+        source.getSource().forEach(m -> messages1.add((KafkaMessage) m)).run();
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,

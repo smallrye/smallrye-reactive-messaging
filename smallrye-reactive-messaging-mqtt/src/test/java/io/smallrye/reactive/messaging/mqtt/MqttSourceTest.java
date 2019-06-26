@@ -37,7 +37,7 @@ public class MqttSourceTest extends MqttTestBase {
         MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
 
         List<MqttMessage> messages = new ArrayList<>();
-        PublisherBuilder<MqttMessage> stream = source.getSource();
+        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
         await().until(source::isSubscribed);
         AtomicInteger counter = new AtomicInteger();
@@ -61,7 +61,7 @@ public class MqttSourceTest extends MqttTestBase {
         MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
 
         List<MqttMessage> messages = new ArrayList<>();
-        PublisherBuilder<MqttMessage> stream = source.getSource();
+        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
         await().until(source::isSubscribed);
         AtomicInteger counter = new AtomicInteger();
@@ -88,7 +88,7 @@ public class MqttSourceTest extends MqttTestBase {
 
         List<MqttMessage> messages1 = new ArrayList<>();
         List<MqttMessage> messages2 = new ArrayList<>();
-        PublisherBuilder<MqttMessage> stream = source.getSource();
+        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages1::add).run();
         stream.forEach(messages2::add).run();
 
