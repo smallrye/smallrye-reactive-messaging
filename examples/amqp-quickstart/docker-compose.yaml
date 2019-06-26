@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+
+  artemis:
+    image: vromero/activemq-artemis:2.8.0-alpine
+    ports:
+      - "8161:8161"
+      - "61616:61616"
+      - "5672:5672"
+    environment:
+      ARTEMIS_USERNAME: smallrye
+      ARTEMIS_PASSWORD: smallrye
