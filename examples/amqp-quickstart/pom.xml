@@ -30,6 +30,12 @@
       <artifactId>smallrye-config-1.3</artifactId>
       <version>1.0.0</version>
     </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-amqp-client</artifactId>
+      <!-- this version is a bug fix release of the AMQP client -->
+      <version>3.7.1.1</version>
+    </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
