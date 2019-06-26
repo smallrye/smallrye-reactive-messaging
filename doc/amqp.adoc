@@ -44,7 +44,7 @@ NOTE: If the `address` attribute is not set the channel name is used instead.
 [source]
 ----
 mp.messaging.outgoing.data.address=data
-mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.outgoing.data.connector=smallrye-amqp
 mp.messaging.outgoing.data.host=localhost
 mp.messaging.outgoing.data.port=5672
 mp.messaging.outgoing.data.username=username
