@@ -5,7 +5,7 @@ This project illustrates how you can interact with AMQP using MicroProfile React
 
 ## AMQP broker
 
-First you need a AMQP server. You can follow the instructions from the [RabbitMQ](https://www.rabbitmq.com/) or run `docker-compose up` if you have docker installed on your machine.
+First you need a AMQP server. You can follow the instructions from the [ActiveMQ Artemis](https://activemq.apache.org/components/artemis/) or run `docker-compose up` if you have docker installed on your machine.
 
 ## Start the application
 
