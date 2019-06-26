@@ -13,7 +13,7 @@ public class Receiver {
 
     @Incoming("my-topic")
     public CompletionStage<Void> consume(AmqpMessage<String> message) {
-        System.out.println("received: " + message.getPayload() + " from address " + message.getAddress());
+        System.out.println("received (my-topic): " + message.getPayload() + " from address " + message.getAddress());
         return message.ack();
     }
 

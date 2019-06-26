@@ -21,7 +21,9 @@ public class BeanUsingAnEmitter {
         AtomicInteger counter = new AtomicInteger();
         Executors.newSingleThreadScheduledExecutor()
                 .scheduleAtFixedRate(() -> {
-                    emitter.send("Hello " + counter.getAndIncrement());
+                    String message = "Hello " + counter.getAndIncrement();
+                    System.out.println("Emitting: " + message);
+                    emitter.send(message);
                 },
                         1, 1, TimeUnit.SECONDS);
     }
