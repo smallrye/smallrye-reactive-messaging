@@ -2,14 +2,12 @@ version: '2'
 
 services:
 
-  rabbitmq:
-    image: "rabbitmq:3-management"
-    hostname: "rabbitmq"
-    environment:
-      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
-      RABBITMQ_DEFAULT_USER: "rabbitmq"
-      RABBITMQ_DEFAULT_PASS: "rabbitmq"
-      RABBITMQ_DEFAULT_VHOST: "/"
+  artemis:
+    image: vromero/activemq-artemis:2.8.0-alpine
     ports:
-      - "15672:15672"
+      - "8161:8161"
+      - "61616:61616"
       - "5672:5672"
+    environment:
+      ARTEMIS_USERNAME: smallrye
+      ARTEMIS_PASSWORD: smallrye
