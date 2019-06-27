@@ -24,7 +24,7 @@ Then create a _properties_ file in `src/main/resources/META-INF/microprofile-con
 mp.messaging.incoming.dummy-incoming-channel.connector=dummy
 mp.messaging.incoming.dummy-incoming-channel.attribute=value
 mp.messaging.outgoing.dummy-outgoing-channel.connector=dummy
-mp.messaging.outgoing.dummy-incoming-channel.attribute=value
+mp.messaging.outgoing.dummy-outgoing-channel.attribute=value
 ----
 
 Each channel (both incoming and outgoing) are configured individually in this file:
