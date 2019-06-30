@@ -57,7 +57,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Integer configuredPort;
 
     @Inject
-    @ConfigProperty(name = "amqp-server", defaultValue = "localhost")
+    @ConfigProperty(name = "amqp-host", defaultValue = "localhost")
     private String configuredHost;
 
     @Inject
