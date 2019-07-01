@@ -11,7 +11,7 @@
   <artifactId>smallrye-reactive-messaging-camel-1.0</artifactId>
 
   <properties>
-    <camel.version>3.0.0-M2</camel.version>
+    <camel.version>3.0.0-M3</camel.version>
   </properties>
 
   <dependencies>
