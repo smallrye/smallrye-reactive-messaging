@@ -8,13 +8,13 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
@@ -32,6 +32,7 @@ public class MqttSink {
     private final int qos;
 
     private final SubscriberBuilder<? extends Message<?>, Void> sink;
+    private final AtomicBoolean connected = new AtomicBoolean();
 
     public MqttSink(Vertx vertx, Config config) {
         MqttClientOptions options = new MqttClientOptions();
@@ -65,7 +66,6 @@ public class MqttSink {
         client = MqttClient.create(vertx, options);
         qos = config.getOptionalValue("qos", Integer.class).orElse(0);
 
-        AtomicBoolean connected = new AtomicBoolean();
         sink = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
                     // If not connected, connect
@@ -115,6 +115,7 @@ public class MqttSink {
                     return done;
                 })
                 .onComplete(client::disconnect)
+                .onError(t -> LOGGER.error("An error has been caught while sending a MQTT message to the broker", t))
                 .ignore();
     }
 
@@ -149,5 +150,9 @@ public class MqttSink {
         return config.getOptionalValue("topic", String.class)
                 .orElseGet(
                         () -> config.getOptionalValue("channel-name", String.class).orElse(null));
+    }
+
+    public boolean isReady() {
+        return connected.get();
     }
 }

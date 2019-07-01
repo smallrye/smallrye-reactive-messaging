@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -115,6 +116,8 @@ public class MqttSourceTest extends MqttTestBase {
     public void testABeanConsumingTheMQTTMessages() {
         ConsumptionBean bean = deploy();
         await().until(() -> container.select(MediatorManager.class).get().isInitialized());
+
+        await().until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();

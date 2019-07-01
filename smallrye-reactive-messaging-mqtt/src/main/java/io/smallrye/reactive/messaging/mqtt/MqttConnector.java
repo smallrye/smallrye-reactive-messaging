@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
@@ -28,6 +31,8 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private boolean internalVertxInstance = false;
     private Vertx vertx;
+    private List<MqttSource> sources = new CopyOnWriteArrayList<>();
+    private List<MqttSink> sinks = new CopyOnWriteArrayList<>();
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {
@@ -47,11 +52,28 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        return new MqttSource(vertx, config).getSource();
+        MqttSource source = new MqttSource(vertx, config);
+        sources.add(source);
+        return source.getSource();
     }
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        return new MqttSink(vertx, config).getSink();
+        MqttSink sink = new MqttSink(vertx, config);
+        sinks.add(sink);
+        return sink.getSink();
+    }
+
+    public boolean isReady() {
+        boolean ready = true;
+        for (MqttSource source : sources) {
+            ready = ready && source.isSubscribed();
+        }
+
+        for (MqttSink sink : sinks) {
+            ready = ready && sink.isReady();
+        }
+
+        return ready;
     }
 }

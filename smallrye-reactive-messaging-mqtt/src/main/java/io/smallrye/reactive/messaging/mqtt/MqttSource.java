@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Observable;
@@ -16,6 +18,7 @@ import io.vertx.reactivex.mqtt.MqttClient;
 
 public class MqttSource {
 
+    private final Logger LOGGER = LoggerFactory.getLogger(MqttSource.class);
     private final PublisherBuilder<MqttMessage<?>> source;
     private AtomicBoolean subscribed = new AtomicBoolean();
 
@@ -63,6 +66,7 @@ public class MqttSource {
                                 emitter.onNext(new ReceivingMqttMessage(message));
                             });
                             client.subscribe(topic, qos, done -> {
+                                System.out.println("Subscribing ...");
                                 if (done.failed()) {
                                     // Report on the flow
                                     emitter.onError(done.cause());
@@ -81,7 +85,8 @@ public class MqttSource {
                         .doOnCancel(() -> {
                             subscribed.set(false);
                             client.disconnect();
-                        }));
+                        })
+                        .doOnError(t -> LOGGER.error("Unable to establish a connection with the MQTT broker", t)));
     }
 
     PublisherBuilder<MqttMessage<?>> getSource() {
