@@ -10,7 +10,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-1.0</artifactId>
-  <version>0.0.11-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>MicroProfile Reactive Streams Messaging Implementation</name>

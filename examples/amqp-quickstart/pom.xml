@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging-1.0</artifactId>
-    <version>0.0.11-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
 
@@ -40,12 +40,12 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>1.0.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-amqp-1.0</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>1.0.0-SNAPSHOT</version>
       <exclusions>
         <exclusion>
           <!-- this avoid having the logging working, to exclude it -->
