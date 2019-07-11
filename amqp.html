@@ -438,7 +438,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_interacting_using_amqp">Interacting using AMQP</a>
 <ul class="sectlevel2">
 <li><a href="#_dependency">Dependency</a></li>
-<li><a href="#_retrieving_messages_from_mqtt">Retrieving messages from MQTT</a></li>
+<li><a href="#_retrieving_messages_from_amqp">Retrieving messages from AMQP</a></li>
 <li><a href="#_forwarding_messages_to_amqp">Forwarding messages to AMQP</a></li>
 </ul>
 </li>
@@ -463,13 +463,13 @@ The AMQP support is based on the <a href="https://vertx.io/docs/vertx-amqp-clien
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-amqp-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_retrieving_messages_from_mqtt">Retrieving messages from MQTT</h3>
+<h3 id="_retrieving_messages_from_amqp">Retrieving messages from AMQP</h3>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=data
@@ -509,7 +509,7 @@ If the <code>address</code> attribute is not set the channel name is used instea
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.address=data
-mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.outgoing.data.connector=smallrye-amqp
 mp.messaging.outgoing.data.host=localhost
 mp.messaging.outgoing.data.port=5672
 mp.messaging.outgoing.data.username=username
@@ -572,7 +572,7 @@ If the <code>address</code> attribute is not set the channel name is used instea
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-06-17 16:45:16 +0200
+Last updated 2019-06-26 13:35:07 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">

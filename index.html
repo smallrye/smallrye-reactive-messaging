@@ -442,8 +442,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h1>SmallRye Reactive Messaging</h1>
 <div class="details">
 <span id="author" class="author">Clement Escoffier</span><br>
-<span id="revnumber">version 0.0.10,</span>
-<span id="revdate">2019-06-18</span>
+<span id="revnumber">version 1.0.0,</span>
+<span id="revdate">2019-07-11</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">SmallRye Reactive Messaging</div>
@@ -495,7 +495,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_interacting_using_amqp">9. Interacting using AMQP</a>
 <ul class="sectlevel3">
 <li><a href="#_dependency_2">9.1. Dependency</a></li>
-<li><a href="#_retrieving_messages_from_mqtt">9.2. Retrieving messages from MQTT</a></li>
+<li><a href="#_retrieving_messages_from_amqp">9.2. Retrieving messages from AMQP</a></li>
 <li><a href="#_forwarding_messages_to_amqp">9.3. Forwarding messages to AMQP</a></li>
 </ul>
 </li>
@@ -512,7 +512,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_interacting_using_mqtt">11. Interacting using MQTT</a>
 <ul class="sectlevel3">
 <li><a href="#_dependency_4">11.1. Dependency</a></li>
-<li><a href="#_retrieving_messages_from_mqtt_2">11.2. Retrieving messages from MQTT</a></li>
+<li><a href="#_retrieving_messages_from_mqtt">11.2. Retrieving messages from MQTT</a></li>
 <li><a href="#_forwarding_messages_to_mqtt">11.3. Forwarding messages to MQTT</a></li>
 <li><a href="#_advanced_configuration">11.4. Advanced configuration</a></li>
 </ul>
@@ -592,7 +592,7 @@ sourcing applications&#8230;&#8203;</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-provider-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
@@ -1458,7 +1458,7 @@ For instance, add the following dependency:</p>
 mp.messaging.incoming.dummy-incoming-channel.connector=dummy
 mp.messaging.incoming.dummy-incoming-channel.attribute=value
 mp.messaging.outgoing.dummy-outgoing-channel.connector=dummy
-mp.messaging.outgoing.dummy-incoming-channel.attribute=value</code></pre>
+mp.messaging.outgoing.dummy-outgoing-channel.attribute=value</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1542,7 +1542,7 @@ mp.messaging.outgoing.data.acks=1
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1766,13 +1766,13 @@ The AMQP support is based on the <a href="https://vertx.io/docs/vertx-amqp-clien
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-amqp-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_retrieving_messages_from_mqtt">9.2. Retrieving messages from MQTT</h4>
+<h4 id="_retrieving_messages_from_amqp">9.2. Retrieving messages from AMQP</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.address=data
@@ -1812,7 +1812,7 @@ If the <code>address</code> attribute is not set the channel name is used instea
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.address=data
-mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.outgoing.data.connector=smallrye-amqp
 mp.messaging.outgoing.data.host=localhost
 mp.messaging.outgoing.data.port=5672
 mp.messaging.outgoing.data.username=username
@@ -1887,7 +1887,7 @@ almost any existing system.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-camel-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2041,13 +2041,13 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-mqtt-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_retrieving_messages_from_mqtt_2">11.2. Retrieving messages from MQTT</h4>
+<h4 id="_retrieving_messages_from_mqtt">11.2. Retrieving messages from MQTT</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.topic=data
@@ -2143,7 +2143,7 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-http-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2197,7 +2197,7 @@ an asynchronous way.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus-1.0&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2369,8 +2369,8 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.0.10<br>
-Last updated 2019-06-18 10:48:59 +0200
+Version 1.0.0<br>
+Last updated 2019-06-18 10:51:23 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
