@@ -16,12 +16,11 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
-import io.vertx.kafka.client.producer.RecordMetadata;
 import io.vertx.reactivex.core.Vertx;
 
 class KafkaSink {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSink.class);
-    private final KafkaWriteStream stream;
+    private final KafkaWriteStream<?, ?> stream;
     private final int partition;
     private final String key;
     private final String topic;
@@ -109,7 +108,7 @@ class KafkaSink {
                         }
 
                         CompletableFuture<Message> future = new CompletableFuture<>();
-                        Handler<AsyncResult<RecordMetadata>> handler = ar -> {
+                        Handler<AsyncResult<Void>> handler = ar -> {
                             if (ar.succeeded()) {
                                 LOGGER.info("Message {} sent successfully to Kafka topic '{}'", message, record.topic());
                                 future.complete(message);
@@ -142,10 +141,14 @@ class KafkaSink {
         return subscriber;
     }
 
-    void close() {
+    void closeQuietly() {
         try {
-            this.stream.close();
-        } catch (Exception e) {
+            this.stream.close(ar -> {
+                if (ar.failed()) {
+                    LOGGER.debug("An error has been caught while closing the Kafka Write Stream", ar.cause());
+                }
+            });
+        } catch (Throwable e) {
             LOGGER.debug("An error has been caught while closing the Kafka Write Stream", e);
         }
     }

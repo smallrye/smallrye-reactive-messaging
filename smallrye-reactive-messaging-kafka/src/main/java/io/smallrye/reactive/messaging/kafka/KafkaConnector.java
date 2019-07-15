@@ -41,8 +41,8 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     private Vertx vertx;
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
-        sources.forEach(KafkaSource::close);
-        sinks.forEach(KafkaSink::close);
+        sources.forEach(KafkaSource::closeQuietly);
+        sinks.forEach(KafkaSink::closeQuietly);
 
         if (internalVertxInstance) {
             vertx.close();
