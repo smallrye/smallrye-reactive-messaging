@@ -34,7 +34,7 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-amqp-client</artifactId>
       <!-- this version is a bug fix release of the AMQP client -->
-      <version>3.7.1.1</version>
+      <version>3.8.0</version>
     </dependency>
 
     <dependency>
