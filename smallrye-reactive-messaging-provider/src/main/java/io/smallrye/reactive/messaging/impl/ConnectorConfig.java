@@ -33,8 +33,8 @@ public class ConnectorConfig implements Config {
                         .orElseThrow(() -> new IllegalArgumentException("Invalid channel configuration - " +
                                 "the `connector` attribute must be set for channel `" + name + "`")));
 
-      this.topic = overall.getOptionalValue(channelKey("topic"), String.class).orElse(null);
-      // Detect invalid channel-name attribute
+        this.topic = overall.getOptionalValue(channelKey("topic"), String.class).orElse(null);
+        // Detect invalid channel-name attribute
         for (String key : overall.getPropertyNames()) {
             if ((channelKey(CHANNEL_NAME_ATTRIBUTE)).equalsIgnoreCase(key)) {
                 throw new IllegalArgumentException(

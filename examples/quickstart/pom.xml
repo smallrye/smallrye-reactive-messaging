@@ -18,14 +18,14 @@
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
+      <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>1.0.1-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators-1.0</artifactId>
-      <version>1.0.6</version>
+      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>1.0.7</version>
     </dependency>
 
     <dependency>
