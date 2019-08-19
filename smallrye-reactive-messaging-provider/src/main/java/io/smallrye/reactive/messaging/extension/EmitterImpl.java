@@ -7,29 +7,54 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.BackpressureOverflowStrategy;
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
-import io.reactivex.FlowableEmitter;
+import io.reactivex.*;
 import io.smallrye.reactive.messaging.annotations.Emitter;
+import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 public class EmitterImpl<T> implements Emitter<T> {
 
     private final AtomicReference<FlowableEmitter<Message<? extends T>>> internal = new AtomicReference<>();
     private final Flowable<Message<? extends T>> publisher;
-    private final String name;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmitterImpl.class);
 
-    EmitterImpl(String name) {
-        this.name = name;
-        publisher = Flowable.<Message<? extends T>> create(fe -> {
+    EmitterImpl(String name, OnOverflow onOverflow) {
+        FlowableOnSubscribe<Message<? extends T>> deferred = fe -> {
             if (!internal.compareAndSet(null, fe)) {
                 fe.onError(new Exception("Emitter already created"));
             }
-        }, BackpressureStrategy.BUFFER)
-                .onBackpressureBuffer(128, () -> LOGGER.error("Buffer full for emitter {}", name),
-                        BackpressureOverflowStrategy.ERROR);
+        };
+        if (onOverflow == null) {
+            publisher = Flowable.create(deferred, BackpressureStrategy.BUFFER)
+                    .onBackpressureBuffer(128, () -> LOGGER.error("Buffer full for emitter {}", name),
+                            BackpressureOverflowStrategy.ERROR);
+        } else {
+            switch (onOverflow.value()) {
+                case BUFFER:
+                    Flowable<Message<? extends T>> p = Flowable.create(deferred, BackpressureStrategy.BUFFER);
+                    if (onOverflow.bufferSize() > 0) {
+                        publisher = p.onBackpressureBuffer(onOverflow.bufferSize(),
+                                () -> LOGGER.error("Buffer full for emitter {}", name), BackpressureOverflowStrategy.ERROR);
+                    } else {
+                        publisher = p;
+                    }
+                    break;
+                case DROP:
+                    publisher = Flowable.create(deferred, BackpressureStrategy.DROP);
+                    break;
+                case FAIL:
+                    publisher = Flowable.create(deferred, BackpressureStrategy.ERROR);
+                    break;
+                case LATEST:
+                    publisher = Flowable.create(deferred, BackpressureStrategy.LATEST);
+                    break;
+                case NONE:
+                    publisher = Flowable.create(deferred, BackpressureStrategy.MISSING);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid back pressure strategy: " + onOverflow.value());
+            }
+        }
 
     }
 

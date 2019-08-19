@@ -18,6 +18,8 @@ import javax.inject.Qualifier;
  * <li>PublisherBuilder<Message<X>> with X the payload type</li>
  * <li>PublisherBuilder<X> with X the payload type</li>
  * </ul>
+ * <p>
+ * Also used on {@link Emitter} to indicate which stream received the emitted values / signals.
  */
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)

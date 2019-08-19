@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 /**
  * Class responsible for managing mediators
@@ -297,12 +298,12 @@ public class MediatorManager {
 
     }
 
-    public void initializeEmitters(List<String> emitters) {
-        for (String e : emitters) {
-            EmitterImpl emitter = new EmitterImpl(e);
-            Publisher<Message> publisher = emitter.getPublisher();
-            channelRegistry.register(e, ReactiveStreams.fromPublisher(publisher));
-            channelRegistry.register(e, emitter);
+    public void initializeEmitters(Map<String, OnOverflow> emitters) {
+        for (Map.Entry<String, OnOverflow> e : emitters.entrySet()) {
+            EmitterImpl<?> emitter = new EmitterImpl(e.getKey(), e.getValue());
+            Publisher<? extends Message<?>> publisher = emitter.getPublisher();
+            channelRegistry.register(e.getKey(), ReactiveStreams.fromPublisher(publisher));
+            channelRegistry.register(e.getKey(), emitter);
         }
     }
 }
