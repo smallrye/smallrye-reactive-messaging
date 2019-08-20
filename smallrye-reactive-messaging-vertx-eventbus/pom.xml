@@ -20,6 +20,11 @@
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-config</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>

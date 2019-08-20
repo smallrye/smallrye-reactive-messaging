@@ -1,16 +1,12 @@
 package io.smallrye.reactive.messaging.eventbus;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -39,15 +35,6 @@ public class ProducingBean {
     @Outgoing("data")
     public Publisher<Integer> source() {
         return Flowable.range(0, 10);
-    }
-
-    @Produces
-    public Config myConfig() {
-        String prefix = "mp.messaging.outgoing.sink.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "address", "sink");
-        config.put(prefix + "connector", VertxEventBusConnector.CONNECTOR_NAME);
-        return new MapBasedConfig(config);
     }
 
     @PostConstruct

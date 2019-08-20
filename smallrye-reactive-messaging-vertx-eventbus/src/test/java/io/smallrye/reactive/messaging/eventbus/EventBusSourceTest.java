@@ -147,10 +147,19 @@ public class EventBusSourceTest extends EventbusTestBase {
 
     private ConsumptionBean deploy() {
         Weld weld = baseWeld();
+        addConfig(getConfig());
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(VertxProducer.class);
         container = weld.initialize();
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+    }
+
+    private MapBasedConfig getConfig() {
+        String prefix = "mp.messaging.incoming.data.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "address", "data");
+        config.put(prefix + "connector", VertxEventBusConnector.CONNECTOR_NAME);
+        return new MapBasedConfig(config);
     }
 
 }
