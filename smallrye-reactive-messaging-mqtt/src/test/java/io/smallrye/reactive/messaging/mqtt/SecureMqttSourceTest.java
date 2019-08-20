@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.MqttSourceTest.getConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -70,7 +71,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
     }
 
     private ConsumptionBean deploy() {
-        Weld weld = MqttTestBase.baseWeld();
+        Weld weld = MqttTestBase.baseWeld(getConfig());
         weld.addBeanClass(ConsumptionBean.class);
         container = weld.initialize();
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

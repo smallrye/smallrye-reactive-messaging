@@ -48,6 +48,11 @@
       <version>1.2.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-config</artifactId>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 

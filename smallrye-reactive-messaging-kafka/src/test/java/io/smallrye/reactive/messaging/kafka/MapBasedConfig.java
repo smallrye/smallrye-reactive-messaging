@@ -51,7 +51,7 @@ public class MapBasedConfig implements Config {
         return Collections.emptyList();
     }
 
-    public void write() {
+    void write() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {
             out.delete();
