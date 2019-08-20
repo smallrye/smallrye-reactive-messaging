@@ -2,11 +2,13 @@ package io.smallrye.reactive.messaging.http;
 
 import static org.awaitility.Awaitility.await;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -16,6 +18,8 @@ import org.junit.Rule;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 
 public class HttpTestBase {
 
@@ -33,6 +37,7 @@ public class HttpTestBase {
     @After
     public void cleanUp() {
         weld.shutdown();
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     public void initialize() {
@@ -42,6 +47,21 @@ public class HttpTestBase {
     public HttpTestBase addClasses(Class... classes) {
         Arrays.stream(classes).forEach(weld::addBeanClass);
         return this;
+    }
+
+    public static void addConfig(HttpConnectorConfig config) {
+        if (config != null) {
+            config.write();
+        } else {
+            clear();
+        }
+    }
+
+    public static void clear() {
+        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
+        if (out.delete()) {
+            out.delete();
+        }
     }
 
     public <T> T get(Class<T> c) {

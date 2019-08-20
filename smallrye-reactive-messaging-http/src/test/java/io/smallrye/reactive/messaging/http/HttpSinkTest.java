@@ -1,13 +1,6 @@
 package io.smallrye.reactive.messaging.http;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.put;
-import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
@@ -15,9 +8,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -38,6 +29,7 @@ public class HttpSinkTest extends HttpTestBase {
                 .willReturn(aResponse()
                         .withStatus(204)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
@@ -60,6 +52,7 @@ public class HttpSinkTest extends HttpTestBase {
                 .willReturn(aResponse()
                         .withStatus(204)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingMessagesOfJsonObject.class, SourceBean.class);
         initialize();
 
@@ -83,6 +76,7 @@ public class HttpSinkTest extends HttpTestBase {
                         .withLogNormalRandomDelay(90, 0.1)
                         .withStatus(204)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
@@ -105,6 +99,7 @@ public class HttpSinkTest extends HttpTestBase {
                 .willReturn(aResponse()
                         .withStatus(500)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
@@ -126,6 +121,7 @@ public class HttpSinkTest extends HttpTestBase {
         stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
@@ -148,6 +144,7 @@ public class HttpSinkTest extends HttpTestBase {
                 .willReturn(aResponse()
                         .withStatus(204)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingJsonArrays.class, SourceBean.class);
         initialize();
 
@@ -181,6 +178,7 @@ public class HttpSinkTest extends HttpTestBase {
                 .willReturn(aResponse()
                         .withStatus(204)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingByteBuffers.class, SourceBean.class);
         initialize();
 
@@ -197,6 +195,7 @@ public class HttpSinkTest extends HttpTestBase {
                 .willReturn(aResponse()
                         .withStatus(204)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingVertxBuffers.class, SourceBean.class);
         initialize();
 
@@ -214,7 +213,8 @@ public class HttpSinkTest extends HttpTestBase {
                         .withStatus(204)));
 
         addClasses(BeanProducingPersons.class, SourceBeanWithConverter.class);
-
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items")
+                .converter(PersonSerializer.class.getName()));
         initialize();
 
         awaitForRequest(3);
@@ -232,7 +232,9 @@ public class HttpSinkTest extends HttpTestBase {
                 .willReturn(aResponse()
                         .withStatus(204)));
 
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         addClasses(BeanProducingHttpMessagesOfJsonObject.class, SourceBean.class);
+        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
         initialize();
 
         awaitForRequest(10);
@@ -254,11 +256,6 @@ public class HttpSinkTest extends HttpTestBase {
         public Flowable<Integer> source() {
             return Flowable.range(0, 10);
         }
-
-        @Produces
-        public Config config() {
-            return new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items");
-        }
     }
 
     @ApplicationScoped
@@ -266,12 +263,6 @@ public class HttpSinkTest extends HttpTestBase {
         @Outgoing("names")
         public Flowable<String> source() {
             return Flowable.fromArray("superman", "catwoman", "wonderwoman");
-        }
-
-        @Produces
-        public Config config() {
-            return new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items")
-                    .converter(PersonSerializer.class.getName());
         }
     }
 

@@ -10,9 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.Before;
@@ -28,6 +26,7 @@ public class HttpSourceTest extends HttpTestBase {
     public void setup() {
         RestAssured.reset();
         addClasses(Receiver.class);
+        addConfig(new HttpConnectorConfig("sink", "incoming", null));
         initialize();
 
         await()
@@ -178,11 +177,6 @@ public class HttpSourceTest extends HttpTestBase {
 
         public List<Message> list() {
             return list;
-        }
-
-        @Produces
-        public Config config() {
-            return new HttpConnectorConfig("sink", "incoming", null);
         }
     }
 
