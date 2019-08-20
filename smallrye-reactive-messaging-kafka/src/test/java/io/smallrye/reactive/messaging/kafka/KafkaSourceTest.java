@@ -4,11 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -16,11 +12,14 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
+
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 
 public class KafkaSourceTest extends KafkaTestBase {
 
@@ -31,6 +30,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         if (container != null) {
             container.close();
         }
+        // Release the config objects
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
@@ -141,9 +142,22 @@ public class KafkaSourceTest extends KafkaTestBase {
         return config;
     }
 
+    private MapBasedConfig myKafkaSourceConfig() {
+        String prefix = "mp.messaging.incoming.data.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        config.put(prefix + "group.id", "my-group");
+        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
+        config.put(prefix + "enable.auto.commit", "false");
+        config.put(prefix + "auto.offset.reset", "earliest");
+        config.put(prefix + "topic", "data");
+
+        return new MapBasedConfig(config);
+    }
+
     @Test
     public void testABeanConsumingTheKafkaMessages() {
-        ConsumptionBean bean = deploy();
+        ConsumptionBean bean = deploy(myKafkaSourceConfig());
         KafkaUsage usage = new KafkaUsage();
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -155,8 +169,9 @@ public class KafkaSourceTest extends KafkaTestBase {
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
-    private ConsumptionBean deploy() {
+    private ConsumptionBean deploy(MapBasedConfig config) {
         Weld weld = baseWeld();
+        addConfig(config);
         weld.addBeanClass(ConsumptionBean.class);
         weld.disableDiscovery();
         container = weld.initialize();

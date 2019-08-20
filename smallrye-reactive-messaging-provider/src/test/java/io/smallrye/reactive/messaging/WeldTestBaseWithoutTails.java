@@ -38,7 +38,9 @@ public class WeldTestBaseWithoutTails {
                 ConfiguredChannelFactory.class,
                 LegacyConfiguredChannelFactory.class,
                 // Messaging provider
-                MyDummyConnector.class);
+                MyDummyConnector.class,
+                // SmallRye config
+                io.smallrye.config.inject.ConfigProducer.class);
 
         List<Class> beans = getBeans();
         initializer.addBeanClasses(beans.toArray(new Class<?>[0]));
