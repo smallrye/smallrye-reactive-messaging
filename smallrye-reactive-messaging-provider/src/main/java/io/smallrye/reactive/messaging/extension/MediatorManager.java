@@ -11,6 +11,7 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -42,6 +43,10 @@ public class MediatorManager {
     private final List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
     private final List<AbstractMediator> mediators = new ArrayList<>();
+
+    @Inject
+    @ConfigProperty(name = "smallrye.messaging.emitter.default-buffer-size", defaultValue = "127")
+    long defaultBufferSize;
 
     @Inject
     @Any
@@ -300,7 +305,7 @@ public class MediatorManager {
 
     public void initializeEmitters(Map<String, OnOverflow> emitters) {
         for (Map.Entry<String, OnOverflow> e : emitters.entrySet()) {
-            EmitterImpl<?> emitter = new EmitterImpl(e.getKey(), e.getValue());
+            EmitterImpl<?> emitter = new EmitterImpl(e.getKey(), e.getValue(), defaultBufferSize);
             Publisher<? extends Message<?>> publisher = emitter.getPublisher();
             channelRegistry.register(e.getKey(), ReactiveStreams.fromPublisher(publisher));
             channelRegistry.register(e.getKey(), emitter);

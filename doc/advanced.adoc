@@ -102,6 +102,9 @@ emitted by the emitter are ignored.
 * `OnOverflow.Strategy.LATEST` - keeps only the latest value, dropping any previous value if the downstream can't keep up.
 * `OnOverflow.Strategy.NONE` - ignore the back-pressure signals letting the downstream consumer to implement a strategy.
 
+The `127` default buffer size can be configured using the `smallrye.messaging.emitter.default-buffer-size` property set using MicroProfile Config.
+Note that this value is only applied when `OnOverflow` is not used.
+
 === Logging
 
 The logging uses SLF4J, check the https://www.slf4j.org/[SLF4J web site] for further details.

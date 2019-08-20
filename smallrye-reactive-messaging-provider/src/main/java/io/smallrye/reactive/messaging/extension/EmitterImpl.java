@@ -18,7 +18,7 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmitterImpl.class);
 
-    EmitterImpl(String name, OnOverflow onOverflow) {
+    EmitterImpl(String name, OnOverflow onOverflow, long defaultBufferSize) {
         FlowableOnSubscribe<Message<? extends T>> deferred = fe -> {
             if (!internal.compareAndSet(null, fe)) {
                 fe.onError(new Exception("Emitter already created"));
@@ -26,7 +26,7 @@ public class EmitterImpl<T> implements Emitter<T> {
         };
         if (onOverflow == null) {
             publisher = Flowable.create(deferred, BackpressureStrategy.BUFFER)
-                    .onBackpressureBuffer(128, () -> LOGGER.error("Buffer full for emitter {}", name),
+                    .onBackpressureBuffer(defaultBufferSize, () -> LOGGER.error("Buffer full for emitter {}", name),
                             BackpressureOverflowStrategy.ERROR);
         } else {
             switch (onOverflow.value()) {
