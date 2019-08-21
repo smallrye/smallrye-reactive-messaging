@@ -43,7 +43,7 @@ in the following table:
 be set using the `kafka.bootstrap.servers` config property.
 | key.deserializer | false | | the codec used to deserialize the key, `String` by default
 | value.deserializer | true | | the codec used to deserialize the value
-| group.id | false | | the group id, random if omitted
+| group.id | false (BUT should be set in production)  | | the group id. A new random group id is generated if omitted. This feature is only for development. In production, a group id should be set.
 | enable.auto.commit | false | false | whether or not the messages are committed automatically
 | retry | false | true | Whether it should retry to re-established the connection to the broker is it fails
 | retry-attempts | false | 5 | Number of retries
