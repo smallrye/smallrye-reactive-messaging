@@ -70,7 +70,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Inject
     @ConfigProperty(name = "amqp-use-ssl")
-    private Optional<Boolean> configuredSsl;
+    private Optional<Boolean> configuredUseSsl;
 
     private boolean internalVertxInstance = false;
     private Vertx vertx;
@@ -138,10 +138,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
             boolean useSsl = config.getOptionalValue("use-ssl", Boolean.class)
                     .orElseGet(() -> {
-                        if (this.configuredSsl == null) {
+                        if (this.configuredUseSsl == null) {
                             return false;
                         } else {
-                            return this.configuredSsl.orElse(Boolean.FALSE);
+                            return this.configuredUseSsl.orElse(Boolean.FALSE);
                         }
                     });
 
