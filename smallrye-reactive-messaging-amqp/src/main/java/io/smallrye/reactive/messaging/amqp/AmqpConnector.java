@@ -231,7 +231,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         }).ignore();
     }
 
-    private CompletionStage<Message> send(AmqpSender sender, Message msg, boolean durable, long ttl) {
+    private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl) {
         io.vertx.axle.amqp.AmqpMessage amqp;
 
         if (msg instanceof AmqpMessage) {
@@ -244,7 +244,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             amqp = convertToAmqpMessage(msg.getPayload(), durable, ttl);
         }
         LOGGER.debug("Sending AMQP message to address `{}` ", (amqp.address() == null ? sender.address() : amqp.address()));
-        return sender.sendWithAck(amqp).thenCompose(x -> msg.ack()).thenApply(x -> msg);
+        return sender.sendWithAck(amqp).thenCompose(x -> msg.ack())
+                .thenApply(x -> msg);
     }
 
     private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Object payload, boolean durable, long ttl) {
