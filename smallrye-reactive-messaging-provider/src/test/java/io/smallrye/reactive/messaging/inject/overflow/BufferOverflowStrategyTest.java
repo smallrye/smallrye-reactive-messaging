@@ -57,8 +57,7 @@ public class BufferOverflowStrategyTest extends WeldTestBaseWithoutTails {
         bean.emitALotOfItems();
 
         await().until(() -> bean.exception() != null);
-        assertThat(bean.output()).contains("1");
-        assertThat(bean.output()).hasSizeBetween(1, 200).doesNotContain("999");
+        assertThat(bean.output()).doesNotContain("999");
         assertThat(bean.failure()).isNotNull().isInstanceOf(MissingBackpressureException.class);
     }
 
