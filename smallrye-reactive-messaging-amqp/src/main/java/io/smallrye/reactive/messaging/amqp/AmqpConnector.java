@@ -68,6 +68,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     @ConfigProperty(name = "amqp-password")
     private Optional<String> configuredPassword;
 
+    @Inject
+    @ConfigProperty(name = "amqp-use-ssl")
+    private Optional<Boolean> configuredUseSsl;
+
     private boolean internalVertxInstance = false;
     private Vertx vertx;
 
@@ -132,6 +136,15 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         }
                     });
 
+            boolean useSsl = config.getOptionalValue("use-ssl", Boolean.class)
+                    .orElseGet(() -> {
+                        if (this.configuredUseSsl == null) {
+                            return false;
+                        } else {
+                            return this.configuredUseSsl.orElse(Boolean.FALSE);
+                        }
+                    });
+
             String containerId = config.getOptionalValue("containerId", String.class).orElse(null);
 
             AmqpClientOptions options = new AmqpClientOptions()
@@ -140,6 +153,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     .setHost(host)
                     .setPort(port)
                     .setContainerId(containerId)
+                    .setSsl(useSsl)
                     // TODO Make these values configurable:
                     .setReconnectAttempts(100)
                     .setReconnectInterval(10)
