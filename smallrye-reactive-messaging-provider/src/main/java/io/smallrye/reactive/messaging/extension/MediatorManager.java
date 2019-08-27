@@ -279,7 +279,8 @@ public class MediatorManager {
         return mediator;
     }
 
-    private Optional<PublisherBuilder<? extends Message>> getAggregatedSource(List<PublisherBuilder<? extends Message>> sources,
+    private Optional<PublisherBuilder<? extends Message>> getAggregatedSource(
+            List<PublisherBuilder<? extends Message>> sources,
             AbstractMediator mediator,
             List<LazySource> lazy) {
         if (sources.isEmpty()) {
@@ -305,10 +306,18 @@ public class MediatorManager {
 
     public void initializeEmitters(Map<String, OnOverflow> emitters) {
         for (Map.Entry<String, OnOverflow> e : emitters.entrySet()) {
-            EmitterImpl<?> emitter = new EmitterImpl(e.getKey(), e.getValue(), defaultBufferSize);
-            Publisher<? extends Message<?>> publisher = emitter.getPublisher();
-            channelRegistry.register(e.getKey(), ReactiveStreams.fromPublisher(publisher));
-            channelRegistry.register(e.getKey(), emitter);
+            if (e.getValue() != null) {
+                initializeEmitter(e.getKey(), e.getValue().value().name(), e.getValue().bufferSize(), defaultBufferSize);
+            } else {
+                initializeEmitter(e.getKey(), null, defaultBufferSize, defaultBufferSize);
+            }
         }
+    }
+
+    public void initializeEmitter(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
+        EmitterImpl<?> emitter = new EmitterImpl<>(name, overFlowStrategy, bufferSize, defaultBufferSize);
+        Publisher<? extends Message<?>> publisher = emitter.getPublisher();
+        channelRegistry.register(name, ReactiveStreams.fromPublisher(publisher));
+        channelRegistry.register(name, emitter);
     }
 }

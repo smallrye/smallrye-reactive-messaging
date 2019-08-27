@@ -18,22 +18,23 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmitterImpl.class);
 
-    EmitterImpl(String name, OnOverflow onOverflow, long defaultBufferSize) {
+    EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
         FlowableOnSubscribe<Message<? extends T>> deferred = fe -> {
             if (!internal.compareAndSet(null, fe)) {
                 fe.onError(new Exception("Emitter already created"));
             }
         };
-        if (onOverflow == null) {
+        if (overFlowStrategy == null) {
             publisher = Flowable.create(deferred, BackpressureStrategy.BUFFER)
                     .onBackpressureBuffer(defaultBufferSize, () -> LOGGER.error("Buffer full for emitter {}", name),
                             BackpressureOverflowStrategy.ERROR);
         } else {
-            switch (onOverflow.value()) {
+            OnOverflow.Strategy strategy = OnOverflow.Strategy.valueOf(overFlowStrategy);
+            switch (strategy) {
                 case BUFFER:
                     Flowable<Message<? extends T>> p = Flowable.create(deferred, BackpressureStrategy.BUFFER);
-                    if (onOverflow.bufferSize() > 0) {
-                        publisher = p.onBackpressureBuffer(onOverflow.bufferSize(),
+                    if (bufferSize > 0) {
+                        publisher = p.onBackpressureBuffer(bufferSize,
                                 () -> LOGGER.error("Buffer full for emitter {}", name), BackpressureOverflowStrategy.ERROR);
                     } else {
                         publisher = p;
@@ -52,10 +53,9 @@ public class EmitterImpl<T> implements Emitter<T> {
                     publisher = Flowable.create(deferred, BackpressureStrategy.MISSING);
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid back pressure strategy: " + onOverflow.value());
+                    throw new IllegalArgumentException("Invalid back pressure strategy: " + overFlowStrategy);
             }
         }
-
     }
 
     public Publisher<Message<? extends T>> getPublisher() {
