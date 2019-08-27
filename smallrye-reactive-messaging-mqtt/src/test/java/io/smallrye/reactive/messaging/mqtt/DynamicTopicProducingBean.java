@@ -19,7 +19,7 @@ public class DynamicTopicProducingBean {
 
     private List<String> topics = new ArrayList<>(10);
 
-    @Incoming("data")
+    @Incoming("dyn-data")
     @Outgoing("sink")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public MqttMessage<String> process(Message<Integer> input) {
@@ -29,7 +29,7 @@ public class DynamicTopicProducingBean {
         return MqttMessage.of(topic, input.getPayload().toString(), MqttQoS.AT_LEAST_ONCE, false).withAck(input::ack);
     }
 
-    @Outgoing("data")
+    @Outgoing("dyn-data")
     public Publisher<Integer> source() {
         return Flowable.range(0, 10);
     }
