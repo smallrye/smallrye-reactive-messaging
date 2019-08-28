@@ -10,7 +10,7 @@ import java.lang.annotation.RetentionPolicy;
  * {
  *     &#64;code
  *     &#64;Stream("stream")
- *     &#64;OnBackPressure(value = OnOverflow.Strategy.BUFFER, bufferSize = 256)
+ *     &#64;OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 256)
  *     Emitter<String> emitter;
  * }
  * </pre>
