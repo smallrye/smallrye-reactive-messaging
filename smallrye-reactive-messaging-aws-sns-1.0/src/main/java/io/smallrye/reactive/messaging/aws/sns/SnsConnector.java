@@ -4,12 +4,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import io.reactivex.Flowable;
 import io.reactivex.processors.MulticastProcessor;
+import io.reactivex.schedulers.Schedulers;
 import io.vertx.core.Vertx;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheSdkHttpService;
@@ -44,22 +46,33 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     @Inject
     @ConfigProperty(name = "sns-app-public-url")
-    private Optional<String> appURL;
+    Optional<String> appURL;
+    @Inject
+    Instance<Vertx> instanceOfVertx;
 
-    private Vertx vertxInstance;
-    private Executor cachedThreadPoolExecutor;
+    private boolean internalVertxInstance = false;
+    private Vertx vertx;
+    private ExecutorService threadExecutor;
 
     @Inject
     public void init() {
         LOGGER.info("Initializing Connector");
-        vertxInstance = Vertx.vertx();
-        cachedThreadPoolExecutor = Executors.newCachedThreadPool();
+        if (instanceOfVertx.isUnsatisfied()) {
+            internalVertxInstance = true;
+            this.vertx = Vertx.vertx();
+        } else {
+            this.vertx = instanceOfVertx.get();
+        }
+        threadExecutor = Executors.newSingleThreadExecutor();
     }
 
     @PreDestroy
     public void preDestroy() {
         LOGGER.info("Destroying Connector");
-        Optional.ofNullable(vertxInstance).ifPresent(vertx -> vertx.close());
+        if (internalVertxInstance) {
+            Optional.ofNullable(vertx).ifPresent(vertx -> vertx.close());
+        }
+        Optional.of(threadExecutor).ifPresent(exec -> exec.shutdown());
     }
 
     @Override
@@ -67,10 +80,10 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
 
         String topicName = getTopicName(config);
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
-            CompletionStage<Object> cs = CompletableFuture.runAsync(() -> {
+            CompletionStage<Message<?>> cs = CompletableFuture.runAsync(() -> {
                 //send to sns
                 send(message, topicName);
-            }, cachedThreadPoolExecutor).thenApply(x -> message);
+            }, threadExecutor).thenApply(x -> message);
             return cs;
         }).ignore();
     }
@@ -100,7 +113,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
         int initialDelay = config.getOptionalValue("initDelay", Integer.class).orElse(2000);
         SnsVerticle snsVerticle = new SnsVerticle(getAppURL(), topicName, port);
-        vertxInstance.deployVerticle(snsVerticle);
+        vertx.deployVerticle(snsVerticle);
 
         Flowable<SnsMessage<String>> flowable = Flowable.fromCallable(() -> {
 
@@ -111,10 +124,12 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                 Objects.requireNonNull(snsMsg, "Null message has been consumed from Q");
             } catch (InterruptedException e) {
                 LOGGER.error("Polling interrupted", e);
+                throw e;
             }
             return snsMsg;
         }).repeatWhen(o -> o.concatMap(v -> Flowable.timer(1, TimeUnit.MILLISECONDS)))
-                .delaySubscription(initialDelay, TimeUnit.MILLISECONDS);
+                .delaySubscription(initialDelay, TimeUnit.MILLISECONDS)
+                .subscribeOn(Schedulers.single());
 
         PublisherBuilder<? extends Message<?>> builder = ReactiveStreams.fromPublisher(flowable);
 
