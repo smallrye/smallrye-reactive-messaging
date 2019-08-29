@@ -83,8 +83,10 @@
     <module>examples/kafka-quickstart</module>
     <module>examples/mqtt-quickstart</module>
     <module>examples/amqp-quickstart</module>
+    <module>examples/aws-sns-quickstart</module>
 
     <module>tck</module>
+    <module>smallrye-reactive-messaging-aws-sns-1.0</module>
   </modules>
 
   <dependencyManagement>
