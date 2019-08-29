@@ -4,8 +4,8 @@
 
   <parent>
     <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging-1.0</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <artifactId>smallrye-reactive-messaging</artifactId>
+    <version>1.0.4-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
 
@@ -33,13 +33,13 @@
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <artifactId>smallrye-reactive-messaging-provider</artifactId>
+      <version>1.0.4-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-aws-sns-1.0</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <artifactId>smallrye-reactive-messaging-aws-sns</artifactId>
+      <version>1.0.4-SNAPSHOT</version>
       <exclusions>
         <exclusion>
           <!-- this avoid having the logging working, to exclude it -->
@@ -63,7 +63,6 @@
     <dependency>
       <groupId>javax.enterprise</groupId>
       <artifactId>cdi-api</artifactId>
-      <version>2.0.SP1</version>
     </dependency>
 
   </dependencies>

@@ -2,13 +2,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging-1.0</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <artifactId>smallrye-reactive-messaging</artifactId>
+    <version>1.0.4-SNAPSHOT</version>
   </parent>
   <properties>
   	<vertx.version>3.8.0</vertx.version>
   </properties>
-  <artifactId>smallrye-reactive-messaging-aws-sns-1.0</artifactId>
+  <artifactId>smallrye-reactive-messaging-aws-sns</artifactId>
   <name>Smallrye Reactive Messaging for AWS SNS</name>
   <description>A module for Smallrye reactive messaging integration with AWS Simple Notification Service (SNS).</description>
     <dependencyManagement>
@@ -25,7 +25,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
+      <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
