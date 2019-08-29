@@ -111,7 +111,7 @@ public class MqttSinkTest extends MqttTestBase {
     @Test
     @Repeat(times = 5)
     public void testABeanProducingMessagesSentToMQTT() throws InterruptedException {
-        Weld weld = baseWeld();
+        Weld weld = baseWeld(getConfig());
         weld.addBeanClass(ProducingBean.class);
 
         CountDownLatch latch = new CountDownLatch(10);
@@ -121,6 +121,20 @@ public class MqttSinkTest extends MqttTestBase {
 
         container = weld.initialize();
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    private MapBasedConfig getConfig() {
+        String prefix = "mp.messaging.outgoing.sink.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "topic", "sink");
+        config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
+        config.put(prefix + "host", System.getProperty("mqtt-host"));
+        config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
+        if (System.getProperty("mqtt-user") != null) {
+            config.put(prefix + "username", System.getProperty("mqtt-user"));
+            config.put(prefix + "password", System.getProperty("mqtt-pwd"));
+        }
+        return new MapBasedConfig(config);
     }
 
 }

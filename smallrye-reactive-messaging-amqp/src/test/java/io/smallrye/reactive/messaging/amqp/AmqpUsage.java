@@ -113,19 +113,22 @@ public class AmqpUsage {
      */
     public void consume(String topic,
             Consumer<io.vertx.axle.amqp.AmqpMessage> consumerFunction) {
-        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true),
-                msg -> {
+        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
+                .thenAccept(r -> r.handler(msg -> {
                     LOGGER.info("Consumer {}: consuming message", topic);
                     consumerFunction.accept(msg);
-                }).toCompletableFuture().join();
+                }))
+                .toCompletableFuture().join();
     }
 
     public void consumeIntegers(String topic, Consumer<Integer> consumer) {
-        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true),
-                msg -> {
+        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
+                .thenAccept(r -> r.handler(msg -> {
                     LOGGER.info("Consumer {}: consuming message {}", topic, msg.bodyAsInteger());
                     consumer.accept(msg.bodyAsInteger());
-                }).toCompletableFuture().join();
+                }))
+                .toCompletableFuture()
+                .join();
     }
 
     public void close() {

@@ -15,13 +15,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
@@ -31,6 +29,7 @@ import org.junit.Test;
 
 import io.reactivex.Flowable;
 import io.reactivex.exceptions.MissingBackpressureException;
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 
 public class NoKafkaTest {
 
@@ -40,7 +39,7 @@ public class NoKafkaTest {
     public void tearDown() {
         container.shutdown();
         KafkaTestBase.stopKafkaBroker();
-
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
@@ -57,7 +56,8 @@ public class NoKafkaTest {
                 });
 
         container = KafkaTestBase.baseWeld();
-        container.addBeanClasses(MyConfig.class, MyOutgoingBean.class);
+        KafkaTestBase.addConfig(myKafkaSinkConfig());
+        container.addBeanClasses(MyOutgoingBean.class);
         container.initialize();
 
         nap();
@@ -74,7 +74,8 @@ public class NoKafkaTest {
     public void testIncomingWithoutKafkaCluster() throws IOException, InterruptedException {
         KafkaUsage usage = new KafkaUsage();
         container = KafkaTestBase.baseWeld();
-        container.addBeanClasses(MyIncomingConfig.class, MyIncomingBean.class);
+        KafkaTestBase.addConfig(myKafkaSourceConfig());
+        container.addBeanClasses(MyIncomingBean.class);
         WeldContainer weld = container.initialize();
 
         nap();
@@ -94,9 +95,10 @@ public class NoKafkaTest {
     }
 
     @Test
-    public void testOutgoingWithoutKafkaClusterWithoutBackPressure() throws IOException, InterruptedException {
+    public void testOutgoingWithoutKafkaClusterWithoutBackPressure() throws InterruptedException {
         container = KafkaTestBase.baseWeld();
-        container.addBeanClasses(MyConfig.class, MyOutgoingBeanWithoutBackPressure.class);
+        KafkaTestBase.addConfig(myKafkaSinkConfig());
+        container.addBeanClasses(MyOutgoingBeanWithoutBackPressure.class);
         WeldContainer weld = this.container.initialize();
 
         nap();
@@ -159,44 +161,24 @@ public class NoKafkaTest {
         }
     }
 
-    @ApplicationScoped
-    public static class MyConfig {
-        @Produces
-        public Config myKafkaSinkConfig() {
-            String prefix = "mp.messaging.outgoing.temperature-values.";
-            Map<String, Object> config = new HashMap<>();
-            config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-            config.put(prefix + "value.serializer", StringSerializer.class.getName());
-            config.put(prefix + "topic", "output");
+    private MapBasedConfig myKafkaSourceConfig() {
+        String prefix = "mp.messaging.incoming.temperature-values.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
+        config.put(prefix + "topic", "output");
 
-            return new MapBasedConfig(config);
-        }
-
-        @Produces
-        @ConfigProperty(name = "kafka.bootstrap.servers")
-        public String boot() {
-            return "localhost:9092";
-        }
+        return new MapBasedConfig(config);
     }
 
-    @ApplicationScoped
-    public static class MyIncomingConfig {
-        @Produces
-        public Config myKafkaSourceConfig() {
-            String prefix = "mp.messaging.incoming.temperature-values.";
-            Map<String, Object> config = new HashMap<>();
-            config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-            config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-            config.put(prefix + "topic", "output");
+    private MapBasedConfig myKafkaSinkConfig() {
+        String prefix = "mp.messaging.outgoing.temperature-values.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        config.put(prefix + "value.serializer", StringSerializer.class.getName());
+        config.put(prefix + "topic", "output");
 
-            return new MapBasedConfig(config);
-        }
-
-        @Produces
-        @ConfigProperty(name = "kafka.bootstrap.servers")
-        public String boot() {
-            return "localhost:9092";
-        }
+        return new MapBasedConfig(config);
     }
 
 }

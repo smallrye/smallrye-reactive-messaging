@@ -405,7 +405,7 @@ public class MediatorConfiguration {
 
         if (ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 3 or 4
-            production = TypeUtils.isAssignable(Message.class, type) ? Production.STREAM_OF_MESSAGE
+            production = TypeUtils.isAssignable(type, Message.class) ? Production.STREAM_OF_MESSAGE
                     : Production.STREAM_OF_PAYLOAD;
             useBuilderTypes = true;
             return;

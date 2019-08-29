@@ -2,11 +2,7 @@ package io.smallrye.reactive.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,6 +11,7 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -23,6 +20,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 
 public class KafkaSinkTest extends KafkaTestBase {
 
@@ -33,6 +31,8 @@ public class KafkaSinkTest extends KafkaTestBase {
         if (container != null) {
             container.close();
         }
+        // Release the config objects
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
@@ -119,11 +119,41 @@ public class KafkaSinkTest extends KafkaTestBase {
         return config;
     }
 
+    private MapBasedConfig getKafkaSinkConfigForProducingBean() {
+        String prefix = "mp.messaging.outgoing.output.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
+
+        return new MapBasedConfig(config);
+    }
+
+    private MapBasedConfig getKafkaSinkConfigForMessageProducingBean() {
+        String prefix = "mp.messaging.outgoing.output-2.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
+
+        return new MapBasedConfig(config);
+    }
+
+    private <T> T deploy(MapBasedConfig config, Class<T> clazz) {
+        if (config != null) {
+            config.write();
+        } else {
+            MapBasedConfig.clear();
+        }
+
+        Weld weld = baseWeld();
+        weld.addBeanClass(clazz);
+
+        container = weld.initialize();
+        return container.getBeanManager().createInstance().select(clazz).get();
+    }
+
     @Test
     public void testABeanProducingMessagesSentToKafka() throws InterruptedException {
-        Weld weld = baseWeld();
-        weld.addBeanClass(ProducingBean.class);
-        container = weld.initialize();
+        deploy(getKafkaSinkConfigForProducingBean(), ProducingBean.class);
 
         KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
@@ -138,10 +168,6 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @Test
     public void testABeanProducingKafkaMessagesSentToKafka() throws InterruptedException {
-        Weld weld = baseWeld();
-        weld.addBeanClass(ProducingKafkaMessageBean.class);
-        container = weld.initialize();
-
         KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
@@ -150,11 +176,14 @@ public class KafkaSinkTest extends KafkaTestBase {
         usage.consumeIntegers("output-2", 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 record -> {
+                    System.out.println("Got " + record.key() + " -> " + record.value());
                     keys.add(record.key());
                     String count = new String(record.headers().lastHeader("count").value());
                     headers.add(count);
                     expected.getAndIncrement();
                 });
+
+        deploy(getKafkaSinkConfigForMessageProducingBean(), ProducingKafkaMessageBean.class);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);

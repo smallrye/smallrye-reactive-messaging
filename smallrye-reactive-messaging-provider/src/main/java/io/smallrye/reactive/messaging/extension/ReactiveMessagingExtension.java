@@ -1,8 +1,6 @@
 package io.smallrye.reactive.messaging.extension;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.enterprise.event.Observes;
@@ -18,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Emitter;
+import io.smallrye.reactive.messaging.annotations.OnOverflow;
 import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class ReactiveMessagingExtension implements Extension {
@@ -65,7 +64,14 @@ public class ReactiveMessagingExtension implements Extension {
         ChannelRegistry registry = instance.select(ChannelRegistry.class)
                 .get();
 
-        List<String> emitters = emitterInjectionPoints.stream().map(StreamProducer::getStreamName).collect(Collectors.toList());
+        Map<String, OnOverflow> emitters = new HashMap<>();
+        for (InjectionPoint point : emitterInjectionPoints) {
+            String name = StreamProducer.getStreamName(point);
+            OnOverflow onOverflow = point.getAnnotated().getAnnotation(OnOverflow.class);
+            emitters.put(name, onOverflow);
+        }
+
+        emitterInjectionPoints.stream().map(StreamProducer::getStreamName).collect(Collectors.toList());
         MediatorManager mediatorManager = instance.select(MediatorManager.class)
                 .get();
         mediatorManager.initializeEmitters(emitters);

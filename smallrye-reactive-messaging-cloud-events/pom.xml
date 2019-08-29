@@ -4,11 +4,11 @@
 
   <parent>
     <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging-1.0</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <artifactId>smallrye-reactive-messaging</artifactId>
+    <version>1.0.4-SNAPSHOT</version>
   </parent>
 
-  <artifactId>smallrye-reactive-messaging-cloud-events-1.0</artifactId>
+  <artifactId>smallrye-reactive-messaging-cloud-events</artifactId>
 
   <dependencies>
     <dependency>
@@ -23,9 +23,26 @@
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
+      <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <profile>
+      <id>coverage</id>
+      <properties>
+        <argLine>@{jacocoArgLine}</argLine>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

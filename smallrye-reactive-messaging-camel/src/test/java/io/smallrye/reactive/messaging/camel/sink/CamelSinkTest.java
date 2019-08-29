@@ -6,13 +6,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
+import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 
 public class CamelSinkTest extends CamelTestBase {
 
@@ -30,9 +34,18 @@ public class CamelSinkTest extends CamelTestBase {
 
     @Test
     public void testUsingRegularEndpointAsSink() {
+        addConfig(getConfigUsingRegularEndpoint());
         addClasses(BeanWithCamelSinkUsingRegularEndpoint.class);
         initialize();
         assertFileContent();
+    }
+
+    public MapBasedConfig getConfigUsingRegularEndpoint() {
+        String prefix = "mp.messaging.outgoing.data.";
+        Map<String, Object> config = new HashMap<>();
+        config.putIfAbsent(prefix + "endpoint-uri", "file:./target?fileName=values.txt&fileExist=append");
+        config.put(prefix + "connector", CamelConnector.CONNECTOR_NAME);
+        return new MapBasedConfig(config);
     }
 
     private void assertFileContent() {
@@ -48,17 +61,35 @@ public class CamelSinkTest extends CamelTestBase {
     @Test
     public void testUsingRegularRouteAsSink() {
         addClasses(BeanWithCamelSinkUsingRegularRoute.class);
+        addConfig(getConfigUsingRoute());
         initialize();
 
         assertFileContent();
     }
 
+    private MapBasedConfig getConfigUsingRoute() {
+        String prefix = "mp.messaging.outgoing.data.";
+        Map<String, Object> config = new HashMap<>();
+        config.putIfAbsent(prefix + "endpoint-uri", "seda:in");
+        config.put(prefix + "connector", CamelConnector.CONNECTOR_NAME);
+        return new MapBasedConfig(config);
+    }
+
     @Test
     public void testUsingRSRouteAsSink() {
         addClasses(BeanWithCamelSinkUsingRSRoute.class);
+        addConfig(getConfigUsingRS());
         initialize();
 
         assertFileContent();
+    }
+
+    private MapBasedConfig getConfigUsingRS() {
+        String prefix = "mp.messaging.outgoing.data.";
+        Map<String, Object> config = new HashMap<>();
+        config.putIfAbsent(prefix + "endpoint-uri", "reactive-streams:in");
+        config.put(prefix + "connector", CamelConnector.CONNECTOR_NAME);
+        return new MapBasedConfig(config);
     }
 
 }

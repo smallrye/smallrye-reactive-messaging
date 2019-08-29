@@ -1,14 +1,10 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -28,21 +24,6 @@ public class ConsumptionBean {
     @Incoming("sink")
     public void sink(int val) {
         list.add(val);
-    }
-
-    @Produces
-    public Config myConfig() {
-        String prefix = "mp.messaging.incoming.data.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "topic", "data");
-        config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
-        config.put(prefix + "host", System.getProperty("mqtt-host"));
-        config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
-        if (System.getProperty("mqtt-user") != null) {
-            config.put(prefix + "username", System.getProperty("mqtt-user"));
-            config.put(prefix + "password", System.getProperty("mqtt-pwd"));
-        }
-        return new MapBasedConfig(config);
     }
 
     public List<Integer> getResults() {

@@ -1,12 +1,16 @@
 package io.smallrye.reactive.messaging.camel;
 
+import java.io.File;
 import java.util.Arrays;
 
 import org.apache.camel.CamelContext;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Before;
+
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 
 public class CamelTestBase {
 
@@ -21,6 +25,7 @@ public class CamelTestBase {
     @After
     public void cleanUp() {
         weld.shutdown();
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     public void initialize() {
@@ -30,6 +35,21 @@ public class CamelTestBase {
     public CamelTestBase addClasses(Class... classes) {
         Arrays.stream(classes).forEach(weld::addBeanClass);
         return this;
+    }
+
+    public static void addConfig(MapBasedConfig config) {
+        if (config != null) {
+            config.write();
+        } else {
+            clear();
+        }
+    }
+
+    public static void clear() {
+        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
+        if (out.delete()) {
+            out.delete();
+        }
     }
 
     public CamelContext camelContext() {

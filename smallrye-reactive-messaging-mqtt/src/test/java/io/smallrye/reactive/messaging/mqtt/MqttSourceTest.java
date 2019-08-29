@@ -112,6 +112,20 @@ public class MqttSourceTest extends MqttTestBase {
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
+    static MapBasedConfig getConfig() {
+        String prefix = "mp.messaging.incoming.data.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "topic", "data");
+        config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
+        config.put(prefix + "host", System.getProperty("mqtt-host"));
+        config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
+        if (System.getProperty("mqtt-user") != null) {
+            config.put(prefix + "username", System.getProperty("mqtt-user"));
+            config.put(prefix + "password", System.getProperty("mqtt-pwd"));
+        }
+        return new MapBasedConfig(config);
+    }
+
     @Test
     public void testABeanConsumingTheMQTTMessages() {
         ConsumptionBean bean = deploy();
@@ -131,7 +145,7 @@ public class MqttSourceTest extends MqttTestBase {
     }
 
     private ConsumptionBean deploy() {
-        Weld weld = baseWeld();
+        Weld weld = baseWeld(getConfig());
         weld.addBeanClass(ConsumptionBean.class);
         container = weld.initialize();
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

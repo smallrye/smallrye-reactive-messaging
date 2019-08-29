@@ -207,10 +207,19 @@ public class EventBusSinkTest extends EventbusTestBase {
         Weld weld = baseWeld();
         weld.addBeanClass(ProducingBean.class);
         weld.addBeanClass(VertxProducer.class);
+        addConfig(getConfig());
         container = weld.initialize();
         ProducingBean bean = container.getBeanManager().createInstance().select(ProducingBean.class).get();
 
         await().until(() -> bean.messages().size() == 10);
+    }
+
+    private MapBasedConfig getConfig() {
+        String prefix = "mp.messaging.outgoing.sink.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "address", "sink");
+        config.put(prefix + "connector", VertxEventBusConnector.CONNECTOR_NAME);
+        return new MapBasedConfig(config);
     }
 
 }

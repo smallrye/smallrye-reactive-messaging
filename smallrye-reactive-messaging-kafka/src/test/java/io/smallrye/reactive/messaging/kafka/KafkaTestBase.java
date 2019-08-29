@@ -12,6 +12,7 @@ import org.junit.BeforeClass;
 
 import io.debezium.kafka.KafkaCluster;
 import io.debezium.util.Testing;
+import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
@@ -71,15 +72,29 @@ public class KafkaTestBase {
 
     static Weld baseWeld() {
         Weld weld = new Weld();
+
+        // SmallRye config
+        ConfigExtension extension = new ConfigExtension();
+        weld.addExtension(extension);
+
         weld.addBeanClass(MediatorFactory.class);
         weld.addBeanClass(MediatorManager.class);
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(StreamProducer.class);
         weld.addExtension(new ReactiveMessagingExtension());
+
         weld.addBeanClass(KafkaConnector.class);
         weld.disableDiscovery();
         return weld;
+    }
+
+    static void addConfig(MapBasedConfig config) {
+        if (config != null) {
+            config.write();
+        } else {
+            MapBasedConfig.clear();
+        }
     }
 
 }

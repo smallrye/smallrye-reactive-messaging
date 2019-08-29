@@ -5,7 +5,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>reactive-messaging-quickstart</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.4-SNAPSHOT</version>
 
 
   <properties>
@@ -18,14 +18,14 @@
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <artifactId>smallrye-reactive-messaging-provider</artifactId>
+      <version>1.0.4-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators-1.0</artifactId>
-      <version>1.0.6</version>
+      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>1.0.7</version>
     </dependency>
 
     <dependency>
@@ -37,7 +37,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>1.7.26</version>
+      <version>1.7.28</version>
     </dependency>
   </dependencies>
 

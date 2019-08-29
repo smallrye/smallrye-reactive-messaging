@@ -75,6 +75,55 @@ emitter.send("a").send("b");
 You can inject an `io.smallrye.reactive.messaging.annotations.Emitter<T>` or `io.smallrye.reactive.messaging.annotations.Emitter<Message<T>>`.
 To use an `Emitter` for the stream `hello`, you need a `@Incoming("hello")` somewhere in your code (or in your configuration).
 
+When injecting an `Emitter` you can configure how the back-pressure is handled.
+The `OnOverflow` annotation configures what needs to happen when you emit payloads/messages faster than the downstream can consumes.
+By default a buffer of 127 items is used to manage _bumps_.
+You can change this behavior as follows:
+
+[source, java]
+----
+@Inject
+@Stream("hello")
+@OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 300)
+Emitter<String> emitter;
+
+// ...
+emitter.send("a").send("b");
+----
+
+In this snippet, the buffer size is set to `300`. If you omit the `bufferSize` (in conjunction with the `BUFFER` strategy) an unbounded buffer is used.
+The `value` attribute can be:
+
+* `OnOverflow.Strategy.BUFFER` - use a buffer, potentially unbounded to store the elements until they are consumed. If
+the buffer is full, a failure is propagated (and the thread using the emitted gets an exception)
+* `OnOverflow.Strategy.DROP` - drops the most recent value if the downstream can't keep up. It means that new value
+emitted by the emitter are ignored.
+* `OnOverflow.Strategy.FAIL` - propagates a failure in case the downstream can't keep up.
+* `OnOverflow.Strategy.LATEST` - keeps only the latest value, dropping any previous value if the downstream can't keep up.
+* `OnOverflow.Strategy.NONE` - ignore the back-pressure signals letting the downstream consumer to implement a strategy.
+
+Here are some examples:
+
+[source, java]
+----
+@Inject
+@Stream("hello") // Buffer strategy using the default buffer size
+Emitter<String> emitter;
+
+@Inject
+@Stream("hello")
+@OnOverflow(value = OnOverflow.Strategy.BUFFER) // Buffer strategy, unbounded buffer
+Emitter<String> emitter;
+
+@Inject
+@Stream("hello")
+@OnOverflow(value = OnOverflow.Strategy.DROP) // Drop the most recent values
+Emitter<String> emitter;
+----
+
+The default buffer size (`127`) can be configured using the `smallrye.messaging.emitter.default-buffer-size` property set using MicroProfile Config.
+Note that this value is only applied when `OnOverflow` is not used.
+
 === Logging
 
 The logging uses SLF4J, check the https://www.slf4j.org/[SLF4J web site] for further details.

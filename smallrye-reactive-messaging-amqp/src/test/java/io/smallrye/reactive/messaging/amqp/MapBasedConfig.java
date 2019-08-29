@@ -42,4 +42,5 @@ public class MapBasedConfig implements Config {
     public Iterable<ConfigSource> getConfigSources() {
         return Collections.emptyList();
     }
+
 }

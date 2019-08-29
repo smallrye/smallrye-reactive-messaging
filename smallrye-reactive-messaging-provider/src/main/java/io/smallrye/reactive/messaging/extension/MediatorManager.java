@@ -11,6 +11,7 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 /**
  * Class responsible for managing mediators
@@ -41,6 +43,10 @@ public class MediatorManager {
     private final List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
     private final List<AbstractMediator> mediators = new ArrayList<>();
+
+    @Inject
+    @ConfigProperty(name = "smallrye.messaging.emitter.default-buffer-size", defaultValue = "127")
+    long defaultBufferSize;
 
     @Inject
     @Any
@@ -273,7 +279,8 @@ public class MediatorManager {
         return mediator;
     }
 
-    private Optional<PublisherBuilder<? extends Message>> getAggregatedSource(List<PublisherBuilder<? extends Message>> sources,
+    private Optional<PublisherBuilder<? extends Message>> getAggregatedSource(
+            List<PublisherBuilder<? extends Message>> sources,
             AbstractMediator mediator,
             List<LazySource> lazy) {
         if (sources.isEmpty()) {
@@ -297,12 +304,20 @@ public class MediatorManager {
 
     }
 
-    public void initializeEmitters(List<String> emitters) {
-        for (String e : emitters) {
-            EmitterImpl emitter = new EmitterImpl(e);
-            Publisher<Message> publisher = emitter.getPublisher();
-            channelRegistry.register(e, ReactiveStreams.fromPublisher(publisher));
-            channelRegistry.register(e, emitter);
+    public void initializeEmitters(Map<String, OnOverflow> emitters) {
+        for (Map.Entry<String, OnOverflow> e : emitters.entrySet()) {
+            if (e.getValue() != null) {
+                initializeEmitter(e.getKey(), e.getValue().value().name(), e.getValue().bufferSize(), defaultBufferSize);
+            } else {
+                initializeEmitter(e.getKey(), null, defaultBufferSize, defaultBufferSize);
+            }
         }
+    }
+
+    public void initializeEmitter(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
+        EmitterImpl<?> emitter = new EmitterImpl<>(name, overFlowStrategy, bufferSize, defaultBufferSize);
+        Publisher<? extends Message<?>> publisher = emitter.getPublisher();
+        channelRegistry.register(name, ReactiveStreams.fromPublisher(publisher));
+        channelRegistry.register(name, emitter);
     }
 }

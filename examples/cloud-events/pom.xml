@@ -4,7 +4,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>cloud-events-demo</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.4-SNAPSHOT</version>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -15,20 +15,20 @@
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-cloud-events-1.0</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <artifactId>smallrye-reactive-messaging-cloud-events</artifactId>
+      <version>1.0.4-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <artifactId>smallrye-reactive-messaging-provider</artifactId>
+      <version>1.0.4-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators-1.0</artifactId>
-      <version>1.0.6</version>
+      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>1.0.7</version>
     </dependency>
 
     <dependency>

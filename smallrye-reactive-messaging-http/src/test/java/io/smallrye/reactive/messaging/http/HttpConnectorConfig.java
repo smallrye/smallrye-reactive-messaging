@@ -1,5 +1,9 @@
 package io.smallrye.reactive.messaging.http;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
@@ -46,8 +50,25 @@ public class HttpConnectorConfig implements Config {
         return Collections.emptyList();
     }
 
-    public Config converter(String className) {
+    public HttpConnectorConfig converter(String className) {
         map.put(prefix + "converter", className);
         return this;
+    }
+
+    void write() {
+        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
+        if (out.isFile()) {
+            out.delete();
+        }
+        out.getParentFile().mkdirs();
+
+        Properties properties = new Properties();
+        map.forEach((key, value) -> properties.setProperty(key, value.toString()));
+        try (FileOutputStream fos = new FileOutputStream(out)) {
+            properties.store(fos, "file generated for testing purpose");
+            fos.flush();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

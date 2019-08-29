@@ -13,12 +13,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -26,6 +24,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.reactivex.Flowable;
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 
@@ -38,6 +37,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
         if (container != null) {
             container.shutdown();
         }
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
@@ -50,12 +50,23 @@ public class MissingBackPressureTest extends KafkaTestBase {
                 (k, v) -> expected.getAndIncrement());
 
         Weld weld = baseWeld();
-        weld.addBeanClass(MyConfig.class);
+        addConfig(myKafkaSinkConfig());
         weld.addBeanClass(MyOutgoingBean.class);
         container = weld.initialize();
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValueGreaterThanOrEqualTo(10);
+    }
+
+    public MapBasedConfig myKafkaSinkConfig() {
+        String prefix = "mp.messaging.outgoing.temperature-values.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        config.put(prefix + "value.serializer", StringSerializer.class.getName());
+        config.put(prefix + "topic", "output");
+        config.put(prefix + "waitForWriteCompletion", false);
+
+        return new MapBasedConfig(config);
     }
 
     @Test
@@ -72,7 +83,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
                 });
 
         Weld weld = baseWeld();
-        weld.addBeanClass(MyConfig.class);
+        addConfig(myKafkaSinkConfig());
         weld.addBeanClass(MyEmitterBean.class);
         container = weld.initialize();
 
@@ -154,27 +165,6 @@ public class MissingBackPressureTest extends KafkaTestBase {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-        }
-    }
-
-    @ApplicationScoped
-    public static class MyConfig {
-        @Produces
-        public Config myKafkaSinkConfig() {
-            String prefix = "mp.messaging.outgoing.temperature-values.";
-            Map<String, Object> config = new HashMap<>();
-            config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-            config.put(prefix + "value.serializer", StringSerializer.class.getName());
-            config.put(prefix + "topic", "output");
-            config.put(prefix + "waitForWriteCompletion", false);
-
-            return new MapBasedConfig(config);
-        }
-
-        @Produces
-        @ConfigProperty(name = "kafka.bootstrap.servers")
-        public String boot() {
-            return "localhost:9092";
         }
     }
 
