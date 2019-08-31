@@ -1,3 +1,4 @@
+[![Version](https://img.shields.io/github/v/release/quarkusio/quarkus?style=for-the-badge)](https://github.com/smallrye/smallrye-reactive-messaging/releases/latest)
 [![Build Status](https://semaphoreci.com/api/v1/smallrye/smallrye-reactive-messaging/branches/master/badge.svg)](https://semaphoreci.com/smallrye/smallrye-reactive-messaging)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=smallrye_smallrye-reactive-messaging&metric=alert_status)](https://sonarcloud.io/dashboard?id=smallrye_smallrye-reactive-messaging)
 [![License](https://img.shields.io/github/license/smallrye/smallrye-reactive-messaging.svg)](http://www.apache.org/licenses/LICENSE-2.0)
@@ -19,19 +20,9 @@ or JAX-RS resources.
 
 ### Prerequisites 
 
-Unfortunately, right now, there are no release of this project, so you need to build it by yourself. The build process
- requires Apache Maven and Java 8+.  You need to build the SmallRye Reactive Stream Operators implementation first:
+The build process requires Apache Maven and Java 8+ and can be performed using:
 
 ```bash
-git clone git@github.com:smallrye/smallrye-reactive-streams-operators.git
-cd smallrye-reactive-streams-operators
-mvn clean install
-```
-
-Then, build this repository
-
-```bash
-cd $ROOT
 mvn clean install
 ```
 
