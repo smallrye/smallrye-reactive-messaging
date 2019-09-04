@@ -29,8 +29,16 @@ import software.amazon.awssdk.services.sns.model.SubscribeRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeResponse;
 import software.amazon.awssdk.services.sns.model.Subscription;
 
+/**
+ * Vertx verticle that handles subscription to SNS topic and receive notifications from topic.
+ * 
+ * @author iabughosh
+ * @version 1.0.4
+ *
+ */
 public class SnsVerticle extends AbstractVerticle {
 
+    /** Fields */
     private final String topicName;
     private final String endpoint;
     private final int port;
@@ -38,6 +46,13 @@ public class SnsVerticle extends AbstractVerticle {
     private SnsMessageManager messageManager = new SnsMessageManager();
     private BlockingQueue<SnsMessage<String>> msgQ = new LinkedBlockingDeque<>();
 
+    /**
+     * Parameterized constructor.
+     * 
+     * @param endpoint Endpoint url.
+     * @param topicName SNS topic name.
+     * @param port listening port for this verticle.
+     */
     public SnsVerticle(String endpoint, String topicName, int port) {
         this.topicName = topicName;
         this.endpoint = endpoint;
@@ -78,6 +93,11 @@ public class SnsVerticle extends AbstractVerticle {
         vertx.createHttpServer().requestHandler(router).listen(port);
     }
 
+    /**
+     * Handle messages from SNS topic.
+     * 
+     * @param routingContext vertx Router routingContext.
+     */
     private void receiveSnsMsg(RoutingContext routingContext) {
 
         JsonObject snsNotification = routingContext.getBodyAsJson();
@@ -88,7 +108,7 @@ public class SnsVerticle extends AbstractVerticle {
 
                     @Override
                     public void handle(SnsNotification snsNotification) {
-                        LOG.trace("Handling new message ...");
+                        LOG.info("Handling new message ...");
                         SnsMessage<String> snsMessage = new SnsMessage<String>(snsNotification);
                         msgQ.add(snsMessage);
                         LOG.trace("New message has been added to Q");

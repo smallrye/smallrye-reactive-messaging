@@ -6,8 +6,17 @@ import java.util.concurrent.CompletionStage;
 
 import com.amazonaws.services.sns.message.SnsNotification;
 
+/**
+ * Implementation of ractive messaging org.eclipse.microprofile.reactive.messaging.Message<T>
+ * 
+ * @author iabughosh
+ * @version 1.0.4
+ *
+ * @param <T> currenlty, it only supports java.lang.String.
+ */
 public class SnsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
+    /** Instance of SNS notification message */
     private SnsNotification snsMessage;
 
     public SnsMessage(SnsNotification snsMessage) {
@@ -27,6 +36,11 @@ public class SnsMessage<T> implements org.eclipse.microprofile.reactive.messagin
         return snsMessage == null ? null : (T) snsMessage.getMessage();
     }
 
+    /**
+     * Get message subject of SNS notification.
+     * 
+     * @return message subject.
+     */
     public String getSubject() {
         return snsMessage.getSubject();
     }
