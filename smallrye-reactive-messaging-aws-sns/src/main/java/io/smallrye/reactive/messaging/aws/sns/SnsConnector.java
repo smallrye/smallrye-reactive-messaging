@@ -31,8 +31,6 @@ import io.reactivex.Scheduler;
 import io.reactivex.processors.MulticastProcessor;
 import io.reactivex.schedulers.Schedulers;
 import io.vertx.core.Vertx;
-import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
-import software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.CreateTopicResponse;
@@ -125,7 +123,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      */
     private void send(Message<?> msg, String topicName) {
 
-        try (SnsAsyncClient snsClient = openSnsClient()) {
+        try (SnsAsyncClient snsClient = SnsClientManager.get().getAsyncClient()) {
             //Prepare create topic request. if it is already created topicARN will be reutrned.
             CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(topicName).build();
             CompletableFuture<CreateTopicResponse> topicCreationResponse = snsClient.createTopic(topicCreationRequest);
@@ -174,18 +172,6 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         PublisherBuilder<? extends Message<?>> builder = ReactiveStreams.fromPublisher(flowable);
 
         return broadcast ? builder.via(MulticastProcessor.create()) : builder;
-    }
-
-    /**
-     * Factory method to open and create AWS SnsClient.
-     * 
-     * @return an instance of SnsClient.
-     */
-    private SnsAsyncClient openSnsClient() {
-
-        NettySdkAsyncHttpService nettySdkAsyncService = new NettySdkAsyncHttpService();
-        SdkAsyncHttpClient nettyHttpClient = nettySdkAsyncService.createAsyncHttpClientFactory().build();
-        return SnsAsyncClient.builder().httpClient(nettyHttpClient).build();
     }
 
     /**
