@@ -4,6 +4,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.reactive.messaging.Message;
+
 import com.amazonaws.services.sns.message.SnsNotification;
 
 /**
@@ -14,13 +16,12 @@ import com.amazonaws.services.sns.message.SnsNotification;
  *
  * @param <T> currenlty, it only supports java.lang.String.
  */
-public class SnsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
+public class SnsMessage<T> implements Message<T> {
 
     /** Instance of SNS notification message */
     private SnsNotification snsMessage;
 
     public SnsMessage(SnsNotification snsMessage) {
-
         Objects.requireNonNull(snsMessage, "SNS Message cannot be null.");
         this.snsMessage = snsMessage;
     }

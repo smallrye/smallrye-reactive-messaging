@@ -1,8 +1,11 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import com.amazonaws.services.sns.message.DefaultSnsMessageHandler;
@@ -10,17 +13,20 @@ import com.amazonaws.services.sns.message.SnsMessageManager;
 import com.amazonaws.services.sns.message.SnsNotification;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.apache.ApacheSdkHttpService;
-import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService;
+import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.CreateTopicResponse;
 import software.amazon.awssdk.services.sns.model.ListSubscriptionsByTopicRequest;
@@ -60,7 +66,7 @@ public class SnsVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void start(Future<Void> startFuture) {
+    public void start(Promise<Void> startFuture) {
 
         Router router = Router.router(vertx);
         router.route()
@@ -68,29 +74,42 @@ public class SnsVerticle extends AbstractVerticle {
                 .method(HttpMethod.POST);
         router.post(String.format("/sns/%s", topicName)).handler(this::receiveSnsMsg);
 
-        ApacheSdkHttpService apacheSdkHttpService = new ApacheSdkHttpService();
-        SdkHttpClient apacheHttpClient = apacheSdkHttpService.createHttpClientBuilder().build();
+        NettySdkAsyncHttpService nettySdkAsyncService = new NettySdkAsyncHttpService();
+        SdkAsyncHttpClient nettyHttpClient = nettySdkAsyncService.createAsyncHttpClientFactory().build();
 
-        try (SnsClient snsClient = SnsClient.builder().httpClient(apacheHttpClient).build()) {
+        try (SnsAsyncClient snsClient = SnsAsyncClient.builder().httpClient(nettyHttpClient).build()) {
             CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(topicName).build();
-            CreateTopicResponse topicCreationResponse = snsClient.createTopic(topicCreationRequest);
-            String topicArn = topicCreationResponse.topicArn();
+            CompletableFuture<CreateTopicResponse> topicCreationResponse = snsClient.createTopic(topicCreationRequest);
+            String topicArn = topicCreationResponse.get().topicArn();
             String topicEndpoint = String.format("%s/sns/%s", endpoint, topicName);
             LOG.info(String.format("Topic ARN is %s, Endpoint is %s", topicArn, topicEndpoint));
 
             Optional<Subscription> subscription = doesSubscriptionExist(snsClient, topicArn);
             if (!subscription.isPresent()) {
-                SubscribeResponse response = snsClient.subscribe(SubscribeRequest
+                CompletableFuture<SubscribeResponse> response = snsClient.subscribe(SubscribeRequest
                         .builder()
                         .topicArn(topicArn)
                         .endpoint(topicEndpoint)
                         .protocol("http")
                         .build());
-                LOG.info(String.format("Topic Subscribtion response %s", response.subscriptionArn()));
+                LOG.info(String.format("Topic Subscribtion response %s", response.get().subscriptionArn()));
             }
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("An error occured while starting SNS Verticle", e);
         }
 
-        vertx.createHttpServer().requestHandler(router).listen(port);
+        vertx.createHttpServer().requestHandler(router)
+                .listen(port, new Handler<AsyncResult<HttpServer>>() {
+
+                    @Override
+                    public void handle(AsyncResult<HttpServer> event) {
+                        if (event.succeeded()) {
+                            startFuture.complete();
+                        } else {
+                            startFuture.fail("Unable to create vertx http server");
+                        }
+                    }
+                });
     }
 
     /**
@@ -128,16 +147,20 @@ public class SnsVerticle extends AbstractVerticle {
      * @param sns SNS client.
      * @param topicArn ARN of SNS topic.
      * @return True if the {@link #ENDPOINT} is already subscribed to the topic, false otherwise.
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
-    private Optional<Subscription> doesSubscriptionExist(SnsClient sns, String topicArn) {
+    private Optional<Subscription> doesSubscriptionExist(SnsAsyncClient sns, String topicArn)
+            throws InterruptedException, ExecutionException {
         String nextToken;
         String fullEndpoint = String.format("%s/sns/%s", endpoint, topicName);
         do {
-            ListSubscriptionsByTopicResponse result = sns.listSubscriptionsByTopic(
+            CompletableFuture<ListSubscriptionsByTopicResponse> result = sns.listSubscriptionsByTopic(
                     ListSubscriptionsByTopicRequest.builder().topicArn(topicArn).build());
-            nextToken = result.nextToken();
-            if (result.subscriptions().stream().anyMatch(s -> s.endpoint().equals(fullEndpoint))) {
-                return result.subscriptions()
+            nextToken = result.get().nextToken();
+            List<Subscription> currentSubscriptions = result.get().subscriptions();
+            if (currentSubscriptions.stream().anyMatch(s -> s.endpoint().equals(fullEndpoint))) {
+                return currentSubscriptions
                         .stream()
                         .filter(s -> s.endpoint().equals(fullEndpoint))
                         .findFirst();

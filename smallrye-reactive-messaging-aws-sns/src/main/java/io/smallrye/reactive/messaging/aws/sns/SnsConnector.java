@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -30,9 +31,9 @@ import io.reactivex.Scheduler;
 import io.reactivex.processors.MulticastProcessor;
 import io.reactivex.schedulers.Schedulers;
 import io.vertx.core.Vertx;
-import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.apache.ApacheSdkHttpService;
-import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService;
+import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.CreateTopicResponse;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
@@ -78,10 +79,10 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     public void initConnector() {
         //Initialize vertx and threadExecutor
         LOGGER.info("Initializing Connector");
-        if (instanceOfVertx.isUnsatisfied()) {
+        if (instanceOfVertx != null && instanceOfVertx.isUnsatisfied()) {
             internalVertxInstance = true;
             this.vertx = Vertx.vertx();
-        } else {
+        } else if (instanceOfVertx != null) {
             this.vertx = instanceOfVertx.get();
         }
         threadExecutor = Executors.newSingleThreadExecutor();
@@ -97,16 +98,12 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         if (internalVertxInstance) {
             Optional.ofNullable(vertx).ifPresent(vertx -> vertx.close());
         }
-        Optional.of(threadExecutor).ifPresent(exec -> exec.shutdown());
-        Optional.of(scheduler).ifPresent(sch -> sch.shutdown());
+        Optional.ofNullable(threadExecutor).ifPresent(exec -> exec.shutdown());
+        Optional.ofNullable(scheduler).ifPresent(sch -> sch.shutdown());
     }
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        //Incase of unit testing only, initialize it.
-        if (threadExecutor == null) {
-            threadExecutor = Executors.newSingleThreadExecutor();
-        }
 
         String topicName = getTopicName(config);
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
@@ -128,19 +125,21 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      */
     private void send(Message<?> msg, String topicName) {
 
-        try (SnsClient snsClient = openSnsClient()) {
+        try (SnsAsyncClient snsClient = openSnsClient()) {
             //Prepare create topic request. if it is already created topicARN will be reutrned.
             CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(topicName).build();
-            CreateTopicResponse topicCreationResponse = snsClient.createTopic(topicCreationRequest);
-            String topicArn = topicCreationResponse.topicArn();
+            CompletableFuture<CreateTopicResponse> topicCreationResponse = snsClient.createTopic(topicCreationRequest);
+            String topicArn = topicCreationResponse.get().topicArn();
             //Prepare publish message request to SNS topic
             PublishRequest pr = PublishRequest
                     .builder()
                     .topicArn(topicArn)
                     .message((String) msg.getPayload())
                     .build();
-            PublishResponse response = snsClient.publish(pr);
-            LOGGER.debug("Message ID {}", response.messageId());
+            CompletableFuture<PublishResponse> response = snsClient.publish(pr);
+            LOGGER.debug("Message ID {}", response.get().messageId());
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.error("Async call interruption happened !!!", e);
         }
     }
 
@@ -182,11 +181,11 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      * 
      * @return an instance of SnsClient.
      */
-    private SnsClient openSnsClient() {
+    private SnsAsyncClient openSnsClient() {
 
-        ApacheSdkHttpService apacheSdkHttpService = new ApacheSdkHttpService();
-        SdkHttpClient apacheHttpClient = apacheSdkHttpService.createHttpClientBuilder().build();
-        return SnsClient.builder().httpClient(apacheHttpClient).build();
+        NettySdkAsyncHttpService nettySdkAsyncService = new NettySdkAsyncHttpService();
+        SdkAsyncHttpClient nettyHttpClient = nettySdkAsyncService.createAsyncHttpClientFactory().build();
+        return SnsAsyncClient.builder().httpClient(nettyHttpClient).build();
     }
 
     /**

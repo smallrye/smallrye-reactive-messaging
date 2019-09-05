@@ -22,7 +22,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
     private static final Logger LOG = LoggerFactory.getLogger(AwsSnsTest.class);
     private WeldContainer container;
     String topic = "sns-test";
-    String appUrl = "http://8148f20a.ngrok.io";
+    String appUrl = "http://4befe2f5.ngrok.io";
     int port = 8089;
 
     @Before
@@ -83,7 +83,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
         config.put("address", topic.concat("-transformed"));
 
         SnsConnector snsConnector = new SnsConnector();
-        System.out.println("Building sink");
+        snsConnector.initConnector();
         return snsConnector.getSubscriberBuilder(new MapBasedConfig(config));
     }
 }
