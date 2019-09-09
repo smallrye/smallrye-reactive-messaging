@@ -5,10 +5,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
@@ -55,25 +54,31 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      * Injectable fields
      */
     @Inject
-    @ConfigProperty(name = "sns-app-public-url")
-    Optional<String> appURL;
-    /** If there is existing verx instance, inject it. */
+    @ConfigProperty(name = "sns-app-host")
+    Optional<String> appHost;
+    @Inject
+    @ConfigProperty(name = "sns-url")
+    Optional<String> snsUrl;
+    @Inject
+    @ConfigProperty(name = "mock-sns-topics")
+    Optional<Boolean> mockSnsTopic;
+    /** If there is existing vert.x instance, inject it. */
     @Inject
     Instance<Vertx> instanceOfVertx;
     /*
      * Fields
      */
-    /** Control wither close vertx manually or not */
+    /** Control wither close vert.x manually or not */
     private boolean internalVertxInstance = false;
 
     private Vertx vertx;
-    private ExecutorService threadExecutor;
     private Scheduler scheduler;
+    private String sinkTopic;
 
     /**
      * Method being invoked when CDI bean first created.
      */
-    @Inject
+    @PostConstruct
     public void initConnector() {
         //Initialize vertx and threadExecutor
         LOGGER.info("Initializing Connector");
@@ -83,7 +88,6 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         } else if (instanceOfVertx != null) {
             this.vertx = instanceOfVertx.get();
         }
-        threadExecutor = Executors.newSingleThreadExecutor();
         scheduler = Schedulers.single();
     }
 
@@ -96,49 +100,48 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         if (internalVertxInstance) {
             Optional.ofNullable(vertx).ifPresent(vertx -> vertx.close());
         }
-        Optional.ofNullable(threadExecutor).ifPresent(exec -> exec.shutdown());
         Optional.ofNullable(scheduler).ifPresent(sch -> sch.shutdown());
     }
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
 
-        String topicName = getTopicName(config);
-        return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
-            CompletionStage<Message<?>> cs = CompletableFuture.runAsync(() -> {
-                //send to sns
-                send(message, topicName);
-            }, threadExecutor).thenApply(x -> message);
-            return cs;
-        }).onError(t -> {
-            LOGGER.error("Error while subscribing to connector", t);
-        }).ignore();
+        sinkTopic = getTopicName(config);
+        return ReactiveStreams.<Message<?>> builder()
+                .flatMapCompletionStage(this::send)
+                .onError(t -> {
+                    LOGGER.error("Error while subscribing to connector", t);
+                }).ignore();
     }
 
     /**
      * Send message to SNS Topic.
      * 
      * @param msg Message to be sent
-     * @param topicName SNS topic name
+     * @return CompletionStage of sending message.
      */
-    private void send(Message<?> msg, String topicName) {
+    private CompletionStage<Message<?>> send(Message<?> message) {
 
-        try (SnsAsyncClient snsClient = SnsClientManager.get().getAsyncClient()) {
-            //Prepare create topic request. if it is already created topicARN will be reutrned.
-            CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(topicName).build();
-            CompletableFuture<CreateTopicResponse> topicCreationResponse = snsClient.createTopic(topicCreationRequest);
-            String topicArn = topicCreationResponse.get().topicArn();
-            //Prepare publish message request to SNS topic
-            PublishRequest pr = PublishRequest
-                    .builder()
-                    .topicArn(topicArn)
-                    .message((String) msg.getPayload())
-                    .build();
-            CompletableFuture<PublishResponse> response = snsClient.publish(pr);
-            LOGGER.debug("Message ID {}", response.get().messageId());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Async call interruption happened !!!", e);
-        }
+        return CompletableFuture.runAsync(() -> {
+            SnsClientConfig clientCfg = getSnsClientConfig(getSnsURL());
+            //send to sns
+            try (SnsAsyncClient snsClient = SnsClientManager.get().getAsyncClient(clientCfg)) {
+                //Prepare create topic request. if it is already created topicARN will be reutrned.
+                CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(sinkTopic).build();
+                CompletableFuture<CreateTopicResponse> topicCreationResponse = snsClient.createTopic(topicCreationRequest);
+                String topicArn = topicCreationResponse.get().topicArn();
+                //Prepare publish message request to SNS topic
+                PublishRequest pr = PublishRequest
+                        .builder()
+                        .topicArn(topicArn)
+                        .message((String) message.getPayload())
+                        .build();
+                CompletableFuture<PublishResponse> response = snsClient.publish(pr);
+                LOGGER.info("Message ID {}", response.get().messageId());
+            } catch (InterruptedException | ExecutionException e) {
+                LOGGER.error("Async call interruption happened !!!", e);
+            }
+        }).thenApply(x -> message);
     }
 
     @Override
@@ -148,7 +151,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         Integer port = config.getOptionalValue("port", Integer.class).orElse(8080);
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
         int initialDelay = config.getOptionalValue("initDelay", Integer.class).orElse(2000);
-        SnsVerticle snsVerticle = new SnsVerticle(getAppURL(), topicName, port);
+        SnsVerticle snsVerticle = new SnsVerticle(getAppHost(), topicName, port, mockSnsTopic.orElse(true), getSnsURL());
         vertx.deployVerticle(snsVerticle);
 
         Flowable<SnsMessage<String>> flowable = Flowable.fromCallable(() -> {
@@ -181,19 +184,41 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      * @return topic name.
      */
     private String getTopicName(Config config) {
-        return config.getOptionalValue("address", String.class)
+        return config.getOptionalValue("channel", String.class)
                 .orElseGet(
-                        () -> config.getOptionalValue("topic-name", String.class)
-                                .orElseThrow(() -> new IllegalArgumentException("Address/topic-name must be set")));
+                        () -> config.getOptionalValue("topic", String.class)
+                                .orElseThrow(() -> new IllegalArgumentException("channel/topic must be set")));
     }
 
     /**
      * Retrieve App URL and throws exception if it is not configured.
      * 
-     * @param config microprofile config instance.
      * @return application URL accessible by AWS SNS.
      */
-    private String getAppURL() {
-        return appURL.orElseThrow(() -> new IllegalArgumentException("App URL must be set"));
+    private String getAppHost() {
+        return appHost.orElseThrow(() -> new IllegalArgumentException("App URL must be set"));
+    }
+
+    /**
+     * Retrieve SNS URL and throws exception if it is not configured.
+     * 
+     * @return mock SNS URL.
+     */
+    private String getSnsURL() {
+        //Check null in case of unit test.
+        return snsUrl == null ? "http://localhost:9911"
+                : snsUrl.orElse("http://localhost:9911");
+    }
+
+    /**
+     * Get SNS client config
+     * 
+     * @param host sns url
+     * @return Client config object for obtaining SnsClient
+     */
+    private SnsClientConfig getSnsClientConfig(String host) {
+    	//Check null in case of unit test.
+        boolean mockSns = mockSnsTopic == null ? true : mockSnsTopic.orElse(true);
+        return new SnsClientConfig(host, mockSns);
     }
 }

@@ -20,10 +20,26 @@ public class SnsMessage<T> implements Message<T> {
 
     /** Instance of SNS notification message */
     private SnsNotification snsMessage;
+    /** String payload, used for testing */
+    private T payload;
 
+    /**
+     * Constructor for AWS SNS.
+     * 
+     * @param snsMessage
+     */
     public SnsMessage(SnsNotification snsMessage) {
         Objects.requireNonNull(snsMessage, "SNS Message cannot be null.");
         this.snsMessage = snsMessage;
+    }
+
+    /**
+     * Constructor for fake SNS.
+     * 
+     * @param payload
+     */
+    public SnsMessage(T payload) {
+        this.payload = payload;
     }
 
     @Override
@@ -34,7 +50,7 @@ public class SnsMessage<T> implements Message<T> {
 
     @Override
     public T getPayload() {
-        return snsMessage == null ? null : (T) snsMessage.getMessage();
+        return snsMessage != null ? (T) snsMessage.getMessage() : payload;
     }
 
     /**

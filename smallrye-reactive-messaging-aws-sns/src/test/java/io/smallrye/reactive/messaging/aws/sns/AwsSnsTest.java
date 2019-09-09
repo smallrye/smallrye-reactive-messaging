@@ -22,7 +22,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
     private static final Logger LOG = LoggerFactory.getLogger(AwsSnsTest.class);
     private WeldContainer container;
     String topic = "sns-test";
-    String appUrl = "http://4befe2f5.ngrok.io";
+    String appUrl = "http://docker.for.mac.host.internal";
     int port = 8089;
 
     @Before
@@ -60,9 +60,11 @@ public class AwsSnsTest extends AwsSnsTestBase {
         String prefix = "mp.messaging.incoming.source.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix.concat("connector"), SnsConnector.CONNECTOR_NAME);
-        config.put(prefix.concat("address"), topic.concat("-transformed"));
+        config.put(prefix.concat("channel"), topic.concat("-transformed"));
         config.put(prefix.concat("port"), port);
-        config.put("sns-app-public-url", appUrl);
+        config.put("sns-app-host", appUrl);
+        config.put("mock-sns-topics", true);
+        config.put("sns-url", "http://localhost:9911");
 
         return new MapBasedConfig(config);
     }
@@ -80,7 +82,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
 
         Map<String, Object> config = new HashMap<>();
         config.put("connector", SnsConnector.CONNECTOR_NAME);
-        config.put("address", topic.concat("-transformed"));
+        config.put("channel", topic.concat("-transformed"));
 
         SnsConnector snsConnector = new SnsConnector();
         snsConnector.initConnector();

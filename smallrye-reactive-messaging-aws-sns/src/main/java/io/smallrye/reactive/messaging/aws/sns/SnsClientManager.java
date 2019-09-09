@@ -1,8 +1,14 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Objects;
+
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
+import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 
 /**
  * Singleton factory class for creating SNSClient
@@ -35,11 +41,22 @@ public class SnsClientManager {
     /**
      * Create Async SNS client
      * 
-     * @returnAsync SNS client
+     * @return Async SNS client
      */
-    public SnsAsyncClient getAsyncClient() {
+    public SnsAsyncClient getAsyncClient(SnsClientConfig cfg) {
         NettySdkAsyncHttpService nettySdkAsyncService = new NettySdkAsyncHttpService();
         SdkAsyncHttpClient nettyHttpClient = nettySdkAsyncService.createAsyncHttpClientFactory().build();
-        return SnsAsyncClient.builder().httpClient(nettyHttpClient).build();
+        SnsAsyncClientBuilder clientBuilder = SnsAsyncClient.builder().httpClient(nettyHttpClient);
+        if (cfg.isMockSnsTopic()) {
+            URL snsUrl;
+            try {
+                Objects.requireNonNull(cfg.getHost(), "Host cannot be null");
+                snsUrl = new URL(cfg.getHost());
+                clientBuilder.endpointOverride(snsUrl.toURI());
+            } catch (MalformedURLException | URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid URL", e);
+            }
+        }
+        return clientBuilder.build();
     }
 }
