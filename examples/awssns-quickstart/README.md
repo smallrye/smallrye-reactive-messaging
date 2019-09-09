@@ -28,6 +28,17 @@ SNS Connector use [DefaultAWSCredentialsProviderChain](https://docs.aws.amazon.c
 * Instance profile credentials delivered through the Amazon EC2 metadata service
 * Web Identity Token credentials from the environment or container.
 
+## Use a Test/Fake SNS
+
+If you don't have AWS account or you don't want to send messages to your AWS Account you can use [Fake SNS](https://hub.docker.com/r/s12v/sns/) for Development.
+after running the docker image configure these three properties as follow :
+* mock-sns-topics=true , if true it will trigger fake SNS functionality.
+* sns-url=http://localhost:9911 , SNS URL exposed by docker container, this will only be considered in case of fake/mock SNS.
+* sns-app-host=http://docker.for.mac.host.internal
+
+Regarding sns-app-host value. this should be accessible by fake SNS container. so you need to configure your docker outbound connections
+to access your local address. in case of Mac machines the above value works fine.
+
 ## Start the application
 
 The application can be started using: 
