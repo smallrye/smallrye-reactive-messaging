@@ -61,8 +61,6 @@ public class MediatorConfiguration {
      */
     private Merge.Mode mergePolicy;
 
-    private Class<? extends Invoker> invokerClass;
-
     public enum Production {
         STREAM_OF_MESSAGE,
         STREAM_OF_PAYLOAD,
@@ -577,10 +575,6 @@ public class MediatorConfiguration {
         } else {
             return broadcast.value();
         }
-    }
-
-    public Class<? extends Invoker> getInvokerClass() {
-        return invokerClass;
     }
 
 }

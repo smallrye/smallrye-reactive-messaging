@@ -117,16 +117,6 @@ public class MediatorManager {
 
                     LOGGER.debug("Initializing {}", mediator.getMethodAsString());
 
-                    if (configuration.getInvokerClass() != null) {
-                        try {
-                            mediator.setInvoker(configuration.getInvokerClass()
-                                    .newInstance());
-                        } catch (InstantiationException | IllegalAccessException e) {
-                            LOGGER.error("Unable to create invoker instance of " + configuration.getInvokerClass(), e);
-                            return;
-                        }
-                    }
-
                     try {
                         Object beanInstance = beanManager.getReference(configuration.getBean(), Object.class,
                                 beanManager.createCreationalContext(configuration.getBean()));
