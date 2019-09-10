@@ -34,13 +34,13 @@ public class MediatorConfiguration {
 
     private Shape shape;
 
-    private Incoming incoming;
+    private String incomingValue = null;
 
-    private Outgoing outgoing;
+    private String outgoingValue = null;
 
     private Acknowledgment.Strategy acknowledgment;
 
-    private Broadcast broadcast;
+    private Integer broadcastValue = null;
 
     /**
      * What does the mediator products and how is it produced
@@ -163,7 +163,9 @@ public class MediatorConfiguration {
     private void processBroadcast(Outgoing outgoing) {
         Broadcast bc = method.getAnnotation(Broadcast.class);
         if (outgoing != null) {
-            this.broadcast = bc;
+            if (bc != null) {
+                this.broadcastValue = bc.value();
+            }
         } else if (bc != null) {
             throw getIncomingError(
                     "The @Broadcast annotation is only supported for method annotated with @Outgoing: " + methodAsString());
@@ -195,8 +197,12 @@ public class MediatorConfiguration {
     }
 
     private void validateStreamTransformer(Incoming incoming, Outgoing outgoing) {
-        this.incoming = incoming;
-        this.outgoing = outgoing;
+        if (incoming != null) {
+            this.incomingValue = incoming.value();
+        }
+        if (outgoing != null) {
+            this.outgoingValue = outgoing.value();
+        }
 
         // 1.  Publisher<Message<O>> method(Publisher<Message<I>> publisher)
         // 2. Publisher<O> method(Publisher<I> publisher) - Dropped
@@ -211,8 +217,12 @@ public class MediatorConfiguration {
     }
 
     private void validateProcessor(Incoming incoming, Outgoing outgoing) {
-        this.incoming = incoming;
-        this.outgoing = outgoing;
+        if (incoming != null) {
+            this.incomingValue = incoming.value();
+        }
+        if (outgoing != null) {
+            this.outgoingValue = outgoing.value();
+        }
 
         // Supported signatures:
         // 1.  Processor<Message<I>, Message<O>> method()
@@ -367,7 +377,9 @@ public class MediatorConfiguration {
     }
 
     private void validatePublisher(Outgoing outgoing) {
-        this.outgoing = outgoing;
+        if (outgoing != null) {
+            this.outgoingValue = outgoing.value();
+        }
 
         // Supported signatures:
         // 1. Publisher<Message<O>> method()
@@ -444,7 +456,9 @@ public class MediatorConfiguration {
     }
 
     private void validateSubscriber(Incoming incoming) {
-        this.incoming = incoming;
+        if (incoming != null) {
+            this.incomingValue = incoming.value();
+        }
         this.production = Production.NONE;
 
         // Supported signatures:
@@ -507,17 +521,11 @@ public class MediatorConfiguration {
     }
 
     public String getOutgoing() {
-        if (outgoing == null) {
-            return null;
-        }
-        return outgoing.value();
+        return outgoingValue;
     }
 
     public String getIncoming() {
-        if (incoming == null) {
-            return null;
-        }
-        return incoming.value();
+        return incomingValue;
     }
 
     public String methodAsString() {
@@ -564,7 +572,7 @@ public class MediatorConfiguration {
     }
 
     public boolean getBroadcast() {
-        return broadcast != null;
+        return broadcastValue != null;
     }
 
     public Bean<?> getBean() {
@@ -575,7 +583,7 @@ public class MediatorConfiguration {
         if (!getBroadcast()) {
             return -1;
         } else {
-            return broadcast.value();
+            return broadcastValue;
         }
     }
 
