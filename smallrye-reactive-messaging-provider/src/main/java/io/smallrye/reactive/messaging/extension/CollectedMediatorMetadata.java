@@ -9,6 +9,7 @@ import javax.enterprise.inject.spi.Bean;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
+import io.smallrye.reactive.messaging.DefaultMediatorConfiguration;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 
 class CollectedMediatorMetadata {
@@ -20,7 +21,7 @@ class CollectedMediatorMetadata {
     }
 
     private MediatorConfiguration createMediatorConfiguration(Method met, Bean<?> bean) {
-        MediatorConfiguration configuration = new MediatorConfiguration(met, bean);
+        DefaultMediatorConfiguration configuration = new DefaultMediatorConfiguration(met, bean);
         configuration.compute(met.getAnnotation(Incoming.class), met.getAnnotation(Outgoing.class));
         return configuration;
     }
