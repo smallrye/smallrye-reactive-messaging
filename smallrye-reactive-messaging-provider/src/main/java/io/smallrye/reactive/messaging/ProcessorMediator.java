@@ -283,13 +283,13 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     private boolean isReturningAPublisherOrAPublisherBuilder() {
-        Class<?> returnType = configuration.getMethod().getReturnType();
+        Class<?> returnType = configuration.getReturnType();
         return ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
     private boolean isReturningAProcessorOrAProcessorBuilder() {
-        Class<?> returnType = configuration.getMethod().getReturnType();
+        Class<?> returnType = configuration.getReturnType();
         return ClassUtils.isAssignable(returnType, Processor.class)
                 || ClassUtils.isAssignable(returnType, ProcessorBuilder.class);
     }

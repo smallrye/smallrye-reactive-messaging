@@ -32,6 +32,10 @@ public class MediatorConfiguration {
 
     private final Method method;
 
+    private Class<?> returnType;
+
+    private Class<?>[] parameterTypes;
+
     private Shape shape;
 
     private String incomingValue = null;
@@ -87,6 +91,8 @@ public class MediatorConfiguration {
 
     public MediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, "'method' must be set");
+        this.returnType = method.getReturnType();
+        this.parameterTypes = method.getParameterTypes();
         this.mediatorBean = Objects.requireNonNull(bean, "'bean' must be set");
     }
 
@@ -240,7 +246,6 @@ public class MediatorConfiguration {
         // 11. CompletionStage<O> method(I payload)
         // 12. CompletionStage<Message<O>> method(Message<I> msg)
 
-        Class<?> returnType = method.getReturnType();
         if (ClassUtils.isAssignable(returnType, Processor.class)
                 || ClassUtils.isAssignable(returnType, ProcessorBuilder.class)) {
             // Case 1, 2 or 3, 4
@@ -248,14 +253,14 @@ public class MediatorConfiguration {
         } else if (ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 5, 6, 7, 8
-            if (method.getParameterCount() != 1) {
+            if (parameterTypes.length != 1) {
                 throw new IllegalArgumentException("Invalid method annotated with @Outgoing and @Incoming " + methodAsString()
                         + " - one parameter expected");
             }
             validateMethodConsumingSingleAndProducingAPublisher();
         } else {
             // Case 9, 10, 11, 12
-            Class<?> param = method.getParameterTypes()[0];
+            Class<?> param = parameterTypes[0];
             if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
                 // Case 11 or 12
                 Type type = getParameterFromReturnType(method, 0)
@@ -289,7 +294,7 @@ public class MediatorConfiguration {
         consumption = TypeUtils.isAssignable(pType, Message.class) ? Consumption.STREAM_OF_MESSAGE
                 : Consumption.STREAM_OF_PAYLOAD;
 
-        useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), PublisherBuilder.class);
+        useBuilderTypes = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
 
         // Post Acknowledgement is not supported
         if (acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
@@ -311,7 +316,7 @@ public class MediatorConfiguration {
             //TODO Test validation.
 
             // Ensure that the parameter is also using the MP Reactive Streams Operator types.
-            Class<?> paramClass = method.getParameterTypes()[0];
+            Class<?> paramClass = parameterTypes[0];
             if (!ClassUtils.isAssignable(paramClass, PublisherBuilder.class)) {
                 throw getIncomingAndOutgoingError(
                         "If the method produces a PublisherBuilder, it needs to consume a PublisherBuilder.");
@@ -326,14 +331,14 @@ public class MediatorConfiguration {
                 .orElseThrow(() -> getOutgoingError("Expected a type parameter for the returned Publisher"));
         production = TypeUtils.isAssignable(type, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
 
-        consumption = ClassUtils.isAssignable(method.getParameterTypes()[0], Message.class) ? Consumption.STREAM_OF_MESSAGE
+        consumption = ClassUtils.isAssignable(parameterTypes[0], Message.class) ? Consumption.STREAM_OF_MESSAGE
                 : Consumption.STREAM_OF_PAYLOAD;
 
-        useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), PublisherBuilder.class);
+        useBuilderTypes = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
     private void validateMethodReturningAProcessor() {
-        if (method.getParameterCount() != 0) {
+        if (parameterTypes.length != 0) {
             throw getIncomingAndOutgoingError("the method must not have parameters");
         }
         Type type1 = getParameterFromReturnType(method, 0)
@@ -345,7 +350,7 @@ public class MediatorConfiguration {
                 .orElseThrow(() -> getIncomingAndOutgoingError("Expected 2 type parameters for the returned Processor"));
         production = TypeUtils.isAssignable(type2, Message.class) ? Production.STREAM_OF_MESSAGE : Production.STREAM_OF_PAYLOAD;
 
-        useBuilderTypes = ClassUtils.isAssignable(method.getReturnType(), ProcessorBuilder.class);
+        useBuilderTypes = ClassUtils.isAssignable(returnType, ProcessorBuilder.class);
     }
 
     private Optional<Type> getParameterFromReturnType(Method method, int index) {
@@ -391,7 +396,6 @@ public class MediatorConfiguration {
         // 7. CompletionStage<Message<O>> method()
         // 8. CompletionStage<O> method()
 
-        Class<?> returnType = method.getReturnType();
         Type type = method.getGenericReturnType();
         if (type instanceof ParameterizedType) {
             // Expect only 1 type
@@ -402,7 +406,7 @@ public class MediatorConfiguration {
             throw getOutgoingError("the method must not be `void`");
         }
 
-        if (method.getParameterCount() != 0) {
+        if (parameterTypes.length != 0) {
             throw getOutgoingError("no parameters expected");
         }
 
@@ -469,14 +473,13 @@ public class MediatorConfiguration {
         // 5. void/? method(Message<I> m) - this signature has been dropped as it forces blocking acknowledgment. Recommendation: use case 3.
         // 6. void/? method(I i)
 
-        Class<?> returnType = method.getReturnType();
         Optional<Type> type = getParameterFromReturnType(method, 0);
 
         if (ClassUtils.isAssignable(returnType, Subscriber.class)
                 || ClassUtils.isAssignable(returnType, SubscriberBuilder.class)) {
             // Case 1 or 2.
             // Validation -> No parameter
-            if (method.getParameterCount() != 0) {
+            if (parameterTypes.length != 0) {
                 // TODO Revisit it with injected parameters
                 throw getIncomingError("when returning a Subscriber or a SubscriberBuilder, no parameters are expected");
             }
@@ -490,21 +493,21 @@ public class MediatorConfiguration {
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
             // Case 3 or 4
             // Expected parameter 1, Message or payload
-            if (method.getParameterCount() != 1) {
+            if (parameterTypes.length != 1) {
                 // TODO Revisit it with injected parameters
                 throw getIncomingError("when returning a CompletionStage, one parameter is expected");
             }
 
-            Class<?> param = method.getParameterTypes()[0];
+            Class<?> param = parameterTypes[0];
             // Distinction between 3 and 4
             consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
             return;
         }
 
         // Case 5 and 6, void | x with 1 parameter
-        if (method.getParameterCount() == 1) {
+        if (parameterTypes.length == 1) {
             // TODO Revisit it with injected parameters
-            Class<?> param = method.getParameterTypes()[0];
+            Class<?> param = parameterTypes[0];
             // Distinction between 5 and 6
             consumption = ClassUtils.isAssignable(param, Message.class) ? Consumption.MESSAGE : Consumption.PAYLOAD;
 
@@ -536,6 +539,14 @@ public class MediatorConfiguration {
         return method;
     }
 
+    public Class<?> getReturnType() {
+        return returnType;
+    }
+
+    public Class<?>[] getParameterTypes() {
+        return parameterTypes;
+    }
+
     public Consumption consumption() {
         return consumption;
     }
@@ -549,15 +560,13 @@ public class MediatorConfiguration {
     }
 
     private boolean isReturningAPublisherOrAPublisherBuilder() {
-        Class<?> returnType = method.getReturnType();
         return ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
     private boolean isConsumingAPublisherOrAPublisherBuilder() {
-        Class<?>[] types = method.getParameterTypes();
-        if (types.length >= 1) {
-            Class<?> type = types[0];
+        if (parameterTypes.length >= 1) {
+            Class<?> type = parameterTypes[0];
             return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils.isAssignable(type, PublisherBuilder.class);
         }
         return false;
