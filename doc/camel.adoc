@@ -11,7 +11,7 @@ To enable the Camel support, you need the following dependency:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-camel-1.0</artifactId>
+  <artifactId>smallrye-reactive-messaging-camel</artifactId>
   <version>{version}</version>
 </dependency>
 ----

@@ -11,7 +11,7 @@ To enable the Vert.x EventBus support, you need the following dependency:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-vertx-eventbus-1.0</artifactId>
+  <artifactId>smallrye-reactive-messaging-vertx-eventbus</artifactId>
   <version>{version}</version>
 </dependency>
 ----
