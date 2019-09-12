@@ -55,8 +55,6 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
      */
     private Merge.Mode mergePolicy;
 
-    private Class<? extends Invoker> invokerClass;
-
     private MediaConfigurationSupport mediaConfigurationSupport;
 
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
@@ -216,7 +214,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     @Override
     public Class<? extends Invoker> getInvokerClass() {
-        return invokerClass;
+        return null;
     }
 
     static class ReflectionGenericTypeAssignable implements MediaConfigurationSupport.GenericTypeAssignable {
