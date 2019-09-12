@@ -50,7 +50,7 @@ public class SubscriberMediator extends AbstractMediator {
                 break;
             case MESSAGE: // 3  (5 being dropped)
             case PAYLOAD: // 4 or 6
-                if (ClassUtils.isAssignable(configuration.getMethod().getReturnType(), CompletionStage.class)) {
+                if (ClassUtils.isAssignable(configuration.getReturnType(), CompletionStage.class)) {
                     // Case 3, 4
                     processMethodReturningACompletionStage();
                 } else {
