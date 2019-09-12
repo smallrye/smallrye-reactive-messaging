@@ -90,7 +90,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Publisher<Message> prependedWithAck = publisher
                     .flatMapCompletionStage(managePreProcessingAck())
                     .buildRs();
-            Class<?> parameterType = configuration.getMethod().getParameterTypes()[0];
+            Class<?> parameterType = configuration.getParameterTypes()[0];
             Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
             if (converter.isPresent()) {
                 prependedWithAck = (Publisher) converter.get().fromPublisher(prependedWithAck);
@@ -120,7 +120,7 @@ public class StreamTransformerMediator extends AbstractMediator {
                     .flatMapCompletionStage(managePreProcessingAck())
                     .map(Message::getPayload).buildRs();
             // Ability to inject Publisher implementation in method getting a Publisher.
-            Class<?> parameterType = configuration.getMethod().getParameterTypes()[0];
+            Class<?> parameterType = configuration.getParameterTypes()[0];
             Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
             if (converter.isPresent()) {
                 stream = (Publisher) converter.get().fromPublisher(stream);
