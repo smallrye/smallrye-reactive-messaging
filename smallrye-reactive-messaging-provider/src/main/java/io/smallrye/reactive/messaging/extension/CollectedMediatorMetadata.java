@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.extension;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.enterprise.inject.spi.Bean;
@@ -24,6 +25,10 @@ class CollectedMediatorMetadata {
         DefaultMediatorConfiguration configuration = new DefaultMediatorConfiguration(met, bean);
         configuration.compute(met.getAnnotation(Incoming.class), met.getAnnotation(Outgoing.class));
         return configuration;
+    }
+
+    void addAll(Collection<? extends MediatorConfiguration> mediators) {
+        this.mediators.addAll(mediators);
     }
 
     List<MediatorConfiguration> mediators() {
