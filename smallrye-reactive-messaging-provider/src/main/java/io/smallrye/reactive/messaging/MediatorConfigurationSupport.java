@@ -15,7 +15,7 @@ import org.reactivestreams.Subscriber;
 
 import io.smallrye.reactive.messaging.annotations.Merge;
 
-public class MediaConfigurationSupport {
+public class MediatorConfigurationSupport {
 
     private final String methodAsString;
     private final Class<?> returnType;
@@ -23,7 +23,7 @@ public class MediaConfigurationSupport {
     private final GenericTypeAssignable returnTypeAssignable;
     private final GenericTypeAssignable firstMethodParamTypeAssignable;
 
-    public MediaConfigurationSupport(String methodAsString, Class<?> returnType, Class<?>[] parameterTypes,
+    public MediatorConfigurationSupport(String methodAsString, Class<?> returnType, Class<?>[] parameterTypes,
             GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable) {
         this.methodAsString = methodAsString;
         this.returnType = returnType;

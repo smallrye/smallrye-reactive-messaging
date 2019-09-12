@@ -55,7 +55,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
      */
     private Merge.Mode mergePolicy;
 
-    private MediaConfigurationSupport mediaConfigurationSupport;
+    private MediatorConfigurationSupport mediatorConfigurationSupport;
 
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, "'method' must be set");
@@ -63,7 +63,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         this.parameterTypes = method.getParameterTypes();
         this.mediatorBean = Objects.requireNonNull(bean, "'bean' must be set");
 
-        this.mediaConfigurationSupport = new MediaConfigurationSupport(methodAsString(), this.returnType, this.parameterTypes,
+        this.mediatorConfigurationSupport = new MediatorConfigurationSupport(methodAsString(), this.returnType,
+                this.parameterTypes,
                 new ReturnTypeGenericTypeAssignable(method),
                 this.parameterTypes.length == 0 ? new AlwaysInvalidIndexGenericTypeAssignable()
                         : new MethodParamGenericTypeAssignable(method, 0));
@@ -79,9 +80,9 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             throw getOutgoingError("value is blank or null");
         }
 
-        this.shape = this.mediaConfigurationSupport.determineShape(incoming, outgoing);
+        this.shape = this.mediatorConfigurationSupport.determineShape(incoming, outgoing);
 
-        this.acknowledgment = this.mediaConfigurationSupport.processSuppliedAcknowledgement(incoming, () -> {
+        this.acknowledgment = this.mediatorConfigurationSupport.processSuppliedAcknowledgement(incoming, () -> {
             Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
             return annotation != null ? annotation.value() : null;
         });
@@ -93,7 +94,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             this.outgoingValue = outgoing.value();
         }
 
-        MediaConfigurationSupport.ValidationOutput validationOutput = this.mediaConfigurationSupport.validate(this.shape,
+        MediatorConfigurationSupport.ValidationOutput validationOutput = this.mediatorConfigurationSupport.validate(this.shape,
                 this.acknowledgment);
         this.production = validationOutput.getProduction();
         this.consumption = validationOutput.getConsumption();
@@ -101,13 +102,13 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             this.useBuilderTypes = validationOutput.getUseBuilderTypes();
         }
         if (this.acknowledgment == null) {
-            this.acknowledgment = this.mediaConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption);
+            this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption);
         }
-        this.mergePolicy = this.mediaConfigurationSupport.processMerge(incoming, () -> {
+        this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incoming, () -> {
             Merge annotation = method.getAnnotation(Merge.class);
             return annotation != null ? annotation.value() : null;
         });
-        this.broadcastValue = this.mediaConfigurationSupport.processBroadcast(outgoing, () -> {
+        this.broadcastValue = this.mediatorConfigurationSupport.processBroadcast(outgoing, () -> {
             Broadcast annotation = method.getAnnotation(Broadcast.class);
             return annotation != null ? annotation.value() : null;
         });
@@ -217,7 +218,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         return null;
     }
 
-    static class ReflectionGenericTypeAssignable implements MediaConfigurationSupport.GenericTypeAssignable {
+    static class ReflectionGenericTypeAssignable implements MediatorConfigurationSupport.GenericTypeAssignable {
 
         private final Type type;
 
@@ -246,7 +247,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         }
     }
 
-    private static class AlwaysInvalidIndexGenericTypeAssignable implements MediaConfigurationSupport.GenericTypeAssignable {
+    private static class AlwaysInvalidIndexGenericTypeAssignable implements MediatorConfigurationSupport.GenericTypeAssignable {
 
         @Override
         public Result check(Class<?> target, int index) {
