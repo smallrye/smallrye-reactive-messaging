@@ -125,8 +125,8 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     private CompletionStage<Message<?>> send(Message<?> message) {
 
         return CompletableFuture.runAsync(() -> {
-            boolean mockSns = mockSnsTopic == null ? true : mockSnsTopic.orElse(true);
-            SnsClientConfig clientCfg = getSnsClientConfig(mockSinkUrl != null && mockSns ? mockSinkUrl : getSnsURL());
+            SnsClientConfig clientCfg = getSnsClientConfig(
+                    mockSinkUrl != null && !mockSinkUrl.trim().isEmpty() ? mockSinkUrl : getSnsURL());
             //send to sns
             try (SnsAsyncClient snsClient = SnsClientManager.get().getAsyncClient(clientCfg)) {
                 //Prepare create topic request. if it is already created topicARN will be reutrned.
@@ -143,6 +143,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                 LOGGER.info("Message ID {}", response.get().messageId());
             } catch (InterruptedException | ExecutionException e) {
                 LOGGER.error("Async call interruption happened !!!", e);
+                Thread.currentThread().interrupt();
             }
         }).thenApply(x -> message);
     }
@@ -201,7 +202,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      */
     private String getFakeSnsURL(Config config) {
         return config.getOptionalValue("sns-url", String.class)
-                .orElseGet(() -> null);
+                .orElseGet(() -> "");
     }
 
     /**

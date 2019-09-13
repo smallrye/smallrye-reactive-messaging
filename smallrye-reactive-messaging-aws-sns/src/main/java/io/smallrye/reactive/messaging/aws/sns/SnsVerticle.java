@@ -99,6 +99,7 @@ public class SnsVerticle extends AbstractVerticle {
             }
         } catch (InterruptedException | ExecutionException e) {
             LOG.error("An error occured while starting SNS Verticle", e);
+            Thread.currentThread().interrupt();
         }
 
         vertx.createHttpServer().requestHandler(router)
