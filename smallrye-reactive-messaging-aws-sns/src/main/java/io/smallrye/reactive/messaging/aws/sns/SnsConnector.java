@@ -74,6 +74,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     private Vertx vertx;
     private Scheduler scheduler;
     private String sinkTopic;
+    private String mockSinkUrl;
 
     /**
      * Method being invoked when CDI bean first created.
@@ -107,6 +108,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
 
         sinkTopic = getTopicName(config);
+        mockSinkUrl = getFakeSnsURL(config);
         return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(this::send)
                 .onError(t -> {
@@ -123,7 +125,8 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     private CompletionStage<Message<?>> send(Message<?> message) {
 
         return CompletableFuture.runAsync(() -> {
-            SnsClientConfig clientCfg = getSnsClientConfig(getSnsURL());
+            boolean mockSns = mockSnsTopic == null ? true : mockSnsTopic.orElse(true);
+            SnsClientConfig clientCfg = getSnsClientConfig(mockSinkUrl != null && mockSns ? mockSinkUrl : getSnsURL());
             //send to sns
             try (SnsAsyncClient snsClient = SnsClientManager.get().getAsyncClient(clientCfg)) {
                 //Prepare create topic request. if it is already created topicARN will be reutrned.
@@ -191,6 +194,17 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     }
 
     /**
+     * Retrieve Fake SNS URL for unit testing only.
+     * 
+     * @param config microprofile config instance.
+     * @return Fake SNS URL.
+     */
+    private String getFakeSnsURL(Config config) {
+        return config.getOptionalValue("sns-url", String.class)
+                .orElseGet(() -> null);
+    }
+
+    /**
      * Retrieve App URL and throws exception if it is not configured.
      * 
      * @return application URL accessible by AWS SNS.
@@ -206,8 +220,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      */
     private String getSnsURL() {
         //Check null in case of unit test.
-        return snsUrl == null ? "http://localhost:9911"
-                : snsUrl.orElse("http://localhost:9911");
+        return snsUrl.orElseThrow(() -> new IllegalArgumentException("SNS URL must be set"));
     }
 
     /**
@@ -217,7 +230,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      * @return Client config object for obtaining SnsClient
      */
     private SnsClientConfig getSnsClientConfig(String host) {
-    	//Check null in case of unit test.
+        //Check null in case of unit test.
         boolean mockSns = mockSnsTopic == null ? true : mockSnsTopic.orElse(true);
         return new SnsClientConfig(host, mockSns);
     }

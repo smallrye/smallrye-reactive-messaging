@@ -9,7 +9,6 @@ package io.smallrye.reactive.messaging.aws.sns;
  */
 public class SnsClientConfig {
 
-	//Fields value
     private final String host;
     private final boolean mockSnsTopic;
 

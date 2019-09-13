@@ -6,6 +6,10 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.weld.environment.se.Weld;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
@@ -18,11 +22,22 @@ import io.vertx.reactivex.core.Vertx;
 
 public class AwsSnsTestBase {
 
+    static final Logger LOG = LoggerFactory.getLogger(AwsSnsTest.class);
     Vertx vertx;
+    String containerIp;
+    int containerPort;
+
+    @ClassRule
+    public static GenericContainer fakeSns = new GenericContainer<>("s12v/sns")
+            .withExposedPorts(9911);
 
     @Before
     public void setup() {
         vertx = Vertx.vertx();
+        containerIp = fakeSns.getContainerIpAddress();
+        containerPort = fakeSns.getMappedPort(9911);
+
+        LOG.debug("Container IP [{}] port [{}]", containerIp, containerPort);
     }
 
     @After

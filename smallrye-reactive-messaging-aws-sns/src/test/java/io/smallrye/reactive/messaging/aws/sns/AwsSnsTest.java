@@ -12,18 +12,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.reactivex.Flowable;
 
 public class AwsSnsTest extends AwsSnsTestBase {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AwsSnsTest.class);
     private WeldContainer container;
     String topic = "sns-test";
     String appUrl = "http://docker.for.mac.host.internal";
-    int port = 8089;
+    int port = 8389;
 
     @Before
     public void initTest() {
@@ -64,7 +61,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
         config.put(prefix.concat("port"), port);
         config.put("sns-app-host", appUrl);
         config.put("mock-sns-topics", true);
-        config.put("sns-url", "http://localhost:9911");
+        config.put("sns-url", String.format("http://%s:%d", containerIp, containerPort));
 
         return new MapBasedConfig(config);
     }
@@ -83,7 +80,8 @@ public class AwsSnsTest extends AwsSnsTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("connector", SnsConnector.CONNECTOR_NAME);
         config.put("channel", topic.concat("-transformed"));
-
+        config.put("sns-url", String.format("http://%s:%d", containerIp, containerPort));
+        LOG.debug("##### SNS URL {}", config.get("sns-url"));
         SnsConnector snsConnector = new SnsConnector();
         snsConnector.initConnector();
         return snsConnector.getSubscriberBuilder(new MapBasedConfig(config));

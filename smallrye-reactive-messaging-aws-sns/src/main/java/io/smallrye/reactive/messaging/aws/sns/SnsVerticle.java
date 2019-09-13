@@ -44,7 +44,6 @@ import software.amazon.awssdk.services.sns.model.Subscription;
  */
 public class SnsVerticle extends AbstractVerticle {
 
-    /** Fields */
     private final String topicName;
     private final String endpoint;
     private final int port;
@@ -127,9 +126,9 @@ public class SnsVerticle extends AbstractVerticle {
         LOG.info("Message received ... ");
 
         if (mockSns) {
-        	//In case of fake SNS. it will receive message without full AWS SNS attributes
-        	//so messageManager will not do its full functionality and it will not work.
-        	//In case of test/fake SNS will receive message and add it directly to msgQ and return success.
+            //In case of fake SNS. it will receive message without full AWS SNS attributes
+            //so messageManager will not do its full functionality and it will not work.
+            //In case of test/fake SNS will receive message and add it directly to msgQ and return success.
             SnsMessage<String> snsMessage = new SnsMessage<>(snsNotification.getString("Message"));
             msgQ.add(snsMessage);
             routingContext.response().setStatusCode(HttpStatus.SC_OK).end();

@@ -19,9 +19,9 @@ import com.amazonaws.services.sns.message.SnsNotification;
 public class SnsMessage<T> implements Message<T> {
 
     /** Instance of SNS notification message */
-    private SnsNotification snsMessage;
+    private final SnsNotification snsMessage;
     /** String payload, used for testing */
-    private T payload;
+    private final T payload;
 
     /**
      * Constructor for AWS SNS.
@@ -31,6 +31,7 @@ public class SnsMessage<T> implements Message<T> {
     public SnsMessage(SnsNotification snsMessage) {
         Objects.requireNonNull(snsMessage, "SNS Message cannot be null.");
         this.snsMessage = snsMessage;
+        payload = null;
     }
 
     /**
@@ -40,6 +41,7 @@ public class SnsMessage<T> implements Message<T> {
      */
     public SnsMessage(T payload) {
         this.payload = payload;
+        snsMessage = null;
     }
 
     @Override
