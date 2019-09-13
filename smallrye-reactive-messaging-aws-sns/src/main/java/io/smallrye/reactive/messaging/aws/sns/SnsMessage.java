@@ -19,7 +19,7 @@ import com.amazonaws.services.sns.message.SnsNotification;
 public class SnsMessage<T> implements Message<T> {
 
     /** Instance of SNS notification message */
-    private final SnsNotification snsMessage;
+    private final SnsNotification snsNotification;
     /** String payload, used for testing */
     private final T payload;
 
@@ -28,9 +28,9 @@ public class SnsMessage<T> implements Message<T> {
      * 
      * @param snsMessage
      */
-    public SnsMessage(SnsNotification snsMessage) {
-        Objects.requireNonNull(snsMessage, "SNS Message cannot be null.");
-        this.snsMessage = snsMessage;
+    public SnsMessage(SnsNotification snsNotification) {
+        Objects.requireNonNull(snsNotification, "SNS Message cannot be null.");
+        this.snsNotification = snsNotification;
         payload = null;
     }
 
@@ -41,7 +41,7 @@ public class SnsMessage<T> implements Message<T> {
      */
     public SnsMessage(T payload) {
         this.payload = payload;
-        snsMessage = null;
+        snsNotification = null;
     }
 
     @Override
@@ -52,7 +52,7 @@ public class SnsMessage<T> implements Message<T> {
 
     @Override
     public T getPayload() {
-        return snsMessage != null ? (T) snsMessage.getMessage() : payload;
+        return snsNotification != null ? (T) snsNotification.getMessage() : payload;
     }
 
     /**
@@ -61,6 +61,6 @@ public class SnsMessage<T> implements Message<T> {
      * @return message subject.
      */
     public String getSubject() {
-        return snsMessage.getSubject();
+        return snsNotification.getSubject();
     }
 }

@@ -99,9 +99,9 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     public void preDestroy() {
         LOGGER.info("Destroying Connector");
         if (internalVertxInstance) {
-            Optional.ofNullable(vertx).ifPresent(vertx -> vertx.close());
+            Optional.ofNullable(vertx).ifPresent(Vertx::close);
         }
-        Optional.ofNullable(scheduler).ifPresent(sch -> sch.shutdown());
+        Optional.ofNullable(scheduler).ifPresent(Scheduler::shutdown);
     }
 
     @Override
@@ -111,9 +111,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         mockSinkUrl = getFakeSnsURL(config);
         return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(this::send)
-                .onError(t -> {
-                    LOGGER.error("Error while subscribing to connector", t);
-                }).ignore();
+                .onError(t -> LOGGER.error("Error while subscribing to connector", t)).ignore();
     }
 
     /**
@@ -168,7 +166,6 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                 snsMsg = snsVerticle.pollMsg();
                 Objects.requireNonNull(snsMsg, "Null message has been consumed from Q");
             } catch (InterruptedException e) {
-                LOGGER.error("Polling interrupted", e);
                 throw e;
             }
             return snsMsg;
