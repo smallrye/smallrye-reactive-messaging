@@ -58,7 +58,7 @@
     <vertx.version>3.8.1</vertx.version>
     <slf4j-api.version>1.7.28</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
-    <microprofile-reactive-streams.version>1.0</microprofile-reactive-streams.version>
+    <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
     <rxjava.version>2.2.12</rxjava.version>
     <smallrye-reactive-streams-ops.version>1.0.9</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.9</smallrye-config.version>
@@ -74,6 +74,7 @@
     <module>smallrye-reactive-messaging-provider</module>
     <module>smallrye-reactive-messaging-kafka</module>
     <module>smallrye-reactive-messaging-mqtt</module>
+    <module>smallrye-reactive-messaging-mqtt-server</module>
     <module>smallrye-reactive-messaging-camel</module>
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-http</module>
@@ -87,6 +88,7 @@
 
     <module>examples/kafka-quickstart</module>
     <module>examples/mqtt-quickstart</module>
+    <module>examples/mqtt-server-quickstart</module>
     <module>examples/amqp-quickstart</module>
     <module>examples/awssns-quickstart</module>
 

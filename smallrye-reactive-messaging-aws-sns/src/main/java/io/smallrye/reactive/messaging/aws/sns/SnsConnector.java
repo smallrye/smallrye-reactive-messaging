@@ -1,11 +1,7 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
-import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -27,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
+import io.reactivex.processors.BehaviorProcessor;
 import io.reactivex.processors.MulticastProcessor;
 import io.reactivex.schedulers.Schedulers;
 import io.vertx.core.Vertx;
@@ -34,14 +31,11 @@ import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.CreateTopicResponse;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
-import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 /**
- * Implement incoming/outcoming connection factories for SNS reactive messaging.
- * 
- * @author iabughosh
- * @version 1.0.4
+ * Implement incoming/outgoing connection factories for SNS reactive messaging.
  *
+ * @author iabughosh
  */
 @ApplicationScoped
 @Connector(SnsConnector.CONNECTOR_NAME)
@@ -50,25 +44,21 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     private static final Logger LOGGER = LoggerFactory.getLogger(SnsConnector.class);
     static final String CONNECTOR_NAME = "smallrye-aws-sns";
 
-    /*
-     * Injectable fields
-     */
     @Inject
     @ConfigProperty(name = "sns-app-host")
     Optional<String> appHost;
+
     @Inject
     @ConfigProperty(name = "sns-url")
     Optional<String> snsUrl;
+
     @Inject
     @ConfigProperty(name = "mock-sns-topics")
     Optional<Boolean> mockSnsTopic;
-    /** If there is existing vert.x instance, inject it. */
+
     @Inject
     Instance<Vertx> instanceOfVertx;
-    /*
-     * Fields
-     */
-    /** Control wither close vert.x manually or not */
+
     private boolean internalVertxInstance = false;
 
     private Vertx vertx;
@@ -76,9 +66,6 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     private String sinkTopic;
     private String mockSinkUrl;
 
-    /**
-     * Method being invoked when CDI bean first created.
-     */
     @PostConstruct
     public void initConnector() {
         //Initialize vertx and threadExecutor
@@ -97,7 +84,6 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      */
     @PreDestroy
     public void preDestroy() {
-        LOGGER.info("Destroying Connector");
         if (internalVertxInstance) {
             Optional.ofNullable(vertx).ifPresent(Vertx::close);
         }
@@ -106,82 +92,76 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-
         sinkTopic = getTopicName(config);
         mockSinkUrl = getFakeSnsURL(config);
         return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(this::send)
-                .onError(t -> LOGGER.error("Error while subscribing to connector", t)).ignore();
+                .onError(t -> LOGGER.error("Error while sending the message to SNS topic {}", sinkTopic, t))
+                .ignore();
     }
 
     /**
-     * Send message to SNS Topic.
-     * 
-     * @param msg Message to be sent
-     * @return CompletionStage of sending message.
+     * Send message to the SNS Topic.
+     *
+     * @param message Message to be sent, must not be {@code null}
+     * @return the CompletionStage of sending message.
      */
     private CompletionStage<Message<?>> send(Message<?> message) {
+        SnsClientConfig clientCfg = getSnsClientConfig(
+                mockSinkUrl != null && !mockSinkUrl.trim().isEmpty() ? mockSinkUrl : getSnsURL());
+        SnsAsyncClient client = SnsClientManager.get().getAsyncClient(clientCfg);
 
-        return CompletableFuture.runAsync(() -> {
-            SnsClientConfig clientCfg = getSnsClientConfig(
-                    mockSinkUrl != null && !mockSinkUrl.trim().isEmpty() ? mockSinkUrl : getSnsURL());
-            //send to sns
-            try (SnsAsyncClient snsClient = SnsClientManager.get().getAsyncClient(clientCfg)) {
-                //Prepare create topic request. if it is already created topicARN will be reutrned.
-                CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(sinkTopic).build();
-                CompletableFuture<CreateTopicResponse> topicCreationResponse = snsClient.createTopic(topicCreationRequest);
-                String topicArn = topicCreationResponse.get().topicArn();
-                //Prepare publish message request to SNS topic
-                PublishRequest pr = PublishRequest
+        CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(sinkTopic).build();
+        return client.createTopic(topicCreationRequest)
+                .thenApply(CreateTopicResponse::topicArn)
+                .thenCompose(arn -> client.publish(PublishRequest
                         .builder()
-                        .topicArn(topicArn)
+                        .topicArn(arn)
                         .message((String) message.getPayload())
-                        .build();
-                CompletableFuture<PublishResponse> response = snsClient.publish(pr);
-                LOGGER.info("Message ID {}", response.get().messageId());
-            } catch (InterruptedException | ExecutionException e) {
-                LOGGER.error("Async call interruption happened !!!", e);
-                Thread.currentThread().interrupt();
-            }
-        }).thenApply(x -> message);
+                        .build()))
+                .thenApply(resp -> {
+                    LOGGER.info("Message sent successfully with id {}", resp.messageId());
+                    return message;
+                });
     }
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-
         String topicName = getTopicName(config);
         Integer port = config.getOptionalValue("port", Integer.class).orElse(8080);
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
-        int initialDelay = config.getOptionalValue("initDelay", Integer.class).orElse(2000);
         SnsVerticle snsVerticle = new SnsVerticle(getAppHost(), topicName, port, mockSnsTopic.orElse(true), getSnsURL());
-        vertx.deployVerticle(snsVerticle);
+        BehaviorProcessor<Boolean> ready = BehaviorProcessor.create();
+        vertx.deployVerticle(snsVerticle, ar -> {
+            if (ar.succeeded()) {
+                ready.onNext(true);
+            } else {
+                ready.onError(ar.cause());
+            }
+        });
 
-        Flowable<SnsMessage<String>> flowable = Flowable.fromCallable(() -> {
-
-            SnsMessage<String> snsMsg = null;
+        Flowable<SnsMessage> flowable = Flowable.<SnsMessage> generate(emitter -> {
+            // We get a request, block until we get a msg and emit it.
             try {
                 LOGGER.trace("Polling message");
-                //It uses blockingQ.take() method so it will block until there is 
-                //an item available. Thats why in repeatWhen it is only 1 millisecond.
-                snsMsg = snsVerticle.pollMsg();
-                Objects.requireNonNull(snsMsg, "Null message has been consumed from Q");
+                SnsMessage msg = snsVerticle.pollMsg();
+                emitter.onNext(msg);
             } catch (InterruptedException e) {
-                throw e;
+                Thread.currentThread().interrupt();
+                emitter.onComplete();
             }
-            return snsMsg;
-        }).repeatWhen(o -> o.concatMap(v -> Flowable.timer(1, TimeUnit.MILLISECONDS)))
-                .delaySubscription(initialDelay, TimeUnit.MILLISECONDS)
-                .subscribeOn(scheduler);
+        })
+                .subscribeOn(scheduler)
+                .delaySubscription(ready);
 
         PublisherBuilder<? extends Message<?>> builder = ReactiveStreams.fromPublisher(flowable);
-
         return broadcast ? builder.via(MulticastProcessor.create()) : builder;
     }
 
     /**
      * Retrieve topic name and throws exception if it is not configured.
-     * 
-     * @param config microprofile config instance.
+     *
+     * @param config MicroProfile config instance.
      * @return topic name.
      */
     private String getTopicName(Config config) {
@@ -193,18 +173,17 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     /**
      * Retrieve Fake SNS URL for unit testing only.
-     * 
-     * @param config microprofile config instance.
+     *
+     * @param config MicroProfile config instance.
      * @return Fake SNS URL.
      */
     private String getFakeSnsURL(Config config) {
-        return config.getOptionalValue("sns-url", String.class)
-                .orElseGet(() -> "");
+        return config.getOptionalValue("sns-url", String.class).orElse("");
     }
 
     /**
      * Retrieve App URL and throws exception if it is not configured.
-     * 
+     *
      * @return application URL accessible by AWS SNS.
      */
     private String getAppHost() {
@@ -213,22 +192,20 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     /**
      * Retrieve SNS URL and throws exception if it is not configured.
-     * 
+     *
      * @return mock SNS URL.
      */
     private String getSnsURL() {
-        //Check null in case of unit test.
         return snsUrl.orElseThrow(() -> new IllegalArgumentException("SNS URL must be set"));
     }
 
     /**
      * Get SNS client config
-     * 
+     *
      * @param host sns url
      * @return Client config object for obtaining SnsClient
      */
     private SnsClientConfig getSnsClientConfig(String host) {
-        //Check null in case of unit test.
         boolean mockSns = mockSnsTopic == null ? true : mockSnsTopic.orElse(true);
         return new SnsClientConfig(host, mockSns);
     }

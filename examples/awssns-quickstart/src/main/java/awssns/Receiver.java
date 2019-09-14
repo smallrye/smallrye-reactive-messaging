@@ -12,7 +12,7 @@ import io.smallrye.reactive.messaging.aws.sns.SnsMessage;
 public class Receiver {
 
     @Incoming("my-topic")
-    public CompletionStage<Void> consume(SnsMessage<String> message) {
+    public CompletionStage<Void> consume(SnsMessage message) {
         System.out.println("received (my-topic): " + message.getPayload());
         return message.ack();
     }

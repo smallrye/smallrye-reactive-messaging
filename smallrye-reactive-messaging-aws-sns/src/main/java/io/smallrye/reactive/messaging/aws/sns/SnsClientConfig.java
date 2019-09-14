@@ -2,32 +2,30 @@ package io.smallrye.reactive.messaging.aws.sns;
 
 /**
  * A configuration POJO class to create SnsClient.
- * 
- * @author iabughosh
- * @version 1.0.4
  *
+ * @author iabughosh
  */
-public class SnsClientConfig {
+class SnsClientConfig {
 
     private final String host;
     private final boolean mockSnsTopic;
 
     /**
      * Main constructor.
-     * 
-     * @param host
-     * @param mockSnsTopic
+     *
+     * @param host the host
+     * @param mockSnsTopic whether we are in mock mode
      */
-    public SnsClientConfig(String host, boolean mockSnsTopic) {
+    SnsClientConfig(String host, boolean mockSnsTopic) {
         this.host = host;
         this.mockSnsTopic = mockSnsTopic;
     }
 
-    public String getHost() {
+    String getHost() {
         return host;
     }
 
-    public boolean isMockSnsTopic() {
+    boolean isMockSnsTopic() {
         return mockSnsTopic;
     }
 }

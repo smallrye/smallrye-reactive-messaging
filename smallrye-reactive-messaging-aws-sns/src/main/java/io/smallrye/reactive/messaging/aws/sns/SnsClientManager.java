@@ -7,44 +7,43 @@ import java.util.Objects;
 
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 
 /**
  * Singleton factory class for creating SNSClient
- * 
- * @author iabughosh
- * @version 1.0.4
  *
+ * @author iabughosh
  */
-public class SnsClientManager {
+class SnsClientManager {
 
-    //Instance field initialized once.
     private static final SnsClientManager INSTANCE = new SnsClientManager();
 
-    /**
-     * Private constructor
-     */
-    private SnsClientManager() {
+    private SnsAsyncClient client;
 
+    private SnsClientManager() {
+        // Avoid direct instantiation.
     }
 
     /**
      * Get instance method of singleton
-     * 
-     * @return instance of SnsClientManager
+     *
+     * @return instance of SnsClientManager, cannot be {@code null}
      */
-    public static SnsClientManager get() {
+    static SnsClientManager get() {
         return INSTANCE;
     }
 
     /**
-     * Create Async SNS client
-     * 
-     * @return Async SNS client
+     * Creates the Async SNS client
+     *
+     * @return the created client.
      */
-    public SnsAsyncClient getAsyncClient(SnsClientConfig cfg) {
+    synchronized SnsAsyncClient getAsyncClient(SnsClientConfig cfg) {
+        if (client != null) {
+            // TODO Should be keep a map config -> client?
+            return client;
+        }
         NettySdkAsyncHttpService nettySdkAsyncService = new NettySdkAsyncHttpService();
         SdkAsyncHttpClient nettyHttpClient = nettySdkAsyncService.createAsyncHttpClientFactory().build();
         SnsAsyncClientBuilder clientBuilder = SnsAsyncClient.builder().httpClient(nettyHttpClient);
@@ -54,11 +53,11 @@ public class SnsClientManager {
                 Objects.requireNonNull(cfg.getHost(), "Host cannot be null");
                 snsUrl = new URL(cfg.getHost());
                 clientBuilder.endpointOverride(snsUrl.toURI());
-                clientBuilder.region(Region.AP_SOUTH_1);
             } catch (MalformedURLException | URISyntaxException e) {
                 throw new IllegalArgumentException("Invalid URL", e);
             }
         }
-        return clientBuilder.build();
+        client = clientBuilder.build();
+        return client;
     }
 }

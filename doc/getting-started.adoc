@@ -10,12 +10,12 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-provider-1.0</artifactId>
+  <artifactId>smallrye-reactive-messaging-provider</artifactId>
   <version>{version}</version>
 </dependency>
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-streams-operators-1.0</artifactId>
+  <artifactId>smallrye-reactive-streams-operators</artifactId>
   <version>{smallrye-streams-version}</version>
 </dependency>
 <dependency>
@@ -56,7 +56,7 @@ Finally, you need an _empty_ `beans.xml`. Copy the following content to `src/mai
 Once everything is setup, you should be able to run the application using:
 
 ```bash
-mvn compile exc:java -Dexec.mainClass=<Main fully qualified class name>
+mvn compile exec:java -Dexec.mainClass=<Main fully qualified class name>
 ```
 
 Running the previous example should give the following output:

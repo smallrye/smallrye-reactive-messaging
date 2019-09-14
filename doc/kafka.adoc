@@ -11,7 +11,7 @@ To enable the Kafka support, you need the following dependency:
 ----
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-kafka-1.0</artifactId>
+  <artifactId>smallrye-reactive-messaging-kafka</artifactId>
   <version>{version}</version>
 </dependency>
 ----
