@@ -79,7 +79,7 @@
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-http</module>
     <module>smallrye-reactive-messaging-vertx-eventbus</module>
-	<module>smallrye-reactive-messaging-aws-sns</module>
+	  <module>smallrye-reactive-messaging-aws-sns</module>
     <module>smallrye-reactive-messaging-cloud-events</module>
 
     <module>examples/quickstart</module>
