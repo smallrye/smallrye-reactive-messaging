@@ -15,11 +15,8 @@ import com.amazonaws.services.sns.message.SnsMessageManager;
 import com.amazonaws.services.sns.message.SnsNotification;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -103,15 +100,11 @@ public class SnsVerticle extends AbstractVerticle {
         }
 
         vertx.createHttpServer().requestHandler(router)
-                .listen(port, new Handler<AsyncResult<HttpServer>>() {
-
-                    @Override
-                    public void handle(AsyncResult<HttpServer> event) {
-                        if (event.succeeded()) {
-                            startFuture.complete();
-                        } else {
-                            startFuture.fail("Unable to create vertx http server");
-                        }
+                .listen(port, event -> {
+                    if (event.succeeded()) {
+                        startFuture.complete();
+                    } else {
+                        startFuture.fail("Unable to create vertx http server");
                     }
                 });
     }
@@ -141,7 +134,7 @@ public class SnsVerticle extends AbstractVerticle {
                     @Override
                     public void handle(SnsNotification snsNotification) {
                         LOG.info("Handling new message ...");
-                        SnsMessage<String> snsMessage = new SnsMessage<String>(snsNotification);
+                        SnsMessage<String> snsMessage = new SnsMessage<>(snsNotification);
                         msgQ.add(snsMessage);
                         LOG.trace("New message has been added to Q");
                     }

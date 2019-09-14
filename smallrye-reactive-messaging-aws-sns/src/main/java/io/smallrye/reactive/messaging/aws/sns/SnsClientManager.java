@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 
@@ -53,6 +54,7 @@ public class SnsClientManager {
                 Objects.requireNonNull(cfg.getHost(), "Host cannot be null");
                 snsUrl = new URL(cfg.getHost());
                 clientBuilder.endpointOverride(snsUrl.toURI());
+                clientBuilder.region(Region.AP_SOUTH_1);
             } catch (MalformedURLException | URISyntaxException e) {
                 throw new IllegalArgumentException("Invalid URL", e);
             }
