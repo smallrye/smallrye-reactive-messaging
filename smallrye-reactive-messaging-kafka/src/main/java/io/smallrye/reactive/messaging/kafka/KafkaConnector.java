@@ -62,6 +62,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String s = servers;
+        System.out.println("kafkaConnector - Creating kafkaSource");
         KafkaSource<Object, Object> source = new KafkaSource<>(vertx, config, s);
         sources.add(source);
         return source.getSource();

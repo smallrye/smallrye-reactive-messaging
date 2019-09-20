@@ -9,6 +9,8 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
+import io.opentracing.util.GlobalTracer;
+
 public class PublisherMediator extends AbstractMediator {
 
     private PublisherBuilder<Message> publisher;
@@ -43,6 +45,7 @@ public class PublisherMediator extends AbstractMediator {
 
     @Override
     public void initialize(Object bean) {
+        System.out.println(this.getClass().getName() + ":, active span" + GlobalTracer.get().activeSpan());
         super.initialize(bean);
         switch (configuration.production()) {
             case STREAM_OF_MESSAGE: // 1, 3
@@ -116,7 +119,10 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     private void produceIndividualCompletionStageOfMessages() {
-        setPublisher(ReactiveStreams.<CompletionStage<Message>> generate(this::invoke)
+        setPublisher(ReactiveStreams.<CompletionStage<Message>> generate(() -> {
+            System.out.println("Individual message");
+            return invoke();
+        })
                 .flatMapCompletionStage(Function.identity()));
     }
 
