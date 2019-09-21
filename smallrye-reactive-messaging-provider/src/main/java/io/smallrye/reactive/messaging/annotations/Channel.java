@@ -34,12 +34,10 @@ import javax.inject.Qualifier;
  * </code>
  * </pre>
  *
- * @deprecated use {@link Channel @Channel} instead"
  */
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)
-@Deprecated
-public @interface Stream {
+public @interface Channel {
 
     /**
      * The name of the stream (indicated in the {@code @Outgoing} annotation.

@@ -8,18 +8,18 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 @ApplicationScoped
 public class BeanInjectedWithAFlowableOfMessages {
 
     private final Flowable<Message<String>> constructor;
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Flowable<Message<String>> field;
 
     @Inject
-    public BeanInjectedWithAFlowableOfMessages(@Stream("bonjour") Flowable<Message<String>> constructor) {
+    public BeanInjectedWithAFlowableOfMessages(@Channel("bonjour") Flowable<Message<String>> constructor) {
         this.constructor = constructor;
     }
 

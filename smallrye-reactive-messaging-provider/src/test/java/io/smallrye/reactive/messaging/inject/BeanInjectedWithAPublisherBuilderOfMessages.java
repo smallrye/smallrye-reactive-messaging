@@ -10,18 +10,18 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 @ApplicationScoped
 public class BeanInjectedWithAPublisherBuilderOfMessages {
 
     private final PublisherBuilder<Message<String>> constructor;
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private PublisherBuilder<Message<String>> field;
 
     @Inject
-    public BeanInjectedWithAPublisherBuilderOfMessages(@Stream("bonjour") PublisherBuilder<Message<String>> constructor) {
+    public BeanInjectedWithAPublisherBuilderOfMessages(@Channel("bonjour") PublisherBuilder<Message<String>> constructor) {
         this.constructor = constructor;
     }
 

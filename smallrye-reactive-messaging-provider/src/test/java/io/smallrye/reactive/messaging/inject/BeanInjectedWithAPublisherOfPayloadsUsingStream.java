@@ -5,19 +5,21 @@ import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.reactivestreams.Publisher;
+
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Channel;
+import io.smallrye.reactive.messaging.annotations.Stream;
 
 @ApplicationScoped
-public class BeanInjectedWithAFlowableOfPayloads {
+public class BeanInjectedWithAPublisherOfPayloadsUsingStream {
 
-    private final Flowable<String> constructor;
+    private final Publisher<String> constructor;
     @Inject
-    @Channel("hello")
-    private Flowable<String> field;
+    @Stream("hello")
+    private Publisher<String> field;
 
     @Inject
-    public BeanInjectedWithAFlowableOfPayloads(@Channel("bonjour") Flowable<String> constructor) {
+    public BeanInjectedWithAPublisherOfPayloadsUsingStream(@Stream("bonjour") Publisher<String> constructor) {
         this.constructor = constructor;
     }
 

@@ -16,7 +16,7 @@ import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.extension.StreamProducer;
+import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.vertx.reactivex.core.Vertx;
@@ -81,7 +81,7 @@ public class KafkaTestBase {
         weld.addBeanClass(MediatorManager.class);
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
-        weld.addBeanClass(StreamProducer.class);
+        weld.addBeanClass(ChannelProducer.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
         weld.addBeanClass(KafkaConnector.class);

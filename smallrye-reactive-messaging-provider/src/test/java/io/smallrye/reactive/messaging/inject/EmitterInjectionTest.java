@@ -15,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.annotations.Stream;
@@ -24,6 +25,16 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test
     public void testWithPayloads() {
         MyBeanEmittingPayloads bean = installInitializeAndGet(MyBeanEmittingPayloads.class);
+        bean.run();
+        assertThat(bean.emitter()).isNotNull();
+        assertThat(bean.list()).containsExactly("a", "b", "c");
+        assertThat(bean.emitter().isCancelled()).isTrue();
+        assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
+    }
+
+    @Test
+    public void testWithPayloadsLegacy() {
+        MyBeanEmittingPayloadsUsingStream bean = installInitializeAndGet(MyBeanEmittingPayloadsUsingStream.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -44,6 +55,16 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test
     public void testWithMessages() {
         MyBeanEmittingMessages bean = installInitializeAndGet(MyBeanEmittingMessages.class);
+        bean.run();
+        assertThat(bean.emitter()).isNotNull();
+        assertThat(bean.list()).containsExactly("a", "b", "c");
+        assertThat(bean.emitter().isCancelled()).isFalse();
+        assertThat(bean.emitter().isRequested()).isTrue();
+    }
+
+    @Test
+    public void testWithMessagesLegacy() {
+        MyBeanEmittingMessagesUsingStream bean = installInitializeAndGet(MyBeanEmittingMessagesUsingStream.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -88,6 +109,11 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         installInitializeAndGet(BeanWithMissingStream.class);
     }
 
+    @Test(expected = DeploymentException.class)
+    public void testWithMissingChannel() {
+        installInitializeAndGet(BeanWithMissingChannel.class);
+    }
+
     @Test
     public void testWithTwoEmittersConnectedToOneProcessor() {
         TwoEmittersConnectedToProcessor bean = installInitializeAndGet(TwoEmittersConnectedToProcessor.class);
@@ -97,6 +123,31 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @ApplicationScoped
     public static class MyBeanEmittingPayloads {
+        @Inject
+        @Channel("foo")
+        Emitter<String> emitter;
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        public Emitter<String> emitter() {
+            return emitter;
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+        public void run() {
+            emitter.send("a").send("b").send("c").complete();
+        }
+
+        @Incoming("foo")
+        public void consume(String s) {
+            list.add(s);
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyBeanEmittingPayloadsUsingStream {
         @Inject
         @Stream("foo")
         Emitter<String> emitter;
@@ -147,6 +198,33 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
     }
 
+    @ApplicationScoped
+    public static class MyBeanEmittingMessagesUsingStream {
+        @Inject
+        @Channel("foo")
+        Emitter<Message<String>> emitter;
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        public Emitter<Message<String>> emitter() {
+            return emitter;
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+        public void run() {
+            emitter.send(Message.of("a"));
+            emitter.send(Message.of("b"));
+            emitter.send(Message.of("c"));
+        }
+
+        @Incoming("foo")
+        public void consume(String s) {
+            list.add(s);
+        }
+    }
+
     public static class BeanWithMissingStream {
         @Inject
         @Stream("missing")
@@ -158,10 +236,21 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
     }
 
+    public static class BeanWithMissingChannel {
+        @Inject
+        @Channel("missing")
+        Emitter<Message<String>> emitter;
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        public Emitter<Message<String>> emitter() {
+            return emitter;
+        }
+    }
+
     @ApplicationScoped
     public static class MyBeanEmittingNull {
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<String> emitter;
         private List<String> list = new CopyOnWriteArrayList<>();
         private boolean caught;
@@ -197,7 +286,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyBeanEmittingDataAfterTermination {
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<String> emitter;
         private List<String> list = new CopyOnWriteArrayList<>();
         private boolean caught;
@@ -232,7 +321,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyBeanEmittingDataAfterTerminationWithError {
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<String> emitter;
         private List<String> list = new CopyOnWriteArrayList<>();
         private boolean caught;
@@ -267,7 +356,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class EmitterConnectedToProcessor {
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<String> emitter;
         private List<String> list = new CopyOnWriteArrayList<>();
 
@@ -298,11 +387,11 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class TwoEmittersConnectedToProcessor {
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<String> emitter1;
 
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<String> emitter2;
 
         private List<String> list = new CopyOnWriteArrayList<>();

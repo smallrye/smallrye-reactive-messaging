@@ -15,9 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class ReactiveMessagingExtension implements Extension {
 
@@ -37,14 +37,14 @@ public class ReactiveMessagingExtension implements Extension {
     }
 
     <T extends Publisher<?>> void processStreamPublisherInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
-        Stream stream = StreamProducer.getStreamQualifier(pip.getInjectionPoint());
+        Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
         if (stream != null) {
             streamInjectionPoints.add(pip.getInjectionPoint());
         }
     }
 
     <T extends Emitter<?>> void processStreamEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
-        Stream stream = StreamProducer.getStreamQualifier(pip.getInjectionPoint());
+        Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
         if (stream != null) {
             emitterInjectionPoints.add(pip.getInjectionPoint());
         }
@@ -52,7 +52,7 @@ public class ReactiveMessagingExtension implements Extension {
 
     <T extends PublisherBuilder<?>> void processStreamPublisherBuilderInjectionPoint(
             @Observes ProcessInjectionPoint<?, T> pip) {
-        Stream stream = StreamProducer.getStreamQualifier(pip.getInjectionPoint());
+        Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
         if (stream != null) {
             streamInjectionPoints.add(pip.getInjectionPoint());
         }
@@ -66,12 +66,12 @@ public class ReactiveMessagingExtension implements Extension {
 
         Map<String, OnOverflow> emitters = new HashMap<>();
         for (InjectionPoint point : emitterInjectionPoints) {
-            String name = StreamProducer.getStreamName(point);
+            String name = ChannelProducer.getChannelName(point);
             OnOverflow onOverflow = point.getAnnotated().getAnnotation(OnOverflow.class);
             emitters.put(name, onOverflow);
         }
 
-        emitterInjectionPoints.stream().map(StreamProducer::getStreamName).collect(Collectors.toList());
+        emitterInjectionPoints.stream().map(ChannelProducer::getChannelName).collect(Collectors.toList());
         MediatorManager mediatorManager = instance.select(MediatorManager.class)
                 .get();
         mediatorManager.initializeEmitters(emitters);
@@ -88,7 +88,7 @@ public class ReactiveMessagingExtension implements Extension {
             // NOTE: We do not validate @Stream annotations added by portable extensions
             Set<String> names = registry.getIncomingNames();
             for (InjectionPoint ip : streamInjectionPoints) {
-                String name = StreamProducer.getStreamName(ip);
+                String name = ChannelProducer.getChannelName(ip);
                 if (!names.contains(name)) {
                     done.addDeploymentProblem(
                             new DeploymentException("No channel found for name: " + name + ", injection point: " + ip));
@@ -98,7 +98,7 @@ public class ReactiveMessagingExtension implements Extension {
             streamInjectionPoints.clear();
 
             for (InjectionPoint ip : emitterInjectionPoints) {
-                String name = StreamProducer.getStreamName(ip);
+                String name = ChannelProducer.getChannelName(ip);
                 EmitterImpl<?> emitter = (EmitterImpl<?>) registry.getEmitter(name);
                 if (!emitter.isConnected()) {
                     done.addDeploymentProblem(

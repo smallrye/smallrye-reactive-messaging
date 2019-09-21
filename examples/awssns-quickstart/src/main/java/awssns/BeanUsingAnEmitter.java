@@ -7,14 +7,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 @ApplicationScoped
 public class BeanUsingAnEmitter {
 
     @Inject
-    @Stream("my-stream")
+    @Channel("my-channel")
     Emitter<String> emitter;
 
     public void periodicallySendMessage() {
