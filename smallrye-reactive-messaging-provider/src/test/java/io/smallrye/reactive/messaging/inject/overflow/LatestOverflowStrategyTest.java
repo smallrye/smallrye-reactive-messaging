@@ -22,9 +22,9 @@ import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.schedulers.Schedulers;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class LatestOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
@@ -67,7 +67,7 @@ public class LatestOverflowStrategyTest extends WeldTestBaseWithoutTails {
     public static class BeanUsingLatestOverflowStrategy {
 
         @Inject
-        @Stream("hello")
+        @Channel("hello")
         @OnOverflow(value = OnOverflow.Strategy.LATEST)
         Emitter<String> emitter;
 

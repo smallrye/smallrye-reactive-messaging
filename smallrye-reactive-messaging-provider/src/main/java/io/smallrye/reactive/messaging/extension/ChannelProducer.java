@@ -24,7 +24,7 @@ import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 
 @ApplicationScoped
-public class StreamProducer {
+public class ChannelProducer {
 
     @Inject
     ChannelRegistry channelRegistry;

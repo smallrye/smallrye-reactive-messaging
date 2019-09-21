@@ -6,18 +6,18 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Channel;
+import io.smallrye.reactive.messaging.annotations.Stream;
 
 @ApplicationScoped
-public class BeanInjectedWithAFlowableOfPayloads {
+public class BeanInjectedWithAFlowableOfPayloadsUsingStream {
 
     private final Flowable<String> constructor;
     @Inject
-    @Channel("hello")
+    @Stream("hello")
     private Flowable<String> field;
 
     @Inject
-    public BeanInjectedWithAFlowableOfPayloads(@Channel("bonjour") Flowable<String> constructor) {
+    public BeanInjectedWithAFlowableOfPayloadsUsingStream(@Stream("bonjour") Flowable<String> constructor) {
         this.constructor = constructor;
     }
 
