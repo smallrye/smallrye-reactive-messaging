@@ -439,7 +439,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel2">
 <li><a href="#_merge">@Merge</a></li>
 <li><a href="#_broadcast">@Broadcast</a></li>
-<li><a href="#_stream">@Stream</a></li>
+<li><a href="#_channel">@Channel</a></li>
 <li><a href="#_logging">Logging</a></li>
 <li><a href="#_strict_binding_mode">Strict Binding Mode</a></li>
 </ul>
@@ -455,7 +455,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h3 id="_merge">@Merge</h3>
 <div class="paragraph">
 <p>The <code>@Merge</code> annotation can be used on a method annotated with <code>@Incoming</code> to subscribed to all matching `@Outgoing
-streams. For example, if you have several method producing data to a stream named "sink", the following method receives
+channels. For example, if you have several method producing data to a channel named "sink", the following method receives
 all of them:</p>
 </div>
 <div class="listingblock">
@@ -503,23 +503,23 @@ public String process(String s) {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_stream">@Stream</h3>
+<h3 id="_channel">@Channel</h3>
 <div class="paragraph">
-<p><code>@Stream</code> is a qualifier to inject a <em>stream</em> into a regular CDI bean.
-It&#8217;s used to bridge the <em>imperative</em> and <em>reactive</em> worlds, or retrieve streams managed by Reactive Messaging.</p>
+<p><code>@Channel</code> is a qualifier to inject a <em>channel</em> into a regular CDI bean.
+It&#8217;s used to bridge the <em>imperative</em> and <em>reactive</em> worlds, or retrieve channels managed by Reactive Messaging.</p>
 </div>
 <div class="paragraph">
-<p>You can retrieve a stream using:</p>
+<p>You can retrieve a channel using:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject
-@Stream("hello")
+@Channel("hello")
 private Publisher&lt;Message&lt;String&gt;&gt; field;</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The value indicates the name of the stream. You can inject a stream as:</p>
+<p>The value indicates the name of the channel. You can inject a channel as:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -535,15 +535,15 @@ private Publisher&lt;Message&lt;String&gt;&gt; field;</code></pre>
 </ul>
 </div>
 <div class="paragraph">
-<p>You must have a <code>@Incoming("hello")</code> somewhere in your application (meaning a method consuming messages transiting on the stream <code>hello</code>),
+<p>You must have a <code>@Incoming("hello")</code> somewhere in your application (meaning a method consuming messages transiting on the channel <code>hello</code>),
  or a sink of message configured (<code>mp.messaging.outgoing.hello&#8230;&#8203;</code>)</p>
 </div>
 <div class="paragraph">
-<p>You can also emits data to a stream using:</p>
+<p>You can also emits data to a channel using:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject @Stream("hello")
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject @Channel("hello")
 Emitter&lt;String&gt; emitter;
 
 // ...
@@ -552,7 +552,73 @@ emitter.send("a").send("b");</code></pre>
 </div>
 <div class="paragraph">
 <p>You can inject an <code>io.smallrye.reactive.messaging.annotations.Emitter&lt;T&gt;</code> or <code>io.smallrye.reactive.messaging.annotations.Emitter&lt;Message&lt;T&gt;&gt;</code>.
-To use an <code>Emitter</code> for the stream <code>hello</code>, you need a <code>@Incoming("hello")</code> somewhere in your code (or in your configuration).</p>
+To use an <code>Emitter</code> for the channel <code>hello</code>, you need a <code>@Incoming("hello")</code> somewhere in your code (or in your configuration).</p>
+</div>
+<div class="paragraph">
+<p>When injecting an <code>Emitter</code> you can configure how the back-pressure is handled.
+The <code>OnOverflow</code> annotation configures what needs to happen when you emit payloads/messages faster than the downstream can consumes.
+By default a buffer of 127 items is used to manage <em>bumps</em>.
+You can change this behavior as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject
+@Channel("hello")
+@OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 300)
+Emitter&lt;String&gt; emitter;
+
+// ...
+emitter.send("a").send("b");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this snippet, the buffer size is set to <code>300</code>. If you omit the <code>bufferSize</code> (in conjunction with the <code>BUFFER</code> strategy) an unbounded buffer is used.
+The <code>value</code> attribute can be:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>OnOverflow.Strategy.BUFFER</code> - use a buffer, potentially unbounded to store the elements until they are consumed. If
+the buffer is full, a failure is propagated (and the thread using the emitted gets an exception)</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.DROP</code> - drops the most recent value if the downstream can&#8217;t keep up. It means that new value
+emitted by the emitter are ignored.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.FAIL</code> - propagates a failure in case the downstream can&#8217;t keep up.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.LATEST</code> - keeps only the latest value, dropping any previous value if the downstream can&#8217;t keep up.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.NONE</code> - ignore the back-pressure signals letting the downstream consumer to implement a strategy.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Here are some examples:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject
+@Channel("hello") // Buffer strategy using the default buffer size
+Emitter&lt;String&gt; emitter;
+
+@Inject
+@Channel("hello")
+@OnOverflow(value = OnOverflow.Strategy.BUFFER) // Buffer strategy, unbounded buffer
+Emitter&lt;String&gt; emitter;
+
+@Inject
+@Channel("hello")
+@OnOverflow(value = OnOverflow.Strategy.DROP) // Drop the most recent values
+Emitter&lt;String&gt; emitter;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The default buffer size (<code>127</code>) can be configured using the <code>smallrye.messaging.emitter.default-buffer-size</code> property set using MicroProfile Config.
+Note that this value is only applied when <code>OnOverflow</code> is not used.</p>
 </div>
 </div>
 <div class="sect2">
@@ -574,7 +640,7 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-03-28 08:17:04 +0100
+Last updated 2019-09-22 09:48:58 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">

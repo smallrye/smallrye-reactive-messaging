@@ -437,10 +437,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel1">
 <li><a href="#_interacting_using_mqtt">Interacting using MQTT</a>
 <ul class="sectlevel2">
-<li><a href="#_dependency">Dependency</a></li>
-<li><a href="#_retrieving_messages_from_mqtt">Retrieving messages from MQTT</a></li>
-<li><a href="#_forwarding_messages_to_mqtt">Forwarding messages to MQTT</a></li>
-<li><a href="#_advanced_configuration">Advanced configuration</a></li>
+<li><a href="#_mqtt_client_incoming_or_outgoing">MQTT client (incoming or outgoing)</a></li>
+<li><a href="#_mqtt_server">MQTT server</a></li>
 </ul>
 </li>
 </ul>
@@ -451,26 +449,43 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h2 id="_interacting_using_mqtt">Interacting using MQTT</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>You can connect to a MQTT broker or server as a source or sink. The MQTT support is based on the
-<a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x MQTT Client</a>.</p>
+<p>You have two options here:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>you can connect to an MQTT broker or server as a source or sink. The MQTT support is based on
+the <a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x MQTT Client</a>.</p>
+</li>
+<li>
+<p>you can receive MQTT messages as an MQTT server. The MQTT support is based on the
+<a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_server">Vert.x MQTT Server</a></p>
+</li>
+</ol>
 </div>
 <div class="sect2">
-<h3 id="_dependency">Dependency</h3>
+<h3 id="_mqtt_client_incoming_or_outgoing">MQTT client (incoming or outgoing)</h3>
 <div class="paragraph">
-<p>To enable the MQTT support, you need the following dependency:</p>
+<p>For if you want to produce or consumer MQTT messages coming or going to an MQTT broker
+or server.</p>
+</div>
+<div class="sect3">
+<h4 id="_dependency">Dependency</h4>
+<div class="paragraph">
+<p>To enable the MQTT client support, you need the following dependency:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-mqtt-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-mqtt&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_retrieving_messages_from_mqtt">Retrieving messages from MQTT</h3>
+<div class="sect3">
+<h4 id="_retrieving_messages_from_an_mqtt_broker_or_server">Retrieving messages from an MQTT broker or server</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.topic=data
@@ -499,8 +514,8 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </table>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_forwarding_messages_to_mqtt">Forwarding messages to MQTT</h3>
+<div class="sect3">
+<h4 id="_forwarding_messages_to_an_mqtt_broker_or_server">Forwarding messages to an MQTT broker or server</h4>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.topic=data
@@ -512,7 +527,7 @@ mp.messaging.outgoing.data.password=secret</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The payload of message forwarded to MQTT must be:</p>
+<p>The payload of message forwarded to an MQTT broker or server must be:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -543,11 +558,85 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </table>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_advanced_configuration">Advanced configuration</h3>
+<div class="sect3">
+<h4 id="_advanced_configuration">Advanced configuration</h4>
 <div class="paragraph">
 <p>Check <code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource</code> and
 <code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink</code> for further details on the attributes.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_mqtt_server">MQTT server</h3>
+<div class="paragraph">
+<p>For if you want your code to act as an MQTT server to receive MQTT messages from one or more
+clients.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+This isn&#8217;t a fully featured MQTT server, it will only handle publish requests and their
+acknowledgment (for QoS 1 &amp; 2). It will ignore subscription requests for instance.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The server has no persistence, if no subscribers are listening, messages will be dropped.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_dependency_2">Dependency</h4>
+<div class="paragraph">
+<p>To enable the MQTT server support, you need the following dependency:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-mqtt-server&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_receive_mqtt_messages_from_one_or_more_mqtt_client">Receive MQTT messages from one or more MQTT client</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code># [Source - messages] - Receive MQTT messages
+# Required
+mp.messaging.incoming.messages.connector=smallrye-mqtt-server
+
+#mp.messaging.incoming.messages.host=0.0.0.0
+#mp.messaging.incoming.messages.port=1883
+# If clientid should be auto-generated when it's "zero-bytes"
+#mp.messaging.incoming.messages.auto-client-id=true
+# Max MQTT message size (variable header + payload)
+#mp.messaging.incoming.messages.max-message-size=-1
+# The timeout on CONNECT packet
+#mp.messaging.incoming.messages.timeout-on-connect=90
+# The TCP receive buffer size
+#mp.messaging.incoming.messages.receive-buffer-size=-1
+# [/Source - messages]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Message coming from MQTT are <code>Message&lt;byte[]&gt;</code>. The payload is a <code>byte[]</code>. You can also receive
+<code>io.smallrye.reactive.messaging.mqtt.server.MqttMessage</code> which give you access to message metadata.</p>
+</div>
 </div>
 </div>
 </div>
@@ -555,7 +644,7 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-06-17 15:15:22 +0200
+Last updated 2019-09-11 11:15:39 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">

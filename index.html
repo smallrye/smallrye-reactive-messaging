@@ -442,8 +442,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h1>SmallRye Reactive Messaging</h1>
 <div class="details">
 <span id="author" class="author">Clement Escoffier</span><br>
-<span id="revnumber">version 1.0.0,</span>
-<span id="revdate">2019-07-11</span>
+<span id="revnumber">version 1.0.4,</span>
+<span id="revdate">2019-09-22</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">SmallRye Reactive Messaging</div>
@@ -511,21 +511,31 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#_interacting_using_mqtt">11. Interacting using MQTT</a>
 <ul class="sectlevel3">
-<li><a href="#_dependency_4">11.1. Dependency</a></li>
-<li><a href="#_retrieving_messages_from_mqtt">11.2. Retrieving messages from MQTT</a></li>
-<li><a href="#_forwarding_messages_to_mqtt">11.3. Forwarding messages to MQTT</a></li>
-<li><a href="#_advanced_configuration">11.4. Advanced configuration</a></li>
+<li><a href="#_mqtt_client_incoming_or_outgoing">11.1. MQTT client (incoming or outgoing)</a>
+<ul class="sectlevel4">
+<li><a href="#_dependency_4">Dependency</a></li>
+<li><a href="#_retrieving_messages_from_an_mqtt_broker_or_server">Retrieving messages from an MQTT broker or server</a></li>
+<li><a href="#_forwarding_messages_to_an_mqtt_broker_or_server">Forwarding messages to an MQTT broker or server</a></li>
+<li><a href="#_advanced_configuration">Advanced configuration</a></li>
+</ul>
+</li>
+<li><a href="#_mqtt_server">11.2. MQTT server</a>
+<ul class="sectlevel4">
+<li><a href="#_dependency_5">Dependency</a></li>
+<li><a href="#_receive_mqtt_messages_from_one_or_more_mqtt_client">Receive MQTT messages from one or more MQTT client</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#_emitting_http_requests">12. Emitting HTTP requests</a>
 <ul class="sectlevel3">
-<li><a href="#_dependency_5">12.1. Dependency</a></li>
+<li><a href="#_dependency_6">12.1. Dependency</a></li>
 <li><a href="#_forwarding_messages_to_http">12.2. Forwarding messages to HTTP</a></li>
 </ul>
 </li>
 <li><a href="#_interacting_with_the_vert_x_eventbus">13. Interacting with the Vert.x Eventbus</a>
 <ul class="sectlevel3">
-<li><a href="#_dependency_6">13.1. Dependency</a></li>
+<li><a href="#_dependency_7">13.1. Dependency</a></li>
 <li><a href="#_retrieving_messages_from_the_event_bus">13.2. Retrieving messages from the event bus</a></li>
 <li><a href="#_sending_messages_to_the_event_bus">13.3. Sending messages to the event bus</a></li>
 </ul>
@@ -534,7 +544,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#_merge">14.1. @Merge</a></li>
 <li><a href="#_broadcast">14.2. @Broadcast</a></li>
-<li><a href="#_stream">14.3. @Stream</a></li>
+<li><a href="#_channel">14.3. @Channel</a></li>
 <li><a href="#_logging">14.4. Logging</a></li>
 <li><a href="#_strict_binding_mode">14.5. Strict Binding Mode</a></li>
 </ul>
@@ -591,18 +601,18 @@ sourcing applications&#8230;&#8203;</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-provider-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-provider&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-streams-operators-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-streams-operators&lt;/artifactId&gt;
+  &lt;version&gt;1.0.9&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.jboss.weld.se&lt;/groupId&gt;
   &lt;artifactId&gt;weld-se-core&lt;/artifactId&gt;
-  &lt;version&gt;3.1.1.Final&lt;/version&gt;
+  &lt;version&gt;3.1.2.Final&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -689,7 +699,7 @@ public class MyBean {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">mvn compile exc:java -Dexec.mainClass=&lt;Main fully qualified class name&gt;</code></pre>
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">mvn compile exec:java -Dexec.mainClass=&lt;Main fully qualified class name&gt;</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1445,7 +1455,7 @@ For instance, add the following dependency:</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-config-1.3&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;version&gt;1.3.9&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1541,8 +1551,8 @@ mp.messaging.outgoing.data.acks=1
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-kafka-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1608,9 +1618,9 @@ be set using the <code>kafka.bootstrap.servers</code> config property.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">group.id</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false (BUT should be set in production)</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">the group id, random if omitted</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">the group id. A new random group id is generated if omitted. This feature is only for development. In production, a group id should be set.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">enable.auto.commit</p></td>
@@ -1765,8 +1775,8 @@ The AMQP support is based on the <a href="https://vertx.io/docs/vertx-amqp-clien
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-amqp-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-amqp&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1886,8 +1896,8 @@ almost any existing system.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-camel-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-camel&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2028,26 +2038,43 @@ public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 <div class="sect2">
 <h3 id="_interacting_using_mqtt">11. Interacting using MQTT</h3>
 <div class="paragraph">
-<p>You can connect to a MQTT broker or server as a source or sink. The MQTT support is based on the
-<a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x MQTT Client</a>.</p>
+<p>You have two options here:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>you can connect to an MQTT broker or server as a source or sink. The MQTT support is based on
+the <a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x MQTT Client</a>.</p>
+</li>
+<li>
+<p>you can receive MQTT messages as an MQTT server. The MQTT support is based on the
+<a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_server">Vert.x MQTT Server</a></p>
+</li>
+</ol>
 </div>
 <div class="sect3">
-<h4 id="_dependency_4">11.1. Dependency</h4>
+<h4 id="_mqtt_client_incoming_or_outgoing">11.1. MQTT client (incoming or outgoing)</h4>
 <div class="paragraph">
-<p>To enable the MQTT support, you need the following dependency:</p>
+<p>For if you want to produce or consumer MQTT messages coming or going to an MQTT broker
+or server.</p>
+</div>
+<div class="sect4">
+<h5 id="_dependency_4">Dependency</h5>
+<div class="paragraph">
+<p>To enable the MQTT client support, you need the following dependency:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-mqtt-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-mqtt&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_retrieving_messages_from_mqtt">11.2. Retrieving messages from MQTT</h4>
+<div class="sect4">
+<h5 id="_retrieving_messages_from_an_mqtt_broker_or_server">Retrieving messages from an MQTT broker or server</h5>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.incoming.data.topic=data
@@ -2076,8 +2103,8 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </table>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_forwarding_messages_to_mqtt">11.3. Forwarding messages to MQTT</h4>
+<div class="sect4">
+<h5 id="_forwarding_messages_to_an_mqtt_broker_or_server">Forwarding messages to an MQTT broker or server</h5>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.topic=data
@@ -2089,7 +2116,7 @@ mp.messaging.outgoing.data.password=secret</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The payload of message forwarded to MQTT must be:</p>
+<p>The payload of message forwarded to an MQTT broker or server must be:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2120,11 +2147,85 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 </table>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_advanced_configuration">11.4. Advanced configuration</h4>
+<div class="sect4">
+<h5 id="_advanced_configuration">Advanced configuration</h5>
 <div class="paragraph">
 <p>Check <code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource</code> and
 <code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink</code> for further details on the attributes.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_mqtt_server">11.2. MQTT server</h4>
+<div class="paragraph">
+<p>For if you want your code to act as an MQTT server to receive MQTT messages from one or more
+clients.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+This isn&#8217;t a fully featured MQTT server, it will only handle publish requests and their
+acknowledgment (for QoS 1 &amp; 2). It will ignore subscription requests for instance.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The server has no persistence, if no subscribers are listening, messages will be dropped.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect4">
+<h5 id="_dependency_5">Dependency</h5>
+<div class="paragraph">
+<p>To enable the MQTT server support, you need the following dependency:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-mqtt-server&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_receive_mqtt_messages_from_one_or_more_mqtt_client">Receive MQTT messages from one or more MQTT client</h5>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code># [Source - messages] - Receive MQTT messages
+# Required
+mp.messaging.incoming.messages.connector=smallrye-mqtt-server
+
+#mp.messaging.incoming.messages.host=0.0.0.0
+#mp.messaging.incoming.messages.port=1883
+# If clientid should be auto-generated when it's "zero-bytes"
+#mp.messaging.incoming.messages.auto-client-id=true
+# Max MQTT message size (variable header + payload)
+#mp.messaging.incoming.messages.max-message-size=-1
+# The timeout on CONNECT packet
+#mp.messaging.incoming.messages.timeout-on-connect=90
+# The TCP receive buffer size
+#mp.messaging.incoming.messages.receive-buffer-size=-1
+# [/Source - messages]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Message coming from MQTT are <code>Message&lt;byte[]&gt;</code>. The payload is a <code>byte[]</code>. You can also receive
+<code>io.smallrye.reactive.messaging.mqtt.server.MqttMessage</code> which give you access to message metadata.</p>
+</div>
 </div>
 </div>
 </div>
@@ -2134,7 +2235,7 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 <p>You can also <em>push</em> the incoming messages to a HTTP endpoint using the <em>HTTP connector</em>.</p>
 </div>
 <div class="sect3">
-<h4 id="_dependency_5">12.1. Dependency</h4>
+<h4 id="_dependency_6">12.1. Dependency</h4>
 <div class="paragraph">
 <p>To enable the HTTP support, you need the following dependency:</p>
 </div>
@@ -2142,8 +2243,8 @@ If the <code>topic</code> attribute is not set the channel name is used instead.
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-http-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-http&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2188,7 +2289,7 @@ mp.messaging.outgoing.data.connector=smallrye-http</code></pre>
 an asynchronous way.</p>
 </div>
 <div class="sect3">
-<h4 id="_dependency_6">13.1. Dependency</h4>
+<h4 id="_dependency_7">13.1. Dependency</h4>
 <div class="paragraph">
 <p>To enable the Vert.x EventBus support, you need the following dependency:</p>
 </div>
@@ -2196,8 +2297,8 @@ an asynchronous way.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2251,7 +2352,7 @@ specifies the reply timeout.</p>
 <h4 id="_merge">14.1. @Merge</h4>
 <div class="paragraph">
 <p>The <code>@Merge</code> annotation can be used on a method annotated with <code>@Incoming</code> to subscribed to all matching `@Outgoing
-streams. For example, if you have several method producing data to a stream named "sink", the following method receives
+channels. For example, if you have several method producing data to a channel named "sink", the following method receives
 all of them:</p>
 </div>
 <div class="listingblock">
@@ -2299,23 +2400,23 @@ public String process(String s) {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_stream">14.3. @Stream</h4>
+<h4 id="_channel">14.3. @Channel</h4>
 <div class="paragraph">
-<p><code>@Stream</code> is a qualifier to inject a <em>stream</em> into a regular CDI bean.
-It&#8217;s used to bridge the <em>imperative</em> and <em>reactive</em> worlds, or retrieve streams managed by Reactive Messaging.</p>
+<p><code>@Channel</code> is a qualifier to inject a <em>channel</em> into a regular CDI bean.
+It&#8217;s used to bridge the <em>imperative</em> and <em>reactive</em> worlds, or retrieve channels managed by Reactive Messaging.</p>
 </div>
 <div class="paragraph">
-<p>You can retrieve a stream using:</p>
+<p>You can retrieve a channel using:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject
-@Stream("hello")
+@Channel("hello")
 private Publisher&lt;Message&lt;String&gt;&gt; field;</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The value indicates the name of the stream. You can inject a stream as:</p>
+<p>The value indicates the name of the channel. You can inject a channel as:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2331,15 +2432,15 @@ private Publisher&lt;Message&lt;String&gt;&gt; field;</code></pre>
 </ul>
 </div>
 <div class="paragraph">
-<p>You must have a <code>@Incoming("hello")</code> somewhere in your application (meaning a method consuming messages transiting on the stream <code>hello</code>),
+<p>You must have a <code>@Incoming("hello")</code> somewhere in your application (meaning a method consuming messages transiting on the channel <code>hello</code>),
  or a sink of message configured (<code>mp.messaging.outgoing.hello&#8230;&#8203;</code>)</p>
 </div>
 <div class="paragraph">
-<p>You can also emits data to a stream using:</p>
+<p>You can also emits data to a channel using:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject @Stream("hello")
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject @Channel("hello")
 Emitter&lt;String&gt; emitter;
 
 // ...
@@ -2348,7 +2449,73 @@ emitter.send("a").send("b");</code></pre>
 </div>
 <div class="paragraph">
 <p>You can inject an <code>io.smallrye.reactive.messaging.annotations.Emitter&lt;T&gt;</code> or <code>io.smallrye.reactive.messaging.annotations.Emitter&lt;Message&lt;T&gt;&gt;</code>.
-To use an <code>Emitter</code> for the stream <code>hello</code>, you need a <code>@Incoming("hello")</code> somewhere in your code (or in your configuration).</p>
+To use an <code>Emitter</code> for the channel <code>hello</code>, you need a <code>@Incoming("hello")</code> somewhere in your code (or in your configuration).</p>
+</div>
+<div class="paragraph">
+<p>When injecting an <code>Emitter</code> you can configure how the back-pressure is handled.
+The <code>OnOverflow</code> annotation configures what needs to happen when you emit payloads/messages faster than the downstream can consumes.
+By default a buffer of 127 items is used to manage <em>bumps</em>.
+You can change this behavior as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject
+@Channel("hello")
+@OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 300)
+Emitter&lt;String&gt; emitter;
+
+// ...
+emitter.send("a").send("b");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this snippet, the buffer size is set to <code>300</code>. If you omit the <code>bufferSize</code> (in conjunction with the <code>BUFFER</code> strategy) an unbounded buffer is used.
+The <code>value</code> attribute can be:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>OnOverflow.Strategy.BUFFER</code> - use a buffer, potentially unbounded to store the elements until they are consumed. If
+the buffer is full, a failure is propagated (and the thread using the emitted gets an exception)</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.DROP</code> - drops the most recent value if the downstream can&#8217;t keep up. It means that new value
+emitted by the emitter are ignored.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.FAIL</code> - propagates a failure in case the downstream can&#8217;t keep up.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.LATEST</code> - keeps only the latest value, dropping any previous value if the downstream can&#8217;t keep up.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.NONE</code> - ignore the back-pressure signals letting the downstream consumer to implement a strategy.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Here are some examples:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject
+@Channel("hello") // Buffer strategy using the default buffer size
+Emitter&lt;String&gt; emitter;
+
+@Inject
+@Channel("hello")
+@OnOverflow(value = OnOverflow.Strategy.BUFFER) // Buffer strategy, unbounded buffer
+Emitter&lt;String&gt; emitter;
+
+@Inject
+@Channel("hello")
+@OnOverflow(value = OnOverflow.Strategy.DROP) // Drop the most recent values
+Emitter&lt;String&gt; emitter;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The default buffer size (<code>127</code>) can be configured using the <code>smallrye.messaging.emitter.default-buffer-size</code> property set using MicroProfile Config.
+Note that this value is only applied when <code>OnOverflow</code> is not used.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2369,7 +2536,7 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 1.0.0<br>
+Version 1.0.4<br>
 Last updated 2019-06-18 10:51:23 +0200
 </div>
 </div>

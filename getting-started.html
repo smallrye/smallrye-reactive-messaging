@@ -459,18 +459,18 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-provider-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-provider&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-streams-operators-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-streams-operators&lt;/artifactId&gt;
+  &lt;version&gt;1.0.9&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.jboss.weld.se&lt;/groupId&gt;
   &lt;artifactId&gt;weld-se-core&lt;/artifactId&gt;
-  &lt;version&gt;3.1.1.Final&lt;/version&gt;
+  &lt;version&gt;3.1.2.Final&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -557,7 +557,7 @@ public class MyBean {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">mvn compile exc:java -Dexec.mainClass=&lt;Main fully qualified class name&gt;</code></pre>
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">mvn compile exec:java -Dexec.mainClass=&lt;Main fully qualified class name&gt;</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -602,7 +602,7 @@ For testing purpose, you can simply add the following dependency to your <code>p
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-06-17 19:33:54 +0200
+Last updated 2019-09-14 09:08:57 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">

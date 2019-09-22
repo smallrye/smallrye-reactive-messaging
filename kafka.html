@@ -462,8 +462,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-kafka-1.0&lt;/artifactId&gt;
-  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
+  &lt;version&gt;1.0.4&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -529,9 +529,9 @@ be set using the <code>kafka.bootstrap.servers</code> config property.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">group.id</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false (BUT should be set in production)</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">the group id, random if omitted</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">the group id. A new random group id is generated if omitted. This feature is only for development. In production, a group id should be set.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">enable.auto.commit</p></td>
@@ -675,7 +675,7 @@ be set using the <code>kafka.bootstrap.servers</code> config property.</p></td>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-06-18 08:00:12 +0200
+Last updated 2019-09-11 11:15:39 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
