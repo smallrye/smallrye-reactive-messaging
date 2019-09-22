@@ -8,18 +8,18 @@ import javax.inject.Inject;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 @ApplicationScoped
 public class BeanInjectedWithAPublisherOfPayloads {
 
     private final Publisher<String> constructor;
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Publisher<String> field;
 
     @Inject
-    public BeanInjectedWithAPublisherOfPayloads(@Stream("bonjour") Publisher<String> constructor) {
+    public BeanInjectedWithAPublisherOfPayloads(@Channel("bonjour") Publisher<String> constructor) {
         this.constructor = constructor;
     }
 

@@ -19,17 +19,18 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 
 @ApplicationScoped
-public class StreamProducer {
+public class ChannelProducer {
 
     @Inject
     ChannelRegistry channelRegistry;
 
     @Produces
-    @Stream("") // Stream name is ignored during type-safe resolution
+    @Channel("") // Stream name is ignored during type-safe resolution
     <T> Flowable<T> producePublisher(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
         if (TypeUtils.isAssignable(first, Message.class)) {
@@ -41,7 +42,13 @@ public class StreamProducer {
     }
 
     @Produces
-    @Stream("") // Stream name is ignored during type-safe resolution
+    @Stream("")
+    <T> Flowable<T> producePublisherLegacy(InjectionPoint injectionPoint) {
+        return producePublisher(injectionPoint);
+    }
+
+    @Produces
+    @Channel("") // Stream name is ignored during type-safe resolution
     <T> PublisherBuilder<T> producePublisherBuilder(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
         if (TypeUtils.isAssignable(first, Message.class)) {
@@ -53,15 +60,27 @@ public class StreamProducer {
     }
 
     @Produces
-    @Stream("") // Stream name is ignored during type-safe resolution
+    @Stream("")
+    <T> PublisherBuilder<T> producePublisherBuilderLegacy(InjectionPoint injectionPoint) {
+        return producePublisherBuilder(injectionPoint);
+    }
+
+    @Produces
+    @Channel("") // Stream name is ignored during type-safe resolution
     <T> Emitter<T> produceEmitter(InjectionPoint injectionPoint) {
         Emitter emitter = getEmitter(injectionPoint);
         return cast(emitter);
     }
 
+    @Produces
+    @Stream("")
+    <T> Emitter<T> produceEmitterLegacy(InjectionPoint injectionPoint) {
+        return produceEmitter(injectionPoint);
+    }
+
     @SuppressWarnings("rawtypes")
     private Publisher<? extends Message> getPublisher(InjectionPoint injectionPoint) {
-        String name = getStreamName(injectionPoint);
+        String name = getChannelName(injectionPoint);
         List<PublisherBuilder<? extends Message>> list = channelRegistry.getPublishers(name);
         if (list.isEmpty()) {
             throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: "
@@ -73,7 +92,7 @@ public class StreamProducer {
 
     @SuppressWarnings("rawtypes")
     private SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(InjectionPoint injectionPoint) {
-        String name = getStreamName(injectionPoint);
+        String name = getChannelName(injectionPoint);
         List<SubscriberBuilder<? extends Message, Void>> list = channelRegistry.getSubscribers(name);
         if (list.isEmpty()) {
             throw new IllegalStateException("Unable to find a stream with the name " + name + ", available streams are: "
@@ -84,7 +103,7 @@ public class StreamProducer {
 
     @SuppressWarnings("rawtypes")
     private Emitter getEmitter(InjectionPoint injectionPoint) {
-        String name = getStreamName(injectionPoint);
+        String name = getChannelName(injectionPoint);
         Emitter emitter = channelRegistry.getEmitter(name);
         if (emitter == null) {
             throw new IllegalStateException("Unable to find a emitter with the name " + name + ", available emitters are: "
@@ -100,19 +119,38 @@ public class StreamProducer {
         return null;
     }
 
-    static String getStreamName(InjectionPoint injectionPoint) {
-        Stream qualifier = getStreamQualifier(injectionPoint);
-        if (qualifier == null) {
-            throw new IllegalStateException("@Stream qualifier not found on + " + injectionPoint);
+    static String getChannelName(InjectionPoint injectionPoint) {
+        for (Annotation qualifier : injectionPoint.getQualifiers()) {
+            if (qualifier.annotationType().equals(Channel.class)) {
+                return ((Channel) qualifier).value();
+            }
+
+            if (qualifier.annotationType().equals(Stream.class)) {
+                return ((Stream) qualifier).value();
+            }
         }
-        return qualifier.value();
+        throw new IllegalStateException("@Channel qualifier not found on + " + injectionPoint);
     }
 
-    static Stream getStreamQualifier(InjectionPoint injectionPoint) {
+    static Channel getChannelQualifier(InjectionPoint injectionPoint) {
         for (Annotation qualifier : injectionPoint.getQualifiers()) {
-            if (qualifier.annotationType()
-                    .equals(Stream.class)) {
-                return (Stream) qualifier;
+            if (qualifier.annotationType().equals(Channel.class)) {
+                return (Channel) qualifier;
+            }
+
+            if (qualifier.annotationType().equals(Stream.class)) {
+                return new Channel() {
+
+                    @Override
+                    public Class<? extends Annotation> annotationType() {
+                        return Channel.class;
+                    }
+
+                    @Override
+                    public String value() {
+                        return ((Stream) qualifier).value();
+                    }
+                };
             }
         }
         return null;

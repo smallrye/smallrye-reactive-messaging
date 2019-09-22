@@ -5,19 +5,23 @@ import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.reactivestreams.Publisher;
+
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Channel;
+import io.smallrye.reactive.messaging.annotations.Stream;
 
 @ApplicationScoped
-public class BeanInjectedWithAFlowableOfPayloads {
+public class BeanInjectedWithAPublisherOfMessagesUsingStream {
 
-    private final Flowable<String> constructor;
-    @Inject
-    @Channel("hello")
-    private Flowable<String> field;
+    private final Publisher<Message<String>> constructor;
 
     @Inject
-    public BeanInjectedWithAFlowableOfPayloads(@Channel("bonjour") Flowable<String> constructor) {
+    @Stream("hello")
+    private Publisher<Message<String>> field;
+
+    @Inject
+    public BeanInjectedWithAPublisherOfMessagesUsingStream(@Stream("bonjour") Publisher<Message<String>> constructor) {
         this.constructor = constructor;
     }
 
@@ -26,6 +30,7 @@ public class BeanInjectedWithAFlowableOfPayloads {
                 .concat(
                         Flowable.fromPublisher(constructor),
                         Flowable.fromPublisher(field))
+                .map(Message::getPayload)
                 .toList()
                 .blockingGet();
     }

@@ -23,8 +23,8 @@ import io.reactivex.Scheduler;
 import io.reactivex.exceptions.MissingBackpressureException;
 import io.reactivex.schedulers.Schedulers;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
@@ -65,7 +65,7 @@ public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
     public static class BeanUsingDefaultOverflow {
 
         @Inject
-        @Stream("hello")
+        @Channel("hello")
         Emitter<String> emitter;
 
         private List<String> output = new CopyOnWriteArrayList<>();

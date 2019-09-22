@@ -23,9 +23,9 @@ import io.reactivex.Scheduler;
 import io.reactivex.exceptions.MissingBackpressureException;
 import io.reactivex.schedulers.Schedulers;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
@@ -66,7 +66,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
     public static class BeanWithFailOverflowStrategy {
 
         @Inject
-        @Stream("hello")
+        @Channel("hello")
         @OnOverflow(value = OnOverflow.Strategy.FAIL)
         Emitter<String> emitter;
 

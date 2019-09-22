@@ -3,7 +3,7 @@
 === @Merge
 
 The `@Merge` annotation can be used on a method annotated with `@Incoming` to subscribed to all matching `@Outgoing
-streams. For example, if you have several method producing data to a stream named "sink", the following method receives
+channels. For example, if you have several method producing data to a channel named "sink", the following method receives
 all of them:
 
 [source,java]
@@ -38,34 +38,34 @@ public String process(String s) {
 }
 ----
 
-=== @Stream
+=== @Channel
 
-`@Stream` is a qualifier to inject a _stream_ into a regular CDI bean.
-It's used to bridge the _imperative_ and _reactive_ worlds, or retrieve streams managed by Reactive Messaging.
+`@Channel` is a qualifier to inject a _channel_ into a regular CDI bean.
+It's used to bridge the _imperative_ and _reactive_ worlds, or retrieve channels managed by Reactive Messaging.
 
-You can retrieve a stream using:
+You can retrieve a channel using:
 
 [source,java]
 ----
 @Inject
-@Stream("hello")
+@Channel("hello")
 private Publisher<Message<String>> field;
 ----
 
-The value indicates the name of the stream. You can inject a stream as:
+The value indicates the name of the channel. You can inject a channel as:
 
 * `Publisher<Message<X>>` or `Publisher<X>`
 * `PublisherBuilder<Message<X>>` or `PublisherBuilder<X>`
 * `Flowable<Message<X>>` or `Flowable<X>`
 
-You must have a `@Incoming("hello")` somewhere in your application (meaning a method consuming messages transiting on the stream `hello`),
+You must have a `@Incoming("hello")` somewhere in your application (meaning a method consuming messages transiting on the channel `hello`),
  or a sink of message configured (`mp.messaging.outgoing.hello...`)
 
-You can also emits data to a stream using:
+You can also emits data to a channel using:
 
 [source, java]
 ----
-@Inject @Stream("hello")
+@Inject @Channel("hello")
 Emitter<String> emitter;
 
 // ...
@@ -73,7 +73,7 @@ emitter.send("a").send("b");
 ----
 
 You can inject an `io.smallrye.reactive.messaging.annotations.Emitter<T>` or `io.smallrye.reactive.messaging.annotations.Emitter<Message<T>>`.
-To use an `Emitter` for the stream `hello`, you need a `@Incoming("hello")` somewhere in your code (or in your configuration).
+To use an `Emitter` for the channel `hello`, you need a `@Incoming("hello")` somewhere in your code (or in your configuration).
 
 When injecting an `Emitter` you can configure how the back-pressure is handled.
 The `OnOverflow` annotation configures what needs to happen when you emit payloads/messages faster than the downstream can consumes.
@@ -83,7 +83,7 @@ You can change this behavior as follows:
 [source, java]
 ----
 @Inject
-@Stream("hello")
+@Channel("hello")
 @OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 300)
 Emitter<String> emitter;
 
@@ -107,16 +107,16 @@ Here are some examples:
 [source, java]
 ----
 @Inject
-@Stream("hello") // Buffer strategy using the default buffer size
+@Channel("hello") // Buffer strategy using the default buffer size
 Emitter<String> emitter;
 
 @Inject
-@Stream("hello")
+@Channel("hello")
 @OnOverflow(value = OnOverflow.Strategy.BUFFER) // Buffer strategy, unbounded buffer
 Emitter<String> emitter;
 
 @Inject
-@Stream("hello")
+@Channel("hello")
 @OnOverflow(value = OnOverflow.Strategy.DROP) // Drop the most recent values
 Emitter<String> emitter;
 ----

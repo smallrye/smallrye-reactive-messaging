@@ -9,7 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 @ApplicationScoped
 public class BeanInjectedWithAPublisherOfMessages {
@@ -17,11 +17,11 @@ public class BeanInjectedWithAPublisherOfMessages {
     private final Publisher<Message<String>> constructor;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Publisher<Message<String>> field;
 
     @Inject
-    public BeanInjectedWithAPublisherOfMessages(@Stream("bonjour") Publisher<Message<String>> constructor) {
+    public BeanInjectedWithAPublisherOfMessages(@Channel("bonjour") Publisher<Message<String>> constructor) {
         this.constructor = constructor;
     }
 
