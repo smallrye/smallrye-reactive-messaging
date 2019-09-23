@@ -27,6 +27,7 @@
       <artifactId>smallrye-config</artifactId>
       <scope>test</scope>
     </dependency>
+    <!--     TODO remove used in testing to print active span-->
     <dependency>
       <groupId>io.opentracing</groupId>
       <artifactId>opentracing-api</artifactId>

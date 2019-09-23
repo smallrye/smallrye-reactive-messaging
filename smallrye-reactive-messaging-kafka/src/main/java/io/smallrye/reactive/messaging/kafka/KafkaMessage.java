@@ -3,8 +3,9 @@ package io.smallrye.reactive.messaging.kafka;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import io.opentracing.Span;
 import org.eclipse.microprofile.reactive.messaging.Message;
+
+import io.opentracing.SpanContext;
 
 public interface KafkaMessage<K, T> extends Message<T> {
 
@@ -12,7 +13,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
         return new SendingKafkaMessage<>(null, key, value, null, null, new MessageHeaders(), null, null);
     }
 
-    static <K, T> KafkaMessage<K, T> ofAndTraced(K key, T value, Span span) {
+    static <K, T> KafkaMessage<K, T> ofAndTraced(K key, T value, SpanContext span) {
         return new SendingKafkaMessage<>(null, key, value, null, null, new MessageHeaders(), null, span);
     }
 
@@ -29,7 +30,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
                 null);
     }
 
-    Span getSpan();
+    SpanContext getSpanContext();
 
     T getPayload();
 

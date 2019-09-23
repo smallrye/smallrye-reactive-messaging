@@ -1,10 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -18,18 +15,15 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.opentracing.References;
-import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
+import io.opentracing.contrib.kafka.TracingConsumerInterceptor;
 import io.opentracing.propagation.Format.Builtin;
-import io.opentracing.propagation.TextMap;
 import io.opentracing.util.GlobalTracer;
 import io.reactivex.Flowable;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
-import io.vertx.reactivex.kafka.client.producer.KafkaHeader;
 
 public class KafkaSource<K, V> {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
@@ -58,6 +52,8 @@ public class KafkaSource<K, V> {
             kafkaConfiguration.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         }
 
+        kafkaConfiguration.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG,
+                TracingConsumerInterceptor.class.getName());
         this.consumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         String topic = getTopicOrFail(config);
 
@@ -86,33 +82,11 @@ public class KafkaSource<K, V> {
                         }))
                 .map(rec -> {
                     Tracer tracer = GlobalTracer.get();
-                    SpanContext spanContext = tracer.extract(Builtin.TEXT_MAP, new TextMap() {
-                        @Override
-                        public Iterator<Entry<String, String>> iterator() {
-                            Map<String, String> map = new LinkedHashMap<>();
-                            Iterator<KafkaHeader> iterator = rec.headers().iterator();
-                            while (iterator.hasNext()) {
-                                KafkaHeader header = iterator.next();
-                                map.put(header.key(), header.value().toString());
-                            }
-                            return map.entrySet().iterator();
-                        }
-
-                        @Override
-                        public void put(String key, String value) {
-                            throw new UnsupportedOperationException();
-                        }
-                    });
-                    Span span = tracer.buildSpan("receive: " + rec.topic())
-                            .addReference(References.FOLLOWS_FROM, spanContext)
-                            .withTag("offset", rec.offset())
-                            .withTag("partition", rec.partition())
-                            .withTag("topic", rec.topic())
-                            .withTag("key", String.valueOf(rec.key()))
-                            .start();
-                    span.finish();
+                    // SpanContext represents underlying reading operation from the topic
+                    SpanContext spanContext = tracer.extract(Builtin.TEXT_MAP,
+                            new HeadersMapExtractTracingAdapter(rec.getDelegate().record().headers()));
                     System.out.println("KafkaSource/consumer " + rec.toString());
-                    return new ReceivedKafkaMessage<>(consumer, rec, span);
+                    return new ReceivedKafkaMessage<>(consumer, rec, spanContext);
                 });
     }
 

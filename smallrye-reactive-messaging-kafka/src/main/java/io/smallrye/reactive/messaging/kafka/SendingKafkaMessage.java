@@ -4,7 +4,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import io.opentracing.Span;
+import io.opentracing.SpanContext;
 
 public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
@@ -16,10 +16,10 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     // TODO Should be immutable and use a builder instead.
     private final MessageHeaders headers;
     private final Supplier<CompletionStage<Void>> ack;
-    private final Span span;
+    private final SpanContext spanContext;
 
     public SendingKafkaMessage(String topic, K key, T value, Long timestamp, Integer partition, MessageHeaders headers,
-            Supplier<CompletionStage<Void>> ack, Span span) {
+            Supplier<CompletionStage<Void>> ack, SpanContext spanContext) {
         this.topic = topic;
         this.key = key;
         this.value = value;
@@ -27,7 +27,7 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
         this.timestamp = timestamp;
         this.headers = headers;
         this.ack = ack;
-        this.span = span;
+        this.spanContext = spanContext;
     }
 
     @Override
@@ -70,7 +70,7 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
-    public Span getSpan() {
-        return span;
+    public SpanContext getSpanContext() {
+        return spanContext;
     }
 }

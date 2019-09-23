@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -14,12 +12,10 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.opentracing.References;
-import io.opentracing.Scope;
-import io.opentracing.Span;
+import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
+import io.opentracing.contrib.kafka.TracingProducerInterceptor;
 import io.opentracing.propagation.Format.Builtin;
-import io.opentracing.propagation.TextMap;
 import io.opentracing.util.GlobalTracer;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -55,6 +51,8 @@ class KafkaSink {
             kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         }
 
+        kafkaConfiguration.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
+                TracingProducerInterceptor.class.getName());
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
         stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
 
@@ -70,10 +68,10 @@ class KafkaSink {
                 .flatMapCompletionStage(message -> {
                     try {
                         ProducerRecord record;
-                        Span parentSpan = null;
+                        SpanContext spanContext = null;
                         if (message instanceof KafkaMessage) {
                             KafkaMessage km = ((KafkaMessage) message);
-                            parentSpan = km.getSpan();
+                            spanContext = km.getSpanContext();
                             if (this.topic == null && km.getTopic() == null) {
                                 LOGGER.error("Ignoring message - no topic set");
                                 return CompletableFuture.completedFuture(message);
@@ -118,34 +116,18 @@ class KafkaSink {
                         }
 
                         Tracer tracer = GlobalTracer.get();
+                        // SpanContext represent a span created in handler or span from the reading operation
+                        // if handler is processor (in-out)
+                        tracer.inject(spanContext, Builtin.TEXT_MAP, new HeadersMapInjectTracingAdapter(record.headers()));
                         System.out.println("Sink activeSpan:" + tracer.activeSpan());
-                        System.out.println("Sink spanFromMessage" + parentSpan);
-                        Span span = tracer.buildSpan("send: " + record.topic())
-                                .addReference(References.FOLLOWS_FROM, parentSpan != null ? parentSpan.context() : null)
-                                .withTag("partition", record.partition())
-                                .withTag("topic", record.topic())
-                                .withTag("key", String.valueOf(record.key()))
-                                .start();
-                        tracer.inject(span.context(), Builtin.HTTP_HEADERS, new TextMap() {
-                            @Override
-                            public Iterator<Entry<String, String>> iterator() {
-                                throw new UnsupportedOperationException();
-                            }
-
-                            @Override
-                            public void put(String key, String value) {
-                                record.headers().add(key, value.getBytes());
-                            }
-                        });
+                        System.out.println("Sink spanFromMessage" + spanContext);
                         System.out.println("KafkaSink " + record.toString());
 
                         CompletableFuture<Message> future = new CompletableFuture<>();
                         Handler<AsyncResult<Void>> handler = ar -> {
                             if (ar.succeeded()) {
-                                Scope activate = tracer.scopeManager().activate(span, false);
                                 LOGGER.info("Message {} sent successfully to Kafka topic '{}'", message, record.topic());
                                 future.complete(message);
-                                activate.close();
                             } else {
                                 LOGGER.error("Message {} was not sent to Kafka topic '{}'", message, record.topic(),
                                         ar.cause());
@@ -157,7 +139,6 @@ class KafkaSink {
                         try {
                             stream.write(record, handler);
                         } finally {
-                            span.finish();
                         }
                         if (waitForWriteCompletion) {
                             return result;

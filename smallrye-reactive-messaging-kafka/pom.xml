@@ -46,11 +46,12 @@
       <artifactId>opentracing-util</artifactId>
       <version>0.31.0</version>
     </dependency>
-<!--    <dependency>-->
-<!--      <groupId>io.opentracing.contrib</groupId>-->
-<!--      <artifactId>opentracing-kafka-streams</artifactId>-->
-<!--      <version>0.1.4</version>-->
-<!--    </dependency>-->
+    <dependency>
+      <groupId>io.opentracing.contrib</groupId>
+      <artifactId>opentracing-kafka-client</artifactId>
+      <!-- Version compatible with OpenTracing 0.31.0 (used in MicroProfile-OpenTracing)  -->
+      <version>0.0.20</version>
+    </dependency>
 
     <dependency>
       <groupId>io.debezium</groupId>
