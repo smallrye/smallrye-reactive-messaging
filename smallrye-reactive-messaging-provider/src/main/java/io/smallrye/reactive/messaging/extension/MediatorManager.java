@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.extension;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.reactive.messaging.AbstractMediator;
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.Invoker;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.Shape;
@@ -137,19 +139,27 @@ public class MediatorManager {
 
                     LOGGER.debug("Initializing {}", mediator.getMethodAsString());
 
-                    if (configuration.getInvokerClass() != null) {
-                        try {
-                            mediator.setInvoker(configuration.getInvokerClass()
-                                    .newInstance());
-                        } catch (InstantiationException | IllegalAccessException e) {
-                            LOGGER.error("Unable to create invoker instance of " + configuration.getInvokerClass(), e);
-                            return;
-                        }
-                    }
-
                     try {
                         Object beanInstance = beanManager.getReference(configuration.getBean(), Object.class,
                                 beanManager.createCreationalContext(configuration.getBean()));
+
+                        if (configuration.getInvokerClass() != null) {
+                            try {
+                                Constructor<? extends Invoker> constructorUsingBeanInstance = configuration.getInvokerClass()
+                                        .getConstructor(Object.class);
+                                if (constructorUsingBeanInstance != null) {
+                                    mediator.setInvoker(constructorUsingBeanInstance.newInstance(beanInstance));
+                                } else {
+                                    mediator.setInvoker(configuration.getInvokerClass()
+                                            .newInstance());
+                                }
+
+                            } catch (InstantiationException | IllegalAccessException e) {
+                                LOGGER.error("Unable to create invoker instance of " + configuration.getInvokerClass(), e);
+                                return;
+                            }
+                        }
+
                         mediator.initialize(beanInstance);
                     } catch (Throwable e) {
                         LOGGER.error("Unable to initialize mediator: " + mediator.getMethodAsString(), e);
