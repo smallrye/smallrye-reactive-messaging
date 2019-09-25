@@ -11,7 +11,6 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     private final T value;
     private final Integer partition;
     private final Long timestamp;
-    // TODO Should be immutable and use a builder instead.
     private final MessageHeaders headers;
     private final Supplier<CompletionStage<Void>> ack;
 
@@ -61,7 +60,15 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
+    public Supplier<CompletionStage<Void>> getAckSupplier() {
+        return ack;
+    }
+
+    @Override
     public Integer getPartition() {
+        if (partition == null || partition < 0) {
+            return null;
+        }
         return partition;
     }
 }
