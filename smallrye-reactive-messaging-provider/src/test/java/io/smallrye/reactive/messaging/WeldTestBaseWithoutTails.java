@@ -11,9 +11,9 @@ import org.junit.Before;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
+import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;

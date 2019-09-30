@@ -1,7 +1,13 @@
 package io.smallrye.reactive.messaging.annotations;
 
+import static java.lang.annotation.ElementType.CONSTRUCTOR;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 import javax.enterprise.util.Nonbinding;
 import javax.inject.Qualifier;
@@ -24,7 +30,7 @@ import javax.inject.Qualifier;
  * </ul>
  * <p>
  * When this qualifier is used on an {@link Emitter}, it indicates which channel received the emitted values / signals:
- * 
+ *
  * <pre>
  * <code>
  * &#64;Inject @Stream("my-channel") Emitter&lt;String&gt; emitter;
@@ -38,6 +44,7 @@ import javax.inject.Qualifier;
  */
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)
+@Target({ METHOD, CONSTRUCTOR, FIELD, PARAMETER })
 @Deprecated
 public @interface Stream {
 

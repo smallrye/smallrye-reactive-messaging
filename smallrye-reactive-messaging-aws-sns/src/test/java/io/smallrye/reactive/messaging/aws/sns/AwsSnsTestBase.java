@@ -14,9 +14,9 @@ import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.vertx.reactivex.core.Vertx;

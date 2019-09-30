@@ -1,11 +1,17 @@
 package io.smallrye.reactive.messaging.annotations;
 
+import static java.lang.annotation.ElementType.CONSTRUCTOR;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Allows configuring the back pressure policy on injected {@link Emitter}:
- * 
+ *
  * <pre>
  * {
  *     &#64;code
@@ -20,6 +26,7 @@ import java.lang.annotation.RetentionPolicy;
  * When not used, a {@link OnOverflow.Strategy#BUFFER} strategy is used with a buffer limited to 128 elements.
  */
 @Retention(RetentionPolicy.RUNTIME)
+@Target({ METHOD, CONSTRUCTOR, FIELD, PARAMETER })
 public @interface OnOverflow {
 
     /**
