@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -142,14 +143,22 @@ class KafkaSink {
     }
 
     void closeQuietly() {
+        CountDownLatch latch = new CountDownLatch(1);
         try {
             this.stream.close(ar -> {
                 if (ar.failed()) {
                     LOGGER.debug("An error has been caught while closing the Kafka Write Stream", ar.cause());
                 }
+                latch.countDown();
             });
         } catch (Throwable e) {
             LOGGER.debug("An error has been caught while closing the Kafka Write Stream", e);
+            latch.countDown();
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

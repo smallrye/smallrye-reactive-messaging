@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -80,14 +81,23 @@ public class KafkaSource<K, V> {
     }
 
     void closeQuietly() {
+        CountDownLatch latch = new CountDownLatch(1);
         try {
             this.consumer.close(ar -> {
                 if (ar.failed()) {
                     LOGGER.debug("An exception has been caught while closing the Kafka consumer", ar.cause());
                 }
+                latch.countDown();
             });
         } catch (Throwable e) {
             LOGGER.debug("An exception has been caught while closing the Kafka consumer", e);
+            latch.countDown();
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
