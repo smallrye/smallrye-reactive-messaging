@@ -72,6 +72,18 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     @ConfigProperty(name = "amqp-use-ssl")
     private Optional<Boolean> configuredUseSsl;
 
+    @Inject
+    @ConfigProperty(name = "amqp-reconnect-attempts", defaultValue = "100")
+    private Optional<Integer> configuredReconnectAttempts;
+
+    @Inject
+    @ConfigProperty(name = "amqp-reconnect-interval", defaultValue = "10")
+    private Optional<Long> configuredReconnectInterval;
+
+    @Inject
+    @ConfigProperty(name = "amqp-connect-timeout", defaultValue = "1000")
+    private Optional<Integer> configuredConnectTimeout;
+
     private boolean internalVertxInstance = false;
     private Vertx vertx;
 
@@ -145,6 +157,33 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         }
                     });
 
+            int reconnectAttempts = config.getOptionalValue("reconnect-attempts", Integer.class)
+                    .orElseGet(() -> {
+                        if (this.configuredReconnectAttempts == null) {
+                            return 100;
+                        } else {
+                            return this.configuredReconnectAttempts.get();
+                        }
+                    });
+
+            long reconnectInterval = config.getOptionalValue("reconnect-interval", Long.class)
+                    .orElseGet(() -> {
+                        if (this.configuredReconnectInterval == null) {
+                            return 10L;
+                        } else {
+                            return this.configuredReconnectInterval.get();
+                        }
+                    });
+
+            int connectTimeout = config.getOptionalValue("connect-timeout", Integer.class)
+                    .orElseGet(() -> {
+                        if (this.configuredConnectTimeout == null) {
+                            return 1000;
+                        } else {
+                            return this.configuredConnectTimeout.get();
+                        }
+                    });
+
             String containerId = config.getOptionalValue("containerId", String.class).orElse(null);
 
             AmqpClientOptions options = new AmqpClientOptions()
@@ -154,10 +193,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     .setPort(port)
                     .setContainerId(containerId)
                     .setSsl(useSsl)
-                    // TODO Make these values configurable:
-                    .setReconnectAttempts(100)
-                    .setReconnectInterval(10)
-                    .setConnectTimeout(1000);
+                    .setReconnectAttempts(reconnectAttempts)
+                    .setReconnectInterval(reconnectInterval)
+                    .setConnectTimeout(connectTimeout);
             client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options);
             return client;
         } catch (Exception e) {
