@@ -442,7 +442,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h1>SmallRye Reactive Messaging</h1>
 <div class="details">
 <span id="author" class="author">Clement Escoffier</span><br>
-<span id="revnumber">version 1.0.6,</span>
+<span id="revnumber">version 1.0.7,</span>
 <span id="revdate">2019-10-02</span>
 </div>
 <div id="toc" class="toc2">
@@ -602,7 +602,7 @@ sourcing applications&#8230;&#8203;</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-provider&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
@@ -1552,7 +1552,7 @@ mp.messaging.outgoing.data.acks=1
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1739,7 +1739,7 @@ be set using the <code>kafka.bootstrap.servers</code> config property.</p></td>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">waitForWriteCompletion</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">whether it needs to wait for the <em>write</em> operation to complete before processing the next message</p></td>
 </tr>
 </tbody>
@@ -1776,7 +1776,7 @@ The AMQP support is based on the <a href="https://vertx.io/docs/vertx-amqp-clien
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-amqp&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -1877,7 +1877,10 @@ If the <code>address</code> attribute is not set the channel name is used instea
 </table>
 </div>
 <div class="paragraph">
-<p>The host, port, username and password can also be configured using the <code>amqp-host</code>, <code>amqp-port</code>, <code>amqp-username</code> and <code>amqp-password</code> configuration properties.</p>
+<p>The host, port, username, password, SSL connection, reconnect attempts, reconnect interval,
+and connection timeout can also be configured using the <code>amqp-host</code>, <code>amqp-port</code>, <code>amqp-username</code>,
+<code>amqp-password</code>, <code>amqp-use-ssl</code>, <code>amqp-reconnect-attempts</code>, <code>amqp-reconnect-interval</code>, and
+<code>amqp-connect-timeout</code> configuration properties.</p>
 </div>
 </div>
 </div>
@@ -1897,7 +1900,7 @@ almost any existing system.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-camel&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2068,7 +2071,7 @@ or server.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-mqtt&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2196,7 +2199,7 @@ The server has no persistence, if no subscribers are listening, messages will be
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-mqtt-server&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2244,7 +2247,7 @@ mp.messaging.incoming.messages.connector=smallrye-mqtt-server
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-http&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2298,7 +2301,7 @@ an asynchronous way.</p>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-vertx-eventbus&lt;/artifactId&gt;
-  &lt;version&gt;1.0.6&lt;/version&gt;
+  &lt;version&gt;1.0.7&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -2536,7 +2539,7 @@ pass the <code>-Dsmallrye-messaging-strict-binding=true</code> to the command li
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 1.0.6<br>
+Version 1.0.7<br>
 Last updated 2019-06-18 10:51:23 +0200
 </div>
 </div>
