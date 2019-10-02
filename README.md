@@ -1,6 +1,5 @@
-[![Version](https://img.shields.io/github/v/release/smallrye/smallrye-reactive-messaging?style=for-the-badge)](https://github.com/smallrye/smallrye-reactive-messaging/releases/latest)
+![Maven Central](https://img.shields.io/maven-central/v/io.smallrye.reactive/smallrye-reactive-messaging)
 [![Build Status](https://semaphoreci.com/api/v1/smallrye/smallrye-reactive-messaging/branches/master/badge.svg)](https://semaphoreci.com/smallrye/smallrye-reactive-messaging)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=smallrye_smallrye-reactive-messaging&metric=alert_status)](https://sonarcloud.io/dashboard?id=smallrye_smallrye-reactive-messaging)
 [![License](https://img.shields.io/github/license/smallrye/smallrye-reactive-messaging.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 # Implementation of the MicroProfile Reactive Messaging specification
