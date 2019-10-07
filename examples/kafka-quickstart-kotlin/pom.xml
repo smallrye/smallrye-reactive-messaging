@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>1.0.8-SNAPSHOT</version>
+    <version>1.0.8</version>
     <relativePath>../..</relativePath>
   </parent>
 
@@ -35,12 +35,12 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
-      <version>1.0.8-SNAPSHOT</version>
+      <version>1.0.8</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-kafka</artifactId>
-      <version>1.0.8-SNAPSHOT</version>
+      <version>1.0.8</version>
       <exclusions>
         <exclusion>
           <!-- this avoid having the logging working, to exclude it -->
