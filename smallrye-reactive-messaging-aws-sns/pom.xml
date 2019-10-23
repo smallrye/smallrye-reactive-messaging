@@ -50,7 +50,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>
-      <version>1.11.648</version>
+      <version>1.11.657</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
