@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  * <pre>
  * {
  *     &#64;code
- *     &#64;Stream("stream")
+ *     &#64;Channel("channel")
  *     &#64;OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 256)
  *     Emitter<String> emitter;
  * }
