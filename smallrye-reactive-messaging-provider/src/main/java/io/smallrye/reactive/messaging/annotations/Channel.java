@@ -15,7 +15,7 @@ import javax.inject.Qualifier;
 /**
  * This qualifier indicates which channel should be injected / populated.
  * <p>
- * This qualifier can be used to inject a <em>stream</em> containing the items and signals propagated by the specified
+ * This qualifier can be used to inject a <em>Channel</em> containing the items and signals propagated by the specified
  * channel. For example, it can be used to {@code @Inject} a {@code Publisher} representing a channel managed by the
  * Reactive Messaging implementation.
  * <p>
@@ -33,7 +33,7 @@ import javax.inject.Qualifier;
  *
  * <pre>
  * <code>
- * &#64;Inject @Stream("my-channel") Emitter&lt;String&gt; emitter;
+ * &#64;Inject @Channel("my-channel") Emitter&lt;String&gt; emitter;
  *
  * // ...
  * emitter.send("a").send("b").complete();
@@ -47,9 +47,9 @@ import javax.inject.Qualifier;
 public @interface Channel {
 
     /**
-     * The name of the stream (indicated in the {@code @Outgoing} annotation.
+     * The name of the channel (indicated in the {@code @Outgoing} annotation.
      *
-     * @return the stream name, mandatory, non null and non-blank. It must matches one of the available streams.
+     * @return the channel name, mandatory, non null and non-blank. It must matches one of the available channels.
      */
     @Nonbinding
     String value();

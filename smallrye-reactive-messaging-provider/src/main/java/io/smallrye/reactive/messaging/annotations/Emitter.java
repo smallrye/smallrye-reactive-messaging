@@ -7,13 +7,14 @@ package io.smallrye.reactive.messaging.annotations;
  * 
  * <pre>
  * &#64;Inject
- * &#64;Stream("my-stream")
+ * &#64;Channel("my-channel")
  * Emitter&lt;String&gt; emitter;
  * </pre>
  * <p>
  * You can inject emitter sending payload or {@link org.eclipse.microprofile.reactive.messaging.Message Messages}.
  * <p>
- * The name of the stream (given in the {@link Stream Stream annotation}) indicates which streams is fed. If must match the name
+ * The name of the channel (given in the {@link Channel Channel annotation}) indicates which streams is fed. If must match the
+ * name
  * used in a
  * method using {@link org.eclipse.microprofile.reactive.messaging.Incoming @Incoming} or an outgoing stream configured in the
  * application configuration.
