@@ -22,7 +22,7 @@ public class ConnectorConfig implements Config {
 
     private final String topic;
 
-    ConnectorConfig(String prefix, Config overall, String channel) {
+    protected ConnectorConfig(String prefix, Config overall, String channel) {
         this.prefix = Objects.requireNonNull(prefix, "the prefix must not be set");
         this.overall = Objects.requireNonNull(overall, "the config must not be set");
         this.name = Objects.requireNonNull(channel, "the channel name must be set");

@@ -39,7 +39,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     protected final ChannelRegistry registry;
 
     // CDI requirement for normal scoped beans
-    ConfiguredChannelFactory() {
+    protected ConfiguredChannelFactory() {
         this.incomingConnectorFactories = null;
         this.outgoingConnectorFactories = null;
         this.config = null;

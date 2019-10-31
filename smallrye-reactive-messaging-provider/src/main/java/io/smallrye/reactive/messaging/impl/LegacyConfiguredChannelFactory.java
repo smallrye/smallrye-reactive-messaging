@@ -25,7 +25,7 @@ public class LegacyConfiguredChannelFactory extends ConfiguredChannelFactory {
     private static final String SINK_CONFIG_PREFIX = "smallrye.messaging.sink.";
 
     // CDI requirement for normal scoped beans
-    LegacyConfiguredChannelFactory() {
+    protected LegacyConfiguredChannelFactory() {
         super();
     }
 
