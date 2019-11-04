@@ -59,7 +59,7 @@
     <slf4j-api.version>1.7.28</slf4j-api.version>
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
-    <rxjava.version>2.2.13</rxjava.version>
+    <rxjava.version>2.2.14</rxjava.version>
     <smallrye-reactive-streams-ops.version>1.0.10</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.3.9</smallrye-config.version>
     <cloudevent.version>0.2.1</cloudevent.version>
