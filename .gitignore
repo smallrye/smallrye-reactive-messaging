@@ -52,7 +52,9 @@ cmake-build-release/
 .idea/
 **/*.iml
 out/
-
+# VSCode
+.DS_Store
+.vscode/
 # mpeltonen/sbt-idea plugin
 .idea_modules/
 

@@ -38,7 +38,7 @@ import io.smallrye.reactive.messaging.Emitter;
  * &#64;Inject @Channel("my-channel") Emitter&lt;String&gt; emitter;
  *
  * // ...
- * emitter.send("a").send("b").complete();
+ * emitter.send("a");
  * </code>
  * </pre>
  *
