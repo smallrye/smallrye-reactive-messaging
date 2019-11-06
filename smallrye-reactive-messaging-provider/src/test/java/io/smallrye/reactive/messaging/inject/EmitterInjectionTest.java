@@ -137,7 +137,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a").send("b").send("c").complete();
+            emitter.send("a");
+            emitter.send("b");
+            emitter.send("c");
+            emitter.complete();
         }
 
         @Incoming("foo")
@@ -162,7 +165,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a").send("b").send("c").complete();
+            emitter.send("a");
+            emitter.send("b");
+            emitter.send("c");
+            emitter.complete();
         }
 
         @Incoming("foo")
@@ -174,7 +180,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyBeanEmittingMessages {
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<Message<String>> emitter;
         private List<String> list = new CopyOnWriteArrayList<>();
 
@@ -227,7 +233,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     public static class BeanWithMissingStream {
         @Inject
-        @Stream("missing")
+        @Channel("missing")
         Emitter<Message<String>> emitter;
         private List<String> list = new CopyOnWriteArrayList<>();
 
@@ -268,13 +274,15 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a").send("b");
+            emitter.send("a");
+            emitter.send("b");
             try {
                 emitter.send(null);
             } catch (IllegalArgumentException e) {
                 caught = true;
             }
-            emitter.send("c").complete();
+            emitter.send("c");
+            emitter.complete();
         }
 
         @Incoming("foo")
@@ -304,7 +312,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a").send("b").complete();
+            emitter.send("a");
+            emitter.send("b");
+            emitter.complete();
             try {
                 emitter.send("c");
             } catch (IllegalStateException e) {
@@ -339,7 +349,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a").send("b").error(new Exception("BOOM"));
+            emitter.send("a");
+            emitter.send("b");
+            emitter.error(new Exception("BOOM"));
             try {
                 emitter.send("c");
             } catch (IllegalStateException e) {
@@ -369,7 +381,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a").send("b").send("c").complete();
+            emitter.send("a");
+            emitter.send("b");
+            emitter.send("c");
+            emitter.complete();
         }
 
         @Incoming("foo")
@@ -403,7 +418,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         public void run() {
             emitter1.send("a");
             emitter2.send("b");
-            emitter1.send("c").complete();
+            emitter1.send("c");
+            emitter1.complete();
         }
 
         @Incoming("foo")

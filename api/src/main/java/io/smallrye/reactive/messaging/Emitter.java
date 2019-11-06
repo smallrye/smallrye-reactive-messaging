@@ -2,6 +2,8 @@ package io.smallrye.reactive.messaging;
 
 import io.smallrye.reactive.messaging.annotations.Channel;
 
+import java.util.concurrent.CompletionStage;
+
 /**
  * Interface used to feed a stream from an <em>imperative</em> piece of code.
  * <p>
@@ -13,15 +15,17 @@ import io.smallrye.reactive.messaging.annotations.Channel;
  * Emitter&lt;String&gt; emitter;
  * </pre>
  * <p>
- * You can inject emitter sending payload or {@link org.eclipse.microprofile.reactive.messaging.Message Messages}.
+ * You can inject emitter sending payload or
+ * {@link org.eclipse.microprofile.reactive.messaging.Message Messages}.
  * <p>
- * The name of the channel (given in the {@link Channel Channel annotation}) indicates which streams is fed. If must match the
- * name
- * used in a
- * method using {@link org.eclipse.microprofile.reactive.messaging.Incoming @Incoming} or an outgoing stream configured in the
- * application configuration.
+ * The name of the channel (given in the {@link Channel Channel annotation})
+ * indicates which streams is fed. It must match the name used in a method using
+ * {@link org.eclipse.microprofile.reactive.messaging.Incoming @Incoming} or an
+ * outgoing stream configured in the application configuration.
  *
- * @param <T> type of payload or {@link org.eclipse.microprofile.reactive.messaging.Message Message}.
+ * @param <T> type of payload or
+ *        {@link org.eclipse.microprofile.reactive.messaging.Message
+ *        Message}.
  */
 public interface Emitter<T> {
 
@@ -29,11 +33,10 @@ public interface Emitter<T> {
      * Sends a payload or a message to the stream.
      *
      * @param msg the <em>thing</em> to send, must not be {@code null}
-     * @return the current emitter
-     * @throws IllegalStateException if the stream does not have any pending requests, or if the stream has been
-     *         cancelled or terminated.
+     * @return the {@code CompletionStage}
+     * @throws IllegalStateException if the stream has been cancelled or terminated.
      */
-    Emitter<T> send(T msg);
+    CompletionStage<Void> send(T msg);
 
     /**
      * Completes the stream.

@@ -93,7 +93,10 @@ public class DropOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
         public void emitThree() {
             try {
-                emitter.send("1").send("2").send("3").complete();
+                emitter.send("1");
+                emitter.send("2");
+                emitter.send("3");
+                emitter.complete();
             } catch (Exception e) {
                 callerException = e;
             }

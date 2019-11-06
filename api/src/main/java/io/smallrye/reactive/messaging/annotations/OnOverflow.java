@@ -37,10 +37,17 @@ public @interface OnOverflow {
     enum Strategy {
         /**
          * Buffers <strong>all</strong> values until the downstream consumes it.
-         * This creates an unbound buffer if not used in conjunction with {@link #bufferSize()} to limit the size of the
-         * buffer. If the buffer is full, an error is propagated.
+         * This creates a buffer with the size specified by {@link #bufferSize()} if present.
+         * Otherwise, the size will be the value of the config property
+         * <strong>mp.messaging.emitter.defult-buffer-size</strong>.
+         * If the buffer is full, an error is propagated.
          */
         BUFFER,
+        /**
+         * Buffers <strong>all</strong> values until the downstream consumes it.
+         * This creates an unbound buffer. If the buffer is full, an error is propagated.
+         */
+        UNBOUNDED_BUFFER,
         /**
          * Drops the most recent value if the downstream can't keep up. It means that new value emitted by the upstream
          * are ignored.
@@ -71,7 +78,8 @@ public @interface OnOverflow {
 
     /**
      * @return the size of the buffer when {@link Strategy#BUFFER} is used. If not set and if the {@link Strategy#BUFFER}
-     *         strategy is used, an unbound buffer is used.
+     *         strategy is used, the buffer size will be defaulted to the value of the config property
+     *         mp.messaging.emitter.defult-buffer-size.
      */
     long bufferSize() default 0;
 

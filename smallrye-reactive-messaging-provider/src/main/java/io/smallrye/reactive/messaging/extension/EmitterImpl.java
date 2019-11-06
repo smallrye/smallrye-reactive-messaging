@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -25,9 +27,8 @@ public class EmitterImpl<T> implements Emitter<T> {
             }
         };
         if (overFlowStrategy == null) {
-            publisher = Flowable.create(deferred, BackpressureStrategy.BUFFER)
-                    .onBackpressureBuffer(defaultBufferSize, () -> LOGGER.error("Buffer full for emitter {}", name),
-                            BackpressureOverflowStrategy.ERROR);
+            publisher = Flowable.create(deferred, BackpressureStrategy.BUFFER).onBackpressureBuffer(defaultBufferSize,
+                    () -> LOGGER.error("Buffer full for emitter {}", name), BackpressureOverflowStrategy.ERROR);
         } else {
             OnOverflow.Strategy strategy = OnOverflow.Strategy.valueOf(overFlowStrategy);
             switch (strategy) {
@@ -37,8 +38,13 @@ public class EmitterImpl<T> implements Emitter<T> {
                         publisher = p.onBackpressureBuffer(bufferSize,
                                 () -> LOGGER.error("Buffer full for emitter {}", name), BackpressureOverflowStrategy.ERROR);
                     } else {
-                        publisher = p;
+                        publisher = p.onBackpressureBuffer(defaultBufferSize,
+                                () -> LOGGER.error("Buffer full for emitter {}", name), BackpressureOverflowStrategy.ERROR);
+
                     }
+                    break;
+                case UNBOUNDED_BUFFER:
+                    publisher = Flowable.create(deferred, BackpressureStrategy.BUFFER);
                     break;
                 case DROP:
                     publisher = Flowable.create(deferred, BackpressureStrategy.DROP);
@@ -67,18 +73,18 @@ public class EmitterImpl<T> implements Emitter<T> {
     }
 
     @Override
-    public synchronized Emitter<T> send(T msg) {
+    public synchronized CompletionStage<Void> send(T msg) {
         if (msg == null) {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
         FlowableEmitter<Message<? extends T>> emitter = verify();
         if (msg instanceof Message) {
             //noinspection unchecked
-            emitter.onNext((Message) msg);
+            return CompletableFuture.runAsync(() -> emitter.onNext((Message) msg));
         } else {
-            emitter.onNext(Message.of(msg));
+            return CompletableFuture.runAsync(() -> emitter.onNext(Message.of(msg)));
         }
-        return this;
+
     }
 
     private synchronized FlowableEmitter<Message<? extends T>> verify() {

@@ -63,7 +63,7 @@ public class MediatorManager {
     private final List<AbstractMediator> mediators = new ArrayList<>();
 
     @Inject
-    @ConfigProperty(name = "smallrye.messaging.emitter.default-buffer-size", defaultValue = "127")
+    @ConfigProperty(name = "mp.messaging.emitter.default-buffer-size", defaultValue = "127")
     long defaultBufferSize;
 
     @Inject
