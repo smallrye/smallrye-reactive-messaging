@@ -66,7 +66,6 @@ public class MqttSource {
                                 emitter.onNext(new ReceivingMqttMessage(message));
                             });
                             client.subscribe(topic, qos, done -> {
-                                System.out.println("Subscribing ...");
                                 if (done.failed()) {
                                     // Report on the flow
                                     emitter.onError(done.cause());
