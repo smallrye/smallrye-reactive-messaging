@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.MediatorFactory;
@@ -22,8 +23,9 @@ import repeat.RepeatRule;
 public class MqttTestBase {
 
     @ClassRule
-    public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.5.5")
-            .withExposedPorts(1883);
+    public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.6.7")
+            .withExposedPorts(1883)
+            .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
 
     Vertx vertx;
     protected String address;
