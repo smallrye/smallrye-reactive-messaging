@@ -8,6 +8,7 @@ import javax.enterprise.inject.se.SeContainerInitializer;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
@@ -26,6 +27,11 @@ public class WeldTestBaseWithoutTails {
     protected SeContainerInitializer initializer;
 
     protected SeContainer container;
+
+    @BeforeClass
+    public static void disableLogging() {
+        System.setProperty("java.util.logging.config.file", "logging.properties");
+    }
 
     @Before
     public void setUp() {
