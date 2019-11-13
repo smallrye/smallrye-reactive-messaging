@@ -15,8 +15,9 @@ public class KafkaMessageTest {
         assertThat(message.getKey()).isEqualTo("foo");
         assertThat(message.getTopic()).isNull();
         assertThat(message.getHeaders().unwrap()).isEmpty();
-        assertThat(message.getPartition()).isNull();
-        assertThat(message.getTimestamp()).isNull();
+        assertThat(message.getPartition()).isEqualTo(-1);
+        assertThat(message.getTimestamp()).isEqualTo(-1);
+        assertThat(message.getOffset()).isEqualTo(-1);
     }
 
     @Test
@@ -26,8 +27,8 @@ public class KafkaMessageTest {
         assertThat(message.getKey()).isEqualTo("foo");
         assertThat(message.getTopic()).isEqualTo("topic");
         assertThat(message.getHeaders().unwrap()).isEmpty();
-        assertThat(message.getPartition()).isNull();
-        assertThat(message.getTimestamp()).isNull();
+        assertThat(message.getPartition()).isEqualTo(-1);
+        assertThat(message.getTimestamp()).isEqualTo(-1);
     }
 
     @Test
@@ -44,13 +45,13 @@ public class KafkaMessageTest {
 
     @Test
     public void testCreationOfKafkaMessageWithEverythingButWithNullValues() {
-        KafkaMessage<String, String> message = KafkaMessage.of(null, null, "bar", null, null);
+        KafkaMessage<String, String> message = KafkaMessage.of(null, null, "bar", -1, -1);
         assertThat(message.getPayload()).isEqualTo("bar");
         assertThat(message.getKey()).isNull();
         assertThat(message.getTopic()).isNull();
         assertThat(message.getHeaders().unwrap()).isEmpty();
-        assertThat(message.getPartition()).isNull();
-        assertThat(message.getTimestamp()).isNull();
+        assertThat(message.getPartition()).isEqualTo(-1);
+        assertThat(message.getTimestamp()).isEqualTo(-1);
     }
 
     @Test

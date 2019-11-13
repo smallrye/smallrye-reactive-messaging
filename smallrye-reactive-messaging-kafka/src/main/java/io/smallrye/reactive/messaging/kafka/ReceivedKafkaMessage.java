@@ -27,21 +27,29 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
         return record.value();
     }
 
+    @Override
     public K getKey() {
         return record.key();
     }
 
+    @Override
     public String getTopic() {
         return record.topic();
     }
 
-    public Integer getPartition() {
+    @Override
+    public int getPartition() {
         return record.partition();
     }
 
     @Override
-    public Long getTimestamp() {
+    public long getTimestamp() {
         return record.timestamp();
+    }
+
+    @Override
+    public long getOffset() {
+        return record.offset();
     }
 
     @Override

@@ -18,7 +18,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the new outgoing kafka message
      */
     static <K, T> KafkaMessage<K, T> of(K key, T value) {
-        return new SendingKafkaMessage<>(null, key, value, null, null, new MessageHeaders(), null);
+        return new SendingKafkaMessage<>(null, key, value, -1, -1, new MessageHeaders(), null);
     }
 
     /**
@@ -63,7 +63,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the new outgoing kafka message
      */
     static <K, T> KafkaMessage<K, T> of(String topic, K key, T value) {
-        return new SendingKafkaMessage<>(topic, key, value, null, null, new MessageHeaders(), null);
+        return new SendingKafkaMessage<>(topic, key, value, -1, -1, new MessageHeaders(), null);
     }
 
     /**
@@ -72,13 +72,13 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @param topic the topic, must not be {@code null}
      * @param key the key, can be {@code null}
      * @param value the value / payload, must not be {@code null}
-     * @param timestamp the timestamp, can be {@code null}
-     * @param partition the partition, can be {@code null}
+     * @param timestamp the timestamp, can be {@code -1} to indicate no timestamp
+     * @param partition the partition, can be {@code -1} to indicate no partition
      * @param <K> the type of the key
      * @param <T> the type of the value
      * @return the new outgoing kafka message
      */
-    static <K, T> KafkaMessage<K, T> of(String topic, K key, T value, Long timestamp, Integer partition) {
+    static <K, T> KafkaMessage<K, T> of(String topic, K key, T value, long timestamp, int partition) {
         return new SendingKafkaMessage<>(topic, key, value, timestamp, partition, new MessageHeaders(), null);
     }
 
@@ -116,16 +116,23 @@ public interface KafkaMessage<K, T> extends Message<T> {
     String getTopic();
 
     /**
-     * Gets the partition on which the record is sent or received.
+     * Gets the partition on which the record is sent or received. {@code -1} if not set.
      *
-     * @return the partition, {@code null} or {@code negative} indicates that the partition is not set
+     * @return the partition, {@code -1} indicates that the partition is not set
      */
-    Integer getPartition();
+    int getPartition();
 
     /**
-     * @return the record timestamp, {@code null} if not set.
+     * @return the record timestamp, {@code -1} if not set.
      */
-    Long getTimestamp();
+    long getTimestamp();
+
+    /**
+     * Gets the message offset, {@code -1} if not set.
+     *
+     * @return the message offset, -1 for outgoing messages.
+     */
+    long getOffset();
 
     /**
      * @return the message headers.
