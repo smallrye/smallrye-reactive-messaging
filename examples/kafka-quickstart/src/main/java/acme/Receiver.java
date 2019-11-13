@@ -17,8 +17,8 @@ public class Receiver {
         String payload = message.getPayload();
         String key = message.getKey();
         MessageHeaders headers = message.getHeaders();
-        Integer partition = message.getPartition();
-        Long timestamp = message.getTimestamp();
+        int partition = message.getPartition();
+        long timestamp = message.getTimestamp();
         System.out.println("received: " + payload + " from topic " + message.getTopic());
         return message.ack();
     }

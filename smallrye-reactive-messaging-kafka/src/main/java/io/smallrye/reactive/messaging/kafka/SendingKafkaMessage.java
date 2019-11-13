@@ -9,12 +9,12 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     private final String topic;
     private final K key;
     private final T value;
-    private final Integer partition;
-    private final Long timestamp;
+    private final int partition;
+    private final long timestamp;
     private final MessageHeaders headers;
     private final Supplier<CompletionStage<Void>> ack;
 
-    public SendingKafkaMessage(String topic, K key, T value, Long timestamp, Integer partition, MessageHeaders headers,
+    public SendingKafkaMessage(String topic, K key, T value, long timestamp, int partition, MessageHeaders headers,
             Supplier<CompletionStage<Void>> ack) {
         this.topic = topic;
         this.key = key;
@@ -50,7 +50,7 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
-    public Long getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
@@ -65,10 +65,15 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
-    public Integer getPartition() {
-        if (partition == null || partition < 0) {
-            return null;
+    public int getPartition() {
+        if (partition < 0) {
+            return -1;
         }
         return partition;
+    }
+
+    @Override
+    public long getOffset() {
+        return -1;
     }
 }

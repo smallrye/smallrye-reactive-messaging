@@ -11,8 +11,8 @@ public class KafkaConsumer {
     JsonObject payload = message.getPayload();
     String key = message.getKey();
     MessageHeaders headers = message.getHeaders();
-    Integer partition = message.getPartition();
-    Long timestamp = message.getTimestamp();
+    int partition = message.getPartition();
+    long timestamp = message.getTimestamp();
   }
   // end::kafka-message[]
 

@@ -74,7 +74,7 @@ class KafkaSink {
                             if (this.partition != -1) {
                                 actualPartition = this.partition;
                             }
-                            if (km.getPartition() != null) {
+                            if (km.getPartition() != -1) {
                                 actualPartition = km.getPartition();
                             }
 
@@ -90,7 +90,7 @@ class KafkaSink {
                                 record = new ProducerRecord<>(
                                         actualTopicToBeUSed,
                                         actualPartition,
-                                        km.getTimestamp(),
+                                        km.getTimestamp() == -1 ? null : km.getTimestamp(),
                                         km.getKey() == null ? this.key : km.getKey(),
                                         km.getPayload(),
                                         km.getHeaders().unwrap());

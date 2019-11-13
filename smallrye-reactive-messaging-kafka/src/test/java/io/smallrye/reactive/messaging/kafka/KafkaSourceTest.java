@@ -167,6 +167,14 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        List<KafkaMessage<String, Integer>> messages = bean.getKafkaMessages();
+        messages.forEach(m -> {
+            assertThat(m.getTopic()).isEqualTo("data");
+            assertThat(m.getTimestamp()).isGreaterThan(0);
+            assertThat(m.getPartition()).isGreaterThan(-1);
+            assertThat(m.getOffset()).isGreaterThan(-1);
+        });
     }
 
     private ConsumptionBean deploy(MapBasedConfig config) {
