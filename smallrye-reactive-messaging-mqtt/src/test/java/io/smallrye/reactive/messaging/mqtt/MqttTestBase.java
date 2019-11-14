@@ -29,8 +29,6 @@ public class MqttTestBase {
     @ClassRule
     public static GenericContainer mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
             .withExposedPorts(1883)
-            .withCreateContainerCmdModifier(
-                    cmd -> cmd.withPortBindings(new PortBinding(Ports.Binding.bindPort(1883), new ExposedPort(1883))))
             .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
 
     Vertx vertx;
@@ -54,7 +52,7 @@ public class MqttTestBase {
     @After
     public void tearDown() {
         System.clearProperty("mqtt-host");
-        System.clearProperty("mqtt-post");
+        System.clearProperty("mqtt-port");
         vertx.close();
         usage.close();
 

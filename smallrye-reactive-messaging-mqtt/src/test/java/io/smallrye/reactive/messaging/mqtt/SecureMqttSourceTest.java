@@ -13,10 +13,12 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 
+@Ignore
 public class SecureMqttSourceTest extends SecureMqttTestBase {
 
     private WeldContainer container;
