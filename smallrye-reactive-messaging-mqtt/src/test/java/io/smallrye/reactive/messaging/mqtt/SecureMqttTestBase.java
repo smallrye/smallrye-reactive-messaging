@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -8,6 +9,7 @@ import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.vertx.reactivex.core.Vertx;
 
 public class SecureMqttTestBase {
@@ -18,9 +20,9 @@ public class SecureMqttTestBase {
             .withFileSystemBind("src/test/resources/mosquitto-secure", "/mosquitto/config", BindMode.READ_WRITE);
 
     Vertx vertx;
-    protected String address;
-    protected Integer port;
-    protected MqttUsage usage;
+    String address;
+    Integer port;
+    MqttUsage usage;
 
     @Before
     public void setup() {
@@ -43,6 +45,8 @@ public class SecureMqttTestBase {
         System.clearProperty("mqtt-pwd");
         vertx.close();
         usage.close();
+        SmallRyeConfigProviderResolver.instance()
+                .releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
     }
 
 }
