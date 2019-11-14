@@ -11,10 +11,6 @@ import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
-import com.github.dockerjava.api.model.ExposedPort;
-import com.github.dockerjava.api.model.PortBinding;
-import com.github.dockerjava.api.model.Ports;
-
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
@@ -41,6 +37,10 @@ public class MqttTestBase {
 
     @Before
     public void setup() {
+        System.clearProperty("mqtt-host");
+        System.clearProperty("mqtt-port");
+        System.clearProperty("mqtt-user");
+        System.clearProperty("mqtt-pwd");
         vertx = Vertx.vertx();
         address = mosquitto.getContainerIpAddress();
         port = mosquitto.getMappedPort(1883);
@@ -53,6 +53,8 @@ public class MqttTestBase {
     public void tearDown() {
         System.clearProperty("mqtt-host");
         System.clearProperty("mqtt-port");
+        System.clearProperty("mqtt-user");
+        System.clearProperty("mqtt-pwd");
         vertx.close();
         usage.close();
 
