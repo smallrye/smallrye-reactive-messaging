@@ -11,6 +11,10 @@ import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
+
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
@@ -23,8 +27,10 @@ import repeat.RepeatRule;
 public class MqttTestBase {
 
     @ClassRule
-    public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.6.7")
+    public static GenericContainer mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
             .withExposedPorts(1883)
+            .withCreateContainerCmdModifier(
+                    cmd -> cmd.withPortBindings(new PortBinding(Ports.Binding.bindPort(1883), new ExposedPort(1883))))
             .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
 
     Vertx vertx;
