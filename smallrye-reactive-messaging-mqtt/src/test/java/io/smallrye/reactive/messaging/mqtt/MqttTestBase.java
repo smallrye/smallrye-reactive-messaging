@@ -23,20 +23,24 @@ import repeat.RepeatRule;
 public class MqttTestBase {
 
     @ClassRule
-    public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.6.7")
+    public static GenericContainer mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
             .withExposedPorts(1883)
             .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
 
     Vertx vertx;
-    protected String address;
-    protected Integer port;
-    protected MqttUsage usage;
+    String address;
+    Integer port;
+    MqttUsage usage;
 
     @Rule
     public RepeatRule rule = new RepeatRule();
 
     @Before
     public void setup() {
+        System.clearProperty("mqtt-host");
+        System.clearProperty("mqtt-port");
+        System.clearProperty("mqtt-user");
+        System.clearProperty("mqtt-pwd");
         vertx = Vertx.vertx();
         address = mosquitto.getContainerIpAddress();
         port = mosquitto.getMappedPort(1883);
@@ -48,11 +52,14 @@ public class MqttTestBase {
     @After
     public void tearDown() {
         System.clearProperty("mqtt-host");
-        System.clearProperty("mqtt-post");
+        System.clearProperty("mqtt-port");
+        System.clearProperty("mqtt-user");
+        System.clearProperty("mqtt-pwd");
+
         vertx.close();
         usage.close();
 
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
     }
 
     static Weld baseWeld(MapBasedConfig config) {

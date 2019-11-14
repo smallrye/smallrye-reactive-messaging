@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -7,15 +8,18 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.vertx.reactivex.core.Vertx;
 
 public class SecureMqttTestBase {
 
     @ClassRule
-    public static GenericContainer mosquitto = new GenericContainer("eclipse-mosquitto:1.4.12")
+    public static GenericContainer mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
             .withExposedPorts(1883)
-            .withFileSystemBind("src/test/resources/mosquitto-secure", "/mosquitto/config", BindMode.READ_WRITE);
+            .withFileSystemBind("src/test/resources/mosquitto-secure", "/mosquitto/config", BindMode.READ_WRITE)
+            .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
 
     Vertx vertx;
     protected String address;
@@ -43,6 +47,8 @@ public class SecureMqttTestBase {
         System.clearProperty("mqtt-pwd");
         vertx.close();
         usage.close();
+
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
     }
 
 }
