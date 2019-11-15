@@ -274,7 +274,11 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         })
                         .whenComplete((m, e) -> {
                             if (e != null) {
-                                LOGGER.error("Unable to send the AMQP message", e);
+                                if (client == null) {
+                                    LOGGER.error("The AMQP message has not been sent, the client is closed");
+                                } else {
+                                    LOGGER.error("Unable to send the AMQP message", e);
+                                }
                             }
                         });
             } else {
@@ -284,6 +288,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl) {
+
         io.vertx.axle.amqp.AmqpMessage amqp;
 
         if (msg instanceof AmqpMessage) {
@@ -295,8 +300,18 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         } else {
             amqp = convertToAmqpMessage(msg.getPayload(), durable, ttl);
         }
-        LOGGER.debug("Sending AMQP message to address `{}` ", (amqp.address() == null ? sender.address() : amqp.address()));
-        return sender.sendWithAck(amqp).thenCompose(x -> msg.ack())
+
+        String actualAddress = amqp.address() == null ? sender.address() : amqp.address();
+        if (client == null) {
+            LOGGER.error("The AMQP message to address `{}` has not been sent, the client is closed",
+                    actualAddress);
+            return CompletableFuture.completedFuture(msg);
+        }
+
+        LOGGER.debug("Sending AMQP message to address `{}` ",
+                actualAddress);
+        return sender.sendWithAck(amqp)
+                .<Void> thenCompose(x -> msg.ack())
                 .thenApply(x -> msg);
     }
 
@@ -349,6 +364,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     public synchronized void close() {
         if (client != null) {
             client.close();
+            client = null;
         }
     }
 }
