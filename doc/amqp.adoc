@@ -51,7 +51,6 @@ mp.messaging.outgoing.data.username=username
 mp.messaging.outgoing.data.password=secret
 mp.messaging.outgoing.data.containerId=my-container-id
 mp.messaging.outgoing.data.durable=true
-mp.messaging.outgoing.data.durable=10000
 ----
 
 The AMQP connector dispatches messages to the AMQP broker or server.
