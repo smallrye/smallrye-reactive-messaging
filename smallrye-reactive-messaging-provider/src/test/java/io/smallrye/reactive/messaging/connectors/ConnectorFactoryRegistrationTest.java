@@ -23,7 +23,7 @@ public class ConnectorFactoryRegistrationTest extends WeldTestBase {
 
     @Test
     public void test() {
-        initializer.addBeanClasses(DummyBean.class, io.smallrye.config.inject.ConfigProducer.class);
+        initializer.addBeanClasses(DummyBean.class);
 
         initialize();
 

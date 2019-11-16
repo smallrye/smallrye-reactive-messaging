@@ -72,11 +72,15 @@ public class WeldTestBaseWithoutTails {
             out.getParentFile().mkdirs();
             try {
                 Files.copy(file.toPath(), out.toPath());
+                System.out.println("Installed configuration:");
+                List<String> list = Files.readAllLines(out.toPath());
+                list.forEach(System.out::println);
+                System.out.println("---------");
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         } else {
-            throw new IllegalArgumentException("File does not exist " + path);
+            throw new IllegalArgumentException("File " + file.getAbsolutePath() + " does not exist " + path);
         }
     }
 

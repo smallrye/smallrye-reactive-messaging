@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
@@ -56,8 +57,13 @@ public class MapBasedConfig implements Config {
         try (FileOutputStream fos = new FileOutputStream(out)) {
             properties.store(fos, "file generated for testing purpose");
             fos.flush();
+          System.out.println("Installed configuration:");
+          List<String> list = Files.readAllLines(out.toPath());
+          list.forEach(System.out::println);
+          System.out.println("---------");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+
     }
 }

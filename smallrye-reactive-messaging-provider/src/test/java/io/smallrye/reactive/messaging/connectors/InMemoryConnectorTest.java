@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.connector;
+package io.smallrye.reactive.messaging.connectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -10,6 +10,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.enterprise.context.ApplicationScoped;
 
 import io.smallrye.reactive.messaging.MapBasedConfig;
+import io.smallrye.reactive.messaging.connector.InMemoryConnector;
+import io.smallrye.reactive.messaging.connector.InMemorySink;
+import io.smallrye.reactive.messaging.connector.InMemorySource;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
