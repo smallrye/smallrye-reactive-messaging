@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.connectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -9,10 +10,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import io.smallrye.reactive.messaging.MapBasedConfig;
-import io.smallrye.reactive.messaging.connector.InMemoryConnector;
-import io.smallrye.reactive.messaging.connector.InMemorySink;
-import io.smallrye.reactive.messaging.connector.InMemorySource;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -21,7 +18,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.smallrye.reactive.messaging.MapBasedConfig;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.connector.InMemoryConnector;
+import io.smallrye.reactive.messaging.connector.InMemorySink;
+import io.smallrye.reactive.messaging.connector.InMemorySource;
 
 public class InMemoryConnectorTest extends WeldTestBaseWithoutTails {
 
@@ -143,6 +144,26 @@ public class InMemoryConnectorTest extends WeldTestBaseWithoutTails {
                 .select(InMemoryConnector.class, ConnectorLiteral.of(InMemoryConnector.CONNECTOR)).get();
         assertThat(bean).isNotNull();
         bean.sink("unknown");
+    }
+
+    @Test
+    public void testSwitchAndClear() {
+        assertThat(System.getProperties()).doesNotContainKeys(
+                "mp.messaging.incoming.a.connector", "mp.messaging.incoming.b.connector",
+                "mp.messaging.outgoing.x.connector", "mp.messaging.outgoing.y.connector");
+
+        InMemoryConnector.switchIncomingChannelToInMemory("a", "b");
+        InMemoryConnector.switchOutgoingChannelToInMemory("x", "y");
+        assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.a.connector", InMemoryConnector.CONNECTOR));
+        assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.b.connector", InMemoryConnector.CONNECTOR));
+        assertThat(System.getProperties()).contains(entry("mp.messaging.outgoing.x.connector", InMemoryConnector.CONNECTOR));
+        assertThat(System.getProperties()).contains(entry("mp.messaging.outgoing.y.connector", InMemoryConnector.CONNECTOR));
+
+        InMemoryConnector.clear();
+
+        assertThat(System.getProperties()).doesNotContainKeys(
+                "mp.messaging.incoming.a.connector", "mp.messaging.incoming.b.connector",
+                "mp.messaging.outgoing.x.connector", "mp.messaging.outgoing.y.connector");
     }
 
     @ApplicationScoped
