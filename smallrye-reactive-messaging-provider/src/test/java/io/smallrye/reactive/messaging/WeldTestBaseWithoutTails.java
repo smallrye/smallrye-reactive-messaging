@@ -55,6 +55,7 @@ public class WeldTestBaseWithoutTails {
     }
 
     public static void installConfig(MapBasedConfig config) {
+        releaseConfig();
         if (config != null) {
             config.write();
         } else {
@@ -63,6 +64,7 @@ public class WeldTestBaseWithoutTails {
     }
 
     public static void installConfig(String path) {
+        releaseConfig();
         File file = new File(path);
         if (file.exists()) {
             File out = new File("target/test-classes/META-INF/microprofile-config.properties");
