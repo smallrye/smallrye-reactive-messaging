@@ -1,5 +1,4 @@
 = SmallRye Reactive Messaging
-Clement Escoffier;
 :revnumber: {version}
 :revdate: {localdate}
 :toc: macro
