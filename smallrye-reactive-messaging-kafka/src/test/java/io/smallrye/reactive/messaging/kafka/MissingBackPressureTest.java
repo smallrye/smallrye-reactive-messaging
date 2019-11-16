@@ -25,7 +25,7 @@ import org.junit.Test;
 
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.annotations.Emitter;
+import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class MissingBackPressureTest extends KafkaTestBase {

@@ -9,6 +9,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import io.smallrye.reactive.messaging.Emitter;
+
 /**
  * Allows configuring the back pressure policy on injected {@link Emitter}:
  *

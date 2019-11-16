@@ -1,10 +1,12 @@
-package io.smallrye.reactive.messaging.annotations;
+package io.smallrye.reactive.messaging;
+
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 /**
  * Interface used to feed a stream from an <em>imperative</em> piece of code.
  * <p>
  * Instances are injected using:
- * 
+ *
  * <pre>
  * &#64;Inject
  * &#64;Channel("my-channel")

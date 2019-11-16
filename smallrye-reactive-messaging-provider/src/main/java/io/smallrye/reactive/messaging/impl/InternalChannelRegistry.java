@@ -9,7 +9,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
-import io.smallrye.reactive.messaging.annotations.Emitter;
+import io.smallrye.reactive.messaging.Emitter;
 
 @ApplicationScoped
 public class InternalChannelRegistry implements ChannelRegistry {

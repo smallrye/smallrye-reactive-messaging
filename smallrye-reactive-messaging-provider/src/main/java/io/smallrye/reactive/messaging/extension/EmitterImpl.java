@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.*;
-import io.smallrye.reactive.messaging.annotations.Emitter;
+import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 public class EmitterImpl<T> implements Emitter<T> {

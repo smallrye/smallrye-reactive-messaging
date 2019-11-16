@@ -7,8 +7,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import io.smallrye.reactive.messaging.annotations.Emitter;
-
 public interface ChannelRegistry {
 
     PublisherBuilder<? extends Message> register(String name, PublisherBuilder<? extends Message> stream);
