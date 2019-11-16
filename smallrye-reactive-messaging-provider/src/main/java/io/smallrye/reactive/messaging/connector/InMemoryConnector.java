@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -35,6 +36,80 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     private Map<String, InMemorySourceImpl<?>> sources = new HashMap<>();
     private Map<String, InMemorySinkImpl<?>> sinks = new HashMap<>();
 
+    /**
+     * Switch the given incoming channel to in-memory. It replaces the previously used connector with the in-memory
+     * connector.
+     * <p>
+     * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
+     * retrieve the {@link InMemorySource} using:
+     * <code><pre>
+     *     &#64;Inject @Any
+     *     InMemoryConnector connector;
+     *
+     *     //...
+     *
+     *     InMemorySource&lt;Integer&gt; channel = connector.source("my-channel");
+     *     channel.send(1);
+     *     channel.send(2);
+     *
+     * </pre></code>
+     * <p>
+     * With the {@link InMemorySource}, you can send messages to the channel, mocking the incoming messages.
+     *
+     * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
+     *        a blank value
+     */
+    public static void switchIncomingChannelToInMemory(String... channels) {
+        for (String channel : channels) {
+            if (channel == null || channel.trim().isEmpty()) {
+                throw new IllegalArgumentException("The channel name must not be `null` or blank");
+            }
+            System.setProperty("mp.messaging.incoming." + channel + ".connector", CONNECTOR);
+        }
+    }
+
+    /**
+     * Switch the given outgoing channel to in-memory. It replaces the previously used connector with the in-memory
+     * connector.
+     * <p>
+     * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
+     * retrieve the {@link InMemorySink} using:
+     * <code><pre>
+     *     &#64;Inject @Any
+     *     InMemoryConnector connector;
+     *
+     *     //...
+     *
+     *     InMemorySink&lt;Integer&gt; channel = connector.sink("my-channel");
+     *     assertThat(channel.received()).hasSize(3).extracting(Message::getPayload).containsExactly(1, 2);
+     *
+     * </pre></code>
+     * <p>
+     * With the {@link InMemorySink}, you can checked the messages received by the channel, to verify that the expected
+     * messages have been received.
+     *
+     * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
+     *        a blank value
+     */
+    public static void switchOutgoingChannelToInMemory(String... channels) {
+        for (String channel : channels) {
+            System.setProperty("mp.messaging.outgoing." + channel + ".connector", CONNECTOR);
+        }
+    }
+
+    /**
+     * Switch back the channel to their original connector.
+     * <p>
+     * This method is generally used after tests to reset the original configuration.
+     */
+    public static void clear() {
+        List<String> list = System.getProperties().entrySet().stream()
+                .filter(entry -> CONNECTOR.equals(entry.getValue()))
+                .map(entry -> (String) entry.getKey())
+                .collect(Collectors.toList());
+        list.forEach(System::clearProperty);
+    }
+
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
@@ -49,6 +124,20 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         return sinks.computeIfAbsent(name, InMemorySinkImpl::new).sink;
     }
 
+    /**
+     * Retrieves an {@link InMemorySource} associated to the channel named {@code channel}.
+     * This channel must use the in-memory connected.
+     * <p>
+     * The returned {@link InMemorySource} lets you send messages or payloads to the channel, mocking the real
+     * interactions.
+     *
+     * @param channel the name of the channel, must not be {@code null}
+     * @param <T> the type of message or payload sent to the channel
+     * @return the source
+     * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
+     *         in-memory connector.
+     * @see #switchIncomingChannelToInMemory(String...)
+     */
     public <T> InMemorySource<T> source(String channel) {
         if (channel == null) {
             throw new IllegalArgumentException("`channel` must not be `null`");
@@ -61,6 +150,19 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         return (InMemorySource<T>) source;
     }
 
+    /**
+     * Retrieves an {@link InMemorySink} associated to the channel named {@code channel}.
+     * This channel must use the in-memory connected.
+     * <p>
+     * The returned {@link InMemorySink} lets you checks the messages sent to the channel.
+     *
+     * @param channel the name of the channel, must not be {@code null}
+     * @param <T> the type of payload received by the channel
+     * @return the sink
+     * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
+     *         in-memory connector.
+     * @see #switchOutgoingChannelToInMemory(String...)
+     */
     public <T> InMemorySink<T> sink(String channel) {
         if (channel == null) {
             throw new IllegalArgumentException("`channel` must not be `null`");
