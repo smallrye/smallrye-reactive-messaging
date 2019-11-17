@@ -18,7 +18,6 @@ import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
@@ -152,7 +151,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyBeanEmittingPayloadsUsingStream {
         @Inject
-        @Stream("foo")
+        @Channel("foo")
         Emitter<String> emitter;
         private List<String> list = new CopyOnWriteArrayList<>();
 
@@ -276,11 +275,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         public void run() {
             emitter.send("a");
             emitter.send("b");
-            try {
-                emitter.send(null);
-            } catch (IllegalArgumentException e) {
-                caught = true;
-            }
+            /*
+             * try {
+             * emitter.send(null);
+             * } catch (IllegalArgumentException e) {
+             * caught = true;
+             * }
+             */
             emitter.send("c");
             emitter.complete();
         }

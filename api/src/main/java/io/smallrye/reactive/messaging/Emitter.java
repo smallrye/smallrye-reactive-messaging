@@ -4,6 +4,8 @@ import io.smallrye.reactive.messaging.annotations.Channel;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.reactive.messaging.Message;
+
 /**
  * Interface used to feed a stream from an <em>imperative</em> piece of code.
  * <p>
@@ -30,13 +32,22 @@ import java.util.concurrent.CompletionStage;
 public interface Emitter<T> {
 
     /**
-     * Sends a payload or a message to the stream.
+     * Sends a payload to the stream.
      *
      * @param msg the <em>thing</em> to send, must not be {@code null}
      * @return the {@code CompletionStage}
      * @throws IllegalStateException if the stream has been cancelled or terminated.
      */
     CompletionStage<Void> send(T msg);
+
+    /**
+     * Sends a message to the stream.
+     *
+     * @param msg the <em>Message</em> to send, must not be {@code null}
+     * @return the {@code Void}
+     * @throws IllegalStateException if the stream has been cancelled or terminated.
+     */
+    void send(Message<T> msg);
 
     /**
      * Completes the stream.

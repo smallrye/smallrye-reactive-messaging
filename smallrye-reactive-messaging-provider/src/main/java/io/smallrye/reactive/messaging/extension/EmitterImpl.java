@@ -78,12 +78,22 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
         FlowableEmitter<Message<? extends T>> emitter = verify();
-        if (msg instanceof Message) {
-            //noinspection unchecked
-            return CompletableFuture.runAsync(() -> emitter.onNext((Message) msg));
-        } else {
-            return CompletableFuture.runAsync(() -> emitter.onNext(Message.of(msg)));
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        emitter.onNext(Message.of(msg, () -> {
+            future.complete(null);
+            return future;
+        }));
+        return future;
+
+    }
+
+    @Override
+    public synchronized void send(Message<T> msg) {
+        if (msg == null) {
+            throw new IllegalArgumentException("`null` is not a valid value");
         }
+        FlowableEmitter<Message<? extends T>> emitter = verify();
+        emitter.onNext(msg);
 
     }
 
@@ -109,6 +119,7 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("`null` is not a valid exception");
         }
         verify().onError(e);
+        
     }
 
     @Override
