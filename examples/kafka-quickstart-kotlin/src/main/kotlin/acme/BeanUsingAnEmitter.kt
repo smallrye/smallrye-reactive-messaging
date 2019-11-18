@@ -8,7 +8,7 @@ import javax.enterprise.context.ApplicationScoped
 import javax.inject.Inject
 
 import io.smallrye.reactive.messaging.annotations.Channel
-import io.smallrye.reactive.messaging.annotations.Emitter
+import io.smallrye.reactive.messaging.Emitter
 
 @ApplicationScoped
 open class BeanUsingAnEmitter {

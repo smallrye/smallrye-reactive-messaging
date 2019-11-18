@@ -19,8 +19,8 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.annotations.Channel;
-import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Stream;
 
 @ApplicationScoped
