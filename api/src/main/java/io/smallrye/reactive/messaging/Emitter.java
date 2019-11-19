@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.reactive.messaging.annotations.Channel;
-
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 /**
  * Interface used to feed a stream from an <em>imperative</em> piece of code.
