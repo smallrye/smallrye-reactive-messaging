@@ -119,7 +119,7 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("`null` is not a valid exception");
         }
         verify().onError(e);
-        
+
     }
 
     @Override
