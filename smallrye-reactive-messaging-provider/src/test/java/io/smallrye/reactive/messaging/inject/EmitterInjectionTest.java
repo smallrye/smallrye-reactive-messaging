@@ -199,9 +199,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         @Incoming("foo")
-        public void consume(Message<String> s) {
-            s.ack();
-            list.add(s.getPayload());
+        public void consume(String s) {
+            list.add(s);
         }
     }
 
