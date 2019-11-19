@@ -52,7 +52,7 @@ Here is an example of method annotated with `@Incoming` directly using a Camel r
 ----
 @Incoming("camel")
 public Subscriber<String> sink() {
-  return camel.subscriber("file:./target?fileName=values.txt&fileExist=append", String.class);
+  return camel_reactive.subscriber("file:./target?fileName=values.txt&fileExist=append", String.class);
 }
 ----
 
