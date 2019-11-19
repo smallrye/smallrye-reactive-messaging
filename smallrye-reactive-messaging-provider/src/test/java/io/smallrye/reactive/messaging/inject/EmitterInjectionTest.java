@@ -195,11 +195,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             emitter.send(Message.of("a"));
             emitter.send(Message.of("b"));
             emitter.send(Message.of("c"));
+            emitter.complete();
         }
 
         @Incoming("foo")
-        public void consume(String s) {
-            list.add(s);
+        public void consume(Message<String> s) {
+            s.ack();
+            list.add(s.getPayload());
         }
     }
 
