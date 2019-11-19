@@ -3,15 +3,27 @@ package io.smallrye.reactive.messaging.connectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.WeldTestBase;
 
 public class ConnectorFactoryRegistrationTest extends WeldTestBase {
 
+    @BeforeClass
+    public static void setupConfig() {
+        installConfig("src/test/resources/config/dummy-connector-config.properties");
+    }
+
+    @AfterClass
+    public static void clear() {
+        releaseConfig();
+    }
+
     @Test
     public void test() {
-        initializer.addBeanClasses(DummyBean.class, io.smallrye.config.inject.ConfigProducer.class);
+        initializer.addBeanClasses(DummyBean.class);
 
         initialize();
 

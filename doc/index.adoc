@@ -1,5 +1,4 @@
 = SmallRye Reactive Messaging
-Clement Escoffier;
 :revnumber: {version}
 :revdate: {localdate}
 :toc: macro
@@ -34,6 +33,7 @@ include::camel.adoc[]
 include::mqtt.adoc[]
 include::http.adoc[]
 include::vertx-eventbus.adoc[]
+include::testing.adoc[]
 
 include::advanced.adoc[]
 
