@@ -45,6 +45,7 @@ public class JmsSource implements Runnable {
         }
 
         processor = UnicastProcessor.create(127, this::close);
+        // TODO Support broadcast
         source = ReactiveStreams.fromPublisher(processor.doOnSubscribe(
                 s -> executor.execute(this)));
     }
@@ -81,12 +82,6 @@ public class JmsSource implements Runnable {
             case "topic":
                 LOGGER.info("Creating topic {}", name);
                 return context.createTopic(name);
-            case "temporary-queue":
-                LOGGER.info("Creating temporary queue");
-                return context.createTemporaryQueue();
-            case "temporary-topic":
-                LOGGER.info("Creating temporary topic");
-                return context.createTemporaryTopic();
             default:
                 throw new IllegalArgumentException("Unknown destination type: " + type);
         }

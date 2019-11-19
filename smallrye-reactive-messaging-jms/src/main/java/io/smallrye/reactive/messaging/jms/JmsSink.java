@@ -50,7 +50,6 @@ class JmsSink {
         config.getOptionalValue("disable-message-id", Boolean.TYPE).ifPresent(producer::setDisableMessageID);
         config.getOptionalValue("disable-message-timestamp", Boolean.TYPE).ifPresent(producer::setDisableMessageTimestamp);
         config.getOptionalValue("correlation-id", String.class).ifPresent(producer::setJMSCorrelationID);
-        config.getOptionalValue("type", String.class).ifPresent(producer::setJMSType);
         config.getOptionalValue("ttl", Long.TYPE).ifPresent(producer::setTimeToLive);
         config.getOptionalValue("priority", Integer.TYPE).ifPresent(producer::setPriority);
         config.getOptionalValue("reply-to", String.class).ifPresent(rt -> producer.setJMSReplyTo(
@@ -88,6 +87,7 @@ class JmsSink {
             TextMessage msg = context.createTextMessage(payload.toString());
             try {
                 msg.setStringProperty("_classname", payload.getClass().getName());
+                msg.setJMSType(payload.getClass().getName());
                 return dispatch(message, () -> producer.send(destination, msg));
             } catch (JMSException e) {
                 throw new IllegalStateException(e);
@@ -101,6 +101,7 @@ class JmsSink {
         return dispatch(message, () -> {
             try {
                 TextMessage text = context.createTextMessage(json.toJson(payload));
+                text.setJMSType(payload.getClass().getName());
                 text.setStringProperty("_classname", payload.getClass().getName());
                 producer.send(destination, text);
             } catch (JMSException e) {

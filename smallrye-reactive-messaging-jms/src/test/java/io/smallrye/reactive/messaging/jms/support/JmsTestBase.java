@@ -24,13 +24,13 @@ public class JmsTestBase {
     private Weld weld;
     private WeldContainer container;
 
-    @BeforeClass
-    public static void startArtemis() {
+    @Before
+    public void startArtemis() {
         holder.start();
     }
 
-    @AfterClass
-    public static void stopArtemis() {
+    @After
+    public void stopArtemis() {
         holder.stop();
     }
 

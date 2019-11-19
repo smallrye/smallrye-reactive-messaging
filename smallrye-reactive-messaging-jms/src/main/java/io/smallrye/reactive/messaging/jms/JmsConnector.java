@@ -74,10 +74,13 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
     private JMSContext createJmsContext(Config config) {
         String factoryName = config.getOptionalValue("connection-factory-name", String.class).orElse(null);
         ConnectionFactory factory = pickTheFactory(factoryName);
-        return createContext(factory,
+        JMSContext context = createContext(factory,
                 config.getOptionalValue("username", String.class).orElse(null),
                 config.getOptionalValue("password", String.class).orElse(null),
                 config.getOptionalValue("session-mode", String.class).orElse("AUTO_ACKNOWLEDGE"));
+
+        config.getOptionalValue("client-id", String.class).ifPresent(context::setClientID);
+        return context;
     }
 
     @Override

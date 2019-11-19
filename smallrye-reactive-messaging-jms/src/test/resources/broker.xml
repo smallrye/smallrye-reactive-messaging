@@ -13,18 +13,5 @@
     </acceptors>
 
     <security-enabled>false</security-enabled>
-
-    <queues>
-      <queue name="q1">
-        <address>queue-one</address>
-      </queue>
-      <!--<queue name="q2">-->
-        <!--<address>queue-two</address>-->
-        <!--<durable>true</durable>-->
-      <!--</queue>-->
-    </queues>
-
-
-
   </core>
 </configuration>

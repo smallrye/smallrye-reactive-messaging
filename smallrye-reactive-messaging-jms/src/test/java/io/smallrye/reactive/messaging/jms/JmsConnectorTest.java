@@ -1,15 +1,18 @@
 package io.smallrye.reactive.messaging.jms;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
 import io.smallrye.reactive.messaging.jms.support.MapBasedConfig;
+
+import javax.jms.DeliveryMode;
+import javax.jms.Queue;
 
 public class JmsConnectorTest extends JmsTestBase {
 
@@ -39,6 +42,28 @@ public class JmsConnectorTest extends JmsTestBase {
 
         MessageConsumerBean bean = container.select(MessageConsumerBean.class).get();
         await().until(() -> bean.list().size() > 3);
+
+      List<ReceivedJmsMessage<Integer>> messages = bean.messages();
+      messages.forEach(msg -> {
+        assertThat(msg.getJMSDeliveryMode()).isEqualTo(DeliveryMode.PERSISTENT);
+        assertThat(msg.getJMSCorrelationID()).isNull();
+        assertThat(msg.getJMSCorrelationIDAsBytes()).isNull();
+        assertThat(msg.getJMSDestination()).isInstanceOf(Queue.class);
+        assertThat(msg.getJMSDeliveryTime()).isNotNull();
+        assertThat(msg.getJMSPriority()).isEqualTo(4);
+        assertThat(msg.getJMSMessageID()).isNotNull();
+        assertThat(msg.getJMSTimestamp()).isPositive();
+        Enumeration names = msg.getPropertyNames();
+        List<String> list = new ArrayList<>();
+        while(names.hasMoreElements()) {
+          list.add(names.nextElement().toString());
+        }
+        assertThat(list).hasSize(2).contains("_classname");
+        assertThat(msg.getJMSRedelivered()).isFalse();
+        assertThat(msg.getJMSReplyTo()).isNull();
+        assertThat(msg.getJMSType()).isNotNull();
+        assertThat(msg.getJMSExpiration()).isEqualTo(0L);
+      });
     }
 
     @Test
