@@ -30,6 +30,7 @@ import io.vertx.axle.amqp.AmqpMessage;
 import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import repeat.Repeat;
 
 public class AmqpSourceTest extends AmqpTestBase {
 
@@ -141,6 +142,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     }
 
     @Test
+    @Repeat(times = 10)
     public void testBroadcast() {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
@@ -164,18 +166,19 @@ public class AmqpSourceTest extends AmqpTestBase {
         rs.subscribe(createSubscriber(messages1, o1));
         rs.subscribe(createSubscriber(messages2, o2));
 
-        await().until(() -> o1.get() && o2.get());
+        await()
+                .pollDelay(5, TimeUnit.SECONDS)
+                .until(() -> o1.get() && o2.get());
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceTenIntegers(topic,
                 counter::getAndIncrement)).start();
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
+        await().atMost(1, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
+        await().atMost(1, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
         assertThat(messages1.stream().map(Message::getPayload)
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-
         assertThat(messages2.stream().map(Message::getPayload)
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
