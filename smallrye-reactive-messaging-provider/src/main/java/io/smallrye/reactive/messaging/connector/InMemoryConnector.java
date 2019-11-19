@@ -37,8 +37,8 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     private Map<String, InMemorySinkImpl<?>> sinks = new HashMap<>();
 
     /**
-     * Switch the given incoming channel to in-memory. It replaces the previously used connector with the in-memory
-     * connector.
+     * Switch the given channel to in-memory. It replaces the previously used connector with the in-memory
+     * connector. It substitutes the connector for both the incoming and outgoing channel.
      * <p>
      * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
      * retrieve the {@link InMemorySource} using:
@@ -56,24 +56,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      * <p>
      * With the {@link InMemorySource}, you can send messages to the channel, mocking the incoming messages.
      *
-     * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
-     *        a blank value
-     */
-    public static void switchIncomingChannelToInMemory(String... channels) {
-        for (String channel : channels) {
-            if (channel == null || channel.trim().isEmpty()) {
-                throw new IllegalArgumentException("The channel name must not be `null` or blank");
-            }
-            System.setProperty("mp.messaging.incoming." + channel + ".connector", CONNECTOR);
-        }
-    }
-
-    /**
-     * Switch the given outgoing channel to in-memory. It replaces the previously used connector with the in-memory
-     * connector.
-     * <p>
-     * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
-     * retrieve the {@link InMemorySink} using:
+     * You can also retrieve an {@link InMemorySink} using:
      * <code><pre>
      *     &#64;Inject @Any
      *     InMemoryConnector connector;
@@ -91,8 +74,12 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
      *        a blank value
      */
-    public static void switchOutgoingChannelToInMemory(String... channels) {
+    public static void switchChannelToInMemory(String... channels) {
         for (String channel : channels) {
+            if (channel == null || channel.trim().isEmpty()) {
+                throw new IllegalArgumentException("The channel name must not be `null` or blank");
+            }
+            System.setProperty("mp.messaging.incoming." + channel + ".connector", CONNECTOR);
             System.setProperty("mp.messaging.outgoing." + channel + ".connector", CONNECTOR);
         }
     }
@@ -136,7 +123,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      * @return the source
      * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
      *         in-memory connector.
-     * @see #switchIncomingChannelToInMemory(String...)
+     * @see #switchChannelToInMemory(String...)
      */
     public <T> InMemorySource<T> source(String channel) {
         if (channel == null) {
@@ -161,7 +148,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      * @return the sink
      * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
      *         in-memory connector.
-     * @see #switchOutgoingChannelToInMemory(String...)
+     * @see #switchChannelToInMemory(String...)
      */
     public <T> InMemorySink<T> sink(String channel) {
         if (channel == null) {

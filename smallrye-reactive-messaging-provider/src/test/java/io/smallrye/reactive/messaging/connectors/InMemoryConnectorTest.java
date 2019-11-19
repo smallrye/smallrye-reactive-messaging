@@ -152,8 +152,7 @@ public class InMemoryConnectorTest extends WeldTestBaseWithoutTails {
                 "mp.messaging.incoming.a.connector", "mp.messaging.incoming.b.connector",
                 "mp.messaging.outgoing.x.connector", "mp.messaging.outgoing.y.connector");
 
-        InMemoryConnector.switchIncomingChannelToInMemory("a", "b");
-        InMemoryConnector.switchOutgoingChannelToInMemory("x", "y");
+        InMemoryConnector.switchChannelToInMemory("a", "b", "x", "y");
         assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.a.connector", InMemoryConnector.CONNECTOR));
         assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.b.connector", InMemoryConnector.CONNECTOR));
         assertThat(System.getProperties()).contains(entry("mp.messaging.outgoing.x.connector", InMemoryConnector.CONNECTOR));

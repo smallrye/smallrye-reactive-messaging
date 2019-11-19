@@ -5,7 +5,7 @@ While Docker or Test Containers have improved the the testing experience, you ma
 
 SmallRye Reactive Messaging proposes an _in-memory_ connector for this exact purpose.
 It allows switching the connector used for a channel with an _in-memory_ connector.
-This connector can then provide a way to send messages for incoming channels, or checked the received messages for outgoing
+This connector can then provide a way to send messages for incoming channels, or check the received messages for outgoing
 channels.
 
 For example, in a test, you can do something like:
@@ -24,8 +24,7 @@ class MyTest {
     // 1. Switch the channels to the in-memory connector:
     @BeforeAll
     public static void switchMyChannels() {
-        InMemoryConnector.switchIncomingChannelToInMemory("prices");
-        InMemoryConnector.switchOutgoingChannelToInMemory("processed-prices");
+        InMemoryConnector.switchChannelToInMemory("prices", "processed-prices");
     }
 
     // 2. Don't forget to reset the channel after the tests:
