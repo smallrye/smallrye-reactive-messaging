@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.Flowable;
-import io.reactivex.processors.MulticastProcessor;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.axle.amqp.AmqpClient;
@@ -233,8 +232,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .flatMapRsPublisher(this::getStreamOfMessages);
 
         if (broadcast) {
-            return builder.via(MulticastProcessor.create());
+            return ReactiveStreams.fromPublisher(Flowable.fromPublisher(builder.buildRs()).publish().autoConnect());
         }
+
         return builder;
     }
 

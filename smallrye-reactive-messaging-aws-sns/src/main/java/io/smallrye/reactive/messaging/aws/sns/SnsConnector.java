@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.processors.BehaviorProcessor;
-import io.reactivex.processors.MulticastProcessor;
 import io.reactivex.schedulers.Schedulers;
 import io.vertx.core.Vertx;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
@@ -155,7 +154,10 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                 .delaySubscription(ready);
 
         PublisherBuilder<? extends Message<?>> builder = ReactiveStreams.fromPublisher(flowable);
-        return broadcast ? builder.via(MulticastProcessor.create()) : builder;
+        if (broadcast) {
+            return ReactiveStreams.fromPublisher(Flowable.fromPublisher(builder.buildRs()).publish().autoConnect());
+        }
+        return builder;
     }
 
     /**
