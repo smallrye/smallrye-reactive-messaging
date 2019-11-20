@@ -94,7 +94,7 @@ class KafkaSink {
                                         km.getKey() == null ? this.key : km.getKey(),
                                         km.getPayload(),
                                         km.getHeaders().unwrap());
-                                LOGGER.info("Sending message {} to Kafka topic '{}'", message, record.topic());
+                                LOGGER.debug("Sending message {} to Kafka topic '{}'", message, record.topic());
                             }
                         } else {
                             if (this.topic == null) {
@@ -111,7 +111,7 @@ class KafkaSink {
                         CompletableFuture<Message> future = new CompletableFuture<>();
                         Handler<AsyncResult<Void>> handler = ar -> {
                             if (ar.succeeded()) {
-                                LOGGER.info("Message {} sent successfully to Kafka topic '{}'", message, record.topic());
+                                LOGGER.debug("Message {} sent successfully to Kafka topic '{}'", message, record.topic());
                                 future.complete(message);
                             } else {
                                 LOGGER.error("Message {} was not sent to Kafka topic '{}'", message, record.topic(),
