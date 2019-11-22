@@ -67,4 +67,21 @@ public class MapBasedConfig implements Config {
             throw new UncheckedIOException(e);
         }
     }
+
+    public static class Builder {
+        private Map<String, Object> cfg = new HashMap<>();
+
+        public MapBasedConfig build() {
+            return new MapBasedConfig(cfg);
+        }
+
+        public Builder put(String key, Object value) {
+            cfg.put(key, value);
+            return this;
+        }
+
+        public Builder with(String key, Object value) {
+            return put("mp.messaging." + key, value);
+        }
+    }
 }

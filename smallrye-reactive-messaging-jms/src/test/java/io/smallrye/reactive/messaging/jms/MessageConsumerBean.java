@@ -27,7 +27,7 @@ public class MessageConsumerBean {
     }
 
     List<ReceivedJmsMessage<Integer>> messages() {
-      return new ArrayList<>(messages);
+        return new ArrayList<>(messages);
     }
 
 }

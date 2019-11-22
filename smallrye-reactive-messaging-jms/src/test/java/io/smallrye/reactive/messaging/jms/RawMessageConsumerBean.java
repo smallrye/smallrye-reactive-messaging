@@ -1,12 +1,13 @@
 package io.smallrye.reactive.messaging.jms;
 
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-
-import javax.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @ApplicationScoped
 public class RawMessageConsumerBean {
@@ -19,9 +20,8 @@ public class RawMessageConsumerBean {
         return v.ack();
     }
 
-
     List<ReceivedJmsMessage<?>> messages() {
-      return new ArrayList<>(messages);
+        return new ArrayList<>(messages);
     }
 
 }
