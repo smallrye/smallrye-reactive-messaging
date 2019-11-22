@@ -22,7 +22,7 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
         FlowableOnSubscribe<Message<? extends T>> deferred = fe -> {
-            if (!internal.compareAndSet(null, fe)) {
+            if (!internal.compareAndSet(null, fe.serialize())) {
                 fe.onError(new Exception("Emitter already created"));
             }
         };
@@ -88,7 +88,7 @@ public class EmitterImpl<T> implements Emitter<T> {
     }
 
     @Override
-    public synchronized void send(Message<T> msg) {
+    public synchronized <M extends Message<? extends T>> void send(M msg) {
         if (msg == null) {
             throw new IllegalArgumentException("`null` is not a valid value");
         }

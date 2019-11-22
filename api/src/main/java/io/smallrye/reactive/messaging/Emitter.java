@@ -35,7 +35,8 @@ public interface Emitter<T> {
      * Sends a payload to the stream.
      *
      * @param msg the <em>thing</em> to send, must not be {@code null}
-     * @return the {@code CompletionStage}
+     * @return the {@code CompletionStage}, which will be completed as sending the payload alone does not provide a callback
+     *         mechnanism.
      * @throws IllegalStateException if the stream has been cancelled or terminated.
      */
     CompletionStage<Void> send(T msg);
@@ -47,7 +48,7 @@ public interface Emitter<T> {
      * @return the {@code Void}
      * @throws IllegalStateException if the stream has been cancelled or terminated.
      */
-    void send(Message<T> msg);
+    <M extends Message<? extends T>> void send(M msg);
 
     /**
      * Completes the stream.

@@ -40,12 +40,12 @@ public @interface OnOverflow {
          * This creates a buffer with the size specified by {@link #bufferSize()} if present.
          * Otherwise, the size will be the value of the config property
          * <strong>mp.messaging.emitter.defult-buffer-size</strong>.
-         * If the buffer is full, an error is propagated.
+         * If the buffer is full, an error will be propagated.
          */
         BUFFER,
         /**
          * Buffers <strong>all</strong> values until the downstream consumes it.
-         * This creates an unbound buffer. If the buffer is full, an error is propagated.
+         * This creates an unbound buffer. If the buffer is full, the application will die of {@code OutOfMemory}.
          */
         UNBOUNDED_BUFFER,
         /**
