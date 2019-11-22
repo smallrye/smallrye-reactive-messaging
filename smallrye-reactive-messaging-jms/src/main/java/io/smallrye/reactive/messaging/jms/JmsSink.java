@@ -147,4 +147,5 @@ class JmsSink {
     SubscriberBuilder<Message<?>, Void> getSink() {
         return sink;
     }
+
 }

@@ -1,10 +1,8 @@
 package io.smallrye.reactive.messaging.jms;
 
 import java.util.Iterator;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
+import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -48,6 +46,8 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     private ExecutorService executor;
     private Jsonb json;
+    private List<JmsSource> sources = new CopyOnWriteArrayList<>();
+    private List<JMSContext> contexts = new CopyOnWriteArrayList<>();
 
     @PostConstruct
     public void init() {
@@ -62,13 +62,18 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     @PreDestroy
     public void cleanup() {
+        sources.forEach(JmsSource::close);
+        contexts.forEach(JMSContext::close);
         this.executor.shutdown();
     }
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         JMSContext context = createJmsContext(config);
-        return new JmsSource(context, config, json, executor).getSource();
+        contexts.add(context);
+        JmsSource source = new JmsSource(context, config, json, executor);
+        sources.add(source);
+        return source.getSource();
     }
 
     private JMSContext createJmsContext(Config config) {
@@ -86,6 +91,7 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         JMSContext context = createJmsContext(config);
+        contexts.add(context);
         return new JmsSink(context, config, json, executor).getSink();
     }
 

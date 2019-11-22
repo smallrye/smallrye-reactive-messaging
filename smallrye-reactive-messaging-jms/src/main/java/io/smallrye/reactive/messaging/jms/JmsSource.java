@@ -2,6 +2,10 @@ package io.smallrye.reactive.messaging.jms;
 
 import java.lang.IllegalStateException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jms.*;
 import javax.json.bind.Jsonb;
@@ -9,19 +13,25 @@ import javax.json.bind.Jsonb;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.processors.UnicastProcessor;
+import io.reactivex.internal.subscriptions.EmptySubscription;
+import io.reactivex.internal.subscriptions.SubscriptionHelper;
 
-public class JmsSource implements Runnable {
+public class JmsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JmsSource.class);
     private final Executor executor;
     private final PublisherBuilder<ReceivedJmsMessage<?>> source;
     private final Jsonb json;
     private JMSConsumer consumer;
-    private final UnicastProcessor<ReceivedJmsMessage<?>> processor;
+
+    private final AtomicLong requests = new AtomicLong();
+    private final JmsPublisher publisher;
 
     JmsSource(JMSContext context, Config config, Jsonb json, Executor executor) {
         String name = config.getOptionalValue("destination", String.class)
@@ -44,33 +54,13 @@ public class JmsSource implements Runnable {
             consumer = context.createConsumer(destination, selector, nolocal);
         }
 
-        processor = UnicastProcessor.create(127, this::close);
-        // TODO Support broadcast
-        source = ReactiveStreams.fromPublisher(processor.doOnSubscribe(
-                s -> executor.execute(this)));
+        publisher = new JmsPublisher(consumer);
+        // TODO handle broadcast
+        source = ReactiveStreams.fromPublisher(publisher).map(m -> new ReceivedJmsMessage<>(m, executor, json));
     }
 
     public void close() {
-        if (consumer != null) {
-            consumer.close();
-        }
-    }
-
-    @Override
-    public void run() {
-        while (true) {
-            try {
-                Message message = consumer.receive();
-                if (message == null) {
-                    return;
-                }
-                ReceivedJmsMessage msg = new ReceivedJmsMessage(message, executor, json);
-                processor.onNext(msg);
-            } catch (IllegalStateRuntimeException e) {
-                LOGGER.warn("Unable to receive JMS messages - client has been closed");
-                return;
-            }
-        }
+        publisher.close();
     }
 
     private Destination getDestination(JMSContext context, String name, Config config) {
@@ -90,5 +80,99 @@ public class JmsSource implements Runnable {
 
     PublisherBuilder<ReceivedJmsMessage<?>> getSource() {
         return source;
+    }
+
+    private class JmsPublisher implements Publisher<Message>, Subscription {
+
+        private final AtomicLong requests = new AtomicLong();
+        private final AtomicReference<Subscriber<? super Message>> downstream = new AtomicReference<>();
+        private final JMSConsumer consumer;
+        private final ExecutorService executor;
+        private boolean unbounded;
+
+        private JmsPublisher(JMSConsumer consumer) {
+            this.consumer = consumer;
+            this.executor = Executors.newSingleThreadExecutor();
+        }
+
+        void close() {
+            Subscriber<? super Message> subscriber = downstream.getAndSet(null);
+            if (subscriber != null) {
+                subscriber.onComplete();
+            }
+            consumer.close();
+            executor.shutdown();
+        }
+
+        @Override
+        public void subscribe(Subscriber<? super Message> s) {
+            if (downstream.compareAndSet(null, s)) {
+                s.onSubscribe(this);
+            } else {
+                s.onSubscribe(EmptySubscription.INSTANCE);
+                s.onError(new IllegalStateException("There is already a subscriber"));
+            }
+        }
+
+        @Override
+        public void request(long n) {
+            if (SubscriptionHelper.validate(n)) {
+                boolean u = unbounded;
+                if (!u) {
+                    long v = add(n);
+                    if (v == Long.MAX_VALUE) {
+                        unbounded = true;
+                        startUnboundedReception();
+                    } else {
+                        enqueue(n);
+                    }
+                }
+            }
+        }
+
+        private void enqueue(long n) {
+            for (int i = 0; i < n; i++) {
+                executor.execute(() -> {
+                    try {
+                        Message message = consumer.receive();
+                        if (message != null) { // null means closed.
+                            requests.decrementAndGet();
+                            downstream.get().onNext(message);
+                        }
+                    } catch (IllegalStateRuntimeException e) {
+                        LOGGER.warn("Unable to receive JMS messages - client has been closed");
+                    }
+
+                });
+            }
+        }
+
+        private void startUnboundedReception() {
+            consumer.setMessageListener(m -> downstream.get().onNext(m));
+        }
+
+        @Override
+        public void cancel() {
+            close();
+        }
+
+        long add(long req) {
+            for (;;) {
+                long r = requests.get();
+                if (r == Long.MAX_VALUE) {
+                    return Long.MAX_VALUE;
+                }
+                long u = r + req;
+                long v;
+                if (u < 0L) {
+                    v = Long.MAX_VALUE;
+                } else {
+                    v = u;
+                }
+                if (requests.compareAndSet(r, v)) {
+                    return v;
+                }
+            }
+        }
     }
 }

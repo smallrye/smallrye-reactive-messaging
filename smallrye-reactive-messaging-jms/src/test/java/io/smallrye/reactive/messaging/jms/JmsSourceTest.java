@@ -2,10 +2,17 @@ package io.smallrye.reactive.messaging.jms;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.notNullValue;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.jms.*;
 
@@ -14,6 +21,9 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
 import io.smallrye.reactive.messaging.jms.support.MapBasedConfig;
@@ -114,6 +124,77 @@ public class JmsSourceTest extends JmsTestBase {
         await().until(() -> bean.messages().size() == 1);
         ReceivedJmsMessage<?> receivedJmsMessage = bean.messages().get(0);
         assertThat(receivedJmsMessage.getPayload()).isEqualTo(uuid);
+    }
+
+    @Test
+    public void testReceptionOfMultipleMessages() {
+        WeldContainer container = prepare();
+
+        RawMessageConsumerBean bean = container.select(RawMessageConsumerBean.class).get();
+        assertThat(bean.messages()).isEmpty();
+
+        Queue q = jms.createQueue("queue-one");
+        JMSProducer producer = jms.createProducer();
+
+        new Thread(() -> {
+            for (int i = 0; i < 50; i++) {
+                TextMessage message = jms.createTextMessage(Integer.toString(i));
+                System.out.println("Sending " + i);
+                producer.send(q, message);
+            }
+        }).start();
+
+        await().until(() -> bean.messages().size() == 50);
+    }
+
+    @Test
+    public void testMultipleRequests() {
+        JmsSource source = new JmsSource(jms, new MapBasedConfig.Builder().put("channel-name", "queue").build(),
+                null, null);
+        Publisher<ReceivedJmsMessage<?>> publisher = source.getSource().buildRs();
+
+        new Thread(() -> {
+            JMSContext context = factory.createContext();
+            JMSProducer producer = context.createProducer();
+            Queue q = context.createQueue("queue");
+            for (int i = 0; i < 50; i++) {
+                producer.send(q, i);
+            }
+        }).start();
+
+        List<ReceivedJmsMessage<?>> list = new CopyOnWriteArrayList<>();
+        AtomicReference<Subscription> upstream = new AtomicReference<>();
+        publisher.subscribe(new Subscriber<ReceivedJmsMessage<?>>() {
+            @Override
+            public void onSubscribe(Subscription s) {
+                upstream.set(s);
+            }
+
+            @Override
+            public void onNext(ReceivedJmsMessage<?> receivedJmsMessage) {
+                list.add(receivedJmsMessage);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                // ignored
+            }
+
+            @Override
+            public void onComplete() {
+                // ignored
+            }
+        });
+
+        await().untilAtomic(upstream, is(notNullValue()));
+        upstream.get().request(10);
+        await().until(() -> list.size() == 10);
+        upstream.get().request(4);
+        await().until(() -> list.size() == 14);
+        upstream.get().request(Long.MAX_VALUE);
+        await().until(() -> list.size() == 50);
+        assertThat(list.stream().map(r -> (Integer) r.getPayload()).collect(Collectors.toList()))
+                .containsAll(IntStream.of(49).boxed().collect(Collectors.toList()));
     }
 
     private WeldContainer prepare() {
