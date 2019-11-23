@@ -5,18 +5,17 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.jms.*;
+import javax.jms.Queue;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Before;
@@ -194,6 +193,39 @@ public class JmsSourceTest extends JmsTestBase {
         upstream.get().request(Long.MAX_VALUE);
         await().until(() -> list.size() == 50);
         assertThat(list.stream().map(r -> (Integer) r.getPayload()).collect(Collectors.toList()))
+                .containsAll(IntStream.of(49).boxed().collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testBroadcast() {
+        JmsSource source = new JmsSource(jms,
+                new MapBasedConfig.Builder()
+                        .put("channel-name", "queue").put("broadcast", true).build(),
+                null, null);
+        PublisherBuilder<ReceivedJmsMessage<?>> publisher = source.getSource();
+
+        List<ReceivedJmsMessage<?>> list1 = new ArrayList<>();
+        List<ReceivedJmsMessage<?>> list2 = new ArrayList<>();
+
+        publisher.peek(list1::add).ignore().run();
+
+        new Thread(() -> {
+            JMSContext context = factory.createContext();
+            JMSProducer producer = context.createProducer();
+            Queue q = context.createQueue("queue");
+            for (int i = 0; i < 50; i++) {
+                producer.send(q, i);
+            }
+        }).start();
+
+        publisher.peek(list2::add).ignore().run();
+
+        await().until(() -> list1.size() == 50);
+        await().until(() -> list2.size() == 50);
+
+        assertThat(list1.stream().map(r -> (Integer) r.getPayload()).collect(Collectors.toList()))
+                .containsAll(IntStream.of(49).boxed().collect(Collectors.toList()));
+        assertThat(list2.stream().map(r -> (Integer) r.getPayload()).collect(Collectors.toList()))
                 .containsAll(IntStream.of(49).boxed().collect(Collectors.toList()));
     }
 

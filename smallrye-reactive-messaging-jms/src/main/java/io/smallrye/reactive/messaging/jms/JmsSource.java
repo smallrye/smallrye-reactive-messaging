@@ -19,6 +19,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.reactivex.Flowable;
 import io.reactivex.internal.subscriptions.EmptySubscription;
 import io.reactivex.internal.subscriptions.SubscriptionHelper;
 
@@ -42,6 +43,7 @@ public class JmsSource {
 
         String selector = config.getOptionalValue("selector", String.class).orElse(null);
         boolean nolocal = config.getOptionalValue("no-local", Boolean.TYPE).orElse(false);
+        boolean broadcast = config.getOptionalValue("broadcast", Boolean.TYPE).orElse(false);
 
         Destination destination = getDestination(context, name, config);
 
@@ -55,8 +57,15 @@ public class JmsSource {
         }
 
         publisher = new JmsPublisher(consumer);
-        // TODO handle broadcast
-        source = ReactiveStreams.fromPublisher(publisher).map(m -> new ReceivedJmsMessage<>(m, executor, json));
+
+        if (!broadcast) {
+            source = ReactiveStreams.fromPublisher(publisher).map(m -> new ReceivedJmsMessage<>(m, executor, json));
+        } else {
+            source = ReactiveStreams.fromPublisher(
+                    Flowable.fromPublisher(publisher)
+                            .map(m -> new ReceivedJmsMessage<>(m, executor, json))
+                            .publish().autoConnect());
+        }
     }
 
     public void close() {
