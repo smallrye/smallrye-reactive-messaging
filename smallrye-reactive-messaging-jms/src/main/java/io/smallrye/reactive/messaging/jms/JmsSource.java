@@ -26,20 +26,13 @@ import io.reactivex.internal.subscriptions.SubscriptionHelper;
 public class JmsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JmsSource.class);
-    private final Executor executor;
     private final PublisherBuilder<ReceivedJmsMessage<?>> source;
-    private final Jsonb json;
-    private JMSConsumer consumer;
 
-    private final AtomicLong requests = new AtomicLong();
     private final JmsPublisher publisher;
 
     JmsSource(JMSContext context, Config config, Jsonb json, Executor executor) {
         String name = config.getOptionalValue("destination", String.class)
                 .orElseGet(() -> config.getValue("channel-name", String.class));
-
-        this.executor = executor;
-        this.json = json;
 
         String selector = config.getOptionalValue("selector", String.class).orElse(null);
         boolean nolocal = config.getOptionalValue("no-local", Boolean.TYPE).orElse(false);
@@ -47,6 +40,7 @@ public class JmsSource {
 
         Destination destination = getDestination(context, name, config);
 
+        JMSConsumer consumer;
         if (config.getOptionalValue("durable", Boolean.TYPE).orElse(false)) {
             if (!(destination instanceof Topic)) {
                 throw new IllegalStateException("Invalid destination, only topic can be durable");
@@ -68,7 +62,7 @@ public class JmsSource {
         }
     }
 
-    public void close() {
+    void close() {
         publisher.close();
     }
 
@@ -91,6 +85,7 @@ public class JmsSource {
         return source;
     }
 
+    @SuppressWarnings("PublisherImplementation")
     private class JmsPublisher implements Publisher<Message>, Subscription {
 
         private final AtomicLong requests = new AtomicLong();

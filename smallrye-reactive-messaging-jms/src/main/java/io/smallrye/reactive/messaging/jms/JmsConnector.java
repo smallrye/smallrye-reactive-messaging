@@ -97,7 +97,11 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     private ConnectionFactory pickTheFactory(String factoryName) {
         if (factories.isUnsatisfied()) {
-            throw new IllegalStateException("Cannot find a javax.jms.ConnectionFactory bean");
+            if (factoryName == null) {
+                throw new IllegalStateException("Cannot find a javax.jms.ConnectionFactory bean");
+            } else {
+                throw new IllegalStateException("Cannot find a javax.jms.ConnectionFactory bean named " + factoryName);
+            }
         }
 
         Iterator<ConnectionFactory> iterator;

@@ -134,10 +134,6 @@ class JmsSink {
                 return context.createQueue(name);
             case "topic":
                 return context.createTopic(name);
-            case "temporary-queue":
-                return context.createTemporaryQueue();
-            case "temporary-topic":
-                return context.createTemporaryTopic();
             default:
                 throw new IllegalArgumentException("Unknown destination type: " + type);
         }

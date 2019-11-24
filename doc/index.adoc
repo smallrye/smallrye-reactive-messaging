@@ -33,6 +33,7 @@ include::camel.adoc[]
 include::mqtt.adoc[]
 include::http.adoc[]
 include::vertx-eventbus.adoc[]
+include::jms.adoc[]
 include::testing.adoc[]
 
 include::advanced.adoc[]

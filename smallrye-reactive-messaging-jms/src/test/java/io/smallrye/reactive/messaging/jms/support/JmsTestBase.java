@@ -35,7 +35,15 @@ public class JmsTestBase {
     @Before
     public void initializeWeld() {
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        baseWeld();
+        if (withConnectionFactory()) {
+            initWeldWithConnectionFactory();
+        } else {
+            initWithoutConnectionFactory();
+        }
+    }
+
+    boolean withConnectionFactory() {
+        return true;
     }
 
     @After
@@ -50,7 +58,13 @@ public class JmsTestBase {
         return container;
     }
 
-    private Weld baseWeld() {
+    private Weld initWeldWithConnectionFactory() {
+        initWithoutConnectionFactory();
+        this.weld.addBeanClass(ConnectionFactoryBean.class);
+        return this.weld;
+    }
+
+    public Weld initWithoutConnectionFactory() {
         weld = new Weld();
 
         // SmallRye config
@@ -64,7 +78,6 @@ public class JmsTestBase {
         weld.addBeanClass(ChannelProducer.class);
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(JmsConnector.class);
-        weld.addBeanClass(ConnectionFactoryBean.class);
         weld.disableDiscovery();
         return weld;
     }
