@@ -28,7 +28,6 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.annotations.Channel;
 
-
 public class MissingBackPressureTest extends KafkaTestBase {
 
     private WeldContainer container;
@@ -130,7 +129,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
 
         @Inject
         @Channel("temperature-values")
-        private Emitter<KafkaMessage<String, String>> emitter;
+        private Emitter<String> emitter;
 
         private volatile boolean stop = false;
 
