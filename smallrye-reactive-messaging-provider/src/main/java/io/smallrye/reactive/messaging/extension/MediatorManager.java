@@ -203,6 +203,7 @@ public class MediatorManager {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void weaving(Set<String> unmanagedSubscribers) {
         // At that point all the publishers have been registered in the registry
         LOGGER.info("Connecting mediators");
@@ -300,6 +301,7 @@ public class MediatorManager {
                     });
                 }
             }
+
             if (list.isEmpty() && emitter != null) {
                 if (subscribers.size() == 1) {
                     LOGGER.info("Connecting emitter to sink {}", name);
