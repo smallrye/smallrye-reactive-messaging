@@ -68,9 +68,10 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
             initialize();
             fail("Invalid weaving not detected");
         } catch (DeploymentException e) {
+            e.getCause().printStackTrace();
             assertThat(e.getCause())
                     .isInstanceOf(WeavingException.class)
-                    .hasMessageContaining("`source`")
+                    .hasMessageContaining("source")
                     .hasMessageContaining("Synchronous");
         }
     }

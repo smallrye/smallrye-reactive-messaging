@@ -127,7 +127,7 @@ public class WeldTestBaseWithoutTails {
         return container.select(ChannelRegistry.class).get();
     }
 
-    public void addBeanClass(Class<?> beanClass) {
+    public void addBeanClass(Class<?>... beanClass) {
         initializer.addBeanClasses(beanClass);
     }
 

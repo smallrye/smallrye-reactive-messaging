@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,6 +35,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.AbstractMediator;
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
@@ -42,6 +44,7 @@ import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.WeavingException;
+import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
@@ -79,7 +82,7 @@ public class MediatorManager {
     @Inject
     BeanManager beanManager;
 
-    private boolean initialized;
+    private volatile boolean initialized;
 
     public MediatorManager() {
         strictMode = Boolean.parseBoolean(System.getProperty(STRICT_MODE_PROPERTY, "false"));
@@ -97,8 +100,18 @@ public class MediatorManager {
         Set<AnnotatedMethod<? super T>> methods = annotatedType.getMethods();
 
         methods.stream()
-                .filter(method -> method.isAnnotationPresent(Incoming.class) || method.isAnnotationPresent(Outgoing.class))
+                .filter(this::hasMediatorAnnotations)
                 .forEach(method -> collected.add(method.getJavaMember(), bean));
+    }
+
+    private <T> boolean hasMediatorAnnotations(AnnotatedMethod<? super T> method) {
+        return method.isAnnotationPresent(Incomings.class) || method.isAnnotationPresent(Incoming.class)
+                || method.isAnnotationPresent(Outgoing.class);
+    }
+
+    private boolean hasMediatorAnnotations(Method m) {
+        return m.isAnnotationPresent(Incomings.class) || m.isAnnotationPresent(Incoming.class)
+                || m.isAnnotationPresent(Outgoing.class);
     }
 
     @SuppressWarnings("unused")
@@ -106,8 +119,9 @@ public class MediatorManager {
         Class<?> current = beanClass;
         while (current != Object.class) {
             Arrays.stream(current.getDeclaredMethods())
-                    .filter(m -> m.isAnnotationPresent(Incoming.class) || m.isAnnotationPresent(Outgoing.class))
+                    .filter(this::hasMediatorAnnotations)
                     .forEach(m -> collected.add(m, bean));
+
             current = current.getSuperclass();
         }
     }
@@ -166,21 +180,19 @@ public class MediatorManager {
                         return;
                     }
 
-                    if (mediator.getConfiguration()
-                            .shape() == Shape.PUBLISHER) {
+                    if (mediator.getConfiguration().shape() == Shape.PUBLISHER) {
                         LOGGER.debug("Registering {} as publisher {}", mediator.getConfiguration()
                                 .methodAsString(),
                                 mediator.getConfiguration()
                                         .getOutgoing());
                         channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
                     }
-                    if (mediator.getConfiguration()
-                            .shape() == Shape.SUBSCRIBER) {
-                        LOGGER.debug("Registering {} as subscriber {}", mediator.getConfiguration()
-                                .methodAsString(),
-                                mediator.getConfiguration()
-                                        .getIncoming());
-                        channelRegistry.register(mediator.getConfiguration().getIncoming(), mediator.getComputedSubscriber());
+                    if (mediator.getConfiguration().shape() == Shape.SUBSCRIBER) {
+                        List<String> list = mediator.getConfiguration().getIncoming();
+                        LOGGER.debug("Registering {} as subscriber {}", mediator.getConfiguration().methodAsString(), list);
+                        for (String l : list) {
+                            channelRegistry.register(l, mediator.getComputedSubscriber());
+                        }
                     }
                 });
 
@@ -195,7 +207,6 @@ public class MediatorManager {
         // At that point all the publishers have been registered in the registry
         LOGGER.info("Connecting mediators");
         List<AbstractMediator> unsatisfied = getAllNonSatisfiedMediators();
-
         // This list contains the names of the streams that have bean connected and
         List<LazySource> lazy = new ArrayList<>();
         while (!unsatisfied.isEmpty()) {
@@ -203,18 +214,40 @@ public class MediatorManager {
 
             unsatisfied.forEach(mediator -> {
                 LOGGER.info("Attempt to resolve {}", mediator.getMethodAsString());
-                List<PublisherBuilder<? extends Message>> sources = channelRegistry
-                        .getPublishers(mediator.configuration().getIncoming());
-                Optional<PublisherBuilder<? extends Message>> maybeSource = getAggregatedSource(sources, mediator, lazy);
-                maybeSource.ifPresent(publisher -> {
-                    mediator.connectToUpstream(publisher);
-                    LOGGER.info("Connecting {} to `{}` ({})", mediator.getMethodAsString(), mediator.configuration()
-                            .getIncoming(), publisher);
-                    if (mediator.configuration()
-                            .getOutgoing() != null) {
-                        channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
+                List<String> list = mediator.configuration().getIncoming();
+                if (list.size() == 1) {
+                    // Single source.
+                    List<PublisherBuilder<? extends Message>> sources = channelRegistry.getPublishers(list.get(0));
+                    Optional<PublisherBuilder<? extends Message>> maybeSource = getAggregatedSource(sources, list.get(0),
+                            mediator, lazy);
+                    maybeSource.ifPresent(publisher -> {
+                        mediator.connectToUpstream(publisher);
+                        LOGGER.info("Connecting {} to `{}` ({})", mediator.getMethodAsString(),
+                                list, publisher);
+                        if (mediator.configuration().getOutgoing() != null) {
+                            channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
+                        }
+                    });
+                } else {
+                    List<PublisherBuilder<? extends Message>> upstreams = new ArrayList<>();
+                    for (String sn : list) {
+                        List<PublisherBuilder<? extends Message>> sources = channelRegistry.getPublishers(sn);
+                        Optional<PublisherBuilder<? extends Message>> maybeSource = getAggregatedSource(sources, sn, mediator,
+                                lazy);
+                        maybeSource.ifPresent(upstreams::add);
                     }
-                });
+
+                    if (upstreams.size() == list.size()) {
+                        // We have all our upstreams
+                        Flowable<? extends Message> merged = Flowable
+                                .merge(upstreams.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                        mediator.connectToUpstream(ReactiveStreams.fromPublisher(merged));
+                        LOGGER.info("Connecting {} to `{}`", mediator.getMethodAsString(), list);
+                        if (mediator.configuration().getOutgoing() != null) {
+                            channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
+                        }
+                    }
+                }
             });
 
             unsatisfied = getAllNonSatisfiedMediators();
@@ -231,10 +264,8 @@ public class MediatorManager {
                             + ", available publishers:" + channelRegistry.getIncomingNames() + ", "
                             + "available emitters: " + channelRegistry.getEmitterNames());
                 } else {
-                    LOGGER.warn("Impossible to bind mediators, some mediators are not connected: {}", unsatisfied.stream()
-                            .map(m -> m.configuration()
-                                    .methodAsString())
-                            .collect(Collectors.toList()));
+                    LOGGER.warn("Impossible to bind mediators, some mediators are not connected: {}",
+                            unsatisfied.stream().map(m -> m.configuration().methodAsString()).collect(Collectors.toList()));
                     LOGGER.warn("Available publishers: {}", channelRegistry.getIncomingNames());
                     LOGGER.warn("Available emitters: {}", channelRegistry.getEmitterNames());
                 }
@@ -311,6 +342,7 @@ public class MediatorManager {
 
     private Optional<PublisherBuilder<? extends Message>> getAggregatedSource(
             List<PublisherBuilder<? extends Message>> sources,
+            String sourceName,
             AbstractMediator mediator,
             List<LazySource> lazy) {
         if (sources.isEmpty()) {
@@ -320,15 +352,13 @@ public class MediatorManager {
         Merge.Mode merge = mediator.getConfiguration()
                 .getMerge();
         if (merge != null) {
-            LazySource lazySource = new LazySource(mediator.configuration()
-                    .getIncoming(), merge);
+            LazySource lazySource = new LazySource(sourceName, merge);
             lazy.add(lazySource);
             return Optional.of(ReactiveStreams.fromPublisher(lazySource));
         }
 
         if (sources.size() > 1) {
-            throw new WeavingException(mediator.configuration()
-                    .getIncoming(), mediator.getMethodAsString(), sources.size());
+            throw new WeavingException(sourceName, mediator.getMethodAsString(), sources.size());
         }
         return Optional.of(sources.get(0));
 

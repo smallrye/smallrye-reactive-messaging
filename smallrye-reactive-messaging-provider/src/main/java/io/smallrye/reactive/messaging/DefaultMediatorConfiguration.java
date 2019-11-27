@@ -3,7 +3,11 @@ package io.smallrye.reactive.messaging;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.enterprise.inject.spi.Bean;
 
@@ -14,6 +18,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
 
 public class DefaultMediatorConfiguration implements MediatorConfiguration {
@@ -28,7 +33,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private Shape shape;
 
-    private String incomingValue = null;
+    private List<String> incomingValues = Collections.emptyList();
 
     private String outgoingValue = null;
 
@@ -70,25 +75,35 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                         : new MethodParamGenericTypeAssignable(method, 0));
     }
 
-    public void compute(Incoming incoming, Outgoing outgoing) {
+    public void compute(Incomings incomings, Outgoing outgoing) {
+        Incoming[] values = incomings.value();
+        compute(Arrays.asList(values), outgoing);
+    }
 
-        if (incoming != null && StringUtils.isBlank(incoming.value())) {
-            throw getIncomingError("value is blank or null");
+    public void compute(List<Incoming> incomings, Outgoing outgoing) {
+        if (incomings != null) {
+            for (Incoming incoming : incomings) {
+                if (StringUtils.isBlank(incoming.value())) {
+                    throw getIncomingError("value is blank or null");
+                }
+            }
+        } else {
+            incomings = Collections.emptyList();
         }
 
         if (outgoing != null && StringUtils.isBlank(outgoing.value())) {
             throw getOutgoingError("value is blank or null");
         }
 
-        this.shape = this.mediatorConfigurationSupport.determineShape(incoming, outgoing);
+        this.shape = this.mediatorConfigurationSupport.determineShape(incomings, outgoing);
 
-        this.acknowledgment = this.mediatorConfigurationSupport.processSuppliedAcknowledgement(incoming, () -> {
+        this.acknowledgment = this.mediatorConfigurationSupport.processSuppliedAcknowledgement(incomings, () -> {
             Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
             return annotation != null ? annotation.value() : null;
         });
 
-        if (incoming != null) {
-            this.incomingValue = incoming.value();
+        if (!incomings.isEmpty()) {
+            this.incomingValues = incomings.stream().map(Incoming::value).collect(Collectors.toList());
         }
         if (outgoing != null) {
             this.outgoingValue = outgoing.value();
@@ -104,7 +119,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         if (this.acknowledgment == null) {
             this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption);
         }
-        this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incoming, () -> {
+        this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incomings, () -> {
             Merge annotation = method.getAnnotation(Merge.class);
             return annotation != null ? annotation.value() : null;
         });
@@ -145,8 +160,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     }
 
     @Override
-    public String getIncoming() {
-        return incomingValue;
+    public List<String> getIncoming() {
+        return incomingValues;
     }
 
     @Override

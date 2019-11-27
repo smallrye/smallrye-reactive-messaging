@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -32,15 +33,15 @@ public class MediatorConfigurationSupport {
         this.firstMethodParamTypeAssignable = firstMethodParamTypeAssignable;
     }
 
-    public Shape determineShape(Object incomingValue, Object outgoingValue) {
-        if (incomingValue != null && outgoingValue != null) {
+    public Shape determineShape(List<?> incomingValue, Object outgoingValue) {
+        if (!incomingValue.isEmpty() && outgoingValue != null) {
             if (isPublisherOrPublisherBuilder(returnType)
                     && isConsumingAPublisherOrAPublisherBuilder(parameterTypes)) {
                 return Shape.STREAM_TRANSFORMER;
             } else {
                 return Shape.PROCESSOR;
             }
-        } else if (incomingValue != null) {
+        } else if (!incomingValue.isEmpty()) {
             return Shape.SUBSCRIBER;
         } else {
             return Shape.PUBLISHER;
@@ -60,9 +61,10 @@ public class MediatorConfigurationSupport {
         return false;
     }
 
-    public Acknowledgment.Strategy processSuppliedAcknowledgement(Object incoming, Supplier<Acknowledgment.Strategy> supplier) {
+    public Acknowledgment.Strategy processSuppliedAcknowledgement(List<?> incomings,
+            Supplier<Acknowledgment.Strategy> supplier) {
         Acknowledgment.Strategy result = supplier.get();
-        if (incoming != null) {
+        if (!incomings.isEmpty()) {
             return result;
         } else if (result != null) {
             throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: "
@@ -409,9 +411,9 @@ public class MediatorConfigurationSupport {
         }
     }
 
-    public Merge.Mode processMerge(Object incoming, Supplier<Merge.Mode> supplier) {
+    public Merge.Mode processMerge(List<?> incomings, Supplier<Merge.Mode> supplier) {
         Merge.Mode result = supplier.get();
-        if (incoming != null) {
+        if (incomings != null && !incomings.isEmpty()) {
             return result;
         } else if (result != null) {
             throw getOutgoingError(

@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging;
 
+import java.util.List;
+
 public class WeavingException extends RuntimeException {
 
     public WeavingException(String source, String method, int number) {
@@ -15,6 +17,10 @@ public class WeavingException extends RuntimeException {
      */
     public WeavingException(String source, Throwable cause) {
         super("Synchronous error caught during the subscription of `" + source + "`", cause);
+    }
+
+    public WeavingException(List<String> sources, Throwable cause) {
+        super("Synchronous error caught during the subscription of " + sources, cause);
     }
 
     public WeavingException(String message) {
