@@ -52,6 +52,14 @@ public class ReactiveMessagingExtension implements Extension {
         }
     }
 
+    <T extends io.smallrye.reactive.messaging.annotations.Emitter<?>> void processStreamLegacyEmitterInjectionPoint(
+            @Observes ProcessInjectionPoint<?, T> pip) {
+        Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
+        if (stream != null) {
+            emitterInjectionPoints.add(pip.getInjectionPoint());
+        }
+    }
+
     <T extends PublisherBuilder<?>> void processStreamPublisherBuilderInjectionPoint(
             @Observes ProcessInjectionPoint<?, T> pip) {
         Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
