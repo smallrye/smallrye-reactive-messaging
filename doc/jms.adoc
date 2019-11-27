@@ -4,7 +4,7 @@ You can use SmallRye Reactive Messaging to receive and send JMS messages.
 
 === Dependency
 
-To enable the Camel support, you need the following dependency:
+To enable the JMS support, you need the following dependency:
 
 [source,xml,subs=attributes+]
 ----
@@ -252,7 +252,7 @@ You can also use the `unwrap` method to retrieve the underlying JMS message:
 [source,java]
 ----
 @Incoming("my-channel")
-public CompletionStage<Void> consume(ReceiveJmsMessage<String> msg) {
+public CompletionStage<Void> consume(ReceivedJmsMessage<String> msg) {
   int p = msg.getIntProperty("my-property");
   // ...
   return msg.ack();
@@ -264,7 +264,7 @@ The `ReceivedJmsMessage` is parameterized with the type of payload.
 ==== Receiving payload
 
 You can also receive the payload directly.
-In the case of objects, the payload is deserialized using JSON-B is the `JMSType` is set.
+In the case of objects, the payload is de-serialized using JSON-B is the `JMSType` is set.
 If not, the default behavior is used (Java deserialization):
 
 [source,java]
