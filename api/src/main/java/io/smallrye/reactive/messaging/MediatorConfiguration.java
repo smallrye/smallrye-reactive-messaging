@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import javax.enterprise.inject.spi.Bean;
 
@@ -14,7 +15,7 @@ public interface MediatorConfiguration {
 
     String getOutgoing();
 
-    String getIncoming();
+    List<String> getIncoming();
 
     String methodAsString();
 
