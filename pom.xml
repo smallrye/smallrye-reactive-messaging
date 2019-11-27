@@ -132,16 +132,19 @@
         <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
         <artifactId>microprofile-reactive-streams-operators-api</artifactId>
         <version>${microprofile-reactive-streams.version}</version>
+        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
         <artifactId>microprofile-reactive-streams-operators-core</artifactId>
         <version>${microprofile-reactive-streams.version}</version>
+        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.eclipse.microprofile.config</groupId>
         <artifactId>microprofile-config-api</artifactId>
         <version>${microprofile-config.version}</version>
+        <scope>provided</scope>
       </dependency>
 
       <dependency>
@@ -183,6 +186,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
