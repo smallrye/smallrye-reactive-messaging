@@ -12,10 +12,14 @@
   <name>SmallRye Reactive Messaging API</name>
 
   <dependencies>
-    <dependency>
-      <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
-      <artifactId>microprofile-reactive-messaging-api</artifactId>
-    </dependency>
+    <!--
+    This API does not depends on the upstream specification API as it's embedded.
+    The reason is because we need to modify the API to experiment and get feedback.
+    -->
+      <dependency>
+          <groupId>org.eclipse.microprofile.config</groupId>
+          <artifactId>microprofile-config-api</artifactId>
+      </dependency>
   </dependencies>
 
   <profiles>
