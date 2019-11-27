@@ -77,6 +77,9 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     public void compute(Incomings incomings, Outgoing outgoing) {
         Incoming[] values = incomings.value();
+        if (values.length == 0) {
+            throw getIncomingError("@Incomings must contain a non-empty array of @Incoming");
+        }
         compute(Arrays.asList(values), outgoing);
     }
 

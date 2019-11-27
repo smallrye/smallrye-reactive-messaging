@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
 
+import io.smallrye.reactive.messaging.annotations.Incomings;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.After;
@@ -43,6 +44,19 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
 
         initialize();
         MyBeanUsingMultipleIncomings bean = container.select(MyBeanUsingMultipleIncomings.class).get();
+
+        await().until(() -> bean.list().size() == 6);
+        assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f");
+    }
+
+    @Test
+    public void testIncomings() {
+        addBeanClass(ProducerOnA.class);
+        addBeanClass(MyBeanUsingIncomings.class);
+        addBeanClass(ProducerOnB.class);
+
+        initialize();
+        MyBeanUsingIncomings bean = container.select(MyBeanUsingIncomings.class).get();
 
         await().until(() -> bean.list().size() == 6);
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f");
@@ -127,6 +141,23 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f", "g", "h");
     }
 
+
+    @Test(expected = DeploymentException.class)
+    public void testEmptyIncomings() {
+        addBeanClass(ProducerOnA.class);
+        addBeanClass(EmptyIncomings.class);
+
+        initialize();
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testIncomingsWithInvalidIncoming() {
+        addBeanClass(ProducerOnA.class);
+        addBeanClass(InvalidBeanWithIncomings.class);
+
+        initialize();
+    }
+
     @ApplicationScoped
     public static class ProducerOnA {
 
@@ -164,6 +195,25 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
 
         @Incoming("a")
         @Incoming("b")
+        public void consume(String s) {
+            list.add(s);
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class MyBeanUsingIncomings {
+
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        @Incomings({
+            @Incoming("a"),
+            @Incoming("b")
+        })
         public void consume(String s) {
             list.add(s);
         }
@@ -252,6 +302,27 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
             // Do nothing
         }
 
+    }
+
+    @ApplicationScoped
+    public static class InvalidIncomings {
+
+        @Incomings({
+            @Incoming("a"),
+            @Incoming("")
+        })
+        public void consume(String s) {
+            // Do nothing
+        }
+    }
+
+    @ApplicationScoped
+    public static class EmptyIncomings {
+
+        @Incomings({})
+        public void consume(String s) {
+            // Do nothing
+        }
     }
 
 }
