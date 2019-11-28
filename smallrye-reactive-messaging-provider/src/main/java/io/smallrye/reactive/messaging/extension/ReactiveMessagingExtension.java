@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.annotations.Channel;
+import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 public class ReactiveMessagingExtension implements Extension {
@@ -31,7 +32,8 @@ public class ReactiveMessagingExtension implements Extension {
         AnnotatedType<?> annotatedType = event.getAnnotatedBeanClass();
         if (annotatedType.getMethods()
                 .stream()
-                .anyMatch(m -> m.isAnnotationPresent(Incoming.class) || m.isAnnotationPresent(Outgoing.class))) {
+                .anyMatch(m -> m.isAnnotationPresent(Incomings.class) || m.isAnnotationPresent(Incoming.class)
+                        || m.isAnnotationPresent(Outgoing.class))) {
             mediatorBeans.add(new MediatorBean<>(event.getBean(), event.getAnnotatedBeanClass()));
         }
     }

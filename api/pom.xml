@@ -1,37 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>1.0.9-SNAPSHOT</version>
-  </parent>
+    <parent>
+        <groupId>io.smallrye.reactive</groupId>
+        <artifactId>smallrye-reactive-messaging</artifactId>
+        <version>1.0.9-SNAPSHOT</version>
+    </parent>
 
-  <artifactId>smallrye-reactive-messaging-api</artifactId>
-  <name>SmallRye Reactive Messaging API</name>
+    <artifactId>smallrye-reactive-messaging-api</artifactId>
+    <name>SmallRye Reactive Messaging API</name>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
-      <artifactId>microprofile-reactive-messaging-api</artifactId>
-    </dependency>
-  </dependencies>
+    <dependencies>
+        <!--
+        This API does not depend on the upstream specification API as it's embedded.
+        The reason is because the need to modify the API to experiment and get feedback.
+        <dependency>
+            <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+            <artifactId>microprofile-reactive-messaging-api</artifactId>
+        </dependency>
+        -->
+        <dependency>
+            <groupId>org.eclipse.microprofile.config</groupId>
+            <artifactId>microprofile-config-api</artifactId>
+        </dependency>
+    </dependencies>
 
-  <profiles>
-    <profile>
-      <id>coverage</id>
-      <properties>
-        <argLine>@{jacocoArgLine}</argLine>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.jacoco</groupId>
-            <artifactId>jacoco-maven-plugin</artifactId>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
+    <profiles>
+        <profile>
+            <id>coverage</id>
+            <properties>
+                <argLine>@{jacocoArgLine}</argLine>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

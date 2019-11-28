@@ -124,6 +124,22 @@ Emitter<String> emitter;
 The default buffer size (`127`) can be configured using the `smallrye.messaging.emitter.default-buffer-size` property set using MicroProfile Config.
 Note that this value is only applied when `OnOverflow` is not used.
 
+=== Repeatable `@Incoming`
+
+You can use several `@Incoming on a single method:
+
+[source,java]
+----
+@Incoming("a")
+@Incoming("b")
+@Outgoing("out")
+public String process(String s) {
+    // ...
+}
+----
+
+In this case, the method is invoked for all the messages transiting on the incoming channels.
+
 === Logging
 
 The logging uses SLF4J, check the https://www.slf4j.org/[SLF4J web site] for further details.
