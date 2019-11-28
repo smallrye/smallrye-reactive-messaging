@@ -37,7 +37,7 @@ public class ChannelProducer {
      * Injects {@code Flowable<Message<X>>} and {@code Flowable<X>}. It also matches the injection of
      * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
      *
-     * @param injectionPoint the injection poirt
+     * @param injectionPoint the injection point
      * @param <T> the first generic parameter (either Message or X)
      * @return the flowable to be injected
      */
@@ -56,7 +56,7 @@ public class ChannelProducer {
     /**
      * Same as {@link #producePublisher(InjectionPoint)} but using the {@link Stream} annotation instead of {@link Channel}
      *
-     * @param injectionPoint the injection poirt
+     * @param injectionPoint the injection point
      * @param <T> the first generic parameter (either Message or X)
      * @return the flowable to be injected
      * @deprecated Use {@link Channel} instead of {@link Stream}
@@ -71,7 +71,7 @@ public class ChannelProducer {
     /**
      * Injects {@code PublisherBuilder<Message<X>>} and {@code PublisherBuilder<X>}
      *
-     * @param injectionPoint the injection poirt
+     * @param injectionPoint the injection point
      * @param <T> the first generic parameter (either Message or X)
      * @return the PublisherBuilder to be injected
      */
@@ -91,7 +91,7 @@ public class ChannelProducer {
      * Same as {@link #producePublisherBuilder(InjectionPoint)} but using the {@link Stream} annotation instead of
      * {@link Channel}
      *
-     * @param injectionPoint the injection poirt
+     * @param injectionPoint the injection point
      * @param <T> the first generic parameter (either Message or X)
      * @return the PublisherBuilder to be injected
      * @deprecated Use {@link Channel} instead of {@link Stream}
@@ -155,7 +155,7 @@ public class ChannelProducer {
      * @param injectionPoint the injection point
      * @param <T> the type of the emitter
      * @return the legacy Emitter
-     * @deprecated Use the new {@link Emitter} and {@link Channel }instead
+     * @deprecated Use the new {@link Emitter} and {@link Channel} instead
      */
     @Produces
     @Stream("") // Stream name is ignored during type-safe resolution

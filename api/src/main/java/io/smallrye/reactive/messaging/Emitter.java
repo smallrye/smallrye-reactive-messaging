@@ -20,7 +20,7 @@ import io.smallrye.reactive.messaging.annotations.Channel;
  * You can inject emitter sending payload or
  * {@link org.eclipse.microprofile.reactive.messaging.Message Messages}, using:
  * <ul>
- * <li>{@link #send(Object)} to send payload. The returned {@link CompletionStage} is completed (with {@code null}
+ * <li>{@link #send(Object)} to send payload. The returned {@link CompletionStage} is completed with {@code null}
  * when the message is acknowledged</li>
  * <li>{@link #send(Message)} to send message.</li>
  * </ul>
