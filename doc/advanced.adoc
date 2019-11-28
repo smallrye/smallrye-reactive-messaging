@@ -121,7 +121,7 @@ Emitter<String> emitter;
 Emitter<String> emitter;
 ----
 
-The default buffer size (`127`) can be configured using the `smallrye.messaging.emitter.default-buffer-size` property set using MicroProfile Config.
+The default buffer size (`128`) can be configured using the `mp.messaging.emitter.default-buffer-size` property set using MicroProfile Config.
 Note that this value is only applied when `OnOverflow` is not used.
 
 An emitter can also send messages directly:
