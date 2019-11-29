@@ -6,8 +6,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.ClassUtils;
-
 import io.vertx.reactivex.core.buffer.Buffer;
 
 public abstract class Serializer<I> implements Converter<I, Buffer> {
@@ -26,7 +24,8 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
 
     public static synchronized <I> Serializer<I> lookup(Object payload, String converterClassName) {
         Objects.requireNonNull(payload, "Payload must not be null");
-        Optional<Serializer<?>> any = CONVERTERS.stream().filter(s -> ClassUtils.isAssignable(payload.getClass(), s.input()))
+        Optional<Serializer<?>> any = CONVERTERS.stream().filter(s -> AssignationUtils
+                .isAssignable(payload.getClass(), s.input()))
                 .findAny();
         if (any.isPresent()) {
             return (Serializer<I>) any.get();
