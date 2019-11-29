@@ -23,6 +23,7 @@ import io.smallrye.reactive.messaging.annotations.Stream;
 /**
  * Test checking the legacy Emitter support.
  */
+@SuppressWarnings("deprecation")
 public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @Test
@@ -240,7 +241,6 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         @Inject
         @Stream("missing")
         Emitter<Message<String>> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
 
         public Emitter<Message<String>> emitter() {
             return emitter;
@@ -251,7 +251,6 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         @Inject
         @Channel("missing")
         Emitter<Message<String>> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
 
         public Emitter<Message<String>> emitter() {
             return emitter;
@@ -262,16 +261,18 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingNull {
         @Inject
         @Channel("foo")
+        @SuppressWarnings("deprecation")
         Emitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
         private boolean caught;
 
+        @SuppressWarnings("deprecation")
         public Emitter<String> emitter() {
             return emitter;
         }
 
-        public boolean isCaught() {
-            return true;
+        boolean isCaught() {
+            return caught;
         }
 
         public List<String> list() {
@@ -281,10 +282,11 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         public void run() {
             emitter.send("a");
             emitter.send("b");
-            /*
-             * try { emitter.send(null); } catch (IllegalArgumentException e) { caught =
-             * true; }
-             */
+            try {
+                emitter.send(null);
+            } catch (IllegalArgumentException e) {
+                caught = true;
+            }
             emitter.send("c");
             emitter.complete();
         }
@@ -307,8 +309,8 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
             return emitter;
         }
 
-        public boolean isCaught() {
-            return true;
+        boolean isCaught() {
+            return caught;
         }
 
         public List<String> list() {
@@ -344,8 +346,8 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
             return emitter;
         }
 
-        public boolean isCaught() {
-            return true;
+        boolean isCaught() {
+            return caught;
         }
 
         public List<String> list() {

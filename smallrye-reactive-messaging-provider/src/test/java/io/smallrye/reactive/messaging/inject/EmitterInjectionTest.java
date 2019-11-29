@@ -34,7 +34,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
+        assertThat(bean.emitter().isRequested()).isFalse();
     }
 
     @Test
@@ -49,17 +49,18 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         await().until(() -> bean.list().size() == 3);
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
+        assertThat(bean.emitter().isRequested()).isFalse();
     }
 
     @Test
     public void testMyMessageBeanWithPayloadsAndAck() {
-        final MyMessageBeanEmittingPayloadsWithAck bean = installInitializeAndGet(MyMessageBeanEmittingPayloadsWithAck.class);
+        final MyMessageBeanEmittingPayloadsWithAck bean = installInitializeAndGet(
+                MyMessageBeanEmittingPayloadsWithAck.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
+        assertThat(bean.emitter().isRequested()).isFalse();
     }
 
     @Test
@@ -69,7 +70,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
+        assertThat(bean.emitter().isRequested()).isFalse();
     }
 
     @Test
@@ -79,7 +80,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("A", "B", "C");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
+        assertThat(bean.emitter().isRequested()).isFalse();
     }
 
     @Test
@@ -132,7 +133,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.isCaught()).isTrue();
+        assertThat(bean.hasCaughtNullPayload()).isTrue();
+        assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
     @Test(expected = DeploymentException.class)
@@ -182,6 +184,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @ApplicationScoped
     public static class MyBeanEmittingPayloadsUsingStream {
+        @SuppressWarnings("deprecation")
         @Inject
         @Stream("foo")
         Emitter<String> emitter;
@@ -232,7 +235,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             emitter.complete();
         }
 
-        public List<CompletionStage<Void>> getCompletionStage() {
+        List<CompletionStage<Void>> getCompletionStage() {
             return csList;
         }
 
@@ -244,7 +247,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             if (!"c".equals(s.getPayload())) {
                 return s.ack();
             } else {
-                return new CompletableFuture<Void>();
+                return new CompletableFuture<>();
 
             }
 
@@ -267,9 +270,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(new MyMessageBean<String>("a"));
-            emitter.send(new MyMessageBean<String>("b"));
-            emitter.send(new MyMessageBean<String>("c"));
+            emitter.send(new MyMessageBean<>("a"));
+            emitter.send(new MyMessageBean<>("b"));
+            emitter.send(new MyMessageBean<>("c"));
             emitter.complete();
         }
 
@@ -283,49 +286,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
         private final T payload;
 
-        public MyMessageBean(T payload) {
+        MyMessageBean(T payload) {
             this.payload = payload;
         }
 
         @Override
         public T getPayload() {
             return payload;
-        }
-
-        @Override
-        public String toString() {
-            return "MyMessageBean{" +
-                    "payload=" + payload +
-                    '}';
-        }
-
-        public static <T> MyMessageBean<T> wrap(T payload) {
-            return new MyMessageBean<>(payload);
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((payload == null) ? 0 : payload.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            MyMessageBean other = (MyMessageBean) obj;
-            if (payload == null) {
-                if (other.payload != null)
-                    return false;
-            } else if (!payload.equals(other.payload))
-                return false;
-            return true;
         }
 
     }
@@ -386,10 +353,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     public static class BeanWithMissingStream {
+        @SuppressWarnings("deprecation")
         @Inject
         @Stream("missing")
         Emitter<Message<String>> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
 
         public Emitter<Message<String>> emitter() {
             return emitter;
@@ -400,7 +367,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         @Inject
         @Channel("missing")
         Emitter<Message<String>> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
 
         public Emitter<Message<String>> emitter() {
             return emitter;
@@ -413,14 +379,19 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         @Channel("foo")
         Emitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
-        private boolean caught;
+        private boolean caughtNullPayload;
+        private boolean caughtNullMessage;
 
         public Emitter<String> emitter() {
             return emitter;
         }
 
-        public boolean isCaught() {
-            return true;
+        boolean hasCaughtNullPayload() {
+            return caughtNullPayload;
+        }
+
+        boolean hasCaughtNullMessage() {
+            return caughtNullMessage;
         }
 
         public List<String> list() {
@@ -430,10 +401,17 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         public void run() {
             emitter.send("a");
             emitter.send("b");
-            /*
-             * try { emitter.send(null); } catch (IllegalArgumentException e) { caught =
-             * true; }
-             */
+            try {
+                emitter.send((String) null);
+            } catch (IllegalArgumentException e) {
+                caughtNullPayload = true;
+            }
+
+            try {
+                emitter.send((Message<String>) null);
+            } catch (IllegalArgumentException e) {
+                caughtNullMessage = true;
+            }
             emitter.send("c");
             emitter.complete();
         }
@@ -456,8 +434,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             return emitter;
         }
 
-        public boolean isCaught() {
-            return true;
+        boolean isCaught() {
+            return caught;
         }
 
         public List<String> list() {
@@ -493,8 +471,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             return emitter;
         }
 
-        public boolean isCaught() {
-            return true;
+        boolean isCaught() {
+            return caught;
         }
 
         public List<String> list() {
