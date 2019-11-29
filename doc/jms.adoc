@@ -100,6 +100,8 @@ Accepted values are:
 * `CLIENT_ACKNOWLEDGE`
 * `DUPS_OK_ACKNOWLEDGE`
 
+Any other value is rejected, and the deployment would fail.
+
 
 ==== Configure the client id
 When dealing with _topics_, your subscription must need to be identified with a _client-id_.

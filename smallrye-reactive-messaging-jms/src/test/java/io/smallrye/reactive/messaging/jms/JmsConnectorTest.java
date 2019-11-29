@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.*;
 
+import javax.enterprise.inject.spi.DeploymentException;
 import javax.jms.DeliveryMode;
 import javax.jms.Queue;
 
@@ -22,6 +23,21 @@ public class JmsConnectorTest extends JmsTestBase {
         map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
         map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
         map.put("mp.messaging.incoming.jms.destination", "queue-one");
+        MapBasedConfig config = new MapBasedConfig(map);
+        addConfig(config);
+        WeldContainer container = deploy(PayloadConsumerBean.class, ProducerBean.class);
+
+        PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
+        await().until(() -> bean.list().size() > 3);
+    }
+
+    @Test
+    public void testWithStringAndSessionModel() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.destination", "queue-one");
+        map.put("mp.messaging.incoming.jms.session-mode", "DUPS_OK_ACKNOWLEDGE");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
         WeldContainer container = deploy(PayloadConsumerBean.class, ProducerBean.class);
@@ -78,6 +94,18 @@ public class JmsConnectorTest extends JmsTestBase {
 
         PersonConsumerBean bean = container.select(PersonConsumerBean.class).get();
         await().until(() -> bean.list().size() > 1);
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testInvalidSessionMode() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.destination", "queue-one");
+        map.put("mp.messaging.incoming.jms.session-mode", "invalid");
+        MapBasedConfig config = new MapBasedConfig(map);
+        addConfig(config);
+        deploy(PayloadConsumerBean.class, ProducerBean.class);
     }
 
 }
