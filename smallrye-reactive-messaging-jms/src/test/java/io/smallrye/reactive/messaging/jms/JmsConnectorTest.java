@@ -108,4 +108,27 @@ public class JmsConnectorTest extends JmsTestBase {
         deploy(PayloadConsumerBean.class, ProducerBean.class);
     }
 
+    @Test(expected = DeploymentException.class)
+    public void testWithInvalidIncomingDestinationType() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.destination-type", "invalid");
+        MapBasedConfig config = new MapBasedConfig(map);
+        addConfig(config);
+        deploy(PayloadConsumerBean.class, ProducerBean.class);
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testWithInvalidOutgoingDestinationType() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.outgoing.queue-one.destination-type", "invalid");
+        map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.destination-type", "queue");
+        MapBasedConfig config = new MapBasedConfig(map);
+        addConfig(config);
+        deploy(PayloadConsumerBean.class, ProducerBean.class);
+    }
+
 }

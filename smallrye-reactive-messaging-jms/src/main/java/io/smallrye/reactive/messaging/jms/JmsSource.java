@@ -43,7 +43,7 @@ public class JmsSource {
         JMSConsumer consumer;
         if (config.getOptionalValue("durable", Boolean.TYPE).orElse(false)) {
             if (!(destination instanceof Topic)) {
-                throw new IllegalStateException("Invalid destination, only topic can be durable");
+                throw new IllegalArgumentException("Invalid destination, only topic can be durable");
             }
             consumer = context.createDurableConsumer((Topic) destination, name, selector, nolocal);
         } else {

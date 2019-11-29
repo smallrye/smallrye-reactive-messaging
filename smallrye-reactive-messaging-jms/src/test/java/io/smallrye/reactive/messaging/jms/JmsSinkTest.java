@@ -210,6 +210,18 @@ public class JmsSinkTest extends JmsTestBase {
                 .isInstanceOf(Topic.class);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testWithReplyToWithInvalidDestinationType() {
+        MapBasedConfig config = new MapBasedConfig.Builder()
+            .put("destination", "queue-one")
+            .put("reply-to", "my-response")
+            .put("reply-to-destination-type", "invalid")
+            .put("channel-name", "jms")
+
+            .build();
+        new JmsSink(jms, config, json, executor);
+    }
+
     private class MyJmsClient {
 
         private final JMSConsumer consumer;

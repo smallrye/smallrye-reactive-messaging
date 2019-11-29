@@ -228,6 +228,9 @@ mp.messaging.outgoing.my-jms-channel.attribute=value
 | reply-to-destination-type | false |  | The reply-to destination type (`queue` (default), `topic`)
 |===
 
+NOTE: `destination-type` and `reply-to-destination-type` must be either `queue` (default) or `topic`.
+Any other value is rejected and fail the deployment.
+
 === Receiving JMS messages
 
 To send a JMS message, you need to configure the connector as follows:
