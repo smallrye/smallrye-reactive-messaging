@@ -28,7 +28,22 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 @Connector(JmsConnector.CONNECTOR_NAME)
 public class JmsConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
+    /**
+     * The name of the connector: {@code smallrye-jms}
+     */
     static final String CONNECTOR_NAME = "smallrye-jms";
+
+    /**
+     * The default max-pool-size: {@code 10}
+     */
+    @SuppressWarnings("WeakerAccess")
+    static final String DEFAULT_MAX_POOL_SIZE = "10";
+
+    /**
+     * The default thread ideal TTL: {@code 60} seconds
+     */
+    @SuppressWarnings("WeakerAccess")
+    static final String DEFAULT_THREAD_TTL = "60";
 
     @Inject
     Instance<ConnectionFactory> factories;
@@ -37,11 +52,11 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
     Instance<Jsonb> jsonb;
 
     @Inject
-    @ConfigProperty(name = "smallrye.jms.threads.max-pool-size", defaultValue = "10")
+    @ConfigProperty(name = "smallrye.jms.threads.max-pool-size", defaultValue = DEFAULT_MAX_POOL_SIZE)
     int maxPoolSize;
 
     @Inject
-    @ConfigProperty(name = "smallrye.jms.threads.ttl", defaultValue = "60")
+    @ConfigProperty(name = "smallrye.jms.threads.ttl", defaultValue = DEFAULT_THREAD_TTL)
     int ttl;
 
     private ExecutorService executor;
