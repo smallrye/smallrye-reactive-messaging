@@ -18,9 +18,8 @@ import io.smallrye.reactive.messaging.jms.JmsConnector;
 
 public class JmsTestBase {
 
-    private static ArtemisHolder holder = new ArtemisHolder();
+    private static final ArtemisHolder holder = new ArtemisHolder();
     private Weld weld;
-    private WeldContainer container;
 
     @Before
     public void startArtemis() {
@@ -42,7 +41,7 @@ public class JmsTestBase {
         }
     }
 
-    boolean withConnectionFactory() {
+    protected boolean withConnectionFactory() {
         return true;
     }
 
@@ -52,19 +51,17 @@ public class JmsTestBase {
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
-    public WeldContainer deploy(Class<?>... beanClass) {
+    protected WeldContainer deploy(Class<?>... beanClass) {
         weld.addBeanClasses(beanClass);
-        container = weld.initialize();
-        return container;
+        return weld.initialize();
     }
 
-    private Weld initWeldWithConnectionFactory() {
+    private void initWeldWithConnectionFactory() {
         initWithoutConnectionFactory();
         this.weld.addBeanClass(ConnectionFactoryBean.class);
-        return this.weld;
     }
 
-    public Weld initWithoutConnectionFactory() {
+    protected Weld initWithoutConnectionFactory() {
         weld = new Weld();
 
         // SmallRye config
@@ -82,7 +79,7 @@ public class JmsTestBase {
         return weld;
     }
 
-    public void addConfig(MapBasedConfig config) {
+    protected void addConfig(MapBasedConfig config) {
         if (config != null) {
             config.write();
         } else {

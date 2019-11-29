@@ -61,8 +61,8 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
 
     private ExecutorService executor;
     private Jsonb json;
-    private List<JmsSource> sources = new CopyOnWriteArrayList<>();
-    private List<JMSContext> contexts = new CopyOnWriteArrayList<>();
+    private final List<JmsSource> sources = new CopyOnWriteArrayList<>();
+    private final List<JMSContext> contexts = new CopyOnWriteArrayList<>();
 
     @PostConstruct
     public void init() {

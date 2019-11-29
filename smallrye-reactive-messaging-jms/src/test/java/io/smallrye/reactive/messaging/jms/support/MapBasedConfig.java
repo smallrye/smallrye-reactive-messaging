@@ -22,9 +22,10 @@ public class MapBasedConfig implements Config {
         this.map = map;
     }
 
-    public static void clear() {
+    static void clear() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
-        if (out.delete()) {
+        if (out.isFile()) {
+            //noinspection ResultOfMethodCallIgnored
             out.delete();
         }
     }
@@ -54,8 +55,10 @@ public class MapBasedConfig implements Config {
     void write() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {
+            //noinspection ResultOfMethodCallIgnored
             out.delete();
         }
+        //noinspection ResultOfMethodCallIgnored
         out.getParentFile().mkdirs();
 
         Properties properties = new Properties();
@@ -69,7 +72,7 @@ public class MapBasedConfig implements Config {
     }
 
     public static class Builder {
-        private Map<String, Object> cfg = new HashMap<>();
+        private final Map<String, Object> cfg = new HashMap<>();
 
         public MapBasedConfig build() {
             return new MapBasedConfig(cfg);
@@ -78,10 +81,6 @@ public class MapBasedConfig implements Config {
         public Builder put(String key, Object value) {
             cfg.put(key, value);
             return this;
-        }
-
-        public Builder with(String key, Object value) {
-            return put("mp.messaging." + key, value);
         }
     }
 }

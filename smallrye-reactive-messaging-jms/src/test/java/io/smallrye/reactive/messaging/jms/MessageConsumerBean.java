@@ -12,8 +12,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class MessageConsumerBean {
 
-    private List<Integer> list = new CopyOnWriteArrayList<>();
-    private List<ReceivedJmsMessage<Integer>> messages = new CopyOnWriteArrayList<>();
+    private final List<Integer> list = new CopyOnWriteArrayList<>();
+    private final List<ReceivedJmsMessage<Integer>> messages = new CopyOnWriteArrayList<>();
 
     @Incoming("jms")
     public CompletionStage<Void> consume(ReceivedJmsMessage<Integer> v) {

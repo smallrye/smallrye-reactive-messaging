@@ -23,7 +23,7 @@ import io.reactivex.Flowable;
 import io.reactivex.internal.subscriptions.EmptySubscription;
 import io.reactivex.internal.subscriptions.SubscriptionHelper;
 
-public class JmsSource {
+class JmsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JmsSource.class);
     private final PublisherBuilder<ReceivedJmsMessage<?>> source;

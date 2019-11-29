@@ -11,7 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class PersonConsumerBean {
 
-    private List<Person> list = new CopyOnWriteArrayList<>();
+    private final List<Person> list = new CopyOnWriteArrayList<>();
 
     @Incoming("jms")
     public void consume(Person v) {

@@ -11,10 +11,9 @@ public class ConnectionFactoryBean {
 
     @Produces
     ConnectionFactory factory() {
-        ActiveMQJMSConnectionFactory factory = new ActiveMQJMSConnectionFactory(
+        return new ActiveMQJMSConnectionFactory(
                 "tcp://localhost:61616",
                 null, null);
-        return factory;
     }
 
 }

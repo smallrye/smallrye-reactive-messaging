@@ -163,6 +163,7 @@ public class JmsSourceTest extends JmsTestBase {
 
         List<ReceivedJmsMessage<?>> list = new CopyOnWriteArrayList<>();
         AtomicReference<Subscription> upstream = new AtomicReference<>();
+        //noinspection SubscriberImplementation
         publisher.subscribe(new Subscriber<ReceivedJmsMessage<?>>() {
             @Override
             public void onSubscribe(Subscription s) {

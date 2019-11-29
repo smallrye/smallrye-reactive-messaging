@@ -21,7 +21,8 @@ import io.smallrye.reactive.messaging.jms.support.MapBasedConfig;
 
 public class NamedFactoryTest extends JmsTestBase {
 
-    boolean withConnectionFactory() {
+    @Override
+    protected boolean withConnectionFactory() {
         return false;
     }
 
@@ -100,10 +101,9 @@ public class NamedFactoryTest extends JmsTestBase {
         @Produces
         @Named("bar")
         ConnectionFactory factory() {
-            ActiveMQJMSConnectionFactory factory = new ActiveMQJMSConnectionFactory(
+            return new ActiveMQJMSConnectionFactory(
                     "tcp://localhost:61618", // Wrong on purpose
                     null, null);
-            return factory;
         }
 
     }
@@ -114,10 +114,9 @@ public class NamedFactoryTest extends JmsTestBase {
         @Produces
         @Named("foo")
         ConnectionFactory factory() {
-            ActiveMQJMSConnectionFactory factory = new ActiveMQJMSConnectionFactory(
+            return new ActiveMQJMSConnectionFactory(
                     "tcp://localhost:61616",
                     null, null);
-            return factory;
         }
 
     }
