@@ -10,7 +10,6 @@ import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -22,6 +21,7 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.helpers.TypeUtils;
 
 @ApplicationScoped
 public class ChannelProducer {

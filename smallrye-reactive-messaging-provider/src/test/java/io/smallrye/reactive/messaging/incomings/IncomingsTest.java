@@ -9,7 +9,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
 
-import io.smallrye.reactive.messaging.annotations.Incomings;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.After;
@@ -18,6 +17,7 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 
@@ -141,7 +141,6 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f", "g", "h");
     }
 
-
     @Test(expected = DeploymentException.class)
     public void testEmptyIncomings() {
         addBeanClass(ProducerOnA.class);
@@ -211,8 +210,8 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
         private List<String> list = new CopyOnWriteArrayList<>();
 
         @Incomings({
-            @Incoming("a"),
-            @Incoming("b")
+                @Incoming("a"),
+                @Incoming("b")
         })
         public void consume(String s) {
             list.add(s);
@@ -308,8 +307,8 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
     public static class InvalidIncomings {
 
         @Incomings({
-            @Incoming("a"),
-            @Incoming("")
+                @Incoming("a"),
+                @Incoming("")
         })
         public void consume(String s) {
             // Do nothing
