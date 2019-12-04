@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.headers;
 
-import org.eclipse.microprofile.reactive.messaging.Headers;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.*;
 
 import java.util.*;
 
-import static org.assertj.core.api.Assertions.*;
+import org.eclipse.microprofile.reactive.messaging.Headers;
+import org.junit.Test;
 
 public class HeadersTest {
 
@@ -13,8 +13,8 @@ public class HeadersTest {
     public void testEmptyHeaders() {
         Headers headers = Headers.empty();
         assertThat(headers).hasSize(0)
-            .doesNotContainKeys("foo")
-            .doesNotContainValue("bar");
+                .doesNotContainKeys("foo")
+                .doesNotContainValue("bar");
 
         assertThat(headers.getAsBoolean("missing")).isFalse();
         assertThat(headers.getAsBoolean("missing", true)).isTrue();
@@ -29,13 +29,13 @@ public class HeadersTest {
     public void testCreationFromEmpty() {
         Headers headers = Headers.of();
         assertThat(headers).hasSize(0)
-            .doesNotContainKeys("foo")
-            .doesNotContainValue("bar");
+                .doesNotContainKeys("foo")
+                .doesNotContainValue("bar");
 
         Headers headers2 = headers.with("foo", "bar");
         assertThat(headers2).hasSize(1)
-            .containsKey("foo")
-            .containsValue("bar");
+                .containsKey("foo")
+                .containsValue("bar");
         assertThat(headers).isNotSameAs(headers2);
     }
 
@@ -79,8 +79,8 @@ public class HeadersTest {
     public void testCreationWithOneEntry() {
         Headers headers = Headers.of("foo", "bar");
         assertThat(headers).hasSize(1)
-            .containsKey("foo")
-            .containsValue("bar");
+                .containsKey("foo")
+                .containsValue("bar");
 
         assertThat(headers.getAsString("foo", null)).isEqualTo("bar");
         assertThat(headers.containsKey("foo")).isTrue();
@@ -126,7 +126,7 @@ public class HeadersTest {
     public void testGetObject() {
         Person person = new Person();
         person.name = "mark";
-        Headers headers = Headers.of("k1", person, "k2", new byte[] { 1, 2, 3, 4});
+        Headers headers = Headers.of("k1", person, "k2", new byte[] { 1, 2, 3, 4 });
 
         Person p = headers.get("k1", new Person());
         assertThat(p).isNotNull();
@@ -150,8 +150,8 @@ public class HeadersTest {
         person.name = "mark";
 
         Headers headers = Headers.builder()
-            .with("foo", 1234)
-            .with("person", person).build();
+                .with("foo", 1234)
+                .with("person", person).build();
 
         assertThat(headers).hasSize(2);
         assertThat(headers.get("person", Person.class).name).isEqualTo("mark");
@@ -198,7 +198,8 @@ public class HeadersTest {
         assertThatThrownBy(() -> headers.putAll(Collections.emptyMap())).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> headers.putIfAbsent("foo", "bar")).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> headers.compute("foo", (s, o) -> o)).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> headers.computeIfPresent("foo", (s, o) -> o)).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> headers.computeIfPresent("foo", (s, o) -> o))
+                .isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> headers.computeIfAbsent("foo", s -> "bat")).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> headers.replace("foo", "bat", "bar")).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> headers.replaceAll((s, o) -> o)).isInstanceOf(UnsupportedOperationException.class);
@@ -215,13 +216,13 @@ public class HeadersTest {
     @Test
     public void testConversionFromString() {
         Headers headers = Headers.builder()
-            .with("int", "1234")
-            .with("long", "11111111")
-            .with("boolean-t", "true")
-            .with("boolean-f", "false")
-            .with("double", "23.3")
-            .with("person", new Person())
-            .build();
+                .with("int", "1234")
+                .with("long", "11111111")
+                .with("boolean-t", "true")
+                .with("boolean-f", "false")
+                .with("double", "23.3")
+                .with("person", new Person())
+                .build();
 
         assertThat(headers.getAsInteger("int", -1)).isEqualTo(1234);
         assertThat(headers.getAsLong("long", -1)).isEqualTo(11111111L);
