@@ -12,7 +12,7 @@ open class Receiver {
     open fun consume(message: KafkaMessage<String, String>): CompletionStage<Void> {
         val payload = message.payload
         val key = message.key
-        val headers = message.headers
+        val headers = message.messageHeaders
         val partition = message.partition
         val timestamp = message.timestamp
         println("received: " + payload + " from topic " + message.topic)

@@ -55,7 +55,7 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
-    public MessageHeaders getHeaders() {
+    public MessageHeaders getMessageHeaders() {
         return headers;
     }
 

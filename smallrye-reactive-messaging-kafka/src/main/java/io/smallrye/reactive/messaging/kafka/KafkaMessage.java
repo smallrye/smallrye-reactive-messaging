@@ -30,7 +30,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the updated Kafka Message.
      */
     default KafkaMessage<K, T> withHeader(String key, byte[] content) {
-        MessageHeaders headers = getHeaders().clone();
+        MessageHeaders headers = getMessageHeaders().clone();
         headers.put(key, content);
         return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(), headers,
                 getAckSupplier());
@@ -46,7 +46,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the updated Kafka Message.
      */
     default KafkaMessage<K, T> withHeader(String key, String content, Charset enc) {
-        MessageHeaders headers = getHeaders();
+        MessageHeaders headers = getMessageHeaders();
         headers.put(key, content, enc);
         return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(), headers,
                 getAckSupplier());
@@ -90,7 +90,8 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the new Kafka message
      */
     default KafkaMessage<K, T> withAck(Supplier<CompletionStage<Void>> ack) {
-        return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(), getHeaders(),
+        return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
+                getMessageHeaders(),
                 ack);
     }
 
@@ -137,7 +138,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
     /**
      * @return the message headers.
      */
-    MessageHeaders getHeaders();
+    MessageHeaders getMessageHeaders();
 
     /**
      * @return the supplier producing the acknowledgement action.

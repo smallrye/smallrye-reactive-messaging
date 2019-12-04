@@ -99,7 +99,7 @@ class KafkaSink {
                                         km.getTimestamp() == -1 ? null : km.getTimestamp(),
                                         km.getKey() == null ? this.key : km.getKey(),
                                         km.getPayload(),
-                                        km.getHeaders().unwrap());
+                                        km.getMessageHeaders().unwrap());
                                 LOGGER.debug("Sending message {} to Kafka topic '{}'", message, record.topic());
                             }
                         } else {

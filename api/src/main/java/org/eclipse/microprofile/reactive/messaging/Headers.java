@@ -117,6 +117,28 @@ public class Headers extends LinkedHashMap<String, Object> {
     }
 
     /**
+     * Returns a new {@link Headers} containing five entries in order.
+     *
+     * @param k1 the first key, must not be {@code null}
+     * @param v1 the first value, must not be {@code null}
+     * @param k2 the second key, must not be {@code null}
+     * @param v2 the second value, must not be {@code null}
+     * @param k3 the third key, must not be {@code null}
+     * @param v3 the third value, must not be {@code null}
+     * @param k4 the fourth key, must not be {@code null}
+     * @param v4 the fourth value, must not be {@code null}
+     * @param k5 the fifth key, must not be {@code null}
+     * @param v5 the fifth value, must not be {@code null}
+     * @return the new {@link Headers} instance
+     * @throws IllegalArgumentException if duplicate keys are provided
+     */
+    public static Headers of(
+        String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4, String k5, Object v5) {
+        return new HeadersBuilder().withEntries(
+            entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3), entryOf(k4, v4), entryOf(k5, v5)).build();
+    }
+
+    /**
      * @return the empty headers instance.
      */
     public static Headers empty() {
@@ -418,28 +440,6 @@ public class Headers extends LinkedHashMap<String, Object> {
             return null;
         }
         return target.cast(value);
-    }
-
-    /**
-     * Returns a new {@link Headers} containing five entries in order.
-     *
-     * @param k1 the first key, must not be {@code null}
-     * @param v1 the first value, must not be {@code null}
-     * @param k2 the second key, must not be {@code null}
-     * @param v2 the second value, must not be {@code null}
-     * @param k3 the third key, must not be {@code null}
-     * @param v3 the third value, must not be {@code null}
-     * @param k4 the fourth key, must not be {@code null}
-     * @param v4 the fourth value, must not be {@code null}
-     * @param k5 the fifth key, must not be {@code null}
-     * @param v5 the fifth value, must not be {@code null}
-     * @return the new {@link Headers} instance
-     * @throws IllegalArgumentException if duplicate keys are provided
-     */
-    public static Headers of(
-            String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4, String k5, Object v5) {
-        return new HeadersBuilder().withEntries(
-                entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3), entryOf(k4, v4), entryOf(k5, v5)).build();
     }
 
     /**

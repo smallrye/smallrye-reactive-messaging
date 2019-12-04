@@ -14,7 +14,7 @@ public class KafkaMessageTest {
         assertThat(message.getPayload()).isEqualTo("bar");
         assertThat(message.getKey()).isEqualTo("foo");
         assertThat(message.getTopic()).isNull();
-        assertThat(message.getHeaders().unwrap()).isEmpty();
+        assertThat(message.getMessageHeaders().unwrap()).isEmpty();
         assertThat(message.getPartition()).isEqualTo(-1);
         assertThat(message.getTimestamp()).isEqualTo(-1);
         assertThat(message.getOffset()).isEqualTo(-1);
@@ -26,7 +26,7 @@ public class KafkaMessageTest {
         assertThat(message.getPayload()).isEqualTo("bar");
         assertThat(message.getKey()).isEqualTo("foo");
         assertThat(message.getTopic()).isEqualTo("topic");
-        assertThat(message.getHeaders().unwrap()).isEmpty();
+        assertThat(message.getMessageHeaders().unwrap()).isEmpty();
         assertThat(message.getPartition()).isEqualTo(-1);
         assertThat(message.getTimestamp()).isEqualTo(-1);
     }
@@ -38,7 +38,7 @@ public class KafkaMessageTest {
         assertThat(message.getPayload()).isEqualTo("bar");
         assertThat(message.getKey()).isEqualTo("foo");
         assertThat(message.getTopic()).isEqualTo("topic");
-        assertThat(message.getHeaders().unwrap()).isEmpty();
+        assertThat(message.getMessageHeaders().unwrap()).isEmpty();
         assertThat(message.getPartition()).isEqualTo(2);
         assertThat(message.getTimestamp()).isEqualTo(timestamp);
     }
@@ -49,7 +49,7 @@ public class KafkaMessageTest {
         assertThat(message.getPayload()).isEqualTo("bar");
         assertThat(message.getKey()).isNull();
         assertThat(message.getTopic()).isNull();
-        assertThat(message.getHeaders().unwrap()).isEmpty();
+        assertThat(message.getMessageHeaders().unwrap()).isEmpty();
         assertThat(message.getPartition()).isEqualTo(-1);
         assertThat(message.getTimestamp()).isEqualTo(-1);
     }
@@ -63,7 +63,7 @@ public class KafkaMessageTest {
         assertThat(message).isNotEqualTo(message1).isNotEqualTo(message2);
         assertThat(message1).isNotEqualTo(message2);
 
-        MessageHeaders headers = message2.getHeaders();
+        MessageHeaders headers = message2.getMessageHeaders();
         assertThat(headers.getOneAsString("x-key")).hasValue("value");
         assertThat(headers.getOneAsBytes("x-key-2")).hasValue("value-2".getBytes());
     }

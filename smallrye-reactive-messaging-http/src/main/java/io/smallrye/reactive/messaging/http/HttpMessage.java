@@ -50,7 +50,7 @@ public class HttpMessage<T> implements Message<T> {
         return ack.get();
     }
 
-    public Map<String, List<String>> getHeaders() {
+    public Map<String, List<String>> getMessageHeaders() {
         return headers;
     }
 

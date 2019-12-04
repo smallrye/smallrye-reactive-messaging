@@ -23,7 +23,7 @@ public class ProducingKafkaMessageBean {
     public KafkaMessage<String, Integer> process(Message<Integer> input) {
         KafkaMessage<String, Integer> message = KafkaMessage.of(
                 Integer.toString(input.getPayload()), input.getPayload() + 1).withAck(input::ack);
-        message.getHeaders().put("hello", "clement").put("count", Integer.toString(counter.incrementAndGet()));
+        message.getMessageHeaders().put("hello", "clement").put("count", Integer.toString(counter.incrementAndGet()));
         return message;
     }
 

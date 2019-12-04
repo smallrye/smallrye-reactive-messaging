@@ -10,7 +10,7 @@ public class KafkaConsumer {
   public void consume(KafkaMessage<String, JsonObject> message) {
     JsonObject payload = message.getPayload();
     String key = message.getKey();
-    MessageHeaders headers = message.getHeaders();
+    MessageHeaders headers = message.getMessageHeaders();
     int partition = message.getPartition();
     long timestamp = message.getTimestamp();
   }

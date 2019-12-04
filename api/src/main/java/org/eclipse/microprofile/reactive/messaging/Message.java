@@ -170,6 +170,9 @@ public interface Message<T> {
         return Headers.empty();
     }
 
+    /**
+     * @return the supplier used to retrieve the acknowledgement {@link CompletionStage}.
+     */
     default Supplier<CompletionStage<Void>> getAck() {
         return () -> CompletableFuture.completedFuture(null);
     }

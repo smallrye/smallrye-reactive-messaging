@@ -53,7 +53,7 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
-    public MessageHeaders getHeaders() {
+    public MessageHeaders getMessageHeaders() {
         return headers;
     }
 

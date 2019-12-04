@@ -16,7 +16,7 @@ public class Receiver {
     public CompletionStage<Void> consume(KafkaMessage<String, String> message) {
         String payload = message.getPayload();
         String key = message.getKey();
-        MessageHeaders headers = message.getHeaders();
+        MessageHeaders headers = message.getMessageHeaders();
         int partition = message.getPartition();
         long timestamp = message.getTimestamp();
         System.out.println("received: " + payload + " from topic " + message.getTopic());
