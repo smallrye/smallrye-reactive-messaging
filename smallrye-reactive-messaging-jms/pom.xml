@@ -15,7 +15,7 @@
   <properties>
     <artemis.version>2.10.1</artemis.version>
     <jakarta.json-b.version>1.0.1</jakarta.json-b.version>
-    <jakarta.json-p.version>1.1.5</jakarta.json-p.version>
+    <jakarta.json-p.version>1.1.6</jakarta.json-p.version>
     <jakarta.jms.version>2.0.3</jakarta.jms.version>
   </properties>
 
