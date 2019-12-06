@@ -10,6 +10,7 @@ import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 
 /**
  * Look for stream factories and get instances.
@@ -142,7 +144,13 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
                 .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown connector for " + name + "."));
 
-        return mySourceFactory.getPublisherBuilder(config);
+        PublisherBuilder<? extends Message> publisher = mySourceFactory.getPublisherBuilder(config);
+
+        for (PublisherDecorator decorator : CDI.current().select(PublisherDecorator.class)) {
+            publisher = decorator.decoratePublisher(publisher, name);
+        }
+
+        return publisher;
     }
 
     private SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String name, Config config) {

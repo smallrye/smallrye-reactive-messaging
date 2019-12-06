@@ -5,6 +5,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import javax.enterprise.inject.spi.CDI;
+
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -106,6 +108,11 @@ public abstract class AbstractMediator {
         if (input == null) {
             return null;
         }
+
+        for (PublisherDecorator decorator : CDI.current().select(PublisherDecorator.class)) {
+            input = decorator.decoratePublisher(input, getConfiguration().getOutgoing());
+        }
+
         if (configuration.getBroadcast()) {
             Flowable<Message> flow = Flowable.fromPublisher(input.buildRs());
             if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
