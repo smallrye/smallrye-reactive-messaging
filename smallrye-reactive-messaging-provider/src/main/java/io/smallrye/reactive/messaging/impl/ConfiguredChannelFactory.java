@@ -76,7 +76,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     }
 
     private List<String> getConnectors(BeanManager beanManager, Class<?> clazz) {
-        return beanManager.getBeans(clazz).stream()
+        return beanManager.getBeans(clazz, Any.Literal.INSTANCE).stream()
                 .map(BeanAttributes::getQualifiers)
                 .flatMap(set -> set.stream().filter(a -> a.annotationType().equals(Connector.class)))
                 .map(annotation -> ((Connector) annotation).value())
