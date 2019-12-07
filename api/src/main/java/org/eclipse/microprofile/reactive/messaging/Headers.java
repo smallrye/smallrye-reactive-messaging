@@ -133,9 +133,9 @@ public class Headers extends LinkedHashMap<String, Object> {
      * @throws IllegalArgumentException if duplicate keys are provided
      */
     public static Headers of(
-        String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4, String k5, Object v5) {
+            String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4, String k5, Object v5) {
         return new HeadersBuilder().withEntries(
-            entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3), entryOf(k4, v4), entryOf(k5, v5)).build();
+                entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3), entryOf(k4, v4), entryOf(k5, v5)).build();
     }
 
     /**

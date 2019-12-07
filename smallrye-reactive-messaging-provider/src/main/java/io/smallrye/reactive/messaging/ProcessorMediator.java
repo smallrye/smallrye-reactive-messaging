@@ -27,6 +27,7 @@ public class ProcessorMediator extends AbstractMediator {
         }
     }
 
+    @Override
     public void connectToUpstream(PublisherBuilder<? extends Message> publisher) {
         assert processor != null;
         this.publisher = decorate(publisher.via(processor));
@@ -196,19 +197,28 @@ public class ProcessorMediator extends AbstractMediator {
                 .buildRs();
     }
 
+    @SuppressWarnings("unchecked")
     private void processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads() {
         this.processor = ReactiveStreams.<Message> builder()
                 .flatMapCompletionStage(managePreProcessingAck())
-                .flatMap(message -> invoke(message.getPayload()))
-                .map(p -> (Message) Message.of(p))
+                .flatMap(message -> {
+                    PublisherBuilder pb = invoke(message.getPayload());
+                    return pb.map(payload -> Message.of(payload, message.getHeaders()));
+                    // TODO We can handle post-acknowledgement here.
+                })
                 .buildRs();
     }
 
+    @SuppressWarnings("unchecked")
     private void processMethodReturningAPublisherOfPayloadsAndConsumingPayloads() {
         this.processor = ReactiveStreams.<Message> builder()
                 .flatMapCompletionStage(managePreProcessingAck())
-                .flatMapRsPublisher(message -> invoke(message.getPayload()))
-                .map(p -> (Message) Message.of(p))
+                .flatMap(message -> {
+                    Publisher pub = invoke(message.getPayload());
+                    return ReactiveStreams.fromPublisher(pub)
+                            .map(payload -> Message.of(payload, message.getHeaders()));
+                    // TODO We can handle post-acknowledgement here.
+                })
                 .buildRs();
     }
 
@@ -235,9 +245,9 @@ public class ProcessorMediator extends AbstractMediator {
                     .<Message> map(input -> {
                         Object result = invoke(input.getPayload());
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return Message.of(result, () -> input.ack());
+                            return input.withPayload(result);
                         } else {
-                            return Message.of(result);
+                            return Message.of(result, input.getHeaders());
                         }
                     })
                     .buildRs();
@@ -272,7 +282,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .<Message> flatMapCompletionStage(input -> {
                     CompletionStage<Object> cs = invoke(input.getPayload());
                     return cs
-                            .thenApply(res -> Message.of(res, () -> {
+                            .thenApply(res -> Message.of(res, input.getHeaders(), () -> {
                                 if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                                     return input.ack();
                                 } else {

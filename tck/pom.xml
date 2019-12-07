@@ -15,7 +15,15 @@
       <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
       <artifactId>microprofile-reactive-messaging-tck</artifactId>
       <version>${microprofile-reactive-messaging.version}</version>
+      <exclusions>
+        <!-- Use the version included in the SmallRye Reactive Messaging API module -->
+        <exclusion>
+          <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+          <artifactId>microprofile-reactive-messaging-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
+
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
