@@ -11,8 +11,6 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.inject.spi.Bean;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.reflect.TypeUtils;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -20,6 +18,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.helpers.TypeUtils;
+import io.smallrye.reactive.messaging.helpers.Validation;
 
 public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
@@ -86,7 +86,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     public void compute(List<Incoming> incomings, Outgoing outgoing) {
         if (incomings != null) {
             for (Incoming incoming : incomings) {
-                if (StringUtils.isBlank(incoming.value())) {
+                if (Validation.isBlank(incoming.value())) {
                     throw getIncomingError("value is blank or null");
                 }
             }
@@ -94,7 +94,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             incomings = Collections.emptyList();
         }
 
-        if (outgoing != null && StringUtils.isBlank(outgoing.value())) {
+        if (outgoing != null && Validation.isBlank(outgoing.value())) {
             throw getOutgoingError("value is blank or null");
         }
 

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.apache.commons.lang3.ClassUtils;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
@@ -15,6 +14,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
 public class MediatorConfigurationSupport {
 

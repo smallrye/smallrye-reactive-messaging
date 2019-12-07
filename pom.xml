@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye</groupId>
     <artifactId>smallrye-parent</artifactId>
-    <version>14</version>
+    <version>15</version>
   </parent>
 
   <groupId>io.smallrye.reactive</groupId>
@@ -61,7 +61,6 @@
     <cloudevent.version>1.1.0</cloudevent.version>
     <axle.version>0.0.10</axle.version>
 
-    <cdi.version>2.0.SP1</cdi.version>
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
     <microprofile-config.version>1.3</microprofile-config.version>
@@ -72,6 +71,7 @@
     <asciidoctorj.version>1.5.8.1</asciidoctorj.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+
   </properties>
 
   <modules>
@@ -86,6 +86,7 @@
     <module>smallrye-reactive-messaging-vertx-eventbus</module>
 	  <module>smallrye-reactive-messaging-aws-sns</module>
     <module>smallrye-reactive-messaging-cloud-events</module>
+    <module>smallrye-reactive-messaging-jms</module>
 
     <module>examples/quickstart</module>
     <module>examples/snippets</module>
@@ -131,16 +132,19 @@
         <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
         <artifactId>microprofile-reactive-streams-operators-api</artifactId>
         <version>${microprofile-reactive-streams.version}</version>
+        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
         <artifactId>microprofile-reactive-streams-operators-core</artifactId>
         <version>${microprofile-reactive-streams.version}</version>
+        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.eclipse.microprofile.config</groupId>
         <artifactId>microprofile-config-api</artifactId>
         <version>${microprofile-config.version}</version>
+        <scope>provided</scope>
       </dependency>
 
       <dependency>
@@ -150,22 +154,9 @@
       </dependency>
 
       <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>3.9</version>
-      </dependency>
-
-      <dependency>
         <groupId>io.reactivex.rxjava2</groupId>
         <artifactId>rxjava</artifactId>
         <version>${rxjava.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>javax.enterprise</groupId>
-        <artifactId>cdi-api</artifactId>
-        <version>${cdi.version}</version>
-        <scope>provided</scope>
       </dependency>
 
       <!-- From this project -->
@@ -182,6 +173,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
