@@ -4,12 +4,11 @@ import javax.enterprise.inject.se.SeContainerInitializer;
 
 public class Main {
 
-  public static void main(String[] args) throws InterruptedException {
-    SeContainerInitializer instance = SeContainerInitializer.newInstance();
-    instance.initialize();
+    public static void main(String[] args) throws InterruptedException {
+        SeContainerInitializer instance = SeContainerInitializer.newInstance();
+        instance.initialize();
 
-    Thread.sleep(10000);
-  }
-
+        Thread.sleep(10000);
+    }
 
 }

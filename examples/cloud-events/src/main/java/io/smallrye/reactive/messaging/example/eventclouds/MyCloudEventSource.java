@@ -16,17 +16,17 @@ import java.util.concurrent.TimeUnit;
 @ApplicationScoped
 public class MyCloudEventSource {
 
-  @Outgoing("source")
-  public Publisher<CloudEventMessage<String>> source() {
-    return Flowable.interval(1, TimeUnit.SECONDS)
-      .observeOn(Schedulers.computation())
-      .map(l -> new CloudEventMessageBuilder<String>()
-        .id(UUID.randomUUID().toString())
-        .type("counter")
-        .source(new URI("local://timer"))
-        .contentType("text/plain")
-        .time(ZonedDateTime.now())
-        .data(Long.toString(l))
-        .build());
-  }
+    @Outgoing("source")
+    public Publisher<CloudEventMessage<String>> source() {
+        return Flowable.interval(1, TimeUnit.SECONDS)
+            .observeOn(Schedulers.computation())
+            .map(l -> new CloudEventMessageBuilder<String>()
+                .withId(UUID.randomUUID().toString())
+                .withType("counter")
+                .withSource(new URI("local://timer"))
+                .withDataContentType("text/plain")
+                .withTime(ZonedDateTime.now())
+                .withData(Long.toString(l))
+                .build());
+    }
 }

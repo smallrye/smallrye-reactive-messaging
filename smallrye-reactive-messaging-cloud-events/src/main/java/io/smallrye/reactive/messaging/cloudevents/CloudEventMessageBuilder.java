@@ -2,89 +2,109 @@ package io.smallrye.reactive.messaging.cloudevents;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
-import java.util.Collections;
+import java.util.Collection;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.cloudevents.CloudEventBuilder;
-import io.cloudevents.Extension;
+import io.cloudevents.extensions.ExtensionFormat;
+import io.cloudevents.fun.EventBuilder;
+import io.cloudevents.v1.AttributesImpl;
+import io.cloudevents.v1.CloudEventBuilder;
+import io.cloudevents.v1.CloudEventImpl;
 
-public class CloudEventMessageBuilder<T> extends CloudEventBuilder<T> {
+public class CloudEventMessageBuilder<T> implements EventBuilder<T, AttributesImpl> {
+
+    private final CloudEventBuilder<T> builder;
 
     public static <T> CloudEventMessageBuilder<T> from(Message<T> message) {
         CloudEventMessageBuilder<T> builder = new CloudEventMessageBuilder<>();
-        builder.data(message.getPayload());
+        builder.withData(message.getPayload());
         if (message instanceof CloudEventMessage) {
-            CloudEventMessage<T> cem = (CloudEventMessage) message;
-            builder
-                    .id(cem.getId())
-                    .type(cem.getType())
-                    .source(cem.getSource())
-                    .time(cem.getTime().orElseGet(ZonedDateTime::now))
-                    .contentType(cem.getContentType().orElse(null))
-                    .schemaURL(cem.getSchemaURL().orElse(null))
-                    .specVersion(cem.getSpecVersion());
-            cem.getExtensions().orElse(Collections.emptyList()).forEach(builder::extension);
+            CloudEventMessage<T> cem = (CloudEventMessage<T>) message;
+
+            // Copy the attributes:
+            builder.withId(cem.getAttributes().getId());
+            builder.withType(cem.getAttributes().getType());
+            builder.withSource(cem.getAttributes().getSource());
+            cem.getAttributes().getDatacontenttype().ifPresent(builder::withDataContentType);
+            cem.getAttributes().getDataschema().ifPresent(builder::withDataschema);
+            cem.getAttributes().getSubject().ifPresent(builder::withSubject);
+            cem.getAttributes().getTime().ifPresent(builder::withTime);
         }
         return builder;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> specVersion(String specVersion) {
-        super.specVersion(specVersion);
+    public CloudEventMessageBuilder() {
+        builder = CloudEventBuilder.builder();
+    }
+
+    public CloudEventMessageBuilder<T> withId(String id) {
+        builder.withId(id);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> type(String type) {
-        super.type(type);
+    public CloudEventMessageBuilder<T> withSource(URI source) {
+        builder.withSource(source);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> source(URI source) {
-        super.source(source);
+    public CloudEventMessageBuilder<T> withType(String type) {
+        builder.withType(type);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> id(String id) {
-        super.id(id);
+    public CloudEventMessageBuilder<T> withDataschema(URI dataschema) {
+        builder.withDataschema(dataschema);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> time(ZonedDateTime time) {
-        super.time(time);
+    public CloudEventMessageBuilder<T> withDataContentType(String datacontenttype) {
+        builder.withDataContentType(datacontenttype);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> schemaURL(URI schemaURL) {
-        super.schemaURL(schemaURL);
+    public CloudEventMessageBuilder<T> withSubject(String subject) {
+        builder.withSubject(subject);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> contentType(String contentType) {
-        super.contentType(contentType);
+    public CloudEventMessageBuilder<T> withTime(ZonedDateTime time) {
+        builder.withTime(time);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> data(T data) {
-        super.data(data);
+    public CloudEventMessageBuilder<T> withData(T data) {
+        builder.withData(data);
         return this;
     }
 
-    @Override
-    public CloudEventMessageBuilder<T> extension(Extension extension) {
-        super.extension(extension);
+    public CloudEventMessageBuilder<T> withExtension(ExtensionFormat extension) {
+        builder.withExtension(extension);
         return this;
     }
 
-    @Override
     public CloudEventMessage<T> build() {
-        return new DefaultCloudEventMessage<>(super.build());
+        return new DefaultCloudEventMessage<>(builder.build());
+    }
+
+    @Override
+    public CloudEventMessage<T> build(T data, AttributesImpl attributes,
+            Collection<ExtensionFormat> extensions) {
+        CloudEventBuilder<T> builder = CloudEventBuilder.<T> builder()
+                .withId(attributes.getId())
+                .withSource(attributes.getSource())
+                .withType(attributes.getType());
+
+        attributes.getTime().ifPresent(builder::withTime);
+        attributes.getDataschema().ifPresent(builder::withDataschema);
+        attributes.getDatacontenttype().ifPresent(builder::withDataContentType);
+        attributes.getSubject().ifPresent(builder::withSubject);
+        extensions.forEach(builder::withExtension);
+
+        CloudEventImpl<T> event = builder
+                .withData(data)
+                .build();
+
+        return new DefaultCloudEventMessage<>(event);
     }
 }

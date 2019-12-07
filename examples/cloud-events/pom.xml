@@ -36,6 +36,17 @@
       <artifactId>weld-se-core</artifactId>
       <version>${weld-core.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.29</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-config</artifactId>
+      <version>1.4.1</version>
+    </dependency>
   </dependencies>
 
   <build>
