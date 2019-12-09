@@ -26,7 +26,7 @@ import org.junit.Test;
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.Emitter;
-import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 public class MissingBackPressureTest extends KafkaTestBase {
 
@@ -128,8 +128,8 @@ public class MissingBackPressureTest extends KafkaTestBase {
     public static class MyEmitterBean {
 
         @Inject
-        @Stream("temperature-values")
-        private Emitter<KafkaMessage<String, String>> emitter;
+        @Channel("temperature-values")
+        private Emitter<String> emitter;
 
         private volatile boolean stop = false;
 

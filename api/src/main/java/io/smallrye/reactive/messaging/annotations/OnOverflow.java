@@ -37,12 +37,21 @@ public @interface OnOverflow {
     enum Strategy {
         /**
          * Buffers <strong>all</strong> values until the downstream consumes it.
-         * This creates an unbound buffer if not used in conjunction with {@link #bufferSize()} to limit the size of the
-         * buffer. If the buffer is full, an error is propagated.
+         * This creates a buffer with the size specified by {@link #bufferSize()} if present.
+         * Otherwise, the size will be the value of the config property
+         * <strong>mp.messaging.emitter.default-buffer-size</strong>.
+         * If the buffer is full, an error will be propagated.
          */
         BUFFER,
+
         /**
-         * Drops the most recent value if the downstream can't keep up. It means that new value emitted by the upstream
+         * Buffers <strong>all</strong> values until the downstream consumes it.
+         * This creates an unbounded buffer. If the buffer is full, the application will die of {@code OutOfMemory}.
+         */
+        UNBOUNDED_BUFFER,
+
+        /**
+         * Drops the most recent value if the downstream can't keep up. It means that new values emitted by the upstream
          * are ignored.
          */
         DROP,
@@ -53,7 +62,7 @@ public @interface OnOverflow {
         FAIL,
 
         /**
-         * Keeps only the latest value, dropping any previous value if the downstream can't keep up.
+         * Keeps only the latest value, dropping any previous values if the downstream can't keep up.
          */
         LATEST,
 
@@ -71,7 +80,8 @@ public @interface OnOverflow {
 
     /**
      * @return the size of the buffer when {@link Strategy#BUFFER} is used. If not set and if the {@link Strategy#BUFFER}
-     *         strategy is used, an unbound buffer is used.
+     *         strategy is used, the buffer size will be defaulted to the value of the config property
+     *         mp.messaging.emitter.default-buffer-size. If set the value must be strictly positive.
      */
     long bufferSize() default 0;
 

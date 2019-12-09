@@ -22,12 +22,12 @@ import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.exceptions.MissingBackpressureException;
 import io.reactivex.schedulers.Schedulers;
-import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Channel;
+import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
-public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
+public class LegacyEmitterBufferOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     private static ExecutorService executor;
 
@@ -43,7 +43,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testNormal() {
-        BeanWithFailOverflowStrategy bean = installInitializeAndGet(BeanWithFailOverflowStrategy.class);
+        BeanUsingBufferOverflowStrategy bean = installInitializeAndGet(BeanUsingBufferOverflowStrategy.class);
         bean.emitThree();
 
         await().until(() -> bean.output().size() == 3);
@@ -53,21 +53,20 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testOverflow() {
-        BeanWithFailOverflowStrategy bean = installInitializeAndGet(BeanWithFailOverflowStrategy.class);
+        BeanUsingBufferOverflowStrategy bean = installInitializeAndGet(BeanUsingBufferOverflowStrategy.class);
         bean.emitALotOfItems();
 
         await().until(() -> bean.exception() != null);
         assertThat(bean.output()).doesNotContain("999");
-        assertThat(bean.output()).hasSizeBetween(0, 256);
         assertThat(bean.failure()).isNotNull().isInstanceOf(MissingBackpressureException.class);
     }
 
     @ApplicationScoped
-    public static class BeanWithFailOverflowStrategy {
+    public static class BeanUsingBufferOverflowStrategy {
 
         @Inject
         @Channel("hello")
-        @OnOverflow(value = OnOverflow.Strategy.FAIL)
+        @OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 300)
         Emitter<String> emitter;
 
         private List<String> output = new CopyOnWriteArrayList<>();
@@ -93,6 +92,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
                 emitter.send("2");
                 emitter.send("3");
                 emitter.complete();
+
             } catch (Exception e) {
                 callerException = e;
             }
@@ -117,9 +117,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
             return values
                     .observeOn(scheduler)
                     .delay(1, TimeUnit.MILLISECONDS, scheduler)
-                    .doOnError(err -> {
-                        downstreamFailure = err;
-                    });
+                    .doOnError(err -> downstreamFailure = err);
         }
 
         @Incoming("out")

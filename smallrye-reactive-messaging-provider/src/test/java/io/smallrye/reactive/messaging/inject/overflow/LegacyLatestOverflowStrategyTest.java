@@ -20,14 +20,13 @@ import org.junit.Test;
 
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
-import io.reactivex.exceptions.MissingBackpressureException;
 import io.reactivex.schedulers.Schedulers;
-import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Channel;
+import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
-public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
+public class LegacyLatestOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     private static ExecutorService executor;
 
@@ -43,7 +42,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testNormal() {
-        BeanWithFailOverflowStrategy bean = installInitializeAndGet(BeanWithFailOverflowStrategy.class);
+        BeanUsingLatestOverflowStrategy bean = installInitializeAndGet(BeanUsingLatestOverflowStrategy.class);
         bean.emitThree();
 
         await().until(() -> bean.output().size() == 3);
@@ -53,27 +52,34 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testOverflow() {
-        BeanWithFailOverflowStrategy bean = installInitializeAndGet(BeanWithFailOverflowStrategy.class);
+        BeanUsingLatestOverflowStrategy bean = installInitializeAndGet(BeanUsingLatestOverflowStrategy.class);
         bean.emitALotOfItems();
 
-        await().until(() -> bean.exception() != null);
-        assertThat(bean.output()).doesNotContain("999");
-        assertThat(bean.output()).hasSizeBetween(0, 256);
-        assertThat(bean.failure()).isNotNull().isInstanceOf(MissingBackpressureException.class);
+        await().until(bean::isDone);
+        await().until(() -> bean.output().contains("999"));
+        assertThat(bean.output()).contains("1", "2", "3", "4", "5", "999");
+        assertThat(bean.output()).hasSizeBetween(50, 1000);
+        assertThat(bean.failure()).isNull();
+        assertThat(bean.exception()).isNull();
     }
 
     @ApplicationScoped
-    public static class BeanWithFailOverflowStrategy {
+    public static class BeanUsingLatestOverflowStrategy {
 
         @Inject
         @Channel("hello")
-        @OnOverflow(value = OnOverflow.Strategy.FAIL)
+        @OnOverflow(value = OnOverflow.Strategy.LATEST)
         Emitter<String> emitter;
 
         private List<String> output = new CopyOnWriteArrayList<>();
 
         private volatile Throwable downstreamFailure;
+        private volatile boolean done;
         private Exception callerException;
+
+        public boolean isDone() {
+            return done;
+        }
 
         public List<String> output() {
             return output;
@@ -106,6 +112,8 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
                     }
                 } catch (Exception e) {
                     callerException = e;
+                } finally {
+                    done = true;
                 }
             }).start();
         }

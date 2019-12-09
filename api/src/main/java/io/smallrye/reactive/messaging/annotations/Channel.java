@@ -38,7 +38,7 @@ import io.smallrye.reactive.messaging.Emitter;
  * &#64;Inject @Channel("my-channel") Emitter&lt;String&gt; emitter;
  *
  * // ...
- * emitter.send("a").send("b").complete();
+ * emitter.send("a");
  * </code>
  * </pre>
  *
@@ -49,9 +49,9 @@ import io.smallrye.reactive.messaging.Emitter;
 public @interface Channel {
 
     /**
-     * The name of the channel (indicated in the {@code @Outgoing} annotation.
+     * The name of the channel.
      *
-     * @return the channel name, mandatory, non null and non-blank. It must matches one of the available channels.
+     * @return the channel name, mandatory, non-null and non-blank. It must matches one of the available channels.
      */
     @Nonbinding
     String value();

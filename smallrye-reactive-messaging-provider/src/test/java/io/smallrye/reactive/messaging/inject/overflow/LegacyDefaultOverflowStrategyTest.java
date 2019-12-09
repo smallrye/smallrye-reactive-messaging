@@ -22,12 +22,11 @@ import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.exceptions.MissingBackpressureException;
 import io.reactivex.schedulers.Schedulers;
-import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Channel;
-import io.smallrye.reactive.messaging.annotations.OnOverflow;
+import io.smallrye.reactive.messaging.annotations.Emitter;
 
-public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
+public class LegacyDefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     private static ExecutorService executor;
 
@@ -43,7 +42,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testNormal() {
-        BeanWithFailOverflowStrategy bean = installInitializeAndGet(BeanWithFailOverflowStrategy.class);
+        BeanUsingDefaultOverflow bean = installInitializeAndGet(BeanUsingDefaultOverflow.class);
         bean.emitThree();
 
         await().until(() -> bean.output().size() == 3);
@@ -53,7 +52,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testOverflow() {
-        BeanWithFailOverflowStrategy bean = installInitializeAndGet(BeanWithFailOverflowStrategy.class);
+        BeanUsingDefaultOverflow bean = installInitializeAndGet(BeanUsingDefaultOverflow.class);
         bean.emitALotOfItems();
 
         await().until(() -> bean.exception() != null);
@@ -63,11 +62,10 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
     }
 
     @ApplicationScoped
-    public static class BeanWithFailOverflowStrategy {
+    public static class BeanUsingDefaultOverflow {
 
         @Inject
         @Channel("hello")
-        @OnOverflow(value = OnOverflow.Strategy.FAIL)
         Emitter<String> emitter;
 
         private List<String> output = new CopyOnWriteArrayList<>();
@@ -116,7 +114,7 @@ public class FailOverflowStrategyTest extends WeldTestBaseWithoutTails {
             Scheduler scheduler = Schedulers.from(executor);
             return values
                     .observeOn(scheduler)
-                    .delay(1, TimeUnit.MILLISECONDS, scheduler)
+                    .delay(2, TimeUnit.MILLISECONDS, scheduler)
                     .doOnError(err -> {
                         downstreamFailure = err;
                     });

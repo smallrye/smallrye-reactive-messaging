@@ -54,6 +54,8 @@ import io.smallrye.reactive.messaging.annotations.OnOverflow;
 @ApplicationScoped
 public class MediatorManager {
 
+    private static final int DEFAULT_BUFFER_SIZE = 128;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MediatorManager.class);
     public static final String STRICT_MODE_PROPERTY = "smallrye-messaging-strict-binding";
     private final boolean strictMode;
@@ -66,8 +68,13 @@ public class MediatorManager {
     private final List<AbstractMediator> mediators = new ArrayList<>();
 
     @Inject
-    @ConfigProperty(name = "smallrye.messaging.emitter.default-buffer-size", defaultValue = "127")
-    long defaultBufferSize;
+    @ConfigProperty(name = "mp.messaging.emitter.default-buffer-size", defaultValue = "128")
+    int defaultBufferSize;
+
+    @Inject
+    @ConfigProperty(name = "smallrye.messaging.emitter.default-buffer-size", defaultValue = "128")
+    @Deprecated // Use mp.messaging.emitter.default-buffer-size instead
+    int defaultBufferSizeLegacy;
 
     @Inject
     @Any
@@ -203,6 +210,7 @@ public class MediatorManager {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void weaving(Set<String> unmanagedSubscribers) {
         // At that point all the publishers have been registered in the registry
         LOGGER.info("Connecting mediators");
@@ -300,6 +308,7 @@ public class MediatorManager {
                     });
                 }
             }
+
             if (list.isEmpty() && emitter != null) {
                 if (subscribers.size() == 1) {
                     LOGGER.info("Connecting emitter to sink {}", name);
@@ -366,11 +375,20 @@ public class MediatorManager {
 
     public void initializeEmitters(Map<String, OnOverflow> emitters) {
         for (Map.Entry<String, OnOverflow> e : emitters.entrySet()) {
+            int bufferSize = getDefaultBufferSize();
             if (e.getValue() != null) {
-                initializeEmitter(e.getKey(), e.getValue().value().name(), e.getValue().bufferSize(), defaultBufferSize);
+                initializeEmitter(e.getKey(), e.getValue().value().name(), e.getValue().bufferSize(), bufferSize);
             } else {
-                initializeEmitter(e.getKey(), null, defaultBufferSize, defaultBufferSize);
+                initializeEmitter(e.getKey(), null, bufferSize, bufferSize);
             }
+        }
+    }
+
+    private int getDefaultBufferSize() {
+        if (defaultBufferSize == DEFAULT_BUFFER_SIZE && defaultBufferSizeLegacy != DEFAULT_BUFFER_SIZE) {
+            return defaultBufferSizeLegacy;
+        } else {
+            return defaultBufferSize;
         }
     }
 

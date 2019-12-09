@@ -72,7 +72,7 @@ Emitter<String> emitter;
 emitter.send("a").send("b");
 ----
 
-You can inject an `io.smallrye.reactive.messaging.Emitter<T>` or `io.smallrye.reactive.messaging.Emitter<Message<T>>`.
+You can inject an `io.smallrye.reactive.messaging.Emitter<T>`.
 To use an `Emitter` for the channel `hello`, you need a `@Incoming("hello")` somewhere in your code (or in your configuration).
 
 When injecting an `Emitter` you can configure how the back-pressure is handled.
@@ -121,24 +121,32 @@ Emitter<String> emitter;
 Emitter<String> emitter;
 ----
 
-The default buffer size (`127`) can be configured using the `smallrye.messaging.emitter.default-buffer-size` property set using MicroProfile Config.
+The default buffer size (`128`) can be configured using the `mp.messaging.emitter.default-buffer-size` property set using MicroProfile Config.
 Note that this value is only applied when `OnOverflow` is not used.
 
-=== Repeatable `@Incoming`
+An emitter can also send messages directly:
 
-You can use several `@Incoming on a single method:
-
-[source,java]
+[source, java]
 ----
-@Incoming("a")
-@Incoming("b")
-@Outgoing("out")
-public String process(String s) {
-    // ...
-}
+@Inject
+@Channel("hello")
+Emitter<String> emitter;
+
+// ...
+emitter.send(Message.of("hello"));
 ----
 
-In this case, the method is invoked for all the messages transiting on the incoming channels.
+When sending a payload, the `send` method returns a `CompletionStage<Void>` completed when the message is acknowledged:
+
+[source, java]
+----
+@Inject
+@Channel("hello")
+Emitter<String> emitter;
+
+// ...
+CompletionStage<Void> cs = emitter.send("hello");
+----
 
 === Logging
 
