@@ -10,11 +10,10 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class MyCloudEventProcessor {
 
-
-  @Incoming("source")
-  @Outgoing("result")
-  public CloudEventMessage<String> process(CloudEventMessage<String> message) {
-    return CloudEventMessageBuilder.from(message)
-      .data("Hello " + message.getPayload()).build();
-  }
+    @Incoming("source")
+    @Outgoing("result")
+    public CloudEventMessage<String> process(CloudEventMessage<String> message) {
+        return CloudEventMessageBuilder.from(message)
+            .withData("Hello " + message.getPayload()).build();
+    }
 }
