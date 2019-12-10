@@ -37,6 +37,13 @@
       <artifactId>smallrye-config</artifactId>
       <scope>test</scope>
     </dependency>
+    
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-metrics</artifactId>
+      <scope>test</scope>
+    </dependency>
+    
   </dependencies>
 
   <profiles>
