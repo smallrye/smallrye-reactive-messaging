@@ -26,7 +26,7 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.smallrye</groupId>
+      <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
     </dependency>
     <dependency>
