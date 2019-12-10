@@ -43,7 +43,7 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>io.smallrye</groupId>
+      <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
       <scope>test</scope>
     </dependency>
