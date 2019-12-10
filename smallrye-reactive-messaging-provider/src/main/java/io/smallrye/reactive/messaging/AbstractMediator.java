@@ -110,7 +110,7 @@ public abstract class AbstractMediator {
         }
 
         for (PublisherDecorator decorator : CDI.current().select(PublisherDecorator.class)) {
-            input = decorator.decoratePublisher(input, getConfiguration().getOutgoing());
+            input = decorator.decorate(input, getConfiguration().getOutgoing());
         }
 
         if (configuration.getBroadcast()) {

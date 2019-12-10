@@ -147,7 +147,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         PublisherBuilder<? extends Message> publisher = mySourceFactory.getPublisherBuilder(config);
 
         for (PublisherDecorator decorator : CDI.current().select(PublisherDecorator.class)) {
-            publisher = decorator.decoratePublisher(publisher, name);
+            publisher = decorator.decorate(publisher, name);
         }
 
         return publisher;

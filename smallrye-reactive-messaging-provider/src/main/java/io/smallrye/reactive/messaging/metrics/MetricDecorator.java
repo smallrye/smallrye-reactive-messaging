@@ -17,21 +17,26 @@ import io.smallrye.reactive.messaging.PublisherDecorator;
 @ApplicationScoped
 public class MetricDecorator implements PublisherDecorator {
 
+    private MetricRegistry registry;
+
     @Inject
-    private Instance<MetricRegistry> registryInstance;
+    private void setMetricRegistry(Instance<MetricRegistry> registryInstance) {
+        if (registryInstance.isResolvable()) {
+            registry = registryInstance.get();
+        }
+    }
 
     @Override
-    public PublisherBuilder<? extends Message> decoratePublisher(PublisherBuilder<? extends Message> publisher,
+    public PublisherBuilder<? extends Message> decorate(PublisherBuilder<? extends Message> publisher,
             String channelName) {
-        if (registryInstance.isResolvable()) {
+        if (registry != null) {
             return publisher.peek(incrementCount(channelName));
         } else {
             return publisher;
         }
     }
 
-    private <T extends Message> Consumer<T> incrementCount(String channelName) {
-        MetricRegistry registry = registryInstance.get();
+    private Consumer<Message> incrementCount(String channelName) {
         Counter counter = registry.counter("mp.messaging.message.count", new Tag("channel", channelName));
         return (m) -> counter.inc();
     }
