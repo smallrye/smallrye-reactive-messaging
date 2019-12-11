@@ -5,34 +5,34 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
+import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 public class HttpMessage<T> implements Message<T> {
 
     private final T payload;
-    private final String method;
-    private final Map<String, List<String>> headers;
-    private final Map<String, List<String>> query;
-    private final String url;
     private final Supplier<CompletionStage<Void>> ack;
-
-    private HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
-            Map<String, List<String>> headers) {
-        this.payload = payload;
-        this.method = method;
-        this.headers = headers;
-        this.query = query;
-        this.url = url;
-        this.ack = () -> CompletableFuture.completedFuture(null);
-    }
+    private final Headers headers;
 
     public HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
             Map<String, List<String>> headers, Supplier<CompletionStage<Void>> ack) {
         this.payload = payload;
-        this.method = method;
-        this.headers = headers;
-        this.query = query;
-        this.url = url;
+        Headers.HeadersBuilder builder = Headers.builder();
+
+        if (method != null) {
+            builder.with(HttpHeaders.HTTP_METHOD_KEY, method);
+        }
+        if (url != null) {
+            builder.with(HttpHeaders.HTTP_URL_KEY, url);
+        }
+        if (headers != null) {
+            builder.with(HttpHeaders.HTTP_HEADERS_KEY, headers);
+        }
+        if (query != null) {
+            builder.with(HttpHeaders.HTTP_QUERY_PARAMETERS_KEY, query);
+        }
+
+        this.headers = builder.build();
         this.ack = ack;
     }
 
@@ -42,7 +42,7 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     public String getMethod() {
-        return method;
+        return headers.getAsString(HttpHeaders.HTTP_METHOD_KEY, null);
     }
 
     @Override
@@ -50,16 +50,21 @@ public class HttpMessage<T> implements Message<T> {
         return ack.get();
     }
 
-    public Map<String, List<String>> getMessageHeaders() {
+    @Override
+    public Headers getHeaders() {
         return headers;
     }
 
+    public Map<String, List<String>> getHttpHeaders() {
+        return headers.get(HttpHeaders.HTTP_HEADERS_KEY, Collections.emptyMap());
+    }
+
     public Map<String, List<String>> getQuery() {
-        return query;
+        return headers.get(HttpHeaders.HTTP_QUERY_PARAMETERS_KEY, Collections.emptyMap());
     }
 
     public String getUrl() {
-        return url;
+        return headers.getAsString(HttpHeaders.HTTP_URL_KEY, null);
     }
 
     public static final class HttpMessageBuilder<T> {

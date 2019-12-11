@@ -1,6 +1,9 @@
 == Emitting HTTP requests
 
-You can also _push_ the incoming messages to a HTTP endpoint using the _HTTP connector_.
+You can also _push_ incoming messages to an HTTP endpoint using the _HTTP connector_.
+It maps the messages into HTTP requests and sends the _payload_ in the request body.
+
+Note that this connector uses a reactive and non-blocking HTTP client.
 
 === Dependency
 
@@ -23,13 +26,75 @@ mp.messaging.outgoing.data.url=http://localhost:8089
 mp.messaging.outgoing.data.connector=smallrye-http
 ----
 
-Your method can also returns a `HttpMessage` to configure the _headers_, _query parameters_, the HTTP method (`POST`
+On this connector you can configure:
+
+[cols=4*,options="header"]
+|===
+|Attribute
+|Mandatory
+|Default Value
+|Comment
+
+|url
+|true
+|
+| The HTTP URL
+
+|method
+|false
+| `POST`
+| The HTTP verb to use among `POST` and `PUT`
+
+|===
+
+=== Customizing the HTTP request
+
+There are two approaches to customize the HTTP request.
+
+First, your method can also return a `HttpMessage` to configure the _headers_, _query parameters_, the HTTP method (`POST`
 (default) or `PUT`):
 
 [source,java]
 ----
 include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/Http/HttpExample.java[tag=http-message]
 ----
+
+Otherwise, you can use _raw_ `Message` and use _headers_.
+Note that using `HttpMessage` is producing a _raw_ `Message` using headers.
+
+[source,java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/Http/HttpExample.java[tag=raw-message]
+----
+
+The following table list the configurable headers:
+
+[cols=3*,options="header"]
+|===
+|Attribute
+|Type
+|Comment
+
+|`http.url`
+|String
+|The HTTP URL, if not set, the URL configured on the connector is used.
+
+|`http.method`
+|String
+|The HTTP Verb, either `POST`, or `PUT`. If not set, the method configured on the connector is used, which defaults to `POST`.
+
+|`http.headers`
+|`Map<String, ?>`
+|The HTTP headers to include in the HTTP request.
+It's a `Map` with `String` key. The value can be either a scalar (string) value or a collection of (string) values.
+
+|`http.query-parameters`
+|`Map<String, ?>`
+|The HTTP query parameter to append to the HTTP request URL.
+It's a `Map` with `String` key. The value can be either a scalar (string)  value or a collection of (string) values.
+|===
+
+=== Supported payload
 
 Supported payloads are:
 * String

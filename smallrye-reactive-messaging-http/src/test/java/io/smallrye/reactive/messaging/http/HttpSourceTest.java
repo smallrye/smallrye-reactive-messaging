@@ -159,8 +159,8 @@ public class HttpSourceTest extends HttpTestBase {
                 .matches(b -> new String((byte[]) b).equalsIgnoreCase("hello"));
         assertThat(list.get(1).getPayload()).isInstanceOf(byte[].class)
                 .matches(b -> new String((byte[]) b).equalsIgnoreCase("{\"foo\":\"bar\"}"));
-        assertThat(((HttpMessage) list.get(0)).getMessageHeaders()).containsKeys("X-test", "Content-Type");
-        assertThat(((HttpMessage) list.get(1)).getMessageHeaders()).containsKeys("X-test", "Content-Type");
+        assertThat(((HttpMessage) list.get(0)).getHttpHeaders()).containsKeys("X-test", "Content-Type");
+        assertThat(((HttpMessage) list.get(1)).getHttpHeaders()).containsKeys("X-test", "Content-Type");
     }
 
     @ApplicationScoped

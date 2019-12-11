@@ -2,14 +2,14 @@ package io.smallrye.reactive.messaging.http;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import org.eclipse.microprofile.reactive.messaging.Headers;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -75,6 +75,67 @@ public class HttpMessageTest {
     }
 
     @Test
+    public void testHeadersAndUrlAndQueryOnRawMessage() {
+        stubFor(post(urlEqualTo("/items"))
+                .willReturn(aResponse()
+                        .withStatus(404)));
+
+        stubFor(post(urlPathMatching("/record?.*"))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+
+        String uuid = UUID.randomUUID().toString();
+        Message<String> message = Message.of(uuid).withHeaders(Headers.of(
+                HttpHeaders.HTTP_URL_KEY, "http://localhost:8089/record",
+                HttpHeaders.HTTP_HEADERS_KEY, Collections.singletonMap("X-foo", Collections.singletonList("value")),
+                HttpHeaders.HTTP_QUERY_PARAMETERS_KEY,
+                Collections.singletonMap("name", Collections.singletonList("clement"))));
+
+        sink.send(message);
+        awaitForRequest();
+
+        assertThat(bodies("/record?name=clement")).hasSize(1);
+        LoggedRequest request = requests("/record?name=clement").get(0);
+        assertThat(request.getBodyAsString()).isEqualTo(uuid);
+        assertThat(request.getHeader("X-foo")).isEqualTo("value");
+        assertThat(request.getMethod().getName()).isEqualToIgnoringCase("POST");
+        QueryParameter name = request.getQueryParams().get("name");
+        assertThat(name).isNotNull();
+        assertThat(name.isSingleValued()).isTrue();
+        assertThat(name.firstValue()).isEqualToIgnoringCase("clement");
+    }
+
+    @Test
+    public void testHeadersAndUrlAndQueryOnRawMessageWithSingleItemsInHeaderAndQuery() {
+        stubFor(post(urlEqualTo("/items"))
+                .willReturn(aResponse()
+                        .withStatus(404)));
+
+        stubFor(post(urlPathMatching("/record?.*"))
+                .willReturn(aResponse()
+                        .withStatus(204)));
+
+        String uuid = UUID.randomUUID().toString();
+        Message<String> message = Message.of(uuid).withHeaders(Headers.of(
+                HttpHeaders.HTTP_URL_KEY, "http://localhost:8089/record",
+                HttpHeaders.HTTP_HEADERS_KEY, Collections.singletonMap("X-foo", "value"),
+                HttpHeaders.HTTP_QUERY_PARAMETERS_KEY, Collections.singletonMap("name", "clement")));
+
+        sink.send(message);
+        awaitForRequest();
+
+        assertThat(bodies("/record?name=clement")).hasSize(1);
+        LoggedRequest request = requests("/record?name=clement").get(0);
+        assertThat(request.getBodyAsString()).isEqualTo(uuid);
+        assertThat(request.getHeader("X-foo")).isEqualTo("value");
+        assertThat(request.getMethod().getName()).isEqualToIgnoringCase("POST");
+        QueryParameter name = request.getQueryParams().get("name");
+        assertThat(name).isNotNull();
+        assertThat(name.isSingleValued()).isTrue();
+        assertThat(name.firstValue()).isEqualToIgnoringCase("clement");
+    }
+
+    @Test
     public void testWithDefaultURLWithPut() {
         stubFor(put(urlEqualTo("/items"))
                 .willReturn(aResponse()
@@ -96,6 +157,12 @@ public class HttpMessageTest {
                 .withPayload(uuid)
                 .build();
 
+        assertThat(message.getMethod()).isEqualTo("PUT");
+        assertThat(message.getHttpHeaders()).containsExactly(entry("X-foo", Arrays.asList("value", "value-2")));
+        assertThat(message.getPayload()).isEqualTo(uuid);
+        assertThat(message.getQuery()).isEmpty();
+        assertThat(message.getUrl()).isNull();
+
         sink.send(message);
         awaitForRequest();
 
@@ -108,10 +175,6 @@ public class HttpMessageTest {
 
     private void awaitForRequest() {
         await().until(() -> wireMockRule.getServeEvents().getRequests().size() >= 1);
-    }
-
-    public List<LoggedRequest> requests() {
-        return wireMockRule.getServeEvents().getRequests().stream().map(ServeEvent::getRequest).collect(Collectors.toList());
     }
 
     private List<LoggedRequest> requests(String path) {
