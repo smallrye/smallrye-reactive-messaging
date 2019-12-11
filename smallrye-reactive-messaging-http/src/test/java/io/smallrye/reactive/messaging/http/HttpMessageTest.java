@@ -86,9 +86,9 @@ public class HttpMessageTest {
 
         String uuid = UUID.randomUUID().toString();
         Message<String> message = Message.of(uuid).withHeaders(Headers.of(
-                HttpHeaders.HTTP_URL_KEY, "http://localhost:8089/record",
-                HttpHeaders.HTTP_HEADERS_KEY, Collections.singletonMap("X-foo", Collections.singletonList("value")),
-                HttpHeaders.HTTP_QUERY_PARAMETERS_KEY,
+                HttpHeaders.URL, "http://localhost:8089/record",
+                HttpHeaders.HEADERS, Collections.singletonMap("X-foo", Collections.singletonList("value")),
+                HttpHeaders.QUERY_PARAMETERS,
                 Collections.singletonMap("name", Collections.singletonList("clement"))));
 
         sink.send(message);
@@ -117,9 +117,9 @@ public class HttpMessageTest {
 
         String uuid = UUID.randomUUID().toString();
         Message<String> message = Message.of(uuid).withHeaders(Headers.of(
-                HttpHeaders.HTTP_URL_KEY, "http://localhost:8089/record",
-                HttpHeaders.HTTP_HEADERS_KEY, Collections.singletonMap("X-foo", "value"),
-                HttpHeaders.HTTP_QUERY_PARAMETERS_KEY, Collections.singletonMap("name", "clement")));
+                HttpHeaders.URL, "http://localhost:8089/record",
+                HttpHeaders.HEADERS, Collections.singletonMap("X-foo", "value"),
+                HttpHeaders.QUERY_PARAMETERS, Collections.singletonMap("name", "clement")));
 
         sink.send(message);
         awaitForRequest();

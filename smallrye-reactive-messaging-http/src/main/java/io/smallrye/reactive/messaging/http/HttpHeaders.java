@@ -18,20 +18,20 @@ public class HttpHeaders {
      * header. Single-valued header would use a scalar {@code String}. Multi-valued header would use the collection.
      * The map can mix single-valued and multi-valued headers. Note that the header value must not be {@code null}.
      */
-    public static final String HTTP_HEADERS_KEY = "http.headers";
+    public static final String HEADERS = "http.headers";
 
     /**
      * The HTTP Verb / Method.
      * It can be either {@code PUT} or {@code POST}. If not set the method configured on the connector / channel is used.
      * By default, {@code POST} is used.
      */
-    public static final String HTTP_METHOD_KEY = "http.method";
+    public static final String METHOD = "http.method";
 
     /**
      * The HTTP URL.
      * If not set, it uses the URL configured on the connector / channel.
      */
-    public static final String HTTP_URL_KEY = "http.url";
+    public static final String URL = "http.url";
 
     /**
      * The query parameters to append to the URL.
@@ -43,7 +43,7 @@ public class HttpHeaders {
      * collection.
      * The map can mix single-valued and multi-valued parameters. Note that the parameter value must not be {@code null}.
      */
-    public static final String HTTP_QUERY_PARAMETERS_KEY = "http.query-parameters";
+    public static final String QUERY_PARAMETERS = "http.query-parameters";
 
     private HttpHeaders() {
         // avoid direct instantiation.

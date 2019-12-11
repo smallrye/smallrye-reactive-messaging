@@ -20,16 +20,16 @@ public class HttpMessage<T> implements Message<T> {
         Headers.HeadersBuilder builder = Headers.builder();
 
         if (method != null) {
-            builder.with(HttpHeaders.HTTP_METHOD_KEY, method);
+            builder.with(HttpHeaders.METHOD, method);
         }
         if (url != null) {
-            builder.with(HttpHeaders.HTTP_URL_KEY, url);
+            builder.with(HttpHeaders.URL, url);
         }
         if (headers != null) {
-            builder.with(HttpHeaders.HTTP_HEADERS_KEY, headers);
+            builder.with(HttpHeaders.HEADERS, headers);
         }
         if (query != null) {
-            builder.with(HttpHeaders.HTTP_QUERY_PARAMETERS_KEY, query);
+            builder.with(HttpHeaders.QUERY_PARAMETERS, query);
         }
 
         this.headers = builder.build();
@@ -42,7 +42,7 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     public String getMethod() {
-        return headers.getAsString(HttpHeaders.HTTP_METHOD_KEY, null);
+        return headers.getAsString(HttpHeaders.METHOD, null);
     }
 
     @Override
@@ -56,15 +56,15 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     public Map<String, List<String>> getHttpHeaders() {
-        return headers.get(HttpHeaders.HTTP_HEADERS_KEY, Collections.emptyMap());
+        return headers.get(HttpHeaders.HEADERS, Collections.emptyMap());
     }
 
     public Map<String, List<String>> getQuery() {
-        return headers.get(HttpHeaders.HTTP_QUERY_PARAMETERS_KEY, Collections.emptyMap());
+        return headers.get(HttpHeaders.QUERY_PARAMETERS, Collections.emptyMap());
     }
 
     public String getUrl() {
-        return headers.getAsString(HttpHeaders.HTTP_URL_KEY, null);
+        return headers.getAsString(HttpHeaders.URL, null);
     }
 
     public static final class HttpMessageBuilder<T> {

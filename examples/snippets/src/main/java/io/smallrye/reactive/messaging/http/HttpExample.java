@@ -28,8 +28,8 @@ public class HttpExample {
     public Message<JsonObject> handle(Message<String> incoming) {
         return Message.of(new JsonObject().put("value", incoming.getPayload().toUpperCase()))
             .withHeaders(Headers.of(
-               HttpHeaders.HTTP_HEADERS_KEY, "PUT",
-               HttpHeaders.HTTP_HEADERS_KEY, Collections.singletonMap("Content-Type", "application/json")
+               HttpHeaders.HEADERS, "PUT",
+               HttpHeaders.HEADERS, Collections.singletonMap("Content-Type", "application/json")
             ));
     }
     // end::raw-message[]

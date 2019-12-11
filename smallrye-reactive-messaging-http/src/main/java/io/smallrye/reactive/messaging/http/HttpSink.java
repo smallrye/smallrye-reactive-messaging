@@ -58,10 +58,10 @@ class HttpSink {
     @SuppressWarnings("unchecked")
     private HttpRequest toHttpRequest(Message message) {
         Headers headers = message.getHeaders();
-        String actualUrl = headers.getAsString(HttpHeaders.HTTP_URL_KEY, this.url);
-        String actualMethod = headers.getAsString(HttpHeaders.HTTP_METHOD_KEY, this.method).toUpperCase();
-        Map<String, ?> httpHeaders = headers.get(HttpHeaders.HTTP_HEADERS_KEY, Collections.emptyMap());
-        Map<String, ?> query = headers.get(HttpHeaders.HTTP_QUERY_PARAMETERS_KEY, Collections.emptyMap());
+        String actualUrl = headers.getAsString(HttpHeaders.URL, this.url);
+        String actualMethod = headers.getAsString(HttpHeaders.METHOD, this.method).toUpperCase();
+        Map<String, ?> httpHeaders = headers.get(HttpHeaders.HEADERS, Collections.emptyMap());
+        Map<String, ?> query = headers.get(HttpHeaders.QUERY_PARAMETERS, Collections.emptyMap());
 
         HttpRequest request;
         switch (actualMethod) {
