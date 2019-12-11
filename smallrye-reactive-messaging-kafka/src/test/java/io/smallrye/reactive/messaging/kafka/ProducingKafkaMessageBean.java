@@ -21,10 +21,11 @@ public class ProducingKafkaMessageBean {
     @Outgoing("output-2")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public KafkaMessage<String, Integer> process(Message<Integer> input) {
-        KafkaMessage<String, Integer> message = KafkaMessage.of(
-                Integer.toString(input.getPayload()), input.getPayload() + 1).withAck(input::ack);
-        message.getMessageHeaders().put("hello", "clement").put("count", Integer.toString(counter.incrementAndGet()));
-        return message;
+        return KafkaMessage.of(
+                Integer.toString(input.getPayload()), input.getPayload() + 1)
+                .withAck(input::ack)
+                .withHeader("hello", "clement")
+                .withHeader("count", Integer.toString(counter.incrementAndGet()));
     }
 
     @Outgoing("data")

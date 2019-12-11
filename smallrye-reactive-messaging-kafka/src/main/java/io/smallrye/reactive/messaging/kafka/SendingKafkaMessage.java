@@ -1,27 +1,40 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
+import org.apache.kafka.common.header.Header;
+import org.eclipse.microprofile.reactive.messaging.Headers;
+
 public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
-    private final String topic;
-    private final K key;
     private final T value;
-    private final int partition;
-    private final long timestamp;
-    private final MessageHeaders headers;
     private final Supplier<CompletionStage<Void>> ack;
+    private final Headers headers;
 
     public SendingKafkaMessage(String topic, K key, T value, long timestamp, int partition, MessageHeaders headers,
             Supplier<CompletionStage<Void>> ack) {
-        this.topic = topic;
-        this.key = key;
+
+        Headers.HeadersBuilder builder = Headers.builder();
+        if (topic != null) {
+            builder.with(KafkaHeaders.TOPIC, topic);
+        }
+        if (key != null) {
+            builder.with(KafkaHeaders.KEY, key);
+        }
+        if (partition >= 0) {
+            builder.with(KafkaHeaders.PARTITION, partition);
+        }
+        if (timestamp >= 0) {
+            builder.with(KafkaHeaders.TIMESTAMP, timestamp);
+        }
+        if (headers != null) {
+            builder.with(KafkaHeaders.KAFKA_HEADERS, headers.unwrap());
+        }
+        this.headers = builder.build();
         this.value = value;
-        this.partition = partition;
-        this.timestamp = timestamp;
-        this.headers = headers;
         this.ack = ack;
     }
 
@@ -39,24 +52,31 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
         return this.value;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public K getKey() {
-        return this.key;
+        return (K) headers.get(KafkaHeaders.KEY);
     }
 
     @Override
     public String getTopic() {
-        return this.topic;
+        return headers.getAsString(KafkaHeaders.TOPIC, null);
     }
 
     @Override
     public long getTimestamp() {
-        return timestamp;
+        return headers.getAsLong(KafkaHeaders.TIMESTAMP, -1L);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public MessageHeaders getMessageHeaders() {
-        return headers;
+    public MessageHeaders getKafkaHeaders() {
+        Iterable<Header> iterable = headers.get(KafkaHeaders.KAFKA_HEADERS, Iterable.class);
+        if (iterable != null) {
+            return new MessageHeaders(iterable);
+        } else {
+            return new MessageHeaders(Collections.emptyList());
+        }
     }
 
     @Override
@@ -66,14 +86,16 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
     @Override
     public int getPartition() {
-        if (partition < 0) {
-            return -1;
-        }
-        return partition;
+        return headers.getAsInteger(KafkaHeaders.PARTITION, -1);
     }
 
     @Override
     public long getOffset() {
-        return -1;
+        return headers.getAsLong(KafkaHeaders.OFFSET, -1L);
+    }
+
+    @Override
+    public Headers getHeaders() {
+        return headers;
     }
 }

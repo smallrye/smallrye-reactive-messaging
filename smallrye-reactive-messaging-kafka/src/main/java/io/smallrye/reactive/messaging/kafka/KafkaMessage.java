@@ -18,7 +18,8 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the new outgoing kafka message
      */
     static <K, T> KafkaMessage<K, T> of(K key, T value) {
-        return new SendingKafkaMessage<>(null, key, value, -1, -1, new MessageHeaders(), null);
+        return new SendingKafkaMessage<>(null, key, value, -1, -1,
+                MessageHeaders.empty(), null);
     }
 
     /**
@@ -26,14 +27,13 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * This method produces a outgoing message.
      *
      * @param key the header key
-     * @param content the header value, must not be {@code null}
+     * @param content the header key, must not be {@code null}
      * @return the updated Kafka Message.
      */
     default KafkaMessage<K, T> withHeader(String key, byte[] content) {
-        MessageHeaders headers = getMessageHeaders().clone();
-        headers.put(key, content);
-        return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(), headers,
-                getAckSupplier());
+        MessageHeadersBuilder builder = MessageHeaders.builder().with(getKafkaHeaders()).with(key, content);
+        return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
+                builder.build(), getAckSupplier());
     }
 
     /**
@@ -41,15 +41,28 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * This method produces a outgoing message.
      *
      * @param key the header key
-     * @param content the header value, must not be {@code null}
+     * @param content the header key, must not be {@code null}
+     * @return the updated Kafka Message.
+     */
+    default KafkaMessage<K, T> withHeader(String key, String content) {
+        MessageHeadersBuilder builder = MessageHeaders.builder().with(getKafkaHeaders()).with(key, content);
+        return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
+                builder.build(), getAckSupplier());
+    }
+
+    /**
+     * Creates a new Kafka Message with a header added to the header list.
+     * This method produces a outgoing message.
+     *
+     * @param key the header key
+     * @param content the header key, must not be {@code null}
      * @param enc the encoding, must not be {@code null}
      * @return the updated Kafka Message.
      */
     default KafkaMessage<K, T> withHeader(String key, String content, Charset enc) {
-        MessageHeaders headers = getMessageHeaders();
-        headers.put(key, content, enc);
-        return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(), headers,
-                getAckSupplier());
+        MessageHeadersBuilder builder = MessageHeaders.builder().with(getKafkaHeaders()).with(key, content, enc);
+        return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
+                builder.build(), getAckSupplier());
     }
 
     /**
@@ -63,7 +76,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the new outgoing kafka message
      */
     static <K, T> KafkaMessage<K, T> of(String topic, K key, T value) {
-        return new SendingKafkaMessage<>(topic, key, value, -1, -1, new MessageHeaders(), null);
+        return new SendingKafkaMessage<>(topic, key, value, -1, -1, MessageHeaders.empty(), null);
     }
 
     /**
@@ -79,7 +92,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the new outgoing kafka message
      */
     static <K, T> KafkaMessage<K, T> of(String topic, K key, T value, long timestamp, int partition) {
-        return new SendingKafkaMessage<>(topic, key, value, timestamp, partition, new MessageHeaders(), null);
+        return new SendingKafkaMessage<>(topic, key, value, timestamp, partition, MessageHeaders.empty(), null);
     }
 
     /**
@@ -89,14 +102,14 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @param ack the acknowledgement action supplier, must not be {@code null}
      * @return the new Kafka message
      */
+    @Override
     default KafkaMessage<K, T> withAck(Supplier<CompletionStage<Void>> ack) {
         return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
-                getMessageHeaders(),
-                ack);
+                getKafkaHeaders(), ack);
     }
 
     /**
-     * Gets the payload of the message. It returns the value of the Kafka record.
+     * Gets the payload of the message. It returns the key of the Kafka record.
      *
      * @return the payload
      */
@@ -136,9 +149,9 @@ public interface KafkaMessage<K, T> extends Message<T> {
     long getOffset();
 
     /**
-     * @return the message headers.
+     * @return the Kafka record headers.
      */
-    MessageHeaders getMessageHeaders();
+    MessageHeaders getKafkaHeaders();
 
     /**
      * @return the supplier producing the acknowledgement action.

@@ -1,7 +1,7 @@
 == Interacting with Apache Kafka
 
-You can connect to Apache Kafka as a source or sink. The Kafka support is based on the
-https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka Client].
+The Kafka Connector let you interact with a Kafka broker, and so retrieve and send Kafka messages.
+The Kafka support is based on the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka Client].
 
 === Dependency
 
@@ -52,14 +52,53 @@ be set using the `kafka.bootstrap.servers` config property.
 
 You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
 
-When consuming a message from Kafka, you can get the `Message` as a `io.smallrye.reactive.messaging.kafka.KafkaMessage`.
-It lets you access other metadata such as the headers, the message key (the payload being the value):
+When receiving a message from Kafka, you get an instance of `Message` with the following headers:
+
+[cols=3*,options="header"]
+|===
+|Attribute
+|Type
+|Comment
+
+|`kafka.topic`
+|String
+|The topic of the message
+
+|`kafka.key`
+|Any
+|The key of the message, `null` if not set.
+The type depends on the deserializer.
+
+|`kafka.partition`
+|Integer
+|The Kafka record partition.
+
+|`kafka.offset`
+|Integer
+|The Kafka record offset.
+
+|`kafka.headers`
+|`Iterable<Header>`
+|The header attached to the Kafka records
+It's an iterable of `org.apache.kafka.common.header.Header`, wrapping the header name and the value (`byte[]`).
+
+|`kafka.timestamp`
+|Long
+|The record timestamp.
+
+|`kafka.timestamp-type`
+|`org.apache.kafka.common.record.TimestampType`
+|The type of timestamp.
+|===
+
+When consuming a message from Kafka, you can also get a `io.smallrye.reactive.messaging.kafka.KafkaMessage` instead of a _raw_ message.
+This `KafkaMessage` provides method to access the value stored in the headers listed above.
+For example, you can access other metadata such as the headers, the message key (the payload being the value):
 
 [source,java]
 ----
 include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/kafka/KafkaConsumer.java[tag=kafka-message]
 ----
-
 
 === Forwarding messages to Kafka
 
@@ -92,7 +131,39 @@ be set using the `kafka.bootstrap.servers` config property.
 
 You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
 
-When sending a message to Kafka, you can send a Kafka message to configure various aspects such as the topic and key:
+When sending a message to Kafka, you can either use a `KafkaMessage` or a _raw_ `Message` with the following headers:
+
+[cols=3*,options="header"]
+|===
+|Attribute
+|Type
+|Comment
+
+|`kafka.topic`
+|String
+|The topic of the message.
+If not set the topic of the channel is used.
+
+|`kafka.key`
+|Any
+|The key of the message,
+The type depends on the serializer.
+
+|`kafka.partition`
+|Integer
+|The targeted partition.
+
+|`kafka.headers`
+|`Iterable<RecordHeader>`
+|The header attached to the Kafka records
+It's an iterable (list) of `org.apache.kafka.common.header.internals.RecordHeader`, wrapping the header name and the value (`byte[]`).
+
+|`kafka.timestamp`
+|Long
+|The record timestamp.
+|===
+
+You can also create a `io.smallrye.reactive.messaging.kafka.KafkaMessage` that would store the metadata in the header for you:
 
 [source,java]
 ----
