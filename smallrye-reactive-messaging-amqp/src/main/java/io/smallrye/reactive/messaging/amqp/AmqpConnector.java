@@ -20,6 +20,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -241,6 +242,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
         boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
         boolean autoAck = config.getOptionalValue("auto-acknowledgement", Boolean.class).orElse(false);
+
         CompletionStage<AmqpReceiver> future = createClient(config)
                 .connect()
                 .thenCompose(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
@@ -301,10 +303,21 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         }).ignore();
     }
 
+    private String getActualAddress(Message message, io.vertx.axle.amqp.AmqpMessage amqp, AmqpSender sender) {
+        if (amqp.address() != null) {
+            return amqp.address();
+        }
+        String addressFromHeader = message.getHeaders().getAsString(AmqpHeaders.ADDRESS, null);
+        if (addressFromHeader != null) {
+            return addressFromHeader;
+        } else {
+            return sender.address();
+        }
+    }
+
     private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl) {
 
         io.vertx.axle.amqp.AmqpMessage amqp;
-
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage) msg).getAmqpMessage();
         } else if (msg.getPayload() instanceof io.vertx.axle.amqp.AmqpMessage) {
@@ -312,10 +325,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
             amqp = new io.vertx.axle.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
         } else {
-            amqp = convertToAmqpMessage(msg.getPayload(), durable, ttl);
+            amqp = convertToAmqpMessage(msg, durable, ttl);
         }
 
-        String actualAddress = amqp.address() == null ? sender.address() : amqp.address();
+        String actualAddress = getActualAddress(msg, amqp, sender);
         if (clients.isEmpty()) {
             LOGGER.error("The AMQP message to address `{}` has not been sent, the client is closed",
                     actualAddress);
@@ -329,7 +342,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .thenApply(x -> msg);
     }
 
-    private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Object payload, boolean durable, long ttl) {
+    private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Message message, boolean durable, long ttl) {
+        Object payload = message.getPayload();
+        Headers headers = message.getHeaders();
         AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create();
 
         if (durable) {
@@ -369,6 +384,12 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             builder.withUuidAsBody((UUID) payload);
         } else {
             builder.withBody(payload.toString());
+        }
+
+        builder.address(headers.getAsString(AmqpHeaders.ADDRESS, null));
+        int i = headers.getAsInteger(AmqpHeaders.TTL, -1);
+        if (i != -1) {
+            builder.ttl(i);
         }
 
         return builder.build();
