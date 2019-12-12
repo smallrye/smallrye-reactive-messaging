@@ -139,26 +139,26 @@ When sending a message to Kafka, you can either use a `KafkaMessage` or a _raw_ 
 |Type
 |Comment
 
-|`kafka.topic`
+|`kafka.outgoing-topic`
 |String
 |The topic of the message.
 If not set the topic of the channel is used.
 
-|`kafka.key`
+|`kafka.outgoing-key`
 |Any
 |The key of the message,
 The type depends on the serializer.
 
-|`kafka.partition`
+|`kafka.outgoing-partition`
 |Integer
 |The targeted partition.
 
-|`kafka.headers`
+|`kafka.outgoing-headers`
 |`Iterable<RecordHeader>`
 |The header attached to the Kafka records
 It's an iterable (list) of `org.apache.kafka.common.header.internals.RecordHeader`, wrapping the header name and the value (`byte[]`).
 
-|`kafka.timestamp`
+|`kafka.outgoing-timestamp`
 |Long
 |The record timestamp.
 |===

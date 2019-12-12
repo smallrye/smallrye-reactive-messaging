@@ -19,19 +19,19 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
         Headers.HeadersBuilder builder = Headers.builder();
         if (topic != null) {
-            builder.with(KafkaHeaders.TOPIC, topic);
+            builder.with(KafkaHeaders.OUTGOING_TOPIC, topic);
         }
         if (key != null) {
-            builder.with(KafkaHeaders.KEY, key);
+            builder.with(KafkaHeaders.OUTGOING_KEY, key);
         }
         if (partition >= 0) {
-            builder.with(KafkaHeaders.PARTITION, partition);
+            builder.with(KafkaHeaders.OUTGOING_PARTITION, partition);
         }
         if (timestamp >= 0) {
-            builder.with(KafkaHeaders.TIMESTAMP, timestamp);
+            builder.with(KafkaHeaders.OUTGOING_TIMESTAMP, timestamp);
         }
         if (headers != null) {
-            builder.with(KafkaHeaders.KAFKA_HEADERS, headers.unwrap());
+            builder.with(KafkaHeaders.OUTGOING_HEADERS, headers.unwrap());
         }
         this.headers = builder.build();
         this.value = value;
@@ -55,23 +55,23 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     @SuppressWarnings("unchecked")
     @Override
     public K getKey() {
-        return (K) headers.get(KafkaHeaders.KEY);
+        return (K) headers.get(KafkaHeaders.OUTGOING_KEY);
     }
 
     @Override
     public String getTopic() {
-        return headers.getAsString(KafkaHeaders.TOPIC, null);
+        return headers.getAsString(KafkaHeaders.OUTGOING_TOPIC, null);
     }
 
     @Override
     public long getTimestamp() {
-        return headers.getAsLong(KafkaHeaders.TIMESTAMP, -1L);
+        return headers.getAsLong(KafkaHeaders.OUTGOING_TIMESTAMP, -1L);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public MessageHeaders getKafkaHeaders() {
-        Iterable<Header> iterable = headers.get(KafkaHeaders.KAFKA_HEADERS, Iterable.class);
+        Iterable<Header> iterable = headers.get(KafkaHeaders.OUTGOING_HEADERS, Iterable.class);
         if (iterable != null) {
             return new MessageHeaders(iterable);
         } else {
@@ -86,12 +86,13 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
     @Override
     public int getPartition() {
-        return headers.getAsInteger(KafkaHeaders.PARTITION, -1);
+        return headers.getAsInteger(KafkaHeaders.OUTGOING_PARTITION, -1);
     }
 
     @Override
     public long getOffset() {
-        return headers.getAsLong(KafkaHeaders.OFFSET, -1L);
+        // you cannot set the offset on an outgoing message.
+        return -1;
     }
 
     @Override

@@ -27,8 +27,8 @@ public class ProducingMessageWithHeaderBean {
         return Message.of(
                 input.getPayload() + 1,
                 Headers.of(
-                        KafkaHeaders.KEY, Integer.toString(input.getPayload()),
-                        KafkaHeaders.KAFKA_HEADERS, list),
+                        KafkaHeaders.OUTGOING_KEY, Integer.toString(input.getPayload()),
+                        KafkaHeaders.OUTGOING_HEADERS, list),
                 input::ack);
     }
 

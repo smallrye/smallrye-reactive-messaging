@@ -25,26 +25,24 @@ public class KafkaMessageTest {
         assertThat(message.getOffset()).isEqualTo(-1);
 
         Headers headers = message.getHeaders();
-        assertThat(headers.getAsInteger(KafkaHeaders.PARTITION, -1)).isEqualTo(-1);
-        assertThat(headers.getAsString(KafkaHeaders.KEY, null)).isEqualTo("foo");
-        assertThat(headers.getAsString(KafkaHeaders.TOPIC, null)).isNull();
-        assertThat(headers.getAsInteger(KafkaHeaders.TIMESTAMP, -1)).isEqualTo(-1);
-        assertThat(headers.getAsInteger(KafkaHeaders.OFFSET, -1)).isEqualTo(-1);
-        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.KAFKA_HEADERS);
+        assertThat(headers.getAsInteger(KafkaHeaders.OUTGOING_PARTITION, -1)).isEqualTo(-1);
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_KEY, null)).isEqualTo("foo");
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_TOPIC, null)).isNull();
+        assertThat(headers.getAsInteger(KafkaHeaders.OUTGOING_TIMESTAMP, -1)).isEqualTo(-1);
+        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.OUTGOING_HEADERS);
         assertThat(kh).isEmpty();
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void testCreationOfMessageWithKeyAndValue() {
-        Message<String> message = Message.of("bar", Headers.of(KafkaHeaders.KEY, "foo"));
+        Message<String> message = Message.of("bar", Headers.of(KafkaHeaders.OUTGOING_KEY, "foo"));
         Headers headers = message.getHeaders();
-        assertThat(headers.getAsInteger(KafkaHeaders.PARTITION, -1)).isEqualTo(-1);
-        assertThat(headers.getAsString(KafkaHeaders.KEY, null)).isEqualTo("foo");
-        assertThat(headers.getAsString(KafkaHeaders.TOPIC, null)).isNull();
-        assertThat(headers.getAsInteger(KafkaHeaders.TIMESTAMP, -1)).isEqualTo(-1);
-        assertThat(headers.getAsInteger(KafkaHeaders.OFFSET, -1)).isEqualTo(-1);
-        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.KAFKA_HEADERS);
+        assertThat(headers.getAsInteger(KafkaHeaders.OUTGOING_PARTITION, -1)).isEqualTo(-1);
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_KEY, null)).isEqualTo("foo");
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_TOPIC, null)).isNull();
+        assertThat(headers.getAsInteger(KafkaHeaders.OUTGOING_TIMESTAMP, -1)).isEqualTo(-1);
+        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.OUTGOING_HEADERS);
         assertThat(kh).isNull();
     }
 
@@ -60,12 +58,11 @@ public class KafkaMessageTest {
         assertThat(message.getTimestamp()).isEqualTo(-1);
 
         Headers headers = message.getHeaders();
-        assertThat(headers.getAsInteger(KafkaHeaders.PARTITION, -1)).isEqualTo(-1);
-        assertThat(headers.getAsString(KafkaHeaders.KEY, null)).isEqualTo("foo");
-        assertThat(headers.getAsString(KafkaHeaders.TOPIC, null)).isEqualTo("topic");
-        assertThat(headers.getAsInteger(KafkaHeaders.TIMESTAMP, -1)).isEqualTo(-1);
-        assertThat(headers.getAsInteger(KafkaHeaders.OFFSET, -1)).isEqualTo(-1);
-        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.KAFKA_HEADERS);
+        assertThat(headers.getAsInteger(KafkaHeaders.OUTGOING_PARTITION, -1)).isEqualTo(-1);
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_KEY, null)).isEqualTo("foo");
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_TOPIC, null)).isEqualTo("topic");
+        assertThat(headers.getAsInteger(KafkaHeaders.OUTGOING_TIMESTAMP, -1)).isEqualTo(-1);
+        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.OUTGOING_HEADERS);
         assertThat(kh).isEmpty();
     }
 
@@ -82,12 +79,11 @@ public class KafkaMessageTest {
         assertThat(message.getTimestamp()).isEqualTo(timestamp);
 
         Headers headers = message.getHeaders();
-        assertThat(headers.getAsInteger(KafkaHeaders.PARTITION, -1)).isEqualTo(2);
-        assertThat(headers.getAsString(KafkaHeaders.KEY, null)).isEqualTo("foo");
-        assertThat(headers.getAsString(KafkaHeaders.TOPIC, null)).isEqualTo("topic");
-        assertThat(headers.getAsLong(KafkaHeaders.TIMESTAMP, -1)).isEqualTo(timestamp);
-        assertThat(headers.getAsInteger(KafkaHeaders.OFFSET, -1)).isEqualTo(-1);
-        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.KAFKA_HEADERS);
+        assertThat(headers.getAsInteger(KafkaHeaders.OUTGOING_PARTITION, -1)).isEqualTo(2);
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_KEY, null)).isEqualTo("foo");
+        assertThat(headers.getAsString(KafkaHeaders.OUTGOING_TOPIC, null)).isEqualTo("topic");
+        assertThat(headers.getAsLong(KafkaHeaders.OUTGOING_TIMESTAMP, -1)).isEqualTo(timestamp);
+        Iterable<Header> kh = (Iterable<Header>) headers.get(KafkaHeaders.OUTGOING_HEADERS);
         assertThat(kh).isEmpty();
     }
 
@@ -115,8 +111,8 @@ public class KafkaMessageTest {
         assertThat(headers.getOneAsString("x-key")).hasValue("key");
         assertThat(headers.getOneAsBytes("x-key-2")).hasValue("key-2".getBytes());
 
-        Iterable<Header> h1 = message1.getHeaders().get(KafkaHeaders.KAFKA_HEADERS, Collections.emptyList());
-        Iterable<Header> h2 = message2.getHeaders().get(KafkaHeaders.KAFKA_HEADERS, Collections.emptyList());
+        Iterable<Header> h1 = message1.getHeaders().get(KafkaHeaders.OUTGOING_HEADERS, Collections.emptyList());
+        Iterable<Header> h2 = message2.getHeaders().get(KafkaHeaders.OUTGOING_HEADERS, Collections.emptyList());
 
         assertThat(h1).hasSize(1).allSatisfy(h -> {
             assertThat(h.key()).isEqualTo("x-key");

@@ -52,10 +52,10 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
             List<RecordHeader> list = recordHeaders.stream()
                     .map(vertxKafkaHeader -> new RecordHeader(vertxKafkaHeader.key(), vertxKafkaHeader.value().getBytes()))
                     .collect(Collectors.toList());
-            builder.with(KafkaHeaders.KAFKA_HEADERS, Collections.unmodifiableList(list));
+            builder.with(KafkaHeaders.HEADERS, Collections.unmodifiableList(list));
         }
         if (record.timestampType() != null) {
-            builder.with(KafkaHeaders.KAFKA_TIMESTAMP_TYPE, record.timestampType());
+            builder.with(KafkaHeaders.TIMESTAMP_TYPE, record.timestampType());
         }
         this.headers = builder.build();
     }
@@ -93,7 +93,7 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
     @SuppressWarnings("unchecked")
     @Override
     public MessageHeaders getKafkaHeaders() {
-        Iterable<Header> iterable = headers.get(KafkaHeaders.KAFKA_HEADERS, Iterable.class);
+        Iterable<Header> iterable = headers.get(KafkaHeaders.HEADERS, Iterable.class);
         if (iterable != null) {
             return new MessageHeaders(iterable);
         } else {

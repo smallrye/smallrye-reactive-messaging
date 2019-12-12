@@ -12,21 +12,46 @@ public class KafkaHeaders {
 
     /**
      * The topic of the record.
-     * Must be a {@code String}.
+     * Type: String
+     * {@code null} if not set.
      */
     public static final String TOPIC = "kafka.topic";
 
     /**
+     * Allow attaching the outgoing topic to a message.
+     * This header is used to indicate the outgoing message should be sent to this Kafka topic.
+     * Type: String
+     */
+    public static final String OUTGOING_TOPIC = "kafka.outgoing-topic";
+
+    /**
      * The record partition.
+     * Type: int
      * {@code -1} if not set.
      */
     public static final String PARTITION = "kafka.partition";
 
     /**
+     * Allow attaching the outgoing partition to a message.
+     * This header is used to indicate the partition for the outgoing message. When the message get written into the
+     * Kafka topic, this partition will be used.
+     * Type: int
+     */
+    public static final String OUTGOING_PARTITION = "kafka.outgoing-partition";
+
+    /**
      * The record headers.
+     * Type: {@code Iterable<RecordHeader>}
      * {@code null} if not set.
      */
-    public static final String KAFKA_HEADERS = "kafka.headers";
+    public static final String HEADERS = "kafka.headers";
+
+    /**
+     * Allow attaching the headers to an outgoing message.
+     * This header is used to indicate headers to be attached with an outgoing Kafka message.
+     * Type: {@code Iterable<RecordHeader>}.
+     */
+    public static final String OUTGOING_HEADERS = "kafka.outgoing-headers";
 
     /**
      * The record key.
@@ -35,16 +60,30 @@ public class KafkaHeaders {
     public static final String KEY = "kafka.key";
 
     /**
+     * Allow attaching a key to an outgoing message.
+     * This header is used to indicate the key to be used for the outgoing Kafka message.
+     * Type: Any, depends on the key serializer, {@code String} if not key serializer is configured.
+     */
+    public static final String OUTGOING_KEY = "kafka.outgoing-key";
+
+    /**
      * The record timestamp.
      * {@code -1} if not set.
      */
     public static final String TIMESTAMP = "kafka.timestamp";
 
     /**
+     * Allow attaching a timestamp to an outgoing message.
+     * This header is used to indicate the timestamp to be used for the outgoing Kafka message.
+     * Type: long.
+     */
+    public static final String OUTGOING_TIMESTAMP = "kafka.outgoing-timestamp";
+
+    /**
      * The record timestamp type.
      * {@code null} if not set.
      */
-    public static final String KAFKA_TIMESTAMP_TYPE = "kafka.timestamp-type";
+    public static final String TIMESTAMP_TYPE = "kafka.timestamp-type";
 
     /**
      * The record offset in the topic/partition.
@@ -56,24 +95,24 @@ public class KafkaHeaders {
         // avoid direct instantiation
     }
 
-    public static String getKafkaTopic(Message<?> message, String defaultValue) {
-        return message.getHeaders().getAsString(TOPIC, defaultValue);
+    static String getKafkaTopic(Message<?> message, String defaultValue) {
+        return message.getHeaders().getAsString(OUTGOING_TOPIC, defaultValue);
     }
 
-    public static int getKafkaPartition(Message<?> message, int defaultValue) {
-        return message.getHeaders().getAsInteger(PARTITION, defaultValue);
+    static int getKafkaPartition(Message<?> message, int defaultValue) {
+        return message.getHeaders().getAsInteger(OUTGOING_PARTITION, defaultValue);
     }
 
-    public static String getKafkaKey(Message<?> message, String defaultValue) {
-        return message.getHeaders().getAsString(KEY, defaultValue);
+    static String getKafkaKey(Message<?> message, String defaultValue) {
+        return message.getHeaders().getAsString(OUTGOING_KEY, defaultValue);
     }
 
-    public static long getKafkaTimestamp(Message<?> message, long defaultValue) {
-        return message.getHeaders().getAsLong(TIMESTAMP, defaultValue);
+    static long getKafkaTimestamp(Message<?> message, long defaultValue) {
+        return message.getHeaders().getAsLong(OUTGOING_TIMESTAMP, defaultValue);
     }
 
     @SuppressWarnings("unchecked")
-    public static Iterable<Header> getKafkaRecordHeaders(Message<?> message) {
-        return message.getHeaders().get(KAFKA_HEADERS, Iterable.class);
+    static Iterable<Header> getKafkaRecordHeaders(Message<?> message) {
+        return message.getHeaders().get(OUTGOING_HEADERS, Iterable.class);
     }
 }

@@ -75,20 +75,20 @@ The following table list the configurable headers:
 |Type
 |Comment
 
-|`http.url`
+|`http.outgoing-url`
 |String
 |The HTTP URL, if not set, the URL configured on the connector is used.
 
-|`http.method`
+|`http.outgoing-method`
 |String
 |The HTTP Verb, either `POST`, or `PUT`. If not set, the method configured on the connector is used, which defaults to `POST`.
 
-|`http.headers`
+|`http.outgoing-headers`
 |`Map<String, ?>`
 |The HTTP headers to include in the HTTP request.
 It's a `Map` with `String` key. The value can be either a scalar (string) value or a collection of (string) values.
 
-|`http.query-parameters`
+|`http.outgoing-query-parameters`
 |`Map<String, ?>`
 |The HTTP query parameter to append to the HTTP request URL.
 It's a `Map` with `String` key. The value can be either a scalar (string)  value or a collection of (string) values.
