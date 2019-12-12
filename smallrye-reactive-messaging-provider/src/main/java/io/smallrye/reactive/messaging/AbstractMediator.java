@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import javax.enterprise.inject.spi.CDI;
+import javax.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -20,6 +20,7 @@ public abstract class AbstractMediator {
 
     protected final MediatorConfiguration configuration;
     private Invoker invoker;
+    private Instance<PublisherDecorator> decorators;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -27,6 +28,10 @@ public abstract class AbstractMediator {
 
     public synchronized void setInvoker(Invoker invoker) {
         this.invoker = invoker;
+    }
+
+    public void setDecorators(Instance<PublisherDecorator> decorators) {
+        this.decorators = decorators;
     }
 
     public void run() {
@@ -109,7 +114,7 @@ public abstract class AbstractMediator {
             return null;
         }
 
-        for (PublisherDecorator decorator : CDI.current().select(PublisherDecorator.class)) {
+        for (PublisherDecorator decorator : decorators) {
             input = decorator.decorate(input, getConfiguration().getOutgoing());
         }
 

@@ -10,7 +10,6 @@ import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -39,6 +38,9 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
     protected final Config config;
     protected final ChannelRegistry registry;
+
+    @Inject
+    private Instance<PublisherDecorator> publisherDecoratorInstance;
 
     // CDI requirement for normal scoped beans
     protected ConfiguredChannelFactory() {
@@ -146,7 +148,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
         PublisherBuilder<? extends Message> publisher = mySourceFactory.getPublisherBuilder(config);
 
-        for (PublisherDecorator decorator : CDI.current().select(PublisherDecorator.class)) {
+        for (PublisherDecorator decorator : publisherDecoratorInstance) {
             publisher = decorator.decorate(publisher, name);
         }
 

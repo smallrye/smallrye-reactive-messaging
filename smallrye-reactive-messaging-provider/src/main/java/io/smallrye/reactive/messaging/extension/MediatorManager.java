@@ -42,6 +42,7 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.Invoker;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.WeavingException;
 import io.smallrye.reactive.messaging.annotations.Incomings;
@@ -88,6 +89,9 @@ public class MediatorManager {
 
     @Inject
     BeanManager beanManager;
+
+    @Inject
+    Instance<PublisherDecorator> decorators;
 
     private volatile boolean initialized;
 
@@ -159,6 +163,8 @@ public class MediatorManager {
                     AbstractMediator mediator = createMediator(configuration);
 
                     LOGGER.debug("Initializing {}", mediator.getMethodAsString());
+
+                    mediator.setDecorators(decorators);
 
                     try {
                         Object beanInstance = beanManager.getReference(configuration.getBean(), Object.class,
