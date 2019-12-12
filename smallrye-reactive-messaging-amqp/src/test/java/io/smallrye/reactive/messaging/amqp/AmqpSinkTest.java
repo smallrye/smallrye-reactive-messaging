@@ -13,6 +13,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.After;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
@@ -38,7 +39,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         }
 
         System.clearProperty("mp-config");
-
+        System.clearProperty("client-options-name");
     }
 
     @Test
@@ -194,6 +195,53 @@ public class AmqpSinkTest extends AmqpTestBase {
             assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
             assertThat(m.getSubject()).isEqualTo("foo");
         });
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigByCDIMissingBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBean.class);
+
+        System.setProperty("mp-config", "outgoing");
+        System.setProperty("client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigByCDIIncorrectBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "outgoing");
+        System.setProperty("client-options-name", "dummyoptionsnonexistent");
+
+        container = weld.initialize();
+    }
+
+    @Test
+    public void testConfigByCDICorrect() throws InterruptedException {
+        Weld weld = new Weld();
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consumeIntegers("sink",
+                v -> latch.countDown());
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "outgoing");
+        System.setProperty("client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }
 
     private SubscriberBuilder<? extends Message, Void> createProviderAndSink(String topic) {

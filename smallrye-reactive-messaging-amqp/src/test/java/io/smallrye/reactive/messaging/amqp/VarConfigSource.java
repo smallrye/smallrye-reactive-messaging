@@ -25,6 +25,10 @@ public class VarConfigSource implements ConfigSource {
         INCOMING_BEAN_CONFIG.put(prefix + "port", System.getProperty("amqp-port"));
         INCOMING_BEAN_CONFIG.put("amqp-username", System.getProperty("amqp-user"));
         INCOMING_BEAN_CONFIG.put("amqp-password", System.getProperty("amqp-pwd"));
+        String optionsName = System.getProperty("client-options-name");
+        if (optionsName != null) {
+            INCOMING_BEAN_CONFIG.put(prefix + "client-options-name", optionsName);
+        }
 
         prefix = "mp.messaging.outgoing.sink.";
         OUTGOING_BEAN_CONFIG.put(prefix + "address", "sink");
@@ -34,6 +38,10 @@ public class VarConfigSource implements ConfigSource {
         OUTGOING_BEAN_CONFIG.put(prefix + "durable", "true");
         OUTGOING_BEAN_CONFIG.put("amqp-username", System.getProperty("amqp-user"));
         OUTGOING_BEAN_CONFIG.put("amqp-password", System.getProperty("amqp-pwd"));
+        optionsName = System.getProperty("client-options-name");
+        if (optionsName != null) {
+            OUTGOING_BEAN_CONFIG.put(prefix + "client-options-name", optionsName);
+        }
     }
 
     @Override

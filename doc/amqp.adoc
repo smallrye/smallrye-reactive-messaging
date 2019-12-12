@@ -74,3 +74,25 @@ and connection timeout can also be configured using the `amqp-host`, `amqp-port`
 `amqp-password`, `amqp-use-ssl`, `amqp-reconnect-attempts`, `amqp-reconnect-interval`, and
 `amqp-connect-timeout` configuration properties.
 
+Also there is the possibility to provide a named bean AmqpClientOptions to configure the details to connect with the remote broker.
+
+[source]
+----
+mp.messaging.incoming.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.incoming.data.broadcast=true
+mp.messaging.incoming.data.client-options-name=custom-client-config
+----
+[source]
+----
+    @Produces
+    @Named("custom-client-config")
+    public AmqpClientOptions amqpClientConfig() {
+        return new AmqpClientOptions()
+                .setHost("localhost")
+                .setPort(5672)
+                .setUsername("username")
+                .setPassword("secret")
+                .setContainerId("my-container-id");
+    }
+----

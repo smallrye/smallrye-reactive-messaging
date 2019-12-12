@@ -1,10 +1,12 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
@@ -13,6 +15,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -46,10 +49,11 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnector.class);
     static final String CONNECTOR_NAME = "smallrye-amqp";
 
-    private AmqpClient client;
-
     @Inject
     private Instance<Vertx> instanceOfVertx;
+
+    @Inject
+    private Instance<AmqpClientOptions> clientOptions;
 
     @Inject
     @ConfigProperty(name = "amqp-port", defaultValue = "5672")
@@ -85,6 +89,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private boolean internalVertxInstance = false;
     private Vertx vertx;
+    private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {
@@ -106,11 +111,26 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         this.vertx = null;
     }
 
-    private synchronized AmqpClient getClient(Config config) {
-        // TODO Should we support having a single client (1 host) or multiple clients.
-        if (client != null) {
-            return client;
+    private AmqpClient createClient(Config config) {
+        AmqpClient client;
+        Optional<String> clientOptionsName = config.getOptionalValue("client-options-name", String.class);
+        if (clientOptionsName.isPresent()) {
+            String optionsName = clientOptionsName.get();
+            Instance<AmqpClientOptions> options = clientOptions.select(NamedLiteral.of(optionsName));
+            if (options.isUnsatisfied()) {
+                throw new IllegalStateException(
+                        "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsName);
+            }
+            LOGGER.debug("Creating amqp client from bean named " + optionsName);
+            client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options.get());
+        } else {
+            client = getClient(config);
         }
+        clients.add(client);
+        return client;
+    }
+
+    private synchronized AmqpClient getClient(Config config) {
         try {
             String username = config.getOptionalValue("username", String.class)
                     .orElseGet(() -> {
@@ -195,10 +215,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     .setReconnectAttempts(reconnectAttempts)
                     .setReconnectInterval(reconnectInterval)
                     .setConnectTimeout(connectTimeout);
-            client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options);
-            return client;
+            return AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            LOGGER.error("Unable to create client", e);
+            throw new IllegalStateException("Unable to create a client, probably a config error", e);
         }
     }
 
@@ -221,7 +241,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
         boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
         boolean autoAck = config.getOptionalValue("auto-acknowledgement", Boolean.class).orElse(false);
-        CompletionStage<AmqpReceiver> future = getClient(config)
+        CompletionStage<AmqpReceiver> future = createClient(config)
                 .connect()
                 .thenCompose(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
                         .setAutoAcknowledgement(autoAck)
@@ -245,17 +265,11 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         long ttl = config.getOptionalValue("ttl", Long.class).orElse(0L);
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
+        AmqpClient client = createClient(config);
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
 
             if (as == null) {
-                try {
-                    client = getClient(config);
-                } catch (Exception e) {
-                    LOGGER.error("Unable to create client", e);
-                    throw new IllegalStateException("Unable to create a client, probably a config error", e);
-                }
-
                 return client
                         .createSender(address)
                         .thenApply(s -> {
@@ -274,7 +288,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         })
                         .whenComplete((m, e) -> {
                             if (e != null) {
-                                if (client == null) {
+                                if (clients.isEmpty()) {
                                     LOGGER.error("The AMQP message has not been sent, the client is closed");
                                 } else {
                                     LOGGER.error("Unable to send the AMQP message", e);
@@ -302,7 +316,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         }
 
         String actualAddress = amqp.address() == null ? sender.address() : amqp.address();
-        if (client == null) {
+        if (clients.isEmpty()) {
             LOGGER.error("The AMQP message to address `{}` has not been sent, the client is closed",
                     actualAddress);
             return CompletableFuture.completedFuture(msg);
@@ -362,9 +376,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @PreDestroy
     public synchronized void close() {
-        if (client != null) {
-            client.close();
-            client = null;
-        }
+        clients.forEach(AmqpClient::close);
+        clients.clear();
     }
 }
