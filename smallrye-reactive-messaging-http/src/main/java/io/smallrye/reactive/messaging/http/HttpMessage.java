@@ -36,6 +36,10 @@ public class HttpMessage<T> implements Message<T> {
         this.ack = ack;
     }
 
+    public static <T> HttpMessageBuilder<T> builder() {
+        return new HttpMessageBuilder<>();
+    }
+
     @Override
     public T getPayload() {
         return payload;
