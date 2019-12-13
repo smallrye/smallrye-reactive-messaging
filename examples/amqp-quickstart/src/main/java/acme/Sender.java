@@ -19,7 +19,7 @@ public class Sender {
         delay(() -> {
             String message = "hello from sender";
             System.out.println("Sending (data): " + message);
-            future.complete(new AmqpMessage(message));
+            future.complete(AmqpMessage.builder().withBody(message).build());
         });
         return future;
     }
