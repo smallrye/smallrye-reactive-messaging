@@ -9,6 +9,7 @@ import java.util.List;
 
 import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.se.SeContainerInitializer;
+import javax.enterprise.inject.spi.Extension;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.After;
@@ -25,6 +26,7 @@ import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.metrics.MetricDecorator;
 
 public class WeldTestBaseWithoutTails {
 
@@ -96,6 +98,7 @@ public class WeldTestBaseWithoutTails {
                 ChannelProducer.class,
                 ConfiguredChannelFactory.class,
                 LegacyConfiguredChannelFactory.class,
+                MetricDecorator.class,
                 // Messaging provider
                 MyDummyConnector.class,
 
@@ -129,6 +132,11 @@ public class WeldTestBaseWithoutTails {
 
     public void addBeanClass(Class<?>... beanClass) {
         initializer.addBeanClasses(beanClass);
+    }
+
+    @SafeVarargs
+    public final void addExtensionClass(Class<? extends Extension>... extensionClasses) {
+        initializer.addExtensions(extensionClasses);
     }
 
     public void initialize() {

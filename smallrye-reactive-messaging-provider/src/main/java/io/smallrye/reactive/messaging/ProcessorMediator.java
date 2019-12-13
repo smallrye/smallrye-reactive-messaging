@@ -232,7 +232,7 @@ public class ProcessorMediator extends AbstractMediator {
         if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
             this.processor = ReactiveStreams.<Message> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
-                    .map(input -> {
+                    .<Message> map(input -> {
                         Object result = invoke(input.getPayload());
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                             return Message.of(result, () -> input.ack());
@@ -244,7 +244,7 @@ public class ProcessorMediator extends AbstractMediator {
         } else {
             this.processor = ReactiveStreams.<Message> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
-                    .map(input -> {
+                    .<Message> map(input -> {
                         Object result = invoke(input);
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                             return Message.of(result, () -> input.ack());

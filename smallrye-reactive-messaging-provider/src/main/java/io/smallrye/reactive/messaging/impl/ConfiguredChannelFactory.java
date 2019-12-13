@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 
 /**
  * Look for stream factories and get instances.
@@ -37,6 +38,9 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
     protected final Config config;
     protected final ChannelRegistry registry;
+
+    @Inject
+    private Instance<PublisherDecorator> publisherDecoratorInstance;
 
     // CDI requirement for normal scoped beans
     protected ConfiguredChannelFactory() {
@@ -76,7 +80,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     }
 
     private List<String> getConnectors(BeanManager beanManager, Class<?> clazz) {
-        return beanManager.getBeans(clazz).stream()
+        return beanManager.getBeans(clazz, Any.Literal.INSTANCE).stream()
                 .map(BeanAttributes::getQualifiers)
                 .flatMap(set -> set.stream().filter(a -> a.annotationType().equals(Connector.class)))
                 .map(annotation -> ((Connector) annotation).value())
@@ -142,7 +146,13 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
                 .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown connector for " + name + "."));
 
-        return mySourceFactory.getPublisherBuilder(config);
+        PublisherBuilder<? extends Message> publisher = mySourceFactory.getPublisherBuilder(config);
+
+        for (PublisherDecorator decorator : publisherDecoratorInstance) {
+            publisher = decorator.decorate(publisher, name);
+        }
+
+        return publisher;
     }
 
     private SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String name, Config config) {
