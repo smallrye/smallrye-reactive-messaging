@@ -13,10 +13,14 @@ public class VarConfigSource implements ConfigSource {
 
     private Map<String, String> INCOMING_BEAN_CONFIG;
     private Map<String, String> OUTGOING_BEAN_CONFIG;
+    private Map<String, String> APP_GENERATING_DATA_CONFIG;
+    private Map<String, String> APP_PROCESSING_DATA_CONFIG;
 
     private void init() {
         INCOMING_BEAN_CONFIG = new HashMap<>();
         OUTGOING_BEAN_CONFIG = new HashMap<>();
+        APP_GENERATING_DATA_CONFIG = new HashMap<>();
+        APP_PROCESSING_DATA_CONFIG = new HashMap<>();
 
         String prefix = "mp.messaging.incoming.data.";
         INCOMING_BEAN_CONFIG.put(prefix + "address", "data");
@@ -38,10 +42,34 @@ public class VarConfigSource implements ConfigSource {
         OUTGOING_BEAN_CONFIG.put(prefix + "durable", "true");
         OUTGOING_BEAN_CONFIG.put("amqp-username", System.getProperty("amqp-user"));
         OUTGOING_BEAN_CONFIG.put("amqp-password", System.getProperty("amqp-pwd"));
+
         optionsName = System.getProperty("client-options-name");
         if (optionsName != null) {
             OUTGOING_BEAN_CONFIG.put(prefix + "client-options-name", optionsName);
         }
+
+        prefix = "mp.messaging.outgoing.amqp.";
+        APP_GENERATING_DATA_CONFIG.put(prefix + "connector", AmqpConnector.CONNECTOR_NAME);
+        APP_GENERATING_DATA_CONFIG.put(prefix + "address", "should-not-be-used");
+        APP_GENERATING_DATA_CONFIG.put(prefix + "durable", "true");
+        APP_GENERATING_DATA_CONFIG.put(prefix + "host", System.getProperty("amqp-host"));
+        APP_GENERATING_DATA_CONFIG.put(prefix + "port", System.getProperty("amqp-port"));
+        APP_GENERATING_DATA_CONFIG.put("amqp-username", System.getProperty("amqp-user"));
+        APP_GENERATING_DATA_CONFIG.put("amqp-password", System.getProperty("amqp-pwd"));
+
+        prefix = "mp.messaging.outgoing.amqp.";
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "connector", AmqpConnector.CONNECTOR_NAME);
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "address", "my-address");
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "durable", "true");
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "host", System.getProperty("amqp-host"));
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "port", System.getProperty("amqp-port"));
+        APP_PROCESSING_DATA_CONFIG.put("amqp-username", System.getProperty("amqp-user"));
+        APP_PROCESSING_DATA_CONFIG.put("amqp-password", System.getProperty("amqp-pwd"));
+        prefix = "mp.messaging.incoming.source.";
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "connector", AmqpConnector.CONNECTOR_NAME);
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "address", "my-source");
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "host", System.getProperty("amqp-host"));
+        APP_PROCESSING_DATA_CONFIG.put(prefix + "port", System.getProperty("amqp-port"));
     }
 
     @Override
@@ -53,6 +81,12 @@ public class VarConfigSource implements ConfigSource {
         }
         if ("outgoing".equalsIgnoreCase(property)) {
             return OUTGOING_BEAN_CONFIG;
+        }
+        if ("app-generating-data".equalsIgnoreCase(property)) {
+            return APP_GENERATING_DATA_CONFIG;
+        }
+        if ("app-processing-data".equalsIgnoreCase(property)) {
+            return APP_PROCESSING_DATA_CONFIG;
         }
         return Collections.emptyMap();
     }

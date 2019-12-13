@@ -34,10 +34,9 @@ import org.slf4j.LoggerFactory;
 import io.reactivex.Flowable;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
-import io.vertx.axle.amqp.AmqpClient;
+import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
+import io.vertx.axle.amqp.*;
 import io.vertx.axle.amqp.AmqpMessageBuilder;
-import io.vertx.axle.amqp.AmqpReceiver;
-import io.vertx.axle.amqp.AmqpSender;
 import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -242,7 +241,6 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
         boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
         boolean autoAck = config.getOptionalValue("auto-acknowledgement", Boolean.class).orElse(false);
-
         CompletionStage<AmqpReceiver> future = createClient(config)
                 .connect()
                 .thenCompose(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
@@ -261,26 +259,34 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        String address = getAddressOrFail(config);
+        String configuredAddress = getAddressOrFail(config);
         boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
         long ttl = config.getOptionalValue("ttl", Long.class).orElse(0L);
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        AmqpClient client = createClient(config);
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
 
             if (as == null) {
-                return client
-                        .createSender(address)
+                AmqpClient client;
+                try {
+                    client = createClient(config);
+                } catch (Exception e) {
+                    LOGGER.error("Unable to create client", e);
+                    throw new IllegalStateException("Unable to create a client, probably a config error", e);
+                }
+
+                return client.connect()
+                        .thenCompose(AmqpConnection::createAnonymousSender)
                         .thenApply(s -> {
                             sender.set(s);
                             return s;
                         })
                         .thenCompose(s -> {
                             try {
-                                return send(s, message, durable, ttl);
+                                return send(s, message, durable, ttl, configuredAddress);
                             } catch (Exception e) {
                                 LOGGER.error("Unable to send the message", e);
                                 CompletableFuture<Message> future = new CompletableFuture<>();
@@ -298,25 +304,24 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                             }
                         });
             } else {
-                return send(as, message, durable, ttl);
+                return send(as, message, durable, ttl, configuredAddress);
             }
         }).ignore();
     }
 
-    private String getActualAddress(Message message, io.vertx.axle.amqp.AmqpMessage amqp, AmqpSender sender) {
+    private String getActualAddress(Message message, io.vertx.axle.amqp.AmqpMessage amqp, String configuredAddress) {
         if (amqp.address() != null) {
             return amqp.address();
         }
-        String addressFromHeader = message.getHeaders().getAsString(AmqpHeaders.ADDRESS, null);
+        String addressFromHeader = message.getHeaders().getAsString(AmqpHeaders.OUTGOING_ADDRESS, null);
         if (addressFromHeader != null) {
             return addressFromHeader;
         } else {
-            return sender.address();
+            return configuredAddress;
         }
     }
 
-    private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl) {
-
+    private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl, String configuredAddress) {
         io.vertx.axle.amqp.AmqpMessage amqp;
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage) msg).getAmqpMessage();
@@ -328,11 +333,16 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             amqp = convertToAmqpMessage(msg, durable, ttl);
         }
 
-        String actualAddress = getActualAddress(msg, amqp, sender);
+        String actualAddress = getActualAddress(msg, amqp, configuredAddress);
         if (clients.isEmpty()) {
             LOGGER.error("The AMQP message to address `{}` has not been sent, the client is closed",
                     actualAddress);
             return CompletableFuture.completedFuture(msg);
+        }
+
+        if (!actualAddress.equals(amqp.address())) {
+            amqp = new io.vertx.axle.amqp.AmqpMessage(
+                    new AmqpMessageBuilderImpl(amqp.getDelegate()).address(actualAddress).build());
         }
 
         LOGGER.debug("Sending AMQP message to address `{}` ",
@@ -349,9 +359,16 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         if (durable) {
             builder.durable(true);
+        } else {
+            builder.durable(headers.getAsBoolean(AmqpHeaders.OUTGOING_DURABLE, false));
         }
         if (ttl > 0) {
             builder.ttl(ttl);
+        } else {
+            long t = headers.getAsLong(AmqpHeaders.OUTGOING_TTL, -1);
+            if (t > 0) {
+                builder.ttl(t);
+            }
         }
 
         if (payload instanceof String) {
@@ -386,12 +403,23 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             builder.withBody(payload.toString());
         }
 
-        builder.address(headers.getAsString(AmqpHeaders.ADDRESS, null));
-        int i = headers.getAsInteger(AmqpHeaders.TTL, -1);
-        if (i != -1) {
-            builder.ttl(i);
+        builder.address(headers.getAsString(AmqpHeaders.OUTGOING_ADDRESS, null));
+
+        JsonObject json = headers.get(AmqpHeaders.OUTGOING_APPLICATION_PROPERTIES);
+        if (json != null) {
+            builder.applicationProperties(json);
         }
 
+        builder.contentEncoding(headers.getAsString(AmqpHeaders.OUTGOING_CONTENT_ENCODING, null));
+        builder.contentType(headers.getAsString(AmqpHeaders.OUTGOING_CONTENT_TYPE, null));
+        builder.correlationId(headers.getAsString(AmqpHeaders.OUTGOING_CORRELATION_ID, null));
+        builder.groupId(headers.getAsString(AmqpHeaders.OUTGOING_GROUP_ID, null));
+        builder.id(headers.getAsString(AmqpHeaders.OUTGOING_ID, null));
+        int priority = headers.getAsInteger(AmqpHeaders.OUTGOING_PRIORITY, -1);
+        if (priority >= 0) {
+            builder.priority((short) priority);
+        }
+        builder.subject(headers.getAsString(AmqpHeaders.OUTGOING_SUBJECT, null));
         return builder.build();
     }
 

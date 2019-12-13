@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -104,7 +105,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         AtomicInteger expected = new AtomicInteger(0);
 
         List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.<String> consume(topic,
+        usage.consume(topic,
                 v -> {
                     expected.getAndIncrement();
                     v.getDelegate().accepted();
@@ -116,8 +117,10 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Flowable.range(0, 10)
                 .map(v -> {
-                    AmqpMessage<String> message = new AmqpMessage<>(HELLO + v);
-                    message.unwrap().setSubject("foo");
+                    AmqpMessage<String> message = AmqpMessage.<String> builder()
+                            .withBody(HELLO + v)
+                            .withSubject("foo")
+                            .build();
                     return message;
                 })
                 .subscribe((Subscriber) sink.build());
@@ -136,7 +139,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         AtomicInteger expected = new AtomicInteger(0);
 
-        List<AmqpMessage<String>> messages = new ArrayList<>();
+        List<AmqpMessage<String>> messages = new CopyOnWriteArrayList<>();
         usage.<String> consume(topic,
                 v -> {
                     expected.getAndIncrement();
@@ -147,12 +150,10 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         //noinspection unchecked
         Flowable.range(0, 10)
-                .map(v -> {
-                    return io.vertx.axle.amqp.AmqpMessage.create()
-                            .withBody(HELLO + v)
-                            .subject("bar")
-                            .build();
-                })
+                .map(v -> io.vertx.axle.amqp.AmqpMessage.create()
+                        .withBody(HELLO + v)
+                        .subject("bar")
+                        .build())
                 .map(Message::of)
                 .subscribe((Subscriber) sink.build());
 
@@ -181,11 +182,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         //noinspection unchecked
         Flowable.range(0, 10)
-                .map(v -> {
-                    AmqpMessage<String> message = new AmqpMessage<>(HELLO + v);
-                    message.unwrap().setSubject("foo");
-                    return message;
-                })
+                .map(v -> AmqpMessage.<String> builder().withBody(HELLO + v).withSubject("foo").build())
                 .subscribe((Subscriber) sink.build());
 
         await().untilAtomic(expected, is(10));

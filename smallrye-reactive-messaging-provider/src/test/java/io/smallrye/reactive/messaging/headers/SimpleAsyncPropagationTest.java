@@ -27,9 +27,9 @@ public class SimpleAsyncPropagationTest extends WeldTestBaseWithoutTails {
         await().until(() -> sink.list().size() == 10);
         assertThat(sink.list()).allSatisfy(message -> {
             Headers headers = message.getHeaders();
-            assertThat(headers.get("message")).isEqualTo("hello");
+            assertThat(headers.getAsString("message", null)).isEqualTo("hello");
             assertThat(headers.getAsInteger("key", -1)).isNotEqualTo(-1);
-            assertThat(headers.get("foo")).isNull();
+            assertThat((Object) headers.get("foo")).isNull();
         }).hasSize(10);
 
     }

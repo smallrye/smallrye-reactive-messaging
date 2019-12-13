@@ -245,13 +245,15 @@ public class Headers extends LinkedHashMap<String, Object> {
      * Gets the value associated with the given key.
      *
      * @param key the key, must not be {@code null}
+     * @param <T> the expected type
      * @return the associated value, {@code null} if not present.
      */
-    public Object get(String key) {
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key) {
         if (key == null) {
             throw new IllegalArgumentException("The key must not be `null`");
         }
-        return get((Object) key);
+        return (T) get((Object) key);
     }
 
     /**

@@ -30,16 +30,88 @@ mp.messaging.incoming.data.broadcast=true
 mp.messaging.incoming.data.containerId=my-container-id
 ----
 
-Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
-The payload must a a supported AMQP type.
-The `AmqpMessage` implements `Message` and provide additional metadata related to AMQP.
-
 As the AMQP support is based on the Vert.x AMQP client, you can pass any configuration supported by the client.
 Check the  https://vertx.io/docs/vertx-amqp-client/java/[documentation] of the client for further details.
 
 NOTE: If the `address` attribute is not set the channel name is used instead.
 
-=== Forwarding messages to AMQP
+Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
+The payload must be a supported AMQP type.
+The `AmqpMessage` implements `Message` and provide additional metadata related to AMQP.
+In addition, the message contains the following headers:
+
+[cols=3*,options="header"]
+|===
+|Attribute
+|Type
+|Comment
+
+|`amqp.address`
+|String
+|The AMQP address from where the message has been received
+
+|`amqp.application-properties`
+| `io.vertx.core.json.JsonObject`
+|The application properties attached with the message
+
+|`amqp.content-type`
+|String
+|The content type as indicated in the received message
+
+|`amqp.content-encoding`
+|String
+|The content encoding as indicated in the received message
+
+|`amqp.correlation-id`
+|String
+|The correlation id attached to the received message
+
+|`amqp.creation-time`
+|Long
+|The incoming message creation time
+
+|`amqp.delivery-count`
+|int
+|The delivery count of the message
+
+|`amqp.expiry-time`
+|long
+|The expiration time of the message
+
+|`amqp.group-id`
+|String
+|The group id associated to the message
+
+|`amqp.group-sequence`
+|String
+|The group sequence associated to the message
+
+|`amqp.id`
+|String
+|The message id
+
+|`amqp.durable`
+|boolean
+|Whether the incoming message is durable or not
+
+|`amqp.first-acquirer`
+|boolean
+|Whether the consumer is the first acquirer of the message
+
+|`amqp.priority`
+|Short
+|The priority of the incoming message
+
+|`amqp.subject`
+|String
+|The subject of the message
+
+|`amqp.ttl`
+|long
+|The ttl as indicated in the received message
+|===
+
+=== Sending messages to AMQP
 
 [source]
 ----
@@ -54,7 +126,7 @@ mp.messaging.outgoing.data.durable=true
 ----
 
 The AMQP connector dispatches messages to the AMQP broker or server.
-You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
+You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`, built with `io.smallrye.reactive.messaging.amqp.AmqpMessage.builder()`.
 
 The payload of the message must be one of the following type:
 
@@ -68,6 +140,62 @@ The payload of the message must be one of the following type:
 Otherwise, the connector invokes `toString` on the wrapped payload.
 
 NOTE: If the `address` attribute is not set the channel name is used instead.
+If the AMQP Message has an address set, this address is used.
+
+Instead of an `AMQPMessage` you can pass the following headers:
+
+[cols=3*,options="header"]
+|===
+|Attribute
+|Type
+|Comment
+
+|`amqp.outgoing-address`
+|String
+|The AMQP address where the outgoing message must be sent. If not set the address configured on the channel is used.
+
+|`amqp.outgoing-application-properties`
+| `io.vertx.core.json.JsonObject`
+|The application properties attached with the message
+
+|`amqp.outgoing-content-type`
+|String
+|The content type for the outgoing message
+
+|`amqp.outgoing-content-encoding`
+|String
+|The content encoding for the outgoing message
+
+|`amqp.outgoing-correlation-id`
+|String
+|The correlation id for the outgoing message
+
+|`amqp.outgoing-group-id`
+|String
+|The group id associated to the outgoing message
+
+|`amqp.outgoing-id`
+|String
+|The message id for the outgoing message
+
+|`amqp.outgoing-durable`
+|boolean
+|Whether the outgoing message is durable or not
+
+|`amqp.outgoing-priority`
+|Short
+|The priority of the outgoing message
+
+|`amqp.outgoing-subject`
+|String
+|The subject of the outgoing message
+
+|`amqp.ttl`
+|long
+|The ttl of the outgoing message
+|===
+
+=== Global configuration
 
 The host, port, username, password, SSL connection, reconnect attempts, reconnect interval,
 and connection timeout can also be configured using the `amqp-host`, `amqp-port`, `amqp-username`,

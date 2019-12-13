@@ -1,34 +1,29 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static io.vertx.proton.ProtonHelper.message;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.qpid.proton.amqp.Binary;
-import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
-import org.apache.qpid.proton.amqp.messaging.AmqpValue;
-import org.apache.qpid.proton.amqp.messaging.Data;
-import org.apache.qpid.proton.amqp.messaging.Header;
-import org.apache.qpid.proton.amqp.messaging.Section;
+import org.apache.qpid.proton.amqp.messaging.*;
 import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Headers;
 
-import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
-    private final io.vertx.amqp.AmqpMessage message;
-    private final boolean received;
-    private final Headers headers;
+    protected final io.vertx.amqp.AmqpMessage message;
+    protected final Headers headers;
+
+    public static <T> AmqpMessageBuilder<T> builder() {
+        return new AmqpMessageBuilder<>();
+    }
 
     public AmqpMessage(io.vertx.axle.amqp.AmqpMessage delegate) {
         this.message = delegate.getDelegate();
-        this.received = true;
         Headers.HeadersBuilder builder = Headers.builder();
 
         if (delegate.address() != null) {
@@ -81,21 +76,8 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         this.headers = builder.build();
     }
 
-    public AmqpMessage(T payload) {
-        Message msg = message();
-        if (payload instanceof Section) {
-            msg.setBody((Section) payload);
-        } else {
-            msg.setBody(new AmqpValue(payload));
-        }
-        this.message = new AmqpMessageImpl(msg);
-        this.received = false;
-        this.headers = Headers.empty();
-    }
-
     public AmqpMessage(io.vertx.amqp.AmqpMessage msg) {
         this.message = msg;
-        this.received = false;
         Headers.HeadersBuilder builder = Headers.builder();
 
         if (msg.address() != null) {
@@ -150,9 +132,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
 
     @Override
     public CompletionStage<Void> ack() {
-        if (received) {
-            this.message.accepted();
-        }
+        this.message.accepted();
         return CompletableFuture.completedFuture(null);
     }
 

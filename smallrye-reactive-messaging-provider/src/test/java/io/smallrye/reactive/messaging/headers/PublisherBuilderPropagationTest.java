@@ -26,9 +26,9 @@ public class PublisherBuilderPropagationTest extends WeldTestBaseWithoutTails {
         await().until(() -> sink.list().size() == 40);
         assertThat(sink.list()).allSatisfy(message -> {
             Headers headers = message.getHeaders();
-            assertThat(headers.get("message")).isEqualTo("hello");
+            assertThat((String) headers.get("message")).isEqualTo("hello");
             assertThat(headers.getAsInteger("key", -1)).isNotEqualTo(-1);
-            assertThat(headers.get("foo")).isNull();
+            assertThat((String) headers.get("foo")).isNull();
         }).hasSize(40);
 
     }

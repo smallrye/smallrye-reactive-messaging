@@ -28,9 +28,9 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
 
         assertThat(sink.list()).allSatisfy(message -> {
             Headers headers = message.getHeaders();
-            assertThat(headers.get("message")).isEqualTo("hello");
+            assertThat(headers.getAsString("message", null)).isEqualTo("hello");
             assertThat(headers.getAsInteger("key", -1)).isNotEqualTo(-1);
-            assertThat(headers.get("foo")).isNull();
+            assertThat(headers.getAsString("foo", null)).isNull();
         }).hasSize(10);
 
     }

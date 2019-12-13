@@ -14,6 +14,7 @@ import org.apache.qpid.proton.message.Message;
 import org.junit.Test;
 
 import io.vertx.amqp.impl.AmqpMessageImpl;
+import io.vertx.core.json.JsonObject;
 
 public class AmqpMessageTest {
 
@@ -61,6 +62,51 @@ public class AmqpMessageTest {
         assertThat(msg.getError().name()).isEqualTo("OK");
         assertThat(msg.getGroupSequence()).isZero();
 
+    }
+
+    @Test
+    public void testBuilder() {
+        AmqpMessageBuilder<String> builder = AmqpMessage.builder();
+        JsonObject json = new JsonObject();
+        json.put("hello", "world");
+        json.put("some", "content");
+
+        builder.withSubject("subject")
+                .withTtl(1)
+                .withDurable(true)
+                .withReplyTo("reply")
+                .withApplicationProperties(json)
+                .withContentType("text/plain")
+                .withContentEncoding("utf-8")
+                .withCorrelationId("1234")
+                .withGroupId("some-group")
+                .withAddress("address")
+                .withPriority((short) 2)
+                .withBody("hello")
+                .withId("4321");
+
+        AmqpMessage<String> msg = builder.build();
+        assertThat(msg.getAddress()).isEqualTo("address");
+        assertThat(msg.getApplicationProperties()).contains(entry("hello", "world"), entry("some", "content"));
+        assertThat(msg.getContentType()).isEqualTo("text/plain");
+        assertThat(msg.getCreationTime()).isZero();
+        assertThat(msg.getDeliveryCount()).isZero();
+        assertThat(msg.getExpiryTime()).isZero();
+        assertThat(msg.getGroupId()).isEqualTo("some-group");
+        assertThat(msg.getTtl()).isEqualTo(1);
+        assertThat(msg.getSubject()).isEqualTo("subject");
+        assertThat(msg.getPriority()).isEqualTo((short) 2);
+        assertThat(((AmqpValue) msg.getBody()).getValue()).isEqualTo("hello");
+        assertThat(msg.getCorrelationId()).isEqualTo("1234");
+        assertThat(msg.getMessageId()).isEqualTo("4321");
+        assertThat(msg.getHeader()).isNotNull();
+        assertThat(msg.isDurable()).isTrue();
+        assertThat(msg.getError().name()).isEqualTo("OK");
+        assertThat(msg.getGroupSequence()).isZero();
+
+        assertThat(AmqpMessage.<Boolean> builder().withBooleanAsBody(true).build().getPayload().booleanValue()).isTrue();
+        assertThat(AmqpMessage.<Integer> builder().withIntegerAsBody(23).build().getPayload()).isEqualTo(23);
+        assertThat(AmqpMessage.<Long> builder().withLongAsBody(23L).build().getPayload()).isEqualTo(23L);
     }
 
 }
