@@ -4,12 +4,12 @@ import java.lang.IllegalStateException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
 
 import javax.jms.*;
 import javax.json.bind.Jsonb;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -48,7 +48,8 @@ class JmsSink {
             }
         });
         config.getOptionalValue("disable-message-id", Boolean.TYPE).ifPresent(producer::setDisableMessageID);
-        config.getOptionalValue("disable-message-timestamp", Boolean.TYPE).ifPresent(producer::setDisableMessageTimestamp);
+        config.getOptionalValue("disable-message-timestamp", Boolean.TYPE)
+                .ifPresent(producer::setDisableMessageTimestamp);
         config.getOptionalValue("correlation-id", String.class).ifPresent(producer::setJMSCorrelationID);
         config.getOptionalValue("ttl", Long.TYPE).ifPresent(producer::setTimeToLive);
         config.getOptionalValue("priority", Integer.TYPE).ifPresent(producer::setPriority);
@@ -65,49 +66,80 @@ class JmsSink {
                 }).orElseGet(() -> context.createQueue(rt))));
 
         sink = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage((Function<Message<?>, CompletionStage<?>>) this::send)
+                .flatMapCompletionStage(m -> {
+                    try {
+                        return send(m);
+                    } catch (JMSException e) {
+                        throw new IllegalStateException(e);
+                    }
+                })
                 .onError(t -> LOGGER.error("Unable to send message to JMS", t))
                 .ignore();
 
     }
 
-    private CompletionStage<Message<?>> send(Message<?> message) {
-        // TODO Define a SendingJMSMessage, it should allow updating the destination.
-
+    private CompletionStage<Message<?>> send(Message<?> message) throws JMSException {
         Object payload = message.getPayload();
+
+        // If the payload is a JMS Message, send it as it is, ignoring headers.
         if (payload instanceof javax.jms.Message) {
             return dispatch(message, () -> producer.send(destination, (javax.jms.Message) payload));
         }
 
-        if (payload instanceof String) {
-            return dispatch(message, () -> producer.send(destination, (String) payload));
+        javax.jms.Message outgoing;
+        if (payload instanceof String || payload.getClass().isPrimitive() || isPrimitiveBoxed(payload.getClass())) {
+            outgoing = context.createTextMessage(payload.toString());
+            outgoing.setStringProperty("_classname", payload.getClass().getName());
+            outgoing.setJMSType(payload.getClass().getName());
+        } else if (payload.getClass().isArray() && payload.getClass().getComponentType().equals(Byte.TYPE)) {
+            BytesMessage o = context.createBytesMessage();
+            o.writeBytes((byte[]) payload);
+            outgoing = o;
+        } else {
+            outgoing = context.createTextMessage(json.toJson(payload));
+            outgoing.setJMSType(payload.getClass().getName());
+            outgoing.setStringProperty("_classname", payload.getClass().getName());
         }
 
-        if (payload.getClass().isPrimitive() || isPrimitiveBoxed(payload.getClass())) {
-            TextMessage msg = context.createTextMessage(payload.toString());
-            try {
-                msg.setStringProperty("_classname", payload.getClass().getName());
-                msg.setJMSType(payload.getClass().getName());
-                return dispatch(message, () -> producer.send(destination, msg));
-            } catch (JMSException e) {
-                throw new IllegalStateException(e);
+        Headers headers = message.getHeaders();
+
+        String correlationId = headers.getAsString(JmsHeaders.OUTGOING_CORRELATION_ID, null);
+        Destination replyTo = headers.get(JmsHeaders.OUTGOING_REPLY_TO, (Destination) null);
+        Destination dest = headers.get(JmsHeaders.OUTGOING_DESTINATION, (Destination) null);
+        int deliveryMode = headers.getAsInteger(JmsHeaders.OUTGOING_DELIVERY_MODE, -1);
+        String type = headers.getAsString(JmsHeaders.OUTGOING_TYPE, null);
+        JmsProperties properties = headers.get(JmsHeaders.OUTGOING_PROPERTIES, (JmsProperties) null);
+
+        if (correlationId != null) {
+            outgoing.setJMSCorrelationID(correlationId);
+        }
+        if (replyTo != null) {
+            outgoing.setJMSReplyTo(replyTo);
+        }
+        if (dest != null) {
+            outgoing.setJMSDestination(dest);
+        }
+        if (deliveryMode != -1) {
+            outgoing.setJMSDeliveryMode(deliveryMode);
+        }
+        if (type != null) {
+            outgoing.setJMSType(type);
+        }
+        if (type != null) {
+            outgoing.setJMSType(type);
+        }
+
+        if (properties != null) {
+            if (!(properties instanceof JmsPropertiesBuilder.OutgoingJmsProperties)) {
+                throw new javax.jms.IllegalStateException("Unable to map JMS properties to the outgoing message, "
+                        + "OutgoingJmsProperties expected, found " + properties.getClass().getName());
             }
+            JmsPropertiesBuilder.OutgoingJmsProperties op = ((JmsPropertiesBuilder.OutgoingJmsProperties) properties);
+            op.getProperties().forEach(p -> p.apply(outgoing));
         }
 
-        if (payload.getClass().isArray() && payload.getClass().getComponentType().equals(Byte.TYPE)) {
-            return dispatch(message, () -> producer.send(destination, (byte[]) payload));
-        }
-
-        return dispatch(message, () -> {
-            try {
-                TextMessage text = context.createTextMessage(json.toJson(payload));
-                text.setJMSType(payload.getClass().getName());
-                text.setStringProperty("_classname", payload.getClass().getName());
-                producer.send(destination, text);
-            } catch (JMSException e) {
-                throw new IllegalStateException(e);
-            }
-        });
+        Destination actualDestination = dest != null ? dest : this.destination;
+        return dispatch(message, () -> producer.send(actualDestination, outgoing));
     }
 
     private boolean isPrimitiveBoxed(Class<?> c) {

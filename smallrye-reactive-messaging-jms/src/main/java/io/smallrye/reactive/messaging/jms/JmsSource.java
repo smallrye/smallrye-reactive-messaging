@@ -26,7 +26,7 @@ import io.reactivex.internal.subscriptions.SubscriptionHelper;
 class JmsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JmsSource.class);
-    private final PublisherBuilder<ReceivedJmsMessage<?>> source;
+    private final PublisherBuilder<IncomingJmsMessage<?>> source;
 
     private final JmsPublisher publisher;
 
@@ -53,11 +53,11 @@ class JmsSource {
         publisher = new JmsPublisher(consumer);
 
         if (!broadcast) {
-            source = ReactiveStreams.fromPublisher(publisher).map(m -> new ReceivedJmsMessage<>(m, executor, json));
+            source = ReactiveStreams.fromPublisher(publisher).map(m -> new IncomingJmsMessage<>(m, executor, json));
         } else {
             source = ReactiveStreams.fromPublisher(
                     Flowable.fromPublisher(publisher)
-                            .map(m -> new ReceivedJmsMessage<>(m, executor, json))
+                            .map(m -> new IncomingJmsMessage<>(m, executor, json))
                             .publish().autoConnect());
         }
     }
@@ -81,7 +81,7 @@ class JmsSource {
 
     }
 
-    PublisherBuilder<ReceivedJmsMessage<?>> getSource() {
+    PublisherBuilder<IncomingJmsMessage<?>> getSource() {
         return source;
     }
 

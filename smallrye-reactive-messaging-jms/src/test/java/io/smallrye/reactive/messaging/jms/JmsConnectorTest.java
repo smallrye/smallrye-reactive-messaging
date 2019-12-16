@@ -59,7 +59,7 @@ public class JmsConnectorTest extends JmsTestBase {
         MessageConsumerBean bean = container.select(MessageConsumerBean.class).get();
         await().until(() -> bean.list().size() > 3);
 
-        List<ReceivedJmsMessage<Integer>> messages = bean.messages();
+        List<IncomingJmsMessage<Integer>> messages = bean.messages();
         messages.forEach(msg -> {
             assertThat(msg.getJMSDeliveryMode()).isEqualTo(DeliveryMode.PERSISTENT);
             assertThat(msg.getJMSCorrelationID()).isNull();

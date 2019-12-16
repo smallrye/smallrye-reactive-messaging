@@ -68,21 +68,21 @@ public class JmsSourceTest extends JmsTestBase {
         producer.send(q, message);
 
         await().until(() -> bean.messages().size() == 1);
-        ReceivedJmsMessage<?> receivedJmsMessage = bean.messages().get(0);
-        assertThat(receivedJmsMessage.getPayload()).isEqualTo("hello");
-        assertThat(receivedJmsMessage.getBody(String.class)).isEqualTo("hello");
-        assertThat(receivedJmsMessage.propertyExists("string")).isTrue();
-        assertThat(receivedJmsMessage.propertyExists("missing")).isFalse();
-        assertThat(receivedJmsMessage.getStringProperty("string")).isEqualTo("value");
-        assertThat(receivedJmsMessage.getBooleanProperty("bool")).isTrue();
-        assertThat(receivedJmsMessage.getLongProperty("long")).isEqualTo(100L);
-        assertThat(receivedJmsMessage.getByteProperty("byte")).isEqualTo((byte) 5);
-        assertThat(receivedJmsMessage.getFloatProperty("float")).isEqualTo(5.5f);
-        assertThat(receivedJmsMessage.getDoubleProperty("double")).isEqualTo(10.3);
-        assertThat(receivedJmsMessage.getIntProperty("int")).isEqualTo(23);
-        assertThat(receivedJmsMessage.getObjectProperty("object")).isInstanceOf(String.class);
-        assertThat(((String) receivedJmsMessage.getObjectProperty("object"))).isEqualTo("yop");
-        assertThat(receivedJmsMessage.getShortProperty("short")).isEqualTo((short) 3);
+        IncomingJmsMessage<?> incomingJmsMessage = bean.messages().get(0);
+        assertThat(incomingJmsMessage.getPayload()).isEqualTo("hello");
+        assertThat(incomingJmsMessage.getBody(String.class)).isEqualTo("hello");
+        assertThat(incomingJmsMessage.propertyExists("string")).isTrue();
+        assertThat(incomingJmsMessage.propertyExists("missing")).isFalse();
+        assertThat(incomingJmsMessage.getStringProperty("string")).isEqualTo("value");
+        assertThat(incomingJmsMessage.getBooleanProperty("bool")).isTrue();
+        assertThat(incomingJmsMessage.getLongProperty("long")).isEqualTo(100L);
+        assertThat(incomingJmsMessage.getByteProperty("byte")).isEqualTo((byte) 5);
+        assertThat(incomingJmsMessage.getFloatProperty("float")).isEqualTo(5.5f);
+        assertThat(incomingJmsMessage.getDoubleProperty("double")).isEqualTo(10.3);
+        assertThat(incomingJmsMessage.getIntProperty("int")).isEqualTo(23);
+        assertThat(incomingJmsMessage.getObjectProperty("object")).isInstanceOf(String.class);
+        assertThat(((String) incomingJmsMessage.getObjectProperty("object"))).isEqualTo("yop");
+        assertThat(incomingJmsMessage.getShortProperty("short")).isEqualTo((short) 3);
     }
 
     @Test
@@ -97,8 +97,8 @@ public class JmsSourceTest extends JmsTestBase {
         producer.send(q, 10000L);
 
         await().until(() -> bean.messages().size() == 1);
-        ReceivedJmsMessage<?> receivedJmsMessage = bean.messages().get(0);
-        assertThat(receivedJmsMessage.getPayload()).isEqualTo(10000L);
+        IncomingJmsMessage<?> incomingJmsMessage = bean.messages().get(0);
+        assertThat(incomingJmsMessage.getPayload()).isEqualTo(10000L);
     }
 
     @Test
@@ -121,8 +121,8 @@ public class JmsSourceTest extends JmsTestBase {
         producer.send(q, uuid);
 
         await().until(() -> bean.messages().size() == 1);
-        ReceivedJmsMessage<?> receivedJmsMessage = bean.messages().get(0);
-        assertThat(receivedJmsMessage.getPayload()).isEqualTo(uuid);
+        IncomingJmsMessage<?> incomingJmsMessage = bean.messages().get(0);
+        assertThat(incomingJmsMessage.getPayload()).isEqualTo(uuid);
     }
 
     @Test
@@ -138,7 +138,6 @@ public class JmsSourceTest extends JmsTestBase {
         new Thread(() -> {
             for (int i = 0; i < 50; i++) {
                 TextMessage message = jms.createTextMessage(Integer.toString(i));
-                System.out.println("Sending " + i);
                 producer.send(q, message);
             }
         }).start();
@@ -150,7 +149,7 @@ public class JmsSourceTest extends JmsTestBase {
     public void testMultipleRequests() {
         JmsSource source = new JmsSource(jms, new MapBasedConfig.Builder().put("channel-name", "queue").build(),
                 null, null);
-        Publisher<ReceivedJmsMessage<?>> publisher = source.getSource().buildRs();
+        Publisher<IncomingJmsMessage<?>> publisher = source.getSource().buildRs();
 
         new Thread(() -> {
             JMSContext context = factory.createContext();
@@ -161,18 +160,18 @@ public class JmsSourceTest extends JmsTestBase {
             }
         }).start();
 
-        List<ReceivedJmsMessage<?>> list = new CopyOnWriteArrayList<>();
+        List<IncomingJmsMessage<?>> list = new CopyOnWriteArrayList<>();
         AtomicReference<Subscription> upstream = new AtomicReference<>();
         //noinspection SubscriberImplementation
-        publisher.subscribe(new Subscriber<ReceivedJmsMessage<?>>() {
+        publisher.subscribe(new Subscriber<IncomingJmsMessage<?>>() {
             @Override
             public void onSubscribe(Subscription s) {
                 upstream.set(s);
             }
 
             @Override
-            public void onNext(ReceivedJmsMessage<?> receivedJmsMessage) {
-                list.add(receivedJmsMessage);
+            public void onNext(IncomingJmsMessage<?> incomingJmsMessage) {
+                list.add(incomingJmsMessage);
             }
 
             @Override
@@ -203,10 +202,10 @@ public class JmsSourceTest extends JmsTestBase {
                 new MapBasedConfig.Builder()
                         .put("channel-name", "queue").put("broadcast", true).build(),
                 null, null);
-        PublisherBuilder<ReceivedJmsMessage<?>> publisher = source.getSource();
+        PublisherBuilder<IncomingJmsMessage<?>> publisher = source.getSource();
 
-        List<ReceivedJmsMessage<?>> list1 = new ArrayList<>();
-        List<ReceivedJmsMessage<?>> list2 = new ArrayList<>();
+        List<IncomingJmsMessage<?>> list1 = new ArrayList<>();
+        List<IncomingJmsMessage<?>> list2 = new ArrayList<>();
 
         publisher.peek(list1::add).ignore().run();
 

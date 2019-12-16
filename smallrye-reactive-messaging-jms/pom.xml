@@ -37,8 +37,8 @@
       <artifactId>microprofile-config-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
-      <artifactId>microprofile-reactive-messaging-api</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>smallrye-reactive-messaging-api</artifactId>
     </dependency>
     <dependency>
       <groupId>jakarta.enterprise</groupId>

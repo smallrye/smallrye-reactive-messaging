@@ -12,15 +12,15 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class RawMessageConsumerBean {
 
-    private final List<ReceivedJmsMessage<?>> messages = new CopyOnWriteArrayList<>();
+    private final List<IncomingJmsMessage<?>> messages = new CopyOnWriteArrayList<>();
 
     @Incoming("jms")
-    public CompletionStage<Void> consume(ReceivedJmsMessage<?> v) {
+    public CompletionStage<Void> consume(IncomingJmsMessage<?> v) {
         messages.add(v);
         return v.ack();
     }
 
-    List<ReceivedJmsMessage<?>> messages() {
+    List<IncomingJmsMessage<?>> messages() {
         return new ArrayList<>(messages);
     }
 

@@ -11,13 +11,14 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.json.bind.Jsonb;
 
-public class ReceivedJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
+public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T>, JmsProperties {
     private final Message delegate;
     private final Executor executor;
     private final Class<T> clazz;
     private final Jsonb json;
+    private final JmsProperties properties;
 
-    ReceivedJmsMessage(Message message, Executor executor, Jsonb json) {
+    IncomingJmsMessage(Message message, Executor executor, Jsonb json) {
         this.delegate = message;
         this.json = json;
         this.executor = executor;
@@ -32,6 +33,7 @@ public class ReceivedJmsMessage<T> implements org.eclipse.microprofile.reactive.
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("Unable to load the class " + e);
         }
+        this.properties = new ImmutableJmsProperties(message);
     }
 
     @SuppressWarnings("unchecked")
@@ -44,7 +46,7 @@ public class ReceivedJmsMessage<T> implements org.eclipse.microprofile.reactive.
                 // Will try with the current class classloader
             }
         }
-        return (Class<T>) ReceivedJmsMessage.class.getClassLoader().loadClass(cn);
+        return (Class<T>) IncomingJmsMessage.class.getClassLoader().loadClass(cn);
     }
 
     private <R> R wrap(Callable<R> code) {
@@ -103,48 +105,59 @@ public class ReceivedJmsMessage<T> implements org.eclipse.microprofile.reactive.
         return wrap(delegate::getJMSPriority);
     }
 
+    @Override
     public boolean propertyExists(String name) {
-        return wrap(() -> delegate.propertyExists(name));
+        return properties.propertyExists(name);
     }
 
+    @Override
     public boolean getBooleanProperty(String name) {
-        return wrap(() -> delegate.getBooleanProperty(name));
+        return properties.getBooleanProperty(name);
     }
 
+    @Override
     public byte getByteProperty(String name) {
-        return wrap(() -> delegate.getByteProperty(name));
+        return properties.getByteProperty(name);
     }
 
+    @Override
     public short getShortProperty(String name) {
-        return wrap(() -> delegate.getShortProperty(name));
+        return properties.getShortProperty(name);
     }
 
+    @Override
     public int getIntProperty(String name) {
-        return wrap(() -> delegate.getIntProperty(name));
+        return properties.getIntProperty(name);
     }
 
+    @Override
     public long getLongProperty(String name) {
-        return wrap(() -> delegate.getLongProperty(name));
+        return properties.getLongProperty(name);
     }
 
+    @Override
     public float getFloatProperty(String name) {
-        return wrap(() -> delegate.getFloatProperty(name));
+        return properties.getFloatProperty(name);
     }
 
+    @Override
     public double getDoubleProperty(String name) {
-        return wrap(() -> delegate.getDoubleProperty(name));
+        return properties.getDoubleProperty(name);
     }
 
+    @Override
     public String getStringProperty(String name) {
-        return wrap(() -> delegate.getStringProperty(name));
+        return properties.getStringProperty(name);
     }
 
+    @Override
     public Object getObjectProperty(String name) {
-        return wrap(() -> delegate.getObjectProperty(name));
+        return properties.getObjectProperty(name);
     }
 
+    @Override
     public Enumeration getPropertyNames() {
-        return wrap(delegate::getPropertyNames);
+        return properties.getPropertyNames();
     }
 
     public <X> X getBody(Class<X> c) {
@@ -215,5 +228,69 @@ public class ReceivedJmsMessage<T> implements org.eclipse.microprofile.reactive.
             return (C) delegate;
         }
         throw new IllegalArgumentException("Unable to unwrap message to " + unwrapType);
+    }
+
+    private final class ImmutableJmsProperties implements JmsProperties {
+        private final Message delegate;
+
+        ImmutableJmsProperties(Message message) {
+            this.delegate = message;
+        }
+
+        @Override
+        public boolean propertyExists(String name) {
+            return wrap(() -> delegate.propertyExists(name));
+        }
+
+        @Override
+        public boolean getBooleanProperty(String name) {
+            return wrap(() -> delegate.getBooleanProperty(name));
+        }
+
+        @Override
+        public byte getByteProperty(String name) {
+            return wrap(() -> delegate.getByteProperty(name));
+        }
+
+        @Override
+        public short getShortProperty(String name) {
+            return wrap(() -> delegate.getShortProperty(name));
+        }
+
+        @Override
+        public int getIntProperty(String name) {
+            return wrap(() -> delegate.getIntProperty(name));
+        }
+
+        @Override
+        public long getLongProperty(String name) {
+            return wrap(() -> delegate.getLongProperty(name));
+        }
+
+        @Override
+        public float getFloatProperty(String name) {
+            return wrap(() -> delegate.getFloatProperty(name));
+        }
+
+        @Override
+        public double getDoubleProperty(String name) {
+            return wrap(() -> delegate.getDoubleProperty(name));
+        }
+
+        @Override
+        public String getStringProperty(String name) {
+            return wrap(() -> delegate.getStringProperty(name));
+        }
+
+        @Override
+        public Object getObjectProperty(String name) {
+            return wrap(() -> delegate.getObjectProperty(name));
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Enumeration<String> getPropertyNames() {
+            return wrap(delegate::getPropertyNames);
+        }
     }
 }
