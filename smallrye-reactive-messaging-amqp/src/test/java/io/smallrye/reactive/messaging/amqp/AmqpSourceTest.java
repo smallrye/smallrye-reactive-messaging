@@ -17,6 +17,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.jboss.weld.exceptions.DeploymentException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
@@ -50,6 +51,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         }
 
         System.clearProperty("mp-config");
+        System.clearProperty("client-options-name");
     }
 
     @Test
@@ -335,6 +337,56 @@ public class AmqpSourceTest extends AmqpTestBase {
         byte[] result = messages.get(0).getPayload();
         assertThat(new String(result))
                 .isEqualTo(list.toString());
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigByCDIMissingBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ConsumptionBean.class);
+
+        System.setProperty("mp-config", "incoming");
+        System.setProperty("client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigByCDIIncorrectBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ConsumptionBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "incoming");
+        System.setProperty("client-options-name", "dummyoptionsnonexistent");
+
+        container = weld.initialize();
+    }
+
+    @Test
+    public void testConfigByCDICorrect() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ConsumptionBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "incoming");
+        System.setProperty("client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
+        List<Integer> list = container.getBeanManager().createInstance().select(ConsumptionBean.class).get().getResults();
+        assertThat(list).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers("data", counter::getAndIncrement);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     @NotNull
