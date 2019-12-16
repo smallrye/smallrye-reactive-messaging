@@ -121,7 +121,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 throw new IllegalStateException(
                         "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsName);
             }
-            LOGGER.debug("Creating amqp client from bean named " + optionsName);
+            LOGGER.debug("Creating amqp client from bean named '{}'", optionsName);
             client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options.get());
         } else {
             client = getClient(config);
@@ -266,18 +266,11 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         long ttl = config.getOptionalValue("ttl", Long.class).orElse(0L);
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
+        AmqpClient client = createClient(config);
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
 
             if (as == null) {
-                AmqpClient client;
-                try {
-                    client = createClient(config);
-                } catch (Exception e) {
-                    LOGGER.error("Unable to create client", e);
-                    throw new IllegalStateException("Unable to create a client, probably a config error", e);
-                }
-
                 return client.connect()
                         .thenCompose(AmqpConnection::createAnonymousSender)
                         .thenApply(s -> {
