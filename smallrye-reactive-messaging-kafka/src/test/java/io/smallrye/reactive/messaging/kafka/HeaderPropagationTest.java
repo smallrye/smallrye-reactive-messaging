@@ -66,13 +66,10 @@ public class HeaderPropagationTest extends KafkaTestBase {
         deploy(getKafkaSinkConfigForMyAppProcessingData(), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(20, null,
+        usage.produceIntegers(100, null,
                 () -> new ProducerRecord<>("some-topic", "a-key", count.getAndIncrement()));
 
-        await().until(() -> {
-            System.out.println(messages.size());
-            return messages.size() >= 10;
-        });
+        await().until(() -> messages.size() >= 10);
         assertThat(messages).allSatisfy(entry -> {
             assertThat(entry.getKey()).isEqualTo("my-key");
             assertThat(entry.getValue()).isNotNull();
