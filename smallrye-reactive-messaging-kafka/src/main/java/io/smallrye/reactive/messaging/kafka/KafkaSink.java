@@ -47,6 +47,12 @@ class KafkaSink {
             kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         }
 
+        kafkaConfiguration.remove("channel-name");
+        kafkaConfiguration.remove("topic");
+        kafkaConfiguration.remove("connector");
+        kafkaConfiguration.remove("partition");
+        kafkaConfiguration.remove("key");
+
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
         stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
 

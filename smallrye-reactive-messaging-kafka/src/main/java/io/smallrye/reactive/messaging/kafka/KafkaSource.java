@@ -48,6 +48,13 @@ public class KafkaSource<K, V> {
             kafkaConfiguration.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         }
 
+        kafkaConfiguration.remove("channel-name");
+        kafkaConfiguration.remove("topic");
+        kafkaConfiguration.remove("connector");
+        kafkaConfiguration.remove("retry");
+        kafkaConfiguration.remove("retry-attempts");
+        kafkaConfiguration.remove("broadcast");
+
         this.consumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         String topic = getTopicOrFail(config);
 
