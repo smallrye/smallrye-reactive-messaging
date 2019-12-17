@@ -12,15 +12,20 @@ Behind the scene, SmallRye Reactive Streams composes _Reactive Streams_ and ensu
 === Messages
 
 A `Message` (defined by `org.eclipse.microprofile.reactive.messaging.Message`) is an envelope around a payload. The
-`Message` interface just offers a way to retrieve the payload (`getPayload`) and to acknowledge the message (`ack`).
+`Message` interface just offers a way to retrieve the payload (`getPayload`), a set of _headers_ and a method to acknowledge the message (`ack`).
 
 image::message.png[align="center"]
 
 The `Message` interface is parameterized with the type of the payload. For example, `Message<String>` describes a
 message containing a `String` payload.
 
-The interface can be subclassed by the user or by transport layers to convey more attributes. For example, a `Message`
-coming from Kafka contain headers, as well as others metadata.
+A `Message` can contain headers, i.e. a set of metadata attached to the message. These headers can be used to:
+
+1. retrieve metadata about the message, like for example the Kafka topic,
+2. add data propagated with the message that may influence the outbound dispatching, for example indicate to which Kafka topic the message should be written.
+
+The interface can be subclassed by the user or by transport layers to propose more methods. For example, a `Message`
+coming from Kafka can propose methods to retrieve the Kafka related metadata.
 
 Acknowledgement is covered below, in a dedicated section.
 
@@ -81,4 +86,23 @@ image::chain.png[align="center"]
 Methods annotated with `@Incoming` or `@Outgoing` don't have to be in the same _bean_ (_class_). You can distribute them
 amount a set of beans. Remote interactions are possible using a _transport_ layer. This topic is covered in another
 section.
+
+=== Headers and Propagation
+
+Each message has a set of headers (potentially empty).
+These headers are retrieved with `org.eclipse.microprofile.reactive.messaging.Message.getHeaders`.
+The header set is an instance of `org.eclipse.microprofile.reactive.messaging.Headers` which can be seen as an immutable `Map<String, Object>`.
+Neither the key or value can be `null`.
+
+To add headers to a message, you can either use:
+
+1. `Message.of(payload, headers, ack)` or `Message.of(payload, headers)`
+2. Use an existing `Message` and call `withHeaders(headers)`. This method copies the payload and ack into another instance of `Message`.
+
+To create a set of `Headers` use: `Headers.of(...)` or `Headers.builder()` returning a builder.
+
+Headers are propagated though the chain when your method receives a single _payloads_.
+In all the other cases (stream, receiving `Message` and not payload), you need to propagate the headers yourself, for example, using `message.withHeaders(incoming.getHeaders())`.
+
+
 

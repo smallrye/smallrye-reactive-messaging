@@ -11,9 +11,9 @@ payload one by one. For each input, an output is produced. This output can be ge
 The following signatures are supported:
 
 * `@Outgoing @Incoming Message<O> method(Message<I> msg)`
-* `@Outgoing @Incoming O method(I payload)`
+* `@Outgoing @Incoming O method(I payload)` - headers are propagated automatically.
 * `@Outgoing @Incoming CompletionStage<Message<O>> method(Message<I> msg)`
-* `@Outgoing @Incoming CompletionStage<O> method(I payload)`
+* `@Outgoing @Incoming CompletionStage<O> method(I payload)` - headers are propagated automatically.
 
 === Consuming one items and producing a streams
 
@@ -21,9 +21,9 @@ Another possibility is to consume the items one by one, but instead of producing
 potentially empty. The following method signatures are supported:
 
 * `@Outgoing @Incoming Publisher<Message<O>> method(Message<I> msg)`
-* `@Outgoing @Incoming Publisher<O> method(I payload)`
+* `@Outgoing @Incoming Publisher<O> method(I payload)` - headers are propagated automatically.
 * `@Outgoing @Incoming PublisherBuilder<Message<O>> method(Message<I> msg)`
-* `@Outgoing @Incoming PublisherBuilder<O> method(I payload)`
+* `@Outgoing @Incoming PublisherBuilder<O> method(I payload)` - headers are propagated automatically.
 
 For example, the following method duplicates the received messages:
 
