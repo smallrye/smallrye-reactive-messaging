@@ -57,7 +57,7 @@
   <properties>
     <vertx.version>3.8.4</vertx.version>
     <rxjava.version>2.2.16</rxjava.version>
-    <slf4j-api.version>1.7.29</slf4j-api.version>
+    <slf4j-api.version>1.7.30</slf4j-api.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <axle.version>0.0.11</axle.version>
 
