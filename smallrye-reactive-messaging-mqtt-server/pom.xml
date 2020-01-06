@@ -15,7 +15,7 @@
     <version.junit5>5.5.2</version.junit5>
     <version.paho>1.2.2</version.paho>
     <version.weld.junit5>2.0.1.Final</version.weld.junit5>
-    <version.awaitability>4.0.1</version.awaitability>
+    <version.awaitability>4.0.2</version.awaitability>
   </properties>
 
   <dependencies>
