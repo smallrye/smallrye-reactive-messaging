@@ -66,10 +66,6 @@ public class PubSubTest extends PubSubTestBase {
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(final String topic) {
-        //        final PubSubConnector pubSubConnector = new PubSubConnector(PROJECT_ID, true, "localhost",
-        //                CONTAINER.getMappedPort(PUBSUB_PORT));
-        //        pubSubConnector.initialize();
-
         final MapBasedConfig config = createSourceConfig(topic, null);
         config.setValue("topic", topic);
         config.write();
