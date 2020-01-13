@@ -203,7 +203,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .flatMapCompletionStage(managePreProcessingAck())
                 .flatMap(message -> {
                     PublisherBuilder pb = invoke(message.getPayload());
-                    return pb.map(payload -> Message.of(payload, message.getHeaders()));
+                    return pb.map(payload -> Message.of(payload, message.getMetadata()));
                     // TODO We can handle post-acknowledgement here.
                 })
                 .buildRs();
@@ -216,7 +216,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .flatMap(message -> {
                     Publisher pub = invoke(message.getPayload());
                     return ReactiveStreams.fromPublisher(pub)
-                            .map(payload -> Message.of(payload, message.getHeaders()));
+                            .map(payload -> Message.of(payload, message.getMetadata()));
                     // TODO We can handle post-acknowledgement here.
                 })
                 .buildRs();
@@ -247,7 +247,7 @@ public class ProcessorMediator extends AbstractMediator {
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                             return input.withPayload(result);
                         } else {
-                            return Message.of(result, input.getHeaders());
+                            return Message.of(result, input.getMetadata());
                         }
                     })
                     .buildRs();
@@ -282,7 +282,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .<Message> flatMapCompletionStage(input -> {
                     CompletionStage<Object> cs = invoke(input.getPayload());
                     return cs
-                            .thenApply(res -> Message.of(res, input.getHeaders(), () -> {
+                            .thenApply(res -> Message.of(res, input.getMetadata(), () -> {
                                 if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                                     return input.ack();
                                 } else {

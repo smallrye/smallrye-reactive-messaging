@@ -231,9 +231,9 @@ mp.messaging.outgoing.my-jms-channel.attribute=value
 NOTE: `destination-type` and `reply-to-destination-type` must be either `queue` (default) or `topic`.
 Any other value is rejected and fail the deployment.
 
-==== Outgoing JMS message headers
+==== Outgoing JMS message metadata
 
-You can customize the _routing_ and the content of the outgoing JMS message by adding the following headers to the `Message` you produce:
+You can customize the _routing_ and the content of the outgoing JMS message by adding the following metadata to the `Message` you produce:
 
 |===
 
@@ -324,7 +324,7 @@ mp.messaging.incoming.my-jms-channel.attribute=value
 
 ==== Incoming message header
 
-The incoming message contain the following headers
+The incoming message contain the following metadata:
 
 |===
 

@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.eclipse.microprofile.reactive.messaging.Headers;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
@@ -21,26 +21,26 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
     private final KafkaConsumerRecord<K, T> record;
     private final KafkaConsumer<K, T> consumer;
-    private final Headers headers;
+    private final Metadata metadata;
 
     public ReceivedKafkaMessage(KafkaConsumer<K, T> consumer, KafkaConsumerRecord<K, T> record) {
         this.record = Objects.requireNonNull(record);
         this.consumer = Objects.requireNonNull(consumer);
-        Headers.HeadersBuilder builder = Headers.builder();
+        Metadata.MetadataBuilder builder = Metadata.builder();
         if (record.key() != null) {
-            builder.with(KafkaHeaders.KEY, record.key());
+            builder.with(KafkaMetadata.KEY, record.key());
         }
         if (record.topic() != null) {
-            builder.with(KafkaHeaders.TOPIC, record.topic());
+            builder.with(KafkaMetadata.TOPIC, record.topic());
         }
         if (record.partition() >= 0) {
-            builder.with(KafkaHeaders.PARTITION, record.partition());
+            builder.with(KafkaMetadata.PARTITION, record.partition());
         }
         if (record.timestamp() >= 0) {
-            builder.with(KafkaHeaders.TIMESTAMP, record.timestamp());
+            builder.with(KafkaMetadata.TIMESTAMP, record.timestamp());
         }
         if (record.offset() >= 0) {
-            builder.with(KafkaHeaders.OFFSET, record.offset());
+            builder.with(KafkaMetadata.OFFSET, record.offset());
         }
         List<KafkaHeader> recordHeaders = record.headers();
         if (recordHeaders != null) {
@@ -52,12 +52,12 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
             List<RecordHeader> list = recordHeaders.stream()
                     .map(vertxKafkaHeader -> new RecordHeader(vertxKafkaHeader.key(), vertxKafkaHeader.value().getBytes()))
                     .collect(Collectors.toList());
-            builder.with(KafkaHeaders.HEADERS, Collections.unmodifiableList(list));
+            builder.with(KafkaMetadata.HEADERS, Collections.unmodifiableList(list));
         }
         if (record.timestampType() != null) {
-            builder.with(KafkaHeaders.TIMESTAMP_TYPE, record.timestampType());
+            builder.with(KafkaMetadata.TIMESTAMP_TYPE, record.timestampType());
         }
-        this.headers = builder.build();
+        this.metadata = builder.build();
     }
 
     @Override
@@ -92,8 +92,8 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public MessageHeaders getKafkaHeaders() {
-        Iterable<Header> iterable = headers.get(KafkaHeaders.HEADERS, Iterable.class);
+    public MessageHeaders getHeaders() {
+        Iterable<Header> iterable = metadata.get(KafkaMetadata.HEADERS, Iterable.class);
         if (iterable != null) {
             return new MessageHeaders(iterable);
         } else {
@@ -102,8 +102,8 @@ public class ReceivedKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
-    public Headers getHeaders() {
-        return headers;
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     @Override

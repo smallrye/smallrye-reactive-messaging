@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.http;
 
 import io.vertx.core.json.JsonObject;
-import org.eclipse.microprofile.reactive.messaging.Headers;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -27,9 +27,9 @@ public class HttpExample {
     @Outgoing("to-http")
     public Message<JsonObject> handle(Message<String> incoming) {
         return Message.of(new JsonObject().put("value", incoming.getPayload().toUpperCase()))
-            .withHeaders(Headers.of(
-               HttpHeaders.HEADERS, "PUT",
-               HttpHeaders.HEADERS, Collections.singletonMap("Content-Type", "application/json")
+            .withMetadata(Metadata.of(
+               HttpMetadata.HEADERS, "PUT",
+               HttpMetadata.HEADERS, Collections.singletonMap("Content-Type", "application/json")
             ));
     }
     // end::raw-message[]

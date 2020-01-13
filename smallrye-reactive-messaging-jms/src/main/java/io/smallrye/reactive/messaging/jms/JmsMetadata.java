@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.jms;
 
-public class JmsHeaders {
+public class JmsMetadata {
 
     /**
      * Gets the message id of the incoming JMS message.
@@ -97,7 +97,7 @@ public class JmsHeaders {
     /**
      * Gets the delivery mode for the outgoing JMS message.
      * Type: int
-     * 
+     *
      * @see javax.jms.DeliveryMode
      */
     public static final String OUTGOING_DELIVERY_MODE = "jms.outgoing-delivery-mode";
@@ -116,7 +116,7 @@ public class JmsHeaders {
      */
     public static final String OUTGOING_PROPERTIES = "jms.outgoing-properties";
 
-    private JmsHeaders() {
+    private JmsMetadata() {
         // avoid direct instantiation
     }
 }

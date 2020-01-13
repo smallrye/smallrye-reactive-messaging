@@ -7,8 +7,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
@@ -57,11 +57,11 @@ class HttpSink {
 
     @SuppressWarnings("unchecked")
     private HttpRequest toHttpRequest(Message message) {
-        Headers headers = message.getHeaders();
-        String actualUrl = headers.getAsString(HttpHeaders.URL, this.url);
-        String actualMethod = headers.getAsString(HttpHeaders.METHOD, this.method).toUpperCase();
-        Map<String, ?> httpHeaders = headers.get(HttpHeaders.HEADERS, Collections.emptyMap());
-        Map<String, ?> query = headers.get(HttpHeaders.QUERY_PARAMETERS, Collections.emptyMap());
+        Metadata metadata = message.getMetadata();
+        String actualUrl = metadata.getAsString(HttpMetadata.URL, this.url);
+        String actualMethod = metadata.getAsString(HttpMetadata.METHOD, this.method).toUpperCase();
+        Map<String, ?> httpHeaders = metadata.get(HttpMetadata.HEADERS, Collections.emptyMap());
+        Map<String, ?> query = metadata.get(HttpMetadata.QUERY_PARAMETERS, Collections.emptyMap());
 
         HttpRequest request;
         switch (actualMethod) {

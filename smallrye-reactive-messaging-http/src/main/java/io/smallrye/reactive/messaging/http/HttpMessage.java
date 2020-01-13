@@ -5,34 +5,34 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 public class HttpMessage<T> implements Message<T> {
 
     private final T payload;
     private final Supplier<CompletionStage<Void>> ack;
-    private final Headers headers;
+    private final Metadata metadata;
 
     public HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
             Map<String, List<String>> headers, Supplier<CompletionStage<Void>> ack) {
         this.payload = payload;
-        Headers.HeadersBuilder builder = Headers.builder();
+        Metadata.MetadataBuilder builder = Metadata.builder();
 
         if (method != null) {
-            builder.with(HttpHeaders.METHOD, method);
+            builder.with(HttpMetadata.METHOD, method);
         }
         if (url != null) {
-            builder.with(HttpHeaders.URL, url);
+            builder.with(HttpMetadata.URL, url);
         }
         if (headers != null) {
-            builder.with(HttpHeaders.HEADERS, headers);
+            builder.with(HttpMetadata.HEADERS, headers);
         }
         if (query != null) {
-            builder.with(HttpHeaders.QUERY_PARAMETERS, query);
+            builder.with(HttpMetadata.QUERY_PARAMETERS, query);
         }
 
-        this.headers = builder.build();
+        this.metadata = builder.build();
         this.ack = ack;
     }
 
@@ -46,7 +46,7 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     public String getMethod() {
-        return headers.getAsString(HttpHeaders.METHOD, null);
+        return metadata.getAsString(HttpMetadata.METHOD, null);
     }
 
     @Override
@@ -55,20 +55,20 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     @Override
-    public Headers getHeaders() {
-        return headers;
+    public Metadata getMetadata() {
+        return metadata;
     }
 
-    public Map<String, List<String>> getHttpHeaders() {
-        return headers.get(HttpHeaders.HEADERS, Collections.emptyMap());
+    public Map<String, List<String>> getHeaders() {
+        return metadata.get(HttpMetadata.HEADERS, Collections.emptyMap());
     }
 
     public Map<String, List<String>> getQuery() {
-        return headers.get(HttpHeaders.QUERY_PARAMETERS, Collections.emptyMap());
+        return metadata.get(HttpMetadata.QUERY_PARAMETERS, Collections.emptyMap());
     }
 
     public String getUrl() {
-        return headers.getAsString(HttpHeaders.URL, null);
+        return metadata.getAsString(HttpMetadata.URL, null);
     }
 
     public static final class HttpMessageBuilder<T> {

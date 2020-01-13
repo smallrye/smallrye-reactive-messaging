@@ -3,10 +3,10 @@ package io.smallrye.reactive.messaging.http;
 /**
  * List the {@link org.eclipse.microprofile.reactive.messaging.Message} headers understood by the HTTP connector.
  * <p>
- * To customize the HTTP request emitted by the connector, you can add these headers to the outgoing message.
+ * To customize the HTTP request emitted by the connector, you can add these attribute to the outgoing message.
  */
 @SuppressWarnings("WeakerAccess")
-public class HttpHeaders {
+public class HttpMetadata {
 
     /**
      * The HTTP headers.
@@ -45,7 +45,7 @@ public class HttpHeaders {
      */
     public static final String QUERY_PARAMETERS = "http.outgoing-query-parameters";
 
-    private HttpHeaders() {
+    private HttpMetadata() {
         // avoid direct instantiation.
     }
 }

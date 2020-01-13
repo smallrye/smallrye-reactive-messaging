@@ -31,7 +31,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the updated Kafka Message.
      */
     default KafkaMessage<K, T> withHeader(String key, byte[] content) {
-        MessageHeadersBuilder builder = MessageHeaders.builder().with(getKafkaHeaders()).with(key, content);
+        MessageHeadersBuilder builder = MessageHeaders.builder().with(getHeaders()).with(key, content);
         return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
                 builder.build(), getAckSupplier());
     }
@@ -45,7 +45,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the updated Kafka Message.
      */
     default KafkaMessage<K, T> withHeader(String key, String content) {
-        MessageHeadersBuilder builder = MessageHeaders.builder().with(getKafkaHeaders()).with(key, content);
+        MessageHeadersBuilder builder = MessageHeaders.builder().with(getHeaders()).with(key, content);
         return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
                 builder.build(), getAckSupplier());
     }
@@ -60,7 +60,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
      * @return the updated Kafka Message.
      */
     default KafkaMessage<K, T> withHeader(String key, String content, Charset enc) {
-        MessageHeadersBuilder builder = MessageHeaders.builder().with(getKafkaHeaders()).with(key, content, enc);
+        MessageHeadersBuilder builder = MessageHeaders.builder().with(getHeaders()).with(key, content, enc);
         return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
                 builder.build(), getAckSupplier());
     }
@@ -105,7 +105,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
     @Override
     default KafkaMessage<K, T> withAck(Supplier<CompletionStage<Void>> ack) {
         return new SendingKafkaMessage<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
-                getKafkaHeaders(), ack);
+                getHeaders(), ack);
     }
 
     /**
@@ -151,7 +151,7 @@ public interface KafkaMessage<K, T> extends Message<T> {
     /**
      * @return the Kafka record headers.
      */
-    MessageHeaders getKafkaHeaders();
+    MessageHeaders getHeaders();
 
     /**
      * @return the supplier producing the acknowledgement action.

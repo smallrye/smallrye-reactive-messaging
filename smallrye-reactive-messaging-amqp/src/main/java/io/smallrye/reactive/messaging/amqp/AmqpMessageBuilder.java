@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.amqp;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.eclipse.microprofile.reactive.messaging.Headers;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -159,40 +159,40 @@ public class AmqpMessageBuilder<T> {
 
     public AmqpMessage<T> build() {
         io.vertx.axle.amqp.AmqpMessage delegate = builder.build();
-        Headers.HeadersBuilder hb = Headers.builder();
+        Metadata.MetadataBuilder hb = Metadata.builder();
         if (delegate.address() != null) {
-            hb.with(AmqpHeaders.OUTGOING_ADDRESS, delegate.address());
+            hb.with(AmqpMetadata.OUTGOING_ADDRESS, delegate.address());
         }
         if (delegate.applicationProperties() != null) {
-            hb.with(AmqpHeaders.OUTGOING_APPLICATION_PROPERTIES, delegate.applicationProperties());
+            hb.with(AmqpMetadata.OUTGOING_APPLICATION_PROPERTIES, delegate.applicationProperties());
         }
         if (delegate.contentType() != null) {
-            hb.with(AmqpHeaders.OUTGOING_CONTENT_TYPE, delegate.contentType());
+            hb.with(AmqpMetadata.OUTGOING_CONTENT_TYPE, delegate.contentType());
         }
         if (delegate.contentEncoding() != null) {
-            hb.with(AmqpHeaders.OUTGOING_CONTENT_ENCODING, delegate.contentEncoding());
+            hb.with(AmqpMetadata.OUTGOING_CONTENT_ENCODING, delegate.contentEncoding());
         }
         if (delegate.correlationId() != null) {
-            hb.with(AmqpHeaders.OUTGOING_CORRELATION_ID, delegate.correlationId());
+            hb.with(AmqpMetadata.OUTGOING_CORRELATION_ID, delegate.correlationId());
         }
         if (delegate.groupId() != null) {
-            hb.with(AmqpHeaders.OUTGOING_GROUP_ID, delegate.groupId());
+            hb.with(AmqpMetadata.OUTGOING_GROUP_ID, delegate.groupId());
         }
         if (delegate.id() != null) {
-            hb.with(AmqpHeaders.OUTGOING_ID, delegate.id());
+            hb.with(AmqpMetadata.OUTGOING_ID, delegate.id());
         }
-        hb.with(AmqpHeaders.OUTGOING_DURABLE, delegate.isDurable());
+        hb.with(AmqpMetadata.OUTGOING_DURABLE, delegate.isDurable());
         if (delegate.priority() >= 0) {
-            hb.with(AmqpHeaders.OUTGOING_PRIORITY, delegate.priority());
+            hb.with(AmqpMetadata.OUTGOING_PRIORITY, delegate.priority());
         }
         if (delegate.subject() != null) {
-            hb.with(AmqpHeaders.OUTGOING_SUBJECT, delegate.subject());
+            hb.with(AmqpMetadata.OUTGOING_SUBJECT, delegate.subject());
         }
         if (delegate.ttl() >= 0) {
-            hb.with(AmqpHeaders.OUTGOING_TTL, delegate.ttl());
+            hb.with(AmqpMetadata.OUTGOING_TTL, delegate.ttl());
         }
 
-        Headers headers = hb.build();
-        return new OutgoingAmqpMessage<>(delegate, headers);
+        Metadata metadata = hb.build();
+        return new OutgoingAmqpMessage<>(delegate, metadata);
     }
 }

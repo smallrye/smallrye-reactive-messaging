@@ -59,15 +59,15 @@ First, your method can also return a `HttpMessage` to configure the _headers_, _
 include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/Http/HttpExample.java[tag=http-message]
 ----
 
-Otherwise, you can use _raw_ `Message` and use _headers_.
-Note that using `HttpMessage` is producing a _raw_ `Message` using headers.
+Otherwise, you can use _raw_ `Message` and use _metadata_.
+Note that using `HttpMessage` is producing a _raw_ `Message` using metadata.
 
 [source,java]
 ----
 include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/Http/HttpExample.java[tag=raw-message]
 ----
 
-The following table list the configurable headers:
+The following table list the configurable metadata:
 
 [cols=3*,options="header"]
 |===

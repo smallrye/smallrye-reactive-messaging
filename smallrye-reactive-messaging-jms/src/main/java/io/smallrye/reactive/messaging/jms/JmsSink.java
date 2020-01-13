@@ -9,8 +9,8 @@ import javax.jms.*;
 import javax.json.bind.Jsonb;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
@@ -81,7 +81,7 @@ class JmsSink {
     private CompletionStage<Message<?>> send(Message<?> message) throws JMSException {
         Object payload = message.getPayload();
 
-        // If the payload is a JMS Message, send it as it is, ignoring headers.
+        // If the payload is a JMS Message, send it as it is, ignoring metadata.
         if (payload instanceof javax.jms.Message) {
             return dispatch(message, () -> producer.send(destination, (javax.jms.Message) payload));
         }
@@ -101,14 +101,14 @@ class JmsSink {
             outgoing.setStringProperty("_classname", payload.getClass().getName());
         }
 
-        Headers headers = message.getHeaders();
+        Metadata metadata = message.getMetadata();
 
-        String correlationId = headers.getAsString(JmsHeaders.OUTGOING_CORRELATION_ID, null);
-        Destination replyTo = headers.get(JmsHeaders.OUTGOING_REPLY_TO, (Destination) null);
-        Destination dest = headers.get(JmsHeaders.OUTGOING_DESTINATION, (Destination) null);
-        int deliveryMode = headers.getAsInteger(JmsHeaders.OUTGOING_DELIVERY_MODE, -1);
-        String type = headers.getAsString(JmsHeaders.OUTGOING_TYPE, null);
-        JmsProperties properties = headers.get(JmsHeaders.OUTGOING_PROPERTIES, (JmsProperties) null);
+        String correlationId = metadata.getAsString(JmsMetadata.OUTGOING_CORRELATION_ID, null);
+        Destination replyTo = metadata.get(JmsMetadata.OUTGOING_REPLY_TO, (Destination) null);
+        Destination dest = metadata.get(JmsMetadata.OUTGOING_DESTINATION, (Destination) null);
+        int deliveryMode = metadata.getAsInteger(JmsMetadata.OUTGOING_DELIVERY_MODE, -1);
+        String type = metadata.getAsString(JmsMetadata.OUTGOING_TYPE, null);
+        JmsProperties properties = metadata.get(JmsMetadata.OUTGOING_PROPERTIES, (JmsProperties) null);
 
         if (correlationId != null) {
             outgoing.setJMSCorrelationID(correlationId);

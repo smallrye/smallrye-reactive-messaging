@@ -13,8 +13,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -225,11 +225,11 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         List<Message<Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            Headers headers = m.getHeaders();
-            assertThat(headers.getAsString(KafkaHeaders.TOPIC, null)).isEqualTo("data");
-            assertThat(headers.getAsLong(KafkaHeaders.TIMESTAMP, -1L)).isGreaterThan(0);
-            assertThat(headers.getAsInteger(KafkaHeaders.PARTITION, -1)).isGreaterThan(-1);
-            assertThat(headers.getAsInteger(KafkaHeaders.OFFSET, -1)).isGreaterThan(-1);
+            Metadata metadata = m.getMetadata();
+            assertThat(metadata.getAsString(KafkaMetadata.TOPIC, null)).isEqualTo("data");
+            assertThat(metadata.getAsLong(KafkaMetadata.TIMESTAMP, -1L)).isGreaterThan(0);
+            assertThat(metadata.getAsInteger(KafkaMetadata.PARTITION, -1)).isGreaterThan(-1);
+            assertThat(metadata.getAsInteger(KafkaMetadata.OFFSET, -1)).isGreaterThan(-1);
         });
     }
 

@@ -20,8 +20,8 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
@@ -306,7 +306,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         if (amqp.address() != null) {
             return amqp.address();
         }
-        String addressFromHeader = message.getHeaders().getAsString(AmqpHeaders.OUTGOING_ADDRESS, null);
+        String addressFromHeader = message.getMetadata().getAsString(AmqpMetadata.OUTGOING_ADDRESS, null);
         if (addressFromHeader != null) {
             return addressFromHeader;
         } else {
@@ -347,18 +347,18 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Message message, boolean durable, long ttl) {
         Object payload = message.getPayload();
-        Headers headers = message.getHeaders();
+        Metadata metadata = message.getMetadata();
         AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create();
 
         if (durable) {
             builder.durable(true);
         } else {
-            builder.durable(headers.getAsBoolean(AmqpHeaders.OUTGOING_DURABLE, false));
+            builder.durable(metadata.getAsBoolean(AmqpMetadata.OUTGOING_DURABLE, false));
         }
         if (ttl > 0) {
             builder.ttl(ttl);
         } else {
-            long t = headers.getAsLong(AmqpHeaders.OUTGOING_TTL, -1);
+            long t = metadata.getAsLong(AmqpMetadata.OUTGOING_TTL, -1);
             if (t > 0) {
                 builder.ttl(t);
             }
@@ -396,23 +396,23 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             builder.withBody(payload.toString());
         }
 
-        builder.address(headers.getAsString(AmqpHeaders.OUTGOING_ADDRESS, null));
+        builder.address(metadata.getAsString(AmqpMetadata.OUTGOING_ADDRESS, null));
 
-        JsonObject json = headers.get(AmqpHeaders.OUTGOING_APPLICATION_PROPERTIES);
+        JsonObject json = metadata.get(AmqpMetadata.OUTGOING_APPLICATION_PROPERTIES);
         if (json != null) {
             builder.applicationProperties(json);
         }
 
-        builder.contentEncoding(headers.getAsString(AmqpHeaders.OUTGOING_CONTENT_ENCODING, null));
-        builder.contentType(headers.getAsString(AmqpHeaders.OUTGOING_CONTENT_TYPE, null));
-        builder.correlationId(headers.getAsString(AmqpHeaders.OUTGOING_CORRELATION_ID, null));
-        builder.groupId(headers.getAsString(AmqpHeaders.OUTGOING_GROUP_ID, null));
-        builder.id(headers.getAsString(AmqpHeaders.OUTGOING_ID, null));
-        int priority = headers.getAsInteger(AmqpHeaders.OUTGOING_PRIORITY, -1);
+        builder.contentEncoding(metadata.getAsString(AmqpMetadata.OUTGOING_CONTENT_ENCODING, null));
+        builder.contentType(metadata.getAsString(AmqpMetadata.OUTGOING_CONTENT_TYPE, null));
+        builder.correlationId(metadata.getAsString(AmqpMetadata.OUTGOING_CORRELATION_ID, null));
+        builder.groupId(metadata.getAsString(AmqpMetadata.OUTGOING_GROUP_ID, null));
+        builder.id(metadata.getAsString(AmqpMetadata.OUTGOING_ID, null));
+        int priority = metadata.getAsInteger(AmqpMetadata.OUTGOING_PRIORITY, -1);
         if (priority >= 0) {
             builder.priority((short) priority);
         }
-        builder.subject(headers.getAsString(AmqpHeaders.OUTGOING_SUBJECT, null));
+        builder.subject(metadata.getAsString(AmqpMetadata.OUTGOING_SUBJECT, null));
         return builder.build();
     }
 

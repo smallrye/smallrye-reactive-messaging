@@ -38,7 +38,7 @@ NOTE: If the `address` attribute is not set the channel name is used instead.
 Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
 The payload must be a supported AMQP type.
 The `AmqpMessage` implements `Message` and provide additional metadata related to AMQP.
-In addition, the message contains the following headers:
+In addition, the message contains the following metadata:
 
 [cols=3*,options="header"]
 |===
@@ -142,7 +142,7 @@ Otherwise, the connector invokes `toString` on the wrapped payload.
 NOTE: If the `address` attribute is not set the channel name is used instead.
 If the AMQP Message has an address set, this address is used.
 
-Instead of an `AMQPMessage` you can pass the following headers:
+Instead of an `AMQPMessage` you can pass the following metadata:
 
 [cols=3*,options="header"]
 |===

@@ -4,11 +4,11 @@ import org.apache.kafka.common.header.Header;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 /**
- * The list of Message headers understood by the connector.
+ * The list of Message attribute understood by the connector.
  * These headers can be used on outgoing message to influence the dispatching (specific topic...), or used to
  * retrieve Kafka metadata.
  */
-public class KafkaHeaders {
+public class KafkaMetadata {
 
     /**
      * The topic of the record.
@@ -91,28 +91,28 @@ public class KafkaHeaders {
      */
     public static final String OFFSET = "kafka.offset";
 
-    private KafkaHeaders() {
+    private KafkaMetadata() {
         // avoid direct instantiation
     }
 
     static String getKafkaTopic(Message<?> message, String defaultValue) {
-        return message.getHeaders().getAsString(OUTGOING_TOPIC, defaultValue);
+        return message.getMetadata().getAsString(OUTGOING_TOPIC, defaultValue);
     }
 
     static int getKafkaPartition(Message<?> message, int defaultValue) {
-        return message.getHeaders().getAsInteger(OUTGOING_PARTITION, defaultValue);
+        return message.getMetadata().getAsInteger(OUTGOING_PARTITION, defaultValue);
     }
 
     static String getKafkaKey(Message<?> message, String defaultValue) {
-        return message.getHeaders().getAsString(OUTGOING_KEY, defaultValue);
+        return message.getMetadata().getAsString(OUTGOING_KEY, defaultValue);
     }
 
     static long getKafkaTimestamp(Message<?> message, long defaultValue) {
-        return message.getHeaders().getAsLong(OUTGOING_TIMESTAMP, defaultValue);
+        return message.getMetadata().getAsLong(OUTGOING_TIMESTAMP, defaultValue);
     }
 
     @SuppressWarnings("unchecked")
     static Iterable<Header> getKafkaRecordHeaders(Message<?> message) {
-        return message.getHeaders().get(OUTGOING_HEADERS, Iterable.class);
+        return message.getMetadata().get(OUTGOING_HEADERS, Iterable.class);
     }
 }

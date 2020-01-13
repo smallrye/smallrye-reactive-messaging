@@ -3,73 +3,73 @@ package io.smallrye.reactive.messaging.amqp;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.microprofile.reactive.messaging.Headers;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.vertx.core.json.JsonObject;
 
 public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
         implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
-    private final Headers headers;
+    private final Metadata metadata;
 
-    public OutgoingAmqpMessage(io.vertx.axle.amqp.AmqpMessage message, Headers headers) {
+    public OutgoingAmqpMessage(io.vertx.axle.amqp.AmqpMessage message, Metadata metadata) {
         super(message);
-        this.headers = headers;
+        this.metadata = metadata;
     }
 
     @Override
-    public Headers getHeaders() {
-        return headers;
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     @Override
     public boolean isDurable() {
-        return headers.getAsBoolean(AmqpHeaders.OUTGOING_DURABLE);
+        return metadata.getAsBoolean(AmqpMetadata.OUTGOING_DURABLE);
     }
 
     @Override
     public int getPriority() {
-        return headers.getAsInteger(AmqpHeaders.OUTGOING_PRIORITY, 0);
+        return metadata.getAsInteger(AmqpMetadata.OUTGOING_PRIORITY, 0);
     }
 
     @Override
     public long getTtl() {
-        return headers.getAsLong(AmqpHeaders.OUTGOING_TTL, 0);
+        return metadata.getAsLong(AmqpMetadata.OUTGOING_TTL, 0);
     }
 
     @Override
     public Object getMessageId() {
-        return headers.get(AmqpHeaders.OUTGOING_ID);
+        return metadata.get(AmqpMetadata.OUTGOING_ID);
     }
 
     @Override
     public String getAddress() {
-        return headers.getAsString(AmqpHeaders.OUTGOING_ADDRESS, null);
+        return metadata.getAsString(AmqpMetadata.OUTGOING_ADDRESS, null);
     }
 
     @Override
     public String getGroupId() {
-        return headers.getAsString(AmqpHeaders.OUTGOING_GROUP_ID, null);
+        return metadata.getAsString(AmqpMetadata.OUTGOING_GROUP_ID, null);
     }
 
     @Override
     public String getContentType() {
-        return headers.getAsString(AmqpHeaders.OUTGOING_CONTENT_TYPE, null);
+        return metadata.getAsString(AmqpMetadata.OUTGOING_CONTENT_TYPE, null);
     }
 
     @Override
     public Object getCorrelationId() {
-        return headers.get(AmqpHeaders.OUTGOING_CORRELATION_ID);
+        return metadata.get(AmqpMetadata.OUTGOING_CORRELATION_ID);
     }
 
     @Override
     public String getContentEncoding() {
-        return headers.getAsString(AmqpHeaders.OUTGOING_CONTENT_ENCODING, null);
+        return metadata.getAsString(AmqpMetadata.OUTGOING_CONTENT_ENCODING, null);
     }
 
     @Override
     public String getSubject() {
-        return headers.getAsString(AmqpHeaders.OUTGOING_SUBJECT, null);
+        return metadata.getAsString(AmqpMetadata.OUTGOING_SUBJECT, null);
     }
 
     @Override
@@ -79,6 +79,6 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
 
     @Override
     public JsonObject getApplicationProperties() {
-        return headers.get(AmqpHeaders.OUTGOING_APPLICATION_PROPERTIES, new JsonObject());
+        return metadata.get(AmqpMetadata.OUTGOING_APPLICATION_PROPERTIES, new JsonObject());
     }
 }

@@ -6,34 +6,34 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.header.Header;
-import org.eclipse.microprofile.reactive.messaging.Headers;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
     private final T value;
     private final Supplier<CompletionStage<Void>> ack;
-    private final Headers headers;
+    private final Metadata metadata;
 
     public SendingKafkaMessage(String topic, K key, T value, long timestamp, int partition, MessageHeaders headers,
             Supplier<CompletionStage<Void>> ack) {
 
-        Headers.HeadersBuilder builder = Headers.builder();
+        Metadata.MetadataBuilder builder = Metadata.builder();
         if (topic != null) {
-            builder.with(KafkaHeaders.OUTGOING_TOPIC, topic);
+            builder.with(KafkaMetadata.OUTGOING_TOPIC, topic);
         }
         if (key != null) {
-            builder.with(KafkaHeaders.OUTGOING_KEY, key);
+            builder.with(KafkaMetadata.OUTGOING_KEY, key);
         }
         if (partition >= 0) {
-            builder.with(KafkaHeaders.OUTGOING_PARTITION, partition);
+            builder.with(KafkaMetadata.OUTGOING_PARTITION, partition);
         }
         if (timestamp >= 0) {
-            builder.with(KafkaHeaders.OUTGOING_TIMESTAMP, timestamp);
+            builder.with(KafkaMetadata.OUTGOING_TIMESTAMP, timestamp);
         }
         if (headers != null) {
-            builder.with(KafkaHeaders.OUTGOING_HEADERS, headers.unwrap());
+            builder.with(KafkaMetadata.OUTGOING_HEADERS, headers.unwrap());
         }
-        this.headers = builder.build();
+        this.metadata = builder.build();
         this.value = value;
         this.ack = ack;
     }
@@ -55,23 +55,23 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     @SuppressWarnings("unchecked")
     @Override
     public K getKey() {
-        return (K) headers.get(KafkaHeaders.OUTGOING_KEY);
+        return (K) metadata.get(KafkaMetadata.OUTGOING_KEY);
     }
 
     @Override
     public String getTopic() {
-        return headers.getAsString(KafkaHeaders.OUTGOING_TOPIC, null);
+        return metadata.getAsString(KafkaMetadata.OUTGOING_TOPIC, null);
     }
 
     @Override
     public long getTimestamp() {
-        return headers.getAsLong(KafkaHeaders.OUTGOING_TIMESTAMP, -1L);
+        return metadata.getAsLong(KafkaMetadata.OUTGOING_TIMESTAMP, -1L);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public MessageHeaders getKafkaHeaders() {
-        Iterable<Header> iterable = headers.get(KafkaHeaders.OUTGOING_HEADERS, Iterable.class);
+    public MessageHeaders getHeaders() {
+        Iterable<Header> iterable = metadata.get(KafkaMetadata.OUTGOING_HEADERS, Iterable.class);
         if (iterable != null) {
             return new MessageHeaders(iterable);
         } else {
@@ -86,7 +86,7 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
 
     @Override
     public int getPartition() {
-        return headers.getAsInteger(KafkaHeaders.OUTGOING_PARTITION, -1);
+        return metadata.getAsInteger(KafkaMetadata.OUTGOING_PARTITION, -1);
     }
 
     @Override
@@ -96,7 +96,7 @@ public class SendingKafkaMessage<K, T> implements KafkaMessage<K, T> {
     }
 
     @Override
-    public Headers getHeaders() {
-        return headers;
+    public Metadata getMetadata() {
+        return metadata;
     }
 }

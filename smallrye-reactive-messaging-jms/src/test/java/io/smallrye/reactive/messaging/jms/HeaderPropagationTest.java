@@ -17,9 +17,9 @@ import javax.jms.*;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.After;
 import org.junit.Before;
@@ -139,10 +139,10 @@ public class HeaderPropagationTest extends JmsTestBase {
         public Message<Integer> processMessage(Message<Integer> input) {
             JmsProperties properties = new JmsPropertiesBuilder().with("prop", "bar").build();
             return Message.of(input.getPayload())
-                    .withHeaders(Headers.builder()
-                            .with(JmsHeaders.OUTGOING_PROPERTIES, properties)
-                            .with(JmsHeaders.OUTGOING_CORRELATION_ID, "my-correlation-" + input.getPayload())
-                            .with(JmsHeaders.OUTGOING_DESTINATION, queue)
+                    .withMetadata(Metadata.builder()
+                            .with(JmsMetadata.OUTGOING_PROPERTIES, properties)
+                            .with(JmsMetadata.OUTGOING_CORRELATION_ID, "my-correlation-" + input.getPayload())
+                            .with(JmsMetadata.OUTGOING_DESTINATION, queue)
                             .build());
         }
 
@@ -170,10 +170,10 @@ public class HeaderPropagationTest extends JmsTestBase {
         public Message<Integer> processMessage(Message<Integer> input) {
             JmsProperties properties = JmsProperties.builder().with("prop", "bar").build();
             return Message.of(input.getPayload())
-                    .withHeaders(Headers.builder()
-                            .with(JmsHeaders.OUTGOING_PROPERTIES, properties)
-                            .with(JmsHeaders.OUTGOING_CORRELATION_ID, "my-correlation-" + input.getPayload())
-                            .with(JmsHeaders.OUTGOING_DESTINATION, queue)
+                    .withMetadata(Metadata.builder()
+                            .with(JmsMetadata.OUTGOING_PROPERTIES, properties)
+                            .with(JmsMetadata.OUTGOING_CORRELATION_ID, "my-correlation-" + input.getPayload())
+                            .with(JmsMetadata.OUTGOING_DESTINATION, queue)
                             .build());
         }
 

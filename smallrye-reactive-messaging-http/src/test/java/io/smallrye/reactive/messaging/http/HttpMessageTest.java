@@ -8,8 +8,8 @@ import static org.awaitility.Awaitility.await;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -85,10 +85,10 @@ public class HttpMessageTest {
                         .withStatus(204)));
 
         String uuid = UUID.randomUUID().toString();
-        Message<String> message = Message.of(uuid).withHeaders(Headers.of(
-                HttpHeaders.URL, "http://localhost:8089/record",
-                HttpHeaders.HEADERS, Collections.singletonMap("X-foo", Collections.singletonList("value")),
-                HttpHeaders.QUERY_PARAMETERS,
+        Message<String> message = Message.of(uuid).withMetadata(Metadata.of(
+                HttpMetadata.URL, "http://localhost:8089/record",
+                HttpMetadata.HEADERS, Collections.singletonMap("X-foo", Collections.singletonList("value")),
+                HttpMetadata.QUERY_PARAMETERS,
                 Collections.singletonMap("name", Collections.singletonList("clement"))));
 
         sink.send(message);
@@ -116,10 +116,10 @@ public class HttpMessageTest {
                         .withStatus(204)));
 
         String uuid = UUID.randomUUID().toString();
-        Message<String> message = Message.of(uuid).withHeaders(Headers.of(
-                HttpHeaders.URL, "http://localhost:8089/record",
-                HttpHeaders.HEADERS, Collections.singletonMap("X-foo", "value"),
-                HttpHeaders.QUERY_PARAMETERS, Collections.singletonMap("name", "clement")));
+        Message<String> message = Message.of(uuid).withMetadata(Metadata.of(
+                HttpMetadata.URL, "http://localhost:8089/record",
+                HttpMetadata.HEADERS, Collections.singletonMap("X-foo", "value"),
+                HttpMetadata.QUERY_PARAMETERS, Collections.singletonMap("name", "clement")));
 
         sink.send(message);
         awaitForRequest();
@@ -158,7 +158,7 @@ public class HttpMessageTest {
                 .build();
 
         assertThat(message.getMethod()).isEqualTo("PUT");
-        assertThat(message.getHttpHeaders()).containsExactly(entry("X-foo", Arrays.asList("value", "value-2")));
+        assertThat(message.getHeaders()).containsExactly(entry("X-foo", Arrays.asList("value", "value-2")));
         assertThat(message.getPayload()).isEqualTo(uuid);
         assertThat(message.getQuery()).isEmpty();
         assertThat(message.getUrl()).isNull();

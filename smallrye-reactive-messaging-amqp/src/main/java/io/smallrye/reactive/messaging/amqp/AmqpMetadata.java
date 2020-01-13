@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
-public class AmqpHeaders {
+public class AmqpMetadata {
 
     /**
      * The AMQP Address.
@@ -99,10 +99,10 @@ public class AmqpHeaders {
     public static final String TTL = "amqp.ttl";
 
     /**
-     * The message headers
+     * The message header
      * Type: {@link org.apache.qpid.proton.amqp.messaging.Header}
      */
-    public static final String HEADER = "amqp.headers";
+    public static final String HEADER = "amqp.header";
 
     /**
      * Header to set the AMQP address for an outgoing message.
@@ -170,7 +170,7 @@ public class AmqpHeaders {
      */
     public static final String OUTGOING_TTL = "amqp.outgoing-ttl";
 
-    private AmqpHeaders() {
+    private AmqpMetadata() {
         // avoid direct instantiation.
     }
 }

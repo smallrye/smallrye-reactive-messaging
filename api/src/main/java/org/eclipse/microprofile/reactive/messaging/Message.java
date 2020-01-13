@@ -35,26 +35,26 @@ public interface Message<T> {
 
     /**
      * Create a message with the given payload.
-     * No headers are associated with the message, the acknowledgement is immediate.
+     * No metadata are associated with the message, the acknowledgement is immediate.
      *
      * @param payload The payload.
      * @param <T> The type of payload
-     * @return A message with the given payload, no headers, and a no-op ack function.
+     * @return A message with the given payload, no metadata, and a no-op ack function.
      */
     static <T> Message<T> of(T payload) {
         return () -> payload;
     }
 
     /**
-     * Create a message with the given payload and headers
+     * Create a message with the given payload and metadata.
      * The acknowledgement is immediate.
      *
      * @param payload The payload.
-     * @param headers The headers
+     * @param metadata The metadata.
      * @param <T> The type of payload
-     * @return A message with the given payload, headers and a no-op ack function.
+     * @return A message with the given payload, metadata and a no-op ack function.
      */
-    static <T> Message<T> of(T payload, Headers headers) {
+    static <T> Message<T> of(T payload, Metadata metadata) {
         return new Message<T>() {
             @Override
             public T getPayload() {
@@ -62,20 +62,20 @@ public interface Message<T> {
             }
 
             @Override
-            public Headers getHeaders() {
-                return headers;
+            public Metadata getMetadata() {
+                return metadata;
             }
         };
     }
 
     /**
      * Create a message with the given payload and ack function.
-     * No headers are associated with the message.
+     * No metadata are associated with the message.
      *
      * @param payload The payload.
      * @param ack The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
      * @param <T> the type of payload
-     * @return A message with the given payload, no headers and ack function.
+     * @return A message with the given payload, no metadata and ack function.
      */
     static <T> Message<T> of(T payload, Supplier<CompletionStage<Void>> ack) {
         return new Message<T>() {
@@ -85,8 +85,8 @@ public interface Message<T> {
             }
 
             @Override
-            public Headers getHeaders() {
-                return Headers.empty();
+            public Metadata getMetadata() {
+                return Metadata.empty();
             }
 
             @Override
@@ -97,15 +97,15 @@ public interface Message<T> {
     }
 
     /**
-     * Create a message with the given payload, headers and ack function.
+     * Create a message with the given payload, metadata and ack function.
      *
      * @param payload The payload.
-     * @param headers the headers, if {@code null}, empty headers are used.
+     * @param metadata the metadata, if {@code null}, empty metadata are used.
      * @param ack The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
      * @param <T> the type of payload
      * @return A message with the given payload and ack function.
      */
-    static <T> Message<T> of(T payload, Headers headers, Supplier<CompletionStage<Void>> ack) {
+    static <T> Message<T> of(T payload, Metadata metadata, Supplier<CompletionStage<Void>> ack) {
         return new Message<T>() {
             @Override
             public T getPayload() {
@@ -113,8 +113,8 @@ public interface Message<T> {
             }
 
             @Override
-            public Headers getHeaders() {
-                return headers == null ? Headers.empty() : headers;
+            public Metadata getMetadata() {
+                return metadata == null ? Metadata.empty() : metadata;
             }
 
             @Override
@@ -126,36 +126,36 @@ public interface Message<T> {
 
     /**
      * Creates a new instance of {@link Message} with the specified payload.
-     * The headers and acknowledgment function are taken from the current {@link Message}.
+     * The metadata and acknowledgment function are taken from the current {@link Message}.
      *
-     * @param payload the new payload
+     * @param payload the new payload.
      * @param <P> the type of the new payload
      * @return the new instance of {@link Message}
      */
     default <P> Message<P> withPayload(P payload) {
-        return Message.of(payload, getHeaders(), getAck());
+        return Message.of(payload, getMetadata(), getAck());
     }
 
     /**
-     * Creates a new instance of {@link Message} with the specified headers.
+     * Creates a new instance of {@link Message} with the specified metadata.
      * The payload and acknowledgment function are taken from the current {@link Message}.
      *
-     * @param headers the headers
+     * @param metadata the metadata.
      * @return the new instance of {@link Message}
      */
-    default Message<T> withHeaders(Headers headers) {
-        return Message.of(getPayload(), headers, getAck());
+    default Message<T> withMetadata(Metadata metadata) {
+        return Message.of(getPayload(), metadata, getAck());
     }
 
     /**
      * Creates a new instance of {@link Message} with the given acknowledgement supplier.
-     * The payload and headers are taken from the current {@link Message}.
+     * The payload and metadata are taken from the current {@link Message}.
      *
      * @param supplier the acknowledgement supplier
      * @return the new instance of {@link Message}
      */
     default Message<T> withAck(Supplier<CompletionStage<Void>> supplier) {
-        return Message.of(getPayload(), getHeaders(), supplier);
+        return Message.of(getPayload(), getMetadata(), supplier);
     }
 
     /**
@@ -164,10 +164,10 @@ public interface Message<T> {
     T getPayload();
 
     /**
-     * @return The set of headers attached to this message.
+     * @return The set of metadata attached to this message.
      */
-    default Headers getHeaders() {
-        return Headers.empty();
+    default Metadata getMetadata() {
+        return Metadata.empty();
     }
 
     /**

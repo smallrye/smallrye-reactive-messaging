@@ -68,15 +68,15 @@ class KafkaSink {
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(message -> {
                     try {
-                        String actualTopic = KafkaHeaders.getKafkaTopic(message, this.topic);
+                        String actualTopic = KafkaMetadata.getKafkaTopic(message, this.topic);
                         if (actualTopic == null) {
                             LOGGER.error("Ignoring message - no topic set");
                             return CompletableFuture.completedFuture(message);
                         }
-                        int actualPartition = KafkaHeaders.getKafkaPartition(message, this.partition);
-                        String actualKey = KafkaHeaders.getKafkaKey(message, key);
-                        long actualTimestamp = KafkaHeaders.getKafkaTimestamp(message, -1);
-                        Iterable<Header> kafkaHeaders = KafkaHeaders.getKafkaRecordHeaders(message);
+                        int actualPartition = KafkaMetadata.getKafkaPartition(message, this.partition);
+                        String actualKey = KafkaMetadata.getKafkaKey(message, key);
+                        long actualTimestamp = KafkaMetadata.getKafkaTimestamp(message, -1);
+                        Iterable<Header> kafkaHeaders = KafkaMetadata.getKafkaRecordHeaders(message);
                         ProducerRecord record = new ProducerRecord<>(
                                 actualTopic,
                                 actualPartition == -1 ? null : actualPartition,

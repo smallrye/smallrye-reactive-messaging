@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.headers;
+package io.smallrye.reactive.messaging.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -9,8 +9,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.microprofile.reactive.messaging.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.Test;
 
 public class MessageTest {
@@ -19,30 +19,30 @@ public class MessageTest {
     public void testMessageCreation() {
         Message<String> message = Message.of("hello");
         assertThat(message.getPayload()).isEqualTo("hello");
-        assertThat(message.getHeaders()).isEmpty();
+        assertThat(message.getMetadata()).isEmpty();
         assertThat(message.ack()).isCompleted();
 
         Supplier<CompletionStage<Void>> supplier = () -> CompletableFuture.completedFuture(null);
         message = Message.of("hello", supplier);
         assertThat(message.getPayload()).isEqualTo("hello");
-        assertThat(message.getHeaders()).isEmpty();
+        assertThat(message.getMetadata()).isEmpty();
         assertThat(message.getAck()).isEqualTo(supplier);
         assertThat(message.ack()).isCompleted();
 
-        message = Message.of("hello", Headers.of("k", "v"));
+        message = Message.of("hello", Metadata.of("k", "v"));
         assertThat(message.getPayload()).isEqualTo("hello");
-        assertThat(message.getHeaders()).hasSize(1);
+        assertThat(message.getMetadata()).hasSize(1);
         assertThat(message.ack()).isCompleted();
 
-        message = Message.of("hello", Headers.of("k", "v"), supplier);
+        message = Message.of("hello", Metadata.of("k", "v"), supplier);
         assertThat(message.getPayload()).isEqualTo("hello");
-        assertThat(message.getHeaders()).hasSize(1);
+        assertThat(message.getMetadata()).hasSize(1);
         assertThat(message.getAck()).isEqualTo(supplier);
         assertThat(message.ack()).isCompleted();
 
-        message = Message.of("hello", Headers.of("k", "v"), null);
+        message = Message.of("hello", Metadata.of("k", "v"), null);
         assertThat(message.getPayload()).isEqualTo("hello");
-        assertThat(message.getHeaders()).hasSize(1);
+        assertThat(message.getMetadata()).hasSize(1);
         assertThat(message.getAck()).isNotEqualTo(supplier);
         assertThat(message.ack()).isCompleted();
     }
@@ -51,24 +51,24 @@ public class MessageTest {
     public void testFrom() {
         Message<String> message = Message.of("hello");
         assertThat(message.getPayload()).isEqualTo("hello");
-        assertThat(message.getHeaders()).isEmpty();
+        assertThat(message.getMetadata()).isEmpty();
         assertThat(message.ack()).isCompleted();
 
-        Message<String> message2 = message.withHeaders(Headers.of("foo", "bar"));
+        Message<String> message2 = message.withMetadata(Metadata.of("foo", "bar"));
         assertThat(message2.getPayload()).isEqualTo("hello");
-        assertThat(message2.getHeaders()).hasSize(1);
+        assertThat(message2.getMetadata()).hasSize(1);
         assertThat(message2.ack()).isCompleted();
         assertThat(message).isNotEqualTo(message2);
 
         Message<String> message3 = message2.withAck(CompletableFuture::new);
         assertThat(message3.getPayload()).isEqualTo("hello");
-        assertThat(message3.getHeaders()).hasSize(1);
+        assertThat(message3.getMetadata()).hasSize(1);
         assertThat(message3.ack()).isNotCompleted();
         assertThat(message3).isNotEqualTo(message2).isNotEqualTo(message);
 
         Message<List<String>> message4 = message3.withPayload(Collections.singletonList("foo"));
         assertThat(message4.getPayload()).containsExactly("foo");
-        assertThat(message4.getHeaders()).hasSize(1);
+        assertThat(message4.getMetadata()).hasSize(1);
         assertThat(message4.ack()).isNotCompleted();
         assertThat(message4).isNotEqualTo(message2).isNotEqualTo(message3).isNotEqualTo(message);
     }

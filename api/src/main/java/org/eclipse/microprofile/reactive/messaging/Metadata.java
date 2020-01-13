@@ -6,20 +6,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Message header containers.
+ * Message metadata containers.
  * <p>
  * This class stores message metadata that can be related to the transport layer or to the business / application.
  * <p>
  * This class can be seen as an immutable {@link java.util.Map Map<String, Object>}. The content will never change,
  * so there are no remove, put or clear operations. Add new entries using the {@link #with(String, Object)} and remove
- * entries using {@link #without(String)}. These operations returns new instances of {@link Headers}.
+ * entries using {@link #without(String)}. These operations returns new instances of {@link Metadata}.
  * <p>
  * <p>
  * You can creates new instances using:
  * <ul>
  * <li>{@link #of()} - create instances with 0..5 entries</li>
  * <li>{@link #builder()} - gets a builder in which you can add and remove entries</li>
- * <li>{@link #from(Headers)} - gets a builder containing a copy of the passed headers</li>
+ * <li>{@link #from(Metadata)} - gets a builder containing a copy of the passed metadata</li>
  * </ul>
  * <p>
  * Note that:
@@ -31,58 +31,58 @@ import java.util.stream.Collectors;
  *
  * <strong>IMPORTANT:</strong> Experimental.
  */
-public class Headers extends LinkedHashMap<String, Object> {
+public class Metadata extends LinkedHashMap<String, Object> {
 
     /**
      * The empty header singleton.
      */
-    private static final Headers EMPTY = new Headers(Collections.emptyMap());
+    private static final Metadata EMPTY = new Metadata(Collections.emptyMap());
 
     /**
-     * {@link Headers} instances must be created using the static factory methods.
+     * {@link Metadata} instances must be created using the static factory methods.
      *
      * @param backend the backend, must not be {@code null}
      */
-    private Headers(Map<String, Object> backend) {
+    private Metadata(Map<String, Object> backend) {
         super(backend);
     }
 
     /**
-     * Returns the an empty {@link Headers}
+     * Returns the an empty {@link Metadata}
      *
-     * @return the new {@link Headers} instance
+     * @return the new {@link Metadata} instance
      */
-    public static Headers of() {
-        return new HeadersBuilder().build();
+    public static Metadata of() {
+        return new MetadataBuilder().build();
     }
 
     /**
-     * Returns a new {@link Headers} containing a single entry.
+     * Returns a new {@link Metadata} containing a single entry.
      *
      * @param k1 the key, must not be {@code null}
      * @param v1 the value, must not be {@code null}
-     * @return the new {@link Headers} instance
+     * @return the new {@link Metadata} instance
      */
-    public static Headers of(String k1, Object v1) {
-        return new HeadersBuilder().with(k1, v1).build();
+    public static Metadata of(String k1, Object v1) {
+        return new MetadataBuilder().with(k1, v1).build();
     }
 
     /**
-     * Returns a new {@link Headers} containing two entries in order.
+     * Returns a new {@link Metadata} containing two entries in order.
      *
      * @param k1 the first key, must not be {@code null}
      * @param v1 the first value, must not be {@code null}
      * @param k2 the second key, must not be {@code null}
      * @param v2 the second value, must not be {@code null}
-     * @return the new {@link Headers} instance
+     * @return the new {@link Metadata} instance
      * @throws IllegalArgumentException if duplicate keys are provided
      */
-    public static Headers of(String k1, Object v1, String k2, Object v2) {
-        return new HeadersBuilder().withEntries(entryOf(k1, v1), entryOf(k2, v2)).build();
+    public static Metadata of(String k1, Object v1, String k2, Object v2) {
+        return new MetadataBuilder().withEntries(entryOf(k1, v1), entryOf(k2, v2)).build();
     }
 
     /**
-     * Returns a new {@link Headers} containing three entries in order.
+     * Returns a new {@link Metadata} containing three entries in order.
      *
      * @param k1 the first key, must not be {@code null}
      * @param v1 the first value, must not be {@code null}
@@ -90,15 +90,15 @@ public class Headers extends LinkedHashMap<String, Object> {
      * @param v2 the second value, must not be {@code null}
      * @param k3 the third key, must not be {@code null}
      * @param v3 the third value, must not be {@code null}
-     * @return the new {@link Headers} instance
+     * @return the new {@link Metadata} instance
      * @throws IllegalArgumentException if duplicate keys are provided
      */
-    public static Headers of(String k1, Object v1, String k2, Object v2, String k3, Object v3) {
-        return new HeadersBuilder().withEntries(entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3)).build();
+    public static Metadata of(String k1, Object v1, String k2, Object v2, String k3, Object v3) {
+        return new MetadataBuilder().withEntries(entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3)).build();
     }
 
     /**
-     * Returns a new {@link Headers} containing four entries in order.
+     * Returns a new {@link Metadata} containing four entries in order.
      *
      * @param k1 the first key, must not be {@code null}
      * @param v1 the first value, must not be {@code null}
@@ -108,16 +108,16 @@ public class Headers extends LinkedHashMap<String, Object> {
      * @param v3 the third value, must not be {@code null}
      * @param k4 the fourth key, must not be {@code null}
      * @param v4 the fourth value, must not be {@code null}
-     * @return the new {@link Headers} instance
+     * @return the new {@link Metadata} instance
      * @throws IllegalArgumentException if duplicate keys are provided
      */
-    public static Headers of(String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4) {
-        return new HeadersBuilder().withEntries(
+    public static Metadata of(String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4) {
+        return new MetadataBuilder().withEntries(
                 entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3), entryOf(k4, v4)).build();
     }
 
     /**
-     * Returns a new {@link Headers} containing five entries in order.
+     * Returns a new {@link Metadata} containing five entries in order.
      *
      * @param k1 the first key, must not be {@code null}
      * @param v1 the first value, must not be {@code null}
@@ -129,68 +129,68 @@ public class Headers extends LinkedHashMap<String, Object> {
      * @param v4 the fourth value, must not be {@code null}
      * @param k5 the fifth key, must not be {@code null}
      * @param v5 the fifth value, must not be {@code null}
-     * @return the new {@link Headers} instance
+     * @return the new {@link Metadata} instance
      * @throws IllegalArgumentException if duplicate keys are provided
      */
-    public static Headers of(
+    public static Metadata of(
             String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4, String k5, Object v5) {
-        return new HeadersBuilder().withEntries(
+        return new MetadataBuilder().withEntries(
                 entryOf(k1, v1), entryOf(k2, v2), entryOf(k3, v3), entryOf(k4, v4), entryOf(k5, v5)).build();
     }
 
     /**
-     * @return the empty headers instance.
+     * @return the empty metadata instance.
      */
-    public static Headers empty() {
+    public static Metadata empty() {
         return EMPTY;
     }
 
     /**
-     * Creates a new instance of {@link Headers} with the current entries, plus a new one created from the given key and
-     * value. If the given key is already associated with a value, the value is updated in the returned {@link Headers}.
+     * Creates a new instance of {@link Metadata} with the current entries, plus a new one created from the given key and
+     * value. If the given key is already associated with a value, the value is updated in the returned {@link Metadata}.
      *
      * @param k the key, must not be {@code null}
      * @param v the value, must not be {@code null}
-     * @return the new instance of {@link Headers}
+     * @return the new instance of {@link Metadata}
      */
-    public Headers with(String k, Object v) {
+    public Metadata with(String k, Object v) {
         return builder().from(this).with(k, v).build();
     }
 
     /**
-     * Creates a new instance of {@link Headers} with the current entries, minus the entry associated with the given key.
-     * If the key is not part of the current headers, the same entries are composing the produced instance.
+     * Creates a new instance of {@link Metadata} with the current entries, minus the entry associated with the given key.
+     * If the key is not part of the current set of metadata, the same entries are composing the produced instance.
      *
      * @param k the key, must not be {@code null}
-     * @return the new instance of {@link Headers}
+     * @return the new instance of {@link Metadata}
      */
-    public Headers without(String k) {
+    public Metadata without(String k) {
         return builder().from(this).without(k).build();
     }
 
     /**
-     * Copies the current {@link Headers} instance.
+     * Copies the current {@link Metadata} instance.
      *
      * @return the new instance.
      */
-    public Headers copy() {
+    public Metadata copy() {
         return builder().from(this).build();
     }
 
     /**
-     * @return a builder to create a new instance of {@link Headers}.
+     * @return a builder to create a new instance of {@link Metadata}.
      */
-    public static HeadersBuilder builder() {
-        return new HeadersBuilder();
+    public static MetadataBuilder builder() {
+        return new MetadataBuilder();
     }
 
     /**
-     * Creates a new {@link HeadersBuilder} copying the entries of the given instance of {@link Headers}.
+     * Creates a new {@link MetadataBuilder} copying the entries of the given instance of {@link Metadata}.
      *
      * @param existing the existing instance, must not be {@code null}
      * @return the builder
      */
-    public static HeadersBuilder from(Headers existing) {
+    public static MetadataBuilder from(Metadata existing) {
         return builder().from(existing);
     }
 
@@ -200,7 +200,7 @@ public class Headers extends LinkedHashMap<String, Object> {
     @Override
     public Set<Map.Entry<String, Object>> entrySet() {
         // Return an immutable version of the entry and of the set.
-        // so modification to the returned set do not change the headers.
+        // so modification to the returned set do not change the metadata.
         return super.entrySet().stream().map(entry -> entryOf(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toSet());
     }
@@ -631,17 +631,17 @@ public class Headers extends LinkedHashMap<String, Object> {
     }
 
     /**
-     * A builder to create new instances of {@link Headers}.
+     * A builder to create new instances of {@link Metadata}.
      */
-    public static class HeadersBuilder {
+    public static class MetadataBuilder {
 
         private LinkedHashMap<String, Object> backend = new LinkedHashMap<>();
 
         /**
-         * @return a new instance of {@link Headers} with the configured entries.
+         * @return a new instance of {@link Metadata} with the configured entries.
          */
-        public Headers build() {
-            return new Headers(backend);
+        public Metadata build() {
+            return new Metadata(backend);
         }
 
         /**
@@ -651,7 +651,7 @@ public class Headers extends LinkedHashMap<String, Object> {
          * @param v the value, must not be {@code null}
          * @return this builder
          */
-        public HeadersBuilder with(String k, Object v) {
+        public MetadataBuilder with(String k, Object v) {
             if (k == null) {
                 throw new IllegalArgumentException("the key must not be `null`");
             }
@@ -663,7 +663,7 @@ public class Headers extends LinkedHashMap<String, Object> {
         }
 
         @SafeVarargs
-        private final HeadersBuilder withEntries(Map.Entry<String, Object>... entries) {
+        private final MetadataBuilder withEntries(Map.Entry<String, Object>... entries) {
             List<String> keys = new ArrayList<>();
             for (Map.Entry<String, Object> entry : entries) {
                 String key = entry.getKey();
@@ -682,7 +682,7 @@ public class Headers extends LinkedHashMap<String, Object> {
          * @param k the key, must not be {@code null}
          * @return this builder
          */
-        public HeadersBuilder without(String k) {
+        public MetadataBuilder without(String k) {
             if (k == null) {
                 throw new IllegalArgumentException("the key must not be `null`");
             }
@@ -691,16 +691,16 @@ public class Headers extends LinkedHashMap<String, Object> {
         }
 
         /**
-         * Copies the entries of the given {@code headers}.
+         * Copies the entries of the given {@code metadata}.
          *
-         * @param headers the set of headers to copy, must not be {@code null}
+         * @param metadata the set of metadata to copy, must not be {@code null}
          * @return this builder
          */
-        public HeadersBuilder from(Headers headers) {
-            if (headers == null) {
-                throw new IllegalArgumentException("The headers must not be `null`");
+        public MetadataBuilder from(Metadata metadata) {
+            if (metadata == null) {
+                throw new IllegalArgumentException("The metadata must not be `null`");
             }
-            this.backend.putAll(headers);
+            this.backend.putAll(metadata);
             return this;
         }
     }
