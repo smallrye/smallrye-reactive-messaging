@@ -85,6 +85,28 @@ public class MessageTest {
         assertThatThrownBy(() -> msg.unwrap(String.class)).isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    public void testAccessThroughMessage() {
+        Message<String> message = Message.of("hello", Metadata.of("key1", "value1", "key2", 23));
+
+        assertThat(message.getMetadata()).hasSize(2);
+        assertThat((String) message.getMetadata("key1")).isEqualTo("value1");
+        assertThat((int) message.getMetadata("key2")).isEqualTo(23);
+        assertThat((String) message.getMetadata("missing")).isNull();
+        assertThat(message.getMetadata("missing", "value")).isEqualTo("value");
+
+        assertThatThrownBy(() -> {
+            @SuppressWarnings("unused") List<String> list = message.getMetadata("key1");
+        }).isInstanceOf(ClassCastException.class);
+
+        assertThatThrownBy(() -> {
+            @SuppressWarnings("unused") String value = message.getMetadata("key2", "value");
+        }).isInstanceOf(ClassCastException.class);
+
+        assertThatThrownBy(() -> message.getMetadata(null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> message.getMetadata(null, "value")).isInstanceOf(IllegalArgumentException.class);
+    }
+
     private class MyMessage implements Message<String> {
 
         @Override

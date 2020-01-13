@@ -171,6 +171,29 @@ public interface Message<T> {
     }
 
     /**
+     * Retrieves the metadata attribute associated with the given key.
+     * @param key the key, must not be {@code null}
+     * @param <M> the expected type
+     * @return the stored value, {@code null} if there is no metadata associated with the given key
+     * @throws ClassCastException if the metadata associated with the given key cannot be casted to {@code M}
+     */
+    default <M> M getMetadata(String key) {
+        return getMetadata().get(key);
+    }
+
+    /**
+     * Retrieves the metadata attribute associated with the given key.
+     * @param key the key, must not be {@code null}
+     * @param defaultValue the default value, if there are no metadata associated with the given key.
+     * @param <M> the expected type
+     * @return the stored value, {@code defaultValue} if there is no metadata associated with the given key
+     * @throws ClassCastException if the metadata associated with the given key cannot be casted to {@code M}
+     */
+    default <M> M getMetadata(String key, M defaultValue) {
+        return getMetadata().get(key, defaultValue);
+    }
+
+    /**
      * @return the supplier used to retrieve the acknowledgement {@link CompletionStage}.
      */
     default Supplier<CompletionStage<Void>> getAck() {
