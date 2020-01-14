@@ -110,9 +110,11 @@ public class ReactiveMessagingExtension implements Extension {
             for (InjectionPoint ip : emitterInjectionPoints) {
                 String name = ChannelProducer.getChannelName(ip);
                 EmitterImpl<?> emitter = (EmitterImpl<?>) registry.getEmitter(name);
-                if (!emitter.isConnected()) {
-                    done.addDeploymentProblem(
-                            new DeploymentException("No channel found for name: " + name + ", injection point: " + ip));
+                if (!emitter.isSubscribed()) {
+                    // Subscription may happen later, just print a warning.
+                    // Attempting an emission without being subscribed would result in an error.
+                    LOGGER.warn("No subscriber for channel {}  attached to the emitter {}.{}", name,
+                            ip.getBean().getBeanClass().getName(), ip.getMember().getName());
                 }
                 // TODO validate the required type
             }

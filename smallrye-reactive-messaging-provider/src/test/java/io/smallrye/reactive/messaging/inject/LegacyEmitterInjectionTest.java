@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -109,14 +108,16 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.isCaught()).isTrue();
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test(expected = IllegalStateException.class)
     public void testWithMissingStream() {
-        installInitializeAndGet(BeanWithMissingStream.class);
+        // The error is only thrown when a message is emitted as the subscription can be delayed.
+        installInitializeAndGet(EmitterInjectionTest.BeanWithMissingStream.class).emitter().send(Message.of("foo"));
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test(expected = IllegalStateException.class)
     public void testWithMissingChannel() {
-        installInitializeAndGet(BeanWithMissingChannel.class);
+        // The error is only thrown when a message is emitted as the subscription can be delayed.
+        installInitializeAndGet(EmitterInjectionTest.BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
     }
 
     @Test

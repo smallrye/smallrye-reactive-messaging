@@ -15,7 +15,7 @@ import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 /**
  * Implementation of the emitter pattern.
- * 
+ *
  * @param <T> the type of payload sent by the emitter.
  */
 public class EmitterImpl<T> implements Emitter<T> {
@@ -24,9 +24,10 @@ public class EmitterImpl<T> implements Emitter<T> {
     private final Flowable<Message<? extends T>> publisher;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmitterImpl.class);
+    private final String name;
 
     EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
-
+        this.name = name;
         if (defaultBufferSize <= 0) {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
@@ -81,7 +82,7 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     /**
      * Creates the stream when using the default buffer size.
-     * 
+     *
      * @param name the name of the emitter
      * @param defaultBufferSize the default buffer size
      * @param stream the upstream
@@ -99,7 +100,7 @@ public class EmitterImpl<T> implements Emitter<T> {
         return publisher;
     }
 
-    boolean isConnected() {
+    boolean isSubscribed() {
         return internal.get() != null;
     }
 
@@ -108,7 +109,7 @@ public class EmitterImpl<T> implements Emitter<T> {
         if (msg == null) {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
-        FlowableEmitter<Message<? extends T>> emitter = verify(internal);
+        FlowableEmitter<Message<? extends T>> emitter = verify(internal, name);
         CompletableFuture<Void> future = new CompletableFuture<>();
         emitter.onNext(Message.of(msg, () -> {
             future.complete(null);
@@ -123,25 +124,26 @@ public class EmitterImpl<T> implements Emitter<T> {
         if (msg == null) {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
-        FlowableEmitter<Message<? extends T>> emitter = verify(internal);
+        FlowableEmitter<Message<? extends T>> emitter = verify(internal, name);
         emitter.onNext(msg);
 
     }
 
-    static <T> FlowableEmitter<Message<? extends T>> verify(AtomicReference<FlowableEmitter<Message<? extends T>>> reference) {
+    static <T> FlowableEmitter<Message<? extends T>> verify(AtomicReference<FlowableEmitter<Message<? extends T>>> reference,
+            String name) {
         FlowableEmitter<Message<? extends T>> emitter = reference.get();
         if (emitter == null) {
-            throw new IllegalStateException("Stream not yet connected");
+            throw new IllegalStateException("No one subscribed to channel " + name);
         }
         if (emitter.isCancelled()) {
-            throw new IllegalStateException("Stream has been terminated");
+            throw new IllegalStateException("The subscription to " + name + " has been cancelled");
         }
         return emitter;
     }
 
     @Override
     public synchronized void complete() {
-        verify(internal).onComplete();
+        verify(internal, name).onComplete();
     }
 
     @Override
@@ -149,7 +151,7 @@ public class EmitterImpl<T> implements Emitter<T> {
         if (e == null) {
             throw new IllegalArgumentException("`null` is not a valid exception");
         }
-        verify(internal).onError(e);
+        verify(internal, name).onError(e);
 
     }
 
