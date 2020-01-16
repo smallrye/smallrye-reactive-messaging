@@ -1,16 +1,21 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
-import com.google.api.gax.rpc.NotFoundException;
-import com.google.cloud.pubsub.v1.Publisher;
-import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
-import com.google.cloud.pubsub.v1.TopicAdminClient;
-import com.google.protobuf.ByteString;
-import com.google.pubsub.v1.ProjectSubscriptionName;
-import com.google.pubsub.v1.ProjectTopicName;
-import com.google.pubsub.v1.PubsubMessage;
-import com.google.pubsub.v1.PushConfig;
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
+import java.io.File;
+import java.nio.file.Path;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.Destroyed;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
+
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -21,24 +26,29 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Destroyed;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import java.io.File;
-import java.nio.file.Path;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
+import com.google.api.gax.rpc.AlreadyExistsException;
+import com.google.api.gax.rpc.NotFoundException;
+import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
+import com.google.cloud.pubsub.v1.TopicAdminClient;
+import com.google.protobuf.ByteString;
+import com.google.pubsub.v1.ProjectSubscriptionName;
+import com.google.pubsub.v1.ProjectTopicName;
+import com.google.pubsub.v1.PubsubMessage;
+import com.google.pubsub.v1.PushConfig;
+
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
+import io.reactivex.schedulers.Schedulers;
 
 @ApplicationScoped
 @Connector(PubSubConnector.CONNECTOR_NAME)
 public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PubSubConnector.class);
 
     static final String CONNECTOR_NAME = "smallrye-gcp-pubsub";
 
@@ -61,48 +71,55 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     @Inject
     private PubSubManager pubSubManager;
 
-    private PubSubMessageReceiver messageReceiver;
+    private ExecutorService executorService;
+    private Scheduler scheduler;
 
     @PostConstruct
     public void initialize() {
-        messageReceiver = new PubSubMessageReceiver();
+        executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        scheduler = Schedulers.single();
     }
 
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
-        messageReceiver.close();
+        scheduler.shutdown();
+
+        try {
+            executorService.shutdown();
+            executorService.awaitTermination(2, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(projectId, getTopic(config), getCredentialPath(config),
-            getSubscription(config),
-            getAckDeadline(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
+                getSubscription(config),
+                getAckDeadline(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
 
-        createTopic(pubSubConfig);
-        createSubscription(pubSubConfig);
+        final PubSubMessageReceiver messageReceiver = new PubSubMessageReceiver();
+        final Flowable<Message<?>> generator = Flowable.create(messageReceiver, BackpressureStrategy.BUFFER)
+                .subscribeOn(scheduler)
+                .delaySubscription(ReactiveStreams.fromCompletionStage(CompletableFuture.supplyAsync(() -> {
+                    createTopic(pubSubConfig);
+                    createSubscription(pubSubConfig);
+                    return pubSubManager.subscriber(pubSubConfig, messageReceiver);
+                }, executorService)).buildRs());
 
-        pubSubManager.subscriber(pubSubConfig, messageReceiver);
-        return ReactiveStreams.fromPublisher(Flowable.create(messageReceiver, BackpressureStrategy.BUFFER));
+        return ReactiveStreams.fromPublisher(generator);
     }
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(projectId, getTopic(config), getCredentialPath(config),
-            mockPubSubTopics, host.orElse(null), port.orElse(null));
+                mockPubSubTopics, host.orElse(null), port.orElse(null));
 
-        createTopic(pubSubConfig);
-
-        final Publisher publisher = pubSubManager.publisher(pubSubConfig);
-
-        return ReactiveStreams.<Message<?>>builder()
-            .flatMapCompletionStage(message -> {
-                final PubsubMessage pubSubMessage = buildMessage(message);
-
-                final Future<String> future = publisher.publish(pubSubMessage);
-
-                return CompletableFuture.supplyAsync(await(future));
-            })
-            .ignore();
+        return ReactiveStreams.<Message<?>> builder()
+                .flatMapCompletionStage(message -> CompletableFuture.supplyAsync(() -> {
+                    createTopic(pubSubConfig);
+                    return await(pubSubManager.publisher(pubSubConfig).publish(buildMessage(message)));
+                }, executorService))
+                .ignore();
     }
 
     private void createTopic(final PubSubConfig config) {
@@ -112,8 +129,12 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
 
         try {
             topicAdminClient.getTopic(topicName);
-        } catch (final NotFoundException e) {
-            topicAdminClient.createTopic(topicName);
+        } catch (final NotFoundException nf) {
+            try {
+                topicAdminClient.createTopic(topicName);
+            } catch (final AlreadyExistsException ae) {
+                LOGGER.trace("Topic {} already exists", topicName, ae);
+            }
         }
     }
 
@@ -171,33 +192,14 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
         }
     }
 
-    private static <T> Supplier<T> await(final Future<T> future) {
-        return () -> {
-            try {
-                ForkJoinPool.managedBlock(new ForkJoinPool.ManagedBlocker() {
-                    @Override
-                    public boolean block() throws InterruptedException {
-                        try {
-                            future.get();
-                            return true;
-                        } catch (final ExecutionException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    }
-
-                    @Override
-                    public boolean isReleasable() {
-                        return future.isDone();
-                    }
-                });
-
-                return future.get();
-            } catch (final ExecutionException e) {
-                throw new IllegalStateException(e);
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(e);
-            }
-        };
+    private static <T> T await(final Future<T> future) {
+        try {
+            return future.get();
+        } catch (final ExecutionException e) {
+            throw new IllegalStateException(e);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 }

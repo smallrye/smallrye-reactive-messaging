@@ -2,9 +2,11 @@ package io.smallrye.reactive.messaging.gcp.pubsub;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,7 +24,6 @@ import com.google.api.gax.grpc.GrpcTransportChannel;
 import com.google.api.gax.rpc.FixedTransportChannelProvider;
 import com.google.api.gax.rpc.TransportChannelProvider;
 import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.pubsub.v1.MessageReceiver;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.cloud.pubsub.v1.Subscriber;
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
@@ -41,9 +42,11 @@ public class PubSubManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(PubSubManager.class);
 
     private static final Map<PubSubConfig, Publisher> PUBLISHER_MAP = new ConcurrentHashMap<>();
-    private static final Map<PubSubConfig, Subscriber> SUBSCRIBER_MAP = new ConcurrentHashMap<>();
     private static final Map<PubSubConfig, TopicAdminClient> TOPIC_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
     private static final Map<PubSubConfig, SubscriptionAdminClient> SUBSCRIPTION_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
+
+    private static final List<PubSubMessageReceiver> MESSAGE_RECEIVERS = new CopyOnWriteArrayList<>();
+    private static final List<Subscriber> SUBSCRIBERS = new CopyOnWriteArrayList<>();
 
     private static final AtomicReference<ManagedChannel> CHANNEL = new AtomicReference<>();
 
@@ -51,12 +54,12 @@ public class PubSubManager {
         return PUBLISHER_MAP.computeIfAbsent(config, PubSubManager::buildPublisher);
     }
 
-    public void subscriber(final PubSubConfig config, final MessageReceiver messageReceiver) {
-        SUBSCRIBER_MAP.computeIfAbsent(config, cfg -> {
-            final Subscriber subscriber = buildSubscriber(cfg, messageReceiver);
-            subscriber.startAsync().awaitRunning();
-            return subscriber;
-        });
+    public Subscriber subscriber(final PubSubConfig config, final PubSubMessageReceiver messageReceiver) {
+        final Subscriber subscriber = buildSubscriber(config, messageReceiver);
+        subscriber.startAsync();
+        MESSAGE_RECEIVERS.add(messageReceiver);
+        SUBSCRIBERS.add(subscriber);
+        return subscriber;
     }
 
     public SubscriptionAdminClient subscriptionAdminClient(final PubSubConfig config) {
@@ -96,7 +99,7 @@ public class PubSubManager {
             }
         });
 
-        SUBSCRIBER_MAP.values().forEach(subscriber -> {
+        SUBSCRIBERS.forEach(subscriber -> {
             try {
                 subscriber.stopAsync();
                 subscriber.awaitTerminated(2, TimeUnit.SECONDS);
@@ -104,6 +107,8 @@ public class PubSubManager {
                 LOGGER.warn("Timeout while stopping subscription {}", subscriber.getSubscriptionNameString());
             }
         });
+
+        MESSAGE_RECEIVERS.forEach(PubSubMessageReceiver::close);
 
         if (CHANNEL.get() != null) {
             try {
@@ -156,7 +161,7 @@ public class PubSubManager {
         }
     }
 
-    private static Subscriber buildSubscriber(final PubSubConfig config, final MessageReceiver messageReceiver) {
+    private static Subscriber buildSubscriber(final PubSubConfig config, final PubSubMessageReceiver messageReceiver) {
         final ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(config.getProjectId(),
                 config.getSubscription());
 

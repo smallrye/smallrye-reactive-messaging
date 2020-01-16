@@ -17,6 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
+import com.google.pubsub.v1.ProjectTopicName;
+
 import io.reactivex.Flowable;
 
 public class PubSubTest extends PubSubTestBase {
@@ -45,8 +47,18 @@ public class PubSubTest extends PubSubTestBase {
     }
 
     @Test
-    public void testSourceAndSink() {
+    public void testSourceAndSink() throws Exception {
         final ConsumptionBean consumptionBean = container.select(ConsumptionBean.class).get();
+
+        // wait until the subscription is ready
+        final PubSubManager manager = container.select(PubSubManager.class).get();
+        await().until(() -> manager
+                .topicAdminClient(
+                        new PubSubConfig(PROJECT_ID, topic, null, true, "localhost", CONTAINER.getMappedPort(PUBSUB_PORT)))
+                .listTopicSubscriptions(ProjectTopicName.of(PROJECT_ID, topic))
+                .getPage()
+                .getPageElementCount() > 0);
+
         send("Hello-0", topic);
         await().until(() -> consumptionBean.getMessages().size() == 1);
         assertThat(consumptionBean.getMessages().get(0)).isEqualTo("Hello-0");
@@ -70,7 +82,11 @@ public class PubSubTest extends PubSubTestBase {
         config.setValue("topic", topic);
         config.write();
 
-        final PubSubConnector pubSubConnector = container.select(PubSubConnector.class, new Connector() {
+        return getConnector().getSubscriberBuilder(config);
+    }
+
+    private PubSubConnector getConnector() {
+        return container.select(PubSubConnector.class, new Connector() {
             @Override
             public Class<? extends Annotation> annotationType() {
                 return Connector.class;
@@ -81,8 +97,6 @@ public class PubSubTest extends PubSubTestBase {
                 return PubSubConnector.CONNECTOR_NAME;
             }
         }).get();
-
-        return pubSubConnector.getSubscriberBuilder(config);
     }
 
     private MapBasedConfig createSourceConfig(final String topic, final String subscription) {
