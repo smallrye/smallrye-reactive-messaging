@@ -133,7 +133,7 @@ public class EmitterImpl<T> implements Emitter<T> {
             String name) {
         FlowableEmitter<Message<? extends T>> emitter = reference.get();
         if (emitter == null) {
-            throw new IllegalStateException("No one subscribed to channel " + name);
+            throw new IllegalStateException("No subscriber found for the channel " + name);
         }
         if (emitter.isCancelled()) {
             throw new IllegalStateException("The subscription to " + name + " has been cancelled");
