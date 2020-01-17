@@ -34,6 +34,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSource() {
         KafkaUsage usage = new KafkaUsage();
@@ -175,6 +176,37 @@ public class KafkaSourceTest extends KafkaTestBase {
             assertThat(m.getPartition()).isGreaterThan(-1);
             assertThat(m.getOffset()).isGreaterThan(-1);
         });
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testInvalidIncomingType() {
+        KafkaUsage usage = new KafkaUsage();
+        String topic = UUID.randomUUID().toString();
+        Map<String, Object> config = newCommonConfig();
+        config.put("topic", topic);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getSource().forEach(messages::add).run();
+
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(2, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 2);
+        assertThat(messages.stream().map(m -> ((KafkaMessage<String, Integer>) m).getPayload())
+                .collect(Collectors.toList())).containsExactly(0, 1);
+
+        new Thread(() -> usage.produceStrings(1, null, () -> new ProducerRecord<>(topic, "hello"))).start();
+
+        new Thread(() -> usage.produceIntegers(2, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+        // no other message received
+        assertThat(messages.stream().map(m -> ((KafkaMessage<String, Integer>) m).getPayload())
+                .collect(Collectors.toList())).containsExactly(0, 1);
     }
 
     private ConsumptionBean deploy(MapBasedConfig config) {

@@ -191,4 +191,38 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Test
+    public void testInvalidType() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        String topic = UUID.randomUUID().toString();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                (k, v) -> expected.getAndIncrement());
+
+        Map<String, Object> config = getConfig();
+        config.put("topic", topic);
+        config.put("value.serializer", IntegerSerializer.class.getName());
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("partition", 0);
+        KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config), SERVERS);
+
+        Subscriber subscriber = sink.getSink().build();
+        Flowable.range(0, 5)
+                .map(i -> {
+                    if (i == 3 || i == 5) {
+                        return Integer.toString(i);
+                    }
+                    return i;
+                })
+                .map(Message::of)
+                .subscribe(subscriber);
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(3); // 3 and 5 are ignored.
+
+    }
+
 }
