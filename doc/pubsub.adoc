@@ -35,7 +35,6 @@ in the following table:
 | Attribute | Mandatory | Default | Description
 | topic | true | the `channel-name` | The topic to consume, use the `channel-name` if not set
 | subscription | true | N/A | The subscription name to consume
-| ack-deadline | false | 600 | Optional message ack deadline for the subscription in seconds
 | credential-path | false | Read credentials from environment variables | Optional path to a GCP Service Account credentials file (.json)
 |===
 
