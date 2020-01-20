@@ -3,13 +3,14 @@ package io.smallrye.reactive.messaging.inject;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -18,6 +19,9 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -137,14 +141,16 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test(expected = IllegalStateException.class)
     public void testWithMissingStream() {
-        installInitializeAndGet(BeanWithMissingStream.class);
+        // The error is only thrown when a message is emitted as the subscription can be delayed.
+        installInitializeAndGet(BeanWithMissingStream.class).emitter().send(Message.of("foo"));
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test(expected = IllegalStateException.class)
     public void testWithMissingChannel() {
-        installInitializeAndGet(BeanWithMissingChannel.class);
+        // The error is only thrown when a message is emitted as the subscription can be delayed.
+        installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
     }
 
     @Test
@@ -152,6 +158,73 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         final TwoEmittersConnectedToProcessor bean = installInitializeAndGet(TwoEmittersConnectedToProcessor.class);
         bean.run();
         assertThat(bean.list()).containsExactly("A", "B", "C");
+    }
+
+    @Test
+    public void testEmitterAndPublisherInjectedInTheSameClass() {
+        EmitterAndPublisher bean = installInitializeAndGet(EmitterAndPublisher.class);
+        Emitter<String> emitter = bean.emitter();
+        Publisher<String> publisher = bean.publisher();
+        assertThat(emitter).isNotNull();
+        assertThat(publisher).isNotNull();
+        List<String> list = new ArrayList<>();
+        AtomicBoolean completed = new AtomicBoolean();
+        //noinspection SubscriberImplementation
+        publisher.subscribe(new Subscriber<String>() {
+            private Subscription subscription;
+
+            @Override
+            public void onSubscribe(Subscription subscription) {
+                this.subscription = subscription;
+                subscription.request(1);
+            }
+
+            @Override
+            public void onNext(String s) {
+                list.add(s);
+                subscription.request(1);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                throw new RuntimeException(throwable);
+            }
+
+            @Override
+            public void onComplete() {
+                completed.set(true);
+            }
+        });
+
+        assertThat(list).isEmpty();
+        assertThat(completed).isFalse();
+        emitter.send("a");
+        emitter.send("b");
+        emitter.send("c");
+        assertThat(list).containsExactly("a", "b", "c");
+        emitter.send("d");
+        emitter.complete();
+        assertThat(list).containsExactly("a", "b", "c", "d");
+        assertThat(completed).isTrue();
+    }
+
+    @ApplicationScoped
+    public static class EmitterAndPublisher {
+        @Inject
+        @Channel("foo")
+        Emitter<String> emitter;
+
+        @Inject
+        @Channel("foo")
+        Publisher<String> publisher;
+
+        public Emitter<String> emitter() {
+            return emitter;
+        }
+
+        public Publisher<String> publisher() {
+            return publisher;
+        }
     }
 
     @ApplicationScoped
