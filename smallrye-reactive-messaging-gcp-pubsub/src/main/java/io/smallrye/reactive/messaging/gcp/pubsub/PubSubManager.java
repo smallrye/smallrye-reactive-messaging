@@ -8,14 +8,12 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Singleton;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.core.FixedCredentialsProvider;
@@ -35,18 +33,16 @@ import com.google.pubsub.v1.ProjectTopicName;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.reactivex.FlowableEmitter;
 
 @Singleton
 public class PubSubManager {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PubSubManager.class);
 
     private static final Map<PubSubConfig, Publisher> PUBLISHER_MAP = new ConcurrentHashMap<>();
     private static final Map<PubSubConfig, TopicAdminClient> TOPIC_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
     private static final Map<PubSubConfig, SubscriptionAdminClient> SUBSCRIPTION_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
 
-    private static final List<PubSubMessageReceiver> MESSAGE_RECEIVERS = new CopyOnWriteArrayList<>();
-    private static final List<Subscriber> SUBSCRIBERS = new CopyOnWriteArrayList<>();
+    private static final List<FlowableEmitter<Message<?>>> EMITTERS = new CopyOnWriteArrayList<>();
 
     private static final AtomicReference<ManagedChannel> CHANNEL = new AtomicReference<>();
 
@@ -54,11 +50,16 @@ public class PubSubManager {
         return PUBLISHER_MAP.computeIfAbsent(config, PubSubManager::buildPublisher);
     }
 
-    public Subscriber subscriber(final PubSubConfig config, final PubSubMessageReceiver messageReceiver) {
-        final Subscriber subscriber = buildSubscriber(config, messageReceiver);
+    public Subscriber subscriber(final PubSubConfig config, final FlowableEmitter<Message<?>> emitter) {
+        final Subscriber subscriber = buildSubscriber(config, new PubSubMessageReceiver(emitter));
+        emitter.setCancellable(() -> {
+            subscriber.stopAsync();
+            subscriber.awaitTerminated(2, TimeUnit.SECONDS);
+        });
         subscriber.startAsync();
-        MESSAGE_RECEIVERS.add(messageReceiver);
-        SUBSCRIBERS.add(subscriber);
+
+        EMITTERS.add(emitter);
+
         return subscriber;
     }
 
@@ -99,16 +100,7 @@ public class PubSubManager {
             }
         });
 
-        SUBSCRIBERS.forEach(subscriber -> {
-            try {
-                subscriber.stopAsync();
-                subscriber.awaitTerminated(2, TimeUnit.SECONDS);
-            } catch (final TimeoutException e) {
-                LOGGER.warn("Timeout while stopping subscription {}", subscriber.getSubscriptionNameString());
-            }
-        });
-
-        MESSAGE_RECEIVERS.forEach(PubSubMessageReceiver::close);
+        EMITTERS.forEach(FlowableEmitter::onComplete);
 
         if (CHANNEL.get() != null) {
             try {

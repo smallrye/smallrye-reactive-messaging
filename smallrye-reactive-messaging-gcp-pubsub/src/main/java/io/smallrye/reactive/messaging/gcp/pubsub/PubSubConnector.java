@@ -77,7 +77,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     @PostConstruct
     public void initialize() {
         executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        scheduler = Schedulers.single();
+        scheduler = Schedulers.from(executorService);
     }
 
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
@@ -94,19 +94,15 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(projectId, getTopic(config), getCredentialPath(config),
-                getSubscription(config),
-                getAckDeadline(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
+                getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
 
-        final PubSubMessageReceiver messageReceiver = new PubSubMessageReceiver();
-        final Flowable<Message<?>> generator = Flowable.create(messageReceiver, BackpressureStrategy.BUFFER)
-                .subscribeOn(scheduler)
-                .delaySubscription(ReactiveStreams.fromCompletionStage(CompletableFuture.supplyAsync(() -> {
-                    createTopic(pubSubConfig);
-                    createSubscription(pubSubConfig);
-                    return pubSubManager.subscriber(pubSubConfig, messageReceiver);
-                }, executorService)).buildRs());
-
-        return ReactiveStreams.fromPublisher(generator);
+        return ReactiveStreams.fromCompletionStage(CompletableFuture.supplyAsync(() -> {
+            createTopic(pubSubConfig);
+            createSubscription(pubSubConfig);
+            return pubSubConfig;
+        }, executorService))
+                .flatMapRsPublisher(
+                        cfg -> Flowable.create(new PubSubFlowableOnSubscribe(cfg, pubSubManager), BackpressureStrategy.BUFFER));
     }
 
     @Override
@@ -142,23 +138,23 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
         final SubscriptionAdminClient subscriptionAdminClient = pubSubManager.subscriptionAdminClient(config);
 
         final ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(config.getProjectId(),
-            config.getSubscription());
+                config.getSubscription());
 
         try {
             subscriptionAdminClient.getSubscription(subscriptionName);
         } catch (final NotFoundException e) {
             final PushConfig pushConfig = PushConfig.newBuilder()
-                .build();
+                    .build();
 
             final ProjectTopicName topicName = ProjectTopicName.of(config.getProjectId(), config.getTopic());
 
-            subscriptionAdminClient.createSubscription(subscriptionName, topicName, pushConfig, config.getAckDeadline());
+            subscriptionAdminClient.createSubscription(subscriptionName, topicName, pushConfig, 0);
         }
     }
 
     private static String getTopic(final Config config) {
         final String topic = config.getOptionalValue("topic", String.class)
-            .orElse(null);
+                .orElse(null);
         if (topic != null) {
             return topic;
         }
@@ -170,16 +166,11 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
         return config.getValue("subscription", String.class);
     }
 
-    private static Integer getAckDeadline(final Config config) {
-        return config.getOptionalValue("ack-deadline", Integer.class)
-            .orElse(60 * 10 /* ten minutes */);
-    }
-
     private static Path getCredentialPath(final Config config) {
         return config.getOptionalValue("credential-path", String.class)
-            .map(File::new)
-            .map(File::toPath)
-            .orElse(null);
+                .map(File::new)
+                .map(File::toPath)
+                .orElse(null);
     }
 
     private static PubsubMessage buildMessage(final Message<?> message) {
@@ -187,8 +178,8 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
             return ((PubSubMessage) message).getMessage();
         } else {
             return PubsubMessage.newBuilder()
-                .setData(ByteString.copyFromUtf8(message.getPayload().toString()))
-                .build();
+                    .setData(ByteString.copyFromUtf8(message.getPayload().toString()))
+                    .build();
         }
     }
 

@@ -11,7 +11,6 @@ public class PubSubConfig {
     private final Path credentialPath;
 
     private final String subscription;
-    private final Integer ackDeadline;
 
     private final boolean mockPubSubTopics;
     private final String host;
@@ -23,19 +22,17 @@ public class PubSubConfig {
         this.topic = Objects.requireNonNull(topic, "topic must be non-null");
         this.credentialPath = credentialPath;
         this.subscription = null;
-        this.ackDeadline = null;
         this.mockPubSubTopics = mockPubSubTopics;
         this.host = host;
         this.port = port;
     }
 
     public PubSubConfig(final String projectId, final String topic, final Path credentialPath, final String subscription,
-            final Integer ackDeadline, final boolean mockPubSubTopics, final String host, final Integer port) {
+            final boolean mockPubSubTopics, final String host, final Integer port) {
         this.projectId = Objects.requireNonNull(projectId, "projectId must be non-null");
         this.topic = Objects.requireNonNull(topic, "topic must be non-null");
         this.credentialPath = credentialPath;
         this.subscription = subscription;
-        this.ackDeadline = Objects.requireNonNull(ackDeadline, "ackDeadline must be non-null");
         this.mockPubSubTopics = mockPubSubTopics;
         this.host = host;
         this.port = port;
@@ -55,10 +52,6 @@ public class PubSubConfig {
 
     public String getSubscription() {
         return subscription;
-    }
-
-    public Integer getAckDeadline() {
-        return ackDeadline;
     }
 
     public boolean isMockPubSubTopics() {
@@ -86,7 +79,6 @@ public class PubSubConfig {
                 Objects.equals(topic, that.topic) &&
                 Objects.equals(credentialPath, that.credentialPath) &&
                 Objects.equals(subscription, that.subscription) &&
-                Objects.equals(ackDeadline, that.ackDeadline) &&
                 mockPubSubTopics == that.mockPubSubTopics &&
                 Objects.equals(host, that.host) &&
                 Objects.equals(port, that.port);
@@ -94,7 +86,7 @@ public class PubSubConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(projectId, topic, credentialPath, subscription, ackDeadline, mockPubSubTopics, host, port);
+        return Objects.hash(projectId, topic, credentialPath, subscription, mockPubSubTopics, host, port);
     }
 
     @Override
@@ -104,7 +96,6 @@ public class PubSubConfig {
                 ", topic=" + topic +
                 ", credentialPath=" + credentialPath +
                 ", subscription=" + subscription +
-                ", ackDeadline=" + ackDeadline +
                 ", mockPubSubTopics=" + mockPubSubTopics +
                 ", host=" + host +
                 ", port=" + port +
