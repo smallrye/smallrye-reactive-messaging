@@ -12,7 +12,7 @@
   <artifactId>smallrye-reactive-messaging-camel</artifactId>
 
   <properties>
-    <camel.version>3.0.0</camel.version>
+    <camel.version>3.0.1</camel.version>
   </properties>
 
   <dependencies>
