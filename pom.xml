@@ -86,9 +86,10 @@
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-http</module>
     <module>smallrye-reactive-messaging-vertx-eventbus</module>
-	  <module>smallrye-reactive-messaging-aws-sns</module>
+    <module>smallrye-reactive-messaging-aws-sns</module>
     <module>smallrye-reactive-messaging-cloud-events</module>
     <module>smallrye-reactive-messaging-jms</module>
+    <module>smallrye-reactive-messaging-gcp-pubsub</module>
 
     <module>examples/quickstart</module>
     <module>examples/snippets</module>
@@ -100,6 +101,7 @@
     <module>examples/mqtt-server-quickstart</module>
     <module>examples/amqp-quickstart</module>
     <module>examples/awssns-quickstart</module>
+    <module>examples/gcp-pubsub-quickstart</module>
 
     <module>tck</module>
   </modules>
