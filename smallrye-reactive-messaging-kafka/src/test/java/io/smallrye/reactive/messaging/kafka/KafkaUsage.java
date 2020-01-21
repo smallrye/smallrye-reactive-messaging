@@ -115,6 +115,14 @@ public class KafkaUsage {
         this.produce(randomId, messageCount, keySer, valSer, completionCallback, messageSupplier);
     }
 
+    public void produceStrings(int messageCount, Runnable completionCallback,
+            Supplier<ProducerRecord<String, String>> messageSupplier) {
+        Serializer<String> keySer = new StringSerializer();
+        Serializer<String> valSer = new StringSerializer();
+        String randomId = UUID.randomUUID().toString();
+        this.produce(randomId, messageCount, keySer, valSer, completionCallback, messageSupplier);
+    }
+
     /**
      * Use the supplied function to asynchronously consume messages from the cluster.
      *

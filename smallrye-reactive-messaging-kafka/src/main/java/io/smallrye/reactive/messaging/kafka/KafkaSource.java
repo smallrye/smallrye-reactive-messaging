@@ -60,7 +60,8 @@ public class KafkaSource<K, V> {
 
         Objects.requireNonNull(topic, "The topic must be set, or the name must be set");
 
-        Flowable<KafkaConsumerRecord<K, V>> flowable = consumer.toFlowable();
+        Flowable<KafkaConsumerRecord<K, V>> flowable = consumer.toFlowable()
+                .doOnError(t -> LOGGER.error("Unable to read a record from Kafka topic '{}'", topic, t));
 
         if (config.getOptionalValue("retry", Boolean.class).orElse(true)) {
             Integer max = config.getOptionalValue("retry-attempts", Integer.class).orElse(5);
