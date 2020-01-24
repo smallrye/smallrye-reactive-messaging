@@ -21,7 +21,7 @@ import io.vertx.reactivex.core.Vertx;
 @Connector(VertxEventBusConnector.CONNECTOR_NAME)
 public class VertxEventBusConnector implements OutgoingConnectorFactory, IncomingConnectorFactory {
 
-    static final String CONNECTOR_NAME = "smallrye.vertx.eventbus";
+    static final String CONNECTOR_NAME = "smallrye-vertx-eventbus";
 
     @Inject
     Instance<Vertx> instanceOfVertx;
