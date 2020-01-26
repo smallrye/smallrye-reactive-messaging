@@ -8,7 +8,7 @@ public class KafkaProducer {
   // tag::kafka-message[]
   @Outgoing("to-kafka")
   public Message<String> produce(Message<String> incoming) {
-    return KafkaMessage.of("topic", "key", incoming.getPayload());
+    return KafkaRecord.of("topic", "key", incoming.getPayload());
   }
   // end::kafka-message[]
 

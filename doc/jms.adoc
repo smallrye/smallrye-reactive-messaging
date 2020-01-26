@@ -1,4 +1,4 @@
-== Interacting using JMS (Java Message Service)
+== Receiving and Sending messages using JMS (Java Message Service)
 
 You can use SmallRye Reactive Messaging to receive and send JMS messages.
 
@@ -233,20 +233,7 @@ Any other value is rejected and fail the deployment.
 
 ==== Outgoing JMS message metadata
 
-You can customize the _routing_ and the content of the outgoing JMS message by adding the following metadata to the `Message` you produce:
-
-|===
-
-| Header | Type | Description
-
-| `jms.outgoing-correlation-id` | String | The correlation id of the message
-| `jms.outgoing-reply-to` | `javax.jms.Destination` | The reply to address of the message
-| `jms.outgoing-destination` | `javax.jms.Destination` | The destination of the message
-| `jms.outgoing-delivery-mode` | 1, or 2 | The delivery mode according to `javax.jms.DeliveryMode`
-| `jms.outgoing-type` | String | The type of the payload
-| `jms.outgoing-properties` | `io.smallrye.reactive.messaging.jms.JmsProperties` | The properties of the message, created using `io.smallrye.reactive.messaging.jms.JmsProperties.builder()`
-
-|===
+You can customize the _routing_ and the content of the outgoing JMS message by adding an instance of `io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata` to the message metadata.
 
 === Receiving JMS messages
 
@@ -322,28 +309,17 @@ mp.messaging.incoming.my-jms-channel.attribute=value
 | broadcast | false |  | Whether or not the received message can emitted to several subscribers
 |===
 
-==== Incoming message header
+==== Incoming message metadata
 
-The incoming message contain the following metadata:
+You can retrieve the incoming message metadata using:
 
-|===
+[source, java]
+----
+Optional<IncomingJmsMessageMetadata> metadata
+    = message.getMetadata(IncomingJmsMessageMetadata.class);
+----
 
-| Header | Type | Description
-
-
-| `jms.message-id` | String | The id of the message
-| `jms.correlation-id` | String | The correlation id of the message
-| `jms.timestamp` | long | The timestamp of the message
-| `jms.reply-to` | `javax.jms.Destination` | The reply-to address of the message
-| `jms.destination` | `javax.jms.Destination` | The destination of the message
-| `jms.delivery-mode` | 1, or 2 | The delivery mode according to `javax.jms.DeliveryMode`
-| `jms.redelivered` | boolean | whether the message has been redelivered
-| `jms.type` | String | the type of the payload
-| `jms.expiration` | long | the expiration date of the message
-| `jms.delivery-time` | long | the delivery time date of the message
-| `jms.priority` | int | the priority of the message
-| `jms.properties` | `io.smallrye.reactive.messaging.jms.JmsProperties` | the properties of the message
-|===
+The metadata are represented by the `io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata` class.
 
 === Advanced configuration
 

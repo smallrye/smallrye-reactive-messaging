@@ -78,7 +78,7 @@ For testing purpose, you can simply add the following dependency to your `pom.xm
 <dependency>
   <groupId>org.slf4j</groupId>
   <artifactId>slf4j-simple</artifactId>
-  <version>1.7.26</version>
+  <version>1.7.30</version>
 </dependency>
 ----
 ====

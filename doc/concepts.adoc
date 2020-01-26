@@ -94,7 +94,15 @@ To add metadata to a message, you can either use:
 1. `Message.of(payload, metadata, ack)` or `Message.of(payload, metadata)`
 2. Use an existing `Message` and call `withMetadata(metadata)`. This method copies the payload and ack into another instance of `Message`.
 
-To create a set of `Metadata` use: `Metadata.of(...)` or `Metadata.builder()` returning a builder.
+To create a set of `Metadata` use `Metadata.of(...)`.
+Metadata are composed by objects (identified by their class) and can be retrieved using `Message.getMetadata`:
+
+[source,java]
+----
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/MetadataExamples.java[tag=metadata]
+----
+
+The metadata can be composed by multiple objects to represent various metadata.
 
 Metadata are propagated though the chain when your method receives a single _payloads_.
 In all the other cases (stream, receiving `Message` and not payload), you need to propagate the metadata yourself, for example, using `message.withMetadata(incoming.getMetadata())`.

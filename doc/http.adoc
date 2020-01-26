@@ -49,50 +49,12 @@ On this connector you can configure:
 
 === Customizing the HTTP request
 
-There are two approaches to customize the HTTP request.
-
-First, your method can also return a `HttpMessage` to configure the _headers_, _query parameters_, the HTTP method (`POST`
-(default) or `PUT`):
+By attaching an instance of `io.smallrye.reactive.messaging.http.HttpResponseMetadata` in the message you produce, you can configure the dispatching:
 
 [source,java]
 ----
 include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/Http/HttpExample.java[tag=http-message]
 ----
-
-Otherwise, you can use _raw_ `Message` and use _metadata_.
-Note that using `HttpMessage` is producing a _raw_ `Message` using metadata.
-
-[source,java]
-----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/Http/HttpExample.java[tag=raw-message]
-----
-
-The following table list the configurable metadata:
-
-[cols=3*,options="header"]
-|===
-|Attribute
-|Type
-|Comment
-
-|`http.outgoing-url`
-|String
-|The HTTP URL, if not set, the URL configured on the connector is used.
-
-|`http.outgoing-method`
-|String
-|The HTTP Verb, either `POST`, or `PUT`. If not set, the method configured on the connector is used, which defaults to `POST`.
-
-|`http.outgoing-headers`
-|`Map<String, ?>`
-|The HTTP headers to include in the HTTP request.
-It's a `Map` with `String` key. The value can be either a scalar (string) value or a collection of (string) values.
-
-|`http.outgoing-query-parameters`
-|`Map<String, ?>`
-|The HTTP query parameter to append to the HTTP request URL.
-It's a `Map` with `String` key. The value can be either a scalar (string)  value or a collection of (string) values.
-|===
 
 === Supported payload
 

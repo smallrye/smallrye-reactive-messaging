@@ -1,4 +1,4 @@
-== Interacting with Apache Kafka
+== Receiving and Sending messages with Apache Kafka
 
 The Kafka Connector let you interact with a Kafka broker, and so retrieve and send Kafka messages.
 The Kafka support is based on the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka Client].
@@ -52,54 +52,28 @@ be set using the `kafka.bootstrap.servers` config property.
 
 You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
 
-When receiving a message from Kafka, you get an instance of `Message` with the following metadata:
+When receiving a message from Kafka, you get an instance of `Message` with an instance of `io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata` in the metadata:
 
-[cols=3*,options="header"]
-|===
-|Attribute
-|Type
-|Comment
+[source, java]
+----
+Optional<IncomingKafkaRecordMetadata> metadata
+    = message.getMetadata(IncomingKafkaRecordMetadata.class);
+----
 
-|`kafka.topic`
-|String
-|The topic of the message
-
-|`kafka.key`
-|Any
-|The key of the message, `null` if not set.
-The type depends on the deserializer.
-
-|`kafka.partition`
-|Integer
-|The Kafka record partition.
-
-|`kafka.offset`
-|Integer
-|The Kafka record offset.
-
-|`kafka.headers`
-|`Iterable<Header>`
-|The header attached to the Kafka records
-It's an iterable of `org.apache.kafka.common.header.Header`, wrapping the header name and the value (`byte[]`).
-
-|`kafka.timestamp`
-|Long
-|The record timestamp.
-
-|`kafka.timestamp-type`
-|`org.apache.kafka.common.record.TimestampType`
-|The type of timestamp.
-|===
-
-When consuming a message from Kafka, you can also get a `io.smallrye.reactive.messaging.kafka.KafkaMessage` instead of a _raw_ message.
-This `KafkaMessage` provides method to access the value stored in the metadata listed above.
+When consuming a message from Kafka, you can also get a `io.smallrye.reactive.messaging.kafka.KafkaRecord` instead of a _raw_ message.
+This `KafkaRecord` provides method to access the value stored in the metadata listed above.
 
 [source,java]
 ----
 include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/kafka/KafkaConsumer.java[tag=kafka-message]
 ----
 
-=== Forwarding messages to Kafka
+[NOTE]
+====
+The `KafkaMessage` class is now deprecated, you should use `KafkaRecord` instead of directly use the metadata.
+====
+
+=== Writing messages in Kafka
 
 To send messages to a Kafka topic, you need the following configuration:
 
@@ -130,39 +104,10 @@ be set using the `kafka.bootstrap.servers` config property.
 
 You can also configure any attributes used by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
 
-When sending a message to Kafka, you can either use a `KafkaMessage` or a _raw_ `Message` with the following metadata:
+When sending a message to Kafka, you can either use a `OutgoingKafkaRecord` or a _raw_ `Message` with an instance of `io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata` in the message metadata.
+Use `io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata.builder()` to create instances of `OutgoingKafkaRecordMetadata`.
 
-[cols=3*,options="header"]
-|===
-|Attribute
-|Type
-|Comment
-
-|`kafka.outgoing-topic`
-|String
-|The topic of the message.
-If not set the topic of the channel is used.
-
-|`kafka.outgoing-key`
-|Any
-|The key of the message,
-The type depends on the serializer.
-
-|`kafka.outgoing-partition`
-|Integer
-|The targeted partition.
-
-|`kafka.outgoing-headers`
-|`Iterable<RecordHeader>`
-|The header attached to the Kafka records
-It's an iterable (list) of `org.apache.kafka.common.header.internals.RecordHeader`, wrapping the header name and the value (`byte[]`).
-
-|`kafka.outgoing-timestamp`
-|Long
-|The record timestamp.
-|===
-
-You can also create a `io.smallrye.reactive.messaging.kafka.KafkaMessage` that would store the metadata in the header for you:
+You can also create a `io.smallrye.reactive.messaging.kafka.KafkaRecord` that creates the `OutgoingKafkaRecordMetadata` for you:
 
 [source,java]
 ----
