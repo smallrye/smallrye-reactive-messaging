@@ -18,15 +18,17 @@
  */
 package org.eclipse.microprofile.reactive.messaging;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 /**
  * A message envelope.
  * <p>
- * Messaging providers may provide their own sub classes of this type, in order to allow messaging provider specific
- * information to be passed to and from applications.
+ * A message contains a non-{@code null} payload, an acknowledgement function and a set of metadata.
+ * Metadata are indexed using the class name of the values.
  * </p>
  *
  * @param <T> The type of the message payload.
@@ -49,12 +51,19 @@ public interface Message<T> {
      * Create a message with the given payload and metadata.
      * The acknowledgement is immediate.
      *
-     * @param payload The payload.
-     * @param metadata The metadata.
+     * @param payload The payload, must not be {@code null}.
+     * @param metadata The metadata, if {@code null} an empty set of metadata is used.
      * @param <T> The type of payload
      * @return A message with the given payload, metadata and a no-op ack function.
      */
     static <T> Message<T> of(T payload, Metadata metadata) {
+        if (payload == null) {
+            throw new IllegalArgumentException("`payload` must not be `null`");
+        }
+        if (metadata == null) {
+            metadata = Metadata.empty();
+        }
+        Metadata actual = metadata;
         return new Message<T>() {
             @Override
             public T getPayload() {
@@ -63,7 +72,34 @@ public interface Message<T> {
 
             @Override
             public Metadata getMetadata() {
-                return metadata;
+                return actual;
+            }
+        };
+    }
+
+    /**
+     * Create a message with the given payload and metadata.
+     * The acknowledgement is immediate.
+     *
+     * @param payload The payload, must not be {@code null}
+     * @param metadata The metadata, must not be {@code null}, must not contain {@code null} values, can be empty
+     * @param <T> The type of payload
+     * @return A message with the given payload, metadata and a no-op ack function.
+     */
+    static <T> Message<T> of(T payload, Iterable<Object> metadata) {
+        if (payload == null) {
+            throw new IllegalArgumentException("`payload` must not be `null`");
+        }
+        Metadata validated = Metadata.from(metadata);
+        return new Message<T>() {
+            @Override
+            public T getPayload() {
+                return payload;
+            }
+
+            @Override
+            public Metadata getMetadata() {
+                return validated;
             }
         };
     }
@@ -72,12 +108,15 @@ public interface Message<T> {
      * Create a message with the given payload and ack function.
      * No metadata are associated with the message.
      *
-     * @param payload The payload.
+     * @param payload The payload, must not be {@code null}.
      * @param ack The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
      * @param <T> the type of payload
      * @return A message with the given payload, no metadata and ack function.
      */
     static <T> Message<T> of(T payload, Supplier<CompletionStage<Void>> ack) {
+        if (payload == null) {
+            throw new IllegalArgumentException("`payload` must not be `null`");
+        }
         return new Message<T>() {
             @Override
             public T getPayload() {
@@ -99,13 +138,21 @@ public interface Message<T> {
     /**
      * Create a message with the given payload, metadata and ack function.
      *
-     * @param payload The payload.
+     * @param payload The payload, must not be {@code null}.
      * @param metadata the metadata, if {@code null}, empty metadata are used.
      * @param ack The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
      * @param <T> the type of payload
      * @return A message with the given payload and ack function.
      */
-    static <T> Message<T> of(T payload, Metadata metadata, Supplier<CompletionStage<Void>> ack) {
+    static <T> Message<T> of(T payload, Metadata metadata,
+            Supplier<CompletionStage<Void>> ack) {
+        if (payload == null) {
+            throw new IllegalArgumentException("`payload` must not be `null`");
+        }
+        if (metadata == null) {
+            metadata = Metadata.empty();
+        }
+        Metadata actual = metadata;
         return new Message<T>() {
             @Override
             public T getPayload() {
@@ -114,7 +161,37 @@ public interface Message<T> {
 
             @Override
             public Metadata getMetadata() {
-                return metadata == null ? Metadata.empty() : metadata;
+                return actual;
+            }
+
+            @Override
+            public Supplier<CompletionStage<Void>> getAck() {
+                return ack;
+            }
+        };
+    }
+
+    /**
+     * Create a message with the given payload, metadata and ack function.
+     *
+     * @param payload The payload.
+     * @param metadata the metadata, must not be {@code null}, must not contain {@code null} values.
+     * @param ack The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
+     * @param <T> the type of payload
+     * @return A message with the given payload and ack function.
+     */
+    static <T> Message<T> of(T payload, Iterable<Object> metadata,
+            Supplier<CompletionStage<Void>> ack) {
+        Metadata validated = Metadata.from(metadata);
+        return new Message<T>() {
+            @Override
+            public T getPayload() {
+                return payload;
+            }
+
+            @Override
+            public Metadata getMetadata() {
+                return validated;
             }
 
             @Override
@@ -133,18 +210,29 @@ public interface Message<T> {
      * @return the new instance of {@link Message}
      */
     default <P> Message<P> withPayload(P payload) {
-        return Message.of(payload, getMetadata(), getAck());
+        return Message.of(payload, Metadata.from(getMetadata()), getAck());
     }
 
     /**
      * Creates a new instance of {@link Message} with the specified metadata.
      * The payload and acknowledgment function are taken from the current {@link Message}.
      *
-     * @param metadata the metadata.
+     * @param metadata the metadata, must not be {@code null}, must not contains {@code null}.
+     * @return the new instance of {@link Message}
+     */
+    default Message<T> withMetadata(Iterable<Object> metadata) {
+        return Message.of(getPayload(), Metadata.from(metadata), getAck());
+    }
+
+    /**
+     * Creates a new instance of {@link Message} with the specified metadata.
+     * The payload and acknowledgment function are taken from the current {@link Message}.
+     *
+     * @param metadata the metadata, must not be {@code null}.
      * @return the new instance of {@link Message}
      */
     default Message<T> withMetadata(Metadata metadata) {
-        return Message.of(getPayload(), metadata, getAck());
+        return Message.of(getPayload(), Metadata.from(metadata), getAck());
     }
 
     /**
@@ -164,33 +252,27 @@ public interface Message<T> {
     T getPayload();
 
     /**
-     * @return The set of metadata attached to this message.
+     * @return The set of metadata attached to this message, potentially empty.
      */
     default Metadata getMetadata() {
         return Metadata.empty();
     }
 
     /**
-     * Retrieves the metadata attribute associated with the given key.
-     * @param key the key, must not be {@code null}
-     * @param <M> the expected type
-     * @return the stored value, {@code null} if there is no metadata associated with the given key
-     * @throws ClassCastException if the metadata associated with the given key cannot be casted to {@code M}
+     * Retrieves the metadata associated with the given class.
+     *
+     * @param clazz the class of the metadata to retrieve, must not be {@code null}
+     * @return an {@link Optional} containing the associated metadata, empty if none.
      */
-    default <M> M getMetadata(String key) {
-        return getMetadata().get(key);
-    }
-
-    /**
-     * Retrieves the metadata attribute associated with the given key.
-     * @param key the key, must not be {@code null}
-     * @param defaultValue the default value, if there are no metadata associated with the given key.
-     * @param <M> the expected type
-     * @return the stored value, {@code defaultValue} if there is no metadata associated with the given key
-     * @throws ClassCastException if the metadata associated with the given key cannot be casted to {@code M}
-     */
-    default <M> M getMetadata(String key, M defaultValue) {
-        return getMetadata().get(key, defaultValue);
+    @SuppressWarnings("unchecked")
+    default <M> Optional<M> getMetadata(Class<? extends M> clazz) {
+        if (clazz == null) {
+            throw new IllegalArgumentException("`clazz` must not be `null`");
+        }
+        return StreamSupport.stream(getMetadata().spliterator(), false)
+                .filter(clazz::isInstance)
+                .map(x -> (M) x) // casting is safe here as we checked the type before.
+                .findAny();
     }
 
     /**
@@ -241,5 +323,16 @@ public interface Message<T> {
                     + " to " + unwrapType.getName(), e);
         }
 
+    }
+
+    /**
+     * Creates a new instance of {@link Message} with the current metadata, plus the given one.
+     * The payload and acknowledgment function are taken from the current {@link Message}.
+     *
+     * @param metadata the metadata, must not be {@code null}.
+     * @return the new instance of {@link Message}
+     */
+    default Message<T> addMetadata(Object metadata) {
+        return Message.of(getPayload(), getMetadata().with(metadata), getAck());
     }
 }

@@ -10,7 +10,6 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 
@@ -18,6 +17,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class SimpleAsyncPropagationTest extends WeldTestBaseWithoutTails {
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     public void test() {
         addBeanClass(SimplePropagationTest.Source.class, SimplePropagationTest.Sink.class);
@@ -26,10 +26,11 @@ public class SimpleAsyncPropagationTest extends WeldTestBaseWithoutTails {
         SimplePropagationTest.Sink sink = container.select(SimplePropagationTest.Sink.class).get();
         await().until(() -> sink.list().size() == 10);
         assertThat(sink.list()).allSatisfy(message -> {
-            Metadata metadata = message.getMetadata();
-            assertThat(metadata.getAsString("message", null)).isEqualTo("hello");
-            assertThat(metadata.getAsInteger("key", -1)).isNotEqualTo(-1);
-            assertThat((Object) metadata.get("foo")).isNull();
+            SimplePropagationTest.CounterMetadata c = message.getMetadata(SimplePropagationTest.CounterMetadata.class).get();
+            SimplePropagationTest.MsgMetadata m = message.getMetadata(SimplePropagationTest.MsgMetadata.class).get();
+            assertThat(m.getMessage()).isEqualTo("hello");
+            assertThat(c.getCount()).isNotEqualTo(0);
+            assertThat(message.getMetadata()).hasSize(2);
         }).hasSize(10);
 
     }
@@ -50,7 +51,7 @@ public class SimpleAsyncPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("sink")
         public CompletionStage<Message<String>> process(Message<String> input) {
             return CompletableFuture.supplyAsync(
-                    () -> input.withMetadata(input.getMetadata().without("foo").with("message", "hello")));
+                    () -> input.withMetadata(input.getMetadata().with(new SimplePropagationTest.MsgMetadata("hello"))));
         }
     }
 

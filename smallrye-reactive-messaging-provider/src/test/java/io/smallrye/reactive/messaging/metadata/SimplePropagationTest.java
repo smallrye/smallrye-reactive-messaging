@@ -8,10 +8,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.messaging.*;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 
@@ -27,10 +24,12 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
         Sink sink = container.select(Sink.class).get();
 
         assertThat(sink.list()).allSatisfy(message -> {
-            Metadata metadata = message.getMetadata();
-            assertThat(metadata.getAsString("message", null)).isEqualTo("hello");
-            assertThat(metadata.getAsInteger("key", -1)).isNotEqualTo(-1);
-            assertThat(metadata.getAsString("foo", null)).isNull();
+            CounterMetadata c = message.getMetadata(CounterMetadata.class)
+                    .orElseThrow(() -> new AssertionError("Metadata expected"));
+            MsgMetadata m = message.getMetadata(MsgMetadata.class).orElseThrow(() -> new AssertionError("Metadata expected"));
+            ;
+            assertThat(m.getMessage()).isEqualTo("hello");
+            assertThat(c.getCount()).isNotEqualTo(0);
         }).hasSize(10);
 
     }
@@ -50,8 +49,36 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("intermediate")
         @Outgoing("sink")
         public Message<String> process(Message<String> input) {
-            return input.withMetadata(input.getMetadata().without("foo").with("message", "hello"));
+            return input.withMetadata(input.getMetadata().without(MsgMetadata.class).with(new MsgMetadata("hello")));
         }
+    }
+
+    public static class CounterMetadata {
+
+        private final int count;
+
+        public CounterMetadata(int count) {
+            this.count = count;
+        }
+
+        int getCount() {
+            return count;
+        }
+
+    }
+
+    public static class MsgMetadata {
+
+        private final String message;
+
+        public MsgMetadata(String m) {
+            this.message = m;
+        }
+
+        String getMessage() {
+            return message;
+        }
+
     }
 
     @ApplicationScoped
@@ -60,7 +87,7 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("source")
         public Publisher<Message<String>> source() {
             return Flowable.range(1, 10)
-                    .map(i -> Message.of(Integer.toString(i), Metadata.of("key", i, "foo", "bar")));
+                    .map(i -> Message.of(Integer.toString(i), Metadata.of(new CounterMetadata(i), new MsgMetadata("foo"))));
         }
 
     }

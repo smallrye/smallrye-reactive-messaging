@@ -7,7 +7,6 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
@@ -25,10 +24,14 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
         SimplePropagationTest.Sink sink = container.select(SimplePropagationTest.Sink.class).get();
         await().until(() -> sink.list().size() == 40);
         assertThat(sink.list()).allSatisfy(message -> {
-            Metadata metadata = message.getMetadata();
-            assertThat((String) metadata.get("message")).isEqualTo("hello");
-            assertThat(metadata.getAsInteger("key", -1)).isNotEqualTo(-1);
-            assertThat((String) metadata.get("foo")).isNull();
+            assertThat(message.getMetadata(SimplePropagationTest.MsgMetadata.class)
+                    .map(SimplePropagationTest.MsgMetadata::getMessage)).hasValue("foo");
+            assertThat(message.getMetadata(MessageTest.MyMetadata.class)
+                    .map(m -> m.v)).hasValue("hello");
+            assertThat(message.getMetadata(SimplePropagationTest.CounterMetadata.class)
+                    .map(SimplePropagationTest.CounterMetadata::getCount))
+                            .hasValueSatisfying(x -> assertThat(x).isNotEqualTo(0));
+            assertThat(message.getMetadata()).hasSize(3);
         }).hasSize(40);
     }
 
@@ -48,8 +51,8 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("sink")
         public Publisher<Message<String>> process(Message<String> input) {
             return Flowable.just(
-                    input.withMetadata(input.getMetadata().without("foo").with("message", "hello")),
-                    input.withMetadata(input.getMetadata().without("foo").with("message", "hello")));
+                    input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))),
+                    input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))));
         }
     }
 
