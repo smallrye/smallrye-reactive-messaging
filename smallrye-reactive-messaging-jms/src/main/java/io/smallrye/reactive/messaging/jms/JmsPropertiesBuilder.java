@@ -5,6 +5,8 @@ import java.util.function.Consumer;
 
 import javax.jms.Message;
 
+import io.smallrye.reactive.messaging.jms.impl.JmsTask;
+
 public class JmsPropertiesBuilder {
 
     private final Map<String, Property<?>> properties = new LinkedHashMap<>();

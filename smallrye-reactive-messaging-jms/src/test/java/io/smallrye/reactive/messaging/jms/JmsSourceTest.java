@@ -69,20 +69,22 @@ public class JmsSourceTest extends JmsTestBase {
 
         await().until(() -> bean.messages().size() == 1);
         IncomingJmsMessage<?> incomingJmsMessage = bean.messages().get(0);
+        IncomingJmsMessageMetadata metadata = incomingJmsMessage.getMetadata(IncomingJmsMessageMetadata.class)
+                .orElseThrow(() -> new AssertionError("Metadata expected"));
         assertThat(incomingJmsMessage.getPayload()).isEqualTo("hello");
-        assertThat(incomingJmsMessage.getBody(String.class)).isEqualTo("hello");
-        assertThat(incomingJmsMessage.propertyExists("string")).isTrue();
-        assertThat(incomingJmsMessage.propertyExists("missing")).isFalse();
-        assertThat(incomingJmsMessage.getStringProperty("string")).isEqualTo("value");
-        assertThat(incomingJmsMessage.getBooleanProperty("bool")).isTrue();
-        assertThat(incomingJmsMessage.getLongProperty("long")).isEqualTo(100L);
-        assertThat(incomingJmsMessage.getByteProperty("byte")).isEqualTo((byte) 5);
-        assertThat(incomingJmsMessage.getFloatProperty("float")).isEqualTo(5.5f);
-        assertThat(incomingJmsMessage.getDoubleProperty("double")).isEqualTo(10.3);
-        assertThat(incomingJmsMessage.getIntProperty("int")).isEqualTo(23);
-        assertThat(incomingJmsMessage.getObjectProperty("object")).isInstanceOf(String.class);
-        assertThat(((String) incomingJmsMessage.getObjectProperty("object"))).isEqualTo("yop");
-        assertThat(incomingJmsMessage.getShortProperty("short")).isEqualTo((short) 3);
+        assertThat(metadata.getBody(String.class)).isEqualTo("hello");
+        assertThat(metadata.propertyExists("string")).isTrue();
+        assertThat(metadata.propertyExists("missing")).isFalse();
+        assertThat(metadata.getStringProperty("string")).isEqualTo("value");
+        assertThat(metadata.getBooleanProperty("bool")).isTrue();
+        assertThat(metadata.getLongProperty("long")).isEqualTo(100L);
+        assertThat(metadata.getByteProperty("byte")).isEqualTo((byte) 5);
+        assertThat(metadata.getFloatProperty("float")).isEqualTo(5.5f);
+        assertThat(metadata.getDoubleProperty("double")).isEqualTo(10.3);
+        assertThat(metadata.getIntProperty("int")).isEqualTo(23);
+        assertThat(metadata.getObjectProperty("object")).isInstanceOf(String.class);
+        assertThat(((String) message.getObjectProperty("object"))).isEqualTo("yop");
+        assertThat(message.getShortProperty("short")).isEqualTo((short) 3);
     }
 
     @Test

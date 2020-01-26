@@ -1,22 +1,22 @@
 package io.smallrye.reactive.messaging.jms;
 
-import java.util.Enumeration;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
-import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.json.bind.Jsonb;
 
-public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T>, JmsProperties {
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
+public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
     private final Message delegate;
     private final Executor executor;
     private final Class<T> clazz;
     private final Jsonb json;
-    private final JmsProperties properties;
+    private final IncomingJmsMessageMetadata jmsMetadata;
+    private final Metadata metadata;
 
     IncomingJmsMessage(Message message, Executor executor, Jsonb json) {
         this.delegate = message;
@@ -25,6 +25,9 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         String cn = null;
         try {
             cn = message.getStringProperty("_classname");
+            if (cn == null) {
+                cn = message.getJMSType();
+            }
         } catch (JMSException e) {
             // ignore it
         }
@@ -33,7 +36,9 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("Unable to load the class " + e);
         }
-        this.properties = new ImmutableJmsProperties(message);
+
+        this.jmsMetadata = new IncomingJmsMessageMetadata(message);
+        this.metadata = Metadata.of(this.jmsMetadata);
     }
 
     @SuppressWarnings("unchecked")
@@ -47,125 +52,6 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
             }
         }
         return (Class<T>) IncomingJmsMessage.class.getClassLoader().loadClass(cn);
-    }
-
-    private <R> R wrap(Callable<R> code) {
-        try {
-            return code.call();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public String getJMSMessageID() {
-        return wrap(delegate::getJMSMessageID);
-    }
-
-    public long getJMSTimestamp() {
-        return wrap(delegate::getJMSTimestamp);
-    }
-
-    public byte[] getJMSCorrelationIDAsBytes() {
-        return wrap(delegate::getJMSCorrelationIDAsBytes);
-    }
-
-    public String getJMSCorrelationID() {
-        return wrap(delegate::getJMSCorrelationID);
-    }
-
-    public Destination getJMSReplyTo() {
-        return wrap(delegate::getJMSReplyTo);
-    }
-
-    public Destination getJMSDestination() {
-        return wrap(delegate::getJMSDestination);
-    }
-
-    public int getJMSDeliveryMode() {
-        return wrap(delegate::getJMSDeliveryMode);
-    }
-
-    public boolean getJMSRedelivered() {
-        return wrap(delegate::getJMSRedelivered);
-    }
-
-    public String getJMSType() {
-        return wrap(delegate::getJMSType);
-    }
-
-    public long getJMSExpiration() {
-        return wrap(delegate::getJMSExpiration);
-    }
-
-    public long getJMSDeliveryTime() {
-        return wrap(delegate::getJMSDeliveryTime);
-    }
-
-    public int getJMSPriority() {
-        return wrap(delegate::getJMSPriority);
-    }
-
-    @Override
-    public boolean propertyExists(String name) {
-        return properties.propertyExists(name);
-    }
-
-    @Override
-    public boolean getBooleanProperty(String name) {
-        return properties.getBooleanProperty(name);
-    }
-
-    @Override
-    public byte getByteProperty(String name) {
-        return properties.getByteProperty(name);
-    }
-
-    @Override
-    public short getShortProperty(String name) {
-        return properties.getShortProperty(name);
-    }
-
-    @Override
-    public int getIntProperty(String name) {
-        return properties.getIntProperty(name);
-    }
-
-    @Override
-    public long getLongProperty(String name) {
-        return properties.getLongProperty(name);
-    }
-
-    @Override
-    public float getFloatProperty(String name) {
-        return properties.getFloatProperty(name);
-    }
-
-    @Override
-    public double getDoubleProperty(String name) {
-        return properties.getDoubleProperty(name);
-    }
-
-    @Override
-    public String getStringProperty(String name) {
-        return properties.getStringProperty(name);
-    }
-
-    @Override
-    public Object getObjectProperty(String name) {
-        return properties.getObjectProperty(name);
-    }
-
-    @Override
-    public Enumeration getPropertyNames() {
-        return properties.getPropertyNames();
-    }
-
-    public <X> X getBody(Class<X> c) {
-        return wrap(() -> delegate.getBody(c));
-    }
-
-    public boolean isBodyAssignableTo(Class c) {
-        return wrap(() -> delegate.isBodyAssignableTo(c));
     }
 
     @Override
@@ -221,76 +107,24 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         }, executor);
     }
 
+    @Override
+    public Metadata getMetadata() {
+        return metadata;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <C> C unwrap(Class<C> unwrapType) {
         if (Message.class.equals(unwrapType)) {
             return (C) delegate;
         }
+        if (IncomingJmsMessageMetadata.class.equals(unwrapType)) {
+            return (C) jmsMetadata;
+        }
+        if (Message.class.equals(unwrapType)) {
+            return (C) delegate;
+        }
         throw new IllegalArgumentException("Unable to unwrap message to " + unwrapType);
     }
 
-    private final class ImmutableJmsProperties implements JmsProperties {
-        private final Message delegate;
-
-        ImmutableJmsProperties(Message message) {
-            this.delegate = message;
-        }
-
-        @Override
-        public boolean propertyExists(String name) {
-            return wrap(() -> delegate.propertyExists(name));
-        }
-
-        @Override
-        public boolean getBooleanProperty(String name) {
-            return wrap(() -> delegate.getBooleanProperty(name));
-        }
-
-        @Override
-        public byte getByteProperty(String name) {
-            return wrap(() -> delegate.getByteProperty(name));
-        }
-
-        @Override
-        public short getShortProperty(String name) {
-            return wrap(() -> delegate.getShortProperty(name));
-        }
-
-        @Override
-        public int getIntProperty(String name) {
-            return wrap(() -> delegate.getIntProperty(name));
-        }
-
-        @Override
-        public long getLongProperty(String name) {
-            return wrap(() -> delegate.getLongProperty(name));
-        }
-
-        @Override
-        public float getFloatProperty(String name) {
-            return wrap(() -> delegate.getFloatProperty(name));
-        }
-
-        @Override
-        public double getDoubleProperty(String name) {
-            return wrap(() -> delegate.getDoubleProperty(name));
-        }
-
-        @Override
-        public String getStringProperty(String name) {
-            return wrap(() -> delegate.getStringProperty(name));
-        }
-
-        @Override
-        public Object getObjectProperty(String name) {
-            return wrap(() -> delegate.getObjectProperty(name));
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Enumeration<String> getPropertyNames() {
-            return wrap(delegate::getPropertyNames);
-        }
-    }
 }

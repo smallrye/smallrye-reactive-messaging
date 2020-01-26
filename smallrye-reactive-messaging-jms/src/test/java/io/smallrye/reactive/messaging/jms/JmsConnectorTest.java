@@ -29,6 +29,7 @@ public class JmsConnectorTest extends JmsTestBase {
 
         PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
         await().until(() -> bean.list().size() > 3);
+        assertThat(bean.list()).hasSizeGreaterThan(3);
     }
 
     @Test
@@ -44,6 +45,7 @@ public class JmsConnectorTest extends JmsTestBase {
 
         PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
         await().until(() -> bean.list().size() > 3);
+        assertThat(bean.list()).hasSizeGreaterThan(3);
     }
 
     @Test
@@ -61,24 +63,25 @@ public class JmsConnectorTest extends JmsTestBase {
 
         List<IncomingJmsMessage<Integer>> messages = bean.messages();
         messages.forEach(msg -> {
-            assertThat(msg.getJMSDeliveryMode()).isEqualTo(DeliveryMode.PERSISTENT);
-            assertThat(msg.getJMSCorrelationID()).isNull();
-            assertThat(msg.getJMSCorrelationIDAsBytes()).isNull();
-            assertThat(msg.getJMSDestination()).isInstanceOf(Queue.class);
-            assertThat(msg.getJMSDeliveryTime()).isNotNull();
-            assertThat(msg.getJMSPriority()).isEqualTo(4);
-            assertThat(msg.getJMSMessageID()).isNotNull();
-            assertThat(msg.getJMSTimestamp()).isPositive();
-            Enumeration names = msg.getPropertyNames();
+            IncomingJmsMessageMetadata metadata = msg.getMetadata(IncomingJmsMessageMetadata.class)
+                    .orElseThrow(() -> new AssertionError("Metadata expected"));
+            assertThat(metadata.getDeliveryMode()).isEqualTo(DeliveryMode.PERSISTENT);
+            assertThat(metadata.getCorrelationId()).isNull();
+            assertThat(metadata.getDestination()).isInstanceOf(Queue.class);
+            assertThat(metadata.getDeliveryTime()).isNotNull();
+            assertThat(metadata.getPriority()).isEqualTo(4);
+            assertThat(metadata.getMessageId()).isNotNull();
+            assertThat(metadata.getTimestamp()).isPositive();
+            Enumeration<String> names = metadata.getPropertyNames();
             List<String> list = new ArrayList<>();
             while (names.hasMoreElements()) {
-                list.add(names.nextElement().toString());
+                list.add(names.nextElement());
             }
             assertThat(list).hasSize(2).contains("_classname");
-            assertThat(msg.getJMSRedelivered()).isFalse();
-            assertThat(msg.getJMSReplyTo()).isNull();
-            assertThat(msg.getJMSType()).isNotNull();
-            assertThat(msg.getJMSExpiration()).isEqualTo(0L);
+            assertThat(metadata.isRedelivered()).isFalse();
+            assertThat(metadata.getReplyTo()).isNull();
+            assertThat(metadata.getType()).isNotNull();
+            assertThat(metadata.getExpiration()).isEqualTo(0L);
         });
     }
 
@@ -94,6 +97,7 @@ public class JmsConnectorTest extends JmsTestBase {
 
         PersonConsumerBean bean = container.select(PersonConsumerBean.class).get();
         await().until(() -> bean.list().size() > 1);
+        assertThat(bean.list()).isNotEmpty();
     }
 
     @Test(expected = DeploymentException.class)

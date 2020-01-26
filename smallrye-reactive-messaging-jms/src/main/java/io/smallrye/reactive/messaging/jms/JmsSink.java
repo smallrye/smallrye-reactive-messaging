@@ -10,7 +10,6 @@ import javax.json.bind.Jsonb;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
@@ -101,44 +100,47 @@ class JmsSink {
             outgoing.setStringProperty("_classname", payload.getClass().getName());
         }
 
-        Metadata metadata = message.getMetadata();
-
-        String correlationId = metadata.getAsString(JmsMetadata.OUTGOING_CORRELATION_ID, null);
-        Destination replyTo = metadata.get(JmsMetadata.OUTGOING_REPLY_TO, (Destination) null);
-        Destination dest = metadata.get(JmsMetadata.OUTGOING_DESTINATION, (Destination) null);
-        int deliveryMode = metadata.getAsInteger(JmsMetadata.OUTGOING_DELIVERY_MODE, -1);
-        String type = metadata.getAsString(JmsMetadata.OUTGOING_TYPE, null);
-        JmsProperties properties = metadata.get(JmsMetadata.OUTGOING_PROPERTIES, (JmsProperties) null);
-
-        if (correlationId != null) {
-            outgoing.setJMSCorrelationID(correlationId);
-        }
-        if (replyTo != null) {
-            outgoing.setJMSReplyTo(replyTo);
-        }
-        if (dest != null) {
-            outgoing.setJMSDestination(dest);
-        }
-        if (deliveryMode != -1) {
-            outgoing.setJMSDeliveryMode(deliveryMode);
-        }
-        if (type != null) {
-            outgoing.setJMSType(type);
-        }
-        if (type != null) {
-            outgoing.setJMSType(type);
-        }
-
-        if (properties != null) {
-            if (!(properties instanceof JmsPropertiesBuilder.OutgoingJmsProperties)) {
-                throw new javax.jms.IllegalStateException("Unable to map JMS properties to the outgoing message, "
-                        + "OutgoingJmsProperties expected, found " + properties.getClass().getName());
+        OutgoingJmsMessageMetadata metadata = message.getMetadata(OutgoingJmsMessageMetadata.class).orElse(null);
+        Destination actualDestination;
+        if (metadata != null) {
+            String correlationId = metadata.getCorrelationId();
+            Destination replyTo = metadata.getReplyTo();
+            Destination dest = metadata.getDestination();
+            int deliveryMode = metadata.getDeliveryMode();
+            String type = metadata.getType();
+            JmsProperties properties = metadata.getProperties();
+            if (correlationId != null) {
+                outgoing.setJMSCorrelationID(correlationId);
             }
-            JmsPropertiesBuilder.OutgoingJmsProperties op = ((JmsPropertiesBuilder.OutgoingJmsProperties) properties);
-            op.getProperties().forEach(p -> p.apply(outgoing));
+            if (replyTo != null) {
+                outgoing.setJMSReplyTo(replyTo);
+            }
+            if (dest != null) {
+                outgoing.setJMSDestination(dest);
+            }
+            if (deliveryMode != -1) {
+                outgoing.setJMSDeliveryMode(deliveryMode);
+            }
+            if (type != null) {
+                outgoing.setJMSType(type);
+            }
+            if (type != null) {
+                outgoing.setJMSType(type);
+            }
+
+            if (properties != null) {
+                if (!(properties instanceof JmsPropertiesBuilder.OutgoingJmsProperties)) {
+                    throw new javax.jms.IllegalStateException("Unable to map JMS properties to the outgoing message, "
+                            + "OutgoingJmsProperties expected, found " + properties.getClass().getName());
+                }
+                JmsPropertiesBuilder.OutgoingJmsProperties op = ((JmsPropertiesBuilder.OutgoingJmsProperties) properties);
+                op.getProperties().forEach(p -> p.apply(outgoing));
+            }
+            actualDestination = dest != null ? dest : this.destination;
+        } else {
+            actualDestination = this.destination;
         }
 
-        Destination actualDestination = dest != null ? dest : this.destination;
         return dispatch(message, () -> producer.send(actualDestination, outgoing));
     }
 

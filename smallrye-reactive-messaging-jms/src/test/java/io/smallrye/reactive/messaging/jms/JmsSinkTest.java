@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.jms;
 
-import static io.smallrye.reactive.messaging.jms.JmsMetadata.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -14,7 +14,6 @@ import javax.json.bind.JsonbBuilder;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.streams.operators.CompletionSubscriber;
 import org.junit.After;
 import org.junit.Before;
@@ -240,14 +239,14 @@ public class JmsSinkTest extends JmsTestBase {
 
         Destination rt = jms.createQueue("reply-to");
 
-        Metadata metadata = Metadata.builder()
-                .with(OUTGOING_CORRELATION_ID, "my-correlation-id")
-                .with(OUTGOING_REPLY_TO, rt)
-                .with(OUTGOING_DELIVERY_MODE, DeliveryMode.PERSISTENT)
-                .with(OUTGOING_TYPE, String.class.getName())
+        OutgoingJmsMessageMetadata metadata = OutgoingJmsMessageMetadata.builder()
+                .withCorrelationId("my-correlation-id")
+                .withReplyTo(rt)
+                .withDeliveryMode(DeliveryMode.PERSISTENT)
+                .withType(String.class.getName())
                 .build();
 
-        hello = hello.withMetadata(metadata);
+        hello = hello.withMetadata(Collections.singleton(metadata));
         subscriber.onNext(hello);
 
         await().until(() -> client.messages.size() >= 1);
@@ -263,11 +262,10 @@ public class JmsSinkTest extends JmsTestBase {
 
     private class MyJmsClient {
 
-        private final JMSConsumer consumer;
         private final List<javax.jms.Message> messages = new CopyOnWriteArrayList<>();
 
         MyJmsClient(Destination destination) {
-            consumer = jms.createConsumer(destination);
+            JMSConsumer consumer = jms.createConsumer(destination);
             consumer.setMessageListener(messages::add);
         }
     }

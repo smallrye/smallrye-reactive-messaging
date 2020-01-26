@@ -139,11 +139,11 @@ public class HeaderPropagationTest extends JmsTestBase {
         public Message<Integer> processMessage(Message<Integer> input) {
             JmsProperties properties = new JmsPropertiesBuilder().with("prop", "bar").build();
             return Message.of(input.getPayload())
-                    .withMetadata(Metadata.builder()
-                            .with(JmsMetadata.OUTGOING_PROPERTIES, properties)
-                            .with(JmsMetadata.OUTGOING_CORRELATION_ID, "my-correlation-" + input.getPayload())
-                            .with(JmsMetadata.OUTGOING_DESTINATION, queue)
-                            .build());
+                    .withMetadata(Metadata.of(OutgoingJmsMessageMetadata.builder()
+                            .withProperties(properties)
+                            .withCorrelationId("my-correlation-" + input.getPayload())
+                            .withDestination(queue)
+                            .build()));
         }
 
         @Incoming("p1")
@@ -170,11 +170,11 @@ public class HeaderPropagationTest extends JmsTestBase {
         public Message<Integer> processMessage(Message<Integer> input) {
             JmsProperties properties = JmsProperties.builder().with("prop", "bar").build();
             return Message.of(input.getPayload())
-                    .withMetadata(Metadata.builder()
-                            .with(JmsMetadata.OUTGOING_PROPERTIES, properties)
-                            .with(JmsMetadata.OUTGOING_CORRELATION_ID, "my-correlation-" + input.getPayload())
-                            .with(JmsMetadata.OUTGOING_DESTINATION, queue)
-                            .build());
+                    .withMetadata(Metadata.of(OutgoingJmsMessageMetadata.builder()
+                            .withProperties(properties)
+                            .withCorrelationId("my-correlation-" + input.getPayload())
+                            .withDestination(queue)
+                            .build()));
         }
 
         @Incoming("p1")
