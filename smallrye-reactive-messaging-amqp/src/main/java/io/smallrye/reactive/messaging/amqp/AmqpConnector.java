@@ -21,7 +21,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
@@ -302,16 +301,13 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         }).ignore();
     }
 
-    private String getActualAddress(Message message, io.vertx.axle.amqp.AmqpMessage amqp, String configuredAddress) {
+    private String getActualAddress(Message<?> message, io.vertx.axle.amqp.AmqpMessage amqp, String configuredAddress) {
         if (amqp.address() != null) {
             return amqp.address();
         }
-        String addressFromHeader = message.getMetadata().getAsString(AmqpMetadata.OUTGOING_ADDRESS, null);
-        if (addressFromHeader != null) {
-            return addressFromHeader;
-        } else {
-            return configuredAddress;
-        }
+        return message.getMetadata(OutgoingAmqpMetadata.class)
+                .flatMap(o -> Optional.ofNullable(o.getAddress()))
+                .orElse(configuredAddress);
     }
 
     private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl, String configuredAddress) {
@@ -345,20 +341,21 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .thenApply(x -> msg);
     }
 
-    private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Message message, boolean durable, long ttl) {
+    private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Message<?> message, boolean durable, long ttl) {
         Object payload = message.getPayload();
-        Metadata metadata = message.getMetadata();
+        Optional<OutgoingAmqpMetadata> metadata = message.getMetadata(OutgoingAmqpMetadata.class);
         AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create();
 
         if (durable) {
             builder.durable(true);
         } else {
-            builder.durable(metadata.getAsBoolean(AmqpMetadata.OUTGOING_DURABLE, false));
+            builder.durable(metadata.map(OutgoingAmqpMetadata::isDurable).orElse(false));
         }
+
         if (ttl > 0) {
             builder.ttl(ttl);
         } else {
-            long t = metadata.getAsLong(AmqpMetadata.OUTGOING_TTL, -1);
+            long t = metadata.map(OutgoingAmqpMetadata::getTtl).orElse(-1L);
             if (t > 0) {
                 builder.ttl(t);
             }
@@ -396,23 +393,19 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             builder.withBody(payload.toString());
         }
 
-        builder.address(metadata.getAsString(AmqpMetadata.OUTGOING_ADDRESS, null));
+        builder.address(metadata.map(OutgoingAmqpMetadata::getAddress).orElse(null));
+        builder.applicationProperties(metadata.map(OutgoingAmqpMetadata::getProperties).orElseGet(JsonObject::new));
 
-        JsonObject json = metadata.get(AmqpMetadata.OUTGOING_APPLICATION_PROPERTIES);
-        if (json != null) {
-            builder.applicationProperties(json);
-        }
-
-        builder.contentEncoding(metadata.getAsString(AmqpMetadata.OUTGOING_CONTENT_ENCODING, null));
-        builder.contentType(metadata.getAsString(AmqpMetadata.OUTGOING_CONTENT_TYPE, null));
-        builder.correlationId(metadata.getAsString(AmqpMetadata.OUTGOING_CORRELATION_ID, null));
-        builder.groupId(metadata.getAsString(AmqpMetadata.OUTGOING_GROUP_ID, null));
-        builder.id(metadata.getAsString(AmqpMetadata.OUTGOING_ID, null));
-        int priority = metadata.getAsInteger(AmqpMetadata.OUTGOING_PRIORITY, -1);
+        builder.contentEncoding(metadata.map(OutgoingAmqpMetadata::getContentEncoding).orElse(null));
+        builder.contentType(metadata.map(OutgoingAmqpMetadata::getContentType).orElse(null));
+        builder.correlationId(metadata.map(OutgoingAmqpMetadata::getCorrelationId).orElse(null));
+        builder.groupId(metadata.map(OutgoingAmqpMetadata::getGroupId).orElse(null));
+        builder.id(metadata.map(OutgoingAmqpMetadata::getId).orElse(null));
+        int priority = metadata.map(OutgoingAmqpMetadata::getPriority).orElse(-1);
         if (priority >= 0) {
             builder.priority((short) priority);
         }
-        builder.subject(metadata.getAsString(AmqpMetadata.OUTGOING_SUBJECT, null));
+        builder.subject(metadata.map(OutgoingAmqpMetadata::getSubject).orElse(null));
         return builder.build();
     }
 

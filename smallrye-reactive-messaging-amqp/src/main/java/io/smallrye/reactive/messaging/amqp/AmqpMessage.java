@@ -17,117 +17,68 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
 
     protected final io.vertx.amqp.AmqpMessage message;
     protected final Metadata metadata;
+    protected final IncomingAmqpMetadata amqpMetadata;
 
     public static <T> AmqpMessageBuilder<T> builder() {
         return new AmqpMessageBuilder<>();
     }
 
     public AmqpMessage(io.vertx.axle.amqp.AmqpMessage delegate) {
-        this.message = delegate.getDelegate();
-        Metadata.MetadataBuilder builder = Metadata.builder();
-
-        if (delegate.address() != null) {
-            builder.with(AmqpMetadata.ADDRESS, delegate.address());
-        }
-        if (delegate.applicationProperties() != null) {
-            builder.with(AmqpMetadata.APPLICATION_PROPERTIES, delegate.applicationProperties());
-        }
-        if (delegate.contentType() != null) {
-            builder.with(AmqpMetadata.CONTENT_TYPE, delegate.contentType());
-        }
-        if (delegate.contentEncoding() != null) {
-            builder.with(AmqpMetadata.CONTENT_ENCODING, delegate.contentEncoding());
-        }
-        if (delegate.correlationId() != null) {
-            builder.with(AmqpMetadata.CORRELATION_ID, delegate.correlationId());
-        }
-        if (delegate.creationTime() > 0) {
-            builder.with(AmqpMetadata.CREATION_TIME, delegate.creationTime());
-        }
-        if (delegate.deliveryCount() >= 0) {
-            builder.with(AmqpMetadata.DELIVERY_COUNT, delegate.deliveryCount());
-        }
-        if (delegate.expiryTime() >= 0) {
-            builder.with(AmqpMetadata.EXPIRY_TIME, delegate.expiryTime());
-        }
-        if (delegate.groupId() != null) {
-            builder.with(AmqpMetadata.GROUP_ID, delegate.groupId());
-        }
-        if (delegate.groupSequence() >= 0) {
-            builder.with(AmqpMetadata.GROUP_SEQUENCE, delegate.groupSequence());
-        }
-        if (delegate.id() != null) {
-            builder.with(AmqpMetadata.ID, delegate.id());
-        }
-        builder.with(AmqpMetadata.DURABLE, delegate.isDurable());
-        builder.with(AmqpMetadata.FIRST_ACQUIRER, delegate.isFirstAcquirer());
-        if (delegate.priority() >= 0) {
-            builder.with(AmqpMetadata.PRIORITY, delegate.priority());
-        }
-        if (delegate.subject() != null) {
-            builder.with(AmqpMetadata.SUBJECT, delegate.subject());
-        }
-        if (delegate.ttl() >= 0) {
-            builder.with(AmqpMetadata.TTL, delegate.ttl());
-        }
-        if (message.unwrap().getHeader() != null) {
-            builder.with(AmqpMetadata.HEADER, message.unwrap().getHeader());
-        }
-        this.metadata = builder.build();
+        this(delegate.getDelegate());
     }
 
     public AmqpMessage(io.vertx.amqp.AmqpMessage msg) {
         this.message = msg;
-        Metadata.MetadataBuilder builder = Metadata.builder();
-
+        IncomingAmqpMetadata.IncomingAmqpMetadataBuilder builder = new IncomingAmqpMetadata.IncomingAmqpMetadataBuilder();
         if (msg.address() != null) {
-            builder.with(AmqpMetadata.ADDRESS, msg.address());
+            builder.withAddress(msg.address());
         }
         if (msg.applicationProperties() != null) {
-            builder.with(AmqpMetadata.APPLICATION_PROPERTIES, msg.applicationProperties());
+            builder.withProperties(msg.applicationProperties());
         }
         if (msg.contentType() != null) {
-            builder.with(AmqpMetadata.CONTENT_TYPE, msg.contentType());
+            builder.withContentType(msg.contentType());
         }
         if (msg.contentEncoding() != null) {
-            builder.with(AmqpMetadata.CONTENT_ENCODING, msg.contentEncoding());
+            builder.withContentEncoding(msg.contentEncoding());
         }
         if (msg.correlationId() != null) {
-            builder.with(AmqpMetadata.CORRELATION_ID, msg.correlationId());
+            builder.withCorrelationId(msg.correlationId());
         }
         if (msg.creationTime() > 0) {
-            builder.with(AmqpMetadata.CREATION_TIME, msg.creationTime());
+            builder.withCreationTime(msg.creationTime());
         }
         if (msg.deliveryCount() >= 0) {
-            builder.with(AmqpMetadata.DELIVERY_COUNT, msg.deliveryCount());
+            builder.withDeliveryCount(msg.deliveryCount());
         }
         if (msg.expiryTime() >= 0) {
-            builder.with(AmqpMetadata.EXPIRY_TIME, msg.expiryTime());
+            builder.withExpirationTime(msg.expiryTime());
         }
         if (msg.groupId() != null) {
-            builder.with(AmqpMetadata.GROUP_ID, msg.groupId());
+            builder.withGroupId(msg.groupId());
         }
         if (msg.groupSequence() >= 0) {
-            builder.with(AmqpMetadata.GROUP_SEQUENCE, msg.groupSequence());
+            builder.withGroupSequence(msg.groupSequence());
         }
         if (msg.id() != null) {
-            builder.with(AmqpMetadata.ID, msg.id());
+            builder.withId(msg.id());
         }
-        builder.with(AmqpMetadata.DURABLE, msg.isDurable());
-        builder.with(AmqpMetadata.FIRST_ACQUIRER, msg.isFirstAcquirer());
+        builder.withDurable(msg.isDurable());
+        builder.withFirstAcquirer(msg.isFirstAcquirer());
         if (msg.priority() >= 0) {
-            builder.with(AmqpMetadata.PRIORITY, msg.priority());
+            builder.withPriority(msg.priority());
         }
         if (msg.subject() != null) {
-            builder.with(AmqpMetadata.SUBJECT, msg.subject());
+            builder.withSubject(msg.subject());
         }
         if (msg.ttl() >= 0) {
-            builder.with(AmqpMetadata.TTL, msg.ttl());
+            builder.withTtl(msg.ttl());
         }
         if (message.unwrap().getHeader() != null) {
-            builder.with(AmqpMetadata.HEADER, message.unwrap().getHeader());
+            builder.withHeader(message.unwrap().getHeader());
         }
-        this.metadata = builder.build();
+        this.amqpMetadata = builder.build();
+        this.metadata = Metadata.of(builder.build());
     }
 
     @Override
@@ -183,69 +134,67 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     }
 
     public boolean isDurable() {
-        return metadata.getAsBoolean(AmqpMetadata.DURABLE);
+        return amqpMetadata.isDurable();
     }
 
     public long getDeliveryCount() {
-        return metadata.getAsLong(AmqpMetadata.DELIVERY_COUNT, 0);
+        return amqpMetadata.getDeliveryCount();
     }
 
     public int getPriority() {
-        return metadata.getAsInteger(AmqpMetadata.PRIORITY, 0);
-
+        return amqpMetadata.getPriority();
     }
 
     public long getTtl() {
-        return metadata.getAsLong(AmqpMetadata.TTL, 0);
-
+        return amqpMetadata.getTtl();
     }
 
     public Object getMessageId() {
-        return metadata.get(AmqpMetadata.ID);
+        return amqpMetadata.getId();
     }
 
     public long getGroupSequence() {
-        return metadata.getAsLong(AmqpMetadata.GROUP_SEQUENCE, 0);
+        return amqpMetadata.getGroupSequence();
     }
 
     public long getCreationTime() {
-        return metadata.getAsLong(AmqpMetadata.CREATION_TIME, 0);
+        return amqpMetadata.getCreationTime();
     }
 
     public String getAddress() {
-        return metadata.getAsString(AmqpMetadata.ADDRESS, null);
+        return amqpMetadata.getAddress();
     }
 
     public String getGroupId() {
-        return metadata.getAsString(AmqpMetadata.GROUP_ID, null);
+        return amqpMetadata.getGroupId();
     }
 
     public String getContentType() {
-        return metadata.getAsString(AmqpMetadata.CONTENT_TYPE, null);
+        return amqpMetadata.getContentType();
     }
 
     public long getExpiryTime() {
-        return metadata.getAsLong(AmqpMetadata.EXPIRY_TIME, 0);
+        return amqpMetadata.getExpiryTime();
     }
 
     public Object getCorrelationId() {
-        return metadata.get(AmqpMetadata.CORRELATION_ID);
+        return amqpMetadata.getCorrelationId();
     }
 
     public String getContentEncoding() {
-        return metadata.getAsString(AmqpMetadata.CONTENT_ENCODING, null);
+        return amqpMetadata.getContentEncoding();
     }
 
     public String getSubject() {
-        return metadata.getAsString(AmqpMetadata.SUBJECT, null);
+        return amqpMetadata.getSubject();
     }
 
     public Header getHeader() {
-        return metadata.get(AmqpMetadata.HEADER, new Header());
+        return amqpMetadata.getHeader();
     }
 
     public JsonObject getApplicationProperties() {
-        return metadata.get(AmqpMetadata.APPLICATION_PROPERTIES, new JsonObject());
+        return amqpMetadata.getProperties();
     }
 
     public Section getBody() {
