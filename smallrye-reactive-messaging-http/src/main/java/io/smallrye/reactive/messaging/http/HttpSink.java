@@ -8,7 +8,6 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
@@ -47,7 +46,7 @@ class HttpSink {
     }
 
     @SuppressWarnings("unchecked")
-    CompletionStage<Void> send(Message message) {
+    CompletionStage<Void> send(Message<?> message) {
         Serializer<Object> serializer = Serializer.lookup(message.getPayload(), converterClass);
         HttpRequest request = toHttpRequest(message);
         return serializer.convert(message.getPayload())
@@ -56,14 +55,15 @@ class HttpSink {
     }
 
     @SuppressWarnings("unchecked")
-    private HttpRequest toHttpRequest(Message message) {
-        Metadata metadata = message.getMetadata();
-        String actualUrl = metadata.getAsString(HttpMetadata.URL, this.url);
-        String actualMethod = metadata.getAsString(HttpMetadata.METHOD, this.method).toUpperCase();
-        Map<String, ?> httpHeaders = metadata.get(HttpMetadata.HEADERS, Collections.emptyMap());
-        Map<String, ?> query = metadata.get(HttpMetadata.QUERY_PARAMETERS, Collections.emptyMap());
+    private HttpRequest<?> toHttpRequest(Message<?> message) {
+        HttpResponseMetadata metadata = message.getMetadata(HttpResponseMetadata.class).orElse(null);
+        String actualUrl = metadata != null && metadata.getUrl() != null ? metadata.getUrl() : this.url;
+        String actualMethod = metadata != null && metadata.getMethod() != null ? metadata.getMethod().toUpperCase()
+                : this.method.toUpperCase();
+        Map<String, ?> httpHeaders = metadata != null ? metadata.getHeaders() : Collections.emptyMap();
+        Map<String, ?> query = metadata != null ? metadata.getQuery() : Collections.emptyMap();
 
-        HttpRequest request;
+        HttpRequest<?> request;
         switch (actualMethod) {
             case "POST":
                 request = client.postAbs(actualUrl);

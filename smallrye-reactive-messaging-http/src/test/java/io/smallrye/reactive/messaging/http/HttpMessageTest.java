@@ -86,40 +86,10 @@ public class HttpMessageTest {
 
         String uuid = UUID.randomUUID().toString();
         Message<String> message = Message.of(uuid).withMetadata(Metadata.of(
-                HttpMetadata.URL, "http://localhost:8089/record",
-                HttpMetadata.HEADERS, Collections.singletonMap("X-foo", Collections.singletonList("value")),
-                HttpMetadata.QUERY_PARAMETERS,
-                Collections.singletonMap("name", Collections.singletonList("clement"))));
-
-        sink.send(message);
-        awaitForRequest();
-
-        assertThat(bodies("/record?name=clement")).hasSize(1);
-        LoggedRequest request = requests("/record?name=clement").get(0);
-        assertThat(request.getBodyAsString()).isEqualTo(uuid);
-        assertThat(request.getHeader("X-foo")).isEqualTo("value");
-        assertThat(request.getMethod().getName()).isEqualToIgnoringCase("POST");
-        QueryParameter name = request.getQueryParams().get("name");
-        assertThat(name).isNotNull();
-        assertThat(name.isSingleValued()).isTrue();
-        assertThat(name.firstValue()).isEqualToIgnoringCase("clement");
-    }
-
-    @Test
-    public void testHeadersAndUrlAndQueryOnRawMessageWithSingleItemsInHeaderAndQuery() {
-        stubFor(post(urlEqualTo("/items"))
-                .willReturn(aResponse()
-                        .withStatus(404)));
-
-        stubFor(post(urlPathMatching("/record?.*"))
-                .willReturn(aResponse()
-                        .withStatus(204)));
-
-        String uuid = UUID.randomUUID().toString();
-        Message<String> message = Message.of(uuid).withMetadata(Metadata.of(
-                HttpMetadata.URL, "http://localhost:8089/record",
-                HttpMetadata.HEADERS, Collections.singletonMap("X-foo", "value"),
-                HttpMetadata.QUERY_PARAMETERS, Collections.singletonMap("name", "clement")));
+                HttpResponseMetadata.builder()
+                        .withUrl("http://localhost:8089/record")
+                        .withHeader("X-foo", "value")
+                        .withQueryParameter("name", "clement").build()));
 
         sink.send(message);
         awaitForRequest();

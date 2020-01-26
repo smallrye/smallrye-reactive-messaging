@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.http;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -60,29 +63,37 @@ public class HttpSource {
     }
 
     private CompletionStage<HttpMessage<byte[]>> toMessage(HttpServerRequest request) {
-        HttpMessage.HttpMessageBuilder<byte[]> builder = HttpMessage.HttpMessageBuilder.create();
-        builder.withMethod(request.method().name());
-        builder.withUrl(request.path());
-        builder.withAck(() -> {
-            // Send the response when the message has been acked.
-            request.response().setStatusCode(202).end();
-            return CompletableFuture.completedFuture(null);
-        });
-        MultiMap params = request.params();
-        params.names().forEach(name -> builder.withQueryParameter(name, params.getAll(name)));
+
+        Map<String, List<String>> h = new HashMap<>();
+        Map<String, List<String>> q = new HashMap<>();
         MultiMap headers = request.headers();
-        headers.names().forEach(name -> builder.withHeader(name, headers.getAll(name)));
+        MultiMap query = request.params();
+        headers.names().forEach(name -> h.put(name, headers.getAll(name)));
+        query.names().forEach(name -> q.put(name, query.getAll(name)));
+
+        HttpRequestMetadata meta = new HttpRequestMetadata(
+                request.method().name(),
+                request.path(),
+                h,
+                q);
 
         CompletableFuture<HttpMessage<byte[]>> future = new CompletableFuture<>();
         if (request.method() == HttpMethod.PUT || request.method() == HttpMethod.POST) {
             request.bodyHandler(buffer -> {
-                builder.withPayload(buffer.getBytes());
-                HttpMessage<byte[]> message = builder.build();
+                HttpMessage<byte[]> message = new HttpMessage<>(meta, buffer.getBytes(), () -> {
+                    // Send the response when the message has been acked.
+                    request.response().setStatusCode(202).end();
+                    return CompletableFuture.completedFuture(null);
+                });
                 future.complete(message);
             });
         } else {
-            builder.withPayload(new byte[0]); // Empty.
-            future.complete(builder.build());
+            HttpMessage<byte[]> message = new HttpMessage<>(meta, new byte[0], () -> {
+                // Send the response when the message has been acked.
+                request.response().setStatusCode(202).end();
+                return CompletableFuture.completedFuture(null);
+            });
+            future.complete(message);
         }
         return future;
     }

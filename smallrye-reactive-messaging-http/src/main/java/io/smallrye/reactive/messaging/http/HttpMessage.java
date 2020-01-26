@@ -13,26 +13,36 @@ public class HttpMessage<T> implements Message<T> {
     private final T payload;
     private final Supplier<CompletionStage<Void>> ack;
     private final Metadata metadata;
+    private final HttpResponseMetadata outgoingHttpMetadata;
+    private final HttpRequestMetadata incomingHttpMetadata;
 
-    public HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
+    HttpMessage(HttpRequestMetadata metadata, T payload, Supplier<CompletionStage<Void>> ack) {
+        this.incomingHttpMetadata = metadata;
+        this.outgoingHttpMetadata = null;
+        this.metadata = Metadata.of(metadata);
+        this.payload = payload;
+        this.ack = ack;
+    }
+
+    HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
             Map<String, List<String>> headers, Supplier<CompletionStage<Void>> ack) {
         this.payload = payload;
-        Metadata.MetadataBuilder builder = Metadata.builder();
-
+        this.incomingHttpMetadata = null;
+        HttpResponseMetadata.HttpResponseMetadataBuilder builder = HttpResponseMetadata.builder();
         if (method != null) {
-            builder.with(HttpMetadata.METHOD, method);
+            builder.withMethod(method);
         }
         if (url != null) {
-            builder.with(HttpMetadata.URL, url);
+            builder.withUrl(url);
         }
         if (headers != null) {
-            builder.with(HttpMetadata.HEADERS, headers);
+            builder.withHeaders(headers);
         }
         if (query != null) {
-            builder.with(HttpMetadata.QUERY_PARAMETERS, query);
+            builder.withQueryParameter(query);
         }
-
-        this.metadata = builder.build();
+        outgoingHttpMetadata = builder.build();
+        metadata = Metadata.of(outgoingHttpMetadata);
         this.ack = ack;
     }
 
@@ -46,7 +56,10 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     public String getMethod() {
-        return metadata.getAsString(HttpMetadata.METHOD, null);
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getMethod();
+        }
+        return outgoingHttpMetadata.getMethod();
     }
 
     @Override
@@ -60,15 +73,24 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     public Map<String, List<String>> getHeaders() {
-        return metadata.get(HttpMetadata.HEADERS, Collections.emptyMap());
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getHeaders();
+        }
+        return outgoingHttpMetadata.getHeaders();
     }
 
     public Map<String, List<String>> getQuery() {
-        return metadata.get(HttpMetadata.QUERY_PARAMETERS, Collections.emptyMap());
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getQuery();
+        }
+        return outgoingHttpMetadata.getQuery();
     }
 
     public String getUrl() {
-        return metadata.getAsString(HttpMetadata.URL, null);
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getPath();
+        }
+        return outgoingHttpMetadata.getUrl();
     }
 
     public static final class HttpMessageBuilder<T> {
