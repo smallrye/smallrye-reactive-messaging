@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.quickstart;
+package acme;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -9,7 +9,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.se.SeContainerInitializer;
 
 @ApplicationScoped
-public class QuickStart {
+public class Main {
 
   public static void main(String[] args) {
     SeContainerInitializer.newInstance().initialize();
