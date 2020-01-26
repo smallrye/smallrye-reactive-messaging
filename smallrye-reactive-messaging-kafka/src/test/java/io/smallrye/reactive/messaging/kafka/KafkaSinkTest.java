@@ -21,6 +21,7 @@ import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 
 public class KafkaSinkTest extends KafkaTestBase {
 
@@ -221,6 +222,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(3); // 3 and 5 are ignored.
+    }
 
     @Test
     public void testABeanProducingMessagesUsingHeadersSentToKafka() throws InterruptedException {

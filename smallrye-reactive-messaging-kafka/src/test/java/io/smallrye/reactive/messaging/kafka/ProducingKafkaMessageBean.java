@@ -20,8 +20,8 @@ public class ProducingKafkaMessageBean {
     @Incoming("data")
     @Outgoing("output-2")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public KafkaMessage<String, Integer> process(Message<Integer> input) {
-        return KafkaMessage.of(
+    public KafkaRecord<String, Integer> process(Message<Integer> input) {
+        return KafkaRecord.of(
                 Integer.toString(input.getPayload()), input.getPayload() + 1)
                 .withAck(input::ack)
                 .withHeader("hello", "clement")

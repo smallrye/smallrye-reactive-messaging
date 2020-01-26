@@ -1,5 +1,7 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.impl;
 
+import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
@@ -14,13 +16,14 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.reactivex.core.Vertx;
 
-class KafkaSink {
+public class KafkaSink {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSink.class);
     private final KafkaWriteStream<?, ?> stream;
     private final int partition;
@@ -29,30 +32,9 @@ class KafkaSink {
     private final boolean waitForWriteCompletion;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
-    KafkaSink(Vertx vertx, Config config, String servers) {
-        JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config);
-
-        // Acks must be a string, even when "1".
-        if (kafkaConfiguration.containsKey(ProducerConfig.ACKS_CONFIG)) {
-            kafkaConfiguration.put(ProducerConfig.ACKS_CONFIG,
-                    kafkaConfiguration.getValue(ProducerConfig.ACKS_CONFIG).toString());
-        }
-
-        if (!kafkaConfiguration.containsKey(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-            LOGGER.info("Setting {} to {}", ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
-            kafkaConfiguration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
-        }
-
-        if (!kafkaConfiguration.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
-            LOGGER.info("Key deserializer omitted, using String as default");
-            kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        }
-
-        kafkaConfiguration.remove("channel-name");
-        kafkaConfiguration.remove("topic");
-        kafkaConfiguration.remove("connector");
-        kafkaConfiguration.remove("partition");
-        kafkaConfiguration.remove("key");
+    @SuppressWarnings("rawtypes")
+    public KafkaSink(Vertx vertx, Config config, String servers) {
+        JsonObject kafkaConfiguration = extractProducerConfiguration(config, servers);
 
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
         stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
@@ -68,22 +50,15 @@ class KafkaSink {
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(message -> {
                     try {
-                        String actualTopic = KafkaMetadata.getKafkaTopic(message, this.topic);
+                        Optional<OutgoingKafkaRecordMetadata> om = message.getMetadata(OutgoingKafkaRecordMetadata.class);
+                        OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
+                        String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
                         if (actualTopic == null) {
                             LOGGER.error("Ignoring message - no topic set");
                             return CompletableFuture.completedFuture(message);
                         }
-                        int actualPartition = KafkaMetadata.getKafkaPartition(message, this.partition);
-                        String actualKey = KafkaMetadata.getKafkaKey(message, key);
-                        long actualTimestamp = KafkaMetadata.getKafkaTimestamp(message, -1);
-                        Iterable<Header> kafkaHeaders = KafkaMetadata.getKafkaRecordHeaders(message);
-                        ProducerRecord record = new ProducerRecord<>(
-                                actualTopic,
-                                actualPartition == -1 ? null : actualPartition,
-                                actualTimestamp == -1L ? null : actualTimestamp,
-                                actualKey,
-                                message.getPayload(),
-                                kafkaHeaders);
+
+                        ProducerRecord record = getProducerRecord(message, metadata, actualTopic);
                         LOGGER.debug("Sending message {} to Kafka topic '{}'", message, record.topic());
 
                         CompletableFuture<Message> future = new CompletableFuture<>();
@@ -114,11 +89,54 @@ class KafkaSink {
                 .ignore();
     }
 
-    SubscriberBuilder<? extends Message<?>, Void> getSink() {
+    @SuppressWarnings("rawtypes")
+    private ProducerRecord getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
+            String actualTopic) {
+        int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
+        Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
+        long actualTimestamp = om == null || om.getKey() == null ? -1 : om.getTimestamp();
+        Iterable<Header> kafkaHeaders = om == null || om.getHeaders() == null ? Collections.emptyList() : om.getHeaders();
+        return new ProducerRecord<>(
+                actualTopic,
+                actualPartition == -1 ? null : actualPartition,
+                actualTimestamp == -1L ? null : actualTimestamp,
+                actualKey,
+                message.getPayload(),
+                kafkaHeaders);
+    }
+
+    private JsonObject extractProducerConfiguration(Config config, String servers) {
+        JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config);
+
+        // Acks must be a string, even when "1".
+        if (kafkaConfiguration.containsKey(ProducerConfig.ACKS_CONFIG)) {
+            kafkaConfiguration.put(ProducerConfig.ACKS_CONFIG,
+                    kafkaConfiguration.getValue(ProducerConfig.ACKS_CONFIG).toString());
+        }
+
+        if (!kafkaConfiguration.containsKey(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
+            LOGGER.info("Setting {} to {}", ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
+            kafkaConfiguration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
+        }
+
+        if (!kafkaConfiguration.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
+            LOGGER.info("Key deserializer omitted, using String as default");
+            kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        }
+
+        kafkaConfiguration.remove("channel-name");
+        kafkaConfiguration.remove("topic");
+        kafkaConfiguration.remove("connector");
+        kafkaConfiguration.remove("partition");
+        kafkaConfiguration.remove("key");
+        return kafkaConfiguration;
+    }
+
+    public SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return subscriber;
     }
 
-    void closeQuietly() {
+    public void closeQuietly() {
         CountDownLatch latch = new CountDownLatch(1);
         try {
             this.stream.close(ar -> {

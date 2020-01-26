@@ -96,10 +96,10 @@ public class MissingBackPressureTest extends KafkaTestBase {
         assertThat(expected).hasValueGreaterThanOrEqualTo(10);
 
         // Check that the 10 first value matches the emitted values.
-        List<KafkaMessage<String, String>> messages = bean.emitted();
+        List<KafkaRecord<String, String>> messages = bean.emitted();
         Iterator<Map.Entry<String, String>> iterator = received.iterator();
         for (int i = 0; i < 10; i++) {
-            KafkaMessage<String, String> message = messages.get(i);
+            KafkaRecord<String, String> message = messages.get(i);
             Map.Entry<String, String> entry = iterator.next();
             assertThat(entry.getKey()).isEqualTo(message.getKey());
             assertThat(entry.getValue()).isEqualTo(message.getPayload());
@@ -112,14 +112,14 @@ public class MissingBackPressureTest extends KafkaTestBase {
         private Random random = new Random();
 
         @Outgoing("temperature-values")
-        public Flowable<KafkaMessage<String, String>> generate() {
+        public Flowable<KafkaRecord<String, String>> generate() {
 
             return Flowable.interval(10, TimeUnit.MILLISECONDS)
                     .map(tick -> {
-                        double temperature = new BigDecimal(random.nextGaussian() * 15)
+                        double temperature = BigDecimal.valueOf(random.nextGaussian() * 15)
                                 .setScale(1, RoundingMode.HALF_UP)
                                 .doubleValue();
-                        return KafkaMessage.of("1", Instant.now().toEpochMilli() + ";" + temperature);
+                        return KafkaRecord.of("1", Instant.now().toEpochMilli() + ";" + temperature);
                     });
         }
     }
@@ -134,23 +134,23 @@ public class MissingBackPressureTest extends KafkaTestBase {
         private volatile boolean stop = false;
 
         private Random random = new Random();
-        private List<KafkaMessage<String, String>> emitted = new CopyOnWriteArrayList<>();
+        private List<KafkaRecord<String, String>> emitted = new CopyOnWriteArrayList<>();
 
         public void stop() {
             this.stop = true;
         }
 
-        public List<KafkaMessage<String, String>> emitted() {
+        public List<KafkaRecord<String, String>> emitted() {
             return emitted;
         }
 
         public void run() {
             new Thread(() -> {
                 while (!stop) {
-                    double temperature = new BigDecimal(random.nextGaussian() * 15)
+                    double temperature = BigDecimal.valueOf(random.nextGaussian() * 15)
                             .setScale(1, RoundingMode.HALF_UP)
                             .doubleValue();
-                    KafkaMessage<String, String> message = KafkaMessage.of("1",
+                    KafkaRecord<String, String> message = KafkaRecord.of("1",
                             Instant.now().toEpochMilli() + ";" + temperature);
                     emitter.send(message);
                     emitted.add(message);

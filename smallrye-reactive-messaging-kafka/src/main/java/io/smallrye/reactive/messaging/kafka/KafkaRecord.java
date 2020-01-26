@@ -1,15 +1,10 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-/**
- * @param <K> the type of the key
- * @param <T> the type of the value
- * @deprecated Use {@link KafkaRecord instead}
- */
-@Deprecated
-public interface KafkaMessage<K, T> extends Message<T>, KafkaRecord<K, T> {
+public interface KafkaRecord<K, T> extends Message<T> {
 
     /**
      * Creates a new outgoing kafka message.
@@ -54,5 +49,15 @@ public interface KafkaMessage<K, T> extends Message<T>, KafkaRecord<K, T> {
     static <K, T> OutgoingKafkaRecord<K, T> of(String topic, K key, T value, long timestamp, int partition) {
         return new OutgoingKafkaRecord<>(topic, key, value, timestamp, partition, new RecordHeaders(), null);
     }
+
+    K getKey();
+
+    String getTopic();
+
+    int getPartition();
+
+    long getTimestamp();
+
+    Headers getHeaders();
 
 }

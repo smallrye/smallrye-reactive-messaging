@@ -26,9 +26,8 @@ public class ProducingMessageWithHeaderBean {
                 new RecordHeader("count", Integer.toString(counter.incrementAndGet()).getBytes()));
         return Message.of(
                 input.getPayload() + 1,
-                Metadata.of(
-                        KafkaMetadata.OUTGOING_KEY, Integer.toString(input.getPayload()),
-                        KafkaMetadata.OUTGOING_HEADERS, list),
+                Metadata.of(OutgoingKafkaRecordMetadata.builder().withKey(Integer.toString(input.getPayload()))
+                        .withHeaders(list).build()),
                 input::ack);
     }
 

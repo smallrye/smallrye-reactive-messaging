@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.impl;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
@@ -26,7 +27,7 @@ public class KafkaSource<K, V> {
     private final PublisherBuilder<? extends Message<?>> source;
     private final KafkaConsumer<K, V> consumer;
 
-    KafkaSource(Vertx vertx, Config config, String servers) {
+    public KafkaSource(Vertx vertx, Config config, String servers) {
         Map<String, String> kafkaConfiguration = new HashMap<>();
 
         String group = config.getOptionalValue(ConsumerConfig.GROUP_ID_CONFIG, String.class).orElseGet(() -> {
@@ -81,14 +82,14 @@ public class KafkaSource<K, V> {
                             // The Kafka subscription must happen on the subscription.
                             this.consumer.subscribe(topic);
                         }))
-                .map(rec -> new ReceivedKafkaMessage<>(consumer, rec));
+                .map(rec -> new IncomingKafkaRecord<>(consumer, rec));
     }
 
-    PublisherBuilder<? extends Message<?>> getSource() {
+    public PublisherBuilder<? extends Message<?>> getSource() {
         return source;
     }
 
-    void closeQuietly() {
+    public void closeQuietly() {
         CountDownLatch latch = new CountDownLatch(1);
         try {
             this.consumer.close(ar -> {
