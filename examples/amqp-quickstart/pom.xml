@@ -2,45 +2,41 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>io.smallrye.reactive</groupId>
-    <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>1.0.9-SNAPSHOT</version>
-    <relativePath>../..</relativePath>
-  </parent>
 
+  <groupId>io.smallrye.reactive</groupId>
   <artifactId>amqp-quickstart</artifactId>
+  <version>1.0.9-SNAPSHOT</version>
+
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <weld-core.version>3.1.3.Final</weld-core.version>
     <cdi.version>2.0.2</cdi.version>
+    <slf4j.version>1.7.30</slf4j.version>
 
     <mainClass>acme.Main</mainClass>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <scope>compile</scope>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-provider</artifactId>
+      <version>1.0.9-SNAPSHOT</version>
     </dependency>
+
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-streams-operators</artifactId>
+      <version>1.0.10</version>
+    </dependency>
+
     <dependency>
       <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
       <version>1.5.1</version>
     </dependency>
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-amqp-client</artifactId>
-    </dependency>
 
-    <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-provider</artifactId>
-      <version>1.0.9-SNAPSHOT</version>
-    </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-amqp</artifactId>
@@ -55,12 +51,6 @@
     </dependency>
 
     <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators</artifactId>
-      <version>1.0.7</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.jboss.weld.se</groupId>
       <artifactId>weld-se-core</artifactId>
       <version>${weld-core.version}</version>
@@ -68,8 +58,19 @@
     <dependency>
       <groupId>jakarta.enterprise</groupId>
       <artifactId>jakarta.enterprise.cdi-api</artifactId>
+      <version>${cdi.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-amqp-client</artifactId>
+      <version>3.8.4</version>
+    </dependency>
   </dependencies>
 
   <build>
