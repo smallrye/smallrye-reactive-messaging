@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.impl;
 
 import org.eclipse.microprofile.config.Config;
 

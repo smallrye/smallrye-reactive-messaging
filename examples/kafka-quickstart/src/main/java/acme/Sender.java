@@ -6,7 +6,7 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
-import io.smallrye.reactive.messaging.kafka.KafkaMessage;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 
 @ApplicationScoped
 public class Sender {
@@ -14,9 +14,9 @@ public class Sender {
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @Outgoing("data")
-    public CompletionStage<KafkaMessage<String, String>> send() {
-        CompletableFuture<KafkaMessage<String, String>> future = new CompletableFuture<>();
-        delay(() -> future.complete(KafkaMessage.of("kafka", "key", "hello from MicroProfile")));
+    public CompletionStage<KafkaRecord<String, String>> send() {
+        CompletableFuture<KafkaRecord<String, String>> future = new CompletableFuture<>();
+        delay(() -> future.complete(KafkaRecord.of("kafka", "key", "hello from MicroProfile")));
         return future;
     }
 

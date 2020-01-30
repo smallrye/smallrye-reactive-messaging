@@ -21,6 +21,7 @@ import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 
 public class KafkaSinkTest extends KafkaTestBase {
 
@@ -176,7 +177,6 @@ public class KafkaSinkTest extends KafkaTestBase {
         usage.consumeIntegers("output-2", 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 record -> {
-                    System.out.println("Got " + record.key() + " -> " + record.value());
                     keys.add(record.key());
                     String count = new String(record.headers().lastHeader("count").value());
                     headers.add(count);
@@ -222,7 +222,30 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(3); // 3 and 5 are ignored.
+    }
 
+    @Test
+    public void testABeanProducingMessagesUsingHeadersSentToKafka() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<String> keys = new ArrayList<>();
+        List<String> headers = new ArrayList<>();
+        usage.consumeIntegers("output-2", 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                record -> {
+                    keys.add(record.key());
+                    String count = new String(record.headers().lastHeader("count").value());
+                    headers.add(count);
+                    expected.getAndIncrement();
+                });
+
+        deploy(getKafkaSinkConfigForMessageProducingBean(), ProducingMessageWithHeaderBean.class);
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(10);
+        assertThat(keys).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
 }

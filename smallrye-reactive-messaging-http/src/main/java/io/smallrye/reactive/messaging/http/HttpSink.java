@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.http;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -12,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.http.converters.Serializer;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.reactivex.core.MultiMap;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.ext.web.client.HttpRequest;
@@ -22,6 +26,7 @@ class HttpSink {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpSink.class);
 
     private final String url;
+    private final String method;
     private final WebClient client;
     private final String converterClass;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
@@ -30,6 +35,8 @@ class HttpSink {
         WebClientOptions options = new WebClientOptions(JsonHelper.asJsonObject(config));
         url = config.getOptionalValue("url", String.class)
                 .orElseThrow(() -> new IllegalArgumentException("The `url` must be set"));
+        method = config.getOptionalValue("method", String.class)
+                .orElse("POST");
         client = WebClient.create(vertx, options);
         converterClass = config.getOptionalValue("converter", String.class).orElse(null);
 
@@ -38,66 +45,54 @@ class HttpSink {
                 .ignore();
     }
 
-    CompletionStage<Void> send(Message message) {
-        if (message instanceof HttpMessage) {
-            Serializer<Object> serializer = Serializer.lookup(message.getPayload(), converterClass);
-            HttpRequest request = toRequest((HttpMessage) message);
-            return serializer.convert(message.getPayload())
-                    .thenCompose(buffer -> invoke(request, buffer))
-                    .thenCompose(x -> message.ack());
-        } else {
-            Object payload = message.getPayload();
-            Serializer<Object> serializer = Serializer.lookup(payload, converterClass);
-            return serializer.convert(payload)
-                    .thenCompose(this::invoke)
-                    .thenCompose(x -> message.ack());
-        }
+    @SuppressWarnings("unchecked")
+    CompletionStage<Void> send(Message<?> message) {
+        Serializer<Object> serializer = Serializer.lookup(message.getPayload(), converterClass);
+        HttpRequest request = toHttpRequest(message);
+        return serializer.convert(message.getPayload())
+                .thenCompose(buffer -> invoke(request, buffer))
+                .thenCompose(x -> message.ack());
     }
 
-    private <T> HttpRequest toRequest(HttpMessage<T> message) {
-        String u = message.getUrl() == null ? this.url : message.getUrl();
+    @SuppressWarnings("unchecked")
+    private HttpRequest<?> toHttpRequest(Message<?> message) {
+        HttpResponseMetadata metadata = message.getMetadata(HttpResponseMetadata.class).orElse(null);
+        String actualUrl = metadata != null && metadata.getUrl() != null ? metadata.getUrl() : this.url;
+        String actualMethod = metadata != null && metadata.getMethod() != null ? metadata.getMethod().toUpperCase()
+                : this.method.toUpperCase();
+        Map<String, ?> httpHeaders = metadata != null ? metadata.getHeaders() : Collections.emptyMap();
+        Map<String, ?> query = metadata != null ? metadata.getQuery() : Collections.emptyMap();
 
-        HttpRequest request;
-        if (message.getMethod() == null) {
-            request = client.postAbs(u);
-        } else {
-            switch (message.getMethod().toUpperCase()) {
-                case "POST":
-                    request = client.postAbs(u);
-                    break;
-                case "PUT":
-                    request = client.putAbs(u);
-                    break;
-                default:
-                    throw new IllegalArgumentException(
-                            "Invalid method: " + message.getMethod() + ", only PUT and POST are supported");
-            }
+        HttpRequest<?> request;
+        switch (actualMethod) {
+            case "POST":
+                request = client.postAbs(actualUrl);
+                break;
+            case "PUT":
+                request = client.putAbs(actualUrl);
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Invalid HTTP Verb: " + actualMethod + ", only PUT and POST are supported");
         }
 
-        message.getHeaders().forEach((k, v) -> v.forEach(item -> request.headers().add(k, item)));
-        message.getQuery().forEach((k, v) -> v.forEach(x -> request.addQueryParam(k, x)));
+        MultiMap requestHttpHeaders = request.headers();
+        httpHeaders.forEach((k, v) -> {
+            if (v instanceof Collection) {
+                ((Collection<Object>) v).forEach(item -> requestHttpHeaders.add(k, item.toString()));
+            } else {
+                requestHttpHeaders.add(k, v.toString());
+            }
+        });
+        query.forEach((k, v) -> {
+            if (v instanceof Collection) {
+                ((Collection<Object>) v).forEach(item -> request.addQueryParam(k, item.toString()));
+            } else {
+                request.addQueryParam(k, v.toString());
+            }
+        });
 
         return request;
-    }
-
-    private CompletionStage<Void> invoke(Buffer buffer) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        client.postAbs(url)
-                .rxSendBuffer(buffer)
-                .subscribe(
-                        resp -> {
-                            if (resp.statusCode() >= 200 && resp.statusCode() < 300) {
-                                future.complete(null);
-                            } else {
-                                LOGGER.debug("HTTP request POST {}  has failed with status code: {}, body is: {}", url,
-                                        resp.statusCode(),
-                                        resp.body() != null ? resp.body().toString() : "NO CONTENT");
-                                future.completeExceptionally(new Exception(
-                                        "HTTP request POST " + url + " has not returned a valid status: " + resp.statusCode()));
-                            }
-                        },
-                        future::completeExceptionally);
-        return future;
     }
 
     private CompletionStage<Void> invoke(HttpRequest<Object> request, Buffer buffer) {

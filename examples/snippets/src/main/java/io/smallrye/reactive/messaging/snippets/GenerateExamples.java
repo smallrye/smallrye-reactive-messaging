@@ -53,7 +53,7 @@ public class GenerateExamples {
   private Executor executor = Executors.newSingleThreadExecutor();
 
   /**
-   * Generates a stream message by message. The next meesage is only generated
+   * Generates a stream message by message. The next message is only generated
    * when the value from the previous one is redeemed.
    */
   @Outgoing("data-5")

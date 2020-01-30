@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>1.0.9-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>tck</artifactId>
@@ -15,7 +15,15 @@
       <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
       <artifactId>microprofile-reactive-messaging-tck</artifactId>
       <version>${microprofile-reactive-messaging.version}</version>
+      <exclusions>
+        <!-- Use the version included in the SmallRye Reactive Messaging API module -->
+        <exclusion>
+          <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+          <artifactId>microprofile-reactive-messaging-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
+
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>

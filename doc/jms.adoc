@@ -1,4 +1,4 @@
-== Interacting using JMS (Java Message Service)
+== Receiving and Sending messages using JMS (Java Message Service)
 
 You can use SmallRye Reactive Messaging to receive and send JMS messages.
 
@@ -231,6 +231,10 @@ mp.messaging.outgoing.my-jms-channel.attribute=value
 NOTE: `destination-type` and `reply-to-destination-type` must be either `queue` (default) or `topic`.
 Any other value is rejected and fail the deployment.
 
+==== Outgoing JMS message metadata
+
+You can customize the _routing_ and the content of the outgoing JMS message by adding an instance of `io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata` to the message metadata.
+
 === Receiving JMS messages
 
 To send a JMS message, you need to configure the connector as follows:
@@ -250,14 +254,14 @@ mp.messaging.incoming.my-channel.client-id=my-id
 
 ==== Receiving Message
 
-You can decide to receive `io.smallrye.reactive.messaging.jms.ReceivedJmsMessage` which contains all the details of the underlying JMS Message.
+You can decide to receive `io.smallrye.reactive.messaging.jms.IncomingJmsMessage` which contains all the details of the underlying JMS Message.
 So you can access properties and metadata.
 You can also use the `unwrap` method to retrieve the underlying JMS message:
 
 [source,java]
 ----
 @Incoming("my-channel")
-public CompletionStage<Void> consume(ReceivedJmsMessage<String> msg) {
+public CompletionStage<Void> consume(IncomingJmsMessage<String> msg) {
   int p = msg.getIntProperty("my-property");
   // ...
   return msg.ack();
@@ -304,6 +308,18 @@ mp.messaging.incoming.my-jms-channel.attribute=value
 | no-local | false | | If set to `true`, do not receive messages produced locally
 | broadcast | false |  | Whether or not the received message can emitted to several subscribers
 |===
+
+==== Incoming message metadata
+
+You can retrieve the incoming message metadata using:
+
+[source, java]
+----
+Optional<IncomingJmsMessageMetadata> metadata
+    = message.getMetadata(IncomingJmsMessageMetadata.class);
+----
+
+The metadata are represented by the `io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata` class.
 
 === Advanced configuration
 

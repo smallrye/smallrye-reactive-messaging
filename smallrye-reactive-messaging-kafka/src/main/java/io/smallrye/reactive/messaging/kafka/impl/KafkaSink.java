@@ -1,10 +1,13 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.impl;
 
+import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -13,13 +16,14 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.reactivex.core.Vertx;
 
-class KafkaSink {
+public class KafkaSink {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSink.class);
     private final KafkaWriteStream<?, ?> stream;
     private final int partition;
@@ -28,7 +32,80 @@ class KafkaSink {
     private final boolean waitForWriteCompletion;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
-    KafkaSink(Vertx vertx, Config config, String servers) {
+    @SuppressWarnings("rawtypes")
+    public KafkaSink(Vertx vertx, Config config, String servers) {
+        JsonObject kafkaConfiguration = extractProducerConfiguration(config, servers);
+
+        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
+        stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
+
+        partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
+        key = config.getOptionalValue("key", String.class).orElse(null);
+        topic = getTopicOrNull(config);
+        waitForWriteCompletion = config.getOptionalValue("waitForWriteCompletion", Boolean.class).orElse(true);
+        if (topic == null) {
+            LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
+        }
+
+        subscriber = ReactiveStreams.<Message<?>> builder()
+                .flatMapCompletionStage(message -> {
+                    try {
+                        Optional<OutgoingKafkaRecordMetadata> om = message.getMetadata(OutgoingKafkaRecordMetadata.class);
+                        OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
+                        String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
+                        if (actualTopic == null) {
+                            LOGGER.error("Ignoring message - no topic set");
+                            return CompletableFuture.completedFuture(message);
+                        }
+
+                        ProducerRecord record = getProducerRecord(message, metadata, actualTopic);
+                        LOGGER.debug("Sending message {} to Kafka topic '{}'", message, record.topic());
+
+                        CompletableFuture<Message> future = new CompletableFuture<>();
+                        Handler<AsyncResult<Void>> handler = ar -> {
+                            if (ar.succeeded()) {
+                                LOGGER.debug("Message {} sent successfully to Kafka topic '{}'", message, record.topic());
+                                future.complete(message);
+                            } else {
+                                LOGGER.error("Message {} was not sent to Kafka topic '{}'", message, record.topic(),
+                                        ar.cause());
+                                future.completeExceptionally(ar.cause());
+                            }
+                        };
+                        CompletableFuture<? extends Message<?>> result = future.thenCompose(x -> message.ack())
+                                .thenApply(x -> message);
+                        stream.write(record, handler);
+                        if (waitForWriteCompletion) {
+                            return result;
+                        } else {
+                            return CompletableFuture.completedFuture(message);
+                        }
+                    } catch (RuntimeException e) {
+                        LOGGER.error("Unable to send a record to Kafka ", e);
+                        return CompletableFuture.completedFuture(message);
+                    }
+                })
+                .onError(t -> LOGGER.error("Unable to dispatch message to Kafka", t))
+                .ignore();
+    }
+
+    @SuppressWarnings("rawtypes")
+    private ProducerRecord getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
+            String actualTopic) {
+        int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
+        Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
+        long actualTimestamp = om == null || om.getKey() == null ? -1 : om.getTimestamp();
+        Iterable<Header> kafkaHeaders = om == null || om.getHeaders() == null ? Collections.emptyList() : om.getHeaders();
+        return new ProducerRecord<>(
+                actualTopic,
+                actualPartition == -1 ? null : actualPartition,
+                actualTimestamp == -1L ? null : actualTimestamp,
+                actualKey,
+                message.getPayload(),
+                kafkaHeaders);
+    }
+
+    private JsonObject extractProducerConfiguration(Config config, String servers) {
         JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config);
 
         // Acks must be a string, even when "1".
@@ -52,103 +129,14 @@ class KafkaSink {
         kafkaConfiguration.remove("connector");
         kafkaConfiguration.remove("partition");
         kafkaConfiguration.remove("key");
-
-        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
-        stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
-
-        partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
-        key = config.getOptionalValue("key", String.class).orElse(null);
-        topic = getTopicOrNull(config);
-        waitForWriteCompletion = config.getOptionalValue("waitForWriteCompletion", Boolean.class).orElse(true);
-        if (topic == null) {
-            LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
-        }
-
-        subscriber = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(message -> {
-                    try {
-                        ProducerRecord record;
-                        if (message instanceof KafkaMessage) {
-                            KafkaMessage km = ((KafkaMessage) message);
-
-                            if (this.topic == null && km.getTopic() == null) {
-                                LOGGER.error("Ignoring message - no topic set");
-                                return CompletableFuture.completedFuture(message);
-                            }
-
-                            Integer actualPartition = null;
-                            if (this.partition != -1) {
-                                actualPartition = this.partition;
-                            }
-                            if (km.getPartition() != -1) {
-                                actualPartition = km.getPartition();
-                            }
-
-                            String actualTopicToBeUSed = topic;
-                            if (km.getTopic() != null) {
-                                actualTopicToBeUSed = km.getTopic();
-                            }
-
-                            if (actualTopicToBeUSed == null) {
-                                LOGGER.error("Ignoring message - no topic set");
-                                return CompletableFuture.completedFuture(message);
-                            } else {
-                                record = new ProducerRecord<>(
-                                        actualTopicToBeUSed,
-                                        actualPartition,
-                                        km.getTimestamp() == -1 ? null : km.getTimestamp(),
-                                        km.getKey() == null ? this.key : km.getKey(),
-                                        km.getPayload(),
-                                        km.getHeaders().unwrap());
-                                LOGGER.debug("Sending message {} to Kafka topic '{}'", message, record.topic());
-                            }
-                        } else {
-                            if (this.topic == null) {
-                                LOGGER.error("Ignoring message - no topic set");
-                                return CompletableFuture.completedFuture(message);
-                            }
-                            if (partition == -1) {
-                                record = new ProducerRecord<>(topic, null, null, key, message.getPayload());
-                            } else {
-                                record = new ProducerRecord<>(topic, partition, null, key, message.getPayload());
-                            }
-                        }
-
-                        CompletableFuture<Message> future = new CompletableFuture<>();
-                        Handler<AsyncResult<Void>> handler = ar -> {
-                            if (ar.succeeded()) {
-                                LOGGER.debug("Message {} sent successfully to Kafka topic '{}'", message, record.topic());
-                                future.complete(message);
-                            } else {
-                                LOGGER.error("Message {} was not sent to Kafka topic '{}'", message, record.topic(),
-                                        ar.cause());
-                                future.completeExceptionally(ar.cause());
-                            }
-                        };
-                        CompletableFuture<? extends Message<?>> result = future.thenCompose(x -> message.ack())
-                                .thenApply(x -> message);
-                        stream.write(record, handler);
-                        if (waitForWriteCompletion) {
-                            return result;
-                        } else {
-                            return CompletableFuture.completedFuture(message);
-                        }
-
-                    } catch (RuntimeException e) {
-                        LOGGER.error("Unable to send a record to Kafka ", e);
-                        return CompletableFuture.completedFuture(message);
-                    }
-                })
-                .onError(t -> LOGGER.error("Unable to dispatch message to Kafka", t))
-                .ignore();
-
+        return kafkaConfiguration;
     }
 
-    SubscriberBuilder<? extends Message<?>, Void> getSink() {
+    public SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return subscriber;
     }
 
-    void closeQuietly() {
+    public void closeQuietly() {
         CountDownLatch latch = new CountDownLatch(1);
         try {
             this.stream.close(ar -> {

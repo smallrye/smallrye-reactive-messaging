@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.jms;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -222,13 +223,49 @@ public class JmsSinkTest extends JmsTestBase {
         new JmsSink(jms, config, json, executor);
     }
 
+    @Test
+    public void testPropagation() throws JMSException {
+        MapBasedConfig config = new MapBasedConfig.Builder()
+                .put("destination", "queue-one")
+                .put("channel-name", "jms")
+                .put("ttl", 10000L)
+                .build();
+        JmsSink sink = new JmsSink(jms, config, json, executor);
+        MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
+        subscriber = sink.getSink().build();
+        AtomicBoolean acked = new AtomicBoolean();
+        Message<String> hello = Message.of("hello",
+                () -> CompletableFuture.runAsync(() -> acked.set(true)));
+
+        Destination rt = jms.createQueue("reply-to");
+
+        OutgoingJmsMessageMetadata metadata = OutgoingJmsMessageMetadata.builder()
+                .withCorrelationId("my-correlation-id")
+                .withReplyTo(rt)
+                .withDeliveryMode(DeliveryMode.PERSISTENT)
+                .withType(String.class.getName())
+                .build();
+
+        hello = hello.withMetadata(Collections.singleton(metadata));
+        subscriber.onNext(hello);
+
+        await().until(() -> client.messages.size() >= 1);
+        assertThat(acked).isTrue();
+        javax.jms.Message message = client.messages.get(0);
+        assertThat(message.getBody(String.class)).isEqualTo("hello");
+        assertThat(message.getJMSCorrelationID()).isEqualTo("my-correlation-id");
+        assertThat(message.getJMSReplyTo()).isEqualTo(rt);
+        assertThat(message.getJMSDeliveryMode()).isEqualTo(2);
+        assertThat(message.getJMSType()).isEqualTo(String.class.getName());
+
+    }
+
     private class MyJmsClient {
 
-        private final JMSConsumer consumer;
         private final List<javax.jms.Message> messages = new CopyOnWriteArrayList<>();
 
         MyJmsClient(Destination destination) {
-            consumer = jms.createConsumer(destination);
+            JMSConsumer consumer = jms.createConsumer(destination);
             consumer.setMessageListener(messages::add);
         }
     }

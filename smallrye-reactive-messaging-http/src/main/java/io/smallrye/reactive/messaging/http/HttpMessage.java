@@ -6,34 +6,48 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 public class HttpMessage<T> implements Message<T> {
 
     private final T payload;
-    private final String method;
-    private final Map<String, List<String>> headers;
-    private final Map<String, List<String>> query;
-    private final String url;
     private final Supplier<CompletionStage<Void>> ack;
+    private final Metadata metadata;
+    private final HttpResponseMetadata outgoingHttpMetadata;
+    private final HttpRequestMetadata incomingHttpMetadata;
 
-    private HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
-            Map<String, List<String>> headers) {
+    HttpMessage(HttpRequestMetadata metadata, T payload, Supplier<CompletionStage<Void>> ack) {
+        this.incomingHttpMetadata = metadata;
+        this.outgoingHttpMetadata = null;
+        this.metadata = Metadata.of(metadata);
         this.payload = payload;
-        this.method = method;
-        this.headers = headers;
-        this.query = query;
-        this.url = url;
-        this.ack = () -> CompletableFuture.completedFuture(null);
+        this.ack = ack;
     }
 
-    public HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
+    HttpMessage(String method, String url, T payload, Map<String, List<String>> query,
             Map<String, List<String>> headers, Supplier<CompletionStage<Void>> ack) {
         this.payload = payload;
-        this.method = method;
-        this.headers = headers;
-        this.query = query;
-        this.url = url;
+        this.incomingHttpMetadata = null;
+        HttpResponseMetadata.HttpResponseMetadataBuilder builder = HttpResponseMetadata.builder();
+        if (method != null) {
+            builder.withMethod(method);
+        }
+        if (url != null) {
+            builder.withUrl(url);
+        }
+        if (headers != null) {
+            builder.withHeaders(headers);
+        }
+        if (query != null) {
+            builder.withQueryParameter(query);
+        }
+        outgoingHttpMetadata = builder.build();
+        metadata = Metadata.of(outgoingHttpMetadata);
         this.ack = ack;
+    }
+
+    public static <T> HttpMessageBuilder<T> builder() {
+        return new HttpMessageBuilder<>();
     }
 
     @Override
@@ -42,7 +56,10 @@ public class HttpMessage<T> implements Message<T> {
     }
 
     public String getMethod() {
-        return method;
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getMethod();
+        }
+        return outgoingHttpMetadata.getMethod();
     }
 
     @Override
@@ -50,16 +67,30 @@ public class HttpMessage<T> implements Message<T> {
         return ack.get();
     }
 
+    @Override
+    public Metadata getMetadata() {
+        return metadata;
+    }
+
     public Map<String, List<String>> getHeaders() {
-        return headers;
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getHeaders();
+        }
+        return outgoingHttpMetadata.getHeaders();
     }
 
     public Map<String, List<String>> getQuery() {
-        return query;
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getQuery();
+        }
+        return outgoingHttpMetadata.getQuery();
     }
 
     public String getUrl() {
-        return url;
+        if (incomingHttpMetadata != null) {
+            return incomingHttpMetadata.getPath();
+        }
+        return outgoingHttpMetadata.getUrl();
     }
 
     public static final class HttpMessageBuilder<T> {

@@ -1,4 +1,4 @@
-== Interacting using AMQP
+== Receiving and Sending AMQP 1.0 Messages
 
 You can connect to an AMQP broker or server as a source or sink.
 The AMQP support is based on the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP Client].
@@ -16,7 +16,7 @@ To enable the AMQP support, you need the following dependency:
 </dependency>
 ----
 
-=== Retrieving messages from AMQP
+=== Receiving messages from AMQP
 
 [source]
 ----
@@ -30,16 +30,24 @@ mp.messaging.incoming.data.broadcast=true
 mp.messaging.incoming.data.containerId=my-container-id
 ----
 
-Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
-The payload must a a supported AMQP type.
-The `AmqpMessage` implements `Message` and provide additional metadata related to AMQP.
-
 As the AMQP support is based on the Vert.x AMQP client, you can pass any configuration supported by the client.
 Check the  https://vertx.io/docs/vertx-amqp-client/java/[documentation] of the client for further details.
 
 NOTE: If the `address` attribute is not set the channel name is used instead.
 
-=== Forwarding messages to AMQP
+Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
+The payload must be a supported AMQP type.
+The `AmqpMessage` implements `Message` and provide additional metadata related to AMQP.
+These metadata can be retrieved using the `io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata` class:
+
+[source, java]
+----
+IncomingAmqpMetadata metadata = message.getMetadata(IncomingAmqpMetadata.class);
+String address = metadata.getAddress();
+int priority = metadata.getPriority();
+----
+
+=== Sending messages to AMQP
 
 [source]
 ----
@@ -54,7 +62,7 @@ mp.messaging.outgoing.data.durable=true
 ----
 
 The AMQP connector dispatches messages to the AMQP broker or server.
-You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
+You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`, built with `io.smallrye.reactive.messaging.amqp.AmqpMessage.builder()`.
 
 The payload of the message must be one of the following type:
 
@@ -68,6 +76,20 @@ The payload of the message must be one of the following type:
 Otherwise, the connector invokes `toString` on the wrapped payload.
 
 NOTE: If the `address` attribute is not set the channel name is used instead.
+If the AMQP Message has an address set, this address is used.
+
+Instead of an `AMQPMessage` you can attach an instance of `io.smallrye.reactive.messaging.amqp.OutgoingAmqpMessage` as metadata:
+
+[source, java]
+----
+Message<String> incoming = ...;
+OutgoingAmqpMessage amqp = OutgoingAmqpMessage.builder()
+    .setAddress("some-adress")
+    .build();
+Message<String> outgoing = incoming.withMetadata(incoming.getMetadata().with(amqp));
+----
+
+=== Global configuration
 
 The host, port, username, password, SSL connection, reconnect attempts, reconnect interval,
 and connection timeout can also be configured using the `amqp-host`, `amqp-port`, `amqp-username`,

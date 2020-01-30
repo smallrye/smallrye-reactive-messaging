@@ -1,61 +1,100 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static io.vertx.proton.ProtonHelper.message;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.qpid.proton.amqp.Binary;
-import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
-import org.apache.qpid.proton.amqp.messaging.AmqpValue;
-import org.apache.qpid.proton.amqp.messaging.Data;
-import org.apache.qpid.proton.amqp.messaging.Header;
-import org.apache.qpid.proton.amqp.messaging.Section;
+import org.apache.qpid.proton.amqp.messaging.*;
 import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
-    private final io.vertx.amqp.AmqpMessage message;
-    private final boolean received;
+    protected final io.vertx.amqp.AmqpMessage message;
+    protected final Metadata metadata;
+    protected final IncomingAmqpMetadata amqpMetadata;
 
-    public AmqpMessage(io.vertx.axle.amqp.AmqpMessage delegate) {
-        this.message = delegate.getDelegate();
-        this.received = true;
+    public static <T> AmqpMessageBuilder<T> builder() {
+        return new AmqpMessageBuilder<>();
     }
 
-    public AmqpMessage(T payload) {
-        Message msg = message();
-        if (payload instanceof Section) {
-            msg.setBody((Section) payload);
-        } else {
-            msg.setBody(new AmqpValue(payload));
-        }
-        this.message = new AmqpMessageImpl(msg);
-        this.received = false;
+    public AmqpMessage(io.vertx.axle.amqp.AmqpMessage delegate) {
+        this(delegate.getDelegate());
     }
 
     public AmqpMessage(io.vertx.amqp.AmqpMessage msg) {
         this.message = msg;
-        this.received = false;
+        IncomingAmqpMetadata.IncomingAmqpMetadataBuilder builder = new IncomingAmqpMetadata.IncomingAmqpMetadataBuilder();
+        if (msg.address() != null) {
+            builder.withAddress(msg.address());
+        }
+        if (msg.applicationProperties() != null) {
+            builder.withProperties(msg.applicationProperties());
+        }
+        if (msg.contentType() != null) {
+            builder.withContentType(msg.contentType());
+        }
+        if (msg.contentEncoding() != null) {
+            builder.withContentEncoding(msg.contentEncoding());
+        }
+        if (msg.correlationId() != null) {
+            builder.withCorrelationId(msg.correlationId());
+        }
+        if (msg.creationTime() > 0) {
+            builder.withCreationTime(msg.creationTime());
+        }
+        if (msg.deliveryCount() >= 0) {
+            builder.withDeliveryCount(msg.deliveryCount());
+        }
+        if (msg.expiryTime() >= 0) {
+            builder.withExpirationTime(msg.expiryTime());
+        }
+        if (msg.groupId() != null) {
+            builder.withGroupId(msg.groupId());
+        }
+        if (msg.groupSequence() >= 0) {
+            builder.withGroupSequence(msg.groupSequence());
+        }
+        if (msg.id() != null) {
+            builder.withId(msg.id());
+        }
+        builder.withDurable(msg.isDurable());
+        builder.withFirstAcquirer(msg.isFirstAcquirer());
+        if (msg.priority() >= 0) {
+            builder.withPriority(msg.priority());
+        }
+        if (msg.subject() != null) {
+            builder.withSubject(msg.subject());
+        }
+        if (msg.ttl() >= 0) {
+            builder.withTtl(msg.ttl());
+        }
+        if (message.unwrap().getHeader() != null) {
+            builder.withHeader(message.unwrap().getHeader());
+        }
+        this.amqpMetadata = builder.build();
+        this.metadata = Metadata.of(builder.build());
     }
 
     @Override
     public CompletionStage<Void> ack() {
-        if (received) {
-            this.message.accepted();
-        }
+        this.message.accepted();
         return CompletableFuture.completedFuture(null);
     }
 
     @Override
     public T getPayload() {
         return (T) convert(message);
+    }
+
+    @Override
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     private Object convert(io.vertx.amqp.AmqpMessage msg) {
@@ -95,67 +134,67 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     }
 
     public boolean isDurable() {
-        return message.isDurable();
+        return amqpMetadata.isDurable();
     }
 
     public long getDeliveryCount() {
-        return message.deliveryCount();
+        return amqpMetadata.getDeliveryCount();
     }
 
     public int getPriority() {
-        return message.priority();
+        return amqpMetadata.getPriority();
     }
 
     public long getTtl() {
-        return message.ttl();
+        return amqpMetadata.getTtl();
     }
 
     public Object getMessageId() {
-        return message.id();
+        return amqpMetadata.getId();
     }
 
     public long getGroupSequence() {
-        return message.groupSequence();
+        return amqpMetadata.getGroupSequence();
     }
 
     public long getCreationTime() {
-        return message.creationTime();
+        return amqpMetadata.getCreationTime();
     }
 
     public String getAddress() {
-        return message.address();
+        return amqpMetadata.getAddress();
     }
 
     public String getGroupId() {
-        return message.groupId();
+        return amqpMetadata.getGroupId();
     }
 
     public String getContentType() {
-        return message.contentType();
+        return amqpMetadata.getContentType();
     }
 
     public long getExpiryTime() {
-        return message.expiryTime();
+        return amqpMetadata.getExpiryTime();
     }
 
     public Object getCorrelationId() {
-        return message.correlationId();
+        return amqpMetadata.getCorrelationId();
     }
 
     public String getContentEncoding() {
-        return message.contentEncoding();
+        return amqpMetadata.getContentEncoding();
     }
 
     public String getSubject() {
-        return message.subject();
+        return amqpMetadata.getSubject();
     }
 
     public Header getHeader() {
-        return message.unwrap().getHeader();
+        return amqpMetadata.getHeader();
     }
 
     public JsonObject getApplicationProperties() {
-        return message.applicationProperties();
+        return amqpMetadata.getProperties();
     }
 
     public Section getBody() {
