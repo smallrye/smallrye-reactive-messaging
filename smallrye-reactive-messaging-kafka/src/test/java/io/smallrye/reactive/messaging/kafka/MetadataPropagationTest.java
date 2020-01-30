@@ -29,7 +29,7 @@ import org.junit.Test;
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 
-public class HeaderPropagationTest extends KafkaTestBase {
+public class MetadataPropagationTest extends KafkaTestBase {
 
     private WeldContainer container;
 

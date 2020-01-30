@@ -1,8 +1,6 @@
 package io.smallrye.reactive.messaging.impl;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -10,6 +8,7 @@ import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -119,7 +118,30 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         Map<String, ConnectorConfig> sourceConfiguration = extractConfigurationFor(ConnectorFactory.INCOMING_PREFIX, config);
         Map<String, ConnectorConfig> sinkConfiguration = extractConfigurationFor(ConnectorFactory.OUTGOING_PREFIX, config);
 
+        detectNameConflict(sourceConfiguration, sinkConfiguration);
+
         register(sourceConfiguration, sinkConfiguration);
+    }
+
+    /**
+     * By spec, you cannot use the same channel name in an `incoming` configuration and `outgoing` configuration.
+     * This method throws a {@link javax.enterprise.inject.spi.DeploymentException} is this case is detected.
+     *
+     * @param sourceConfiguration the source configurations
+     * @param sinkConfiguration the sink configurations
+     */
+    private void detectNameConflict(Map<String, ConnectorConfig> sourceConfiguration,
+            Map<String, ConnectorConfig> sinkConfiguration) {
+        // We must create a copy as removing the items from the set remove them from the map.
+        Set<String> sources = new HashSet<>(sourceConfiguration.keySet());
+        Set<String> sinks = sinkConfiguration.keySet();
+        sources.retainAll(sinks);
+        if (!sources.isEmpty()) {
+            throw new DeploymentException(
+                    "Invalid configuration, the following channel names cannot be used for both incoming and outgoing: "
+                            + sources);
+        }
+
     }
 
     void register(Map<String, ConnectorConfig> sourceConfiguration, Map<String, ConnectorConfig> sinkConfiguration) {
