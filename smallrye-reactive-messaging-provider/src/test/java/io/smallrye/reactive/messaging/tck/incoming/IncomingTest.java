@@ -21,7 +21,7 @@ import io.smallrye.reactive.messaging.tck.MockedReceiver;
 public class IncomingTest extends WeldTestBase {
 
     @Override
-    public List<Class> getBeans() {
+    public List<Class<?>> getBeans() {
         return Arrays.asList(
                 Bean.class,
                 MessagingManager.class);

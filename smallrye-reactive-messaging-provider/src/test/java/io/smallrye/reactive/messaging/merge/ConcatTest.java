@@ -13,7 +13,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 public class ConcatTest extends WeldTestBaseWithoutTails {
 
     @Override
-    public List<Class> getBeans() {
+    public List<Class<?>> getBeans() {
         return Collections.singletonList(BeanUsingConcat.class);
     }
 

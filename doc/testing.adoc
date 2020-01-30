@@ -1,4 +1,4 @@
-== Testing without external broker
+== Testing without the infrastructure
 
 It's not rare to have to test your application but deploying the infrastructure can be cumbersome.
 While Docker or Test Containers have improved the the testing experience, you may want to mock this infrastructure.
@@ -8,14 +8,25 @@ It allows switching the connector used for a channel with an _in-memory_ connect
 This connector can then provide a way to send messages for incoming channels, or check the received messages for outgoing
 channels.
 
-For example, in a test, you can do something like:
+To use the _in-memory_ connector, you need to add the following dependency to your project:
 
-[source, java]
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+Then, in a test, you can do something like:
+
+[source,java]
 ----
 // ...
-import io.smallrye.reactive.messaging.connector.InMemoryConnector;
-import io.smallrye.reactive.messaging.connector.InMemorySource;
-import io.smallrye.reactive.messaging.connector.InMemorySink;
+import io.smallrye.reactive.messaging.connectors.InMemoryConnector;
+import io.smallrye.reactive.messaging.connectors.InMemorySource;
+import io.smallrye.reactive.messaging.connectors.InMemorySink;
 // ...
 
 @Test

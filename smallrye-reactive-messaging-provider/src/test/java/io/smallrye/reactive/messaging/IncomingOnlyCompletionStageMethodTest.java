@@ -13,7 +13,7 @@ import io.smallrye.reactive.messaging.beans.IncomingOnlyBeanProducingANonVoidCom
 public class IncomingOnlyCompletionStageMethodTest extends WeldTestBaseWithoutTails {
 
     @Override
-    public List<Class> getBeans() {
+    public List<Class<?>> getBeans() {
         return Collections.singletonList(SourceOnly.class);
     }
 

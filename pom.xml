@@ -79,6 +79,7 @@
   <modules>
     <module>api</module>
     <module>smallrye-reactive-messaging-provider</module>
+    <module>smallrye-reactive-messaging-in-memory</module>
     <module>smallrye-reactive-messaging-kafka</module>
     <module>smallrye-reactive-messaging-mqtt</module>
     <module>smallrye-reactive-messaging-mqtt-server</module>
