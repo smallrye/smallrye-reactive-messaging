@@ -1,5 +1,6 @@
 package acme;
 
+import java.time.Instant;
 import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -18,7 +19,7 @@ public class Receiver {
         String key = message.getKey();
         Headers headers = message.getHeaders();
         int partition = message.getPartition();
-        long timestamp = message.getTimestamp();
+        Instant timestamp = message.getTimestamp();
         System.out.println("received: " + payload + " from topic " + message.getTopic());
         return message.ack();
     }

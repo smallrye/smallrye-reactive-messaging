@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -18,7 +19,7 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     private final Metadata metadata;
     private final OutgoingKafkaRecordMetadata<K> kafkaMetadata;
 
-    public OutgoingKafkaRecord(String topic, K key, T value, long timestamp, int partition, Headers headers,
+    public OutgoingKafkaRecord(String topic, K key, T value, Instant timestamp, int partition, Headers headers,
             Supplier<CompletionStage<Void>> ack) {
         kafkaMetadata = new OutgoingKafkaRecordMetadata<>(topic, key,
                 partition, timestamp, headers);
@@ -62,7 +63,8 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         return kafkaMetadata.getTopic();
     }
 
-    public long getTimestamp() {
+    @Override
+    public Instant getTimestamp() {
         return kafkaMetadata.getTimestamp();
     }
 
@@ -76,6 +78,7 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         return ack;
     }
 
+    @Override
     public int getPartition() {
         return kafkaMetadata.getPartition();
     }

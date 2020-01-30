@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -43,7 +44,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     }
 
     @Override
-    public long getTimestamp() {
+    public Instant getTimestamp() {
         return kafkaMetadata.getTimestamp();
     }
 

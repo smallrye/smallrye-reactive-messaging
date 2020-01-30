@@ -1,6 +1,9 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import io.vertx.core.json.JsonObject;
+
+import java.time.Instant;
+
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
@@ -13,7 +16,7 @@ public class KafkaConsumer {
     String key = message.getKey();
     Headers headers = message.getHeaders();
     int partition = message.getPartition();
-    long timestamp = message.getTimestamp();
+    Instant timestamp = message.getTimestamp();
   }
   // end::kafka-message[]
 

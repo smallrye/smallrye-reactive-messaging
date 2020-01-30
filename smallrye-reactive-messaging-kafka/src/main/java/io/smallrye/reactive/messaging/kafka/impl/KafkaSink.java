@@ -94,7 +94,8 @@ public class KafkaSink {
             String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
         Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
-        long actualTimestamp = om == null || om.getKey() == null ? -1 : om.getTimestamp();
+        long actualTimestamp = om == null || om.getKey() == null ? -1
+                : om.getTimestamp() != null ? om.getTimestamp().toEpochMilli() : -1;
         Iterable<Header> kafkaHeaders = om == null || om.getHeaders() == null ? Collections.emptyList() : om.getHeaders();
         return new ProducerRecord<>(
                 actualTopic,
