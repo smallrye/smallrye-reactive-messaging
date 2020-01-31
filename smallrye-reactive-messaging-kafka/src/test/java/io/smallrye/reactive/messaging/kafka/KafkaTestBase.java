@@ -70,7 +70,7 @@ public class KafkaTestBase {
         kafka.startup();
     }
 
-    static Weld baseWeld() {
+    public static Weld baseWeld() {
         Weld weld = new Weld();
 
         // SmallRye config
