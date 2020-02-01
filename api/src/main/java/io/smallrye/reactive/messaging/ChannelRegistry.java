@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;

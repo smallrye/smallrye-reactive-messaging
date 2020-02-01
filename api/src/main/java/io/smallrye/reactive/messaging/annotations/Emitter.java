@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.annotations;
 
 /**
- * @deprecated Use {@link io.smallrye.reactive.messaging.Emitter} instead.
+ * @deprecated Use {@link org.eclipse.microprofile.reactive.messaging.Emitter} instead.
  */
 @Deprecated
 public interface Emitter<T> {
