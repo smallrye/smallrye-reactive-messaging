@@ -46,33 +46,31 @@ import java.util.concurrent.CompletionStage;
 public interface Emitter<T> {
 
     /**
-     * Sends a payload to the stream.
+     * Sends a payload to the channel.
      *
      * @param msg the <em>thing</em> to send, must not be {@code null}
      * @return the {@code CompletionStage}, which will be completed as sending the payload alone does not provide a callback
-     *         mechnanism.
-     * @throws IllegalStateException if the stream has been cancelled or terminated.
+     *         mechanism.
+     * @throws IllegalStateException if the channel has been canceled or terminated.
      */
     CompletionStage<Void> send(T msg);
 
     /**
-     * Sends a message to the stream.
-     * 
+     * Sends a payload to the channel.
+     *
      * @param <M> the <em>Message</em> type
      * @param msg the <em>Message</em> to send, must not be {@code null}
-     * @throws IllegalStateException if the stream has been cancelled or terminated.
+     * @throws IllegalStateException if the channel has been canceled or terminated.
      */
     <M extends Message<? extends T>> void send(M msg);
 
     /**
-     * Completes the stream.
-     * This method sends the completion signal, no messages can be sent once this method is called.
+     * Sends the completion event to the channel indicating that no other events will be sent afterward.
      */
     void complete();
 
     /**
-     * Propagates an error in the stream.
-     * This methods sends an error signal, no messages can be sent once this method is called.
+     * Sends a failure event to the channel. No more events will be sent afterward.
      *
      * @param e the exception, must not be {@code null}
      */
