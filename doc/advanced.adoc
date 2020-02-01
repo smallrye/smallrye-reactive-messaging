@@ -40,7 +40,7 @@ public String process(String s) {
 
 === @Channel
 
-`@Channel` is a qualifier to inject a _channel_ into a regular CDI bean.
+`@Channel` (`org.eclipse.microprofile.reactive.messaging.Channel`) is a qualifier to inject a _channel_ into a regular CDI bean.
 It's used to bridge the _imperative_ and _reactive_ worlds, or retrieve channels managed by Reactive Messaging.
 
 You can retrieve a channel using:
@@ -72,7 +72,7 @@ Emitter<String> emitter;
 emitter.send("a").send("b");
 ----
 
-You can inject an `io.smallrye.reactive.messaging.Emitter<T>`.
+You can inject an `org.eclipse.microprofile.reactive.messaging.Emitter<T>`.
 To use an `Emitter` for the channel `hello`, you need a `@Incoming("hello")` somewhere in your code (or in your configuration).
 
 When injecting an `Emitter` you can configure how the back-pressure is handled.
@@ -94,8 +94,9 @@ emitter.send("a").send("b");
 In this snippet, the buffer size is set to `300`. If you omit the `bufferSize` (in conjunction with the `BUFFER` strategy) an unbounded buffer is used.
 The `value` attribute can be:
 
-* `OnOverflow.Strategy.BUFFER` - use a buffer, potentially unbounded to store the elements until they are consumed. If
+* `OnOverflow.Strategy.BUFFER` - use a buffer to store the elements until they are consumed. If
 the buffer is full, a failure is propagated (and the thread using the emitted gets an exception)
+* `OnOverflow.Strategy.UNBOUNDED_BUFFER` - use an unbounded buffer to store the elements
 * `OnOverflow.Strategy.DROP` - drops the most recent value if the downstream can't keep up. It means that new value
 emitted by the emitter are ignored.
 * `OnOverflow.Strategy.FAIL` - propagates a failure in case the downstream can't keep up.
@@ -112,7 +113,7 @@ Emitter<String> emitter;
 
 @Inject
 @Channel("hello")
-@OnOverflow(value = OnOverflow.Strategy.BUFFER) // Buffer strategy, unbounded buffer
+@OnOverflow(value = OnOverflow.Strategy.UNBOUNDED_BUFFER) // Buffer strategy, unbounded buffer
 Emitter<String> emitter;
 
 @Inject
@@ -147,6 +148,15 @@ Emitter<String> emitter;
 // ...
 CompletionStage<Void> cs = emitter.send("hello");
 ----
+
+[NOTE]
+.Deprecation
+====
+The former `@Stream` annotation has been removed in 1.1.x.
+The `io.smallrye.reactive.messaging.annotations.Channel` annotation is now deprecated and use the one defined in the specification (`org.eclipse.microprofile.reactive.messaging.Channel`).
+The `io.smallrye.reactive.messaging.annotations.Emitter` class is now deprecated and use the one defined in the specification (`org.eclipse.microprofile.reactive.messaging.Emitter`).
+The `io.smallrye.reactive.messaging.annotations.OnOverflow` annotation is now deprecated and use the one defined in the specification (`org.eclipse.microprofile.reactive.messaging.OnOverflow`).
+====
 
 === Logging
 

@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.smallrye.reactive.messaging.Emitter;
-import io.smallrye.reactive.messaging.annotations.Channel;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 @ApplicationScoped
 public class BeanUsingAnEmitter {
