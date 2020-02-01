@@ -59,9 +59,9 @@ public class MediatorManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MediatorManager.class);
     public static final String STRICT_MODE_PROPERTY = "smallrye-messaging-strict-binding";
-    private final boolean strictMode;
+    private final boolean strictMode = Boolean.parseBoolean(System.getProperty(STRICT_MODE_PROPERTY, "false"));
 
-    private final CollectedMediatorMetadata collected = new CollectedMediatorMetadata();
+    private final CollectedMediatorMetadata collected = new CollectedMediatorMetadata(strictMode);
 
     // TODO Populate this list
     private final List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
@@ -96,7 +96,6 @@ public class MediatorManager {
     private volatile boolean initialized;
 
     public MediatorManager() {
-        strictMode = Boolean.parseBoolean(System.getProperty(STRICT_MODE_PROPERTY, "false"));
         if (strictMode) {
             LOGGER.debug("Strict mode enabled");
         }
