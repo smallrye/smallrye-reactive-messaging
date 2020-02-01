@@ -74,66 +74,18 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
-    public void testInjectionOfPublisherOfMessagesLegacy() {
+    public void testMultipleFieldInjectionLegacyChannel() {
         addBeanClass(SourceBean.class);
-        BeanInjectedWithAPublisherOfMessagesUsingStream bean = installInitializeAndGet(
-                BeanInjectedWithAPublisherOfMessagesUsingStream.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
-    public void testInjectionOfFlowableOfMessagesLegacy() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithAFlowableOfMessagesUsingStream bean = installInitializeAndGet(
-                BeanInjectedWithAFlowableOfMessagesUsingStream.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
-    public void testInjectionOfFlowableOfPayloadsLegacy() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithAFlowableOfPayloadsUsingStream bean = installInitializeAndGet(
-                BeanInjectedWithAFlowableOfPayloadsUsingStream.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
-    public void testInjectionOfPublisherOfPayloadsLegacy() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithAPublisherOfPayloadsUsingStream bean = installInitializeAndGet(
-                BeanInjectedWithAPublisherOfPayloadsUsingStream.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
-    public void testInjectionOfPublisherBuilderOfPayloadsLegacy() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithAPublisherBuilderOfPayloadsUsingStream bean = installInitializeAndGet(
-                BeanInjectedWithAPublisherBuilderOfPayloadsUsingStream.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
-    public void testInjectionOfPublisherBuilderOfMessagesLegacy() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithAPublisherBuilderOfMessagesUsingStream bean = installInitializeAndGet(
-                BeanInjectedWithAPublisherBuilderOfMessagesUsingStream.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
-    public void testMultipleFieldInjectionLegacy() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithDifferentFlavorsOfTheSameStream bean = installInitializeAndGet(
-                BeanInjectedWithDifferentFlavorsOfTheSameStream.class);
+        BeanInjectedWithDifferentFlavorsOfTheSameChannelLegacy bean = installInitializeAndGet(
+                BeanInjectedWithDifferentFlavorsOfTheSameChannelLegacy.class);
         assertThat(bean.consume()).hasSize(10);
     }
 
     @Test
-    public void testNonExistentStream() {
+    public void testNonExistentLEgacyChannel() {
         addBeanClass(SourceBean.class);
         try {
-            installInitializeAndGet(BeanInjectedNonExistentStream.class);
+            installInitializeAndGet(BeanInjectedNonExistentLegacyChannel.class);
             fail();
         } catch (DeploymentException expected) {
         }

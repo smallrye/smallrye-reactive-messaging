@@ -6,12 +6,12 @@ import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Channel;
 
 @ApplicationScoped
 public class BeanInjectedWithDifferentFlavorsOfTheSameChannel {

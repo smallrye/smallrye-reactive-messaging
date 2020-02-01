@@ -4,14 +4,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.*;
-import io.smallrye.reactive.messaging.Emitter;
-import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 /**
  * Implementation of the emitter pattern.
@@ -32,12 +32,14 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
 
+
         FlowableOnSubscribe<Message<? extends T>> deferred = fe -> {
             if (!internal.compareAndSet(null, fe.serialize())) {
                 fe.onError(new Exception("Emitter already created"));
             }
         };
 
+        System.out.println("found strategy " + overFlowStrategy);
         if (overFlowStrategy == null) {
             publisher = getPublisherUsingBufferStrategy(name, defaultBufferSize,
                     Flowable.create(deferred, BackpressureStrategy.BUFFER));
@@ -49,6 +51,7 @@ public class EmitterImpl<T> implements Emitter<T> {
     static <T> Flowable<Message<? extends T>> getPublisherForStrategy(String name, String overFlowStrategy, long bufferSize,
             long defaultBufferSize,
             FlowableOnSubscribe<Message<? extends T>> deferred) {
+        System.out.println("found strategy " + overFlowStrategy);
         OnOverflow.Strategy strategy = OnOverflow.Strategy.valueOf(overFlowStrategy);
 
         switch (strategy) {
@@ -92,7 +95,8 @@ public class EmitterImpl<T> implements Emitter<T> {
     static <T> Flowable<Message<? extends T>> getPublisherUsingBufferStrategy(String name,
             long defaultBufferSize,
             Flowable<Message<? extends T>> stream) {
-        return stream.onBackpressureBuffer(defaultBufferSize,
+        System.out.println("with buffer " + defaultBufferSize);
+        return stream.onBackpressureBuffer(defaultBufferSize - 2, // RX Implementation details
                 () -> LOGGER.error("Buffer full for emitter {}", name), BackpressureOverflowStrategy.ERROR);
     }
 
@@ -116,7 +120,6 @@ public class EmitterImpl<T> implements Emitter<T> {
             return future;
         }));
         return future;
-
     }
 
     @Override

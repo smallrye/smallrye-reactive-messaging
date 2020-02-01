@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -47,7 +48,6 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.WeavingException;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.annotations.OnOverflow;
 
 /**
  * Class responsible for managing mediators
