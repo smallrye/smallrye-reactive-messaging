@@ -32,7 +32,6 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
 
-
         FlowableOnSubscribe<Message<? extends T>> deferred = fe -> {
             if (!internal.compareAndSet(null, fe.serialize())) {
                 fe.onError(new Exception("Emitter already created"));

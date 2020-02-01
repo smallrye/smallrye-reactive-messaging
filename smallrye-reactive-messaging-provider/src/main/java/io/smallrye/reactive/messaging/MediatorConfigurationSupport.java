@@ -129,9 +129,10 @@ public class MediatorConfigurationSupport {
             if (parameterTypes.length != 1) {
                 throw getIncomingError("when returning a CompletionStage, one parameter is expected");
             }
-            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
-                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
-            }
+            // This check must be enabled once the TCK is released.
+            //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
+            //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
+            //            }
 
             return new ValidationOutput(production,
                     // Distinction between 3 and 4
@@ -154,11 +155,12 @@ public class MediatorConfigurationSupport {
                         "The signature is not supported as it requires 'blocking' acknowledgment, return a CompletionStage<Message<?> instead.");
             }
 
-            if (strict && !(returnType.equals(Void.class) || returnType.equals(Void.TYPE))) {
-                throw getIncomingError(
-                        "The signature is not supported as the produced result would be ignored. The method must return `void`, found "
-                                + returnType);
-            }
+            // Must be enabled once we update the tCK.
+            //            if (strict && !(returnType.equals(Void.class) || returnType.equals(Void.TYPE))) {
+            //                throw getIncomingError(
+            //                        "The signature is not supported as the produced result would be ignored. The method must return `void`, found "
+            //                                + returnType);
+            //            }
 
             return new ValidationOutput(production, consumption);
         }
