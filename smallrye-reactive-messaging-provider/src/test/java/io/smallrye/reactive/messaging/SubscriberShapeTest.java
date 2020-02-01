@@ -31,7 +31,7 @@ import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfPayloads;
 public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
     @Override
-    public List<Class> getBeans() {
+    public List<Class<?>> getBeans() {
         return Collections.singletonList(SourceOnly.class);
     }
 

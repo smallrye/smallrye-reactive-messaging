@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.connector;
+package io.smallrye.reactive.messaging.connectors;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ import io.reactivex.processors.UnicastProcessor;
 /**
  * An implementation of connector used for testing applications without having to use external broker.
  * The idea is to substitute the `connector` of a specific channel to use `smallrye-in-memory`.
- * Then your test can send message and checked the received messages.
+ * Then, your test can send message and checked the received messages.
  */
 @ApplicationScoped
 @Connector(InMemoryConnector.CONNECTOR)

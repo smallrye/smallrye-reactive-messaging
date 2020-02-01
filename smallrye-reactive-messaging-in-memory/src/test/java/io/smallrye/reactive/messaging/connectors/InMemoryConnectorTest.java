@@ -18,13 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.smallrye.reactive.messaging.MapBasedConfig;
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.connector.InMemoryConnector;
-import io.smallrye.reactive.messaging.connector.InMemorySink;
-import io.smallrye.reactive.messaging.connector.InMemorySource;
-
-public class InMemoryConnectorTest extends WeldTestBaseWithoutTails {
+public class InMemoryConnectorTest extends WeldTestBase {
 
     @Before
     public void install() {

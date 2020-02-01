@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.connector;
+package io.smallrye.reactive.messaging.connectors;
 
 import java.util.List;
 

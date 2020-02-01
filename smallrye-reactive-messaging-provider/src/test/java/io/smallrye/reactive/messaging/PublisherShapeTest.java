@@ -29,7 +29,7 @@ import io.smallrye.reactive.messaging.beans.BeanReturningPayloads;
 public class PublisherShapeTest extends WeldTestBaseWithoutTails {
 
     @Override
-    public List<Class> getBeans() {
+    public List<Class<?>> getBeans() {
         return Collections.singletonList(CollectorOnly.class);
     }
 

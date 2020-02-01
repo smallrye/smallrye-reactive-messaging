@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging;
+package io.smallrye.reactive.messaging.connectors;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,7 +18,8 @@ import org.junit.BeforeClass;
 
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
+import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
@@ -27,7 +28,7 @@ import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
 
-public class WeldTestBaseWithoutTails {
+public class WeldTestBase {
 
     static final List<String> EXPECTED = Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i))
             .map(i -> Integer.toString(i))
@@ -44,7 +45,7 @@ public class WeldTestBaseWithoutTails {
 
     public static void releaseConfig() {
         SmallRyeConfigProviderResolver.instance()
-                .releaseConfig(ConfigProvider.getConfig(WeldTestBaseWithoutTails.class.getClassLoader()));
+                .releaseConfig(ConfigProvider.getConfig(WeldTestBase.class.getClassLoader()));
         clearConfigFile();
     }
 
@@ -98,8 +99,9 @@ public class WeldTestBaseWithoutTails {
                 ConfiguredChannelFactory.class,
                 LegacyConfiguredChannelFactory.class,
                 MetricDecorator.class,
-                // Messaging provider
-                MyDummyConnector.class,
+
+                // In memory connector
+                InMemoryConnector.class,
 
                 // SmallRye config
                 io.smallrye.config.inject.ConfigProducer.class);
