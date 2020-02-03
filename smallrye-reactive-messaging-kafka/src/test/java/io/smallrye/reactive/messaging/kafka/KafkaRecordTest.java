@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -19,14 +20,14 @@ public class KafkaRecordTest {
         assertThat(message.getTopic()).isNull();
         assertThat(message.getHeaders()).isEmpty();
         assertThat(message.getPartition()).isEqualTo(-1);
-        assertThat(message.getTimestamp()).isEqualTo(-1);
+        assertThat(message.getTimestamp()).isNull();
 
         OutgoingKafkaRecordMetadata<?> metadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
                 .orElseThrow(() -> new AssertionError("Metadata expected"));
         assertThat(metadata.getPartition()).isEqualTo(-1);
         assertThat(metadata.getKey()).isEqualTo("foo");
         assertThat(metadata.getTopic()).isNull();
-        assertThat(metadata.getTimestamp()).isEqualTo(-1);
+        assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isEmpty();
     }
 
@@ -38,7 +39,7 @@ public class KafkaRecordTest {
         assertThat(metadata.getPartition()).isEqualTo(-1);
         assertThat(metadata.getKey()).isEqualTo("foo");
         assertThat(metadata.getTopic()).isNull();
-        assertThat(metadata.getTimestamp()).isEqualTo(-1);
+        assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isNull();
     }
 
@@ -50,20 +51,20 @@ public class KafkaRecordTest {
         assertThat(message.getTopic()).isEqualTo("topic");
         assertThat(message.getHeaders()).isEmpty();
         assertThat(message.getPartition()).isEqualTo(-1);
-        assertThat(message.getTimestamp()).isEqualTo(-1);
+        assertThat(message.getTimestamp()).isNull();
 
         OutgoingKafkaRecordMetadata<?> metadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
                 .orElseThrow(() -> new AssertionError("Metadata expected"));
         assertThat(metadata.getPartition()).isEqualTo(-1);
         assertThat(metadata.getKey()).isEqualTo("foo");
         assertThat(metadata.getTopic()).isEqualTo("topic");
-        assertThat(metadata.getTimestamp()).isEqualTo(-1);
+        assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isEmpty();
     }
 
     @Test
     public void testCreationOfKafkaRecordWithEverything() {
-        long timestamp = System.currentTimeMillis();
+        Instant timestamp = Instant.now();
         KafkaRecord<String, String> message = KafkaRecord.of("topic", "foo", "bar", timestamp, 2);
         assertThat(message.getPayload()).isEqualTo("bar");
         assertThat(message.getKey()).isEqualTo("foo");
@@ -83,13 +84,13 @@ public class KafkaRecordTest {
 
     @Test
     public void testCreationOfKafkaRecordWithEverythingButWithNullValues() {
-        KafkaRecord<String, String> message = KafkaRecord.of(null, null, "bar", -1, -1);
+        KafkaRecord<String, String> message = KafkaRecord.of(null, null, "bar", null, -1);
         assertThat(message.getPayload()).isEqualTo("bar");
         assertThat(message.getKey()).isNull();
         assertThat(message.getTopic()).isNull();
         assertThat(message.getHeaders()).isEmpty();
         assertThat(message.getPartition()).isEqualTo(-1);
-        assertThat(message.getTimestamp()).isEqualTo(-1);
+        assertThat(message.getTimestamp()).isNull();
     }
 
     @Test

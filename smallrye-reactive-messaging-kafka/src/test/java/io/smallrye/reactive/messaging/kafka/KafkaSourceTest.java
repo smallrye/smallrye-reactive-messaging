@@ -4,7 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
-import java.util.*;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -179,7 +184,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         List<KafkaRecord<String, Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
             assertThat(m.getTopic()).isEqualTo("data");
-            assertThat(m.getTimestamp()).isGreaterThan(0);
+            assertThat(m.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(m.getPartition()).isGreaterThan(-1);
         });
     }
@@ -234,7 +239,7 @@ public class KafkaSourceTest extends KafkaTestBase {
             IncomingKafkaRecordMetadata<String, Integer> metadata = m.getMetadata(IncomingKafkaRecordMetadata.class)
                     .orElseThrow(() -> new AssertionError("Metadata expected"));
             assertThat(metadata.getTopic()).isEqualTo("data");
-            assertThat(metadata.getTimestamp()).isGreaterThan(0);
+            assertThat(metadata.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(metadata.getPartition()).isGreaterThan(-1);
             assertThat(metadata.getOffset()).isGreaterThan(-1);
         });

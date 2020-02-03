@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.time.Instant;
+
 import org.apache.kafka.common.header.Headers;
 
 public interface KafkaMessageMetadata<K> {
@@ -8,7 +10,7 @@ public interface KafkaMessageMetadata<K> {
 
     K getKey();
 
-    long getTimestamp();
+    Instant getTimestamp();
 
     Headers getHeaders();
 

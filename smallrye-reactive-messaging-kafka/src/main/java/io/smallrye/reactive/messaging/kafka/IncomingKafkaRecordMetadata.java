@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.time.Instant;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.common.header.Headers;
@@ -14,7 +15,7 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
     private final K recordKey;
     private final String topic;
     private final int partition;
-    private final long timestamp;
+    private final Instant timestamp;
     private final TimestampType timestampType;
     private final long offset;
     private final RecordHeaders headers;
@@ -25,7 +26,7 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
         this.recordKey = record.key();
         this.topic = record.topic();
         this.partition = record.partition();
-        this.timestamp = record.timestamp();
+        this.timestamp = Instant.ofEpochMilli(record.timestamp());
         this.timestampType = record.timestampType();
         this.offset = record.offset();
         if (record.headers() == null) {
@@ -53,7 +54,7 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
     }
 
     @Override
-    public long getTimestamp() {
+    public Instant getTimestamp() {
         return timestamp;
     }
 

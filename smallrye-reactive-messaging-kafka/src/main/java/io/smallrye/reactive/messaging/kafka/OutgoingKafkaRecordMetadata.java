@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,14 +14,14 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
     private final String topic;
     private final K recordKey;
     private final int partition;
-    private final long timestamp;
+    private final Instant timestamp;
     private final Headers headers;
 
     public static <K> OutgoingKafkaRecordMetadataBuilder<K> builder() {
         return new OutgoingKafkaRecordMetadataBuilder<>();
     }
 
-    public OutgoingKafkaRecordMetadata(String topic, K key, int partition, long timestamp,
+    public OutgoingKafkaRecordMetadata(String topic, K key, int partition, Instant timestamp,
             Headers headers) {
         this.topic = topic;
         this.recordKey = key;
@@ -35,7 +36,7 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
     }
 
     @Override
-    public long getTimestamp() {
+    public Instant getTimestamp() {
         return timestamp;
     }
 
@@ -58,7 +59,7 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
         private String topic;
         private K recordKey;
         private int partition = -1;
-        private long timestamp = -1;
+        private Instant timestamp = null;
         private Headers headers;
 
         public OutgoingKafkaRecordMetadataBuilder<K> withTopic(String topic) {
@@ -76,7 +77,7 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
             return this;
         }
 
-        public OutgoingKafkaRecordMetadataBuilder<K> withTimestamp(long timestamp) {
+        public OutgoingKafkaRecordMetadataBuilder<K> withTimestamp(Instant timestamp) {
             this.timestamp = timestamp;
             return this;
         }
