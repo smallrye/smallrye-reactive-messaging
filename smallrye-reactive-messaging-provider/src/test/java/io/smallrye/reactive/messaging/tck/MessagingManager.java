@@ -32,7 +32,7 @@ import io.smallrye.reactive.messaging.tck.incoming.Bean;
 @ApplicationScoped
 public class MessagingManager implements ChannelRegistar {
 
-    private static final Message<MockPayload> DUMB = Message.of(new MockPayload());
+    private static final Message<MockPayload> DUMB = Message.<MockPayload>newBuilder().payload(new MockPayload()).build();
 
     private Map<String, Source> topics = new HashMap<>();
 
@@ -130,11 +130,11 @@ public class MessagingManager implements ChannelRegistar {
         public void sendWithAcknowledgement(MockPayload payload) {
             System.out.println("Sending with ACK " + payload);
             AtomicReference<Message<MockPayload>> reference = new AtomicReference<>();
-            Message<MockPayload> msg = Message.of(payload, () -> {
+            Message<MockPayload> msg = Message.<MockPayload>newBuilder().payload(payload).ack(() -> {
                 System.out.println("Acknowledging " + payload);
                 inflights.remove(reference.get());
                 return CompletableFuture.completedFuture(null);
-            });
+            }).build();
             reference.set(msg);
             send(msg);
         }

@@ -16,7 +16,7 @@ public class SourceOnly {
     public Publisher<Message<String>> source() {
         return Flowable.range(1, 10)
                 .map(i -> Integer.toString(i))
-                .map(Message::of)
+                .map(payload -> Message.<String>newBuilder().payload(payload).build())
                 .flatMap(m -> ReactiveStreams.of(m, m).buildRs());
     }
 

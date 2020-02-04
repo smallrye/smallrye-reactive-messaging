@@ -13,7 +13,7 @@ public class BeanProducingMessagesAsPublisher {
 
     @Outgoing("sink")
     public Publisher<Message<String>> publisher() {
-        return Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i)).map(Message::of);
+        return Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i)).map(payload -> Message.<String>newBuilder().payload(payload).build());
     }
 
 }

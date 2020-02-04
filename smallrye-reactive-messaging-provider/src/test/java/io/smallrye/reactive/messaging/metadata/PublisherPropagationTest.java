@@ -51,8 +51,8 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("sink")
         public Publisher<Message<String>> process(Message<String> input) {
             return Flowable.just(
-                    input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))),
-                    input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))));
+                Message.<String>newBuilder().payload(input.getPayload()).metadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))).ack(input.getAck()).build(),
+                Message.<String>newBuilder().payload(input.getPayload()).metadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))).ack(input.getAck()).build());
         }
     }
 

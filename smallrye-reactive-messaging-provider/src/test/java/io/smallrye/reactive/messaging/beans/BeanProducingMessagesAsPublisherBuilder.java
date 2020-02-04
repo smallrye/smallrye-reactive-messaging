@@ -17,7 +17,7 @@ public class BeanProducingMessagesAsPublisherBuilder {
         return ReactiveStreams.fromPublisher(Flowable.range(1, 10))
                 .flatMapRsPublisher(i -> Flowable.just(i, i))
                 .map(i -> Integer.toString(i))
-                .map(Message::of);
+                .map(payload -> Message.<String>newBuilder().payload(payload).build());
     }
 
 }

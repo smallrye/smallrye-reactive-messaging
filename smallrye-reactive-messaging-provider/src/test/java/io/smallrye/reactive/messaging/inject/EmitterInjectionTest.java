@@ -144,13 +144,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test(expected = IllegalStateException.class)
     public void testWithMissingStream() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingStream.class).emitter().send(Message.of("foo"));
+        installInitializeAndGet(BeanWithMissingStream.class).emitter().send(Message.<String>newBuilder().payload("foo").build());
     }
 
     @Test(expected = IllegalStateException.class)
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
+        installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.<String>newBuilder().payload("foo").build());
     }
 
     @Test
@@ -343,9 +343,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(new MyMessageBean<>("a"));
-            emitter.send(new MyMessageBean<>("b"));
-            emitter.send(new MyMessageBean<>("c"));
+            emitter.send(Message.<String>newBuilder().payload("a").build());
+            emitter.send(Message.<String>newBuilder().payload("b").build());
+            emitter.send(Message.<String>newBuilder().payload("c").build());
             emitter.complete();
         }
 
@@ -353,21 +353,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         public void consume(final String s) {
             list.add(s);
         }
-    }
-
-    public static class MyMessageBean<T> implements Message<T> {
-
-        private final T payload;
-
-        MyMessageBean(T payload) {
-            this.payload = payload;
-        }
-
-        @Override
-        public T getPayload() {
-            return payload;
-        }
-
     }
 
     @ApplicationScoped
@@ -386,10 +371,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a"));
-            emitter.send(Message.of("b"));
-            emitter.send(Message.of("c"));
-
+            emitter.send(Message.<String>newBuilder().payload("a").build());
+            emitter.send(Message.<String>newBuilder().payload("b").build());
+            emitter.send(Message.<String>newBuilder().payload("c").build());
         }
 
         @Incoming("foo")
@@ -414,9 +398,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a"));
-            emitter.send(Message.of("b"));
-            emitter.send(Message.of("c"));
+            emitter.send(Message.<String>newBuilder().payload("a").build());
+            emitter.send(Message.<String>newBuilder().payload("b").build());
+            emitter.send(Message.<String>newBuilder().payload("c").build());
         }
 
         @Incoming("foo")

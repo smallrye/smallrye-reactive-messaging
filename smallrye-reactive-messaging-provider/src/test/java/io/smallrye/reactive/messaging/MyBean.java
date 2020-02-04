@@ -26,18 +26,18 @@ public class MyBean {
         return input
                 .map(Message::getPayload)
                 .map(String::toUpperCase)
-                .map(Message::of);
+                .map(payload -> Message.<String>newBuilder().payload(payload).build());
     }
 
     @Incoming("toUpperCase")
     @Outgoing("my-output")
     public PublisherBuilder<Message<String>> duplicate(PublisherBuilder<Message<String>> input) {
-        return input.flatMap(s -> ReactiveStreams.of(s.getPayload(), s.getPayload()).map(Message::of));
+        return input.flatMap(s -> ReactiveStreams.of(s.getPayload(), s.getPayload()).map(payload -> Message.<String>newBuilder().payload(payload).build()));
     }
 
     @Outgoing("my-dummy-stream")
     Publisher<Message<String>> stream() {
-        return Flowable.just("foo", "bar").map(Message::of);
+        return Flowable.just("foo", "bar").map(payload -> Message.<String>newBuilder().payload(payload).build());
     }
 
     @Incoming("my-output")

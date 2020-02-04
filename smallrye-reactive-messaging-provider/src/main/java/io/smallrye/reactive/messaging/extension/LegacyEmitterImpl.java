@@ -46,7 +46,7 @@ public class LegacyEmitterImpl<T> implements Emitter<T> {
         if (msg instanceof Message) {
             delegate.send((Message) msg);
         } else {
-            delegate.send(Message.of(msg));
+            delegate.send(Message.<T>newBuilder().payload(msg).build());
         }
         return this;
     }

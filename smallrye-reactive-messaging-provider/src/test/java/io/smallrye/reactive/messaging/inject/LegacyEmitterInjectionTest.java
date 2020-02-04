@@ -111,13 +111,13 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test(expected = IllegalStateException.class)
     public void testWithMissingStream() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(EmitterInjectionTest.BeanWithMissingStream.class).emitter().send(Message.of("foo"));
+        installInitializeAndGet(EmitterInjectionTest.BeanWithMissingStream.class).emitter().send(Message.<String>newBuilder().payload("foo").build());
     }
 
     @Test(expected = IllegalStateException.class)
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(EmitterInjectionTest.BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
+        installInitializeAndGet(EmitterInjectionTest.BeanWithMissingChannel.class).emitter().send(Message.<String>newBuilder().payload("foo").build());
     }
 
     @Test
@@ -199,10 +199,9 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a"));
-            emitter.send(Message.of("b"));
-            emitter.send(Message.of("c"));
-
+            emitter.send(Message.<String>newBuilder().payload("a").build());
+            emitter.send(Message.<String>newBuilder().payload("b").build());
+            emitter.send(Message.<String>newBuilder().payload("c").build());
         }
 
         @Incoming("foo")
@@ -227,9 +226,9 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a"));
-            emitter.send(Message.of("b"));
-            emitter.send(Message.of("c"));
+            emitter.send(Message.<String>newBuilder().payload("a").build());
+            emitter.send(Message.<String>newBuilder().payload("b").build());
+            emitter.send(Message.<String>newBuilder().payload("c").build());
         }
 
         @Incoming("foo")

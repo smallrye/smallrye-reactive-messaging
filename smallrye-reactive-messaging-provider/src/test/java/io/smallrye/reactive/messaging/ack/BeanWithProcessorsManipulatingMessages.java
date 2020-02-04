@@ -41,16 +41,16 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     @Outgoing("sink")
     public CompletionStage<Message<String>> processorWithAck(Message<String> input) {
         processed(MANUAL_ACKNOWLEDGMENT_CS, input);
-        return input.ack().thenApply(x -> Message.of(input.getPayload() + "1"));
+        return input.ack().thenApply(x -> Message.<String>newBuilder().payload(input.getPayload() + "1").build());
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToManualAck() {
         return ReactiveStreams.of("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT_CS, payload);
-                }))).buildRs();
+                })).build()).buildRs();
     }
 
     @Incoming(NO_ACKNOWLEDGMENT)
@@ -58,17 +58,17 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     @Outgoing("sink")
     public Message<String> processorWithNoAck(Message<String> input) {
         processed(NO_ACKNOWLEDGMENT, input);
-        return Message.of(input.getPayload() + "1");
+        return Message.<String>newBuilder().payload(input.getPayload() + "1").build();
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(NO_ACKNOWLEDGMENT_CS)
@@ -78,18 +78,18 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
         return CompletableFuture.completedFuture(input)
                 .thenApply(m -> {
                     processed(NO_ACKNOWLEDGMENT_CS, input);
-                    return Message.of(m.getPayload() + "1");
+                    return Message.<String>newBuilder().payload(input.getPayload() + "1").build();
                 });
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToNoAckCS() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT_CS, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT)
@@ -97,17 +97,17 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     @Outgoing("sink")
     public Message<String> processorWithPreAck(Message<String> input) {
         processed(PRE_ACKNOWLEDGMENT, input);
-        return Message.of(input.getPayload() + "1");
+        return Message.<String>newBuilder().payload(input.getPayload() + "1").build();
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPreAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT_CS)
@@ -115,51 +115,51 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     @Outgoing("sink")
     public CompletionStage<Message<String>> processorWithPreAckCS(Message<String> input) {
         processed(PRE_ACKNOWLEDGMENT_CS, input);
-        return CompletableFuture.completedFuture(Message.of(input.getPayload() + "1"));
+        return CompletableFuture.completedFuture(Message.<String>newBuilder().payload(input.getPayload() + "1").build());
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToPreAckCS() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT_CS, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
     @Outgoing("sink")
     public Message<String> processorWithDefaultAck(Message<String> input) {
         processed(DEFAULT_ACKNOWLEDGMENT, input);
-        return Message.of(input.getPayload() + "1");
+        return Message.<String>newBuilder().payload(input.getPayload() + "1").build();
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToDefaultAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT_CS)
     @Outgoing("sink")
     public CompletionStage<Message<String>> processorWithDefaultAckCS(Message<String> input) {
         processed(DEFAULT_ACKNOWLEDGMENT_CS, input);
-        return CompletableFuture.completedFuture(Message.of(input.getPayload() + "1"));
+        return CompletableFuture.completedFuture(Message.<String>newBuilder().payload(input.getPayload() + "1").build());
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToDefaultAckCS() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT_CS, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
 }

@@ -110,7 +110,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             PublisherBuilder<Object> result = invoke(unwrapped);
             Objects.requireNonNull(result,
                     "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
-            return result.map(o -> (Message) Message.of(o));
+            return result.map(o -> (Message) Message.newBuilder().payload(o).build());
         };
     }
 
@@ -129,7 +129,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Objects.requireNonNull(result,
                     "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
             return ReactiveStreams.fromPublisher(result)
-                    .map(o -> (Message) Message.of(o));
+                    .map(o -> (Message) Message.newBuilder().payload(o).build());
         };
     }
 

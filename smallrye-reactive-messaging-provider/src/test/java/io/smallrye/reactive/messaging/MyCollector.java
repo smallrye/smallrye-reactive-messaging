@@ -52,7 +52,7 @@ public class MyCollector {
     @Outgoing("count")
     public Publisher<Message<Integer>> source() {
         return Flowable.range(0, 10)
-                .map(Message::of);
+                .map(payload -> Message.<Integer>newBuilder().payload(payload).build());
     }
 
     public List<String> payloads() {

@@ -14,14 +14,14 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 public class ConsumptionBean {
 
     private List<Integer> list = new ArrayList<>();
-    private List<KafkaRecord<String, Integer>> kafka = new ArrayList<>();
+    private List<Message<Integer>> kafka = new ArrayList<>();
 
     @Incoming("data")
     @Outgoing("sink")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public Message<Integer> process(KafkaRecord<String, Integer> input) {
+    public Message<Integer> process(Message<Integer> input) {
         kafka.add(input);
-        return Message.of(input.getPayload() + 1, input::ack);
+        return Message.<Integer>newBuilder().payload(input.getPayload() + 1).ack(input::ack).build();
     }
 
     @Incoming("sink")
@@ -33,7 +33,7 @@ public class ConsumptionBean {
         return list;
     }
 
-    public List<KafkaRecord<String, Integer>> getKafkaMessages() {
+    public List<Message<Integer>> getKafkaMessages() {
         return kafka;
     }
 }

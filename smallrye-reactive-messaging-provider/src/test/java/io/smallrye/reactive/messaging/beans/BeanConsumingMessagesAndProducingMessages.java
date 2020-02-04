@@ -12,7 +12,7 @@ public class BeanConsumingMessagesAndProducingMessages {
     @Incoming("count")
     @Outgoing("sink")
     public Message<String> process(Message<Integer> value) {
-        return Message.of(Integer.toString(value.getPayload() + 1));
+        return Message.<String>newBuilder().payload(Integer.toString(value.getPayload() + 1)).build();
     }
 
 }

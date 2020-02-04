@@ -24,11 +24,11 @@ public class ProducingMessageWithHeaderBean {
         List<RecordHeader> list = Arrays.asList(
                 new RecordHeader("hello", "clement".getBytes()),
                 new RecordHeader("count", Integer.toString(counter.incrementAndGet()).getBytes()));
-        return Message.of(
-                input.getPayload() + 1,
-                Metadata.of(OutgoingKafkaRecordMetadata.builder().withKey(Integer.toString(input.getPayload()))
-                        .withHeaders(list).build()),
-                input::ack);
+        return Message.<Integer>newBuilder().
+                payload(input.getPayload() + 1).
+                metadata(Metadata.of(OutgoingKafkaRecordMetadata.builder().withKey(Integer.toString(input.getPayload()))
+                        .withHeaders(list).build())).
+                ack(input::ack).build();
     }
 
     @Outgoing("data")

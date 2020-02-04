@@ -180,7 +180,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .flatMapCompletionStage(managePreProcessingAck())
                 .map(m -> m.getPayload())
                 .via(returnedProcessor)
-                .map(Message::of)
+                .map(payload -> Message.newBuilder().payload(payload).build())
                 .buildRs();
     }
 
@@ -193,7 +193,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .flatMapCompletionStage(managePreProcessingAck())
                 .map(m -> m.getPayload())
                 .via(returnedProcessorBuilder)
-                .map(Message::of)
+                .map(payload -> Message.newBuilder().payload(payload).build())
                 .buildRs();
     }
 
@@ -203,7 +203,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .flatMapCompletionStage(managePreProcessingAck())
                 .flatMap(message -> {
                     PublisherBuilder pb = invoke(message.getPayload());
-                    return pb.map(payload -> Message.of(payload, message.getMetadata()));
+                    return pb.map(payload -> Message.newBuilder().payload(payload).metadata(message.getMetadata()).build());
                     // TODO We can handle post-acknowledgement here.
                 })
                 .buildRs();
@@ -216,7 +216,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .flatMap(message -> {
                     Publisher pub = invoke(message.getPayload());
                     return ReactiveStreams.fromPublisher(pub)
-                            .map(payload -> Message.of(payload, message.getMetadata()));
+                            .map(payload -> Message.newBuilder().payload(payload).metadata(message.getMetadata()).build());
                     // TODO We can handle post-acknowledgement here.
                 })
                 .buildRs();
@@ -245,9 +245,9 @@ public class ProcessorMediator extends AbstractMediator {
                     .<Message> map(input -> {
                         Object result = invoke(input.getPayload());
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return input.withPayload(result);
+                            return Message.newBuilder().payload(result).metadata(input.getMetadata()).ack(input.getAck()).build();
                         } else {
-                            return Message.of(result, input.getMetadata());
+                            return Message.newBuilder().payload(result).metadata(input.getMetadata()).build();
                         }
                     })
                     .buildRs();
@@ -257,9 +257,9 @@ public class ProcessorMediator extends AbstractMediator {
                     .<Message> map(input -> {
                         Object result = invoke(input);
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return Message.of(result, () -> input.ack());
+                            return Message.newBuilder().payload(result).ack(() -> input.ack()).build();
                         } else {
-                            return Message.of(result);
+                            return Message.newBuilder().payload(result).build();
                         }
                     })
                     .buildRs();
@@ -282,13 +282,13 @@ public class ProcessorMediator extends AbstractMediator {
                 .<Message> flatMapCompletionStage(input -> {
                     CompletionStage<Object> cs = invoke(input.getPayload());
                     return cs
-                            .thenApply(res -> Message.of(res, input.getMetadata(), () -> {
+                            .thenApply(res -> Message.newBuilder().payload(res).metadata(input.getMetadata()).ack(() -> {
                                 if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                                     return input.ack();
                                 } else {
                                     return CompletableFuture.<Void> completedFuture(null);
                                 }
-                            }));
+                            }).build());
                 })
                 .buildRs();
     }

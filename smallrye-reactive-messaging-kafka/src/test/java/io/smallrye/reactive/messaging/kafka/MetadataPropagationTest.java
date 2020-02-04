@@ -126,7 +126,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return KafkaMessage.of("some-topic", "my-key", input.getPayload());
+            return Message.<Integer>newBuilder().payload(input.getPayload()).metadata(OutgoingKafkaRecordMetadata.builder().withKey("my-key").withTopic("some-topic").build()).build();
         }
 
         @Incoming("p1")
@@ -142,7 +142,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return KafkaMessage.of("my-key", input.getPayload());
+            return Message.<Integer>newBuilder().payload(input.getPayload()).metadata(OutgoingKafkaRecordMetadata.builder().withKey("my-key").build()).build();
         }
 
         @Incoming("p1")

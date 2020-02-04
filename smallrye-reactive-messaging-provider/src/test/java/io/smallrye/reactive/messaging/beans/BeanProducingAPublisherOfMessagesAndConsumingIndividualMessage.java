@@ -21,7 +21,7 @@ public class BeanProducingAPublisherOfMessagesAndConsumingIndividualMessage {
                 .map(i -> i + 1)
                 .flatMapRsPublisher(i -> Flowable.just(i, i))
                 .map(i -> Integer.toString(i))
-                .map(Message::of)
+                .map(payload -> Message.<String>newBuilder().payload(payload).build())
                 .buildRs();
     }
 

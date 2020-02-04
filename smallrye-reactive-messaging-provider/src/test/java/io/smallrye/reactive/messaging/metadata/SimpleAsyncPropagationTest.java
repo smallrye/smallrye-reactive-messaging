@@ -51,7 +51,7 @@ public class SimpleAsyncPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("sink")
         public CompletionStage<Message<String>> process(Message<String> input) {
             return CompletableFuture.supplyAsync(
-                    () -> input.withMetadata(input.getMetadata().with(new SimplePropagationTest.MsgMetadata("hello"))));
+                    () -> Message.<String>newBuilder().payload(input.getPayload()).metadata(input.getMetadata().with(new SimplePropagationTest.MsgMetadata("hello"))).ack(input.getAck()).build());
         }
     }
 

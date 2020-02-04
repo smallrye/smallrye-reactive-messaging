@@ -89,7 +89,7 @@ public class PublisherMediator extends AbstractMediator {
 
     private <P> void produceAPublisherBuilderOfPayloads() {
         PublisherBuilder<P> builder = invoke();
-        setPublisher(builder.map(Message::of));
+        setPublisher(builder.map(payload -> Message.newBuilder().payload(payload).build()));
     }
 
     private void produceAPublisherOfMessages() {
@@ -98,7 +98,7 @@ public class PublisherMediator extends AbstractMediator {
 
     private <P> void produceAPublisherOfPayloads() {
         Publisher<P> pub = invoke();
-        setPublisher(ReactiveStreams.fromPublisher(pub).map(Message::of));
+        setPublisher(ReactiveStreams.fromPublisher(pub).map(payload -> Message.newBuilder().payload(payload).build()));
     }
 
     private void produceIndividualMessages() {
@@ -112,7 +112,7 @@ public class PublisherMediator extends AbstractMediator {
 
     private <T> void produceIndividualPayloads() {
         setPublisher(ReactiveStreams.<T> generate(this::invoke)
-                .map(Message::of));
+                .map(payload -> Message.newBuilder().payload(payload).build()));
     }
 
     private void produceIndividualCompletionStageOfMessages() {
@@ -123,6 +123,6 @@ public class PublisherMediator extends AbstractMediator {
     private <P> void produceIndividualCompletionStageOfPayloads() {
         setPublisher(ReactiveStreams.<CompletionStage<P>> generate(this::invoke)
                 .flatMapCompletionStage(Function.identity())
-                .map(Message::of));
+                .map(payload -> Message.newBuilder().payload(payload).build()));
     }
 }

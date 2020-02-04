@@ -92,7 +92,7 @@ public class MetadataTest {
         byte[] bytes = new byte[] { 1, 2, 3, 4 };
 
         Metadata metadata = Metadata.of(person, bytes);
-        Message<String> message = Message.of("ignored", metadata);
+        Message<String> message = Message.<String>newBuilder().payload("ignored").metadata(metadata).build();
 
         Person p = message.getMetadata(Person.class).orElseThrow(() -> new AssertionError("Metadata expected"));
         assertThat(p).isNotNull();

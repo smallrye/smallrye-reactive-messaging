@@ -83,11 +83,11 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Outgoing(NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
@@ -102,11 +102,11 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToAutoAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT)
@@ -122,11 +122,11 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Outgoing(PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPreAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(NO_ACKNOWLEDGMENT_BUILDER)
@@ -141,11 +141,11 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Outgoing(NO_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToNoAckWithBuilder() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT_BUILDER)
@@ -159,11 +159,11 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToAutoAckWithBuilder() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT_BUILDER)
@@ -178,11 +178,11 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Outgoing(PRE_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToPreAckWithBuilder() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
 }

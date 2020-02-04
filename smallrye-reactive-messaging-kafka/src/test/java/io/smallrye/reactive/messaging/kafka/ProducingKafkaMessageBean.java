@@ -1,16 +1,16 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.enterprise.context.ApplicationScoped;
-
+import io.reactivex.Flowable;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import javax.enterprise.context.ApplicationScoped;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
 public class ProducingKafkaMessageBean {
@@ -20,12 +20,16 @@ public class ProducingKafkaMessageBean {
     @Incoming("data")
     @Outgoing("output-2")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public KafkaRecord<String, Integer> process(Message<Integer> input) {
-        return KafkaRecord.of(
-                Integer.toString(input.getPayload()), input.getPayload() + 1)
-                .withAck(input::ack)
-                .withHeader("hello", "clement")
-                .withHeader("count", Integer.toString(counter.incrementAndGet()));
+    public Message<Integer> process(Message<Integer> input) {
+        OutgoingKafkaRecordMetadata metadata = OutgoingKafkaRecordMetadata.builder()
+            .withKey(Integer.toString(input.getPayload()))
+            .withHeaders(Arrays.asList(
+                new RecordHeader("hello", "clement".getBytes()),
+                new RecordHeader("count", Integer.toString(counter.incrementAndGet()).getBytes()))).build();
+        return Message.<Integer>newBuilder()
+            .payload(input.getPayload() + 1)
+            .metadata(metadata)
+            .ack(input::ack).build();
     }
 
     @Outgoing("data")

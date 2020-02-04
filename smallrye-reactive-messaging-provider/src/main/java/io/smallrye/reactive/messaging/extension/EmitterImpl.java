@@ -111,10 +111,10 @@ public class EmitterImpl<T> implements Emitter<T> {
         }
         FlowableEmitter<Message<? extends T>> emitter = verify(internal, name);
         CompletableFuture<Void> future = new CompletableFuture<>();
-        emitter.onNext(Message.of(msg, () -> {
+        emitter.onNext(Message.<T>newBuilder().payload(msg).ack(() -> {
             future.complete(null);
             return future;
-        }));
+        }).build());
         return future;
 
     }

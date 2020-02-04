@@ -54,7 +54,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config), SERVERS);
 
         Flowable.range(0, 10)
-                .map(Message::of)
+                .map(payload -> Message.<Integer>newBuilder().payload(payload).build())
                 .subscribe((Subscriber) sink.getSink().build());
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -79,7 +79,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config), SERVERS);
 
         Flowable.range(0, 10)
-                .map(Message::of)
+                .map(payload -> Message.<Integer>newBuilder().payload(payload).build())
                 .subscribe((Subscriber) sink.getSink().build());
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -105,7 +105,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         Flowable.range(0, 10)
                 .map(i -> Integer.toString(i))
-                .map(Message::of)
+                .map(payload -> Message.<String>newBuilder().payload(payload).build())
                 .subscribe((Subscriber) sink.getSink().build());
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -217,7 +217,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                     }
                     return i;
                 })
-                .map(Message::of)
+                .map(payload -> Message.newBuilder().payload(payload).build())
                 .subscribe(subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();

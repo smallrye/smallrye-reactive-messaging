@@ -24,7 +24,7 @@ public class BeanReturningCompletionStageOfMessage {
 
     @Outgoing("infinite-producer")
     public CompletionStage<Message<Integer>> create() {
-        return CompletableFuture.supplyAsync(() -> Message.of(count.incrementAndGet()), executor);
+        return CompletableFuture.supplyAsync(() -> Message.<Integer>newBuilder().payload(count.incrementAndGet()).build(), executor);
     }
 
     @PreDestroy

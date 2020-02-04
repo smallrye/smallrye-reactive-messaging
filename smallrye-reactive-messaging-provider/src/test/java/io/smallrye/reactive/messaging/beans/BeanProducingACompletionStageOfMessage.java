@@ -16,6 +16,6 @@ public class BeanProducingACompletionStageOfMessage {
     @Outgoing("sink")
     public CompletionStage<Message<String>> process(Message<Integer> value) {
         return CompletableFuture.supplyAsync(() -> Integer.toString(value.getPayload() + 1))
-                .thenApply(Message::of);
+                .thenApply(payload -> Message.<String>newBuilder().payload(payload).build());
     }
 }

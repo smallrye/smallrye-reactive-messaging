@@ -26,7 +26,7 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
         this.recordKey = key;
         this.partition = partition;
         this.timestamp = timestamp;
-        this.headers = headers;
+        this.headers = (headers != null)?headers:new RecordHeaders();
     }
 
     @Override

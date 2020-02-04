@@ -17,7 +17,7 @@ public class ProducingBean {
     @Outgoing("output")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Message<Integer> process(Message<Integer> input) {
-        return Message.of(input.getPayload() + 1, input::ack);
+        return Message.<Integer>newBuilder().payload(input.getPayload() + 1).ack(input::ack).build();
     }
 
     @Outgoing("data")

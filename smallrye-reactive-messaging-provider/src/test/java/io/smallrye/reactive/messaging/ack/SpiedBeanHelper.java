@@ -42,11 +42,11 @@ public class SpiedBeanHelper {
 
     protected Publisher<Message<String>> source(String id) {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(id, payload);
                     nap();
-                }, EXECUTOR)));
+                }, EXECUTOR)).build());
     }
 
     public List<String> received(String key) {

@@ -14,7 +14,7 @@ public class BeanReturningMessages {
 
     @Outgoing("infinite-producer")
     public Message<Integer> create() {
-        return Message.of(count.incrementAndGet());
+        return Message.<Integer>newBuilder().payload(count.incrementAndGet()).build();
     }
 
 }

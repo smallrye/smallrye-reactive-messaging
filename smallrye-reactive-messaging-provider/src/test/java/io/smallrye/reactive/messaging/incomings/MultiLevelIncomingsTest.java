@@ -50,7 +50,7 @@ public class MultiLevelIncomingsTest extends WeldTestBaseWithoutTails {
         @Incoming("c")
         @Outgoing("out")
         public Message<String> process(Message<String> s) {
-            return Message.of(s.getPayload().toUpperCase());
+            return Message.<String>newBuilder().payload(s.getPayload().toUpperCase()).build();
         }
     }
 

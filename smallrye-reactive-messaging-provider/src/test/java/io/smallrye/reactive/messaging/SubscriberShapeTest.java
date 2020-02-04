@@ -155,7 +155,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
         List<SubscriberBuilder<? extends Message, Void>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
         List<String> list = new ArrayList<>();
-        Flowable.just("a", "b", "c").map(Message::of)
+        Flowable.just("a", "b", "c").map(payload -> Message.<String>newBuilder().payload(payload).build())
                 .doOnNext(m -> list.add(m.getPayload()))
                 .subscribe(((SubscriberBuilder) subscriber.get(0)).build());
         assertThat(list).containsExactly("a", "b", "c");

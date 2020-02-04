@@ -46,7 +46,7 @@ public class MyDummyConnector implements IncomingConnectorFactory, OutgoingConne
         this.configs.add(config);
         int increment = config.getOptionalValue("increment", Integer.class).orElse(1);
         return ReactiveStreams
-                .fromPublisher(Flowable.just(1, 2, 3).map(i -> i + increment).map(Message::of));
+                .fromPublisher(Flowable.just(1, 2, 3).map(i -> i + increment).map(payload -> Message.newBuilder().payload(payload).build()));
     }
 
     boolean gotCompletion() {

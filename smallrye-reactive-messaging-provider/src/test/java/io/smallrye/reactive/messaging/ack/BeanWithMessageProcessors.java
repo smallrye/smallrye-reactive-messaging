@@ -92,7 +92,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     public Processor<Message<String>, Message<String>> processorWithAck() {
         return ReactiveStreams.<Message<String>> builder()
                 .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(MANUAL_ACKNOWLEDGMENT, m))
                 .buildRs();
     }
@@ -100,10 +100,10 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing(MANUAL_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToManualAck() {
         return ReactiveStreams.of("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT, payload);
-                }))).buildRs();
+                })).build()).buildRs();
     }
 
     @Incoming(NO_ACKNOWLEDGMENT)
@@ -111,7 +111,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithNoAck() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(NO_ACKNOWLEDGMENT, m))
                 .buildRs();
     }
@@ -119,18 +119,18 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing(NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithAutoAck() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m))
                 .buildRs();
     }
@@ -138,11 +138,11 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToAutoAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT)
@@ -150,7 +150,7 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithPreAck() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(PRE_ACKNOWLEDGMENT, m))
                 .buildRs();
     }
@@ -158,11 +158,11 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing(PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPreAck() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(MANUAL_ACKNOWLEDGMENT_BUILDER)
@@ -171,17 +171,17 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     public ProcessorBuilder<Message<String>, Message<String>> processorWithAckWithBuilder() {
         return ReactiveStreams.<Message<String>> builder()
                 .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(MANUAL_ACKNOWLEDGMENT_BUILDER, m));
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT_BUILDER)
     public PublisherBuilder<Message<String>> sourceToManualAckWithBuilder() {
         return ReactiveStreams.of("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT_BUILDER, payload);
-                })));
+                })).build());
     }
 
     @Incoming(NO_ACKNOWLEDGMENT_BUILDER)
@@ -189,36 +189,36 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT_BUILDER)
     public ProcessorBuilder<Message<String>, Message<String>> processorWithNoAckWithBuilder() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(NO_ACKNOWLEDGMENT_BUILDER, m));
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToNoAckWithBuilder() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT_BUILDER)
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT_BUILDER)
     public ProcessorBuilder<Message<String>, Message<String>> processorWithAutoAckBuilder() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT_BUILDER, m));
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToAutoAckWithBuilder() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT_BUILDER)
@@ -226,18 +226,18 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_BUILDER)
     public ProcessorBuilder<Message<String>, Message<String>> processorWithPreAckBuilder() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.<String>newBuilder().payload(m.getPayload()).build(), Message.<String>newBuilder().payload(m.getPayload()).build()))
                 .peek(m -> processed(PRE_ACKNOWLEDGMENT_BUILDER, m));
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToPreAckWithBuilder() {
         return Flowable.fromArray("a", "b", "c", "d", "e")
-                .map(payload -> Message.of(payload, () -> {
+                .map(payload -> Message.<String>newBuilder().payload(payload).ack(() -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                }).build());
     }
 
 }

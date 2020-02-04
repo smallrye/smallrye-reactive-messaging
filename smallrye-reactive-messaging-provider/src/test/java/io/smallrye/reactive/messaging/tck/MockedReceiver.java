@@ -41,7 +41,7 @@ public class MockedReceiver<T> {
 
     public ProcessorBuilder<T, Void> createProcessor() {
         return ReactiveStreams.<T> builder()
-                .<Message<T>> map(SimpleMessage::new)
+                .<Message<T>> map(payload -> Message.<T>newBuilder().payload(payload).build())
                 .via(new MessageProcessor());
     }
 
@@ -51,7 +51,7 @@ public class MockedReceiver<T> {
 
     public SubscriberBuilder<T, Void> createSubscriber() {
         return ReactiveStreams.<T> builder()
-                .<Message<T>> map(SimpleMessage::new)
+                .<Message<T>> map(payload -> Message.<T>newBuilder().payload(payload).build())
                 .to(new MessageProcessor());
     }
 
@@ -115,7 +115,7 @@ public class MockedReceiver<T> {
     }
 
     public void receiveMessage(T payload) {
-        receiveWrappedMessage(new SimpleMessage<>(payload));
+        receiveWrappedMessage(Message.<T>newBuilder().payload(payload).build());
     }
 
     public void receiveWrappedMessage(Message<T> msg) {

@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.config.Config;
@@ -17,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
 import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
@@ -82,7 +82,14 @@ public class KafkaSource<K, V> {
                             // The Kafka subscription must happen on the subscription.
                             this.consumer.subscribe(topic);
                         }))
-                .map(rec -> new IncomingKafkaRecord<>(consumer, rec));
+                .map(rec -> {
+                        // TODO: the actual commit strategy should be implemented
+                        return Message.newBuilder()
+                            .payload(rec.value())
+                            .metadata(new IncomingKafkaRecordMetadata<>(rec))
+                            .ack(() -> {consumer.commit(); return null; /* TODO: this is a hack */})
+                            .build();
+                    });
     }
 
     public PublisherBuilder<? extends Message<?>> getSource() {

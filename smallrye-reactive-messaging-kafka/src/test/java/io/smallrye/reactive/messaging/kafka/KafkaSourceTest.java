@@ -53,7 +53,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-        assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
+        assertThat(messages.stream().map(m -> ((Message<Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
@@ -67,15 +67,15 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
 
-        List<KafkaRecord> messages = new ArrayList<>();
-        source.getSource().forEach(m -> messages.add((KafkaRecord) m)).run();
+        List<Message> messages = new ArrayList<>();
+        source.getSource().forEach(m -> messages.add((Message) m)).run();
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-        assertThat(messages.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
+        assertThat(messages.stream().map(Message::getPayload).collect(Collectors.toList()))
                 .containsExactly(0, 1, 2, 3, 4,
                         5, 6, 7, 8, 9);
     }
@@ -91,10 +91,10 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("broadcast", true);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
 
-        List<KafkaRecord> messages1 = new ArrayList<>();
-        List<KafkaRecord> messages2 = new ArrayList<>();
-        source.getSource().forEach(m -> messages1.add((KafkaRecord) m)).run();
-        source.getSource().forEach(m -> messages2.add((KafkaRecord) m)).run();
+        List<Message> messages1 = new ArrayList<>();
+        List<Message> messages2 = new ArrayList<>();
+        source.getSource().forEach(m -> messages1.add((Message) m)).run();
+        source.getSource().forEach(m -> messages2.add((Message) m)).run();
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
@@ -102,10 +102,10 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
-        assertThat(messages1.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
+        assertThat(messages1.stream().map(Message::getPayload).collect(Collectors.toList()))
                 .containsExactly(0, 1, 2, 3, 4,
                         5, 6, 7, 8, 9);
-        assertThat(messages2.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
+        assertThat(messages2.stream().map(Message::getPayload).collect(Collectors.toList()))
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
@@ -121,8 +121,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("retry-attempts", 100);
 
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
-        List<KafkaRecord> messages1 = new ArrayList<>();
-        source.getSource().forEach(m -> messages1.add((KafkaRecord) m)).run();
+        List<Message> messages1 = new ArrayList<>();
+        source.getSource().forEach(m -> messages1.add((Message) m)).run();
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
@@ -176,11 +176,11 @@ public class KafkaSourceTest extends KafkaTestBase {
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
-        List<KafkaRecord<String, Integer>> messages = bean.getKafkaMessages();
+        List<Message<Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            assertThat(m.getTopic()).isEqualTo("data");
-            assertThat(m.getTimestamp()).isGreaterThan(0);
-            assertThat(m.getPartition()).isGreaterThan(-1);
+            assertThat(m.getMetadata(IncomingKafkaRecordMetadata.class).get().getTopic()).isEqualTo("data");
+            assertThat(m.getMetadata(IncomingKafkaRecordMetadata.class).get().getTimestamp()).isGreaterThan(0);
+            assertThat(m.getMetadata(IncomingKafkaRecordMetadata.class).get().getPartition()).isGreaterThan(-1);
         });
     }
 
@@ -202,7 +202,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 2);
-        assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
+        assertThat(messages.stream().map(m -> ((Message<Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1);
 
         new Thread(() -> usage.produceStrings(1, null, () -> new ProducerRecord<>(topic, "hello"))).start();
@@ -211,7 +211,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
         // no other message received
-        assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
+        assertThat(messages.stream().map(m -> ((Message<Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1);
     }
 

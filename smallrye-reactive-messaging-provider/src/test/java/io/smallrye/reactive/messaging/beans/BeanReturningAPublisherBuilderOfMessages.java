@@ -12,7 +12,7 @@ public class BeanReturningAPublisherBuilderOfMessages {
 
     @Outgoing("producer")
     public PublisherBuilder<Message<String>> create() {
-        return ReactiveStreams.of("a", "b", "c").map(Message::of);
+        return ReactiveStreams.of("a", "b", "c").map(payload -> Message.<String>newBuilder().payload(payload).build());
     }
 
 }

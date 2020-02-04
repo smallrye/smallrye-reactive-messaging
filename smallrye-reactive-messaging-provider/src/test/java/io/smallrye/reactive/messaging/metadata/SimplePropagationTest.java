@@ -49,7 +49,7 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("intermediate")
         @Outgoing("sink")
         public Message<String> process(Message<String> input) {
-            return input.withMetadata(input.getMetadata().without(MsgMetadata.class).with(new MsgMetadata("hello")));
+            return Message.<String>newBuilder().payload(input.getPayload()).metadata(input.getMetadata().without(MsgMetadata.class).with(new MsgMetadata("hello"))).ack(input.getAck()).build();
         }
     }
 
@@ -87,7 +87,7 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("source")
         public Publisher<Message<String>> source() {
             return Flowable.range(1, 10)
-                    .map(i -> Message.of(Integer.toString(i), Metadata.of(new CounterMetadata(i), new MsgMetadata("foo"))));
+                    .map(i -> Message.<String>newBuilder().payload(Integer.toString(i)).metadata(Metadata.of(new CounterMetadata(i), new MsgMetadata("foo"))).build());
         }
 
     }

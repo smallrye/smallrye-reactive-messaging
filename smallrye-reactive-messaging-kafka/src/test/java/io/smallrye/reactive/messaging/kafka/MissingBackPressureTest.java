@@ -17,6 +17,7 @@ import javax.inject.Inject;
 
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -96,12 +97,12 @@ public class MissingBackPressureTest extends KafkaTestBase {
         assertThat(expected).hasValueGreaterThanOrEqualTo(10);
 
         // Check that the 10 first value matches the emitted values.
-        List<KafkaRecord<String, String>> messages = bean.emitted();
+        List<Message<String>> messages = bean.emitted();
         Iterator<Map.Entry<String, String>> iterator = received.iterator();
         for (int i = 0; i < 10; i++) {
-            KafkaRecord<String, String> message = messages.get(i);
+            Message<String> message = messages.get(i);
             Map.Entry<String, String> entry = iterator.next();
-            assertThat(entry.getKey()).isEqualTo(message.getKey());
+            assertThat(entry.getKey()).isEqualTo(message.getMetadata(OutgoingKafkaRecordMetadata.class).get().getKey());
             assertThat(entry.getValue()).isEqualTo(message.getPayload());
         }
     }
@@ -112,14 +113,15 @@ public class MissingBackPressureTest extends KafkaTestBase {
         private Random random = new Random();
 
         @Outgoing("temperature-values")
-        public Flowable<KafkaRecord<String, String>> generate() {
+        public Flowable<Message<String>> generate() {
 
             return Flowable.interval(10, TimeUnit.MILLISECONDS)
                     .map(tick -> {
                         double temperature = BigDecimal.valueOf(random.nextGaussian() * 15)
                                 .setScale(1, RoundingMode.HALF_UP)
                                 .doubleValue();
-                        return KafkaRecord.of("1", Instant.now().toEpochMilli() + ";" + temperature);
+                        return Message.<String>newBuilder().payload(Instant.now().toEpochMilli() + ";" + temperature)
+                            .metadata(OutgoingKafkaRecordMetadata.builder().withKey("1").build()).build();
                     });
         }
     }
@@ -134,13 +136,13 @@ public class MissingBackPressureTest extends KafkaTestBase {
         private volatile boolean stop = false;
 
         private Random random = new Random();
-        private List<KafkaRecord<String, String>> emitted = new CopyOnWriteArrayList<>();
+        private List<Message<String>> emitted = new CopyOnWriteArrayList<>();
 
         public void stop() {
             this.stop = true;
         }
 
-        public List<KafkaRecord<String, String>> emitted() {
+        public List<Message<String>> emitted() {
             return emitted;
         }
 
@@ -150,8 +152,8 @@ public class MissingBackPressureTest extends KafkaTestBase {
                     double temperature = BigDecimal.valueOf(random.nextGaussian() * 15)
                             .setScale(1, RoundingMode.HALF_UP)
                             .doubleValue();
-                    KafkaRecord<String, String> message = KafkaRecord.of("1",
-                            Instant.now().toEpochMilli() + ";" + temperature);
+                    Message<String> message = Message.<String>newBuilder().payload(Instant.now().toEpochMilli() + ";" + temperature)
+                        .metadata(OutgoingKafkaRecordMetadata.builder().withKey("1").build()).build();
                     emitter.send(message);
                     emitted.add(message);
                     nap();
