@@ -224,7 +224,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Flowable<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
         return Flowable.defer(
                 () -> Flowable.fromPublisher(receiver.toPublisher()))
-                .map(m -> new AmqpMessage<>(m));
+                .map(m -> AmqpMessageHelper.buildIncomingAmqpMessage(m));
     }
 
     private String getAddressOrFail(Config config) {
@@ -312,9 +312,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl, String configuredAddress) {
         io.vertx.axle.amqp.AmqpMessage amqp;
-        if (msg instanceof AmqpMessage) {
-            amqp = ((AmqpMessage) msg).getAmqpMessage();
-        } else if (msg.getPayload() instanceof io.vertx.axle.amqp.AmqpMessage) {
+        if (msg.getPayload() instanceof io.vertx.axle.amqp.AmqpMessage) {
             amqp = (io.vertx.axle.amqp.AmqpMessage) msg.getPayload();
         } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
             amqp = new io.vertx.axle.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
@@ -394,6 +392,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         }
 
         builder.address(metadata.map(OutgoingAmqpMetadata::getAddress).orElse(null));
+        builder.replyTo(metadata.map(OutgoingAmqpMetadata::getReplyTo).orElse(null));
         builder.applicationProperties(metadata.map(OutgoingAmqpMetadata::getProperties).orElseGet(JsonObject::new));
 
         builder.contentEncoding(metadata.map(OutgoingAmqpMetadata::getContentEncoding).orElse(null));

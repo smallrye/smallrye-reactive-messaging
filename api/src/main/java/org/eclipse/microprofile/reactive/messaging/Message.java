@@ -21,10 +21,8 @@ package org.eclipse.microprofile.reactive.messaging;
 import org.eclipse.microprofile.reactive.messaging.spi.MessageBuilderProvider;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 /**
  * A message envelope.
@@ -45,9 +43,7 @@ public interface Message<T> {
     /**
      * @return The set of metadata attached to this message, potentially empty.
      */
-    default Metadata getMetadata() {
-        return Metadata.empty();
-    }
+    Metadata getMetadata();
 
     /**
      * Retrieves the metadata associated with the given class.

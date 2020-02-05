@@ -92,11 +92,12 @@ public class HeaderPropagationTest extends AmqpTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return AmqpMessage.<Integer> builder()
-                    .withAddress("my-address")
-                    .withIntegerAsBody(input.getPayload())
-                    .withApplicationProperties(new JsonObject().put("X-Header", "value"))
-                    .withSubject("test")
+            return Message.<Integer> newBuilder()
+                    .payload(input.getPayload())
+                    .metadata(OutgoingAmqpMetadata.builder()
+                        .withAddress("my-address")
+                        .withProperties(new JsonObject().put("X-Header", "value"))
+                        .withSubject("test").build())
                     .build();
         }
 
@@ -113,10 +114,11 @@ public class HeaderPropagationTest extends AmqpTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return AmqpMessage.<Integer> builder()
-                    .withIntegerAsBody(input.getPayload())
-                    .withApplicationProperties(new JsonObject().put("X-Header", "value"))
-                    .withSubject("test")
+            return Message.<Integer> newBuilder()
+                    .payload(input.getPayload())
+                    .metadata(OutgoingAmqpMetadata.builder()
+                        .withProperties(new JsonObject().put("X-Header", "value"))
+                        .withSubject("test").build())
                     .build();
         }
 

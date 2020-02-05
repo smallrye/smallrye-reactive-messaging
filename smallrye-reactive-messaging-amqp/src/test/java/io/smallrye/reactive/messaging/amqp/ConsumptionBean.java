@@ -18,9 +18,9 @@ public class ConsumptionBean {
     @Incoming("data")
     @Outgoing("sink")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public Message<Integer> process(AmqpMessage<Integer> input) {
+    public Message<Integer> process(Message<Integer> input) {
         int value = input.getPayload();
-        return Message.of(value + 1, input::ack);
+        return Message.<Integer>newBuilder().of(input).payload(value + 1).build();
     }
 
     @Incoming("sink")

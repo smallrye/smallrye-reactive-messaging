@@ -14,7 +14,7 @@ public abstract class MessageBuilderProvider {
 
     public static MessageBuilderProvider instance() {
         if (instance == null) {
-            synchronized (ConfigProviderResolver.class) {
+            synchronized (MessageBuilderProvider.class) {
                 if (instance != null) {
                     return instance;
                 }

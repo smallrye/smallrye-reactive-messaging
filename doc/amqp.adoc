@@ -35,9 +35,7 @@ Check the  https://vertx.io/docs/vertx-amqp-client/java/[documentation] of the c
 
 NOTE: If the `address` attribute is not set the channel name is used instead.
 
-Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
 The payload must be a supported AMQP type.
-The `AmqpMessage` implements `Message` and provide additional metadata related to AMQP.
 These metadata can be retrieved using the `io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata` class:
 
 [source, java]
@@ -62,7 +60,6 @@ mp.messaging.outgoing.data.durable=true
 ----
 
 The AMQP connector dispatches messages to the AMQP broker or server.
-You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`, built with `io.smallrye.reactive.messaging.amqp.AmqpMessage.builder()`.
 
 The payload of the message must be one of the following type:
 

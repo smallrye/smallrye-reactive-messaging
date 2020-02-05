@@ -9,6 +9,11 @@ public class OutgoingAmqpMetadata {
     private final String address;
 
     /**
+     * The AMQP replyTo for an outgoing message.
+     */
+    private final String replyTo;
+
+    /**
      * The AMQP application properties for an outgoing message.
      */
     private final JsonObject properties;
@@ -22,6 +27,21 @@ public class OutgoingAmqpMetadata {
      * The content-encoding for an outgoing message.
      */
     private final String contentEncoding;
+
+    /**
+     * The expiry-time for an outgoing message.
+     */
+    private final long expiryTime;
+
+    /**
+     * The delivery-count for an outgoing message.
+     */
+    private final int deliveryCount;
+
+    /**
+     * The creationTime for an outgoing message.
+     */
+    private final long creationTime;
 
     /**
      * The correlation-id for an outgoing message.
@@ -59,13 +79,18 @@ public class OutgoingAmqpMetadata {
      */
     private final long ttl;
 
-    public OutgoingAmqpMetadata(String address, JsonObject properties, String contentType,
-            String contentEncoding, String correlationId, String groupId, String id, boolean durable, int priority,
-            String subject, long ttl) {
+    public OutgoingAmqpMetadata(String address, String replyTo, JsonObject properties, String contentType,
+                                String contentEncoding, long expiryTime, long creationTime, int deliveryCount,
+                                String correlationId, String groupId, String id, boolean durable, int priority,
+                                String subject, long ttl) {
         this.address = address;
+        this.replyTo = replyTo;
         this.properties = properties;
         this.contentType = contentType;
         this.contentEncoding = contentEncoding;
+        this.expiryTime = expiryTime;
+        this.creationTime = creationTime;
+        this.deliveryCount = deliveryCount;
         this.correlationId = correlationId;
         this.groupId = groupId;
         this.id = id;
@@ -79,6 +104,10 @@ public class OutgoingAmqpMetadata {
         return address;
     }
 
+    public String getReplyTo() {
+        return replyTo;
+    }
+
     public JsonObject getProperties() {
         return properties;
     }
@@ -89,6 +118,18 @@ public class OutgoingAmqpMetadata {
 
     public String getContentEncoding() {
         return contentEncoding;
+    }
+
+    public long getExpiryTime() {
+        return expiryTime;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public int getDeliveryCount() {
+        return deliveryCount;
     }
 
     public String getCorrelationId() {
@@ -125,9 +166,13 @@ public class OutgoingAmqpMetadata {
 
     public static final class OutgoingAmqpMetadataBuilder {
         private String address;
+        private String replyTo;
         private JsonObject properties = new JsonObject();
         private String contentType;
         private String contentEncoding;
+        private long expiryTime;
+        private long creationTime;
+        private int deliveryCount;
         private String correlationId;
         private String groupId;
         private String id;
@@ -148,6 +193,11 @@ public class OutgoingAmqpMetadata {
             return this;
         }
 
+        public OutgoingAmqpMetadataBuilder withReplyTo(String replyTo) {
+            this.replyTo = replyTo;
+            return this;
+        }
+
         public OutgoingAmqpMetadataBuilder withProperties(JsonObject properties) {
             this.properties = properties;
             return this;
@@ -160,6 +210,21 @@ public class OutgoingAmqpMetadata {
 
         public OutgoingAmqpMetadataBuilder withContentEncoding(String contentEncoding) {
             this.contentEncoding = contentEncoding;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withExpiryTime(long expiryTime) {
+            this.expiryTime = expiryTime;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withCreationTime(long creationTime) {
+            this.creationTime = creationTime;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withDeliveryCount(int deliveryCount) {
+            this.deliveryCount = deliveryCount;
             return this;
         }
 
@@ -199,8 +264,9 @@ public class OutgoingAmqpMetadata {
         }
 
         public OutgoingAmqpMetadata build() {
-            return new OutgoingAmqpMetadata(address, properties, contentType, contentEncoding, correlationId, groupId,
-                    id, durable, priority, subject, ttl);
+            return new OutgoingAmqpMetadata(address, replyTo, properties, contentType, contentEncoding,
+                expiryTime, creationTime, deliveryCount, correlationId, groupId,
+                id, durable, priority, subject, ttl);
         }
     }
 }

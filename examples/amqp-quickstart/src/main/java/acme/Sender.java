@@ -4,9 +4,9 @@ import java.util.concurrent.*;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import io.smallrye.reactive.messaging.amqp.AmqpMessageHelper;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-
-import io.smallrye.reactive.messaging.amqp.AmqpMessage;
 
 @ApplicationScoped
 public class Sender {
@@ -14,12 +14,12 @@ public class Sender {
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @Outgoing("data")
-    public CompletionStage<AmqpMessage> send() {
-        CompletableFuture<AmqpMessage> future = new CompletableFuture<>();
+    public CompletionStage<Message> send() {
+        CompletableFuture<Message> future = new CompletableFuture<>();
         delay(() -> {
             String message = "hello from sender";
             System.out.println("Sending (data): " + message);
-            future.complete(AmqpMessage.builder().withBody(message).build());
+            future.complete(Message.newBuilder().payload(message).build());
         });
         return future;
     }

@@ -53,7 +53,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
         //noinspection unchecked
         Flowable.range(0, 10)
-                .map(v -> (Message) Message.of(v))
+                .map(v -> Message.<Integer>newBuilder().payload(v).build())
                 .subscribe((Subscriber) sink.build());
 
         await().until(() -> expected.get() == 10);
@@ -73,7 +73,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Flowable.range(0, 10)
                 .map(i -> Integer.toString(i))
-                .map(Message::of)
+                .map(v -> Message.<String>newBuilder().payload(v).build())
                 .subscribe((Subscriber) sink.build());
 
         await().untilAtomic(expected, is(10));
@@ -104,12 +104,12 @@ public class AmqpSinkTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         AtomicInteger expected = new AtomicInteger(0);
 
-        List<AmqpMessage<String>> messages = new ArrayList<>();
+        List<Message<String>> messages = new ArrayList<>();
         usage.consume(topic,
                 v -> {
                     expected.getAndIncrement();
                     v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v));
+                    messages.add(AmqpMessageHelper.buildIncomingAmqpMessage(v));
                 });
 
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
@@ -117,9 +117,9 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Flowable.range(0, 10)
                 .map(v -> {
-                    AmqpMessage<String> message = AmqpMessage.<String> builder()
-                            .withBody(HELLO + v)
-                            .withSubject("foo")
+                    Message<String> message = Message.<String>newBuilder()
+                            .payload(HELLO + v)
+                            .metadata(OutgoingAmqpMetadata.builder().withSubject("foo").build())
                             .build();
                     return message;
                 })
@@ -130,7 +130,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         messages.forEach(m -> {
             assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("foo");
+            assertThat(m.getMetadata(IncomingAmqpMetadata.class).get().getSubject()).isEqualTo("foo");
         });
     }
 
@@ -139,11 +139,11 @@ public class AmqpSinkTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         AtomicInteger expected = new AtomicInteger(0);
 
-        List<AmqpMessage<String>> messages = new CopyOnWriteArrayList<>();
+        List<Message<String>> messages = new CopyOnWriteArrayList<>();
         usage.<String> consume(topic,
                 v -> {
                     expected.getAndIncrement();
-                    messages.add(new AmqpMessage<>(v));
+                    messages.add(AmqpMessageHelper.buildIncomingAmqpMessage(v));
                 });
 
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
@@ -154,7 +154,8 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withBody(HELLO + v)
                         .subject("bar")
                         .build())
-                .map(Message::of)
+                // TODO: Shouldn't a regular message with metadata be built here?
+                .map(v -> Message.<io.vertx.axle.amqp.AmqpMessage>newBuilder().payload(v).build())
                 .subscribe((Subscriber) sink.build());
 
         await().untilAtomic(expected, is(10));
@@ -162,7 +163,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         messages.forEach(m -> {
             assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("bar");
+            assertThat(m.getMetadata(IncomingAmqpMetadata.class).get().getSubject()).isEqualTo("bar");
         });
     }
 
@@ -171,18 +172,18 @@ public class AmqpSinkTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         AtomicInteger expected = new AtomicInteger(0);
 
-        List<AmqpMessage<String>> messages = new ArrayList<>();
+        List<Message<String>> messages = new ArrayList<>();
         usage.<String> consume(topic,
                 v -> {
                     expected.getAndIncrement();
-                    messages.add(new AmqpMessage<>(v));
+                    messages.add(AmqpMessageHelper.buildIncomingAmqpMessage(v));
                 });
 
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSinkUsingChannelName(topic);
 
         //noinspection unchecked
         Flowable.range(0, 10)
-                .map(v -> AmqpMessage.<String> builder().withBody(HELLO + v).withSubject("foo").build())
+                .map(v -> Message.<String> newBuilder().payload(HELLO + v).metadata(OutgoingAmqpMetadata.builder().withSubject("foo").build()).build())
                 .subscribe((Subscriber) sink.build());
 
         await().untilAtomic(expected, is(10));
@@ -190,7 +191,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         messages.forEach(m -> {
             assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("foo");
+            assertThat(m.getMetadata(IncomingAmqpMetadata.class).get().getSubject()).isEqualTo("foo");
         });
     }
 
