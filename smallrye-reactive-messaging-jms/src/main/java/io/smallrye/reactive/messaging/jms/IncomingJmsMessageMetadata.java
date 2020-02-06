@@ -58,7 +58,7 @@ public class IncomingJmsMessageMetadata implements JmsMessageMetadata, JmsProper
 
     @Override
     public JmsProperties getProperties() {
-        return this;
+        return properties;
     }
 
     public long getExpiration() {
