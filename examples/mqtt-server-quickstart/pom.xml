@@ -4,7 +4,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>mqtt-server-quickstart</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1-SNAPSHOT</version>
 
   <name>SmallRye Reactive Messaging MQTT server quickstart</name>
 
