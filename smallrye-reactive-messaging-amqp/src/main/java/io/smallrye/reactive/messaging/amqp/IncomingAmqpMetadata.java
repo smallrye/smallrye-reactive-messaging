@@ -183,7 +183,7 @@ public class IncomingAmqpMetadata {
     }
 
     static final class IncomingAmqpMetadataBuilder {
-        public JsonObject properties = new JsonObject();
+        private JsonObject properties = new JsonObject();
         private String address;
         private String contentType;
         private String contentEncoding;
