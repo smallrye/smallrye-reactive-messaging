@@ -51,7 +51,7 @@ public @interface OnOverflow {
          * Buffers <strong>all</strong> values until the downstream consumes it.
          * This creates a buffer with the size specified by {@link #bufferSize()} if present.
          * Otherwise, the size will be the value of the config property
-         * <strong>mp.messaging.emitter.defult-buffer-size</strong>.
+         * <strong>mp.messaging.emitter.default-buffer-size</strong>.
          * If the buffer is full, an error will be propagated.
          */
         BUFFER,
