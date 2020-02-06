@@ -12,9 +12,9 @@ import io.smallrye.reactive.messaging.annotations.Emitter;
  */
 public class LegacyEmitterImpl<T> implements Emitter<T> {
 
-    private final io.smallrye.reactive.messaging.Emitter delegate;
+    private final org.eclipse.microprofile.reactive.messaging.Emitter<T> delegate;
 
-    LegacyEmitterImpl(io.smallrye.reactive.messaging.Emitter delegate) {
+    LegacyEmitterImpl(org.eclipse.microprofile.reactive.messaging.Emitter<T> delegate) {
         this.delegate = delegate;
     }
 

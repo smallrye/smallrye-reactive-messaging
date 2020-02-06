@@ -1,5 +1,8 @@
 package acme;
 
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -7,8 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.smallrye.reactive.messaging.Emitter;
-import io.smallrye.reactive.messaging.annotations.Channel;
+
 
 @ApplicationScoped
 public class BeanUsingAnEmitter {

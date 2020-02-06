@@ -6,13 +6,13 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 @ApplicationScoped
-public class BeanInjectedNonExistentStream {
+public class BeanInjectedNonExistentLegacyChannel {
 
     @Inject
-    @Stream("idonotexist")
+    @Channel("idonotexist")
     private Flowable<Message<String>> field;
 
 }

@@ -17,6 +17,8 @@ import javax.inject.Inject;
 
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -25,8 +27,6 @@ import org.junit.Test;
 
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.Emitter;
-import io.smallrye.reactive.messaging.annotations.Channel;
 
 public class MissingBackPressureTest extends KafkaTestBase {
 

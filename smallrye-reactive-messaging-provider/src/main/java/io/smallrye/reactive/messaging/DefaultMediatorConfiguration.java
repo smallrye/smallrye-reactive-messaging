@@ -62,7 +62,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private MediatorConfigurationSupport mediatorConfigurationSupport;
 
-    public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
+    public DefaultMediatorConfiguration(Method method, Bean<?> bean, boolean strict) {
         this.method = Objects.requireNonNull(method, "'method' must be set");
         this.returnType = method.getReturnType();
         this.parameterTypes = method.getParameterTypes();
@@ -72,7 +72,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                 this.parameterTypes,
                 new ReturnTypeGenericTypeAssignable(method),
                 this.parameterTypes.length == 0 ? new AlwaysInvalidIndexGenericTypeAssignable()
-                        : new MethodParamGenericTypeAssignable(method, 0));
+                        : new MethodParamGenericTypeAssignable(method, 0),
+                strict);
     }
 
     public void compute(Incomings incomings, Outgoing outgoing) {

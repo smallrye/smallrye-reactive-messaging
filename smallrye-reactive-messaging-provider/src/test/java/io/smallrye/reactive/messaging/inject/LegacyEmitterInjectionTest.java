@@ -17,7 +17,6 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 /**
  * Test checking the legacy Emitter support.
@@ -28,16 +27,6 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test
     public void testWithPayloads() {
         final MyBeanEmittingPayloads bean = installInitializeAndGet(MyBeanEmittingPayloads.class);
-        bean.run();
-        assertThat(bean.emitter()).isNotNull();
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse(); // Emitter completed
-    }
-
-    @Test
-    public void testWithPayloadsLegacy() {
-        final MyBeanEmittingPayloadsUsingStream bean = installInitializeAndGet(MyBeanEmittingPayloadsUsingStream.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -58,16 +47,6 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test
     public void testWithMessages() {
         final MyBeanEmittingMessages bean = installInitializeAndGet(MyBeanEmittingMessages.class);
-        bean.run();
-        assertThat(bean.emitter()).isNotNull();
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isFalse();
-        assertThat(bean.emitter().isRequested()).isTrue();
-    }
-
-    @Test
-    public void testWithMessagesLegacy() {
-        final MyBeanEmittingMessagesUsingStream bean = installInitializeAndGet(MyBeanEmittingMessagesUsingStream.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -109,12 +88,6 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testWithMissingStream() {
-        // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(EmitterInjectionTest.BeanWithMissingStream.class).emitter().send(Message.of("foo"));
-    }
-
-    @Test(expected = IllegalStateException.class)
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
         installInitializeAndGet(EmitterInjectionTest.BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
@@ -131,34 +104,6 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingPayloads {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public Emitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.send("a");
-            emitter.send("b");
-            emitter.send("c");
-            emitter.complete();
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
-    @ApplicationScoped
-    public static class MyBeanEmittingPayloadsUsingStream {
-        @Inject
-        @Stream("foo")
         Emitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
@@ -208,53 +153,6 @@ public class LegacyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         @Incoming("foo")
         public void consume(final String s) {
             list.add(s);
-        }
-    }
-
-    @ApplicationScoped
-    public static class MyBeanEmittingMessagesUsingStream {
-        @Inject
-        @Channel("foo")
-        Emitter<Message<String>> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public Emitter<Message<String>> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.send(Message.of("a"));
-            emitter.send(Message.of("b"));
-            emitter.send(Message.of("c"));
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
-    public static class BeanWithMissingStream {
-        @Inject
-        @Stream("missing")
-        Emitter<Message<String>> emitter;
-
-        public Emitter<Message<String>> emitter() {
-            return emitter;
-        }
-    }
-
-    public static class BeanWithMissingChannel {
-        @Inject
-        @Channel("missing")
-        Emitter<Message<String>> emitter;
-
-        public Emitter<Message<String>> emitter() {
-            return emitter;
         }
     }
 

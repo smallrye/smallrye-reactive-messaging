@@ -11,49 +11,49 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.annotations.Stream;
+import io.smallrye.reactive.messaging.annotations.Channel;
 
 @ApplicationScoped
-public class BeanInjectedWithDifferentFlavorsOfTheSameStream {
+public class BeanInjectedWithDifferentFlavorsOfTheSameChannelLegacy {
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Flowable<Message<String>> field1;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Flowable<Message<String>> field2;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Publisher<Message<String>> field3;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Publisher<Message> field4;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Flowable<Message> field5;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private PublisherBuilder<Message> field6;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private PublisherBuilder<Message<String>> field7;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private PublisherBuilder<String> field8;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Publisher<String> field9;
 
     @Inject
-    @Stream("hello")
+    @Channel("hello")
     private Flowable<String> field10;
 
     public Map<String, String> consume() {

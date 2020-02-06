@@ -13,21 +13,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment.Strategy;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import io.smallrye.reactive.messaging.Emitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.annotations.Stream;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
@@ -60,16 +54,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public void testMyMessageBeanWithPayloadsAndAck() {
         final MyMessageBeanEmittingPayloadsWithAck bean = installInitializeAndGet(
                 MyMessageBeanEmittingPayloadsWithAck.class);
-        bean.run();
-        assertThat(bean.emitter()).isNotNull();
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
-    }
-
-    @Test
-    public void testWithPayloadsLegacy() {
-        final MyBeanEmittingPayloadsUsingStream bean = installInitializeAndGet(MyBeanEmittingPayloadsUsingStream.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -139,12 +123,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.hasCaughtNullPayload()).isTrue();
         assertThat(bean.hasCaughtNullMessage()).isTrue();
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testWithMissingStream() {
-        // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingStream.class).emitter().send(Message.of("foo"));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -231,35 +209,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingPayloads {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public Emitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.send("a");
-            emitter.send("b");
-            emitter.send("c");
-            emitter.complete();
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
-    @ApplicationScoped
-    public static class MyBeanEmittingPayloadsUsingStream {
-        @SuppressWarnings("deprecation")
-        @Inject
-        @Stream("foo")
         Emitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
@@ -422,17 +371,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         @Incoming("foo")
         public void consume(final String s) {
             list.add(s);
-        }
-    }
-
-    public static class BeanWithMissingStream {
-        @SuppressWarnings("deprecation")
-        @Inject
-        @Stream("missing")
-        Emitter<Message<String>> emitter;
-
-        public Emitter<Message<String>> emitter() {
-            return emitter;
         }
     }
 

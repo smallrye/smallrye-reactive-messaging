@@ -113,7 +113,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
             return;
         }
 
-        LOGGER.info("Stream manager initializing...");
+        LOGGER.info("Channel manager initializing...");
 
         Map<String, ConnectorConfig> sourceConfiguration = extractConfigurationFor(ConnectorFactory.INCOMING_PREFIX, config);
         Map<String, ConnectorConfig> sinkConfiguration = extractConfigurationFor(ConnectorFactory.OUTGOING_PREFIX, config);
