@@ -1,7 +1,6 @@
 package org.eclipse.microprofile.reactive.messaging.spi;
 
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
-import org.eclipse.microprofile.reactive.messaging.MessageBuilder;
+import io.smallrye.reactive.messaging.MessageBuilder;
 
 import java.util.Iterator;
 import java.util.ServiceLoader;

@@ -18,6 +18,7 @@
  */
 package org.eclipse.microprofile.reactive.messaging;
 
+import io.smallrye.reactive.messaging.MessageBuilder;
 import org.eclipse.microprofile.reactive.messaging.spi.MessageBuilderProvider;
 
 import java.util.Optional;

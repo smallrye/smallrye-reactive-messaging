@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.impl;
 
-import org.eclipse.microprofile.reactive.messaging.MessageBuilder;
+import io.smallrye.reactive.messaging.MessageBuilder;
 import org.eclipse.microprofile.reactive.messaging.spi.MessageBuilderProvider;
 
 public class MessageBuilderProviderImpl extends MessageBuilderProvider {

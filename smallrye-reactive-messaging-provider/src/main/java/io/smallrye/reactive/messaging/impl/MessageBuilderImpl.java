@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.impl;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.MessageBuilder;
+import io.smallrye.reactive.messaging.MessageBuilder;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import java.util.concurrent.CompletionStage;
