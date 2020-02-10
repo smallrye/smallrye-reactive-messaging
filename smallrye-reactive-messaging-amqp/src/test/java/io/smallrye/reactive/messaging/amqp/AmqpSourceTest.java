@@ -52,6 +52,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         System.clearProperty("mp-config");
         System.clearProperty("client-options-name");
+        System.clearProperty("amqp-client-options-name");
     }
 
     @Test
@@ -376,6 +377,56 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         System.setProperty("mp-config", "incoming");
         System.setProperty("client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
+        List<Integer> list = container.getBeanManager().createInstance().select(ConsumptionBean.class).get().getResults();
+        assertThat(list).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers("data", counter::getAndIncrement);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigGlobalOptionsByCDIMissingBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ConsumptionBean.class);
+
+        System.setProperty("mp-config", "incoming");
+        System.setProperty("amqp-client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigGlobalOptionsByCDIIncorrectBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ConsumptionBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "incoming");
+        System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");
+
+        container = weld.initialize();
+    }
+
+    @Test
+    public void testConfigGlobalOptionsByCDICorrect() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ConsumptionBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "incoming");
+        System.setProperty("amqp-client-options-name", "myclientoptions");
 
         container = weld.initialize();
         await().until(() -> container.select(MediatorManager.class).get().isInitialized());

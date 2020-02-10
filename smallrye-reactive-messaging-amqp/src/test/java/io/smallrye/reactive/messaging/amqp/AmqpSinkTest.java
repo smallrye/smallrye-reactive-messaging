@@ -41,6 +41,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         System.clearProperty("mp-config");
         System.clearProperty("client-options-name");
+        System.clearProperty("amqp-client-options-name");
     }
 
     @Test
@@ -235,6 +236,53 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         System.setProperty("mp-config", "outgoing");
         System.setProperty("client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigGlobalOptionsByCDIMissingBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBean.class);
+
+        System.setProperty("mp-config", "outgoing");
+        System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");
+
+        container = weld.initialize();
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testConfigGlobalOptionsByCDIIncorrectBean() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "outgoing");
+        System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");
+
+        container = weld.initialize();
+    }
+
+    @Test
+    public void testConfigGlobalOptionsByCDICorrect() throws InterruptedException {
+        Weld weld = new Weld();
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consumeIntegers("sink",
+                v -> latch.countDown());
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBean.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        System.setProperty("mp-config", "outgoing");
+        System.setProperty("amqp-client-options-name", "myclientoptions");
 
         container = weld.initialize();
 

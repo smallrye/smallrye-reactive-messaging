@@ -55,6 +55,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Instance<AmqpClientOptions> clientOptions;
 
     @Inject
+    @ConfigProperty(name = "amqp-client-options-name")
+    private Optional<String> defaultClientOptionsName;
+
+    @Inject
     @ConfigProperty(name = "amqp-port", defaultValue = "5672")
     private Integer configuredPort;
 
@@ -114,19 +118,24 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         AmqpClient client;
         Optional<String> clientOptionsName = config.getOptionalValue("client-options-name", String.class);
         if (clientOptionsName.isPresent()) {
-            String optionsName = clientOptionsName.get();
-            Instance<AmqpClientOptions> options = clientOptions.select(NamedLiteral.of(optionsName));
-            if (options.isUnsatisfied()) {
-                throw new IllegalStateException(
-                        "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsName);
-            }
-            LOGGER.debug("Creating amqp client from bean named '{}'", optionsName);
-            client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options.get());
+            client = createClientFromClientOptionsBean(clientOptionsName.get());
+        } else if (this.defaultClientOptionsName != null && this.defaultClientOptionsName.isPresent()) {
+            client = createClientFromClientOptionsBean(this.defaultClientOptionsName.get());
         } else {
             client = getClient(config);
         }
         clients.add(client);
         return client;
+    }
+
+    private AmqpClient createClientFromClientOptionsBean(String optionsBeanName) {
+        Instance<AmqpClientOptions> options = clientOptions.select(NamedLiteral.of(optionsBeanName));
+        if (options.isUnsatisfied()) {
+            throw new IllegalStateException(
+                    "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsBeanName);
+        }
+        LOGGER.debug("Creating amqp client from bean named '{}'", optionsBeanName);
+        return AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options.get());
     }
 
     private synchronized AmqpClient getClient(Config config) {
