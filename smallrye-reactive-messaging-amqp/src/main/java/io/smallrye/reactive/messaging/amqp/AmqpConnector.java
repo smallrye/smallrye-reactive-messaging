@@ -134,7 +134,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             throw new IllegalStateException(
                     "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsBeanName);
         }
-        LOGGER.debug("Creating amqp client from bean named '{}'", optionsBeanName);
+        LOGGER.debug("Creating AMQP client from bean named '{}'", optionsBeanName);
         return AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options.get());
     }
 
