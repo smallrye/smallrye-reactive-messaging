@@ -12,7 +12,6 @@ import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -74,7 +73,10 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 LOGGER.info("Found incoming connectors: {}", getConnectors(beanManager, IncomingConnectorFactory.class));
                 LOGGER.info("Found outgoing connectors: {}", getConnectors(beanManager, OutgoingConnectorFactory.class));
             }
-            this.config = ConfigProvider.getConfig();
+            //TODO Should we try to merge all the config?
+            // For now take the first one.
+            this.config = config.stream().findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Unable to retrieve the config"));
         }
     }
 
