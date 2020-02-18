@@ -12,7 +12,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <smallrye-config.version>1.5.1</smallrye-config.version>
+    <smallrye-config.version>1.6.1</smallrye-config.version>
     <smallrye-reactive-streams-operators.version>1.0.7</smallrye-reactive-streams-operators.version>
     <weld-core.version>3.1.2.Final</weld-core.version>
     <slf4j.version>1.7.28</slf4j.version>
