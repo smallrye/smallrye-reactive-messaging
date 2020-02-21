@@ -37,12 +37,12 @@ body. From the `EventBusMessage`, you can retrieve the headers, address...
 
 [source]
 ----
-mp.messaging.incoming.data.address=<the-eventbus-address>
-mp.messaging.incoming.data.connector=smallrye-vertx-eventbus
-mp.messaging.incoming.data.publish=<true|false>
-mp.messaging.incoming.data.expect-reply=<true|false>
-mp.messaging.incoming.data.codec=<codec-name>
-mp.messaging.incoming.data.timeout=1000
+mp.messaging.outgoing.data.address=<the-eventbus-address>
+mp.messaging.outgoing.data.connector=smallrye-vertx-eventbus
+mp.messaging.outgoing.data.publish=<true|false>
+mp.messaging.outgoing.data.expect-reply=<true|false>
+mp.messaging.outgoing.data.codec=<codec-name>
+mp.messaging.outgoing.data.timeout=1000
 ----
 
 The `address` indicates where the messages are sent. `publish` choose whether the message is sent to a single consumer (
