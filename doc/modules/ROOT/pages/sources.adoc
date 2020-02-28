@@ -1,8 +1,8 @@
-== Generating data
+= Generating data
 
 To generate data (act as a data source), you need a method annotated with `@Outgoing`.
 
-=== Supported Signatures
+== Supported Signatures
 
 * `@Outgoing Publisher<Message<O>> method()`
 * `@Outgoing Publisher<O> method()`
@@ -15,12 +15,12 @@ To generate data (act as a data source), you need a method annotated with `@Outg
 
 The first four variants generates a stream. The other methods generate each item individually.
 
-=== Examples
+== Examples
 
 The following code snippet provides example of the different variants of signature.
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/GenerateExamples.java[]
+include::example$GenerateExamples.java[]
 ----
 

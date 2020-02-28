@@ -1,4 +1,4 @@
-== Concepts
+= Concepts
 
 MicroProfile Reactive Messaging proposes a model to build data streaming application using a CDI development model. It
 is based on 3 main concepts:
@@ -9,7 +9,7 @@ is based on 3 main concepts:
 
 Behind the scene, SmallRye Reactive Streams composes _Reactive Streams_ and ensures the consistent flow of messages.
 
-=== Messages
+== Messages
 
 A `Message` (defined by `org.eclipse.microprofile.reactive.messaging.Message`) is an envelope around a payload. The
 `Message` interface just offers a way to retrieve the payload (`getPayload`), a set of _metadata_ and a method to acknowledge the message (`ack`).
@@ -24,7 +24,7 @@ A `Message` can contain metadata. These metadata can be used to:
 
 Acknowledgement is covered below, in a dedicated section.
 
-=== Incoming
+== Incoming
 
 `Incoming` is an annotation indicating that the method consumes a stream. The name of the stream is given as attribute
 such as in:
@@ -41,7 +41,7 @@ A method only annotated with `@Incoming` forms the end of a processing chain, of
 image::incoming.png[align="center"]
 
 
-=== Outgoing
+== Outgoing
 
 `Outgoing` is an annotation indicating that the method feeds a stream. The name of the stream is given as attribute:
 
@@ -56,7 +56,7 @@ A method only annotated with `@Outgoing` is a sort of data _source_:
 
 image::outgoing.png[align="center"]
 
-=== Methods with @Outgoing and @Incoming
+== Methods with @Outgoing and @Incoming
 
 Of course, methods can also use both annotations to transform the incoming messages:
 
@@ -72,7 +72,7 @@ A method annotated with both annotation is generally called _processor_ or _medi
 
 image::processor.png[align="center"]
 
-=== Binding matching @Outgoing to @Incoming
+== Binding matching @Outgoing to @Incoming
 
 SmallRye Reactive Messaging automatically binds matching `@Outgoing` to `@Incoming` to form a chain:
 
@@ -82,7 +82,7 @@ Methods annotated with `@Incoming` or `@Outgoing` don't have to be in the same _
 amount a set of beans. Remote interactions are possible using a _transport_ layer. This topic is covered in another
 section.
 
-=== Metadata and Propagation
+== Metadata and Propagation
 
 Each message has a set of metadata (potentially empty).
 These metadata are retrieved with `org.eclipse.microprofile.reactive.messaging.Message.getMetadata`.
@@ -99,7 +99,7 @@ Metadata are composed by objects (identified by their class) and can be retrieve
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/MetadataExamples.java[tag=metadata]
+include::example$MetadataExample.java[tag=metadata]
 ----
 
 The metadata can be composed by multiple objects to represent various metadata.

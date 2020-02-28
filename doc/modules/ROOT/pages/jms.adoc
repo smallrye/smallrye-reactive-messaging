@@ -1,8 +1,8 @@
-== Receiving and Sending messages using JMS (Java Message Service)
+= Receiving and Sending messages using JMS (Java Message Service)
 
 You can use SmallRye Reactive Messaging to receive and send JMS messages.
 
-=== Dependency
+== Dependency
 
 To enable the JMS support, you need the following dependency:
 
@@ -17,7 +17,7 @@ To enable the JMS support, you need the following dependency:
 
 The connector is named `smallrye-jms`.
 
-=== Connection Factory Requirement
+== Connection Factory Requirement
 
 To interact with JMS, you need to _expose_ a `javax.jms.ConnectionFactory` as CDI bean.
 For example, you need a bean producing the `ConnectionFactory`:
@@ -46,7 +46,7 @@ public class ConnectionFactoryBean {
 
 The JMS connector is consuming the produced _factory_ to connect to the broker.
 
-==== Selecting ConnectionFactory
+=== Selecting ConnectionFactory
 
 In case you have several connection factories, you can use the `@Named` qualified on your factory to specify the name.
 Then, in the channel configuration, configure the name as follows:
@@ -61,7 +61,7 @@ mp.messaging.incoming.my-channel.connection-factory-name=my-factory-name
 mp.messaging.outgoing.my-channel.connection-factory-name=my-factory-name
 ----
 
-==== Configure credentials
+=== Configure credentials
 
 To configure the _username_ and _password_ to connect to the broker and create a session, use the following properties:
 
@@ -78,7 +78,7 @@ mp.messaging.outgoing.my-channel.username=my-username
 mp.messaging.outgoing.my-channel.password=secret
 ----
 
-==== Session mode
+=== Session mode
 
 By default, the connector uses the `AUTO_ACKNOWLEDGE` session mode.
 You can configure it using:
@@ -103,7 +103,7 @@ Accepted values are:
 Any other value is rejected, and the deployment would fail.
 
 
-==== Configure the client id
+=== Configure the client id
 When dealing with _topics_, your subscription must need to be identified with a _client-id_.
 Configure the client id as follows:
 
@@ -117,13 +117,13 @@ mp.messaging.incoming.my-channel.client-id=my-id
 mp.messaging.outgoing.my-channel.client-id=my-id
 ----
 
-=== JSON-B Requirement
+== JSON-B Requirement
 
 The connector uses JSON-B to serialize and deserialize objects.
 You need to have an implementation of JSON-B available.
 Check http://json-b.net/ for more details.
 
-=== Sending JMS messages
+== Sending JMS messages
 
 To send a JMS message, you need to configure the connector as follows:
 
@@ -140,7 +140,7 @@ mp.messaging.outgoing.my-channel.destination-type=topic
 mp.messaging.outgoing.my-channel.client-id=my-id
 ----
 
-==== Sending String and primitives
+=== Sending String and primitives
 
 String and primitive types can be forwarded as payload:
 
@@ -153,7 +153,7 @@ public String sendToJms(String s) {
 }
 ----
 
-==== Sending objects
+=== Sending objects
 
 Objects are serialized using **JSON-B**:
 
@@ -170,7 +170,7 @@ public Person sendToJms(...) {
 In the previous example, it requires that the `Person` class can be serialized to JSON.
 Note that the class name is passed in the `JMSType` property.
 
-==== Sending byte arrays
+=== Sending byte arrays
 
 You can also send `byte[]` payloads:
 
@@ -185,7 +185,7 @@ public byte[] sendToJms(...) {
 }
 ----
 
-==== Sending JMS Message
+=== Sending JMS Message
 
 Finally, you can send a JMS Message (`javax.jms.Message`) directly:
 
@@ -198,7 +198,7 @@ public javax.jms.Message sendToJms(...) {
 }
 ----
 
-==== Connector configuration
+=== Connector configuration
 
 The following table summarizes the attribute you can configure on a JMS outgoing channel.
 Don't forget to prefix them using:
@@ -231,11 +231,11 @@ mp.messaging.outgoing.my-jms-channel.attribute=value
 NOTE: `destination-type` and `reply-to-destination-type` must be either `queue` (default) or `topic`.
 Any other value is rejected and fail the deployment.
 
-==== Outgoing JMS message metadata
+=== Outgoing JMS message metadata
 
 You can customize the _routing_ and the content of the outgoing JMS message by adding an instance of `io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata` to the message metadata.
 
-=== Receiving JMS messages
+== Receiving JMS messages
 
 To send a JMS message, you need to configure the connector as follows:
 
@@ -252,7 +252,7 @@ mp.messaging.incoming.my-channel.destination-type=topic
 mp.messaging.incoming.my-channel.client-id=my-id
 ----
 
-==== Receiving Message
+=== Receiving Message
 
 You can decide to receive `io.smallrye.reactive.messaging.jms.IncomingJmsMessage` which contains all the details of the underlying JMS Message.
 So you can access properties and metadata.
@@ -270,7 +270,7 @@ public CompletionStage<Void> consume(IncomingJmsMessage<String> msg) {
 
 The `ReceivedJmsMessage` is parameterized with the type of payload.
 
-==== Receiving payload
+=== Receiving payload
 
 You can also receive the payload directly.
 In the case of objects, the payload is de-serialized using JSON-B is the `JMSType` is set.
@@ -284,7 +284,7 @@ public void consume(Person person) {
 }
 ----
 
-==== Connector configuration
+=== Connector configuration
 
 The following table summarizes the attribute you can configure on a JMS incoming channel.
 Don't forget to prefix them using:
@@ -309,7 +309,7 @@ mp.messaging.incoming.my-jms-channel.attribute=value
 | broadcast | false |  | Whether or not the received message can emitted to several subscribers
 |===
 
-==== Incoming message metadata
+=== Incoming message metadata
 
 You can retrieve the incoming message metadata using:
 
@@ -321,7 +321,7 @@ Optional<IncomingJmsMessageMetadata> metadata
 
 The metadata are represented by the `io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata` class.
 
-=== Advanced configuration
+== Advanced configuration
 
 The connector uses a thread pool to handle some interaction with the broker (for example, to handle acknowledgment).
 You can configure the maximum number of thread and the time to live using MicroProfile Config:

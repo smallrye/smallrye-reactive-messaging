@@ -1,4 +1,4 @@
-== Interacting using MQTT
+= Interacting using MQTT
 
 You have two options here:
 
@@ -7,12 +7,12 @@ the https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client[Vert.x MQTT Clien
 2. you can receive MQTT messages as an MQTT server. The MQTT support is based on the
 https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_server[Vert.x MQTT Server]
 
-=== MQTT client (incoming or outgoing)
+== MQTT client (incoming or outgoing)
 
 For if you want to produce or consumer MQTT messages coming or going to an MQTT broker
 or server.
 
-==== Dependency
+=== Dependency
 
 To enable the MQTT client support, you need the following dependency:
 
@@ -25,7 +25,7 @@ To enable the MQTT client support, you need the following dependency:
 </dependency>
 ----
 
-==== Retrieving messages from an MQTT broker or server
+=== Retrieving messages from an MQTT broker or server
 
 [source]
 ----
@@ -43,7 +43,7 @@ Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You c
 
 NOTE: If the `topic` attribute is not set the channel name is used instead.
 
-==== Forwarding messages to an MQTT broker or server
+=== Forwarding messages to an MQTT broker or server
 
 [source]
 ----
@@ -65,12 +65,12 @@ Other objects are mapped to JSON.
 
 NOTE: If the `topic` attribute is not set the channel name is used instead.
 
-==== Advanced configuration
+=== Advanced configuration
 
 Check `io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource` and
 `io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink` for further details on the attributes.
 
-=== MQTT server
+== MQTT server
 
 For if you want your code to act as an MQTT server to receive MQTT messages from one or more
 clients.
@@ -80,7 +80,7 @@ acknowledgment (for QoS 1 & 2). It will ignore subscription requests for instanc
 
 NOTE: The server has no persistence, if no subscribers are listening, messages will be dropped.
 
-==== Dependency
+=== Dependency
 
 To enable the MQTT server support, you need the following dependency:
 
@@ -93,7 +93,7 @@ To enable the MQTT server support, you need the following dependency:
 </dependency>
 ----
 
-==== Receive MQTT messages from one or more MQTT client
+=== Receive MQTT messages from one or more MQTT client
 
 [source]
 ----

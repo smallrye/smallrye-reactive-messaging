@@ -1,6 +1,6 @@
-== Advanced and Experimental features
+= Advanced and Experimental features
 
-=== @Merge
+== @Merge
 
 The `@Merge` annotation can be used on a method annotated with `@Incoming` to subscribed to all matching `@Outgoing
 channels. For example, if you have several method producing data to a channel named "sink", the following method receives
@@ -23,7 +23,7 @@ The `@Merge` annotation can be configured with a _merge policy_:
 * `CONCAT` - Concat the sources.
 
 
-=== @Broadcast
+== @Broadcast
 
 The `@Broadcast` annotation can be used on a method annotation with `@Outgoing` to broadcast the emitted messages to all
 the matching subscribers:
@@ -38,7 +38,7 @@ public String process(String s) {
 }
 ----
 
-=== @Channel
+== @Channel
 
 `@Channel` (`org.eclipse.microprofile.reactive.messaging.Channel`) is a qualifier to inject a _channel_ into a regular CDI bean.
 It's used to bridge the _imperative_ and _reactive_ worlds, or retrieve channels managed by Reactive Messaging.
@@ -158,11 +158,11 @@ The `io.smallrye.reactive.messaging.annotations.Emitter` class is now deprecated
 The `io.smallrye.reactive.messaging.annotations.OnOverflow` annotation is now deprecated and use the one defined in the specification (`org.eclipse.microprofile.reactive.messaging.OnOverflow`).
 ====
 
-=== Logging
+== Logging
 
 The logging uses SLF4J, check the https://www.slf4j.org/[SLF4J web site] for further details.
 
-=== Strict Binding Mode
+== Strict Binding Mode
 
 By default, SmallRye Reactive Messaging does not enforce whether all _mediators_ are connected. It just print a warning
 message. The strict mode fails the deployment if some "incoming" are not connected to "outgoing". To enable this mode,

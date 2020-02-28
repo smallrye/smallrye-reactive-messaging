@@ -1,9 +1,9 @@
-== Receiving and Sending messages with Apache Kafka
+= Receiving and Sending messages with Apache Kafka
 
 The Kafka Connector let you interact with a Kafka broker, and so retrieve and send Kafka messages.
 The Kafka support is based on the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka Client].
 
-=== Dependency
+== Dependency
 
 To enable the Kafka support, you need the following dependency:
 
@@ -16,7 +16,7 @@ To enable the Kafka support, you need the following dependency:
 </dependency>
 ----
 
-=== Retrieving messages from Kafka
+== Retrieving messages from Kafka
 
 To retrieve messages from a Kafka topic, you need the following configuration:
 
@@ -66,7 +66,7 @@ This `KafkaRecord` provides method to access the value stored in the metadata li
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/kafka/KafkaConsumer.java[tag=kafka-message]
+include::example$KafkaConsumer.java[tag=kafka-message]
 ----
 
 [NOTE]
@@ -74,7 +74,7 @@ include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/kafka
 The `KafkaMessage` class is now deprecated, you should use `KafkaRecord` instead of directly use the metadata.
 ====
 
-=== Writing messages in Kafka
+== Writing messages in Kafka
 
 To send messages to a Kafka topic, you need the following configuration:
 
@@ -112,5 +112,5 @@ You can also create a `io.smallrye.reactive.messaging.kafka.KafkaRecord` that cr
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/kafka/KafkaProducer.java[tag=kafka-message]
+include::example$KafkaProducer.java[tag=kafka-message]
 ----

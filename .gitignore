@@ -131,3 +131,5 @@ local.properties
 .settings
 .classpath
 .factorypath
+
+doc/build

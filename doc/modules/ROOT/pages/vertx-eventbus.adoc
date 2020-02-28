@@ -1,9 +1,9 @@
-== Interacting with the Vert.x Eventbus
+= Interacting with the Vert.x Eventbus
 
 The Vert.x Eventbus is the backbone of Vert.x applications. It allows different application components to interact in
 an asynchronous way.
 
-=== Dependency
+== Dependency
 
 To enable the Vert.x EventBus support, you need the following dependency:
 
@@ -16,7 +16,7 @@ To enable the Vert.x EventBus support, you need the following dependency:
 </dependency>
 ----
 
-=== Retrieving messages from the event bus
+== Retrieving messages from the event bus
 
 [source]
 ----
@@ -33,7 +33,7 @@ to many subscribers.
 The received messages are instance of `io.smallrye.reactive.messaging.eventbus.EventBusMessage`. The payload is the message
 body. From the `EventBusMessage`, you can retrieve the headers, address...
 
-=== Sending messages to the event bus
+== Sending messages to the event bus
 
 [source]
 ----

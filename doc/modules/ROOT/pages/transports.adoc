@@ -1,4 +1,4 @@
-== Connecting transports
+= Connecting transports
 
 SmallRye Reactive Messaging supports various transport _protocols_.
 This section explains how you can configure these different _connectors_.

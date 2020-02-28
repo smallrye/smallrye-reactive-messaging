@@ -1,4 +1,4 @@
-== Acknowledgement
+= Acknowledgement
 
 Messages may require acknowledgment to inform the transport layer that the message has been processed. Methods
 annotated with `@Incoming` and also be annotated with `org.eclipse.microprofile.reactive.messaging.Acknowledgment` to
@@ -16,14 +16,14 @@ The following example describes how `PRE_PROCESSING` can be configured:
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/Ack.java[tag=pre]
+include::example$Ack.java[tag=pre]
 ----
 
 Manual acknowledgement can be achieved as follows:
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/Ack.java[tag=manual]
+include::example$Ack.java[tag=manual]
 ----
 
 Default acknowledgement depends on the method signature:

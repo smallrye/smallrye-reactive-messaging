@@ -1,4 +1,4 @@
-== Testing without the infrastructure
+= Testing without the infrastructure
 
 It's not rare to have to test your application but deploying the infrastructure can be cumbersome.
 While Docker or Test Containers have improved the the testing experience, you may want to _mock_ this infrastructure.

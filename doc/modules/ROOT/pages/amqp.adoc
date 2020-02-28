@@ -1,9 +1,9 @@
-== Receiving and Sending AMQP 1.0 Messages
+= Receiving and Sending AMQP 1.0 Messages
 
 You can connect to an AMQP broker or server as a source or sink.
 The AMQP support is based on the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP Client].
 
-=== Dependency
+== Dependency
 
 To enable the AMQP support, you need the following dependency:
 
@@ -16,7 +16,7 @@ To enable the AMQP support, you need the following dependency:
 </dependency>
 ----
 
-=== Receiving messages from AMQP
+== Receiving messages from AMQP
 
 [source]
 ----
@@ -47,7 +47,7 @@ String address = metadata.getAddress();
 int priority = metadata.getPriority();
 ----
 
-=== Sending messages to AMQP
+== Sending messages to AMQP
 
 [source]
 ----
@@ -89,7 +89,7 @@ OutgoingAmqpMessage amqp = OutgoingAmqpMessage.builder()
 Message<String> outgoing = incoming.withMetadata(incoming.getMetadata().with(amqp));
 ----
 
-=== Global configuration
+== Global configuration
 
 The host, port, username, password, SSL connection, reconnect attempts, reconnect interval,
 and connection timeout can also be configured using the `amqp-host`, `amqp-port`, `amqp-username`,

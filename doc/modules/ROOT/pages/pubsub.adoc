@@ -1,8 +1,8 @@
-== Interacting with Google Cloud Pub/Sub
+= Interacting with Google Cloud Pub/Sub
 
 You can connect to Google Cloud Pub/Sub as a source or sink. The Pub/Sub support is based on the https://cloud.google.com/pubsub/docs/quickstart-client-libraries#pubsub-client-libraries-java[Google Cloud Pub/Sub Client].
 
-=== Dependency
+== Dependency
 
 To enable the Google Cloud Pub/Sub support, you need the following dependency:
 
@@ -15,7 +15,7 @@ To enable the Google Cloud Pub/Sub support, you need the following dependency:
 </dependency>
 ----
 
-=== Retrieving messages from Google Cloud Pub/Sub
+== Retrieving messages from Google Cloud Pub/Sub
 
 To retrieve messages from a Google Cloud Pub/Sub topic, you need the following configuration:
 
@@ -41,7 +41,7 @@ in the following table:
 When consuming a message from Google Cloud Pub/Sub, you can get the `Message` as a `io.smallrye.reactive.messaging.gcp.pubsub.PubSubMessage`.
 It lets you access other metadata such as the headers, the message key (the payload being the value).
 
-=== Forwarding messages to Google Cloud Pub/Sub
+== Forwarding messages to Google Cloud Pub/Sub
 
 To send messages to a Google Cloud Pub/Sub topic, you need the following configuration:
 

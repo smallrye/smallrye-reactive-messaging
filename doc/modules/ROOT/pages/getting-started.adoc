@@ -1,6 +1,6 @@
-== Getting Started
+= Getting Started
 
-=== Quickstart
+== Quickstart
 
 The easiest to start using SmallRye Reactive Messaging is to start it directly in a _main_ class.
 
@@ -29,14 +29,14 @@ Once created, create a class file with a `public static void main(String... args
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/quickstart/Main.java[]
+include::example$Main.java[]
 ----
 
 Then, we need CDI _beans_. For instance:
 
 [source, java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/quickstart/MyBean.java[]
+include::example$MyBean.java[]
 ----
 
 Finally, you need an _empty_ `beans.xml`. Copy the following content to `src/main/resources/META-INF/beans.xml`:

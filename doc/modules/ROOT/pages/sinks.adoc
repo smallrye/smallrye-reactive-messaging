@@ -1,8 +1,8 @@
-== Consuming data
+= Consuming data
 
 To consume data (act as a data sink), you just need a method only annotated with `@Incoming`.
 
-=== Supported Signatures
+== Supported Signatures
 
 * `@Incoming Subscriber<Message<I>> method()`
 * `@Incoming Subscriber<I> method()`
@@ -14,12 +14,12 @@ The two first methods return a Reactive Streams `Subscriber`. The other methods 
 Notice that, when returning a `CompletionStage`, the method won't be called until the previously returned
 `CompletionStage` is completed.
 
-=== Examples
+== Examples
 
 The following code snippet provides example of the different variants of signature.
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/ConsumptionExamples.java[]
+include::example$ConsumptionExamples.java[]
 ----
 

@@ -1,9 +1,9 @@
-== Integrating with Apache Camel
+= Integrating with Apache Camel
 
 You can receive messages from a Camel Route or send messages to a Camel route. It give you the ability to connect to
 almost any existing system.
 
-=== Dependency
+== Dependency
 
 To enable the Camel support, you need the following dependency:
 
@@ -16,7 +16,7 @@ To enable the Camel support, you need the following dependency:
 </dependency>
 ----
 
-=== Camel Reactive
+== Camel Reactive
 
 When using the dependency, your bean can retrieve a
  `org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService` object:
@@ -32,7 +32,7 @@ private CamelContext camel;
 private CamelReactiveStreamsService camel_reactive;
 ----
 
-=== Using Camel Route in @Outgoing method
+== Using Camel Route in @Outgoing method
 
 Here is an example of method annotated with `@Outgoing` directly using a Camel route:
 
@@ -44,7 +44,7 @@ public Publisher<Exchange> source() {
 }
 ----
 
-=== Using Camel Route in @Incoming method
+== Using Camel Route in @Incoming method
 
 Here is an example of method annotated with `@Incoming` directly using a Camel route:
 
@@ -67,7 +67,7 @@ public CompletionStage<Void> sink(String value) {
 ----
 
 
-=== Retrieving messages from a Camel Route
+== Retrieving messages from a Camel Route
 
 The previous example requires your code to deal with Maven route directly. It can be externalized to the configuration as
 follows:
@@ -83,7 +83,7 @@ The `endpoint-uri` configures the route to use. It can be:
 1. a `reactive-stream` route such as `reactive-streams:out`
 2. a _regular_ route such as `seda:my-route`
 
-=== Forwarding messages to a Camel Route
+== Forwarding messages to a Camel Route
 
 The following configuration describe a sink using a Camel route:
 
