@@ -96,16 +96,11 @@ and connection timeout can also be configured using the `amqp-host`, `amqp-port`
 `amqp-password`, `amqp-use-ssl`, `amqp-reconnect-attempts`, `amqp-reconnect-interval`, and
 `amqp-connect-timeout` configuration properties.
 
-Also there is the possibility to provide a named bean AmqpClientOptions to configure the details to connect with the remote broker.
+Optionally, the connection configuration details can be specified using a named bean of the type `AmqpClientOptions` which will be used to configure the vertx clients.
 
-[source]
-----
-mp.messaging.incoming.data.address=data
-mp.messaging.incoming.data.connector=smallrye-amqp
-mp.messaging.incoming.data.broadcast=true
-mp.messaging.incoming.data.client-options-name=custom-client-config
-----
-[source]
+Example of named bean:
+
+[source, java]
 ----
     @Produces
     @Named("custom-client-config")
@@ -117,4 +112,24 @@ mp.messaging.incoming.data.client-options-name=custom-client-config
                 .setPassword("secret")
                 .setContainerId("my-container-id");
     }
+----
+This kind of configuration can be applied at two levels: channel and global.
+
+NOTE: The bean configuration at global level won't apply to a channel with bean configuration specified. In other words, bean configuration priority is: first channel level and second global level.
+
+Example of using a named bean to configure one channel:
+
+[source]
+----
+mp.messaging.incoming.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.incoming.data.broadcast=true
+mp.messaging.incoming.data.client-options-name=custom-client-config
+----
+
+Example of using a named bean to configure all channels:
+
+[source]
+----
+amqp-client-options-name=custom-client-config
 ----
