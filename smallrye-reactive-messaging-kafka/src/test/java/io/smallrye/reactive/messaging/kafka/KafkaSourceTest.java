@@ -124,6 +124,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("retry", true);
         config.put("retry-attempts", 100);
+        config.put("retry-max-wait", 30);
 
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
         List<KafkaRecord> messages1 = new ArrayList<>();
