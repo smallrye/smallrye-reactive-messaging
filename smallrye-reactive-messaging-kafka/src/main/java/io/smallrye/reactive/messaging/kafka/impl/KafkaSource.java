@@ -71,7 +71,7 @@ public class KafkaSource<K, V> {
 
             if (max == -1) {
                 // always retry
-                final AtomicInteger CURRENT_WAIT_SECOND = new AtomicInteger(1) ;
+                final AtomicInteger CURRENT_WAIT_SECOND = new AtomicInteger(1);
 
                 flowable = flowable.retryWhen(attempts -> attempts.flatMap(i -> {
 
