@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -65,11 +66,26 @@ public class KafkaSource<K, V> {
                 .doOnError(t -> LOGGER.error("Unable to read a record from Kafka topic '{}'", topic, t));
 
         if (config.getOptionalValue("retry", Boolean.class).orElse(true)) {
-            Integer max = config.getOptionalValue("retry-attempts", Integer.class).orElse(5);
-            flowable = flowable
-                    .retryWhen(attempts -> attempts
-                            .zipWith(Flowable.range(1, max), (n, i) -> i)
-                            .flatMap(i -> Flowable.timer(i, TimeUnit.SECONDS)));
+            int max = config.getOptionalValue("retry-attempts", Integer.class).orElse(-1);
+            int retryMaxWait = config.getOptionalValue("retry-max-wait", Integer.class).orElse(30);
+
+            if (max == -1) {
+                // always retry
+                final AtomicInteger CURRENT_WAIT_SECOND = new AtomicInteger(1) ;
+
+                flowable = flowable.retryWhen(attempts -> attempts.flatMap(i -> {
+
+                    // exponential backoff
+                    // if next wait time is greater than maxWaitAttemptSeconds, reset it to maxWaitAttemptSeconds
+                    CURRENT_WAIT_SECOND.set(Math.min((CURRENT_WAIT_SECOND.get() << 1), retryMaxWait));
+                    return Flowable.timer(CURRENT_WAIT_SECOND.get(), TimeUnit.SECONDS);
+                }));
+            } else {
+                flowable = flowable
+                        .retryWhen(attempts -> attempts
+                                .zipWith(Flowable.range(1, max), (n, i) -> i)
+                                .flatMap(i -> Flowable.timer(i, TimeUnit.SECONDS)));
+            }
         }
 
         if (config.getOptionalValue("broadcast", Boolean.class).orElse(false)) {
