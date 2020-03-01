@@ -114,7 +114,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         if (message.getPayload() instanceof Exchange) {
             return (Exchange) message.getPayload();
         }
-        Exchange exchange = new DefaultExchange(camel);
+        DefaultExchange exchange = new DefaultExchange(camel);
         exchange.getIn().setBody(message.getPayload());
         exchange.addOnCompletion(new Synchronization() {
             @Override
