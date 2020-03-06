@@ -20,6 +20,12 @@
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-axle-amqp-client</artifactId>
       <version>${axle.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.smallrye.reactive</groupId>
+          <artifactId>smallrye-reactive-streams-operators</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
