@@ -1,6 +1,6 @@
 package acme
 
-import io.smallrye.reactive.messaging.kafka.KafkaMessage
+import io.smallrye.reactive.messaging.kafka.KafkaRecord
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.util.concurrent.CompletionStage
 import javax.enterprise.context.ApplicationScoped
@@ -9,7 +9,7 @@ import javax.enterprise.context.ApplicationScoped
 open class Receiver {
 
     @Incoming("kafka")
-    open fun consume(message: KafkaMessage<String, String>): CompletionStage<Void> {
+    open fun consume(message: KafkaRecord<String, String>): CompletionStage<Void> {
         val payload = message.payload
         val key = message.key
         val headers = message.headers

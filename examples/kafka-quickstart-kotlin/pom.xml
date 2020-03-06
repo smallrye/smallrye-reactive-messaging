@@ -14,6 +14,7 @@
     <weld-core.version>3.1.3.Final</weld-core.version>
     <cdi.version>2.0.2</cdi.version>
     <slf4j.version>1.7.30</slf4j.version>
+    <mutiny.version>0.4.0</mutiny.version>
 
     <mainClass>acme.Main</mainClass>
   </properties>
@@ -27,8 +28,8 @@
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators</artifactId>
-      <version>1.0.10</version>
+      <artifactId>mutiny-reactive-streams-operators</artifactId>
+      <version>${mutiny.version}</version>
     </dependency>
 
     <dependency>
