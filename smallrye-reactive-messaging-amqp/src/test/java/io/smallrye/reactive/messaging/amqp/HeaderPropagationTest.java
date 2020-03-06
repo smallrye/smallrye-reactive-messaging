@@ -39,7 +39,7 @@ public class HeaderPropagationTest extends AmqpTestBase {
 
     @Test
     public void testFromAppToAmqp() {
-        List<io.vertx.axle.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppGeneratingData.class);
@@ -59,7 +59,7 @@ public class HeaderPropagationTest extends AmqpTestBase {
 
     @Test
     public void testFromAmqpToAppToAmqp() {
-        List<io.vertx.axle.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppProcessingData.class);

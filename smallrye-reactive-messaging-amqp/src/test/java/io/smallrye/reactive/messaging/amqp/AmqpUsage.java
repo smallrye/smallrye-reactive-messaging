@@ -27,9 +27,9 @@ import org.slf4j.LoggerFactory;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageImpl;
-import io.vertx.axle.amqp.AmqpClient;
-import io.vertx.axle.amqp.AmqpMessage;
-import io.vertx.axle.amqp.AmqpMessageBuilder;
+import io.vertx.mutiny.amqp.AmqpClient;
+import io.vertx.mutiny.amqp.AmqpMessage;
+import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 import io.vertx.proton.ProtonHelper;
 import io.vertx.reactivex.core.Vertx;
 
@@ -43,7 +43,7 @@ public class AmqpUsage {
     }
 
     public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
-        this.client = AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()),
+        this.client = AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()),
                 new AmqpClientOptions().setHost(host).setPort(port).setUsername(user).setPassword(pwd));
     }
 
@@ -56,7 +56,7 @@ public class AmqpUsage {
      */
     void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
         CountDownLatch done = new CountDownLatch(messageCount);
-        client.createSender(topic).thenAccept(sender -> {
+        client.createSender(topic).subscribe().with(sender -> {
             Thread t = new Thread(() -> {
                 LOGGER.info("Starting AMQP sender to write {} messages", messageCount);
                 try {
@@ -72,7 +72,7 @@ public class AmqpUsage {
                             m.setBody((Section) payload);
                             msg = new AmqpMessage(new AmqpMessageImpl(m));
                         } else {
-                            AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create()
+                            AmqpMessageBuilder builder = io.vertx.mutiny.amqp.AmqpMessage.create()
                                     .durable(true)
                                     .ttl(10000);
                             if (payload instanceof Integer) {
@@ -83,10 +83,10 @@ public class AmqpUsage {
                             msg = builder.build();
                         }
 
-                        sender.sendWithAck(msg).thenAccept(x -> {
+                        sender.sendWithAck(msg).subscribe().with(x -> {
                             LOGGER.info("Producer sent message {}", payload);
                             done.countDown();
-                        });
+                        }, Throwable::printStackTrace);
 
                     }
                 } catch (Exception e) {
@@ -95,7 +95,7 @@ public class AmqpUsage {
             });
             t.setName(topic + "-thread");
             t.start();
-        });
+        }, Throwable::printStackTrace);
 
         try {
             done.await();
@@ -112,27 +112,26 @@ public class AmqpUsage {
      * @param consumerFunction the function to consume the messages; may not be null
      */
     public void consume(String topic,
-            Consumer<io.vertx.axle.amqp.AmqpMessage> consumerFunction) {
+            Consumer<io.vertx.mutiny.amqp.AmqpMessage> consumerFunction) {
         client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
-                .thenAccept(r -> r.handler(msg -> {
+                .map(r -> r.handler(msg -> {
                     LOGGER.info("Consumer {}: consuming message", topic);
                     consumerFunction.accept(msg);
                 }))
-                .toCompletableFuture().join();
+                .await().indefinitely();
     }
 
     public void consumeIntegers(String topic, Consumer<Integer> consumer) {
         client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
-                .thenAccept(r -> r.handler(msg -> {
+                .map(r -> r.handler(msg -> {
                     LOGGER.info("Consumer {}: consuming message {}", topic, msg.bodyAsInteger());
                     consumer.accept(msg.bodyAsInteger());
                 }))
-                .toCompletableFuture()
-                .join();
+                .await().indefinitely();
     }
 
     public void close() {
-        client.close().toCompletableFuture().join();
+        client.close().await().indefinitely();
     }
 
     void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
@@ -140,8 +139,6 @@ public class AmqpUsage {
     }
 
     public void consumeStrings(String topic, Consumer<String> consumerFunction) {
-        this.consume(topic, value -> {
-            consumerFunction.accept(value.bodyAsString());
-        });
+        this.consume(topic, value -> consumerFunction.accept(value.bodyAsString()));
     }
 }

@@ -10,7 +10,7 @@ import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.vertx.axle.core.buffer.Buffer;
+import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
@@ -23,7 +23,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         return new AmqpMessageBuilder<>();
     }
 
-    public AmqpMessage(io.vertx.axle.amqp.AmqpMessage delegate) {
+    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate) {
         this(delegate.getDelegate());
     }
 
@@ -205,7 +205,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         return message.unwrap().getError();
     }
 
-    public io.vertx.axle.amqp.AmqpMessage getAmqpMessage() {
-        return new io.vertx.axle.amqp.AmqpMessage(message);
+    public io.vertx.mutiny.amqp.AmqpMessage getAmqpMessage() {
+        return new io.vertx.mutiny.amqp.AmqpMessage(message);
     }
 }

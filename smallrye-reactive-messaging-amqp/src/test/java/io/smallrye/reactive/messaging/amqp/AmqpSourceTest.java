@@ -27,8 +27,8 @@ import org.reactivestreams.Subscription;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.extension.MediatorManager;
-import io.vertx.axle.amqp.AmqpMessage;
-import io.vertx.axle.core.buffer.Buffer;
+import io.vertx.mutiny.amqp.AmqpMessage;
+import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import repeat.Repeat;
