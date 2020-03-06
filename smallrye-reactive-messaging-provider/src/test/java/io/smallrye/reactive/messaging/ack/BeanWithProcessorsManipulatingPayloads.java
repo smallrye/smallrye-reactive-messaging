@@ -11,7 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
@@ -86,7 +86,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT, payload);
@@ -107,7 +107,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToNoAckCS() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT_CS, payload);
@@ -125,7 +125,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPreAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT, payload);
@@ -143,7 +143,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToPreAckCS() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT_CS, payload);
@@ -161,7 +161,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(POST_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPostAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(POST_ACKNOWLEDGMENT, payload);
@@ -179,7 +179,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(POST_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToPostCSAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(POST_ACKNOWLEDGMENT_CS, payload);
@@ -196,7 +196,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToDefaultAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT, payload);
@@ -213,7 +213,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToDefaultAckCS() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT_CS, payload);

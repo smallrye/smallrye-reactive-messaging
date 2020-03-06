@@ -17,6 +17,14 @@ public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
     }
 
     @Test
+    public void testBeanConsumingItemAsMultiAndPublishingItemAsMulti() {
+        addBeanClass(BeanConsumingItemAsMultiAndPublishingItemAsMulti.class);
+        initialize();
+        MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
     public void testBeanConsumingItemAsFluxAndPublishingItemAsFlux() {
         addBeanClass(BeanConsumingItemAsFluxAndPublishingItemAsFlux.class);
         initialize();
@@ -33,6 +41,14 @@ public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
     }
 
     @Test
+    public void testBeanConsumingItemAsMultiAndPublishingItemAsPublisher() {
+        addBeanClass(BeanConsumingItemAsMultiAndPublishingItemAsPublisher.class);
+        initialize();
+        MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
     public void testBeanConsumingItemAsFluxAndPublishingItemAsPublisher() {
         addBeanClass(BeanConsumingItemAsFluxAndPublishingItemAsPublisher.class);
         initialize();
@@ -43,6 +59,14 @@ public class StreamTransformerShapeWithPayloadsTest extends WeldTestBase {
     @Test
     public void testBeanConsumingItemAsPublisherAndPublishingItemAsFlowable() {
         addBeanClass(BeanConsumingItemAsPublisherAndPublishingItemAsFlowable.class);
+        initialize();
+        MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
+    public void testBeanConsumingItemAsPublisherAndPublishingItemAsMulti() {
+        addBeanClass(BeanConsumingItemAsPublisherAndPublishingItemAsMulti.class);
         initialize();
         MyCollector collector = container.getBeanManager().createInstance().select(MyCollector.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);

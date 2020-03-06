@@ -15,18 +15,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
-import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningACompletionStageOfSomething;
-import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningACompletionStageOfVoid;
-import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningSomething;
-import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndReturningVoid;
-import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningACompletionStageOfSomething;
-import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningACompletionStageOfVoid;
-import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningSomething;
-import io.smallrye.reactive.messaging.beans.BeanConsumingPayloadsAndReturningVoid;
-import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfMessages;
-import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfMessagesButDiscarding;
-import io.smallrye.reactive.messaging.beans.BeanReturningASubscriberOfPayloads;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.beans.*;
 
 public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
@@ -155,8 +145,8 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
         List<SubscriberBuilder<? extends Message, Void>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
         List<String> list = new ArrayList<>();
-        Flowable.just("a", "b", "c").map(Message::of)
-                .doOnNext(m -> list.add(m.getPayload()))
+        Multi.createFrom().items("a", "b", "c").map(Message::of)
+                .onItem().invoke(m -> list.add(m.getPayload()))
                 .subscribe(((SubscriberBuilder) subscriber.get(0)).build());
         assertThat(list).containsExactly("a", "b", "c");
     }

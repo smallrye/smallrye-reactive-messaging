@@ -11,20 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.junit.Test;
 
-import io.smallrye.reactive.messaging.beans.BeanProducingMessagesAsFlowable;
-import io.smallrye.reactive.messaging.beans.BeanProducingMessagesAsPublisher;
-import io.smallrye.reactive.messaging.beans.BeanProducingMessagesAsPublisherBuilder;
-import io.smallrye.reactive.messaging.beans.BeanProducingPayloadAsFlowable;
-import io.smallrye.reactive.messaging.beans.BeanProducingPayloadAsPublisher;
-import io.smallrye.reactive.messaging.beans.BeanProducingPayloadAsPublisherBuilder;
-import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherBuilderOfItems;
-import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherBuilderOfMessages;
-import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherOfItems;
-import io.smallrye.reactive.messaging.beans.BeanReturningAPublisherOfMessages;
-import io.smallrye.reactive.messaging.beans.BeanReturningCompletionStageOfMessage;
-import io.smallrye.reactive.messaging.beans.BeanReturningCompletionStageOfPayload;
-import io.smallrye.reactive.messaging.beans.BeanReturningMessages;
-import io.smallrye.reactive.messaging.beans.BeanReturningPayloads;
+import io.smallrye.reactive.messaging.beans.*;
 
 public class PublisherShapeTest extends WeldTestBaseWithoutTails {
 
@@ -42,8 +29,24 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testBeanProducingMessagesAsMulti() {
+        addBeanClass(BeanProducingMessagesAsMulti.class);
+        initialize();
+        CollectorOnly collector = container.select(CollectorOnly.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
     public void testBeanProducingPayloadsAsFlowable() {
         addBeanClass(BeanProducingPayloadAsFlowable.class);
+        initialize();
+        CollectorOnly collector = container.select(CollectorOnly.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
+    public void testBeanProducingPayloadsAsMulti() {
+        addBeanClass(BeanProducingPayloadAsMulti.class);
         initialize();
         CollectorOnly collector = container.select(CollectorOnly.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);

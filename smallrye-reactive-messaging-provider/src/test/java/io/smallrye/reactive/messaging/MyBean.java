@@ -13,7 +13,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class MyBean {
@@ -22,7 +22,7 @@ public class MyBean {
 
     @Incoming("my-dummy-stream")
     @Outgoing("toUpperCase")
-    public Flowable<Message<String>> toUppercase(Flowable<Message<String>> input) {
+    public Multi<Message<String>> toUppercase(Multi<Message<String>> input) {
         return input
                 .map(Message::getPayload)
                 .map(String::toUpperCase)
@@ -37,7 +37,7 @@ public class MyBean {
 
     @Outgoing("my-dummy-stream")
     Publisher<Message<String>> stream() {
-        return Flowable.just("foo", "bar").map(Message::of);
+        return Multi.createFrom().items("foo", "bar").map(Message::of);
     }
 
     @Incoming("my-output")
