@@ -14,9 +14,9 @@ Creates a Maven project, and include the following dependency in your pom.xml:
   <version>{version}</version>
 </dependency>
 <dependency>
-  <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-streams-operators</artifactId>
-  <version>{smallrye-streams-version}</version>
+ <groupId>io.smallrye.reactive</groupId>
+ <artifactId>mutiny-reactive-streams-operators</artifactId>
+ <version>{mutiny-version}</version>
 </dependency>
 <dependency>
   <groupId>org.jboss.weld.se</groupId>
