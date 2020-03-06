@@ -6,13 +6,13 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanInjectedNonExistentChannel {
 
     @Inject
     @Channel("idonotexist")
-    private Flowable<Message<String>> field;
+    private Multi<Message<String>> field;
 
 }

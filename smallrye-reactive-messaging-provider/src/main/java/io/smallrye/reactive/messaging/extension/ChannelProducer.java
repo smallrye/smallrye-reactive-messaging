@@ -7,6 +7,7 @@ import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.enterprise.inject.Typed;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
 
@@ -19,6 +20,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.helpers.TypeUtils;
 
@@ -33,22 +35,41 @@ public class ChannelProducer {
     ChannelRegistry channelRegistry;
 
     /**
-     * Injects {@code Flowable<Message<X>>} and {@code Flowable<X>}. It also matches the injection of
-     * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
+     * Injects {@code Flowable<Message<X>>} and {@code Flowable<X>}.
      *
      * @param injectionPoint the injection point
      * @param <T> the first generic parameter (either Message or X)
      * @return the flowable to be injected
      */
     @Produces
+    @Typed(Flowable.class)
     @Channel("") // Stream name is ignored during type-safe resolution
-    <T> Flowable<T> producePublisher(InjectionPoint injectionPoint) {
+    <T> Flowable<T> produceFlowable(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
         if (TypeUtils.isAssignable(first, Message.class)) {
             return cast(Flowable.fromPublisher(getPublisher(injectionPoint)));
         } else {
             return cast(Flowable.fromPublisher(getPublisher(injectionPoint))
                     .map(Message::getPayload));
+        }
+    }
+
+    /**
+     * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
+     * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
+     *
+     * @param injectionPoint the injection point
+     * @param <T> the first generic parameter (either Message or X)
+     * @return the Multi to be injected
+     */
+    @Produces
+    @Channel("") // Stream name is ignored during type-safe resolution
+    <T> Multi<T> produceMulti(InjectionPoint injectionPoint) {
+        Type first = getFirstParameter(injectionPoint.getType());
+        if (TypeUtils.isAssignable(first, Message.class)) {
+            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)));
+        } else {
+            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)).map(Message::getPayload));
         }
     }
 
@@ -67,7 +88,7 @@ public class ChannelProducer {
     @Deprecated
     @io.smallrye.reactive.messaging.annotations.Channel("")
     <T> Flowable<T> producePublisherWithLegacyChannelAnnotation(InjectionPoint injectionPoint) {
-        return producePublisher(injectionPoint);
+        return produceFlowable(injectionPoint);
     }
 
     /**

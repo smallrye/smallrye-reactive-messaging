@@ -15,28 +15,48 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
     public void testInjectionOfPublisherOfMessages() {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAPublisherOfMessages bean = installInitializeAndGet(BeanInjectedWithAPublisherOfMessages.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+    }
+
+    @Test
+    public void testInjectionOfMultiOfMessages() {
+        addBeanClass(SourceBean.class);
+        BeanInjectedWithAMultiOfMessages bean = installInitializeAndGet(BeanInjectedWithAMultiOfMessages.class);
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }
 
     @Test
     public void testInjectionOfFlowableOfMessages() {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAFlowableOfMessages bean = installInitializeAndGet(BeanInjectedWithAFlowableOfMessages.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+    }
+
+    @Test
+    public void testInjectionOfMultiOfPayloads() {
+        addBeanClass(SourceBean.class);
+        BeanInjectedWithAMultiOfPayloads bean = installInitializeAndGet(BeanInjectedWithAMultiOfPayloads.class);
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }
 
     @Test
     public void testInjectionOfFlowableOfPayloads() {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAFlowableOfPayloads bean = installInitializeAndGet(BeanInjectedWithAFlowableOfPayloads.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }
 
     @Test
     public void testInjectionOfPublisherOfPayloads() {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAPublisherOfPayloads bean = installInitializeAndGet(BeanInjectedWithAPublisherOfPayloads.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }
 
     @Test
@@ -44,7 +64,8 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAPublisherBuilderOfPayloads bean = installInitializeAndGet(
                 BeanInjectedWithAPublisherBuilderOfPayloads.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }
 
     @Test
@@ -52,7 +73,8 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAPublisherBuilderOfMessages bean = installInitializeAndGet(
                 BeanInjectedWithAPublisherBuilderOfMessages.class);
-        assertThat(bean.consume()).containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }
 
     @Test
@@ -60,7 +82,7 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
         addBeanClass(SourceBean.class);
         BeanInjectedWithDifferentFlavorsOfTheSameChannel bean = installInitializeAndGet(
                 BeanInjectedWithDifferentFlavorsOfTheSameChannel.class);
-        assertThat(bean.consume()).hasSize(10);
+        assertThat(bean.consume()).hasSize(14);
     }
 
     @Test

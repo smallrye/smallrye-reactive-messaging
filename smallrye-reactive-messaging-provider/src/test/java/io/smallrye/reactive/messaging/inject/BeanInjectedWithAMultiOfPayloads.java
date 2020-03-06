@@ -6,20 +6,19 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
-public class BeanInjectedWithAPublisherOfPayloads {
+public class BeanInjectedWithAMultiOfPayloads {
 
-    private final Publisher<String> constructor;
+    private final Multi<String> constructor;
     @Inject
     @Channel("hello")
-    private Publisher<String> field;
+    private Multi<String> field;
 
     @Inject
-    public BeanInjectedWithAPublisherOfPayloads(@Channel("bonjour") Publisher<String> constructor) {
+    public BeanInjectedWithAMultiOfPayloads(@Channel("bonjour") Multi<String> constructor) {
         this.constructor = constructor;
     }
 

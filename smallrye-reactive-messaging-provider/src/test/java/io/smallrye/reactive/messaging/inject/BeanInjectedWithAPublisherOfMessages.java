@@ -9,7 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanInjectedWithAPublisherOfMessages {
@@ -26,13 +26,11 @@ public class BeanInjectedWithAPublisherOfMessages {
     }
 
     public List<String> consume() {
-        return Flowable
-                .concat(
-                        Flowable.fromPublisher(constructor),
-                        Flowable.fromPublisher(field))
+        return Multi.createBy().concatenating()
+                .streams(constructor, field)
                 .map(Message::getPayload)
-                .toList()
-                .blockingGet();
+                .collectItems().asList()
+                .await().indefinitely();
     }
 
 }
