@@ -8,13 +8,13 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
 
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 import repeat.RepeatRule;
 
 public class AmqpTestBase {
 
     @ClassRule
-    public static GenericContainer artemis = new GenericContainer("vromero/activemq-artemis:2.6.1-alpine")
+    public static GenericContainer artemis = new GenericContainer<>("vromero/activemq-artemis:2.6.1-alpine")
             .withExposedPorts(8161)
             .withExposedPorts(5672);
 
@@ -45,7 +45,7 @@ public class AmqpTestBase {
 
         CountDownLatch latch = new CountDownLatch(1);
         usage.close();
-        vertx.close(x -> latch.countDown());
+        vertx.close().subscribe().with(x -> latch.countDown(), f -> latch.countDown());
 
         latch.await();
 

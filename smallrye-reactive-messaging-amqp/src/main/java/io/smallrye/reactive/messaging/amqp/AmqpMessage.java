@@ -10,8 +10,8 @@ import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 

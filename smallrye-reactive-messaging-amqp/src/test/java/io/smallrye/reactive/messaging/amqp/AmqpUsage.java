@@ -30,8 +30,8 @@ import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.amqp.AmqpMessageBuilder;
+import io.vertx.mutiny.core.Vertx;
 import io.vertx.proton.ProtonHelper;
-import io.vertx.reactivex.core.Vertx;
 
 public class AmqpUsage {
 

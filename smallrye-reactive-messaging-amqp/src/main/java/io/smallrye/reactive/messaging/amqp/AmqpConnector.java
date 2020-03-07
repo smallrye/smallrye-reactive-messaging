@@ -4,8 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -18,14 +16,6 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.vertx.mutiny.amqp.AmqpClient;
-import io.vertx.mutiny.amqp.AmqpConnection;
-import io.vertx.mutiny.amqp.AmqpMessageBuilder;
-import io.vertx.mutiny.amqp.AmqpReceiver;
-import io.vertx.mutiny.amqp.AmqpSender;
-import io.vertx.mutiny.core.buffer.Buffer;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -38,13 +28,20 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.amqp.AmqpClient;
+import io.vertx.mutiny.amqp.AmqpConnection;
+import io.vertx.mutiny.amqp.AmqpMessageBuilder;
+import io.vertx.mutiny.amqp.AmqpReceiver;
+import io.vertx.mutiny.amqp.AmqpSender;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 @ApplicationScoped
 @Connector(AmqpConnector.CONNECTOR_NAME)
@@ -101,7 +98,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {
-            vertx.close();
+            vertx.close().await().indefinitely();
         }
     }
 
@@ -237,9 +234,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
         return Multi.createFrom().deferred(
-            () -> receiver.toMulti()
-                    .map(m -> new AmqpMessage<>(m))
-        );
+                () -> receiver.toMulti()
+                        .map(m -> new AmqpMessage<>(m)));
     }
 
     private String getAddressOrFail(Config config) {
@@ -267,8 +263,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         if (broadcast) {
             return ReactiveStreams.fromPublisher(
-                Multi.createFrom().publisher(builder.buildRs())
-                    .broadcast().toAllSubscribers());
+                    Multi.createFrom().publisher(builder.buildRs())
+                            .broadcast().toAllSubscribers());
         }
 
         return builder;
@@ -342,7 +338,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         LOGGER.debug("Sending AMQP message to address `{}` ",
                 actualAddress);
         return sender.sendWithAck(amqp)
-                .onItem().<Void>produceCompletionStage(x -> msg.ack())
+                .onItem().<Void> produceCompletionStage(x -> msg.ack())
                 .onItem().apply(x -> msg);
     }
 
@@ -416,7 +412,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @PreDestroy
     public synchronized void close() {
-        clients.forEach(AmqpClient::close);
+        clients.forEach(c -> c.close().subscribeAsCompletionStage());
         clients.clear();
     }
 }

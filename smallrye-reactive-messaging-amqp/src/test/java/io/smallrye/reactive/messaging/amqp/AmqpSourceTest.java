@@ -27,10 +27,10 @@ import org.reactivestreams.Subscription;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.extension.MediatorManager;
-import io.vertx.mutiny.amqp.AmqpMessage;
-import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.amqp.AmqpMessage;
+import io.vertx.mutiny.core.buffer.Buffer;
 import repeat.Repeat;
 
 public class AmqpSourceTest extends AmqpTestBase {
@@ -372,15 +372,15 @@ public class AmqpSourceTest extends AmqpTestBase {
         Weld weld = new Weld();
 
         weld.addBeanClass(AmqpConnector.class);
-        weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
+        weld.addBeanClass(ConsumptionBean.class);
 
         System.setProperty("mp-config", "incoming");
         System.setProperty("client-options-name", "myclientoptions");
 
         container = weld.initialize();
         await().until(() -> container.select(MediatorManager.class).get().isInitialized());
-        List<Integer> list = container.getBeanManager().createInstance().select(ConsumptionBean.class).get().getResults();
+        List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
         assertThat(list).isEmpty();
 
         AtomicInteger counter = new AtomicInteger();
@@ -388,6 +388,30 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    }
+
+    @Test
+    public void testConfigGlobalOptionsByCDICorrect() throws InterruptedException {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+        weld.addBeanClass(ConsumptionBean.class);
+
+        System.setProperty("mp-config", "incoming");
+        System.setProperty("amqp-client-options-name", "myclientoptions");
+
+        container = weld.initialize();
+        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
+        List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
+        assertThat(list).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers("data", counter::getAndIncrement);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
     }
 
     @Test(expected = DeploymentException.class)
@@ -415,29 +439,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");
 
         container = weld.initialize();
-    }
-
-    @Test
-    public void testConfigGlobalOptionsByCDICorrect() {
-        Weld weld = new Weld();
-
-        weld.addBeanClass(AmqpConnector.class);
-        weld.addBeanClass(ConsumptionBean.class);
-        weld.addBeanClass(ClientConfigurationBean.class);
-
-        System.setProperty("mp-config", "incoming");
-        System.setProperty("amqp-client-options-name", "myclientoptions");
-
-        container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
-        List<Integer> list = container.getBeanManager().createInstance().select(ConsumptionBean.class).get().getResults();
-        assertThat(list).isEmpty();
-
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceTenIntegers("data", counter::getAndIncrement);
-
-        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
-        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     @NotNull

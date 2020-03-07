@@ -18,8 +18,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.JsonObject;
 
 public class HeaderPropagationTest extends AmqpTestBase {
@@ -85,8 +85,8 @@ public class HeaderPropagationTest extends AmqpTestBase {
     public static class MyAppGeneratingData {
 
         @Outgoing("source")
-        public Flowable<Integer> source() {
-            return Flowable.range(0, 10);
+        public Multi<Integer> source() {
+            return Multi.createFrom().range(0, 11);
         }
 
         @Incoming("source")

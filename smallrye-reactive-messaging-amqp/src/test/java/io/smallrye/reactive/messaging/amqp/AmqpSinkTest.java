@@ -19,7 +19,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import repeat.Repeat;
 
 public class AmqpSinkTest extends AmqpTestBase {
@@ -53,7 +53,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
         //noinspection unchecked
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(v -> (Message) Message.of(v))
                 .subscribe((Subscriber) sink.build());
 
@@ -72,7 +72,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 v -> expected.getAndIncrement());
 
         //noinspection unchecked
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber) sink.build());
@@ -116,7 +116,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
 
         //noinspection unchecked
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(v -> {
                     AmqpMessage<String> message = AmqpMessage.<String> builder()
                             .withBody(HELLO + v)
@@ -150,7 +150,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
 
         //noinspection unchecked
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(v -> io.vertx.mutiny.amqp.AmqpMessage.create()
                         .withBody(HELLO + v)
                         .subject("bar")
@@ -182,7 +182,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         SubscriberBuilder<? extends Message, Void> sink = createProviderAndSinkUsingChannelName(topic);
 
         //noinspection unchecked
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(v -> AmqpMessage.<String> builder().withBody(HELLO + v).withSubject("foo").build())
                 .subscribe((Subscriber) sink.build());
 
