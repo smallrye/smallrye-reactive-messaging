@@ -1,7 +1,11 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -21,10 +25,8 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.Flowable;
-import io.reactivex.Scheduler;
-import io.reactivex.processors.BehaviorProcessor;
-import io.reactivex.schedulers.Schedulers;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.vertx.core.Vertx;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
@@ -61,7 +63,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     private boolean internalVertxInstance = false;
 
     private Vertx vertx;
-    private Scheduler scheduler;
+    private ExecutorService executor;
     private String sinkTopic;
     private String mockSinkUrl;
 
@@ -75,7 +77,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         } else if (instanceOfVertx != null) {
             this.vertx = instanceOfVertx.get();
         }
-        scheduler = Schedulers.single();
+        executor = Executors.newSingleThreadExecutor();
     }
 
     /**
@@ -86,7 +88,9 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         if (internalVertxInstance) {
             Optional.ofNullable(vertx).ifPresent(Vertx::close);
         }
-        Optional.ofNullable(scheduler).ifPresent(Scheduler::shutdown);
+        if (executor != null) {
+            executor.shutdown();
+        }
     }
 
     @Override
@@ -129,35 +133,40 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         String topicName = getTopicName(config);
         Integer port = config.getOptionalValue("port", Integer.class).orElse(8080);
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
-        SnsVerticle snsVerticle = new SnsVerticle(getAppHost(), topicName, port, mockSnsTopic.orElse(true), getSnsURL());
-        BehaviorProcessor<Boolean> ready = BehaviorProcessor.create();
+        SnsVerticle snsVerticle = new SnsVerticle(getAppHost(), topicName, port, mockSnsTopic.orElse(true),
+                getSnsURL());
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
         vertx.deployVerticle(snsVerticle, ar -> {
             if (ar.succeeded()) {
-                ready.onNext(true);
+                future.complete(true);
             } else {
-                ready.onError(ar.cause());
+                future.completeExceptionally(ar.cause());
             }
         });
 
-        Flowable<SnsMessage> flowable = Flowable.<SnsMessage> generate(emitter -> {
-            // We get a request, block until we get a msg and emit it.
-            try {
-                LOGGER.trace("Polling message");
-                SnsMessage msg = snsVerticle.pollMsg();
-                emitter.onNext(msg);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                emitter.onComplete();
-            }
-        })
-                .subscribeOn(scheduler)
-                .delaySubscription(ready);
+        Multi<SnsMessage> multi =
+                // First wait until the verticle is deployed.
+                Multi.createFrom().completionStage(future)
+                        // Then poll itemss
+                        .onItem().produceMulti(x -> {
+                            return Uni.createFrom().item(() -> {
+                                // We get a request, block until we get a msg and emit it.
+                                try {
+                                    LOGGER.trace("Polling message");
+                                    return snsVerticle.pollMsg();
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    return null; // Signal the end of stream
+                                }
+                            })
+                                    .subscribeOn(executor)
+                                    .repeat().until(Objects::isNull);
+                        }).concatenate();
 
-        PublisherBuilder<? extends Message<?>> builder = ReactiveStreams.fromPublisher(flowable);
         if (broadcast) {
-            return ReactiveStreams.fromPublisher(Flowable.fromPublisher(builder.buildRs()).publish().autoConnect());
+            multi = multi.broadcast().toAllSubscribers();
         }
-        return builder;
+        return ReactiveStreams.fromPublisher(multi);
     }
 
     /**

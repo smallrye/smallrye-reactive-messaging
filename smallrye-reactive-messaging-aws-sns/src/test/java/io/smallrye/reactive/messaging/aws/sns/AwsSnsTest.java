@@ -17,8 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
 import io.restassured.RestAssured;
+import io.smallrye.mutiny.Multi;
 
 public class AwsSnsTest extends AwsSnsTestBase {
 
@@ -109,9 +109,9 @@ public class AwsSnsTest extends AwsSnsTestBase {
     @SuppressWarnings("unchecked")
     private void send(String msg, String topic) {
         SubscriberBuilder<? extends Message<?>, Void> subscriber = createSinkSubscriber(topic);
-        Flowable.fromArray(msg)
+        Multi.createFrom().item(msg)
                 .map(Message::of)
-                .safeSubscribe((Subscriber<Message<String>>) subscriber.build());
+                .subscribe((Subscriber<Message<String>>) subscriber.build());
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(String topic) {
