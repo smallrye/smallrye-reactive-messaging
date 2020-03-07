@@ -12,7 +12,7 @@ import org.apache.camel.ProducerTemplate;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanWithCamelSink {
@@ -30,8 +30,8 @@ public class BeanWithCamelSink {
     }
 
     @Outgoing("camel")
-    public Flowable<String> source() {
-        return Flowable.fromArray("a", "b", "c", "d");
+    public Multi<String> source() {
+        return Multi.createFrom().items("a", "b", "c", "d");
     }
 
     public List<String> values() {

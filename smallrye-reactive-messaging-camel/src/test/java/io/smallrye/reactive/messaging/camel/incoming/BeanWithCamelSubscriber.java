@@ -8,7 +8,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanWithCamelSubscriber {
@@ -22,8 +22,8 @@ public class BeanWithCamelSubscriber {
     }
 
     @Outgoing("camel")
-    public Flowable<String> source() {
-        return Flowable.fromArray("a", "b", "c", "d");
+    public Multi<String> source() {
+        return Multi.createFrom().items("a", "b", "c", "d");
     }
 
 }
