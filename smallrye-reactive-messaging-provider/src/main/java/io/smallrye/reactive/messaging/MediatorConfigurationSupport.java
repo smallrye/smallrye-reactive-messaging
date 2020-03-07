@@ -15,6 +15,7 @@ import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
@@ -99,8 +100,8 @@ public class MediatorConfigurationSupport {
         // Supported signatures:
         // 1. Subscriber<Message<I>> method() or SubscriberBuilder<Message<I>, ?> method()
         // 2. Subscriber<I> method() or SubscriberBuilder<I, ?> method()
-        // 3. CompletionStage<Void> method(Message<I> m) - generic parameter must be Void
-        // 4. CompletionStage<Void> method(I i) - generic parameter must be Void
+        // 3. CompletionStage<Void> method(Message<I> m) - generic parameter must be Void, + Uni variant
+        // 4. CompletionStage<Void> method(I i) - generic parameter must be Void, + Uni variant
         // 5. void/? method(Message<I> m) - this signature has been dropped as it forces blocking acknowledgment. Recommendation: use case 3.
         // 6. void method(I i) - return must ve void
 
@@ -128,6 +129,23 @@ public class MediatorConfigurationSupport {
             // Expected parameter 1, Message or payload
             if (parameterTypes.length != 1) {
                 throw getIncomingError("when returning a CompletionStage, one parameter is expected");
+            }
+            // This check must be enabled once the TCK is released.
+            //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
+            //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
+            //            }
+
+            return new ValidationOutput(production,
+                    // Distinction between 3 and 4
+                    ClassUtils.isAssignable(parameterTypes[0], Message.class) ? MediatorConfiguration.Consumption.MESSAGE
+                            : MediatorConfiguration.Consumption.PAYLOAD);
+        }
+
+        if (ClassUtils.isAssignable(returnType, Uni.class)) {
+            // Case 3 or 4 - Uni variants
+            // Expected parameter 1, Message or payload
+            if (parameterTypes.length != 1) {
+                throw getIncomingError("when returning a Uni, one parameter is expected");
             }
             // This check must be enabled once the TCK is released.
             //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
@@ -178,8 +196,8 @@ public class MediatorConfigurationSupport {
         // 4. PublisherBuilder<O> method()
         // 5. O method() O cannot be Void
         // 6. Message<O> method()
-        // 7. CompletionStage<Message<O>> method()
-        // 8. CompletionStage<O> method()
+        // 7. CompletionStage<Message<O>> method(), Uni<Message<O>>
+        // 8. CompletionStage<O> method(), Uni<O>
 
         if (returnType == Void.TYPE) {
             throw getOutgoingError("the method must not be `void`");
@@ -206,7 +224,7 @@ public class MediatorConfigurationSupport {
         if (ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getOutgoingError("the returned Publisher must declare a type parameter");
+                throw getOutgoingError("the returned PublisherBuilder must declare a type parameter");
             }
 
             // Case 3 or 4
@@ -225,7 +243,7 @@ public class MediatorConfigurationSupport {
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getOutgoingError("the returned Publisher must declare a type parameter");
+                throw getOutgoingError("the returned CompletionStage must declare a type parameter");
             }
 
             // Case 7 and 8
@@ -233,6 +251,20 @@ public class MediatorConfigurationSupport {
                     assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                             ? MediatorConfiguration.Production.COMPLETION_STAGE_OF_MESSAGE
                             : MediatorConfiguration.Production.COMPLETION_STAGE_OF_PAYLOAD,
+                    consumption);
+        }
+
+        if (ClassUtils.isAssignable(returnType, Uni.class)) {
+            GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
+            if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
+                throw getOutgoingError("the returned Uni must declare a type parameter");
+            }
+
+            // Case 7 and 8 -> Uni variant
+            return new ValidationOutput(
+                    assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
+                            ? MediatorConfiguration.Production.UNI_OF_MESSAGE
+                            : MediatorConfiguration.Production.UNI_OF_PAYLOAD,
                     consumption);
         }
 
@@ -254,8 +286,8 @@ public class MediatorConfigurationSupport {
 
         // 9. Message<O> method(Message<I> msg)
         // 10. O method(I payload)
-        // 11. CompletionStage<O> method(I payload)
-        // 12. CompletionStage<Message<O>> method(Message<I> msg)
+        // 11. CompletionStage<O> method(I payload) and Uni<O> method(I payload)
+        // 12. CompletionStage<Message<O>> method(Message<I> msg) and Uni<Message<O> method(Message<I> msg)
 
         MediatorConfiguration.Production production;
         MediatorConfiguration.Consumption consumption;
@@ -310,6 +342,7 @@ public class MediatorConfigurationSupport {
         } else {
             // Case 9, 10, 11, 12
             Class<?> param = parameterTypes[0];
+
             if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
                 // Case 11 or 12
                 GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
@@ -320,6 +353,18 @@ public class MediatorConfigurationSupport {
                 production = assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                         ? MediatorConfiguration.Production.COMPLETION_STAGE_OF_MESSAGE
                         : MediatorConfiguration.Production.COMPLETION_STAGE_OF_PAYLOAD;
+                consumption = ClassUtils.isAssignable(param, Message.class) ? MediatorConfiguration.Consumption.MESSAGE
+                        : MediatorConfiguration.Consumption.PAYLOAD;
+            } else if (ClassUtils.isAssignable(returnType, Uni.class)) {
+                // Case 11 or 12 - Uni variant
+                GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
+                if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
+                    throw getIncomingAndOutgoingError("Expected a type parameter in the return Uni");
+                }
+
+                production = assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
+                        ? MediatorConfiguration.Production.UNI_OF_MESSAGE
+                        : MediatorConfiguration.Production.UNI_OF_PAYLOAD;
                 consumption = ClassUtils.isAssignable(param, Message.class) ? MediatorConfiguration.Consumption.MESSAGE
                         : MediatorConfiguration.Consumption.PAYLOAD;
             } else {

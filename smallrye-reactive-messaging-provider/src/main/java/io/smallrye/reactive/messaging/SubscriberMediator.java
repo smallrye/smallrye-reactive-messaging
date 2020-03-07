@@ -15,6 +15,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
 public class SubscriberMediator extends AbstractMediator {
@@ -29,8 +30,8 @@ public class SubscriberMediator extends AbstractMediator {
     // Supported signatures:
     // 1. Subscriber<Message<I>> method()
     // 2. Subscriber<I> method()
-    // 3. CompletionStage<?> method(Message<I> m)
-    // 4. CompletionStage<?> method(I i)
+    // 3. CompletionStage<?> method(Message<I> m) + Uni variant
+    // 4. CompletionStage<?> method(I i) - + Uni variant
     // 5. void/? method(Message<I> m) - The support of this method has been removed (CES - Reactive Hangout 2018/09/11).
     // 6. void/? method(I i)
 
@@ -54,6 +55,9 @@ public class SubscriberMediator extends AbstractMediator {
                 if (ClassUtils.isAssignable(configuration.getReturnType(), CompletionStage.class)) {
                     // Case 3, 4
                     processMethodReturningACompletionStage();
+                } else if (ClassUtils.isAssignable(configuration.getReturnType(), Uni.class)) {
+                    // Case 3, 4 - Uni Variant
+                    processMethodReturningAUni();
                 } else {
                     // Case 6 (5 being dropped)
                     processMethodReturningVoid();
@@ -161,6 +165,44 @@ public class SubscriberMediator extends AbstractMediator {
                     .flatMapCompletionStage(message -> {
                         CompletionStage<?> completion = invoke(message);
                         return completion.thenApply(x -> message);
+                    })
+                    .flatMapCompletionStage(x -> {
+                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                            return getAckOrCompletion(x);
+                        } else {
+                            return CompletableFuture.completedFuture(x);
+                        }
+                    })
+                    .ignore();
+        }
+    }
+
+    private void processMethodReturningAUni() {
+        if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(managePreProcessingAck())
+                    .flatMapCompletionStage(message -> {
+                        Uni<?> uni = invoke(message.getPayload());
+                        return uni
+                                .onItem().apply(x -> message)
+                                .subscribeAsCompletionStage();
+                    })
+                    .flatMapCompletionStage(x -> {
+                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                            return getAckOrCompletion(x);
+                        } else {
+                            return CompletableFuture.completedFuture(x);
+                        }
+                    })
+                    .ignore();
+        } else {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(managePreProcessingAck())
+                    .flatMapCompletionStage(message -> {
+                        Uni<?> uni = invoke(message);
+                        return uni
+                                .onItem().apply(x -> message)
+                                .subscribeAsCompletionStage();
                     })
                     .flatMapCompletionStage(x -> {
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
