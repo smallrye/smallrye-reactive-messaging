@@ -10,10 +10,11 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Merge;
 
+@SuppressWarnings({ "rawtypes", "PublisherImplementation" })
 class LazySource implements Publisher<Message> {
     private PublisherBuilder<? extends Message> delegate;
     private String source;
@@ -34,8 +35,9 @@ class LazySource implements Publisher<Message> {
                 case ONE:
                     this.delegate = list.get(0);
                     if (list.size() > 1) {
-                        logger.warn("Multiple publisher found for {}, using the merge policy `ONE` takes the first found",
-                                source);
+                        logger
+                                .warn("Multiple publisher found for {}, using the merge policy `ONE` takes the first found",
+                                        source);
                     }
                     break;
 
@@ -49,15 +51,13 @@ class LazySource implements Publisher<Message> {
     }
 
     private void merge(List<PublisherBuilder<? extends Message>> list) {
-        this.delegate = ReactiveStreams.fromPublisher(
-                Flowable.merge(list.stream().map(PublisherBuilder::buildRs).map(Flowable::fromPublisher)
-                        .collect(Collectors.toList())));
+        this.delegate = ReactiveStreams.fromPublisher(Multi.createBy().merging().streams(
+                list.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList())));
     }
 
     private void concat(List<PublisherBuilder<? extends Message>> list) {
-        this.delegate = ReactiveStreams.fromPublisher(
-                Flowable.concat(list.stream().map(PublisherBuilder::buildRs).map(Flowable::fromPublisher)
-                        .collect(Collectors.toList())));
+        this.delegate = ReactiveStreams.fromPublisher(Multi.createBy().concatenating().streams(
+                list.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList())));
     }
 
     @Override
