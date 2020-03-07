@@ -19,7 +19,7 @@ import org.reactivestreams.Subscriber;
 
 import com.google.pubsub.v1.ProjectTopicName;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 public class PubSubTest extends PubSubTestBase {
 
@@ -72,9 +72,9 @@ public class PubSubTest extends PubSubTestBase {
     @SuppressWarnings("unchecked")
     private void send(final String message, final String topic) {
         final SubscriberBuilder<? extends Message<?>, Void> subscriber = createSinkSubscriber(topic);
-        Flowable.fromArray(message)
+        Multi.createFrom().item(message)
                 .map(Message::of)
-                .safeSubscribe((Subscriber<Message<String>>) subscriber.build());
+                .subscribe((Subscriber<Message<String>>) subscriber.build());
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(final String topic) {

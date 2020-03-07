@@ -3,12 +3,7 @@ package io.smallrye.reactive.messaging.gcp.pubsub;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
@@ -39,10 +34,7 @@ import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.PushConfig;
 
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
-import io.reactivex.Scheduler;
-import io.reactivex.schedulers.Schedulers;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 @Connector(PubSubConnector.CONNECTOR_NAME)
@@ -72,17 +64,13 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     private PubSubManager pubSubManager;
 
     private ExecutorService executorService;
-    private Scheduler scheduler;
 
     @PostConstruct
     public void initialize() {
         executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        scheduler = Schedulers.from(executorService);
     }
 
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
-        scheduler.shutdown();
-
         try {
             executorService.shutdown();
             executorService.awaitTermination(2, TimeUnit.SECONDS);
@@ -102,7 +90,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
             return pubSubConfig;
         }, executorService))
                 .flatMapRsPublisher(
-                        cfg -> Flowable.create(new PubSubFlowableOnSubscribe(cfg, pubSubManager), BackpressureStrategy.BUFFER));
+                        cfg -> Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager)));
     }
 
     @Override
