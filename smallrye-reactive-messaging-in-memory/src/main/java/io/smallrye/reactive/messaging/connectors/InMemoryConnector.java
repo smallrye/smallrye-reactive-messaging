@@ -20,7 +20,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import io.reactivex.processors.UnicastProcessor;
+import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 
 /**
  * An implementation of connector used for testing applications without having to use external broker.
@@ -162,7 +162,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         return (InMemorySink<T>) sink;
     }
 
-    private class InMemorySourceImpl<T> implements InMemorySource<T> {
+    private static class InMemorySourceImpl<T> implements InMemorySource<T> {
         private final UnicastProcessor<Message<T>> processor;
         private final PublisherBuilder<? extends Message<T>> source;
         private final String name;
@@ -200,7 +200,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         }
     }
 
-    private class InMemorySinkImpl<T> implements InMemorySink<T> {
+    private static class InMemorySinkImpl<T> implements InMemorySink<T> {
         private final SubscriberBuilder<? extends Message<T>, Void> sink;
         private final List<Message<T>> list = new CopyOnWriteArrayList<>();
         private final AtomicReference<Throwable> failure = new AtomicReference<>();

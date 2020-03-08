@@ -16,7 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MediatorFactory;
@@ -29,10 +28,6 @@ import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
 
 public class WeldTestBase {
-
-    static final List<String> EXPECTED = Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i))
-            .map(i -> Integer.toString(i))
-            .toList().blockingGet();
 
     protected SeContainerInitializer initializer;
 
