@@ -14,9 +14,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
-import io.reactivex.schedulers.Schedulers;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.vertx.core.eventbus.DeliveryOptions;
 
@@ -39,7 +37,9 @@ public class EventBusSourceTest extends EventbusTestBase {
         EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
 
         List<EventBusMessage> messages = new ArrayList<>();
-        Flowable.fromPublisher(source.source().buildRs()).cast(EventBusMessage.class).forEach(messages::add);
+        Multi.createFrom().publisher(source.source().buildRs())
+                .onItem().castTo(EventBusMessage.class)
+                .subscribe().with(messages::add);
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, true, null,
                 counter::getAndIncrement)).start();
@@ -61,9 +61,10 @@ public class EventBusSourceTest extends EventbusTestBase {
 
         List<EventBusMessage> messages1 = new ArrayList<>();
         List<EventBusMessage> messages2 = new ArrayList<>();
-        Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.source().buildRs()).cast(EventBusMessage.class);
-        flowable.forEach(messages1::add);
-        flowable.forEach(messages2::add);
+        Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
+                .onItem().castTo(EventBusMessage.class);
+        multi.subscribe().with(messages1::add);
+        multi.subscribe().with(messages2::add);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, true, null,
@@ -88,18 +89,17 @@ public class EventBusSourceTest extends EventbusTestBase {
         config.put("use-reply-as-ack", true);
         EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
 
-        Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.source().buildRs())
-                .cast(EventBusMessage.class)
-                .flatMapSingle(m -> Single
-                        .fromFuture(m.ack().toCompletableFuture().thenApply(x -> m), Schedulers.computation()));
+        Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
+                .onItem().castTo(EventBusMessage.class)
+                .onItem().produceCompletionStage(m -> m.ack().toCompletableFuture().thenApply(x -> m)).concatenate();
 
         List<EventBusMessage> messages1 = new ArrayList<>();
-        flowable.forEach(messages1::add);
+        multi.subscribe().with(messages1::add);
 
         AtomicBoolean acked = new AtomicBoolean();
-        vertx.eventBus().send(topic, 1, rep -> {
-            acked.set(true);
-        });
+        vertx.eventBus().request(topic, 1)
+                .onItem().invoke(rep -> acked.set(true))
+                .await().indefinitely();
 
         await().untilTrue(acked);
     }
@@ -111,13 +111,13 @@ public class EventBusSourceTest extends EventbusTestBase {
         config.put("address", topic);
         EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
 
-        Flowable<EventBusMessage> flowable = Flowable.fromPublisher(source.source().buildRs())
-                .cast(EventBusMessage.class);
+        Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
+                .onItem().castTo(EventBusMessage.class);
 
         List<EventBusMessage> messages1 = new ArrayList<>();
-        flowable.forEach(messages1::add);
+        multi.subscribe().with(messages1::add);
 
-        vertx.eventBus().send(topic, 1, new DeliveryOptions()
+        vertx.eventBus().sendAndForget(topic, 1, new DeliveryOptions()
                 .addHeader("X-key", "value"));
 
         await().until(() -> messages1.size() == 1);

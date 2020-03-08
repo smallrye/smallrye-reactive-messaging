@@ -13,15 +13,15 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
-import io.vertx.reactivex.core.Vertx;
+import io.smallrye.mutiny.Multi;
+import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 public class ProducingBean {
 
     @Inject
     Vertx vertx;
-    private List<io.vertx.reactivex.core.eventbus.Message> messages = new ArrayList<>();
+    private List<io.vertx.mutiny.core.eventbus.Message> messages = new ArrayList<>();
 
     @Incoming("data")
     @Outgoing("sink")
@@ -34,7 +34,7 @@ public class ProducingBean {
 
     @Outgoing("data")
     public Publisher<Integer> source() {
-        return Flowable.range(0, 10);
+        return Multi.createFrom().range(0, 10);
     }
 
     @PostConstruct
@@ -42,7 +42,7 @@ public class ProducingBean {
         vertx.eventBus().consumer("sink").handler(m -> messages.add(m));
     }
 
-    public List<io.vertx.reactivex.core.eventbus.Message> messages() {
+    public List<io.vertx.mutiny.core.eventbus.Message> messages() {
         return messages;
     }
 

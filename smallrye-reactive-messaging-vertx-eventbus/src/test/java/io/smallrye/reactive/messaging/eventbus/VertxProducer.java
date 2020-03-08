@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.eventbus;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 public class VertxProducer {
 
