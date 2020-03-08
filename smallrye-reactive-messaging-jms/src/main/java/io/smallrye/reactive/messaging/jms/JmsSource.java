@@ -1,13 +1,17 @@
 package io.smallrye.reactive.messaging.jms;
 
-import java.lang.IllegalStateException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.jms.*;
+import javax.jms.Destination;
+import javax.jms.IllegalStateRuntimeException;
+import javax.jms.JMSConsumer;
+import javax.jms.JMSContext;
+import javax.jms.Message;
+import javax.jms.Topic;
 import javax.json.bind.Jsonb;
 
 import org.eclipse.microprofile.config.Config;
@@ -19,9 +23,8 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.Flowable;
-import io.reactivex.internal.subscriptions.EmptySubscription;
-import io.reactivex.internal.subscriptions.SubscriptionHelper;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.helpers.Subscriptions;
 
 class JmsSource {
 
@@ -56,9 +59,9 @@ class JmsSource {
             source = ReactiveStreams.fromPublisher(publisher).map(m -> new IncomingJmsMessage<>(m, executor, json));
         } else {
             source = ReactiveStreams.fromPublisher(
-                    Flowable.fromPublisher(publisher)
+                    Multi.createFrom().publisher(publisher)
                             .map(m -> new IncomingJmsMessage<>(m, executor, json))
-                            .publish().autoConnect());
+                            .broadcast().toAllSubscribers());
         }
     }
 
@@ -86,7 +89,7 @@ class JmsSource {
     }
 
     @SuppressWarnings("PublisherImplementation")
-    private class JmsPublisher implements Publisher<Message>, Subscription {
+    private static class JmsPublisher implements Publisher<Message>, Subscription {
 
         private final AtomicLong requests = new AtomicLong();
         private final AtomicReference<Subscriber<? super Message>> downstream = new AtomicReference<>();
@@ -113,14 +116,13 @@ class JmsSource {
             if (downstream.compareAndSet(null, s)) {
                 s.onSubscribe(this);
             } else {
-                s.onSubscribe(EmptySubscription.INSTANCE);
-                s.onError(new IllegalStateException("There is already a subscriber"));
+                Subscriptions.fail(s, new IllegalStateException("There is already a subscriber"));
             }
         }
 
         @Override
         public void request(long n) {
-            if (SubscriptionHelper.validate(n)) {
+            if (n > 0) {
                 boolean u = unbounded;
                 if (!u) {
                     long v = add(n);
