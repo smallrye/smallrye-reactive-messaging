@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 public abstract class Serializer<I> implements Converter<I, Buffer> {
 
@@ -53,7 +53,7 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
     }
 
     @Override
-    public Class<? extends Buffer> ouput() {
+    public Class<? extends Buffer> output() {
         return Buffer.class;
     }
 }

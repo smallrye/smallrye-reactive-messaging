@@ -11,13 +11,13 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import io.reactivex.processors.BehaviorProcessor;
+import io.smallrye.mutiny.Multi;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.core.MultiMap;
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.http.HttpServer;
-import io.vertx.reactivex.core.http.HttpServerRequest;
+import io.vertx.mutiny.core.MultiMap;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.http.HttpServer;
+import io.vertx.mutiny.core.http.HttpServerRequest;
 
 public class HttpSource {
 
@@ -33,33 +33,27 @@ public class HttpSource {
     }
 
     PublisherBuilder<? extends Message<?>> source() {
-        CompletableFuture<HttpServer> future = new CompletableFuture<>();
         server = vertx.createHttpServer();
 
-        BehaviorProcessor<HttpServerRequest> processor = BehaviorProcessor.create();
-        PublisherBuilder<? extends Message<?>> publisher = ReactiveStreams.fromPublisher(processor
-                .delaySubscription(ReactiveStreams.fromCompletionStage(future).buildRs()))
-                .flatMapCompletionStage(this::toMessage);
-        server
+        Multi<HttpServerRequest> multi = Multi.createFrom().emitter(emitter -> server
+                .exceptionHandler(emitter::fail)
                 .requestHandler(req -> {
                     if (req.path().equalsIgnoreCase("/health")) {
-                        req.response().setStatusCode(200).end(new JsonObject().put("status", "ok").encode());
+                        req.response().setStatusCode(200).endAndForget(new JsonObject().put("status", "ok").encode());
                     } else {
-                        processor.onNext(req);
+                        emitter.emit(req);
                     }
                 })
-                .listen(port, host, ar -> {
-                    if (ar.failed()) {
-                        future.completeExceptionally(ar.cause());
-                    } else {
-                        future.complete(ar.result());
-                    }
-                });
-        return publisher;
+                .listen(port, host)
+                .onFailure().invoke(emitter::fail)
+                .subscribeAsCompletionStage());
+
+        return ReactiveStreams.fromPublisher(multi)
+                .flatMapCompletionStage(this::toMessage);
     }
 
     public void stop() {
-        server.close();
+        server.closeAndAwait();
     }
 
     private CompletionStage<HttpMessage<byte[]>> toMessage(HttpServerRequest request) {
@@ -82,7 +76,7 @@ public class HttpSource {
             request.bodyHandler(buffer -> {
                 HttpMessage<byte[]> message = new HttpMessage<>(meta, buffer.getBytes(), () -> {
                     // Send the response when the message has been acked.
-                    request.response().setStatusCode(202).end();
+                    request.response().setStatusCode(202).endAndForget();
                     return CompletableFuture.completedFuture(null);
                 });
                 future.complete(message);
@@ -90,7 +84,7 @@ public class HttpSource {
         } else {
             HttpMessage<byte[]> message = new HttpMessage<>(meta, new byte[0], () -> {
                 // Send the response when the message has been acked.
-                request.response().setStatusCode(202).end();
+                request.response().setStatusCode(202).endAndForget();
                 return CompletableFuture.completedFuture(null);
             });
             future.complete(message);

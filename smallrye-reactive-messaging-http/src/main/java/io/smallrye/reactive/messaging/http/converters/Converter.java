@@ -1,13 +1,13 @@
 package io.smallrye.reactive.messaging.http.converters;
 
-import java.util.concurrent.CompletionStage;
+import io.smallrye.mutiny.Uni;
 
 public interface Converter<I, O> {
 
-    CompletionStage<O> convert(I payload);
+    Uni<O> convert(I payload);
 
     Class<? extends I> input();
 
-    Class<? extends O> ouput();
+    Class<? extends O> output();
 
 }

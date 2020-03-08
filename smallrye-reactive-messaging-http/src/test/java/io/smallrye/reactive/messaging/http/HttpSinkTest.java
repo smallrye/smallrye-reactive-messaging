@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.http.Fault;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -253,16 +253,16 @@ public class HttpSinkTest extends HttpTestBase {
     @ApplicationScoped
     public static class SourceBean {
         @Outgoing("numbers")
-        public Flowable<Integer> source() {
-            return Flowable.range(0, 10);
+        public Multi<Integer> source() {
+            return Multi.createFrom().range(0, 10);
         }
     }
 
     @ApplicationScoped
     public static class SourceBeanWithConverter {
         @Outgoing("names")
-        public Flowable<String> source() {
-            return Flowable.fromArray("superman", "catwoman", "wonderwoman");
+        public Multi<String> source() {
+            return Multi.createFrom().items("superman", "catwoman", "wonderwoman");
         }
     }
 

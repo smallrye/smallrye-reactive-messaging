@@ -1,16 +1,14 @@
 package io.smallrye.reactive.messaging.http.converters;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-
+import io.smallrye.mutiny.Uni;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 public class JsonObjectSerializer extends Serializer<JsonObject> {
 
     @Override
-    public CompletionStage<Buffer> convert(JsonObject payload) {
-        return CompletableFuture.completedFuture(new Buffer(payload.toBuffer()));
+    public Uni<Buffer> convert(JsonObject payload) {
+        return Uni.createFrom().item(new Buffer(payload.toBuffer()));
     }
 
     @Override

@@ -1,15 +1,14 @@
 package io.smallrye.reactive.messaging.http.converters;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
-import io.vertx.reactivex.core.buffer.Buffer;
+import io.smallrye.mutiny.Uni;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 public class ByteBufferSerializer extends Serializer<ByteBuffer> {
 
-    public CompletionStage<Buffer> convert(ByteBuffer payload) {
-        return CompletableFuture.completedFuture(new Buffer(io.vertx.core.buffer.Buffer.buffer(payload.array())));
+    public Uni<Buffer> convert(ByteBuffer payload) {
+        return Uni.createFrom().item(new Buffer(io.vertx.core.buffer.Buffer.buffer(payload.array())));
     }
 
     @Override

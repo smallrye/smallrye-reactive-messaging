@@ -12,7 +12,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 public class HeaderPropagationTest extends HttpTestBase {
 
@@ -43,8 +43,8 @@ public class HeaderPropagationTest extends HttpTestBase {
     public static class MyApp {
 
         @Outgoing("source")
-        public Flowable<Integer> source() {
-            return Flowable.range(0, 10);
+        public Multi<Integer> source() {
+            return Multi.createFrom().range(0, 10);
         }
 
         @Incoming("source")

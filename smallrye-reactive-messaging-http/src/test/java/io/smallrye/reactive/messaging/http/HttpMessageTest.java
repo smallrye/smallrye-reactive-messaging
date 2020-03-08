@@ -20,7 +20,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 public class HttpMessageTest {
 
@@ -60,7 +60,7 @@ public class HttpMessageTest {
                 .withPayload(uuid)
                 .build();
 
-        sink.send(message);
+        sink.send(message).subscribeAsCompletionStage();
         awaitForRequest();
 
         assertThat(bodies("/record?name=clement")).hasSize(1);
@@ -91,7 +91,7 @@ public class HttpMessageTest {
                         .withHeader("X-foo", "value")
                         .withQueryParameter("name", "clement").build()));
 
-        sink.send(message);
+        sink.send(message).subscribeAsCompletionStage();
         awaitForRequest();
 
         assertThat(bodies("/record?name=clement")).hasSize(1);
@@ -133,7 +133,7 @@ public class HttpMessageTest {
         assertThat(message.getQuery()).isEmpty();
         assertThat(message.getUrl()).isNull();
 
-        sink.send(message);
+        sink.send(message).subscribeAsCompletionStage();
         awaitForRequest();
 
         assertThat(bodies("/items")).hasSize(1);
