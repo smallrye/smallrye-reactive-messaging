@@ -40,7 +40,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     private WeldContainer container;
 
     @After
-    public void cleanup() {
+    public void cleanup() throws InterruptedException {
         if (provider != null) {
             provider.close();
             provider.terminate(null);
