@@ -29,7 +29,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     private AmqpConnector provider;
 
     @After
-    public void cleanup() {
+    public void cleanup() throws InterruptedException {
         if (provider != null) {
             provider.close();
             provider.terminate(null);

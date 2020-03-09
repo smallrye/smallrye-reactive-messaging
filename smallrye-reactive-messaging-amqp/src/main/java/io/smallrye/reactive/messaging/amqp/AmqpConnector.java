@@ -4,9 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
@@ -94,9 +92,14 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Vertx vertx;
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
 
-    public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    private boolean closed;
+
+    public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event)
+            throws InterruptedException {
         if (internalVertxInstance) {
-            vertx.close();
+            CountDownLatch latch = new CountDownLatch(1);
+            vertx.close(x -> latch.countDown());
+            latch.await(2, TimeUnit.MINUTES);
         }
     }
 
@@ -232,8 +235,18 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private Flowable<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
         return Flowable.defer(
-                () -> Flowable.fromPublisher(receiver.toPublisher()))
-                .map(m -> new AmqpMessage<>(m));
+                () -> {
+                    return Flowable.fromPublisher(receiver.toPublisher())
+                            .flatMap(a -> {
+                                synchronized (this) {
+                                    if (closed) {
+                                        return Flowable.empty();
+                                    }
+                                }
+                                return Flowable.just(a);
+                            })
+                            .map(m -> new AmqpMessage<>(m));
+                });
     }
 
     private String getAddressOrFail(Config config) {
@@ -420,6 +433,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @PreDestroy
     public synchronized void close() {
+        closed = true;
         clients.forEach(AmqpClient::close);
         clients.clear();
     }

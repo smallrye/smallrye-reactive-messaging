@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -16,6 +17,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.reactivex.Flowable;
@@ -25,16 +27,23 @@ import io.vertx.core.json.JsonObject;
 public class HeaderPropagationTest extends AmqpTestBase {
 
     private WeldContainer container;
-    private Weld weld = new Weld();
+    private Weld weld;
 
     @After
-    public void cleanup() {
+    public void cleanup() throws InterruptedException {
         if (container != null) {
             container.close();
         }
         // Release the config objects
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
         System.clearProperty("mp-config");
+
+        Thread.sleep(2000);
+    }
+
+    @Before
+    public void prepare() {
+        weld = new Weld();
     }
 
     @Test
@@ -60,7 +69,7 @@ public class HeaderPropagationTest extends AmqpTestBase {
     @Test
     public void testFromAmqpToAppToAmqp() {
         List<io.vertx.axle.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
-
+        weld = new Weld();
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppProcessingData.class);
 
@@ -69,11 +78,12 @@ public class HeaderPropagationTest extends AmqpTestBase {
         usage.consume("my-address", messages::add);
 
         container = weld.initialize();
-
         AtomicInteger count = new AtomicInteger();
         usage.produce("my-source", 20, count::getAndIncrement);
 
-        await().until(() -> messages.size() >= 10);
+        await()
+                .atMost(2, TimeUnit.MINUTES)
+                .until(() -> messages.size() >= 10);
         assertThat(messages).allSatisfy(entry -> {
             assertThat(entry.subject()).isEqualTo("test");
             assertThat(entry.applicationProperties().getString("X-Header")).isEqualTo("value");
