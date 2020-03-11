@@ -67,7 +67,7 @@
     <microprofile-metrics-api.version>2.3</microprofile-metrics-api.version>
 
     <smallrye-reactive-streams-ops.version>1.0.10</smallrye-reactive-streams-ops.version>
-    <smallrye-config.version>1.6.2</smallrye-config.version>
+    <smallrye-config.version>1.7.0</smallrye-config.version>
     <smallrye-metrics.version>2.4.0</smallrye-metrics.version>
 
     <asciidoctorj.version>1.5.8.1</asciidoctorj.version>
