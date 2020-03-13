@@ -18,7 +18,7 @@ public class ConsumptionBean {
     @Outgoing("sink")
     public Message<Integer> process(MqttMessage<byte[]> input) {
         String s = new String(input.getPayload());
-        return Message.of(Integer.valueOf(s) + 1);
+        return Message.of(Integer.parseInt(s) + 1);
     }
 
     @Incoming("sink")

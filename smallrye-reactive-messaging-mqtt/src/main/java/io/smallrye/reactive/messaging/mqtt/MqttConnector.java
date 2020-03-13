@@ -18,7 +18,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 @Connector(MqttConnector.CONNECTOR_NAME)
@@ -36,7 +36,7 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {
-            vertx.close();
+            vertx.closeAndAwait();
         }
     }
 

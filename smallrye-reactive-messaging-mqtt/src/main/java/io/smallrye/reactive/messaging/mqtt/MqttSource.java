@@ -10,15 +10,15 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Observable;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.vertx.mqtt.MqttClientOptions;
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.mqtt.MqttClient;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.mqtt.MqttClient;
 
 public class MqttSource {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(MqttSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MqttSource.class);
     private final PublisherBuilder<MqttMessage<?>> source;
     private AtomicBoolean subscribed = new AtomicBoolean();
 
@@ -60,32 +60,26 @@ public class MqttSource {
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
 
         this.source = ReactiveStreams.fromPublisher(
-                client.rxConnect(port, host, server)
-                        .flatMapObservable(a -> Observable.<MqttMessage<?>> create(emitter -> {
-                            client.publishHandler(message -> {
-                                emitter.onNext(new ReceivingMqttMessage(message));
-                            });
-                            client.subscribe(topic, qos, done -> {
-                                if (done.failed()) {
-                                    // Report on the flow
-                                    emitter.onError(done.cause());
-                                }
-                                subscribed.set(done.succeeded());
-                            });
-                        }))
-                        .toFlowable(BackpressureStrategy.BUFFER)
-                        .compose(f -> {
+                client.connect(port, host, server)
+                        .onItem().produceMulti(a -> Multi.createFrom().<MqttMessage<?>> emitter(emitter -> {
+                            client.publishHandler(message -> emitter.emit(new ReceivingMqttMessage(message)));
+
+                            client.subscribe(topic, qos).subscribe().with(
+                                    i -> subscribed.set(true),
+                                    emitter::fail);
+
+                        }, BackPressureStrategy.BUFFER))
+                        .then(multi -> {
                             if (broadcast) {
-                                return f.publish().autoConnect();
-                            } else {
-                                return f;
+                                return multi.broadcast().toAllSubscribers();
                             }
+                            return multi;
                         })
-                        .doOnCancel(() -> {
+                        .on().cancellation(() -> {
                             subscribed.set(false);
-                            client.disconnect();
+                            client.disconnectAndForget();
                         })
-                        .doOnError(t -> LOGGER.error("Unable to establish a connection with the MQTT broker", t)));
+                        .onFailure().invoke(t -> LOGGER.error("Unable to establish a connection with the MQTT broker", t)));
     }
 
     PublisherBuilder<MqttMessage<?>> getSource() {

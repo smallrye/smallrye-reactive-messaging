@@ -11,7 +11,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 public class SecureMqttTestBase {
 
@@ -45,7 +45,7 @@ public class SecureMqttTestBase {
         System.clearProperty("mqtt-port");
         System.clearProperty("mqtt-user");
         System.clearProperty("mqtt-pwd");
-        vertx.close();
+        vertx.closeAndAwait();
         usage.close();
 
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
