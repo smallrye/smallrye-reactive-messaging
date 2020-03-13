@@ -21,7 +21,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 public class KafkaSink {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSink.class);
