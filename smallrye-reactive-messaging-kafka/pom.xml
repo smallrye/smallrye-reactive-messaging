@@ -12,7 +12,7 @@
 
   <properties>
     <kafka.version>2.4.1</kafka.version>
-    <debezium.version>1.0.2.Final</debezium.version>
+    <debezium.version>1.0.3.Final</debezium.version>
   </properties>
 
   <dependencies>
