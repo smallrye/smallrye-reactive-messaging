@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
-import io.vertx.reactivex.mqtt.messages.MqttPublishMessage;
+import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class MqttMessage implements Message<byte[]> {
 

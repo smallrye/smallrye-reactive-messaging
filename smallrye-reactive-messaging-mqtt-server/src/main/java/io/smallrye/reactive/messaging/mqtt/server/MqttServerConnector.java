@@ -12,7 +12,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 @Connector(MqttServerConnector.CONNECTOR_NAME)
@@ -39,7 +39,7 @@ public class MqttServerConnector implements IncomingConnectorFactory {
             source.close();
         }
         if (internalVertxInstance) {
-            vertx.close();
+            vertx.closeAndAwait();
         }
     }
 

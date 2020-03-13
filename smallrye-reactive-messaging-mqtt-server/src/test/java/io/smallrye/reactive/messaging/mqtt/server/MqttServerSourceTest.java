@@ -20,16 +20,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 @ExtendWith(VertxExtension.class)
 class MqttServerSourceTest {
 
     @Test
-    void testSingle(Vertx vertx, VertxTestContext testContext) {
+    void testSingle(io.vertx.core.Vertx vertx, VertxTestContext testContext) {
         final Map<String, String> configMap = new HashMap<>();
         configMap.put("port", "0");
-        final MqttServerSource source = new MqttServerSource(vertx, TestUtils.config(configMap));
+        final MqttServerSource source = new MqttServerSource(new Vertx(vertx), TestUtils.config(configMap));
         final PublisherBuilder<MqttMessage> mqttMessagePublisherBuilder = source.source();
         final TestMqttMessage testMessage = new TestMqttMessage("hello/topic", 1, "Hello world!",
                 EXACTLY_ONCE.value(), false);
@@ -52,10 +52,10 @@ class MqttServerSourceTest {
     }
 
     @Test
-    void testMultiple(Vertx vertx, VertxTestContext testContext) {
+    void testMultiple(io.vertx.core.Vertx vertx, VertxTestContext testContext) {
         final Map<String, String> configMap = new HashMap<>();
         configMap.put("port", "0");
-        final MqttServerSource source = new MqttServerSource(vertx, TestUtils.config(configMap));
+        final MqttServerSource source = new MqttServerSource(new Vertx(vertx), TestUtils.config(configMap));
         final PublisherBuilder<MqttMessage> mqttMessagePublisherBuilder = source.source();
         final List<TestMqttMessage> testMessages = new CopyOnWriteArrayList<>();
         testMessages
