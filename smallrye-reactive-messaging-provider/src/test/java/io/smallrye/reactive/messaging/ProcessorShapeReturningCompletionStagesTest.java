@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletableFuture;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletableFutureOfMessage;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletionStage;
@@ -15,7 +15,9 @@ import io.smallrye.reactive.messaging.beans.BeanProducingACompletionStageOfMessa
 
 public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
 
-    private static final List<String> LIST = Flowable.range(1, 10).map(i -> Integer.toString(i)).toList().blockingGet();
+    private static final List<String> LIST = Multi.createFrom().range(1, 11).map(i -> Integer.toString(i))
+            .collectItems().asList()
+            .await().indefinitely();
 
     @Test
     public void testBeanProducingACompletionStageOfMessage() {

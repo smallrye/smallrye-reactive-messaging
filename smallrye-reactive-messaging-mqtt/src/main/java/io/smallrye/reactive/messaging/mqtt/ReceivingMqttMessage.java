@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
-import io.vertx.reactivex.mqtt.messages.MqttPublishMessage;
+import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class ReceivingMqttMessage implements MqttMessage<byte[]> {
     final MqttPublishMessage message;

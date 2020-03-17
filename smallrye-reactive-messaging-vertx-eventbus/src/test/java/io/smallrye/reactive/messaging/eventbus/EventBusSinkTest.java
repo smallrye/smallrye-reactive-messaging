@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.eventbus.codec.Person;
 import io.smallrye.reactive.messaging.eventbus.codec.PersonCodec;
 
@@ -66,7 +66,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(v -> (Message) Message.of(v))
                 .subscribe((Subscriber) subscriber.build());
 
@@ -86,7 +86,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber) subscriber.build());
@@ -111,7 +111,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber) subscriber.build());
@@ -137,7 +137,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber) subscriber.build());
@@ -152,12 +152,12 @@ public class EventBusSinkTest extends EventbusTestBase {
         String topic = UUID.randomUUID().toString();
 
         List<Integer> integers = new ArrayList<>();
-        AtomicReference<io.vertx.reactivex.core.eventbus.Message<Integer>> last = new AtomicReference<>();
+        AtomicReference<io.vertx.mutiny.core.eventbus.Message<Integer>> last = new AtomicReference<>();
         vertx.eventBus().<Integer> consumer(topic, m -> {
             last.set(m);
             if (m.body() < 8) {
                 integers.add(m.body());
-                m.reply("foo");
+                m.replyAndForget("foo");
             }
         });
 
@@ -167,14 +167,14 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber) subscriber.build());
 
         await().until(() -> integers.size() == 8 && last.get().body() == 8);
-        last.get().reply("bar");
+        last.get().replyAndForget("bar");
         await().until(() -> last.get().body() == 9);
-        last.get().reply("baz");
+        last.get().replyAndForget("baz");
     }
 
     @Test
@@ -194,7 +194,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(i -> new Person().setName("name").setAge(i))
                 .map(Message::of)
                 .subscribe((Subscriber) subscriber.build());

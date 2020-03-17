@@ -17,7 +17,7 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 import repeat.RepeatRule;
 
 public class MqttTestBase {
@@ -56,7 +56,7 @@ public class MqttTestBase {
         System.clearProperty("mqtt-user");
         System.clearProperty("mqtt-pwd");
 
-        vertx.close();
+        vertx.closeAndAwait();
         usage.close();
 
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));

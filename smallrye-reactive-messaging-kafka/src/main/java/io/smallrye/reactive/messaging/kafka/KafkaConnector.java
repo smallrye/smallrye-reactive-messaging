@@ -21,7 +21,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 @Connector(KafkaConnector.CONNECTOR_NAME)
@@ -47,7 +47,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         sinks.forEach(KafkaSink::closeQuietly);
 
         if (internalVertxInstance) {
-            vertx.close();
+            vertx.closeAndAwait();
         }
     }
 

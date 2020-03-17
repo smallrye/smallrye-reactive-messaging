@@ -19,7 +19,7 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.core.Vertx;
 
 public class AwsSnsTestBase {
 

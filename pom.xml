@@ -59,21 +59,23 @@
     <rxjava.version>2.2.19</rxjava.version>
     <slf4j-api.version>1.7.30</slf4j-api.version>
     <cloudevent.version>1.1.0</cloudevent.version>
-    <axle.version>0.0.14</axle.version>
 
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
     <microprofile-config.version>1.4</microprofile-config.version>
     <microprofile-metrics-api.version>2.3</microprofile-metrics-api.version>
 
-    <smallrye-reactive-streams-ops.version>1.0.10</smallrye-reactive-streams-ops.version>
     <smallrye-config.version>1.7.0</smallrye-config.version>
     <smallrye-metrics.version>2.4.1</smallrye-metrics.version>
+
+    <mutiny.version>0.4.2</mutiny.version>
 
     <asciidoctorj.version>1.5.8.1</asciidoctorj.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
+    <smallrye-reactive-converter-api.version>1.0.12</smallrye-reactive-converter-api.version>
+    <smallrye-vertx-mutiny-clients.version>0.0.14</smallrye-vertx-mutiny-clients.version>
   </properties>
 
   <modules>
@@ -201,34 +203,38 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-operators</artifactId>
-      <version>${smallrye-reactive-streams-ops.version}</version>
+      <artifactId>mutiny</artifactId>
+      <version>${mutiny.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-reactive-streams-operators</artifactId>
+      <version>${mutiny.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-api</artifactId>
-      <version>${smallrye-reactive-streams-ops.version}</version>
+      <version>${smallrye-reactive-converter-api.version}</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-rxjava2</artifactId>
-      <version>${smallrye-reactive-streams-ops.version}</version>
+      <version>${smallrye-reactive-converter-api.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-reactor</artifactId>
-      <version>${smallrye-reactive-streams-ops.version}</version>
+      <version>${smallrye-reactive-converter-api.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-streams-vertx-execution-model</artifactId>
-      <version>${smallrye-reactive-streams-ops.version}</version>
+      <artifactId>smallrye-reactive-converter-mutiny</artifactId>
+      <version>${smallrye-reactive-converter-api.version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -320,7 +326,7 @@
                 <toc>left</toc>
                 <version>${project.version}</version>
                 <weld-version>${version.weld.core}</weld-version>
-                <smallrye-streams-version>${smallrye-reactive-streams-ops.version}</smallrye-streams-version>
+                <mutiny-version>${mutiny.version}</mutiny-version>
                 <smallrye-config-version>${smallrye-config.version}</smallrye-config-version>
               </attributes>
               <sourceDirectory>doc</sourceDirectory>

@@ -3,16 +3,16 @@ package io.smallrye.reactive.messaging.amqp;
 import java.time.Instant;
 import java.util.UUID;
 
-import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpMessageBuilder<T> {
 
-    private final io.vertx.axle.amqp.AmqpMessageBuilder builder;
+    private final io.vertx.mutiny.amqp.AmqpMessageBuilder builder;
 
     AmqpMessageBuilder() {
-        builder = io.vertx.axle.amqp.AmqpMessage.create();
+        builder = io.vertx.mutiny.amqp.AmqpMessage.create();
     }
 
     public AmqpMessageBuilder<T> withPriority(short priority) {
@@ -156,7 +156,7 @@ public class AmqpMessageBuilder<T> {
     }
 
     public AmqpMessage<T> build() {
-        io.vertx.axle.amqp.AmqpMessage delegate = builder.build();
+        io.vertx.mutiny.amqp.AmqpMessage delegate = builder.build();
         OutgoingAmqpMetadata.OutgoingAmqpMetadataBuilder amqpMetadataBuilder = OutgoingAmqpMetadata.builder();
         if (delegate.address() != null) {
             amqpMetadataBuilder.withAddress(delegate.address());

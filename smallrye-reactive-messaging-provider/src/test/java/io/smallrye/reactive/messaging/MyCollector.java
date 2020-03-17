@@ -15,7 +15,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class MyCollector {
@@ -51,7 +51,7 @@ public class MyCollector {
 
     @Outgoing("count")
     public Publisher<Message<Integer>> source() {
-        return Flowable.range(0, 10)
+        return Multi.createFrom().range(0, 10)
                 .map(Message::of);
     }
 

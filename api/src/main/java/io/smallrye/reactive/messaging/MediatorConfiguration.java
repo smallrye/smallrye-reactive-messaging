@@ -56,6 +56,8 @@ public interface MediatorConfiguration {
         INDIVIDUAL_MESSAGE,
         COMPLETION_STAGE_OF_PAYLOAD,
         COMPLETION_STAGE_OF_MESSAGE,
+        UNI_OF_PAYLOAD,
+        UNI_OF_MESSAGE,
 
         NONE
     }

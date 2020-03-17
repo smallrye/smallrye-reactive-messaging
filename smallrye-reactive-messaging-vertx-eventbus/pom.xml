@@ -12,13 +12,14 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-rx-java2</artifactId>
-    </dependency>
-    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-mutiny-vertx-core</artifactId>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.config</groupId>

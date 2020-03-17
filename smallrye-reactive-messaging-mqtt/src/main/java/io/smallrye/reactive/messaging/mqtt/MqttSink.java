@@ -16,9 +16,9 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mqtt.MqttClientOptions;
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.buffer.Buffer;
-import io.vertx.reactivex.mqtt.MqttClient;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
+import io.vertx.mutiny.mqtt.MqttClient;
 
 public class MqttSink {
 
@@ -73,46 +73,33 @@ public class MqttSink {
                         //forwarding
                         return CompletableFuture.completedFuture(msg);
                     } else {
-                        CompletableFuture<Message> future = new CompletableFuture<>();
-                        client.connect(port, host, server, ar -> {
-                            if (ar.failed()) {
-                                future.completeExceptionally(ar.cause());
-                            } else {
-                                connected.set(true);
-                                future.complete(msg);
-                            }
-                        });
-                        return future;
+                        return client.connect(port, host, server).subscribeAsCompletionStage()
+                                .thenApply(x -> {
+                                    connected.set(true);
+                                    return msg;
+                                });
                     }
                 })
                 .flatMapCompletionStage(msg -> {
-                    CompletableFuture<Integer> done = new CompletableFuture<>();
-                    String actualTopictoBeUsed = this.topic;
-                    MqttQoS qos = MqttQoS.valueOf(this.qos);
+                    String actualTopicToBeUsed = this.topic;
+                    MqttQoS actualQoS = MqttQoS.valueOf(this.qos);
                     boolean isRetain = false;
 
                     if (msg instanceof SendingMqttMessage) {
                         MqttMessage mm = ((SendingMqttMessage) msg);
 
-                        actualTopictoBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
-                        qos = mm.getQosLevel() == null ? qos : mm.getQosLevel();
+                        actualTopicToBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
+                        actualQoS = mm.getQosLevel() == null ? actualQoS : mm.getQosLevel();
                         isRetain = mm.isRetain();
                     }
 
-                    if (actualTopictoBeUsed == null) {
+                    if (actualTopicToBeUsed == null) {
                         LOGGER.error("Ignoring message - no topic set");
                         return CompletableFuture.completedFuture(msg);
                     }
 
-                    client.publish(actualTopictoBeUsed, convert(msg.getPayload()), qos, false, isRetain, res -> {
-                        if (res.failed()) {
-                            done.completeExceptionally(res.cause());
-                        } else {
-                            done.complete(res.result());
-                        }
-                    });
-
-                    return done;
+                    return client.publish(actualTopicToBeUsed, convert(msg.getPayload()), actualQoS, false, isRetain)
+                            .subscribeAsCompletionStage();
                 })
                 .onComplete(client::disconnect)
                 .onError(t -> LOGGER.error("An error has been caught while sending a MQTT message to the broker", t))

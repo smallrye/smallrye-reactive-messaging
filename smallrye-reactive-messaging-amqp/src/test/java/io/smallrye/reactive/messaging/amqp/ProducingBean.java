@@ -8,7 +8,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class ProducingBean {
@@ -22,7 +22,7 @@ public class ProducingBean {
 
     @Outgoing("data")
     public Publisher<Integer> source() {
-        return Flowable.range(0, 10);
+        return Multi.createFrom().range(0, 10);
     }
 
 }

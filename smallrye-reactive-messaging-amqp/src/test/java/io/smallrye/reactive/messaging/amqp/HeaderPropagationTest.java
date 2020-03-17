@@ -18,8 +18,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.JsonObject;
 
 public class HeaderPropagationTest extends AmqpTestBase {
@@ -39,7 +39,7 @@ public class HeaderPropagationTest extends AmqpTestBase {
 
     @Test
     public void testFromAppToAmqp() {
-        List<io.vertx.axle.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppGeneratingData.class);
@@ -59,7 +59,7 @@ public class HeaderPropagationTest extends AmqpTestBase {
 
     @Test
     public void testFromAmqpToAppToAmqp() {
-        List<io.vertx.axle.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppProcessingData.class);
@@ -85,8 +85,8 @@ public class HeaderPropagationTest extends AmqpTestBase {
     public static class MyAppGeneratingData {
 
         @Outgoing("source")
-        public Flowable<Integer> source() {
-            return Flowable.range(0, 10);
+        public Multi<Integer> source() {
+            return Multi.createFrom().range(0, 11);
         }
 
         @Incoming("source")

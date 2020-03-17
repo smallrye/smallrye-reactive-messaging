@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.BeanConsumingItemsAndProducingItems;
 import io.smallrye.reactive.messaging.beans.BeanConsumingItemsAndProducingMessages;
 import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndProducingItems;
@@ -14,7 +14,9 @@ import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndProducingMes
 
 public class ProcessorShapeConsumingIndividualItemsTest extends WeldTestBase {
 
-    private static final List<String> LIST = Flowable.range(1, 10).map(i -> Integer.toString(i)).toList().blockingGet();
+    private static final List<String> LIST = Multi.createFrom().range(1, 11).map(i -> Integer.toString(i))
+            .collectItems().asList()
+            .await().indefinitely();
 
     @Test
     public void testBeanConsumingMessagesAndProducingMessages() {

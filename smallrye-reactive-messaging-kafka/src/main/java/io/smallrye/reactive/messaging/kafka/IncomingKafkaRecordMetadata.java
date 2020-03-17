@@ -8,7 +8,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 
-import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K> {
 

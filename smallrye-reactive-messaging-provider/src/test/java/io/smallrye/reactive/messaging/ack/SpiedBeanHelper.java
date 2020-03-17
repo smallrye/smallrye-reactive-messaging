@@ -3,17 +3,13 @@ package io.smallrye.reactive.messaging.ack;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 public class SpiedBeanHelper {
 
@@ -41,7 +37,7 @@ public class SpiedBeanHelper {
     private Map<String, List<Entry>> acknowledged = new ConcurrentHashMap<>();
 
     protected Publisher<Message<String>> source(String id) {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(id, payload);

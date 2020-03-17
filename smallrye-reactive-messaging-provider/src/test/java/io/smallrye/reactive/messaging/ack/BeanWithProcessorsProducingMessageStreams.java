@@ -13,7 +13,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
@@ -129,7 +129,7 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT, payload);
@@ -148,7 +148,7 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToNoAckWithBuilder() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT_BUILDER, payload);
@@ -168,7 +168,7 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPreAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT, payload);
@@ -187,7 +187,7 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToPreAckBuilder() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT_BUILDER, payload);
@@ -206,7 +206,7 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToDefaultAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT, payload);
@@ -224,7 +224,7 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToDefaultAckBuilder() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT_BUILDER, payload);

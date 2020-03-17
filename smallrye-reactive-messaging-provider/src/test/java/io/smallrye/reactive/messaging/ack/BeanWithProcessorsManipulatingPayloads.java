@@ -11,26 +11,37 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 
 @ApplicationScoped
 public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     static final String NO_ACKNOWLEDGMENT = "no-acknowledgment";
     static final String NO_ACKNOWLEDGMENT_CS = "no-acknowledgment-cs";
+    static final String NO_ACKNOWLEDGMENT_UNI = "no-acknowledgment-uni";
 
     static final String PRE_ACKNOWLEDGMENT = "pre-acknowledgment";
     static final String PRE_ACKNOWLEDGMENT_CS = "pre-acknowledgment-cs";
+    static final String PRE_ACKNOWLEDGMENT_UNI = "pre-acknowledgment-uni";
 
     static final String POST_ACKNOWLEDGMENT = "post-acknowledgment";
     static final String POST_ACKNOWLEDGMENT_CS = "post-acknowledgment-cs";
+    static final String POST_ACKNOWLEDGMENT_UNI = "post-acknowledgment-uni";
 
     static final String DEFAULT_ACKNOWLEDGMENT = "default-acknowledgment";
     static final String DEFAULT_ACKNOWLEDGMENT_CS = "default-acknowledgment-cs";
+    static final String DEFAULT_ACKNOWLEDGMENT_UNI = "default-acknowledgment-uni";
 
     @Incoming("sink-" + NO_ACKNOWLEDGMENT_CS)
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     public CompletionStage<Void> sinkNoCS(Message<String> ignored) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Incoming("sink-" + NO_ACKNOWLEDGMENT_UNI)
+    @Acknowledgment(Acknowledgment.Strategy.NONE)
+    public CompletionStage<Void> sinkNoUNI(Message<String> ignored) {
         return CompletableFuture.completedFuture(null);
     }
 
@@ -52,6 +63,12 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
         return CompletableFuture.completedFuture(null);
     }
 
+    @Incoming("sink-" + PRE_ACKNOWLEDGMENT_UNI)
+    @Acknowledgment(Acknowledgment.Strategy.NONE)
+    public CompletionStage<Void> sinkPreUni(Message<String> ignored) {
+        return CompletableFuture.completedFuture(null);
+    }
+
     @Incoming("sink-" + POST_ACKNOWLEDGMENT)
     @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
     public CompletionStage<Void> sinkPost(Message<String> ignored) {
@@ -61,6 +78,12 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     @Incoming("sink-" + POST_ACKNOWLEDGMENT_CS)
     @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
     public CompletionStage<Void> sinkPostCS(Message<String> ignored) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Incoming("sink-" + POST_ACKNOWLEDGMENT_UNI)
+    @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+    public CompletionStage<Void> sinkPostUni(Message<String> ignored) {
         return CompletableFuture.completedFuture(null);
     }
 
@@ -76,6 +99,12 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
         return CompletableFuture.completedFuture(null);
     }
 
+    @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT_UNI)
+    @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+    public CompletionStage<Void> sinkDefaultUni(Message<String> ignored) {
+        return CompletableFuture.completedFuture(null);
+    }
+
     @Incoming(NO_ACKNOWLEDGMENT)
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
@@ -86,7 +115,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT, payload);
@@ -107,10 +136,30 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToNoAckCS() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT_CS, payload);
+                    return CompletableFuture.completedFuture(null);
+                }));
+    }
+
+    @Incoming(NO_ACKNOWLEDGMENT_CS)
+    @Acknowledgment(Acknowledgment.Strategy.NONE)
+    @Outgoing("sink-" + NO_ACKNOWLEDGMENT_UNI)
+    public Uni<String> processorWithNoAckUni(String input) {
+        return Uni.createFrom().item(() -> {
+            processed(NO_ACKNOWLEDGMENT_UNI, input);
+            return input + "1";
+        });
+    }
+
+    @Outgoing(NO_ACKNOWLEDGMENT_UNI)
+    public Publisher<Message<String>> sourceToNoAckUni() {
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
+                .map(payload -> Message.of(payload, () -> {
+                    nap();
+                    acknowledged(NO_ACKNOWLEDGMENT_UNI, payload);
                     return CompletableFuture.completedFuture(null);
                 }));
     }
@@ -125,7 +174,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPreAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT, payload);
@@ -143,10 +192,28 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToPreAckCS() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT_CS, payload);
+                    return CompletableFuture.completedFuture(null);
+                }));
+    }
+
+    @Incoming(PRE_ACKNOWLEDGMENT_UNI)
+    @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
+    @Outgoing("sink-" + PRE_ACKNOWLEDGMENT_UNI)
+    public Uni<String> processorWithPreAckUNI(String input) {
+        processed(PRE_ACKNOWLEDGMENT_UNI, input);
+        return Uni.createFrom().item(() -> input + "1");
+    }
+
+    @Outgoing(PRE_ACKNOWLEDGMENT_UNI)
+    public Publisher<Message<String>> sourceToPreAckUNI() {
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
+                .map(payload -> Message.of(payload, () -> {
+                    nap();
+                    acknowledged(PRE_ACKNOWLEDGMENT_UNI, payload);
                     return CompletableFuture.completedFuture(null);
                 }));
     }
@@ -161,7 +228,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(POST_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPostAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(POST_ACKNOWLEDGMENT, payload);
@@ -179,10 +246,28 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(POST_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToPostCSAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(POST_ACKNOWLEDGMENT_CS, payload);
+                    return CompletableFuture.completedFuture(null);
+                }));
+    }
+
+    @Incoming(POST_ACKNOWLEDGMENT_UNI)
+    @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+    @Outgoing("sink-" + POST_ACKNOWLEDGMENT_UNI)
+    public Uni<String> processorWithPostAckUNI(String input) {
+        processed(POST_ACKNOWLEDGMENT_UNI, input);
+        return Uni.createFrom().item(() -> input + "1");
+    }
+
+    @Outgoing(POST_ACKNOWLEDGMENT_UNI)
+    public Publisher<Message<String>> sourceToPostUNIAck() {
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
+                .map(payload -> Message.of(payload, () -> {
+                    nap();
+                    acknowledged(POST_ACKNOWLEDGMENT_UNI, payload);
                     return CompletableFuture.completedFuture(null);
                 }));
     }
@@ -196,7 +281,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToDefaultAck() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT, payload);
@@ -213,10 +298,27 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToDefaultAckCS() {
-        return Flowable.fromArray("a", "b", "c", "d", "e")
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT_CS, payload);
+                    return CompletableFuture.completedFuture(null);
+                }));
+    }
+
+    @Incoming(DEFAULT_ACKNOWLEDGMENT_UNI)
+    @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT_UNI)
+    public Uni<String> processorWithDefaultAckUNI(String input) {
+        processed(DEFAULT_ACKNOWLEDGMENT_UNI, input);
+        return Uni.createFrom().item(input + "1");
+    }
+
+    @Outgoing(DEFAULT_ACKNOWLEDGMENT_UNI)
+    public Publisher<Message<String>> sourceToDefaultAckUNI() {
+        return Multi.createFrom().items("a", "b", "c", "d", "e")
+                .map(payload -> Message.of(payload, () -> {
+                    nap();
+                    acknowledged(DEFAULT_ACKNOWLEDGMENT_UNI, payload);
                     return CompletableFuture.completedFuture(null);
                 }));
     }

@@ -1,12 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -17,11 +15,11 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
-import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class KafkaSource<K, V> {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
@@ -62,8 +60,8 @@ public class KafkaSource<K, V> {
 
         Objects.requireNonNull(topic, "The topic must be set, or the name must be set");
 
-        Flowable<KafkaConsumerRecord<K, V>> flowable = consumer.toFlowable()
-                .doOnError(t -> LOGGER.error("Unable to read a record from Kafka topic '{}'", topic, t));
+        Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
+                .onFailure().invoke(t -> LOGGER.error("Unable to read a record from Kafka topic '{}'", topic, t));
 
         if (config.getOptionalValue("retry", Boolean.class).orElse(true)) {
             int max = config.getOptionalValue("retry-attempts", Integer.class).orElse(-1);
@@ -71,32 +69,25 @@ public class KafkaSource<K, V> {
 
             if (max == -1) {
                 // always retry
-                final AtomicInteger CURRENT_WAIT_SECOND = new AtomicInteger(1);
-
-                flowable = flowable.retryWhen(attempts -> attempts.flatMap(i -> {
-
-                    // exponential backoff
-                    // if next wait time is greater than maxWaitAttemptSeconds, reset it to maxWaitAttemptSeconds
-                    CURRENT_WAIT_SECOND.set(Math.min((CURRENT_WAIT_SECOND.get() << 1), retryMaxWait));
-                    return Flowable.timer(CURRENT_WAIT_SECOND.get(), TimeUnit.SECONDS);
-                }));
+                multi
+                        .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(retryMaxWait))
+                        .atMost(Long.MAX_VALUE);
             } else {
-                flowable = flowable
-                        .retryWhen(attempts -> attempts
-                                .zipWith(Flowable.range(1, max), (n, i) -> i)
-                                .flatMap(i -> Flowable.timer(i, TimeUnit.SECONDS)));
+                multi = multi
+                        .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(retryMaxWait))
+                        .atMost(max);
             }
         }
 
         if (config.getOptionalValue("broadcast", Boolean.class).orElse(false)) {
-            flowable = flowable.publish().autoConnect();
+            multi = multi.broadcast().toAllSubscribers();
         }
 
         this.source = ReactiveStreams.fromPublisher(
-                flowable
-                        .doOnSubscribe(s -> {
+                multi
+                        .on().subscribed(s -> {
                             // The Kafka subscription must happen on the subscription.
-                            this.consumer.subscribe(topic);
+                            this.consumer.subscribeAndAwait(topic);
                         }))
                 .map(rec -> new IncomingKafkaRecord<>(consumer, rec));
     }
@@ -106,23 +97,10 @@ public class KafkaSource<K, V> {
     }
 
     public void closeQuietly() {
-        CountDownLatch latch = new CountDownLatch(1);
         try {
-            this.consumer.close(ar -> {
-                if (ar.failed()) {
-                    LOGGER.debug("An exception has been caught while closing the Kafka consumer", ar.cause());
-                }
-                latch.countDown();
-            });
+            this.consumer.closeAndAwait();
         } catch (Throwable e) {
             LOGGER.debug("An exception has been caught while closing the Kafka consumer", e);
-            latch.countDown();
-        }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
     }
 

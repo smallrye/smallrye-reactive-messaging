@@ -28,7 +28,7 @@ public class EventBusMessage<T> implements Message<T> {
         this.ack = ack;
     }
 
-    EventBusMessage(io.vertx.reactivex.core.eventbus.Message<T> m, Supplier<CompletionStage<Void>> ack) {
+    EventBusMessage(io.vertx.mutiny.core.eventbus.Message<T> m, Supplier<CompletionStage<Void>> ack) {
         this(m.getDelegate(), ack);
     }
 

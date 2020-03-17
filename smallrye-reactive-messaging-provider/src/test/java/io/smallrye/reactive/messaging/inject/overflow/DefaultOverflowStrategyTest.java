@@ -22,8 +22,8 @@ import org.junit.Test;
 
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
-import io.reactivex.exceptions.MissingBackpressureException;
 import io.reactivex.schedulers.Schedulers;
+import io.smallrye.mutiny.subscription.BackPressureFailure;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
@@ -58,7 +58,7 @@ public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
         await().until(() -> bean.exception() != null);
         assertThat(bean.output()).doesNotContain("999");
         assertThat(bean.output()).hasSizeBetween(0, 256);
-        assertThat(bean.failure()).isNotNull().isInstanceOf(MissingBackpressureException.class);
+        assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
     }
 
     @ApplicationScoped

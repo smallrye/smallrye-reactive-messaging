@@ -9,7 +9,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.vertx.core.eventbus.DeliveryOptions;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 public class EventBusSink {
 
@@ -46,26 +46,19 @@ public class EventBusSink {
 
         return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
-                    CompletableFuture<Message> future = new CompletableFuture<>();
                     // TODO support getting an EventBusMessage as message.
                     if (!this.publish) {
                         if (expectReply) {
-                            vertx.eventBus().send(address, msg.getPayload(), options, ar -> {
-                                if (ar.failed()) {
-                                    future.completeExceptionally(ar.cause());
-                                } else {
-                                    future.complete(msg);
-                                }
-                            });
+                            return vertx.eventBus().request(address, msg.getPayload(), options).subscribeAsCompletionStage()
+                                    .thenApply(m -> msg);
                         } else {
-                            vertx.eventBus().send(address, msg.getPayload(), options);
-                            future.complete(msg);
+                            vertx.eventBus().sendAndForget(address, msg.getPayload(), options);
+                            return CompletableFuture.completedFuture(msg);
                         }
                     } else {
                         vertx.eventBus().publish(address, msg.getPayload(), options);
-                        future.complete(msg);
+                        return CompletableFuture.completedFuture(msg);
                     }
-                    return future;
                 })
                 .ignore();
     }

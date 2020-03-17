@@ -3,15 +3,16 @@ package io.smallrye.reactive.messaging.extension;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import io.reactivex.*;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.subscription.BackPressureStrategy;
+import io.smallrye.mutiny.subscription.MultiEmitter;
 
 /**
  * Implementation of the emitter pattern.
@@ -20,11 +21,12 @@ import io.reactivex.*;
  */
 public class EmitterImpl<T> implements Emitter<T> {
 
-    private final AtomicReference<FlowableEmitter<Message<? extends T>>> internal = new AtomicReference<>();
-    private final Flowable<Message<? extends T>> publisher;
+    private final AtomicReference<MultiEmitter<? super Message<? extends T>>> internal = new AtomicReference<>();
+    private final Multi<Message<? extends T>> publisher;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(EmitterImpl.class);
     private final String name;
+
+    private AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
 
     EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
         this.name = name;
@@ -32,68 +34,67 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
 
-        FlowableOnSubscribe<Message<? extends T>> deferred = fe -> {
-            if (!internal.compareAndSet(null, fe.serialize())) {
-                fe.onError(new Exception("Emitter already created"));
+        Consumer<MultiEmitter<? super Message<? extends T>>> deferred = fe -> {
+            if (!internal.compareAndSet(null, fe)) {
+                fe.fail(new Exception("Emitter already created"));
             }
         };
 
         if (overFlowStrategy == null) {
-            publisher = getPublisherUsingBufferStrategy(name, defaultBufferSize,
-                    Flowable.create(deferred, BackpressureStrategy.BUFFER));
+            Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
+            publisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
         } else {
-            publisher = getPublisherForStrategy(name, overFlowStrategy, bufferSize, defaultBufferSize, deferred);
+            publisher = getPublisherForStrategy(overFlowStrategy, bufferSize, defaultBufferSize, deferred);
         }
     }
 
-    static <T> Flowable<Message<? extends T>> getPublisherForStrategy(String name, String overFlowStrategy, long bufferSize,
+    Multi<Message<? extends T>> getPublisherForStrategy(String overFlowStrategy, long bufferSize,
             long defaultBufferSize,
-            FlowableOnSubscribe<Message<? extends T>> deferred) {
+            Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
         OnOverflow.Strategy strategy = OnOverflow.Strategy.valueOf(overFlowStrategy);
 
         switch (strategy) {
             case BUFFER:
-                Flowable<Message<? extends T>> p = Flowable.create(deferred, BackpressureStrategy.BUFFER);
+                Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
                 if (bufferSize > 0) {
-                    return getPublisherUsingBufferStrategy(name, bufferSize, p);
+                    return getPublisherUsingBufferStrategy(bufferSize, multi);
                 } else {
-                    return getPublisherUsingBufferStrategy(name, defaultBufferSize, p);
+                    return getPublisherUsingBufferStrategy(defaultBufferSize, multi);
                 }
 
             case UNBOUNDED_BUFFER:
-                return Flowable.create(deferred, BackpressureStrategy.BUFFER);
+                return Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
 
             case DROP:
-                return Flowable.create(deferred, BackpressureStrategy.DROP);
+                return Multi.createFrom().emitter(deferred, BackPressureStrategy.DROP);
 
             case FAIL:
-                return Flowable.create(deferred, BackpressureStrategy.ERROR);
+                return Multi.createFrom().emitter(deferred, BackPressureStrategy.ERROR);
 
             case LATEST:
-                return Flowable.create(deferred, BackpressureStrategy.LATEST);
+                return Multi.createFrom().emitter(deferred, BackPressureStrategy.LATEST);
 
             case NONE:
-                return Flowable.create(deferred, BackpressureStrategy.MISSING);
+                return Multi.createFrom().emitter(deferred, BackPressureStrategy.IGNORE);
 
             default:
-                throw new IllegalArgumentException("Invalid back pressure strategy: " + overFlowStrategy);
+                throw new IllegalArgumentException("Invalid back-pressure strategy: " + overFlowStrategy);
         }
     }
 
     /**
      * Creates the stream when using the default buffer size.
      *
-     * @param name the name of the emitter
      * @param defaultBufferSize the default buffer size
      * @param stream the upstream
-     * @param <T> the type of payload
      * @return the stream.
      */
-    static <T> Flowable<Message<? extends T>> getPublisherUsingBufferStrategy(String name,
-            long defaultBufferSize,
-            Flowable<Message<? extends T>> stream) {
-        return stream.onBackpressureBuffer(defaultBufferSize - 2, // RX Implementation details
-                () -> LOGGER.error("Buffer full for emitter {}", name), BackpressureOverflowStrategy.ERROR);
+    Multi<Message<? extends T>> getPublisherUsingBufferStrategy(long defaultBufferSize,
+            Multi<Message<? extends T>> stream) {
+        int size = (int) defaultBufferSize;
+        return stream
+                .on().overflow().buffer(size - 2)
+                .onFailure().invoke(t -> synchronousFailure.set(t));
     }
 
     public Publisher<Message<? extends T>> getPublisher() {
@@ -109,13 +110,26 @@ public class EmitterImpl<T> implements Emitter<T> {
         if (msg == null) {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
-        FlowableEmitter<Message<? extends T>> emitter = verify(internal, name);
         CompletableFuture<Void> future = new CompletableFuture<>();
-        emitter.onNext(Message.of(msg, () -> {
+        emit(Message.of(msg, () -> {
             future.complete(null);
             return future;
         }));
         return future;
+    }
+
+    private synchronized void emit(Message<? extends T> message) {
+        MultiEmitter<? super Message<? extends T>> emitter = verify(internal, name);
+        if (synchronousFailure.get() != null) {
+            throw new IllegalStateException("The emitter encountered a failure", synchronousFailure.get());
+        }
+        if (emitter.isCancelled()) {
+            throw new IllegalStateException("The downstream has cancelled the consumption");
+        }
+        emitter.emit(message);
+        if (synchronousFailure.get() != null) {
+            throw new IllegalStateException("The emitter encountered a failure while emitting", synchronousFailure.get());
+        }
     }
 
     @Override
@@ -123,14 +137,13 @@ public class EmitterImpl<T> implements Emitter<T> {
         if (msg == null) {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
-        FlowableEmitter<Message<? extends T>> emitter = verify(internal, name);
-        emitter.onNext(msg);
-
+        emit(msg);
     }
 
-    static <T> FlowableEmitter<Message<? extends T>> verify(AtomicReference<FlowableEmitter<Message<? extends T>>> reference,
+    static <T> MultiEmitter<? super Message<? extends T>> verify(
+            AtomicReference<MultiEmitter<? super Message<? extends T>>> reference,
             String name) {
-        FlowableEmitter<Message<? extends T>> emitter = reference.get();
+        MultiEmitter<? super Message<? extends T>> emitter = reference.get();
         if (emitter == null) {
             throw new IllegalStateException("No subscriber found for the channel " + name);
         }
@@ -142,7 +155,7 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     @Override
     public synchronized void complete() {
-        verify(internal, name).onComplete();
+        verify(internal, name).complete();
     }
 
     @Override
@@ -150,19 +163,18 @@ public class EmitterImpl<T> implements Emitter<T> {
         if (e == null) {
             throw new IllegalArgumentException("`null` is not a valid exception");
         }
-        verify(internal, name).onError(e);
-
+        verify(internal, name).fail(e);
     }
 
     @Override
     public synchronized boolean isCancelled() {
-        FlowableEmitter<Message<? extends T>> emitter = internal.get();
+        MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         return emitter == null || emitter.isCancelled();
     }
 
     @Override
     public boolean isRequested() {
-        FlowableEmitter<Message<? extends T>> emitter = internal.get();
+        MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         return !isCancelled() && emitter.requested() > 0;
     }
 }

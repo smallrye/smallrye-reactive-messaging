@@ -1,10 +1,12 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Named;
 
 import io.vertx.amqp.AmqpClientOptions;
 
+@ApplicationScoped
 public class ClientConfigurationBean {
 
     @Produces

@@ -8,8 +8,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.eventbus.MessageConsumer;
+import io.smallrye.mutiny.Multi;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.eventbus.MessageConsumer;
 
 class EventBusSource {
 
@@ -28,21 +29,18 @@ class EventBusSource {
 
     PublisherBuilder<? extends Message<?>> source() {
         MessageConsumer<Message<?>> consumer = vertx.eventBus().consumer(address);
-        return ReactiveStreams.fromPublisher(consumer.toFlowable()
-                .compose(flow -> {
-                    if (broadcast) {
-                        return flow.publish().autoConnect();
-                    } else {
-                        return flow;
-                    }
-                }))
+        Multi<io.vertx.mutiny.core.eventbus.Message<Message<?>>> multi = consumer.toMulti();
+        if (broadcast) {
+            multi = multi.broadcast().toAllSubscribers();
+        }
+        return ReactiveStreams.fromPublisher(multi)
                 .map(this::adapt);
     }
 
-    private Message<?> adapt(io.vertx.reactivex.core.eventbus.Message msg) {
+    private Message<?> adapt(io.vertx.mutiny.core.eventbus.Message msg) {
         if (this.ack) {
             return new EventBusMessage<>(msg, () -> {
-                msg.reply("OK");
+                msg.replyAndForget("OK");
                 return CompletableFuture.completedFuture(null);
             });
         } else {

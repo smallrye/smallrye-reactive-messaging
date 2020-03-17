@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import io.reactivex.processors.BehaviorProcessor;
 import io.vertx.mqtt.MqttServerOptions;
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.mqtt.MqttServer;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.mqtt.MqttServer;
 
 class MqttServerSource {
 
@@ -124,14 +124,14 @@ class MqttServerSource {
         });
 
         this.source = ReactiveStreams.fromPublisher(processor
-                .delaySubscription(mqttServer.rxListen()
-                        .doOnSuccess(ignored -> logger
+                .delaySubscription(mqttServer.listen()
+                        .onItem().invoke(ignored -> logger
                                 .info("MQTT server listening on {}:{}", options.getHost(), mqttServer.actualPort()))
-                        .doOnError(throwable -> logger.error("Failed to start MQTT server", throwable))
-                        .toFlowable()
-                        .compose(flow -> {
+                        .onFailure().invoke(throwable -> logger.error("Failed to start MQTT server", throwable))
+                        .toMulti()
+                        .then(flow -> {
                             if (broadcast) {
-                                return flow.publish().autoConnect();
+                                return flow.broadcast().toAllSubscribers();
                             } else {
                                 return flow;
                             }
@@ -144,13 +144,11 @@ class MqttServerSource {
     }
 
     synchronized void close() {
-        mqttServer.close(ar -> {
-            if (ar.failed()) {
-                logger.warn("An exception has been caught while closing the MQTT server", ar.cause());
-            } else {
-                logger.debug("MQTT server closed");
-            }
-        });
+        mqttServer.close()
+                .onFailure().invoke(t -> logger.warn("An exception has been caught while closing the MQTT server", t))
+                .onItem().invoke(x -> logger.debug("MQTT server closed"))
+                .onFailure().recoverWithItem((Void) null)
+                .await().indefinitely();
     }
 
     synchronized int port() {

@@ -7,14 +7,14 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class SourceOnly {
 
     @Outgoing("count")
     public Publisher<Message<String>> source() {
-        return Flowable.range(1, 10)
+        return Multi.createFrom().range(1, 11)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .flatMap(m -> ReactiveStreams.of(m, m).buildRs());

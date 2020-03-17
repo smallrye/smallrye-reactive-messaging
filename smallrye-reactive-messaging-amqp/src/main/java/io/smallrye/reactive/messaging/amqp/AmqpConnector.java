@@ -4,8 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -30,16 +28,20 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
-import io.vertx.axle.amqp.*;
-import io.vertx.axle.amqp.AmqpMessageBuilder;
-import io.vertx.axle.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.amqp.AmqpClient;
+import io.vertx.mutiny.amqp.AmqpConnection;
+import io.vertx.mutiny.amqp.AmqpMessageBuilder;
+import io.vertx.mutiny.amqp.AmqpReceiver;
+import io.vertx.mutiny.amqp.AmqpSender;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 @ApplicationScoped
 @Connector(AmqpConnector.CONNECTOR_NAME)
@@ -96,7 +98,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {
-            vertx.close();
+            vertx.close().await().indefinitely();
         }
     }
 
@@ -135,7 +137,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsBeanName);
         }
         LOGGER.debug("Creating AMQP client from bean named '{}'", optionsBeanName);
-        return AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options.get());
+        return AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()), options.get());
     }
 
     private synchronized AmqpClient getClient(Config config) {
@@ -223,17 +225,17 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     .setReconnectAttempts(reconnectAttempts)
                     .setReconnectInterval(reconnectInterval)
                     .setConnectTimeout(connectTimeout);
-            return AmqpClient.create(new io.vertx.axle.core.Vertx(vertx.getDelegate()), options);
+            return AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()), options);
         } catch (Exception e) {
             LOGGER.error("Unable to create client", e);
             throw new IllegalStateException("Unable to create a client, probably a config error", e);
         }
     }
 
-    private Flowable<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
-        return Flowable.defer(
-                () -> Flowable.fromPublisher(receiver.toPublisher()))
-                .map(m -> new AmqpMessage<>(m));
+    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
+        return Multi.createFrom().deferred(
+                () -> receiver.toMulti()
+                        .map(m -> new AmqpMessage<>(m)));
     }
 
     private String getAddressOrFail(Config config) {
@@ -249,18 +251,20 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
         boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
         boolean autoAck = config.getOptionalValue("auto-acknowledgement", Boolean.class).orElse(false);
-        CompletionStage<AmqpReceiver> future = createClient(config)
+        Uni<AmqpReceiver> uni = createClient(config)
                 .connect()
-                .thenCompose(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
+                .flatMap(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)));
 
         PublisherBuilder<? extends Message<?>> builder = ReactiveStreams
-                .fromCompletionStage(future)
+                .fromCompletionStage(uni.subscribeAsCompletionStage())
                 .flatMapRsPublisher(this::getStreamOfMessages);
 
         if (broadcast) {
-            return ReactiveStreams.fromPublisher(Flowable.fromPublisher(builder.buildRs()).publish().autoConnect());
+            return ReactiveStreams.fromPublisher(
+                    Multi.createFrom().publisher(builder.buildRs())
+                            .broadcast().toAllSubscribers());
         }
 
         return builder;
@@ -277,40 +281,28 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         AmqpClient client = createClient(config);
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
-
             if (as == null) {
                 return client.connect()
-                        .thenCompose(AmqpConnection::createAnonymousSender)
-                        .thenApply(s -> {
+                        .flatMap(AmqpConnection::createAnonymousSender)
+                        .map(s -> {
                             sender.set(s);
                             return s;
                         })
-                        .thenCompose(s -> {
-                            try {
-                                return send(s, message, durable, ttl, configuredAddress);
-                            } catch (Exception e) {
-                                LOGGER.error("Unable to send the message", e);
-                                CompletableFuture<Message> future = new CompletableFuture<>();
-                                future.completeExceptionally(e);
-                                return future;
+                        .flatMap(s -> send(s, message, durable, ttl, configuredAddress))
+                        .onFailure().invoke(failure -> {
+                            if (clients.isEmpty()) {
+                                LOGGER.error("The AMQP message has not been sent, the client is closed");
+                            } else {
+                                LOGGER.error("Unable to send the AMQP message", failure);
                             }
-                        })
-                        .whenComplete((m, e) -> {
-                            if (e != null) {
-                                if (clients.isEmpty()) {
-                                    LOGGER.error("The AMQP message has not been sent, the client is closed");
-                                } else {
-                                    LOGGER.error("Unable to send the AMQP message", e);
-                                }
-                            }
-                        });
+                        }).subscribeAsCompletionStage();
             } else {
-                return send(as, message, durable, ttl, configuredAddress);
+                return send(as, message, durable, ttl, configuredAddress).subscribeAsCompletionStage();
             }
         }).ignore();
     }
 
-    private String getActualAddress(Message<?> message, io.vertx.axle.amqp.AmqpMessage amqp, String configuredAddress) {
+    private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress) {
         if (amqp.address() != null) {
             return amqp.address();
         }
@@ -319,14 +311,14 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .orElse(configuredAddress);
     }
 
-    private CompletionStage send(AmqpSender sender, Message msg, boolean durable, long ttl, String configuredAddress) {
-        io.vertx.axle.amqp.AmqpMessage amqp;
+    private Uni<Message> send(AmqpSender sender, Message msg, boolean durable, long ttl, String configuredAddress) {
+        io.vertx.mutiny.amqp.AmqpMessage amqp;
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage) msg).getAmqpMessage();
-        } else if (msg.getPayload() instanceof io.vertx.axle.amqp.AmqpMessage) {
-            amqp = (io.vertx.axle.amqp.AmqpMessage) msg.getPayload();
+        } else if (msg.getPayload() instanceof io.vertx.mutiny.amqp.AmqpMessage) {
+            amqp = (io.vertx.mutiny.amqp.AmqpMessage) msg.getPayload();
         } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
-            amqp = new io.vertx.axle.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
+            amqp = new io.vertx.mutiny.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
         } else {
             amqp = convertToAmqpMessage(msg, durable, ttl);
         }
@@ -335,25 +327,25 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         if (clients.isEmpty()) {
             LOGGER.error("The AMQP message to address `{}` has not been sent, the client is closed",
                     actualAddress);
-            return CompletableFuture.completedFuture(msg);
+            return Uni.createFrom().item(msg);
         }
 
         if (!actualAddress.equals(amqp.address())) {
-            amqp = new io.vertx.axle.amqp.AmqpMessage(
+            amqp = new io.vertx.mutiny.amqp.AmqpMessage(
                     new AmqpMessageBuilderImpl(amqp.getDelegate()).address(actualAddress).build());
         }
 
         LOGGER.debug("Sending AMQP message to address `{}` ",
                 actualAddress);
         return sender.sendWithAck(amqp)
-                .<Void> thenCompose(x -> msg.ack())
-                .thenApply(x -> msg);
+                .onItem().<Void> produceCompletionStage(x -> msg.ack())
+                .onItem().apply(x -> msg);
     }
 
-    private io.vertx.axle.amqp.AmqpMessage convertToAmqpMessage(Message<?> message, boolean durable, long ttl) {
+    private io.vertx.mutiny.amqp.AmqpMessage convertToAmqpMessage(Message<?> message, boolean durable, long ttl) {
         Object payload = message.getPayload();
         Optional<OutgoingAmqpMetadata> metadata = message.getMetadata(OutgoingAmqpMetadata.class);
-        AmqpMessageBuilder builder = io.vertx.axle.amqp.AmqpMessage.create();
+        AmqpMessageBuilder builder = io.vertx.mutiny.amqp.AmqpMessage.create();
 
         if (durable) {
             builder.durable(true);
@@ -420,7 +412,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @PreDestroy
     public synchronized void close() {
-        clients.forEach(AmqpClient::close);
+        clients.forEach(c -> c.close().subscribeAsCompletionStage());
         clients.clear();
     }
 }

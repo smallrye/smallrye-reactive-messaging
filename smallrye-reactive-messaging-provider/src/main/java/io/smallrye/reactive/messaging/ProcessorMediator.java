@@ -13,6 +13,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
 public class ProcessorMediator extends AbstractMediator {
@@ -126,6 +127,14 @@ public class ProcessorMediator extends AbstractMediator {
             case COMPLETION_STAGE_OF_PAYLOAD:
                 // Case 12
                 processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload();
+                break;
+            case UNI_OF_MESSAGE:
+                // Case 11 - Uni variant
+                processMethodReturningAUniOfMessageAndConsumingIndividualMessage();
+                break;
+            case UNI_OF_PAYLOAD:
+                // Case 12 - Uni variant
+                processMethodReturningAUniOfPayloadAndConsumingIndividualPayload();
                 break;
             default:
                 throw new IllegalArgumentException("Unexpected production type: " + configuration.production());
@@ -276,6 +285,16 @@ public class ProcessorMediator extends AbstractMediator {
                 .buildRs();
     }
 
+    private void processMethodReturningAUniOfMessageAndConsumingIndividualMessage() {
+        this.processor = ReactiveStreams.<Message> builder()
+                .flatMapCompletionStage(managePreProcessingAck())
+                .flatMapCompletionStage(input -> {
+                    Uni<Message> uni = invoke(input);
+                    return uni.subscribeAsCompletionStage();
+                })
+                .buildRs();
+    }
+
     private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload() {
         this.processor = ReactiveStreams.<Message> builder()
                 .flatMapCompletionStage(managePreProcessingAck())
@@ -289,6 +308,23 @@ public class ProcessorMediator extends AbstractMediator {
                                     return CompletableFuture.<Void> completedFuture(null);
                                 }
                             }));
+                })
+                .buildRs();
+    }
+
+    private void processMethodReturningAUniOfPayloadAndConsumingIndividualPayload() {
+        this.processor = ReactiveStreams.<Message> builder()
+                .flatMapCompletionStage(managePreProcessingAck())
+                .<Message> flatMapCompletionStage(input -> {
+                    Uni<Object> uni = invoke(input.getPayload());
+                    return uni
+                            .map(res -> Message.of(res, input.getMetadata(), () -> {
+                                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                    return input.ack();
+                                } else {
+                                    return CompletableFuture.<Void> completedFuture(null);
+                                }
+                            })).subscribeAsCompletionStage();
                 })
                 .buildRs();
     }

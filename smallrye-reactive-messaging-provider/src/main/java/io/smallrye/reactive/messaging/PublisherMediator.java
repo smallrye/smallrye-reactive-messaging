@@ -9,6 +9,8 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.mutiny.Uni;
+
 public class PublisherMediator extends AbstractMediator {
 
     private PublisherBuilder<Message> publisher;
@@ -71,6 +73,12 @@ public class PublisherMediator extends AbstractMediator {
             case COMPLETION_STAGE_OF_PAYLOAD: // 7
                 produceIndividualCompletionStageOfPayloads();
                 break;
+            case UNI_OF_MESSAGE: // 8 - Uni variant
+                produceIndividualUniOfMessages();
+                break;
+            case UNI_OF_PAYLOAD: // 7 - Uni variant
+                produceIndividualUniOfPayloads();
+                break;
             default:
                 throw new IllegalArgumentException("Unexpected production type: " + configuration.production());
         }
@@ -122,6 +130,23 @@ public class PublisherMediator extends AbstractMediator {
 
     private <P> void produceIndividualCompletionStageOfPayloads() {
         setPublisher(ReactiveStreams.<CompletionStage<P>> generate(this::invoke)
+                .flatMapCompletionStage(Function.identity())
+                .map(Message::of));
+    }
+
+    private void produceIndividualUniOfMessages() {
+        setPublisher(ReactiveStreams.<CompletionStage<Message>> generate(() -> {
+            Uni<Message> uni = this.invoke();
+            return uni.subscribeAsCompletionStage();
+        })
+                .flatMapCompletionStage(Function.identity()));
+    }
+
+    private <P> void produceIndividualUniOfPayloads() {
+        setPublisher(ReactiveStreams.<CompletionStage<P>> generate(() -> {
+            Uni<P> uni = this.invoke();
+            return uni.subscribeAsCompletionStage();
+        })
                 .flatMapCompletionStage(Function.identity())
                 .map(Message::of));
     }

@@ -99,7 +99,7 @@ Metadata are composed by objects (identified by their class) and can be retrieve
 
 [source,java]
 ----
-include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/MetadataExamples.java[tag=metadata]
+include::../examples/snippets/src/main/java/io/smallrye/reactive/messaging/snippets/MetadataExample.java[tag=metadata]
 ----
 
 The metadata can be composed by multiple objects to represent various metadata.

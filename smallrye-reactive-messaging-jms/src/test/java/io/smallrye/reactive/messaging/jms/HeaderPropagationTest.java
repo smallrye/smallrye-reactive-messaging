@@ -25,8 +25,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
 import io.smallrye.reactive.messaging.jms.support.MapBasedConfig;
 
@@ -130,8 +130,8 @@ public class HeaderPropagationTest extends JmsTestBase {
         }
 
         @Outgoing("source")
-        public Flowable<Integer> source() {
-            return Flowable.range(0, 10);
+        public Multi<Integer> source() {
+            return Multi.createFrom().range(0, 10);
         }
 
         @Incoming("source")

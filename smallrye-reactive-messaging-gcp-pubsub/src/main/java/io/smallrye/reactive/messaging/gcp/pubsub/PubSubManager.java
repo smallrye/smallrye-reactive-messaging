@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PreDestroy;
@@ -33,7 +34,7 @@ import com.google.pubsub.v1.ProjectTopicName;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.reactivex.FlowableEmitter;
+import io.smallrye.mutiny.subscription.MultiEmitter;
 
 @Singleton
 public class PubSubManager {
@@ -42,7 +43,7 @@ public class PubSubManager {
     private static final Map<PubSubConfig, TopicAdminClient> TOPIC_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
     private static final Map<PubSubConfig, SubscriptionAdminClient> SUBSCRIPTION_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
 
-    private static final List<FlowableEmitter<Message<?>>> EMITTERS = new CopyOnWriteArrayList<>();
+    private static final List<MultiEmitter<? super Message<?>>> EMITTERS = new CopyOnWriteArrayList<>();
 
     private static final AtomicReference<ManagedChannel> CHANNEL = new AtomicReference<>();
 
@@ -50,11 +51,15 @@ public class PubSubManager {
         return PUBLISHER_MAP.computeIfAbsent(config, PubSubManager::buildPublisher);
     }
 
-    public Subscriber subscriber(final PubSubConfig config, final FlowableEmitter<Message<?>> emitter) {
+    public Subscriber subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter) {
         final Subscriber subscriber = buildSubscriber(config, new PubSubMessageReceiver(emitter));
-        emitter.setCancellable(() -> {
+        emitter.onTermination(() -> {
             subscriber.stopAsync();
-            subscriber.awaitTerminated(2, TimeUnit.SECONDS);
+            try {
+                subscriber.awaitTerminated(2, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                // Ignore it.
+            }
         });
         subscriber.startAsync();
 
@@ -100,7 +105,7 @@ public class PubSubManager {
             }
         });
 
-        EMITTERS.forEach(FlowableEmitter::onComplete);
+        EMITTERS.forEach(MultiEmitter::complete);
 
         if (CHANNEL.get() != null) {
             try {
@@ -192,7 +197,7 @@ public class PubSubManager {
         return Optional.empty();
     }
 
-    private synchronized static ManagedChannel buildChannel(final PubSubConfig config) {
+    private static synchronized ManagedChannel buildChannel(final PubSubConfig config) {
         if (CHANNEL.get() == null) {
             CHANNEL.set(ManagedChannelBuilder.forAddress(config.getHost(), config.getPort())
                     .usePlaintext()

@@ -14,7 +14,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 public abstract class AbstractMediator {
 
@@ -119,12 +119,12 @@ public abstract class AbstractMediator {
         }
 
         if (configuration.getBroadcast()) {
-            Flowable<Message> flow = Flowable.fromPublisher(input.buildRs());
+            Multi<? extends Message> publisher = Multi.createFrom().publisher(input.buildRs());
             if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
-                return ReactiveStreams.fromPublisher(Flowable.fromPublisher(flow).publish()
-                        .autoConnect(configuration.getNumberOfSubscriberBeforeConnecting()));
+                return ReactiveStreams.fromPublisher(publisher
+                        .broadcast().toAtLeast(configuration.getNumberOfSubscriberBeforeConnecting()));
             } else {
-                return ReactiveStreams.fromPublisher(Flowable.fromPublisher(flow).publish().autoConnect());
+                return ReactiveStreams.fromPublisher(publisher.broadcast().toAllSubscribers());
             }
         } else {
             return input;

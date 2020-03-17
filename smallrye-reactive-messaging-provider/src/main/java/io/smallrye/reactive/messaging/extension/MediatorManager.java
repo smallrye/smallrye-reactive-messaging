@@ -36,7 +36,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.AbstractMediator;
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
@@ -252,8 +252,8 @@ public class MediatorManager {
 
                     if (upstreams.size() == list.size()) {
                         // We have all our upstreams
-                        Flowable<? extends Message> merged = Flowable
-                                .merge(upstreams.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                        Multi<? extends Message> merged = Multi.createBy().merging()
+                                .streams(upstreams.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
                         mediator.connectToUpstream(ReactiveStreams.fromPublisher(merged));
                         LOGGER.info("Connecting {} to `{}`", mediator.getMethodAsString(), list);
                         if (mediator.configuration().getOutgoing() != null) {

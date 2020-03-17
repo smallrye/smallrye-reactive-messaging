@@ -1,15 +1,14 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.vertx.reactivex.kafka.client.consumer.KafkaConsumer;
-import io.vertx.reactivex.kafka.client.consumer.KafkaConsumerRecord;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
@@ -69,7 +68,6 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     @Override
     public CompletionStage<Void> ack() {
-        consumer.commit();
-        return CompletableFuture.completedFuture(null);
+        return consumer.commit().subscribeAsCompletionStage();
     }
 }

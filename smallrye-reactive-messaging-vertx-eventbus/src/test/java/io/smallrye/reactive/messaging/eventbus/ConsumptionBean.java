@@ -12,13 +12,14 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
-import io.vertx.reactivex.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 public class ConsumptionBean {
 
     @Inject
     Vertx vertx;
+
     private List<Integer> list = new ArrayList<>();
 
     @Incoming("data")

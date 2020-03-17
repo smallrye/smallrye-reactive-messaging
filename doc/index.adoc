@@ -9,7 +9,7 @@
 :docinfo1:
 
 :weld-version: {weld-version}
-:smallrye-streams-version: {smallrye-streams-version}
+:mutiny-version: {mutiny-version}
 :smallrye-config-version: {smallrye-config-version}
 
 

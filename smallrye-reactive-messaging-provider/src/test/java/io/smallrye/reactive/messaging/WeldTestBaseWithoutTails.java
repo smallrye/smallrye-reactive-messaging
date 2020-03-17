@@ -16,8 +16,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
@@ -29,9 +29,10 @@ import io.smallrye.reactive.messaging.metrics.MetricDecorator;
 
 public class WeldTestBaseWithoutTails {
 
-    static final List<String> EXPECTED = Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i))
+    static final List<String> EXPECTED = Multi.createFrom().range(1, 11).flatMap(i -> Multi.createFrom().items(i, i))
             .map(i -> Integer.toString(i))
-            .toList().blockingGet();
+            .collectItems().asList()
+            .await().indefinitely();
 
     protected SeContainerInitializer initializer;
 

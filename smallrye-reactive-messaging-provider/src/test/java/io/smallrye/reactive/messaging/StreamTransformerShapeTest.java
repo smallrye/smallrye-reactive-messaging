@@ -17,6 +17,14 @@ public class StreamTransformerShapeTest extends WeldTestBase {
     }
 
     @Test
+    public void testBeanConsumingMsgAsMultiAndPublishingMsgAsMulti() {
+        addBeanClass(BeanConsumingMsgAsMultiAndPublishingMsgAsMulti.class);
+        initialize();
+        MyCollector collector = container.select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
     public void testBeanConsumingMsgAsFluxAndPublishingMsgAsFlux() {
         addBeanClass(BeanConsumingMsgAsFluxAndPublishingMsgAsFlux.class);
         initialize();
@@ -33,6 +41,14 @@ public class StreamTransformerShapeTest extends WeldTestBase {
     }
 
     @Test
+    public void testBeanConsumingMsgAsMultiAndPublishingMsgAsPublisher() {
+        addBeanClass(BeanConsumingMsgAsMultiAndPublishingMsgAsPublisher.class);
+        initialize();
+        MyCollector collector = container.select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
     public void testBeanConsumingMsgAsFluxAndPublishingMsgAsPublisher() {
         addBeanClass(BeanConsumingMsgAsFluxAndPublishingMsgAsPublisher.class);
         initialize();
@@ -43,6 +59,14 @@ public class StreamTransformerShapeTest extends WeldTestBase {
     @Test
     public void testBeanConsumingMsgAsPublisherAndPublishingMsgAsFlowable() {
         addBeanClass(BeanConsumingMsgAsPublisherAndPublishingMsgAsFlowable.class);
+        initialize();
+        MyCollector collector = container.select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
+    public void testBeanConsumingMsgAsPublisherAndPublishingMsgAsMulti() {
+        addBeanClass(BeanConsumingMsgAsPublisherAndPublishingMsgAsMulti.class);
         initialize();
         MyCollector collector = container.select(MyCollector.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);

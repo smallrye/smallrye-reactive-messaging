@@ -20,12 +20,9 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-mqtt</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-rx-java2</artifactId>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-mutiny-vertx-mqtt</artifactId>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

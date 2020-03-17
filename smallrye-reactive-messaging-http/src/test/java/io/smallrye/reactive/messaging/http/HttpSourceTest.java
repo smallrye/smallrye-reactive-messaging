@@ -170,7 +170,6 @@ public class HttpSourceTest extends HttpTestBase {
 
         @Incoming("sink")
         public CompletionStage<Void> receive(Message m) {
-            System.out.println("Reception of " + m);
             list.add(m);
             return CompletableFuture.completedFuture(null);
         }

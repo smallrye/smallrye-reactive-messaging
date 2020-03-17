@@ -7,9 +7,8 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanInjectedWithAPublisherBuilderOfPayloads {
@@ -25,10 +24,10 @@ public class BeanInjectedWithAPublisherBuilderOfPayloads {
     }
 
     public List<String> consume() {
-        return Flowable.fromPublisher(
-                ReactiveStreams.concat(constructor, field).buildRs())
-                .toList()
-                .blockingGet();
+        return Multi.createBy().concatenating()
+                .streams(constructor.buildRs(), field.buildRs())
+                .collectItems().asList()
+                .await().indefinitely();
     }
 
 }
