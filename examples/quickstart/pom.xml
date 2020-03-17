@@ -14,7 +14,7 @@
     <weld-core.version>3.1.3.Final</weld-core.version>
 
     <mainClass>acme.Main</mainClass>
-    <mutiny.version>0.4.0</mutiny.version>
+    <mutiny.version>0.4.2</mutiny.version>
   </properties>
 
 
