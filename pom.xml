@@ -93,6 +93,7 @@
     <module>smallrye-reactive-messaging-cloud-events</module>
     <module>smallrye-reactive-messaging-jms</module>
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
+    <module>smallrye-reactive-messaging-pulsar</module>
 
     <module>examples/quickstart</module>
     <module>examples/snippets</module>
