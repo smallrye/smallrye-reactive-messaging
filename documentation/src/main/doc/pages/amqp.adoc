@@ -1,0 +1,135 @@
+= AMQP 1.0
+
+You can connect to an AMQP broker or server as a source or sink.
+The AMQP support is based on the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP Client].
+
+== Dependency
+
+To enable the AMQP support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-amqp</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+== Receiving messages from AMQP
+
+[source]
+----
+mp.messaging.incoming.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.incoming.data.host=localhost
+mp.messaging.incoming.data.port=5672
+mp.messaging.incoming.data.username=username
+mp.messaging.incoming.data.password=secret
+mp.messaging.incoming.data.broadcast=true
+mp.messaging.incoming.data.containerId=my-container-id
+----
+
+As the AMQP support is based on the Vert.x AMQP client, you can pass any configuration supported by the client.
+Check the  https://vertx.io/docs/vertx-amqp-client/java/[documentation] of the client for further details.
+
+NOTE: If the `address` attribute is not set the channel name is used instead.
+
+Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
+The payload must be a supported AMQP type.
+The `AmqpMessage` implements `Message` and provide additional metadata related to AMQP.
+These metadata can be retrieved using the `io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata` class:
+
+[source, java]
+----
+IncomingAmqpMetadata metadata = message.getMetadata(IncomingAmqpMetadata.class);
+String address = metadata.getAddress();
+int priority = metadata.getPriority();
+----
+
+== Sending messages to AMQP
+
+[source]
+----
+mp.messaging.outgoing.data.address=data
+mp.messaging.outgoing.data.connector=smallrye-amqp
+mp.messaging.outgoing.data.host=localhost
+mp.messaging.outgoing.data.port=5672
+mp.messaging.outgoing.data.username=username
+mp.messaging.outgoing.data.password=secret
+mp.messaging.outgoing.data.containerId=my-container-id
+mp.messaging.outgoing.data.durable=true
+----
+
+The AMQP connector dispatches messages to the AMQP broker or server.
+You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`, built with `io.smallrye.reactive.messaging.amqp.AmqpMessage.builder()`.
+
+The payload of the message must be one of the following type:
+
+* String
+* Boolean, Byte, Character, Double, Float, Integer, Long, Short
+* Buffer
+* Instant
+* (Vert.x) JSON Array or JSON Object (send as binary with content type set to `application/json`)
+* UUID
+
+Otherwise, the connector invokes `toString` on the wrapped payload.
+
+NOTE: If the `address` attribute is not set the channel name is used instead.
+If the AMQP Message has an address set, this address is used.
+
+Instead of an `AMQPMessage` you can attach an instance of `io.smallrye.reactive.messaging.amqp.OutgoingAmqpMessage` as metadata:
+
+[source, java]
+----
+Message<String> incoming = ...;
+OutgoingAmqpMessage amqp = OutgoingAmqpMessage.builder()
+    .setAddress("some-adress")
+    .build();
+Message<String> outgoing = incoming.withMetadata(incoming.getMetadata().with(amqp));
+----
+
+== Global configuration
+
+The host, port, username, password, SSL connection, reconnect attempts, reconnect interval,
+and connection timeout can also be configured using the `amqp-host`, `amqp-port`, `amqp-username`,
+`amqp-password`, `amqp-use-ssl`, `amqp-reconnect-attempts`, `amqp-reconnect-interval`, and
+`amqp-connect-timeout` configuration properties.
+
+Optionally, the connection configuration details can be specified using a named bean of the type `AmqpClientOptions` which will be used to configure the vertx clients.
+
+Example of named bean:
+
+[source, java]
+----
+    @Produces
+    @Named("custom-client-config")
+    public AmqpClientOptions amqpClientConfig() {
+        return new AmqpClientOptions()
+                .setHost("localhost")
+                .setPort(5672)
+                .setUsername("username")
+                .setPassword("secret")
+                .setContainerId("my-container-id");
+    }
+----
+This kind of configuration can be applied at two levels: channel and global.
+
+NOTE: The bean configuration at global level won't apply to a channel with bean configuration specified. In other words, bean configuration priority is: first channel level and second global level.
+
+Example of using a named bean to configure one channel:
+
+[source]
+----
+mp.messaging.incoming.data.address=data
+mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.incoming.data.broadcast=true
+mp.messaging.incoming.data.client-options-name=custom-client-config
+----
+
+Example of using a named bean to configure all channels:
+
+[source]
+----
+amqp-client-options-name=custom-client-config
+----

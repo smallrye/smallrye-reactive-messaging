@@ -107,7 +107,9 @@
     <module>examples/gcp-pubsub-quickstart</module>
 
     <module>smallrye-connector-attribute-processor</module>
+
     <module>tck</module>
+    <module>documentation</module>
   </modules>
 
   <dependencyManagement>
@@ -313,32 +315,6 @@
   </repositories>
 
   <profiles>
-    <profile>
-      <id>doc</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.asciidoctor</groupId>
-            <artifactId>asciidoctor-maven-plugin</artifactId>
-            <configuration>
-              <backend>html</backend>
-              <sourceHighlighter>highlightjs</sourceHighlighter>
-              <attributes>
-                <toc>left</toc>
-                <version>${project.version}</version>
-                <weld-version>${version.weld.core}</weld-version>
-                <mutiny-version>${mutiny.version}</mutiny-version>
-                <smallrye-config-version>${smallrye-config.version}</smallrye-config-version>
-              </attributes>
-              <sourceDirectory>doc</sourceDirectory>
-              <imagesDir>assets</imagesDir>
-            </configuration>
-          </plugin>
-        </plugins>
-        <defaultGoal>generate-resources asciidoctor:process-asciidoc</defaultGoal>
-      </build>
-    </profile>
-
     <profile>
       <id>release</id>
       <activation>

@@ -1,0 +1,336 @@
+= JMS (Java Message Service)
+
+You can use SmallRye Reactive Messaging to receive and send JMS messages.
+
+== Dependency
+
+To enable the JMS support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-jms</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+The connector is named `smallrye-jms`.
+
+== Connection Factory Requirement
+
+To interact with JMS, you need to _expose_ a `javax.jms.ConnectionFactory` as CDI bean.
+For example, you need a bean producing the `ConnectionFactory`:
+
+[source, java]
+----
+@ApplicationScoped
+public class ConnectionFactoryBean {
+
+    @Inject @ConfigProperty(name="jms-username")
+    String username;
+
+    @Inject @ConfigProperty(name="jms-password")
+    String password;
+
+    @Produces
+    ConnectionFactory factory() {
+        ActiveMQJMSConnectionFactory factory = new ActiveMQJMSConnectionFactory(
+                "tcp://localhost:61616",
+                username, password);
+        return factory;
+    }
+
+}
+----
+
+The JMS connector is consuming the produced _factory_ to connect to the broker.
+
+=== Selecting ConnectionFactory
+
+In case you have several connection factories, you can use the `@Named` qualified on your factory to specify the name.
+Then, in the channel configuration, configure the name as follows:
+
+[source,properties]
+----
+# Configure the connector globally
+mp.messaging.connector.smallrye-jms.connection-factory-name=my-factory-name
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.connection-factory-name=my-factory-name
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.connection-factory-name=my-factory-name
+----
+
+=== Configure credentials
+
+To configure the _username_ and _password_ to connect to the broker and create a session, use the following properties:
+
+[source,properties]
+----
+# Configure the connector globally
+mp.messaging.connector.smallrye-jms.username=my-username
+mp.messaging.connector.smallrye-jms.password=secret
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.username=my-username
+mp.messaging.incoming.my-channel.password=secret
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.username=my-username
+mp.messaging.outgoing.my-channel.password=secret
+----
+
+=== Session mode
+
+By default, the connector uses the `AUTO_ACKNOWLEDGE` session mode.
+You can configure it using:
+
+[source,properties]
+----
+# Configure the connector globally
+mp.messaging.connector.smallrye-jms.session-mode=AUTO_ACKNOWLEDGE
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.session-mode=AUTO_ACKNOWLEDGE
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.session-mode=AUTO_ACKNOWLEDGE
+----
+
+Accepted values are:
+
+* `AUTO_ACKNOWLEDGE`
+* `SESSION_TRANSACTED`
+* `CLIENT_ACKNOWLEDGE`
+* `DUPS_OK_ACKNOWLEDGE`
+
+Any other value is rejected, and the deployment would fail.
+
+
+=== Configure the client id
+When dealing with _topics_, your subscription must need to be identified with a _client-id_.
+Configure the client id as follows:
+
+[source,properties]
+----
+# Configure the connector globally
+mp.messaging.connector.smallrye-jms.client-id=my-id
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.client-id=my-id
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.client-id=my-id
+----
+
+== JSON-B Requirement
+
+The connector uses JSON-B to serialize and deserialize objects.
+You need to have an implementation of JSON-B available.
+Check http://json-b.net/ for more details.
+
+== Sending JMS messages
+
+To send a JMS message, you need to configure the connector as follows:
+
+[source, text]
+----
+# Queue:
+mp.messaging.outgoing.my-channel.connector=smallrye-jms
+mp.messaging.outgoing.my-channel.destination=my-queue
+
+# Topic:
+mp.messaging.outgoing.my-channel.connector=smallrye-jms
+mp.messaging.outgoing.my-channel.destination=my-topic
+mp.messaging.outgoing.my-channel.destination-type=topic
+mp.messaging.outgoing.my-channel.client-id=my-id
+----
+
+=== Sending String and primitives
+
+String and primitive types can be forwarded as payload:
+
+[source,java]
+----
+@Incoming("...")
+@Outgoing("my-channel")
+public String sendToJms(String s) {
+  return s.toUpperCase();
+}
+----
+
+=== Sending objects
+
+Objects are serialized using **JSON-B**:
+
+[source,java]
+----
+@Incoming("...")
+@Outgoing("my-channel")
+public Person sendToJms(...) {
+  // ...
+  return new Person("bob", 42);
+}
+----
+
+In the previous example, it requires that the `Person` class can be serialized to JSON.
+Note that the class name is passed in the `JMSType` property.
+
+=== Sending byte arrays
+
+You can also send `byte[]` payloads:
+
+[source,java]
+----
+@Incoming("...")
+@Outgoing("my-channel")
+public byte[] sendToJms(...) {
+  // ...
+  byte[] array = ...;
+  return array;
+}
+----
+
+=== Sending JMS Message
+
+Finally, you can send a JMS Message (`javax.jms.Message`) directly:
+
+[source,java]
+----
+@Incoming("...")
+@Outgoing("my-channel")
+public javax.jms.Message sendToJms(...) {
+  // ...
+}
+----
+
+=== Connector configuration
+
+The following table summarizes the attribute you can configure on a JMS outgoing channel.
+Don't forget to prefix them using:
+
+[source,properties]
+----
+# Global configuration for all the channels
+mp.messaging.connector.smallrye-jms.attribute=value
+# Configure the specific `my-jms-channel` channel
+mp.messaging.outgoing.my-jms-channel.attribute=value
+----
+
+|===
+
+| Attribute | Mandatory | Default | Description
+
+| destination | true | the `channel-name` | The destination name, default to the channel name
+| destination-type | false | `queue` | The type of destination (`queue` or `topic`)
+| delivery-delay | false |  | The delivery delay in milliseconds
+| delivery-mode | false | `persistent` | The delivery mode (`persistent` or `non_persistent`)
+| disable-message-id | false |  | Disable sending a generated message id
+| disable-message-timestamp | false |  | Disable sending a generated timestamp
+| correlation-id | false |  | Set the correlation-id
+| ttl | false |  | The time-to-live of the outgoing message in milliseconds
+| priority | false |  | The message priority
+| reply-to | false |  | The reply-to destination name
+| reply-to-destination-type | false |  | The reply-to destination type (`queue` (default), `topic`)
+|===
+
+NOTE: `destination-type` and `reply-to-destination-type` must be either `queue` (default) or `topic`.
+Any other value is rejected and fail the deployment.
+
+=== Outgoing JMS message metadata
+
+You can customize the _routing_ and the content of the outgoing JMS message by adding an instance of `io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata` to the message metadata.
+
+== Receiving JMS messages
+
+To send a JMS message, you need to configure the connector as follows:
+
+[source, text]
+----
+# Queue:
+mp.messaging.incoming.my-channel.connector=smallrye-jms
+mp.messaging.incoming.my-channel.destination=my-queue
+
+# Topic:
+mp.messaging.incoming.my-channel.connector=smallrye-jms
+mp.messaging.incoming.my-channel.destination=my-topic
+mp.messaging.incoming.my-channel.destination-type=topic
+mp.messaging.incoming.my-channel.client-id=my-id
+----
+
+=== Receiving Message
+
+You can decide to receive `io.smallrye.reactive.messaging.jms.IncomingJmsMessage` which contains all the details of the underlying JMS Message.
+So you can access properties and metadata.
+You can also use the `unwrap` method to retrieve the underlying JMS message:
+
+[source,java]
+----
+@Incoming("my-channel")
+public CompletionStage<Void> consume(IncomingJmsMessage<String> msg) {
+  int p = msg.getIntProperty("my-property");
+  // ...
+  return msg.ack();
+}
+----
+
+The `ReceivedJmsMessage` is parameterized with the type of payload.
+
+=== Receiving payload
+
+You can also receive the payload directly.
+In the case of objects, the payload is de-serialized using JSON-B is the `JMSType` is set.
+If not, the default behavior is used (Java deserialization):
+
+[source,java]
+----
+@Incoming("my-channel")
+public void consume(Person person) {
+  System.out.println(person.name());
+}
+----
+
+=== Connector configuration
+
+The following table summarizes the attribute you can configure on a JMS incoming channel.
+Don't forget to prefix them using:
+
+[source,properties]
+----
+# Global configuration for all the channels
+mp.messaging.connector.smallrye-jms.attribute=value
+# Configure the specific `my-jms-channel` channel
+mp.messaging.incoming.my-jms-channel.attribute=value
+----
+
+|===
+
+| Attribute | Mandatory | Default | Description
+
+| destination | true | the `channel-name` | The destination name, default to the channel name
+| destination-type | false | `queue` | The type of destination (`queue` or `topic`)
+| durable | false |  | Whether the JMS Consumer must be durable, if set to `true`, the destination must be a `topic`
+| selector | false | accept all messages | only messages with properties matching the given selector expression are delivered
+| no-local | false | | If set to `true`, do not receive messages produced locally
+| broadcast | false |  | Whether or not the received message can emitted to several subscribers
+|===
+
+=== Incoming message metadata
+
+You can retrieve the incoming message metadata using:
+
+[source, java]
+----
+Optional<IncomingJmsMessageMetadata> metadata
+    = message.getMetadata(IncomingJmsMessageMetadata.class);
+----
+
+The metadata are represented by the `io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata` class.
+
+== Advanced configuration
+
+The connector uses a thread pool to handle some interaction with the broker (for example, to handle acknowledgment).
+You can configure the maximum number of thread and the time to live using MicroProfile Config:
+
+[source,properties]
+----
+# Pool size, default is 10
+smallrye.jms.threads.max-pool-size=20
+# ttl (in second) of idle threads, 60 seconds by default.
+smallrye.jms.threads.ttl=120
+----
+

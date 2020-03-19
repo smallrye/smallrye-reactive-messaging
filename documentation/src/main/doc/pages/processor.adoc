@@ -1,0 +1,85 @@
+= Processing data
+
+There are several ways to manipulate items transiting in a streams.
+
+== Manipulating items one by one
+
+The first possibility is to implement a method with both `@Incoming` and `@Outgoing` and receiving the `Message` or
+payload one by one. For each input, an output is produced. This output can be generated asynchronously by returning a
+`CompletionStage`.
+
+The following signatures are supported:
+
+* `@Outgoing @Incoming Message<O> method(Message<I> msg)`
+* `@Outgoing @Incoming O method(I payload)` - metadata are propagated automatically.
+* `@Outgoing @Incoming CompletionStage<Message<O>> method(Message<I> msg)`
+* `@Outgoing @Incoming CompletionStage<O> method(I payload)` - metadata are propagated automatically.
+
+== Consuming one items and producing a streams
+
+Another possibility is to consume the items one by one, but instead of producing a single result, produce a stream,
+potentially empty. The following method signatures are supported:
+
+* `@Outgoing @Incoming Publisher<Message<O>> method(Message<I> msg)`
+* `@Outgoing @Incoming Publisher<O> method(I payload)` - metadata are propagated automatically.
+* `@Outgoing @Incoming PublisherBuilder<Message<O>> method(Message<I> msg)`
+* `@Outgoing @Incoming PublisherBuilder<O> method(I payload)` - metadata are propagated automatically.
+
+For example, the following method duplicates the received messages:
+
+[source,java]
+----
+include::../examples/snippets/ProcessorExamples.java[tag=processor]
+----
+
+As said above, you can potentially return an empty stream to "ignore" the outcome.
+
+[source,java]
+----
+include::../examples/snippets/ProcessorExamples.java[tag=filtering-processor]
+----
+
+[IMPORTANT]
+====
+The returned streams are concatenated and the emissions are not mixed.
+====
+
+== Creating a Reactive Stream Processor
+
+A _Processor_ is a Reactive Stream entity acting as a _subscriber_ (so consume data) and _publisher_ (so publish data).
+To describe your data transformation logic, you can create and return a `Processor` (or a `ProcessorBuilder`):
+
+[source,java]
+----
+include::../examples/snippets/ProcessorExamples.java[tag=return-processor]
+----
+
+The following methods are supported:
+
+* `@Outgoing @Incoming Processor<Message<I>, Message<O>> method()`
+* `@Outgoing @Incoming Processor<I, O> method()`
+* `@Outgoing @Incoming ProcessorBuilder<Message<I>, Message<O>> method()`
+* `@Outgoing @Incoming ProcessorBuilder<I, O> method()`
+
+[IMPORTANT]
+====
+The returned streams are concatenated and the emissions are not mixed.
+====
+
+== Manipulating streams
+
+You can also transform streams using the following methods:
+
+* `@Outgoing @Incoming Publisher<Message<O>> method(Publisher<Message<I>> pub)`
+* `@Outgoing @Incoming PublisherBuilder<Message<O>> method(PublisherBuilder<Message<I>> pub)`
+* `@Outgoing @Incoming Publisher<O> method(Publisher<I> pub)`
+* `@Outgoing @Incoming PublisherBuilder<O> method(PublisherBuilder<I> pub)`
+
+
+== Reactive Streams, Reactive Stream Operators, RX Java
+
+SmallRye Reactive Messaging supports:
+
+* `Publisher`, `PublisherBuilder` (MicroProfile Reactive Streams Operators), `Flowable` (RX Java 2)
+* `Processor`, `ProcessorBuilder` (MicroProfile Reactive Streams Operators)
+

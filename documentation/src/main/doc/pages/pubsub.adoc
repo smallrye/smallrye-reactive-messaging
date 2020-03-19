@@ -1,0 +1,63 @@
+= Google Cloud Pub/Sub
+
+You can connect to Google Cloud Pub/Sub as a source or sink. The Pub/Sub support is based on the https://cloud.google.com/pubsub/docs/quickstart-client-libraries#pubsub-client-libraries-java[Google Cloud Pub/Sub Client].
+
+== Dependency
+
+To enable the Google Cloud Pub/Sub support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-gcp-pubsub</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+== Retrieving messages from Google Cloud Pub/Sub
+
+To retrieve messages from a Google Cloud Pub/Sub topic, you need the following configuration:
+
+[source]
+----
+# [Source - heartbeat] - Consume data from Google Cloud Pub/Sub
+mp.messaging.incoming.pubsub-heartbeat.connector=smallrye-gcp-pubsub
+mp.messaging.incoming.pubsub-heartbeat.topic=heartbeat
+mp.messaging.incoming.pubsub-heartbeat.subscription=heartbeat-subscription
+# [/Source - heartbeat]
+----
+
+The `connector` attribute is required to indicate you are configuring the Google Cloud Pub/Sub transport. Supported attributes are listed
+in the following table:
+
+|===
+| Attribute | Mandatory | Default | Description
+| topic | true | the `channel-name` | The topic to consume, use the `channel-name` if not set
+| subscription | true | N/A | The subscription name to consume
+| credential-path | false | Read credentials from environment variables | Optional path to a GCP Service Account credentials file (.json)
+|===
+
+When consuming a message from Google Cloud Pub/Sub, you can get the `Message` as a `io.smallrye.reactive.messaging.gcp.pubsub.PubSubMessage`.
+It lets you access other metadata such as the headers, the message key (the payload being the value).
+
+== Forwarding messages to Google Cloud Pub/Sub
+
+To send messages to a Google Cloud Pub/Sub topic, you need the following configuration:
+
+[source]
+----
+# [Sink - data] - Produce data to Google Cloud Pub/Sub
+mp.messaging.outgoing.data.connector=smallrye-gcp-pubsub
+mp.messaging.outgoing.data.topic=data
+# [/Sink - data]
+----
+
+The `connector` attribute is required to indicate you are configuring the Google Cloud Pub/Sub transport. Supported attributes are listed
+in the following table:
+
+|===
+| Attribute | Mandatory | Default | Description
+| topic | true | the `channel-name` | The topic to consume, use the `channel-name` if not set
+| credential-path | false | Read credentials from environment variables | Optional path to a GCP Service Account credentials file (.json)
+|===

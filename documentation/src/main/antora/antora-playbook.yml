@@ -1,0 +1,18 @@
+# partial playbook just for this project to be able to compile documentation without pushing it to GitHub
+# usage: antora generate antora-playbook.yml
+site:
+    title: SmallRye Reactive Messaging Documentation
+    start_page: smallrye-reactive-messaging::index.adoc
+content:
+    sources:
+        - url: ./
+ui:
+    bundle:
+        url: https://github.com/smallrye/smallrye-antora-ui/blob/master/build/ui-bundle.zip?raw=true
+        snapshot: true
+asciidoc:
+    attributes:
+        version: '${project.version}'
+        weld-version: '${weld.version}'
+        smallrye-config-version: '${smallrye-config.version}'
+        mutiny-version: '${mutiny.version}'

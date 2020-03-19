@@ -1,0 +1,84 @@
+= Getting Started
+
+== Quickstart
+
+The easiest to start using SmallRye Reactive Messaging is to start it directly in a _main_ class.
+
+Creates a Maven project, and include the following dependency in your pom.xml:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-provider</artifactId>
+  <version>{version}</version>
+</dependency>
+<dependency>
+ <groupId>io.smallrye.reactive</groupId>
+ <artifactId>mutiny-reactive-streams-operators</artifactId>
+ <version>{mutiny-version}</version>
+</dependency>
+<dependency>
+  <groupId>org.jboss.weld.se</groupId>
+  <artifactId>weld-se-core</artifactId>
+  <version>{weld-version}</version>
+</dependency>
+----
+
+Once created, create a class file with a `public static void main(String... args)` method:
+
+[source,java]
+----
+include::../examples/quickstart/Main.java[]
+----
+
+Then, we need CDI _beans_. For instance:
+
+[source, java]
+----
+include::../examples/quickstart/MyBean.java[]
+----
+
+Finally, you need an _empty_ `beans.xml`. Copy the following content to `src/main/resources/META-INF/beans.xml`:
+
+[source,xml]
+----
+<beans
+  xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="
+      http://xmlns.jcp.org/xml/ns/javaee
+      http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd">
+
+</beans>
+----
+
+Once everything is setup, you should be able to run the application using:
+
+```bash
+mvn compile exec:java -Dexec.mainClass=<Main fully qualified class name>
+```
+
+Running the previous example should give the following output:
+
+```
+>> HELLO
+>> SMALLRYE
+>> REACTIVE
+>> MESSAGE
+```
+
+[NOTE]
+====
+Smallrye Reactive Messaging uses SLF4J as logger.
+Check the https://www.slf4j.org/manual.html[SLF4J documentation] to configure the logs.
+For testing purpose, you can simply add the following dependency to your `pom.xml` file:
+[source,xml]
+----
+<dependency>
+  <groupId>org.slf4j</groupId>
+  <artifactId>slf4j-simple</artifactId>
+  <version>1.7.30</version>
+</dependency>
+----
+====

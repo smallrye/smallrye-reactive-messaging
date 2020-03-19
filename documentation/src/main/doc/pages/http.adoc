@@ -1,0 +1,48 @@
+= HTTP
+
+You can also _push_ incoming messages to an HTTP endpoint using the _HTTP connector_.
+It maps the messages into HTTP requests and sends the _payload_ in the request body.
+
+Note that this connector uses a reactive and non-blocking HTTP client.
+
+== Dependency
+
+To enable the HTTP support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-http</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+== Forwarding messages to HTTP
+
+[source,text]
+----
+mp.messaging.outgoing.data.url=http://localhost:8089
+mp.messaging.outgoing.data.connector=smallrye-http
+----
+
+On this connector you can configure:
+
+include::META-INF/connector/smallrye-http-outgoing.adoc[]
+
+== Customizing the HTTP request
+
+By attaching an instance of `io.smallrye.reactive.messaging.http.HttpResponseMetadata` in the message you produce, you can configure the dispatching:
+
+[source,java]
+----
+include::../examples/http/HttpExample.java[tag=http-message]
+----
+
+== Supported payload
+
+Supported payloads are:
+* String
+* Vert.x Buffers, byte array, `ByteBuffer`
+* Vert.x `JsonObject` and `JsonArray`
+

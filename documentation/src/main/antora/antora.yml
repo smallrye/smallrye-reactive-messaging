@@ -1,0 +1,5 @@
+name: smallrye-reactive-messaging
+title: SmallRye Reactive Messaging
+version: ${project.version}
+nav:
+    - modules/ROOT/nav.adoc

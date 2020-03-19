@@ -1,0 +1,119 @@
+= MQTT
+
+You have two options here:
+
+1. you can connect to an MQTT broker or server as a source or sink. The MQTT support is based on
+the https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client[Vert.x MQTT Client].
+2. you can receive MQTT messages as an MQTT server. The MQTT support is based on the
+https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_server[Vert.x MQTT Server]
+
+== MQTT client (incoming or outgoing)
+
+For if you want to produce or consumer MQTT messages coming or going to an MQTT broker
+or server.
+
+=== Dependency
+
+To enable the MQTT client support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+=== Retrieving messages from an MQTT broker or server
+
+[source]
+----
+mp.messaging.incoming.data.topic=data
+mp.messaging.incoming.data.connector=smallrye-mqtt
+mp.messaging.incoming.data.host=localhost
+mp.messaging.incoming.data.port=8883
+mp.messaging.incoming.data.username=username
+mp.messaging.incoming.data.password=secret
+mp.messaging.incoming.data.broadcast=true
+----
+
+Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You can also receive
+`io.smallrye.reactive.messaging.mqtt.MqttMessage` which give you access to message metadata.
+
+NOTE: If the `topic` attribute is not set the channel name is used instead.
+
+=== Forwarding messages to an MQTT broker or server
+
+[source]
+----
+mp.messaging.outgoing.data.topic=data
+mp.messaging.outgoing.data.connector=smallrye-mqtt
+mp.messaging.outgoing.data.host=localhost
+mp.messaging.outgoing.data.port=8883
+mp.messaging.outgoing.data.username=username
+mp.messaging.outgoing.data.password=secret
+----
+
+The payload of message forwarded to an MQTT broker or server must be:
+
+* a `io.vertx.core.json.JsonObject` or a `io.vertx.core.json.JsonArray`
+* a `String` or a primitive types
+* a `byte[]` or a Vert.x Buffer
+
+Other objects are mapped to JSON.
+
+NOTE: If the `topic` attribute is not set the channel name is used instead.
+
+=== Advanced configuration
+
+Check `io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource` and
+`io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink` for further details on the attributes.
+
+== MQTT server
+
+For if you want your code to act as an MQTT server to receive MQTT messages from one or more
+clients.
+
+WARNING: This isn't a fully featured MQTT server, it will only handle publish requests and their
+acknowledgment (for QoS 1 & 2). It will ignore subscription requests for instance.
+
+NOTE: The server has no persistence, if no subscribers are listening, messages will be dropped.
+
+=== Dependency
+
+To enable the MQTT server support, you need the following dependency:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-mqtt-server</artifactId>
+  <version>{version}</version>
+</dependency>
+----
+
+=== Receive MQTT messages from one or more MQTT client
+
+[source]
+----
+# [Source - messages] - Receive MQTT messages
+# Required
+mp.messaging.incoming.messages.connector=smallrye-mqtt-server
+
+#mp.messaging.incoming.messages.host=0.0.0.0
+#mp.messaging.incoming.messages.port=1883
+# If clientid should be auto-generated when it's "zero-bytes"
+#mp.messaging.incoming.messages.auto-client-id=true
+# Max MQTT message size (variable header + payload)
+#mp.messaging.incoming.messages.max-message-size=-1
+# The timeout on CONNECT packet
+#mp.messaging.incoming.messages.timeout-on-connect=90
+# The TCP receive buffer size
+#mp.messaging.incoming.messages.receive-buffer-size=-1
+# [/Source - messages]
+----
+
+Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You can also receive
+`io.smallrye.reactive.messaging.mqtt.server.MqttMessage` which give you access to message metadata.
+
