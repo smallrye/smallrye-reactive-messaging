@@ -106,6 +106,7 @@
     <module>examples/awssns-quickstart</module>
     <module>examples/gcp-pubsub-quickstart</module>
 
+    <module>smallrye-connector-attribute-processor</module>
     <module>tck</module>
   </modules>
 
