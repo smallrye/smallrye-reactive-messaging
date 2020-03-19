@@ -15,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -60,6 +61,12 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
      */
     private Merge.Mode mergePolicy;
 
+    private boolean isBlocking = false;
+
+    private String workerPoolName = null;
+
+    private boolean isOrderedExecution;
+
     private MediatorConfigurationSupport mediatorConfigurationSupport;
 
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
@@ -75,15 +82,15 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                         : new MethodParamGenericTypeAssignable(method, 0));
     }
 
-    public void compute(Incomings incomings, Outgoing outgoing) {
+    public void compute(Incomings incomings, Outgoing outgoing, Blocking blocking) {
         Incoming[] values = incomings.value();
         if (values.length == 0) {
             throw getIncomingError("@Incomings must contain a non-empty array of @Incoming");
         }
-        compute(Arrays.asList(values), outgoing);
+        compute(Arrays.asList(values), outgoing, blocking);
     }
 
-    public void compute(List<Incoming> incomings, Outgoing outgoing) {
+    public void compute(List<Incoming> incomings, Outgoing outgoing, Blocking blocking) {
         if (incomings != null) {
             for (Incoming incoming : incomings) {
                 if (Validation.isBlank(incoming.value())) {
@@ -110,6 +117,13 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         }
         if (outgoing != null) {
             this.outgoingValue = outgoing.value();
+        }
+        if (blocking != null) {
+            this.isBlocking = true;
+            this.isOrderedExecution = blocking.ordered();
+            if (!blocking.value().equals(Blocking.NO_VALUE)) {
+                this.workerPoolName = blocking.value();
+            }
         }
 
         MediatorConfigurationSupport.ValidationOutput validationOutput = this.mediatorConfigurationSupport.validate(this.shape,
@@ -217,6 +231,21 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         } else {
             return broadcastValue;
         }
+    }
+
+    @Override
+    public boolean isBlocking() {
+        return isBlocking;
+    }
+
+    @Override
+    public String getWorkerPoolName() {
+        return workerPoolName;
+    }
+
+    @Override
+    public boolean isOrderedExecution() {
+        return isOrderedExecution;
     }
 
     @Override

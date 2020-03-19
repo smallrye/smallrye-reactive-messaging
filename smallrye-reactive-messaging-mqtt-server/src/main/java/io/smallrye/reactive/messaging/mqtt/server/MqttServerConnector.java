@@ -5,9 +5,9 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -32,26 +32,16 @@ public class MqttServerConnector implements IncomingConnectorFactory {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt-server";
     private final Vertx vertx;
-    private final boolean internalVertxInstance;
     private MqttServerSource source = null;
 
     @Inject
-    MqttServerConnector(Instance<Vertx> instanceOfVertx) {
-        if (instanceOfVertx.isUnsatisfied()) {
-            this.internalVertxInstance = true;
-            this.vertx = Vertx.vertx();
-        } else {
-            this.internalVertxInstance = false;
-            this.vertx = instanceOfVertx.get();
-        }
+    MqttServerConnector(ExecutionHolder executionHolder) {
+        this.vertx = executionHolder.vertx();
     }
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (source != null) {
             source.close();
-        }
-        if (internalVertxInstance) {
-            vertx.closeAndAwait();
         }
     }
 

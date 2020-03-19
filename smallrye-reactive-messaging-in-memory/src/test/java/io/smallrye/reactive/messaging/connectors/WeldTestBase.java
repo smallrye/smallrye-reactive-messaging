@@ -63,6 +63,8 @@ public class WeldTestBase {
 
         initializer.addBeanClasses(MediatorFactory.class,
                 MediatorManager.class,
+                WorkerPoolRegistry.class,
+                ExecutionHolder.class,
                 InternalChannelRegistry.class,
                 ChannelProducer.class,
                 ConfiguredChannelFactory.class,

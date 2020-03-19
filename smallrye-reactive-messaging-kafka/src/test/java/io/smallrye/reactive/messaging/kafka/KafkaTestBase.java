@@ -14,6 +14,8 @@ import io.debezium.kafka.KafkaCluster;
 import io.debezium.util.Testing;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
@@ -82,6 +84,8 @@ public class KafkaTestBase {
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(ChannelProducer.class);
+        weld.addBeanClass(ExecutionHolder.class);
+        weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
         weld.addBeanClass(KafkaConnector.class);

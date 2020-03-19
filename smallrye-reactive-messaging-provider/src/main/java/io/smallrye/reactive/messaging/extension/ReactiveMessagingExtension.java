@@ -14,7 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Incomings;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 
 public class ReactiveMessagingExtension implements Extension {
 
@@ -23,6 +25,7 @@ public class ReactiveMessagingExtension implements Extension {
     private List<MediatorBean<?>> mediatorBeans = new ArrayList<>();
     private List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
     private List<InjectionPoint> emitterInjectionPoints = new ArrayList<>();
+    private List<WorkerPoolBean<?>> workerPoolBeans = new ArrayList<>();
 
     <T> void processClassesContainingMediators(@Observes ProcessManagedBean<T> event) {
         AnnotatedType<?> annotatedType = event.getAnnotatedBeanClass();
@@ -32,6 +35,11 @@ public class ReactiveMessagingExtension implements Extension {
                         || m.isAnnotationPresent(Outgoing.class))) {
             mediatorBeans.add(new MediatorBean<>(event.getBean(), event.getAnnotatedBeanClass()));
         }
+    }
+
+    <T> void processBlockingAnnotation(@Observes @WithAnnotations({ Blocking.class }) ProcessAnnotatedType<T> event) {
+        AnnotatedType<?> annotatedType = event.getAnnotatedType();
+        workerPoolBeans.add(new WorkerPoolBean<>(annotatedType));
     }
 
     <T extends Publisher<?>> void processStreamPublisherInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
@@ -78,6 +86,12 @@ public class ReactiveMessagingExtension implements Extension {
                 onOverflow = createOnOverflowForLegacyAnnotation(point);
             }
             emitters.put(name, onOverflow);
+        }
+
+        WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();
+
+        for (WorkerPoolBean workerPoolBean : workerPoolBeans) {
+            workerPoolRegistry.analyzeWorker(workerPoolBean.annotatedType);
         }
 
         MediatorManager mediatorManager = instance.select(MediatorManager.class)
@@ -165,4 +179,11 @@ public class ReactiveMessagingExtension implements Extension {
 
     }
 
+    static class WorkerPoolBean<T> {
+        final AnnotatedType<T> annotatedType;
+
+        WorkerPoolBean(AnnotatedType<T> annotatedType) {
+            this.annotatedType = annotatedType;
+        }
+    }
 }

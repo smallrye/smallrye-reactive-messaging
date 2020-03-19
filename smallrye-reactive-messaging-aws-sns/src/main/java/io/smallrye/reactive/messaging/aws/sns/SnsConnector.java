@@ -4,7 +4,6 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
@@ -13,9 +12,9 @@ import java.util.concurrent.Executors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -58,9 +57,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     static final String CONNECTOR_NAME = "smallrye-aws-sns";
 
     @Inject
-    Instance<Vertx> instanceOfVertx;
-
-    private boolean internalVertxInstance = false;
+    ExecutionHolder executionHolder;
 
     private Vertx vertx;
     private ExecutorService executor;
@@ -69,12 +66,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     public void initConnector() {
         //Initialize vertx and threadExecutor
         LOGGER.info("Initializing Connector");
-        if (instanceOfVertx != null && instanceOfVertx.isUnsatisfied()) {
-            internalVertxInstance = true;
-            this.vertx = Vertx.vertx();
-        } else if (instanceOfVertx != null) {
-            this.vertx = instanceOfVertx.get();
-        }
+        this.vertx = executionHolder.vertx().getDelegate();
         executor = Executors.newSingleThreadExecutor();
     }
 
@@ -83,9 +75,6 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      */
     @PreDestroy
     public void preDestroy() {
-        if (internalVertxInstance) {
-            Optional.ofNullable(vertx).ifPresent(Vertx::close);
-        }
         if (executor != null) {
             executor.shutdown();
         }

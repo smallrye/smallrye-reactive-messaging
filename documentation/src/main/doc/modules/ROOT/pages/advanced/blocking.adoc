@@ -1,0 +1,50 @@
+== @Blocking
+
+The `@Blocking` annotation can be used on a method annotated with `@Incomings`, `@Incoming`,
+or `@Outgoing` to indicate that the method should be executed on a worker pool:
+
+[source, java]
+----
+@Outgoing("Y")
+@Incoming("X")
+@Blocking
+public String process(String s) {
+  return s.toUpperCase();
+}
+----
+
+If method execution does not need to be ordered,
+it can be indicated on the `@Blocking` annotation:
+
+[source, java]
+----
+@Outgoing("Y")
+@Incoming("X")
+@Blocking(ordered = false)
+public String process(String s) {
+  return s.toUpperCase();
+}
+----
+
+By default, use of `@Blocking` results in the method being executed in the Vert.x worker pool.
+If it's desired to execute methods on a custom worker pool,
+with specific concurrency needs,
+it can be defined on `@Blocking`:
+
+[source, java]
+----
+@Outgoing("Y")
+@Incoming("X")
+@Blocking("my-custom-pool")
+public String process(String s) {
+  return s.toUpperCase();
+}
+----
+
+Specifying the concurrency for the above worker pool requires the following configuration property to be defined:
+
+[source]
+----
+smallrye.messaging.worker.my-custom-pool.max-concurrency=3
+----
+

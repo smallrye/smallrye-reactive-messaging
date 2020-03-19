@@ -18,7 +18,9 @@ import org.junit.BeforeClass;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
@@ -95,7 +97,9 @@ public class WeldTestBaseWithoutTails {
         initializer = SeContainerInitializer.newInstance();
 
         initializer.addBeanClasses(MediatorFactory.class,
+                ExecutionHolder.class,
                 MediatorManager.class,
+                WorkerPoolRegistry.class,
                 InternalChannelRegistry.class,
                 ChannelProducer.class,
                 ConfiguredChannelFactory.class,

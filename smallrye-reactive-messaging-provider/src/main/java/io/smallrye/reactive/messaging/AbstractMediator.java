@@ -15,12 +15,14 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 
 public abstract class AbstractMediator {
 
     protected final MediatorConfiguration configuration;
     private Invoker invoker;
     private Instance<PublisherDecorator> decorators;
+    private WorkerPoolRegistry workerPoolRegistry;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -32,6 +34,10 @@ public abstract class AbstractMediator {
 
     public void setDecorators(Instance<PublisherDecorator> decorators) {
         this.decorators = decorators;
+    }
+
+    public void setWorkerPoolRegistry(WorkerPoolRegistry workerPoolRegistry) {
+        this.workerPoolRegistry = workerPoolRegistry;
     }
 
     public void run() {
@@ -67,6 +73,27 @@ public abstract class AbstractMediator {
             Objects.requireNonNull(this.invoker, "Invoker not initialized");
             return (T) this.invoker.invoke(args);
         } catch (RuntimeException e) { // NOSONAR
+            LoggerFactory.getLogger(configuration().methodAsString())
+                .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
+            throw e;
+        }
+    }
+
+    protected <T> T invokeBlocking(Object... args) {
+        try {
+            Objects.requireNonNull(this.configuration, "Configuration not initialized");
+            if (configuration.isBlocking() && workerPoolRegistry != null) {
+                return (T) workerPoolRegistry.executeWork(
+                        future -> {
+                            this.invoker.invoke(args);
+                            future.complete();
+                        },
+                        configuration.getWorkerPoolName(),
+                        configuration.isOrderedExecution());
+            } else {
+                return (T) this.invoker.invoke(args);
+            }
+        } catch (RuntimeException e) {
             LoggerFactory.getLogger(configuration().methodAsString())
                     .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
             throw e;
