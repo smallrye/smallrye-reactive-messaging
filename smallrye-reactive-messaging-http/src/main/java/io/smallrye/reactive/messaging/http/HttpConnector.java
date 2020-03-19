@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.http;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
@@ -15,10 +18,18 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 @Connector(HttpConnector.CONNECTOR_NAME)
+
+@ConnectorAttribute(name = "url", type = "string", direction = OUTGOING, description = "The targeted URL", mandatory = true)
+@ConnectorAttribute(name = "method", type = "string", direction = OUTGOING, description = " The HTTP method (either `POST` or `PUT`)", defaultValue = "POST")
+@ConnectorAttribute(name = "converter", type = "string", direction = OUTGOING, description = "The converter classname used to serialized the outgoing message in the HTTP body")
+
+@ConnectorAttribute(name = "host", type = "string", direction = INCOMING, description = "the host (interface) on which the server is opened", defaultValue = "0.0.0.0")
+@ConnectorAttribute(name = "port", type = "int", direction = INCOMING, description = "the port", defaultValue = "8080")
 public class HttpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     public static final String CONNECTOR_NAME = "smallrye-http";
@@ -46,7 +57,7 @@ public class HttpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        return new HttpSink(vertx, config).sink();
+        return new HttpSink(vertx, new HttpConnectorOutgoingConfiguration(config)).sink();
     }
 
     @Override

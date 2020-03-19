@@ -51,7 +51,32 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-connector-attribute-processor</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
+          <annotationProcessors>
+            <annotationProcessor>
+              io.smallrye.reactive.examples.connector.ConnectorAttributeProcessor
+            </annotationProcessor>
+          </annotationProcessors>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <profiles>
     <profile>
