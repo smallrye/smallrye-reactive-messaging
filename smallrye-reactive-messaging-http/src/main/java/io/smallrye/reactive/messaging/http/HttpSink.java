@@ -31,13 +31,13 @@ class HttpSink {
 
     HttpSink(Vertx vertx, HttpConnectorOutgoingConfiguration config) {
         WebClientOptions options = new WebClientOptions(JsonHelper.asJsonObject(config.config()));
-        url = config.url();
+        url = config.getUrl();
         if (url == null) {
             throw new IllegalArgumentException("The `url` must be set");
         }
-        method = config.method();
+        method = config.getMethod();
         client = WebClient.create(vertx, options);
-        converterClass = config.converter().orElse(null);
+        converterClass = config.getConverter().orElse(null);
 
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(m -> send(m)

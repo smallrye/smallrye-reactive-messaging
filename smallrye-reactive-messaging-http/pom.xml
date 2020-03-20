@@ -65,12 +65,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
         <configuration>
           <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
           <annotationProcessors>
             <annotationProcessor>
-              io.smallrye.reactive.examples.connector.ConnectorAttributeProcessor
+              io.smallrye.reactive.messaging.connector.ConnectorAttributeProcessor
             </annotationProcessor>
           </annotationProcessors>
         </configuration>

@@ -62,7 +62,7 @@ public class HttpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        return new HttpSource(vertx, config).source();
+        return new HttpSource(vertx, new HttpConnectorIncomingConfiguration(config)).source();
     }
 
 }
