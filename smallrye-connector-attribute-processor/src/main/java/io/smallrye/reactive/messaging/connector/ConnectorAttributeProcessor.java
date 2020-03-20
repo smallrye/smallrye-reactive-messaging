@@ -22,9 +22,17 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttributes;
 @AutoService(Processor.class)
 public class ConnectorAttributeProcessor extends AbstractProcessor {
 
+    private volatile boolean invoked;
+
     @Override
     public boolean process(Set<? extends TypeElement> annotations,
             RoundEnvironment roundEnv) {
+
+        if (invoked) {
+            return true;
+        }
+        invoked = true;
+
         for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(ConnectorAttributes.class)) {
             String className = annotatedElement.toString();
             Connector connector = getConnector(annotatedElement);
@@ -32,24 +40,25 @@ public class ConnectorAttributeProcessor extends AbstractProcessor {
 
             List<ConnectorAttribute> incomingAttributes = new ArrayList<>();
             List<ConnectorAttribute> outgoingAttributes = new ArrayList<>();
+            List<ConnectorAttribute> commonAttributes = new ArrayList<>();
 
             for (ConnectorAttribute attribute : attributes) {
+                addAttributeToList(commonAttributes, attribute, ConnectorAttribute.Direction.INCOMING_AND_OUTGOING);
                 addAttributeToList(incomingAttributes, attribute, ConnectorAttribute.Direction.INCOMING);
                 addAttributeToList(outgoingAttributes, attribute, ConnectorAttribute.Direction.OUTGOING);
             }
+
+            validate(commonAttributes);
+            validate(incomingAttributes);
+            validate(outgoingAttributes);
 
             ConfigurationClassWriter classWriter = new ConfigurationClassWriter(processingEnv);
             ConfigurationDocWriter docWriter = new ConfigurationDocWriter(processingEnv);
 
             try {
-                if (!incomingAttributes.isEmpty()) {
-                    classWriter.generateIncomingConfigurationClass(connector, className, incomingAttributes);
-                    docWriter.generateIncomingDocumentation(connector, incomingAttributes);
-                }
-                if (!outgoingAttributes.isEmpty()) {
-                    classWriter.generateOutgoingConfigurationClass(connector, className, outgoingAttributes);
-                }
-                docWriter.generateOutgoingDocumentation(connector, outgoingAttributes);
+                classWriter.generateAllClasses(connector, className, commonAttributes, incomingAttributes, outgoingAttributes);
+                docWriter.generateIncomingDocumentation(connector, commonAttributes, incomingAttributes);
+                docWriter.generateOutgoingDocumentation(connector, commonAttributes, outgoingAttributes);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -57,9 +66,18 @@ public class ConnectorAttributeProcessor extends AbstractProcessor {
         return true;
     }
 
+    private void validate(List<ConnectorAttribute> attributes) {
+        attributes.forEach(ca -> {
+            if (ca.mandatory() && ClassWriter.hasDefaultValue(ca)) {
+                throw new IllegalArgumentException(
+                        "The attribute " + ca.name() + " cannot be mandatory and have a default value");
+            }
+        });
+    }
+
     private void addAttributeToList(List<ConnectorAttribute> list, ConnectorAttribute attribute,
             ConnectorAttribute.Direction direction) {
-        if (attribute.direction() == direction || attribute.direction() == ConnectorAttribute.Direction.INCOMING_AND_OUTGOING) {
+        if (attribute.direction() == direction) {
             list.add(attribute);
         }
     }

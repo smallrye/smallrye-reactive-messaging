@@ -19,16 +19,23 @@ public class ConfigurationDocWriter {
         this.environment = env;
     }
 
-    public void generateIncomingDocumentation(Connector connector, List<ConnectorAttribute> incomingAttributes)
+    public void generateIncomingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
+            List<ConnectorAttribute> incomingAttributes)
             throws IOException {
         FileObject resource = environment.getFiler()
                 .createResource(StandardLocation.CLASS_OUTPUT, "",
                         "META-INF/connector/" + connector.value() + "-incoming.adoc");
+        resource.delete();
         try (PrintWriter out = new PrintWriter(resource.openWriter())) {
             out.println(".Incoming Attributes of the '" + connector.value() + "' connector");
             out.println("|===");
             out.println("|Attribute | Description | Type | Mandatory | Default Value | Alias");
             out.println();
+            commonAttributes.forEach(att -> {
+                if (!att.hiddenFromDocumentation()) {
+                    generateLine(att, out);
+                }
+            });
             incomingAttributes.forEach(att -> {
                 if (!att.hiddenFromDocumentation()) {
                     generateLine(att, out);
@@ -38,16 +45,23 @@ public class ConfigurationDocWriter {
         }
     }
 
-    public void generateOutgoingDocumentation(Connector connector, List<ConnectorAttribute> incomingAttributes)
+    public void generateOutgoingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
+            List<ConnectorAttribute> incomingAttributes)
             throws IOException {
         FileObject resource = environment.getFiler()
                 .createResource(StandardLocation.CLASS_OUTPUT, "",
                         "META-INF/connector/" + connector.value() + "-outgoing.adoc");
+        resource.delete();
         try (PrintWriter out = new PrintWriter(resource.openWriter())) {
             out.println(".Outgoing Attributes of the '" + connector.value() + "' connector");
             out.println("|===");
             out.println("|Attribute | Description | Type | Mandatory | Default Value | Alias");
             out.println();
+            commonAttributes.forEach(att -> {
+                if (!att.hiddenFromDocumentation()) {
+                    generateLine(att, out);
+                }
+            });
             incomingAttributes.forEach(att -> {
                 if (!att.hiddenFromDocumentation()) {
                     generateLine(att, out);
