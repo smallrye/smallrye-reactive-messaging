@@ -1,17 +1,18 @@
 package io.smallrye.reactive.messaging.connector;
 
-import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
-import org.eclipse.microprofile.config.Config;
-
 import java.io.PrintWriter;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.microprofile.config.Config;
+
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+
 public class ClassWriter {
 
     protected static final Logger LOGGER = Logger
-        .getLogger("SmallRye Reactive Messaging - Connector Attribute Processor");
+            .getLogger("SmallRye Reactive Messaging - Connector Attribute Processor");
 
     private ClassWriter() {
         // Avoid direct instantiation
@@ -23,7 +24,7 @@ public class ClassWriter {
             return className.substring(0, indexOfLastDot);
         } else {
             throw new IllegalArgumentException(
-                "Invalid class name, connector classes cannot be in the default package");
+                    "Invalid class name, connector classes cannot be in the default package");
         }
     }
 
@@ -37,7 +38,7 @@ public class ClassWriter {
             return className.substring(indexOfLastDot + 1);
         } else {
             throw new IllegalArgumentException(
-                "Invalid class name, connector classes cannot be in the default package");
+                    "Invalid class name, connector classes cannot be in the default package");
         }
     }
 
@@ -137,34 +138,34 @@ public class ClassWriter {
                         + "     .orElseGet(() -> getFromAlias(\"%s\", %s)"
                         + "        .orElseThrow(() -> new IllegalArgumentException(\"The attribute `%s` (alias `%s`) on connector '%s' (channel: \" + getChannel() + \") must be set\"))"
                         + "     );",
-                    name, targetTypeDotClass, alias, targetTypeDotClass, name, alias, connector);
+                        name, targetTypeDotClass, alias, targetTypeDotClass, name, alias, connector);
             } else {
                 // Without alias get the attribute -> fail if not present
                 return String.format("    return config.getOptionalValue(\"%s\", %s)\n"
                         + "        .orElseThrow(() -> new IllegalArgumentException(\"The attribute `%s` on connector '%s' (channel: \" + getChannel() + \") must be set\"));",
-                    name, targetTypeDotClass, name, connector);
+                        name, targetTypeDotClass, name, connector);
             }
         } else if (hasDefaultValue(attribute)) {
             if (hasAlias) {
                 // With alias and default value: get the attribute -> (get the alias -> get the default value)
                 return String.format("    return config.getOptionalValue(\"%s\", %s)\n"
                         + "     .orElseGet(() -> getFromAliasWithDefaultValue(\"%s\", %s, %s));",
-                    name, targetTypeDotClass, alias, targetTypeDotClass, getDefaultValue(attribute));
+                        name, targetTypeDotClass, alias, targetTypeDotClass, getDefaultValue(attribute));
             } else {
                 // No alias -> get the attribute -> get the default value
                 return String.format("    return config.getOptionalValue(\"%s\", %s)\n"
                         + "     .orElse(%s);",
-                    name, targetTypeDotClass, getDefaultValue(attribute));
+                        name, targetTypeDotClass, getDefaultValue(attribute));
             }
         } else {
             // no default value.
             if (hasAlias) {
                 // With alias, without default value: get the attribute -> get the alias (must return an optional)
                 return String.format(
-                    "    Optional<%s> maybe = config.getOptionalValue(\"%s\", %s);\n"
-                        + "    if (maybe.isPresent()) { return maybe; }\n"
-                        + "    return getFromAlias(\"%s\", %s);",
-                    targetType, name, targetTypeDotClass, alias, targetTypeDotClass);
+                        "    Optional<%s> maybe = config.getOptionalValue(\"%s\", %s);\n"
+                                + "    if (maybe.isPresent()) { return maybe; }\n"
+                                + "    return getFromAlias(\"%s\", %s);",
+                        targetType, name, targetTypeDotClass, alias, targetTypeDotClass);
             } else {
                 // No alias and no default value: get the attribute
                 return String.format("    return config.getOptionalValue(\"%s\", %s);", name, targetTypeDotClass);
@@ -183,10 +184,10 @@ public class ClassWriter {
         }
 
         String sanitized = input
-            .replace("-", " ")
-            .replace("_", " ")
-            .replace(".", " ")
-            .trim();
+                .replace("-", " ")
+                .replace("_", " ")
+                .replace(".", " ")
+                .trim();
 
         StringBuilder titleCase = new StringBuilder(sanitized.length());
         boolean nextTitleCase = true;

@@ -1,7 +1,11 @@
 package io.smallrye.reactive.messaging.connector;
 
+import static io.smallrye.reactive.messaging.connector.ClassWriter.hasAlias;
+
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -28,9 +32,7 @@ public class ConfigurationDocWriter {
         resource.delete();
         try (PrintWriter out = new PrintWriter(resource.openWriter())) {
             out.println(".Incoming Attributes of the '" + connector.value() + "' connector");
-            out.println("|===");
-            out.println("|Attribute | Description | Type | Mandatory | Default Value | Alias");
-            out.println();
+            writeTableBegin(out);
             commonAttributes.forEach(att -> {
                 if (!att.hiddenFromDocumentation()) {
                     generateLine(att, out);
@@ -52,17 +54,16 @@ public class ConfigurationDocWriter {
                 .createResource(StandardLocation.CLASS_OUTPUT, "",
                         "META-INF/connector/" + connector.value() + "-outgoing.adoc");
         resource.delete();
+
+        // merge and sort the attributes
+        List<ConnectorAttribute> list = new ArrayList<>(commonAttributes);
+        list.addAll(incomingAttributes);
+        list.sort(Comparator.comparing(ConnectorAttribute::name));
+
         try (PrintWriter out = new PrintWriter(resource.openWriter())) {
             out.println(".Outgoing Attributes of the '" + connector.value() + "' connector");
-            out.println("|===");
-            out.println("|Attribute | Description | Type | Mandatory | Default Value | Alias");
-            out.println();
-            commonAttributes.forEach(att -> {
-                if (!att.hiddenFromDocumentation()) {
-                    generateLine(att, out);
-                }
-            });
-            incomingAttributes.forEach(att -> {
+            writeTableBegin(out);
+            list.forEach(att -> {
                 if (!att.hiddenFromDocumentation()) {
                     generateLine(att, out);
                 }
@@ -71,10 +72,20 @@ public class ConfigurationDocWriter {
         }
     }
 
+    private void writeTableBegin(PrintWriter out) {
+        out.println("[cols=\"25, 30, 15, 20\",options=\"header\"]");
+        out.println("|===");
+        out.println("|Attribute (_alias_) | Description | Mandatory | Default");
+        out.println();
+    }
+
     private void generateLine(ConnectorAttribute att, PrintWriter out) {
-        out.println(String.format("| %s | %s | %s | %s | %s | %s",
-                att.name(), getDescription(att), att.type(), att.mandatory(), getDefaultValueOrEmpty(att),
-                getAliasOrEmpty(att)));
+        String name = "*" + att.name() + "*";
+        if (hasAlias(att)) {
+            name += "\n\n_(" + att.alias() + ")_";
+        }
+        out.println(String.format("| %s | %s | %s | %s",
+                name, getDescription(att) + "\n\nType: _" + att.type() + "_", att.mandatory(), getDefaultValueOrEmpty(att)));
         out.println();
     }
 
