@@ -18,10 +18,17 @@ To enable the AMQP support, you need the following dependency:
 
 == Receiving messages from AMQP
 
-[source]
+To receive messages from AMQP you need to configure the `smallrye-amqp` connector.
+
+include::META-INF/connector/smallrye-amqp-incoming.adoc[]
+
+
+For example:
+
+[source, text]
 ----
-mp.messaging.incoming.data.address=data
 mp.messaging.incoming.data.connector=smallrye-amqp
+mp.messaging.incoming.data.address=my-address
 mp.messaging.incoming.data.host=localhost
 mp.messaging.incoming.data.port=5672
 mp.messaging.incoming.data.username=username
@@ -30,10 +37,10 @@ mp.messaging.incoming.data.broadcast=true
 mp.messaging.incoming.data.containerId=my-container-id
 ----
 
+NOTE: If the `address` attribute is not set the channel name is used instead.
+
 As the AMQP support is based on the Vert.x AMQP client, you can pass any configuration supported by the client.
 Check the  https://vertx.io/docs/vertx-amqp-client/java/[documentation] of the client for further details.
-
-NOTE: If the `address` attribute is not set the channel name is used instead.
 
 Message coming from AMQP are `io.smallrye.reactive.messaging.amqp.AmqpMessage`.
 The payload must be a supported AMQP type.
@@ -49,10 +56,17 @@ int priority = metadata.getPriority();
 
 == Sending messages to AMQP
 
+To send messages to AMQP you need to configure the `smallrye-amqp` connector.
+
+include::META-INF/connector/smallrye-amqp-outgoing.adoc[]
+
+
+For example:
+
 [source]
 ----
-mp.messaging.outgoing.data.address=data
 mp.messaging.outgoing.data.connector=smallrye-amqp
+mp.messaging.outgoing.data.address=my-address
 mp.messaging.outgoing.data.host=localhost
 mp.messaging.outgoing.data.port=5672
 mp.messaging.outgoing.data.username=username
@@ -60,6 +74,9 @@ mp.messaging.outgoing.data.password=secret
 mp.messaging.outgoing.data.containerId=my-container-id
 mp.messaging.outgoing.data.durable=true
 ----
+
+NOTE: If the `address` attribute is not set the channel name is used instead.
+If the AMQP Message has an address set, this address is used.
 
 The AMQP connector dispatches messages to the AMQP broker or server.
 You can send _bare_ message or `io.smallrye.reactive.messaging.amqp.AmqpMessage`, built with `io.smallrye.reactive.messaging.amqp.AmqpMessage.builder()`.
@@ -74,9 +91,6 @@ The payload of the message must be one of the following type:
 * UUID
 
 Otherwise, the connector invokes `toString` on the wrapped payload.
-
-NOTE: If the `address` attribute is not set the channel name is used instead.
-If the AMQP Message has an address set, this address is used.
 
 Instead of an `AMQPMessage` you can attach an instance of `io.smallrye.reactive.messaging.amqp.OutgoingAmqpMessage` as metadata:
 
@@ -96,7 +110,7 @@ and connection timeout can also be configured using the `amqp-host`, `amqp-port`
 `amqp-password`, `amqp-use-ssl`, `amqp-reconnect-attempts`, `amqp-reconnect-interval`, and
 `amqp-connect-timeout` configuration properties.
 
-Optionally, the connection configuration details can be specified using a named bean of the type `AmqpClientOptions` which will be used to configure the vertx clients.
+Optionally, the connection configuration details can be specified using a named bean of the type `AmqpClientOptions` which will be used to configure the vert.x client.
 
 Example of named bean:
 

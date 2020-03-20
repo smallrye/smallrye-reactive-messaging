@@ -39,6 +39,11 @@
       <artifactId>smallrye-reactive-messaging-kafka</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-amqp</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
