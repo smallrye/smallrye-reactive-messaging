@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.camel;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
@@ -14,6 +13,7 @@ import org.apache.camel.component.reactive.streams.engine.ReactiveStreamsEngineC
 import org.apache.camel.spi.Synchronization;
 import org.apache.camel.support.DefaultExchange;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -25,8 +25,12 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+
 @ApplicationScoped
 @Connector(CamelConnector.CONNECTOR_NAME)
+@ConnectorAttribute(name = "endpoint-uri", description = "The URI of the Camel endpoint (read from or written to)", mandatory = true, type = "string", direction = Direction.INCOMING_AND_OUTGOING)
 public class CamelConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CamelConnector.class);
@@ -45,34 +49,24 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @PostConstruct
     @Inject
-    public void init(Instance<Config> config) {
+    public void init() {
         DefaultCamelReactiveStreamsServiceFactory factory = new DefaultCamelReactiveStreamsServiceFactory();
         ReactiveStreamsEngineConfiguration configuration = new ReactiveStreamsEngineConfiguration();
-        if (!config.isUnsatisfied()) {
-            // TODO Ask ASD about this resolution issue
-            Config conf = config.stream().findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Unable to retrieve the config"));
 
-            conf.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-max-size",
-                    Integer.class)
-                    .ifPresent(configuration::setThreadPoolMaxSize);
+        Config config = ConfigProvider.getConfig();
+        config.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-max-size",
+                Integer.class).ifPresent(configuration::setThreadPoolMaxSize);
+        config.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-min-size",
+                Integer.class).ifPresent(configuration::setThreadPoolMinSize);
+        config.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-name",
+                String.class).ifPresent(configuration::setThreadPoolName);
 
-            conf.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-min-size",
-                    Integer.class)
-                    .ifPresent(configuration::setThreadPoolMinSize);
-
-            conf.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-name",
-                    String.class)
-                    .ifPresent(configuration::setThreadPoolName);
-        }
         this.reactive = factory.newInstance(camel, configuration);
     }
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        String name = config.getOptionalValue("endpoint-uri", String.class)
-                .orElseThrow(() -> new IllegalArgumentException("The `endpoint-uri of the endpoint is required"));
-
+        String name = new CamelConnectorIncomingConfiguration(config).getEndpointUri();
         Publisher<Exchange> publisher;
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
@@ -90,8 +84,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        String name = config.getOptionalValue("endpoint-uri", String.class)
-                .orElseThrow(() -> new IllegalArgumentException("The `endpoint-uri` of the endpoint is required"));
+        String name = new CamelConnectorOutgoingConfiguration(config).getEndpointUri();
 
         SubscriberBuilder<? extends Message<?>, Void> subscriber;
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
