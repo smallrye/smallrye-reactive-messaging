@@ -2,10 +2,15 @@ package io.smallrye.reactive.messaging.connector;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.processing.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
@@ -17,7 +22,10 @@ import com.google.auto.service.AutoService;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttributes;
 
-@SupportedAnnotationTypes("io.smallrye.reactive.messaging.annotations.ConnectorAttributes")
+@SupportedAnnotationTypes({
+        "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+        "io.smallrye.reactive.messaging.annotations.ConnectorAttribute"
+})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
 public class ConnectorAttributeProcessor extends AbstractProcessor {
@@ -33,10 +41,22 @@ public class ConnectorAttributeProcessor extends AbstractProcessor {
         }
         invoked = true;
 
-        for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(ConnectorAttributes.class)) {
+        Set<? extends Element> annotated = roundEnv.getElementsAnnotatedWith(ConnectorAttributes.class);
+        Set<? extends Element> others = roundEnv.getElementsAnnotatedWith(ConnectorAttribute.class);
+        Set<Element> all = new LinkedHashSet<>();
+        all.addAll(annotated);
+        all.addAll(others);
+
+        for (Element annotatedElement : all) {
             String className = annotatedElement.toString();
             Connector connector = getConnector(annotatedElement);
-            ConnectorAttribute[] attributes = annotatedElement.getAnnotation(ConnectorAttributes.class).value();
+            ConnectorAttributes annotation = annotatedElement.getAnnotation(ConnectorAttributes.class);
+            ConnectorAttribute[] attributes;
+            if (annotation == null) {
+                attributes = new ConnectorAttribute[] { annotatedElement.getAnnotation(ConnectorAttribute.class) };
+            } else {
+                attributes = annotation.value();
+            }
 
             List<ConnectorAttribute> incomingAttributes = new ArrayList<>();
             List<ConnectorAttribute> outgoingAttributes = new ArrayList<>();
