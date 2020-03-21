@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.sns.model.*;
  */
 public class SnsVerticle extends AbstractVerticle {
 
-    private final String topicName;
+    private final String topic;
     private final String endpoint;
     private final int port;
     private final boolean mockSns;
@@ -46,13 +46,13 @@ public class SnsVerticle extends AbstractVerticle {
      * Parameterized constructor.
      *
      * @param endpoint Endpoint url.
-     * @param topicName SNS topic name.
+     * @param topic SNS topic name.
      * @param port listening port for this verticle.
      * @param mockSns {@code true} if it is mock/non-sns topic.
      * @param snsUrl the SNS url
      */
-    public SnsVerticle(String endpoint, String topicName, int port, boolean mockSns, String snsUrl) {
-        this.topicName = topicName;
+    public SnsVerticle(String endpoint, String topic, int port, boolean mockSns, String snsUrl) {
+        this.topic = topic;
         this.endpoint = endpoint;
         this.port = port;
         this.mockSns = mockSns;
@@ -66,17 +66,17 @@ public class SnsVerticle extends AbstractVerticle {
                 .handler(BodyHandler.create())
                 .method(HttpMethod.POST);
         router.head().handler(rc -> rc.response().setStatusCode(204).end());
-        router.post(String.format("/sns/%s", topicName)).handler(this::receiveSnsMsg);
+        router.post(String.format("/sns/%s", topic)).handler(this::receiveSnsMsg);
 
         SnsClientConfig clientCfg = new SnsClientConfig(snsUrl, mockSns);
         SnsAsyncClient snsClient = SnsClientManager.get().getAsyncClient(clientCfg);
-        CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(topicName).build();
+        CreateTopicRequest topicCreationRequest = CreateTopicRequest.builder().name(topic).build();
         CompletableFuture<CreateTopicResponse> topicCreationResponse = snsClient.createTopic(topicCreationRequest);
         topicCreationResponse
                 .thenCompose(res -> {
                     arn = res.topicArn();
-                    topicEndpoint = mockSns ? String.format("%s:%d/sns/%s", endpoint, port, topicName)
-                            : String.format("%s/sns/%s", endpoint, topicName);
+                    topicEndpoint = mockSns ? String.format("%s:%d/sns/%s", endpoint, port, topic)
+                            : String.format("%s/sns/%s", endpoint, topic);
                     LOG.info(String.format("Topic ARN is %s, Endpoint is %s", arn, topicEndpoint));
                     return isSubscribed(snsClient, arn);
                 })
@@ -94,7 +94,9 @@ public class SnsVerticle extends AbstractVerticle {
                     }
                 }).thenAccept(x -> vertx.createHttpServer()
                         .requestHandler(router)
-                        .listen(port, ar -> startFuture.handle(ar.mapEmpty())));
+                        .listen(port, ar -> {
+                            startFuture.handle(ar.mapEmpty());
+                        }));
     }
 
     /**
@@ -121,19 +123,19 @@ public class SnsVerticle extends AbstractVerticle {
                     public void handle(SnsNotification notification) {
                         SnsMessage snsMessage = new SnsMessage(notification);
                         msgQ.add(snsMessage);
-                        LOG.trace("New message has been added to Q");
+                        LOG.trace("New message has been added to the queue");
                     }
                 });
         routingContext.response().setStatusCode(200).end();
     }
 
     SnsMessage pollMsg() throws InterruptedException {
-        LOG.trace("Pulling message.");
+        LOG.trace("Polling message from SNS");
         return msgQ.take();
     }
 
     private CompletionStage<Boolean> isSubscribed(SnsAsyncClient sns, String arn) {
-        String fullEndpoint = String.format("%s/sns/%s", endpoint, topicName);
+        String fullEndpoint = String.format("%s/sns/%s", endpoint, topic);
         CompletableFuture<ListSubscriptionsByTopicResponse> result = sns.listSubscriptionsByTopic(
                 ListSubscriptionsByTopicRequest.builder().topicArn(arn).build());
         return result.thenApply(list -> {

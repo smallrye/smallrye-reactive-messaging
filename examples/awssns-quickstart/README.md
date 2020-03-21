@@ -13,7 +13,7 @@ Install [AWS-CLI](https://aws.amazon.com/cli/). CLI is helpful to access AWS ser
 after installing CLI run :
 ```bash
 aws configure
-```  
+```
 Then enter your your AWS Access Key ID & Secret Key.
 
 Note: use this only for Dev/Testing.
@@ -31,8 +31,15 @@ SNS Connector use [DefaultAWSCredentialsProviderChain](https://docs.aws.amazon.c
 ## Use a Test/Fake SNS
 
 If you don't have AWS account or you don't want to send messages to your AWS Account you can use [Fake SNS](https://hub.docker.com/r/s12v/sns/) for Development.
-after running the docker image configure these three properties as follow :
-* mock-sns-topics=true , if true it will trigger fake SNS functionality.
+Start it with:
+
+```bash
+docker run -d -p 9911:9911 -v "$PWD":/etc/sns s12v/sns
+```
+
+
+After running the docker image configure these three properties as follow :
+* sns-mock-sns-topics=true , if true it will trigger fake SNS functionality.
 * sns-url=http://localhost:9911 , SNS URL exposed by docker container, this will only be considered in case of fake/mock SNS.
 * sns-app-host=http://docker.for.mac.host.internal
 
@@ -41,11 +48,11 @@ to access your local address. in case of Mac machines the above value works fine
 
 ## Start the application
 
-The application can be started using: 
+The application can be started using:
 
 ```bash
 mvn package exec:java
-```  
+```
 
 Then, looking at the output you can see messages successfully send to and retrieved from a AWS SNS topic.
 
@@ -54,7 +61,7 @@ Then, looking at the output you can see messages successfully send to and retrie
 In addition to the commandline output, the application is composed by 2 components:
 
 * `BeanUsingAnEmitter` - a bean sending a changing test message to AWS SNS topic every 10 second.
-* `Receiver`  - on the consuming side, the `Receiver` retreives messages from a AWS SNS topic and writes the message content to `stdout`.
+* `Receiver`  - on the consuming side, the `Receiver` retrieves messages from a AWS SNS topic and writes the message content to `stdout`.
 
 The interaction with AWS SNS is managed by MicroProfile Reactive Messaging.
 The configuration is located in the microprofile config properties.

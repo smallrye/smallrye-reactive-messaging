@@ -66,11 +66,6 @@
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-amqp-client</artifactId>
-      <version>3.8.5</version>
-    </dependency>
   </dependencies>
 
   <build>
