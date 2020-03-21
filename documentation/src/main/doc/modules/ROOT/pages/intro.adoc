@@ -1,0 +1,9 @@
+SmallRye Reactive Messaging is a framework for building event-driven, data streaming, and event-sourcing applications using http://www.cdi-spec.org/[CDI].
+It lets your application interaction using various messaging technologies such as Apache Kafka, AMQP or MQTT.
+The framework provides a flexible programming model bridging CDI and event-driven.
+
+SmallRye Reactive Messaging is an implementation of the Eclipse MicroProfile Reactive Messaging specification {spec-version}.
+
+image::overview.png[align="center"]
+
+

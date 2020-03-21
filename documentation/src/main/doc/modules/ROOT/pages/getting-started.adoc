@@ -29,14 +29,16 @@ Once created, create a class file with a `public static void main(String... args
 
 [source,java]
 ----
-include::../examples/quickstart/Main.java[]
+include::example$quickstart/Main.java[]
 ----
+
+This example use CDI SE, so a version compatible with regular (_i.e._ SE) Java.
 
 Then, we need CDI _beans_. For instance:
 
 [source, java]
 ----
-include::../examples/quickstart/MyBean.java[]
+include::example$quickstart/MyBean.java[]
 ----
 
 Finally, you need an _empty_ `beans.xml`. Copy the following content to `src/main/resources/META-INF/beans.xml`:
@@ -55,22 +57,24 @@ Finally, you need an _empty_ `beans.xml`. Copy the following content to `src/mai
 
 Once everything is setup, you should be able to run the application using:
 
-```bash
-mvn compile exec:java -Dexec.mainClass=<Main fully qualified class name>
-```
+[source,bash]
+----
+mvn compile exec:java -Dexec.mainClass=quickstart.Main
+----
 
 Running the previous example should give the following output:
 
-```
+[source]
+----
 >> HELLO
 >> SMALLRYE
 >> REACTIVE
 >> MESSAGE
-```
+----
 
 [NOTE]
 ====
-Smallrye Reactive Messaging uses SLF4J as logger.
+SmallRye Reactive Messaging uses SLF4J as logger.
 Check the https://www.slf4j.org/manual.html[SLF4J documentation] to configure the logs.
 For testing purpose, you can simply add the following dependency to your `pom.xml` file:
 [source,xml]

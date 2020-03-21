@@ -5,7 +5,9 @@ site:
     start_page: smallrye-reactive-messaging::index.adoc
 content:
     sources:
-        - url: ./
+        - url: ../
+          start_path: documentation/target/antora
+          branches: HEAD
 ui:
     bundle:
         url: https://github.com/smallrye/smallrye-antora-ui/blob/master/build/ui-bundle.zip?raw=true
@@ -16,3 +18,4 @@ asciidoc:
         weld-version: '${weld.version}'
         smallrye-config-version: '${smallrye-config.version}'
         mutiny-version: '${mutiny.version}'
+        spec-version: '${microprofile-reactive-messaging.version}'

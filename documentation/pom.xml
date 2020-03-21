@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>documentation</artifactId>
+  <packaging>pom</packaging>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -18,7 +19,6 @@
     <weld.version>3.1.3.Final</weld.version>
 
     <output.antora.directory>${project.build.directory}/antora</output.antora.directory>
-    <output.doc.directory>${output.antora.directory}/modules/ROOT</output.doc.directory>
 
   </properties>
 
@@ -60,31 +60,72 @@
 
   <build>
     <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>3.1.0</version>
+          <executions>
+            <execution>
+              <id>add-source</id>
+              <phase>generate-sources</phase>
+              <goals>
+                <goal>add-source</goal>
+              </goals>
+              <configuration>
+                <!-- Here we list all the "examples" directory from the modules -->
+                <sources>
+                  <source>src/main/doc/modules/ROOT/examples</source>
+                </sources>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+
+      <plugin>
+        <!-- Unpack the connector config page to a specific modules in the `partials` family. -->
+        <!-- NOTE: this modify the source tree, so every time there is an update, the new file must be committed and pushed -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.1.1</version>
+        <executions>
+          <execution>
+            <id>extract-generated-documentation</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>src/main/doc/modules/connectors/partials</outputDirectory>
+              <includes>**/*.adoc</includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- This part of the build is generating the Antora structure in `target` for generation purpose -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.1.0</version>
         <executions>
           <execution>
-            <id>copy-documentation</id>
+            <id>copy-modules</id>
             <phase>process-resources</phase>
             <goals>
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${output.doc.directory}</outputDirectory>
+              <outputDirectory>${output.antora.directory}</outputDirectory>
               <resources>
                 <resource>
                   <directory>src/main/doc</directory>
-                  <filtering>false</filtering>
-                </resource>
-                <resource>
-                  <directory>src/test/java</directory>
+                  <!-- Filtering is disabled because it contains binary, only the antora-playbook contains the versions -->
                   <filtering>false</filtering>
                 </resource>
               </resources>
             </configuration>
           </execution>
+          <!-- copy the playbook file -->
           <execution>
             <id>copy-antora-files</id>
             <phase>process-resources</phase>
@@ -104,24 +145,6 @@
         </executions>
       </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.1.1</version>
-        <executions>
-          <execution>
-            <id>extract-generated-documentation</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${output.doc.directory}/pages/</outputDirectory>
-              <includes>**/*.adoc</includes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-install-plugin</artifactId>

@@ -1,4 +1,4 @@
-package examples.quickstart;
+package quickstart;
 
 import javax.enterprise.context.ApplicationScoped;
 

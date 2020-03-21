@@ -1,5 +1,12 @@
 = Concepts
 
+TODO
+== Relationship with Reactive
+
+== Relationship with Messaging
+
+...
+
 MicroProfile Reactive Messaging proposes a model to build data streaming application using a CDI development model. It
 is based on 3 main concepts:
 
