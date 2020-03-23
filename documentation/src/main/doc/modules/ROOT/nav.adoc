@@ -23,6 +23,10 @@
 ** xref:signatures/signatures.adoc[Method signatures]
 
 * xref:connectors/connectors.adoc[Connectors]
+** xref:kafka:kafka.adoc[Apache Kafka]
+*** xref:kafka:kafka.adoc#kafka-installation[Using the connector]
+*** xref:kafka:kafka.adoc#kafka-inbound[Receiving Kafka Records]
+*** xref:kafka:kafka.adoc#kafka-outbound[Writing Kafka Records]
 
 * xref:testing/testing.adoc[Testing applications]
 

@@ -1,0 +1,79 @@
+[#kafka-outbound]
+== Writing Kafka Records
+
+The Kafka Connector can write Reactive Messaging `Messages` as Kafka Records.
+
+=== Example
+
+Let's imagine you have a Kafka broker running, and accessible using the `kafka:9092` address (by default it would use `localhost:9092`).
+Configure your application to write the messages from the `prices` channel into a Kafka _topic_ as follows:
+
+[source]
+----
+kafka.bootstrap.servers=kafka:9092      # <1>
+
+mp.messaging.outgoing.prices.connector=smallrye-kafka   # <2>
+mp.messaging.outgoing.prices.value.serializer=org.apache.kafka.common.serialization.DoubleSerializer  # <3>
+----
+1. Configure the broker location. You can configure it globally or per channel
+2. Configure the connector to manage the `prices` channel
+3. Sets the (Kafka) serializer to encode the message payload into the record's value
+
+NOTE: You don't need to set the Kafka topic. By default, it uses the channel name (`prices`). You can configure the `topic` attribute to override it.
+
+Then, your application must send `Message<Double>` to the `prices` channel.
+It can use `double` payloads as in the following snippet:
+
+[source, java]
+----
+include::example$outbound/KafkaPriceProducer.java[]
+----
+
+Or, you can send `Message<Double>`:
+
+[source, java]
+----
+include::example$outbound/KafkaPriceMessageProducer.java[]
+----
+
+=== Serialization
+
+The serialization is handled by the underlying Kafka Client.
+You need to configure the:
+
+* `mp.messaging.outgoing.[channel-name].value.serializer` to configure the value serializer (mandatory)
+* `mp.messaging.outgoing.[channel-name].key.serializer` to configure the key serializer (optional, default to `String`)
+
+If you want to use a custom serializer, add it to your `CLASSPATH` and configure the associate attribute.
+
+By default, the written record contains:
+
+* the `Message` payload as _value_
+* no key, or the key configured using the `key` attribute or the key passed in the metadata attached to the `Message`
+* the timestamp computed for the system clock (`now`) or the timestamp passed in the metadata attached to the `Message`
+
+=== Outbound Metadata
+
+When sending `Messages`, you can add an instance of `io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata` to influence how the message is going to written to Kafka.
+For example, you can configure the topic directly in the message, or add Kafka headers, configure the record key...
+
+[source, java]
+----
+include::example$outbound/KafkaOutboundMetadataExample.java[tag=code]
+----
+
+=== Acknowledgement
+
+Kafka acknowledgement can take times depending on the configuration.
+Also it stores in-memory the records that cannot be written.
+
+By default, the connector does not wait for Kafka to acknowledge the record and continue the processing (acknowledging the received `Message`).
+You can disable this by setting the `waitForWriteCompletion` attribute to `false`.
+
+Note the the `acks` attribute has a huge impact on the record acknowledgement.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-kafka-outgoing.adoc[]
+
+You can also pass any property supported by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].

@@ -1,0 +1,70 @@
+[#kafka-inbound]
+== Receiving Kafka Records
+
+The Kafka Connector retrieves Kafka Records from Kafka Brokers and maps each of them to Reactive Messaging `Messages`.
+
+=== Example
+
+Let's imagine you have a Kafka broker running, and accessible using the `kafka:9092` address (by default it would use `localhost:9092`).
+Configure your application to receive Kafka records from a Kafka _topic_ on the `prices` channel as follows:
+
+[source]
+----
+kafka.bootstrap.servers=kafka:9092      # <1>
+
+mp.messaging.incoming.prices.connector=smallrye-kafka       # <2>
+mp.messaging.incoming.prices.value.deserializer=org.apache.kafka.common.serialization.DoubleDeserializer    # <3>
+----
+1. Configure the broker location. You can configure it globally or per channel
+2. Configure the connector to manage the `prices` channel
+3. Sets the (Kafka) deserializer to read the record's value
+
+NOTE: You don't need to set the Kafka topic. By default, it uses the channel name (`prices`). You can configure the `topic` attribute to override it.
+
+Then, your application receives `Message<Double>`.
+You can consumes the payload directly:
+
+[source, java]
+----
+include::example$inbound/KafkaPriceConsumer.java[]
+----
+
+Or, you can retrieve the `Message<Double>`:
+
+[source, java]
+----
+include::example$inbound/KafkaPriceMessageConsumer.java[]
+----
+
+=== Deserialization
+
+The deserialization is handled by the underlying Kafka Client.
+You need to configure the:
+
+* `mp.messaging.incoming.[channel-name].value.deserializer` to configure the value deserializer (mandatory)
+* `mp.messaging.incoming.[channel-name].key.deserializer` to configure the key deserializer (optional, default to `String`)
+
+If you want to use a custom deserializer, add it to your `CLASSPATH` and configure the associate attribute.
+
+=== Inbound Metadata
+
+Messages coming from Kafka contains an instance of `io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata<K, T>` in the metadata.
+`K` is the type of the record's key.
+`T` is the type of the record's value.
+It provides the key, topic, partitions, headers and so on:
+
+[source, java]
+----
+include::example$inbound/KafkaMetadataExample.java[]
+----
+
+=== Acknowledgement
+
+Acknowledging a message coming from Kafka commit the offset.
+Refer to the Kafka documentation for details.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-kafka-incoming.adoc[]
+
+You can also pass any property supported by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client] as attribute.

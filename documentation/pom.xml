@@ -97,6 +97,7 @@
               <!-- Here we list all the "examples" directory from the modules -->
               <sources>
                 <source>src/main/doc/modules/ROOT/examples</source>
+                <source>src/main/doc/modules/kafka/examples</source>
               </sources>
             </configuration>
           </execution>
