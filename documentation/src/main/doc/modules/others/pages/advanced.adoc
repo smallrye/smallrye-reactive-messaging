@@ -1,43 +1,5 @@
 = Advanced and Experimental features
 
-== @Merge
-
-The `@Merge` annotation can be used on a method annotated with `@Incoming` to subscribed to all matching `@Outgoing
-channels. For example, if you have several method producing data to a channel named "sink", the following method receives
-all of them:
-
-[source,java]
-----
-@Incoming("sink")
-@Merge
-@Acknowledgment(Acknowledgment.Mode.NONE)
-public CompletionStage<Void> justASink(Message<String> ignored) {
-  return CompletableFuture.completedFuture(null);
-}
-----
-
-The `@Merge` annotation can be configured with a _merge policy_:
-
-* `ONE` - Pick the first source and use only this one.
-* `MERGE` - Merge the different sources. This strategy emits the items as they come. (default)
-* `CONCAT` - Concat the sources.
-
-
-== @Broadcast
-
-The `@Broadcast` annotation can be used on a method annotation with `@Outgoing` to broadcast the emitted messages to all
-the matching subscribers:
-
-[source, java]
-----
-@Outgoing("Y")
-@Incoming("X")
-@Broadcast
-public String process(String s) {
-  return s.toUpperCase();
-}
-----
-
 == @Channel
 
 `@Channel` (`org.eclipse.microprofile.reactive.messaging.Channel`) is a qualifier to inject a _channel_ into a regular CDI bean.

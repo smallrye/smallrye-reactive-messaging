@@ -1,0 +1,107 @@
+== Acknowledgement
+
+Acknowledgement is an important concept in messaging.
+A message is acknowledged when its processing or reception has been successful.
+It allows the broker to move to the next message.
+
+How acknowledgement is used and the exact effect in term of retry and resilience depends on the broker.
+For example, for Kafka it would commit the offset.
+For AMQP it would inform the broker that the message has been _accepted_.
+
+Reactive Messaging supports acknowledgement.
+Default acknowledgement depends on the method signature.
+In addition, the acknolwedgement policy can be configured using the `@Acknowledgement` annotation.
+
+=== Chain of acknowledgement
+
+If we reuse this example:
+
+[source, java, indent=0]
+----
+include::example$beans/Chain.java[tag=chain]
+----
+
+The framework automatically acknowledge the message received from the `sink` channel when the `consume` method returns.
+As a consequence, the message received by the `process` method is acknowledged, and so on.
+In other words, a chain of acknowledgement is formed.
+
+When using connectors to receive and consume messages, the outbound connector acknowledges the messages when they are dispatched successfully to the broker.
+The acknowledgement chain would, as a result, acknowledges the inbound connector which would be able to send an acknowledgement to the broker.
+
+This chain of acknowledgement is automatically implemented when processing payloads.
+
+
+=== Acknowledgement when using Messages
+
+When using `Messages`, the acknowledgement is controlled by the user, and so the chain is not formed automatically.
+It gives you more flexibility about when and how the the incoming message are acknowledged.
+
+If you create a `Message` using the `with` method, is copy the acknowledgement function from the incoming message:
+
+[source, java, indent=0]
+----
+include::example$ack/MessageAckExamples.java[tag=with-payload]
+----
+
+To have more control over the acknowledgement, you can create a brand new `Message` and pass the acknowledgement function:
+
+[source, java, indent=0]
+----
+include::example$ack/MessageAckExamples.java[tag=message-creation]
+----
+
+However, you may need to create the acknowledgement chain, to acknowledge the incoming message:
+
+[source, java, indent=0]
+----
+include::example$ack/MessageAckExamples.java[tag=process]
+----
+
+To trigger the acknowledgement of the incoming message, use the `ack()` method.
+It returns a `CompletionStage`, completed when the acknowledgement has been done.
+
+=== Acknowledgement when using streams
+
+When transforming streams of `Message`, the acknowledgement is delegated to the user.
+It means that it's up to the user to acknowledged the incoming messages:
+
+[source, java, indent=0]
+----
+include::example$ack/StreamAckExamples.java[tag=message]
+----
+
+In the previous example, we only generate a single message per incoming message, so we can use the `with` method.
+It become more complicated when grouping incoming messages or when each incoming message produce multiple messages.
+
+In the case of a stream of payloads, the default strategy acknowledges the incoming messages before being processed by the method (regardless the outcome).
+
+[source, java, indent=0]
+----
+include::example$ack/StreamAckExamples.java[tag=payload]
+----
+
+=== Controlling acknowledgement
+
+The `org.eclipse.microprofile.reactive.messaging.Acknowledgment` annotation lets you customize the default strategy that have been covered in the previous sections.
+The `@Acknowledgement` annotation takes a _strategy_ as parameter.
+Reactive Messaging proposed 4 strategies:
+
+* `POST_PROCESSING` - the acknowledgement of the incoming message is executed once the produced message is acknowledged.
+* `PRE_PROCESSING` - the acknowledgement of the incoming message is executed before the message is processed by the method.
+* `MANUAL` - the acknowledgement is doe by the user.
+* `NONE` - No acknowledgement is performed, neither manually or automatically.
+
+It is recommend to use `POST_PROCESSING` as it guarantees that the full processing has completed before acknowledging the incoming message.
+However, sometimes it's not possible, and this strategy is not available if you manipulates streams of `Messages` or payloads.
+
+The `PRE_PROCESSING` strategy can be useful to voluntarily acknowledge a message early in the process:
+
+[source, java, indent=0]
+----
+include::example$ack/PreAckExamples.java[tag=pre]
+----
+
+It cuts the acknowledgement chain, meaning that the rest of the processing is not linked to the incoming message anymore.
+This strategy is the default strategy when manipulating streams of payloads.
+
+Refer to the xref:signatures/signatures.adoc[signature list] to determine which strategies are available for a specific method signature and what's the default strategy.
