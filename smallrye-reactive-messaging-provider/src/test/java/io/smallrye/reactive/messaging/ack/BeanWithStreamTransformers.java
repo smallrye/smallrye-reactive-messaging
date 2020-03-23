@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -64,9 +65,8 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT)
-    @Acknowledgment(Acknowledgment.Strategy.NONE)
-    public CompletionStage<Void> sinkDefault(Message<String> ignored) {
-        return CompletableFuture.completedFuture(null);
+    public CompletionStage<Void> sinkDefault(Message<String> in) {
+        return in.ack();
     }
 
     @Incoming("sink-" + MANUAL_ACKNOWLEDGMENT_BUILDER)
@@ -94,9 +94,8 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Incoming("sink-" + DEFAULT_ACKNOWLEDGMENT_BUILDER)
-    @Acknowledgment(Acknowledgment.Strategy.NONE)
-    public CompletionStage<Void> sinkDefaultBuilder(Message<String> ignored) {
-        return CompletableFuture.completedFuture(null);
+    public CompletionStage<Void> sinkDefaultBuilder(Message<String> in) {
+        return in.ack();
     }
 
     @Incoming("sink-" + PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
@@ -244,7 +243,22 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithDefAck(Publisher<Message<String>> input) {
         return ReactiveStreams.fromPublisher(input)
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> {
+                    AtomicInteger counter = new AtomicInteger();
+                    return ReactiveStreams.of(Message.of(m.getPayload(), () -> {
+                        if (counter.incrementAndGet() == 2) {
+                            return m.ack();
+                        } else {
+                            return CompletableFuture.completedFuture(null);
+                        }
+                    }), Message.of(m.getPayload(), () -> {
+                        if (counter.incrementAndGet() == 2) {
+                            return m.ack();
+                        } else {
+                            return CompletableFuture.completedFuture(null);
+                        }
+                    }));
+                })
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m.getPayload()))
                 .buildRs();
     }
@@ -264,7 +278,22 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     public PublisherBuilder<Message<String>> processorWithDefaultAckWithBuilder(
             PublisherBuilder<Message<String>> input) {
         return input
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+            .flatMap(m -> {
+                AtomicInteger counter = new AtomicInteger();
+                return ReactiveStreams.of(Message.of(m.getPayload(), () -> {
+                    if (counter.incrementAndGet() == 2) {
+                        return m.ack();
+                    } else {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                }), Message.of(m.getPayload(), () -> {
+                    if (counter.incrementAndGet() == 2) {
+                        return m.ack();
+                    } else {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                }));
+            })
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT_BUILDER, m.getPayload()));
     }
 

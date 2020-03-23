@@ -36,9 +36,9 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
 
     @Incoming("sink")
     @Merge
-    @Acknowledgment(Acknowledgment.Strategy.NONE)
-    public CompletionStage<Void> justTheSink(Message<String> ignored) {
-        return CompletableFuture.completedFuture(null);
+    @Acknowledgment(Acknowledgment.Strategy.MANUAL)
+    public CompletionStage<Void> justTheSink(Message<String> in) {
+        return in.ack();
     }
 
     @Incoming(MANUAL_ACKNOWLEDGMENT_CS)
@@ -194,7 +194,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     @Outgoing("sink")
     public Message<String> processorWithDefaultAck(Message<String> input) {
         processed(DEFAULT_ACKNOWLEDGMENT, input);
-        return Message.of(input.getPayload() + "1");
+        return input.withPayload(input.getPayload() + "1");
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
@@ -211,7 +211,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     @Outgoing("sink")
     public CompletionStage<Message<String>> processorWithDefaultAckCS(Message<String> input) {
         processed(DEFAULT_ACKNOWLEDGMENT_CS, input);
-        return CompletableFuture.completedFuture(Message.of(input.getPayload() + "1"));
+        return CompletableFuture.completedFuture(input.withPayload(input.getPayload() + "1"));
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_CS)
@@ -229,7 +229,7 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
     public Uni<Message<String>> processorWithDefaultAckUni(Message<String> input) {
         return Uni.createFrom().item(() -> {
             processed(DEFAULT_ACKNOWLEDGMENT_UNI, input);
-            return Message.of(input.getPayload() + "1");
+            return input.withPayload(input.getPayload() + "1");
         });
     }
 
