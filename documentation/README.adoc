@@ -32,11 +32,11 @@ For each module with _examples_, the example directory (`src/main/doc/modules/<n
 </sources>
 ----
 
-=== The Playbook
+=== antora.yaml
 
-The playbook file is in `src/main/antora` and is filtered.
+The `src/main/antora/antora.yaml` file is filtered.
 It means that Maven replaces the variable.
-This files is copied to `target/antora` during `mvn compile`.
+This files is copied to `src/main/doc` directory.
 
 === The connector documentation table
 

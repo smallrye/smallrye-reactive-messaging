@@ -1,0 +1,13 @@
+name: smallrye-reactive-messaging
+title: SmallRye Reactive Messaging
+version: ${parsedVersion.majorVersion}.${parsedVersion.minorVersion}
+nav:
+    - modules/ROOT/nav.adoc
+
+asciidoc:
+    attributes:
+        version: '${parsedVersion.majorVersion}.${parsedVersion.minorVersion}'
+        weld-version: '${weld.version}'
+        smallrye-config-version: '${smallrye-config.version}'
+        mutiny-version: '${mutiny.version}'
+        spec-version: '${microprofile-reactive-messaging.version}'

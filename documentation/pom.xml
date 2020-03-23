@@ -19,6 +19,7 @@
     <weld.version>3.1.3.Final</weld.version>
 
     <output.antora.directory>${project.build.directory}/antora</output.antora.directory>
+    <antora.file>src/main/doc/antora.yml</antora.file>
 
   </properties>
 
@@ -52,6 +53,19 @@
     </dependency>
 
     <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.6.0</version>
+      <scope>compile</scope> <!-- used in snippets -->
+    </dependency>
+
+    <dependency>
       <groupId>org.jboss.weld.se</groupId>
       <artifactId>weld-se-core</artifactId>
       <version>${weld.version}</version>
@@ -60,26 +74,34 @@
 
   <build>
     <plugins>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.1.0</version>
-          <executions>
-            <execution>
-              <id>add-source</id>
-              <phase>generate-sources</phase>
-              <goals>
-                <goal>add-source</goal>
-              </goals>
-              <configuration>
-                <!-- Here we list all the "examples" directory from the modules -->
-                <sources>
-                  <source>src/main/doc/modules/ROOT/examples</source>
-                </sources>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>parse-version</id>
+            <goals>
+              <goal>parse-version</goal>
+            </goals>
+            <phase>initialize</phase>
+          </execution>
+
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <!-- Here we list all the "examples" directory from the modules -->
+              <sources>
+                <source>src/main/doc/modules/ROOT/examples</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
       <plugin>
         <!-- Unpack the connector config page to a specific modules in the `partials` family. -->
@@ -109,6 +131,25 @@
         <version>3.1.0</version>
         <executions>
           <execution>
+            <id>copy-antora-file</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>src/main/doc</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/main/antora</directory>
+                  <filtering>true</filtering>
+                  <includes>
+                    <include>antora.yml</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
             <id>copy-modules</id>
             <phase>process-resources</phase>
             <goals>
@@ -119,7 +160,6 @@
               <resources>
                 <resource>
                   <directory>src/main/doc</directory>
-                  <!-- Filtering is disabled because it contains binary, only the antora-playbook contains the versions -->
                   <filtering>false</filtering>
                 </resource>
               </resources>
@@ -137,9 +177,14 @@
               <resources>
                 <resource>
                   <directory>src/main/antora</directory>
-                  <filtering>true</filtering>
+                  <excludes>
+                    <exclude>*.yml</exclude>
+                  </excludes>
                 </resource>
               </resources>
+              <nonFilteredFileExtensions>
+                <nonFilteredFileExtension>zip</nonFilteredFileExtension>
+              </nonFilteredFileExtensions>
             </configuration>
           </execution>
         </executions>
