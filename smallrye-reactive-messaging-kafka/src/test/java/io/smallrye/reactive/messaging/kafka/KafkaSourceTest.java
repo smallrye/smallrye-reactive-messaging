@@ -48,7 +48,9 @@ public class KafkaSourceTest extends KafkaTestBase {
         Map<String, Object> config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getSource().forEach(messages::add).run();
@@ -70,7 +72,9 @@ public class KafkaSourceTest extends KafkaTestBase {
         Map<String, Object> config = newCommonConfig();
         config.put("channel-name", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
         List<KafkaRecord> messages = new ArrayList<>();
         source.getSource().forEach(m -> messages.add((KafkaRecord) m)).run();
@@ -94,7 +98,9 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("broadcast", true);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
         List<KafkaRecord> messages1 = new ArrayList<>();
         List<KafkaRecord> messages2 = new ArrayList<>();
@@ -125,8 +131,9 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("retry", true);
         config.put("retry-attempts", 100);
         config.put("retry-max-wait", 30);
-
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
         List<KafkaRecord> messages1 = new ArrayList<>();
         source.getSource().forEach(m -> messages1.add((KafkaRecord) m)).run();
 
@@ -198,7 +205,9 @@ public class KafkaSourceTest extends KafkaTestBase {
         Map<String, Object> config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getSource().forEach(messages::add).run();
