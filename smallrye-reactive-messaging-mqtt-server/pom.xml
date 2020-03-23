@@ -12,7 +12,7 @@
 
   <properties>
     <!-- Test dependencies versions -->
-    <version.junit5>5.6.0</version.junit5>
+    <version.junit5>5.6.1</version.junit5>
     <version.paho>1.2.2</version.paho>
     <version.weld.junit5>2.0.1.Final</version.weld.junit5>
     <version.awaitability>4.0.2</version.awaitability>
