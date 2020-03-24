@@ -10,6 +10,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.vertx.core.json.Json;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
@@ -76,6 +77,48 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber) sink.build());
+
+        await().untilAtomic(expected, is(10));
+        assertThat(expected).hasValue(10);
+    }
+
+
+    static class Person {
+        String name;
+
+        public String getName() {
+            return name;
+        }
+
+        public Person setName(String name) {
+            this.name = name;
+            return this;
+        }
+    }
+
+    @Test
+    public void testSinkUsingObject() {
+        String topic = UUID.randomUUID().toString();
+
+        SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
+
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeStrings(topic,
+            v -> {
+            expected.getAndIncrement();
+            Person p = Json.decodeValue(v, Person.class);
+            assertThat(p.getName()).startsWith("bob-");
+            });
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+            .map(i -> {
+                Person p = new Person();
+                p.setName("bob-" + i);
+                return p;
+            })
+            .map(Message::of)
+            .subscribe((Subscriber) sink.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
