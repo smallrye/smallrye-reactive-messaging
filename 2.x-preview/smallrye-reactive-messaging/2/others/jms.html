@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messaging</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">SmallRye Reactive Messaging</a></li>
+    <li><a href="jms.html">JMS (Java Message Service)</a></li>
+  </ul>
+</nav>
+  <div class="edit-this-page"><a href="file:///Users/clement/Projects/microprofile/smallrye-reactive-messaging//documentation/target/antora/modules/others/pages/jms.adoc">Edit this Page</a></div>
+</div>
+<article class="doc">
+<h1 class="page">JMS (Java Message Service)</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>You can use SmallRye Reactive Messaging to receive and send JMS messages.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_dependency"><a class="anchor" href="#_dependency"></a>Dependency</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To enable the JMS support, you need the following dependency:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-jms&lt;/artifactId&gt;
+  &lt;version&gt;2.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The connector is named <code>smallrye-jms</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_connection_factory_requirement"><a class="anchor" href="#_connection_factory_requirement"></a>Connection Factory Requirement</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To interact with JMS, you need to <em>expose</em> a <code>javax.jms.ConnectionFactory</code> as CDI bean.
+For example, you need a bean producing the <code>ConnectionFactory</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ApplicationScoped
+public class ConnectionFactoryBean {
+
+    @Inject @ConfigProperty(name="jms-username")
+    String username;
+
+    @Inject @ConfigProperty(name="jms-password")
+    String password;
+
+    @Produces
+    ConnectionFactory factory() {
+        ActiveMQJMSConnectionFactory factory = new ActiveMQJMSConnectionFactory(
+                "tcp://localhost:61616",
+                username, password);
+        return factory;
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The JMS connector is consuming the produced <em>factory</em> to connect to the broker.</p>
+</div>
+<div class="sect2">
+<h3 id="_selecting_connectionfactory"><a class="anchor" href="#_selecting_connectionfactory"></a>Selecting ConnectionFactory</h3>
+<div class="paragraph">
+<p>In case you have several connection factories, you can use the <code>@Named</code> qualified on your factory to specify the name.
+Then, in the channel configuration, configure the name as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># Configure the connector globally
+mp.messaging.connector.smallrye-jms.connection-factory-name=my-factory-name
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.connection-factory-name=my-factory-name
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.connection-factory-name=my-factory-name</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configure_credentials"><a class="anchor" href="#_configure_credentials"></a>Configure credentials</h3>
+<div class="paragraph">
+<p>To configure the <em>username</em> and <em>password</em> to connect to the broker and create a session, use the following properties:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># Configure the connector globally
+mp.messaging.connector.smallrye-jms.username=my-username
+mp.messaging.connector.smallrye-jms.password=secret
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.username=my-username
+mp.messaging.incoming.my-channel.password=secret
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.username=my-username
+mp.messaging.outgoing.my-channel.password=secret</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_session_mode"><a class="anchor" href="#_session_mode"></a>Session mode</h3>
+<div class="paragraph">
+<p>By default, the connector uses the <code>AUTO_ACKNOWLEDGE</code> session mode.
+You can configure it using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># Configure the connector globally
+mp.messaging.connector.smallrye-jms.session-mode=AUTO_ACKNOWLEDGE
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.session-mode=AUTO_ACKNOWLEDGE
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.session-mode=AUTO_ACKNOWLEDGE</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Accepted values are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>AUTO_ACKNOWLEDGE</code></p>
+</li>
+<li>
+<p><code>SESSION_TRANSACTED</code></p>
+</li>
+<li>
+<p><code>CLIENT_ACKNOWLEDGE</code></p>
+</li>
+<li>
+<p><code>DUPS_OK_ACKNOWLEDGE</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Any other value is rejected, and the deployment would fail.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configure_the_client_id"><a class="anchor" href="#_configure_the_client_id"></a>Configure the client id</h3>
+<div class="paragraph">
+<p>When dealing with <em>topics</em>, your subscription must need to be identified with a <em>client-id</em>.
+Configure the client id as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># Configure the connector globally
+mp.messaging.connector.smallrye-jms.client-id=my-id
+# Configure a specific incoming channel
+mp.messaging.incoming.my-channel.client-id=my-id
+# Configure a specific outgoing channel
+mp.messaging.outgoing.my-channel.client-id=my-id</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_json_b_requirement"><a class="anchor" href="#_json_b_requirement"></a>JSON-B Requirement</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The connector uses JSON-B to serialize and deserialize objects.
+You need to have an implementation of JSON-B available.
+Check <a href="http://json-b.net/" class="bare">http://json-b.net/</a> for more details.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sending_jms_messages"><a class="anchor" href="#_sending_jms_messages"></a>Sending JMS messages</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To send a JMS message, you need to configure the connector as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># Queue:
+mp.messaging.outgoing.my-channel.connector=smallrye-jms
+mp.messaging.outgoing.my-channel.destination=my-queue
+
+# Topic:
+mp.messaging.outgoing.my-channel.connector=smallrye-jms
+mp.messaging.outgoing.my-channel.destination=my-topic
+mp.messaging.outgoing.my-channel.destination-type=topic
+mp.messaging.outgoing.my-channel.client-id=my-id</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sending_string_and_primitives"><a class="anchor" href="#_sending_string_and_primitives"></a>Sending String and primitives</h3>
+<div class="paragraph">
+<p>String and primitive types can be forwarded as payload:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("...")
+@Outgoing("my-channel")
+public String sendToJms(String s) {
+  return s.toUpperCase();
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sending_objects"><a class="anchor" href="#_sending_objects"></a>Sending objects</h3>
+<div class="paragraph">
+<p>Objects are serialized using <strong>JSON-B</strong>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("...")
+@Outgoing("my-channel")
+public Person sendToJms(...) {
+  // ...
+  return new Person("bob", 42);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the previous example, it requires that the <code>Person</code> class can be serialized to JSON.
+Note that the class name is passed in the <code>JMSType</code> property.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sending_byte_arrays"><a class="anchor" href="#_sending_byte_arrays"></a>Sending byte arrays</h3>
+<div class="paragraph">
+<p>You can also send <code>byte[]</code> payloads:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("...")
+@Outgoing("my-channel")
+public byte[] sendToJms(...) {
+  // ...
+  byte[] array = ...;
+  return array;
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sending_jms_message"><a class="anchor" href="#_sending_jms_message"></a>Sending JMS Message</h3>
+<div class="paragraph">
+<p>Finally, you can send a JMS Message (<code>javax.jms.Message</code>) directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("...")
+@Outgoing("my-channel")
+public javax.jms.Message sendToJms(...) {
+  // ...
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_connector_configuration"><a class="anchor" href="#_connector_configuration"></a>Connector configuration</h3>
+<div class="paragraph">
+<p>The following table summarizes the attribute you can configure on a JMS outgoing channel.
+Don&#8217;t forget to prefix them using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># Global configuration for all the channels
+mp.messaging.connector.smallrye-jms.attribute=value
+# Configure the specific `my-jms-channel` channel
+mp.messaging.outgoing.my-jms-channel.attribute=value</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Attribute</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mandatory</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Default</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">destination</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">the <code>channel-name</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The destination name, default to the channel name</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">destination-type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>queue</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The type of destination (<code>queue</code> or <code>topic</code>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">delivery-delay</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The delivery delay in milliseconds</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">delivery-mode</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>persistent</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The delivery mode (<code>persistent</code> or <code>non_persistent</code>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">disable-message-id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Disable sending a generated message id</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">disable-message-timestamp</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Disable sending a generated timestamp</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">correlation-id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the correlation-id</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ttl</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The time-to-live of the outgoing message in milliseconds</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">priority</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The message priority</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">reply-to</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The reply-to destination name</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">reply-to-destination-type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The reply-to destination type (<code>queue</code> (default), <code>topic</code>)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<code>destination-type</code> and <code>reply-to-destination-type</code> must be either <code>queue</code> (default) or <code>topic</code>.
+Any other value is rejected and fail the deployment.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_outgoing_jms_message_metadata"><a class="anchor" href="#_outgoing_jms_message_metadata"></a>Outgoing JMS message metadata</h3>
+<div class="paragraph">
+<p>You can customize the <em>routing</em> and the content of the outgoing JMS message by adding an instance of <code>io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata</code> to the message metadata.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_receiving_jms_messages"><a class="anchor" href="#_receiving_jms_messages"></a>Receiving JMS messages</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To send a JMS message, you need to configure the connector as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># Queue:
+mp.messaging.incoming.my-channel.connector=smallrye-jms
+mp.messaging.incoming.my-channel.destination=my-queue
+
+# Topic:
+mp.messaging.incoming.my-channel.connector=smallrye-jms
+mp.messaging.incoming.my-channel.destination=my-topic
+mp.messaging.incoming.my-channel.destination-type=topic
+mp.messaging.incoming.my-channel.client-id=my-id</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_receiving_message"><a class="anchor" href="#_receiving_message"></a>Receiving Message</h3>
+<div class="paragraph">
+<p>You can decide to receive <code>io.smallrye.reactive.messaging.jms.IncomingJmsMessage</code> which contains all the details of the underlying JMS Message.
+So you can access properties and metadata.
+You can also use the <code>unwrap</code> method to retrieve the underlying JMS message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("my-channel")
+public CompletionStage&lt;Void&gt; consume(IncomingJmsMessage&lt;String&gt; msg) {
+  int p = msg.getIntProperty("my-property");
+  // ...
+  return msg.ack();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>ReceivedJmsMessage</code> is parameterized with the type of payload.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_receiving_payload"><a class="anchor" href="#_receiving_payload"></a>Receiving payload</h3>
+<div class="paragraph">
+<p>You can also receive the payload directly.
+In the case of objects, the payload is de-serialized using JSON-B is the <code>JMSType</code> is set.
+If not, the default behavior is used (Java deserialization):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("my-channel")
+public void consume(Person person) {
+  System.out.println(person.name());
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_connector_configuration_2"><a class="anchor" href="#_connector_configuration_2"></a>Connector configuration</h3>
+<div class="paragraph">
+<p>The following table summarizes the attribute you can configure on a JMS incoming channel.
+Don&#8217;t forget to prefix them using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># Global configuration for all the channels
+mp.messaging.connector.smallrye-jms.attribute=value
+# Configure the specific `my-jms-channel` channel
+mp.messaging.incoming.my-jms-channel.attribute=value</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Attribute</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mandatory</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Default</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">destination</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">the <code>channel-name</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The destination name, default to the channel name</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">destination-type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>queue</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The type of destination (<code>queue</code> or <code>topic</code>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">durable</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the JMS Consumer must be durable, if set to <code>true</code>, the destination must be a <code>topic</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">selector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">accept all messages</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">only messages with properties matching the given selector expression are delivered</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">no-local</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If set to <code>true</code>, do not receive messages produced locally</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">broadcast</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether or not the received message can emitted to several subscribers</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_incoming_message_metadata"><a class="anchor" href="#_incoming_message_metadata"></a>Incoming message metadata</h3>
+<div class="paragraph">
+<p>You can retrieve the incoming message metadata using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">Optional&lt;IncomingJmsMessageMetadata&gt; metadata
+    = message.getMetadata(IncomingJmsMessageMetadata.class);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The metadata are represented by the <code>io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata</code> class.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_advanced_configuration"><a class="anchor" href="#_advanced_configuration"></a>Advanced configuration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The connector uses a thread pool to handle some interaction with the broker (for example, to handle acknowledgment).
+You can configure the maximum number of thread and the time to live using MicroProfile Config:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># Pool size, default is 10
+smallrye.jms.threads.max-pool-size=20
+# ttl (in second) of idle threads, 60 seconds by default.
+smallrye.jms.threads.ttl=120</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
