@@ -16,7 +16,6 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <weld.version>3.1.3.Final</weld.version>
 
     <output.antora.directory>${project.build.directory}/antora</output.antora.directory>
     <antora.file>src/main/doc/antora.yml</antora.file>
@@ -62,7 +61,8 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.6.0</version>
-      <scope>compile</scope> <!-- used in snippets -->
+      <!-- used in snippets -->
+      <scope>compile</scope>
     </dependency>
 
     <dependency>
@@ -77,16 +77,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.1.0</version>
         <executions>
-          <execution>
-            <id>parse-version</id>
-            <goals>
-              <goal>parse-version</goal>
-            </goals>
-            <phase>initialize</phase>
-          </execution>
-
           <execution>
             <id>add-source</id>
             <phase>generate-sources</phase>
@@ -110,11 +101,11 @@
         <!-- NOTE: this modify the source tree, so every time there is an update, the new file must be committed and pushed -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.1.1</version>
         <executions>
           <execution>
             <id>extract-generated-documentation</id>
-            <phase>generate-resources</phase>
+            <!-- must happen after packaging -->
+            <phase>pre-integration-test</phase>
             <goals>
               <goal>unpack-dependencies</goal>
             </goals>
@@ -130,10 +121,9 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.1.0</version>
         <executions>
           <execution>
-            <id>copy-antora-file</id>
+            <id>update-antora-file</id>
             <phase>initialize</phase>
             <goals>
               <goal>copy-resources</goal>
@@ -167,9 +157,8 @@
               </resources>
             </configuration>
           </execution>
-          <!-- copy the playbook file -->
           <execution>
-            <id>copy-antora-files</id>
+            <id>copy-bundle-ui</id>
             <phase>process-resources</phase>
             <goals>
               <goal>copy-resources</goal>

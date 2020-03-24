@@ -3,19 +3,26 @@ echo "Cleaning"
 mvn clean -N
 
 
-echo "Building the doc"
+echo "Building the doc from project root"
 
-mvn -N -Pdoc
-
+mvn javadoc:aggregate -DskipTests
 
 echo "Cloning repo"
-cd target
+cd documentation || exit
+mvn verify
+
+# TODO Check that src/main/doc/antora.yml is not dirty
+antora generate target/antora/antora-playbook.yml --clean
+
+cd target || exit
 git clone -b gh-pages git@github.com:smallrye/smallrye-reactive-messaging.git site
 echo "Copy content"
-cp -R generated-docs/* site
+cp -R antora/build/site/* site/2.x-preview
+# TODO Versioning of the javadoc
+cp -R apidocs site/2.x-preview
 
 echo "Pushing"
-cd site
+cd site  || exit
 git add -A
 git commit -m "update site"
 git push origin gh-pages
