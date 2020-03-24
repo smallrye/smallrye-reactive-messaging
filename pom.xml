@@ -289,7 +289,7 @@
               <goal>aggregate</goal>
             </goals>
             <configuration>
-              <reportOutputDirectory>target/generated-docs/apidocs</reportOutputDirectory>
+              <reportOutputDirectory>documentation/target/apidocs</reportOutputDirectory>
               <excludePackageNames>*.quickstart:*.example:*.snippets</excludePackageNames>
             </configuration>
           </execution>
