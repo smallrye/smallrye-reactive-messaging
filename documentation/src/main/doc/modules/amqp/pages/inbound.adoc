@@ -1,0 +1,78 @@
+[#amqp-inbound]
+== Receiving messages from AMQP
+
+The AMQP connector lets you retrieve messages from an https://www.amqp.org/product/architecture[AMQP broker or router].
+The AMQP connector retrieves _AMQP Messages_ and maps each of them into Reactive Messaging `Messages`.
+
+=== Example
+
+Let's imagine you have an AMQP broker (such as https://activemq.apache.org/components/artemis/[Apache ActiveMQ Artemis]) running, and accessible using the `amqp:5672` address (by default it would use `localhost:5672`).
+Configure your application to receive AMQP Messages on the `prices` channel as follows:
+
+[source]
+----
+amqp-host=amqp               # <1>
+amqp-port=5672               # <2>
+amqp-username=my-username    # <3>
+amqp-password=my-password    # <4>
+
+mp.messaging.incoming.prices.connector=smallrye-amqp  # <5>
+----
+1. Configures the broker/router host name. You can do it per channel (using the `host` attribute) or globally using `amqp-host`
+2. Configures the broker/router port. You can do it per channel (using the `port` attribute) or globally using `amqp-port`. The default is `5672`.
+3. Configures the broker/router username if required. You can do it per channel (using the `username` attribute) or globally using `amqp-username`.
+4. Configures the broker/router password if required. You can do it per channel (using the `password` attribute) or globally using `amqp-password`.
+5. Instructs the `prices` channel to be managed by the AMQP connector
+
+NOTE: You don't need to set the AMQP _address_. By default, it uses the channel name (`prices`). You can configure the `address` attribute to override it.
+
+Then, your application receives `Message<Double>`.
+You can consumes the payload directly:
+
+[source, java]
+----
+include::example$inbound/AmqpPriceConsumer.java[]
+----
+
+Or, you can retrieve the `Message<Double>`:
+
+[source, java]
+----
+include::example$inbound/AmqpPriceMessageConsumer.java[]
+----
+
+=== Deserialization
+
+The connector converts incoming AMQP Messages into Reactive Messaging `Message<T>` instances.
+`T` depends on the _body_ of the received AMQP Message.
+
+The http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html[AMQP Type System] defines the supported types.
+
+[options=headers]
+|===
+| AMQP Body Type | `<T>`
+| AMQP Value containing a http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html#section-primitive-type-definitions[AMQP Primitive Type] | the corresponding Java type
+| AMQP Value using the `Binary` type | `byte[]`
+| AMQP Sequence | `List`
+| AMQP Data and the `content-type` is set to `application/json` | `io.vertx.core.json.JsonObject`
+| AMQP Data with a different `content-type` | `byte[]`
+|===
+
+=== Inbound Metadata
+
+Messages coming from AMQP contains an instance of `io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata` in the metadata.
+
+[source, java]
+----
+include::example$inbound/AmqpMetadataExample.java[]
+----
+
+=== Acknowledgement
+
+When a Reactive Messaging `Message` associated with an AMQP Message is acknowledged, it informs the broker that the message has been _accepted_.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-amqp-incoming.adoc[]
+
+You can also pass any property supported by the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP client] as attribute.

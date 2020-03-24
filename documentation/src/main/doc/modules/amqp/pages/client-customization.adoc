@@ -1,0 +1,17 @@
+[#amqp-customization]
+== Customizing the underlying AMQP client
+
+You can customize the underlying AMQP Client configuration by _producing_ an instance of `io.vertx.amqp.AmqpClientOptions`:
+
+[source,java,indent=0]
+----
+include::example$customization/ClientProducers.java[tag=named]
+----
+This instance is retrieved and used to configure the client used by the connector.
+You need to indicate the name of the client using the `client-options-name` attribute:
+
+[source]
+----
+mp.messaging.incoming.prices.client-options-name=my-named-options
+----
+

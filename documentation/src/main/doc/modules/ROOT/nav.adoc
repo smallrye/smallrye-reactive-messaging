@@ -23,14 +23,20 @@
 ** xref:signatures/signatures.adoc[Method signatures]
 
 * xref:connectors/connectors.adoc[Connectors]
+
 ** xref:kafka:kafka.adoc[Apache Kafka]
 *** xref:kafka:kafka.adoc#kafka-installation[Using the connector]
 *** xref:kafka:kafka.adoc#kafka-inbound[Receiving Kafka Records]
 *** xref:kafka:kafka.adoc#kafka-outbound[Writing Kafka Records]
 
+** xref:amqp:amqp.adoc[AMQP]
+*** xref:amqp:amqp.adoc#amqp-installation[Using the connector]
+*** xref:amqp:amqp.adoc#amqp-inbound[Receiving AMQP Messaging]
+*** xref:amqp:amqp.adoc#amqp-outbound[Sending AMQP Messages]
+*** xref:amqp:amqp.adoc#amqp-customization[Configuring the client]
+
 * xref:testing/testing.adoc[Testing applications]
 
-//* xref:kafka.adoc[Apache Kafka]
 //* xref:amqp.adoc[AMQP 1.0]
 //* xref:camel.adoc[Apache Camel]
 //* xref:mqtt.adoc[MQTT]

@@ -98,6 +98,7 @@
               <sources>
                 <source>src/main/doc/modules/ROOT/examples</source>
                 <source>src/main/doc/modules/kafka/examples</source>
+                <source>src/main/doc/modules/amqp/examples</source>
               </sources>
             </configuration>
           </execution>
