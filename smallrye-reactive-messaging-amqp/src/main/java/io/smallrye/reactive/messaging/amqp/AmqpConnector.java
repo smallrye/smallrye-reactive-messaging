@@ -33,6 +33,7 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpClient;
@@ -48,7 +49,10 @@ import io.vertx.mutiny.core.buffer.Buffer;
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnector.class);
+
     static final String CONNECTOR_NAME = "smallrye-amqp";
+
+    private static final String JSON_CONTENT_TYPE = "application/json";
 
     @Inject
     private Instance<Vertx> instanceOfVertx;
@@ -311,7 +315,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .orElse(configuredAddress);
     }
 
-    private Uni<Message> send(AmqpSender sender, Message msg, boolean durable, long ttl, String configuredAddress) {
+    private Uni<Message<?>> send(AmqpSender sender, Message<?> msg, boolean durable, long ttl, String configuredAddress) {
         io.vertx.mutiny.amqp.AmqpMessage amqp;
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage) msg).getAmqpMessage();
@@ -381,17 +385,22 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         } else if (payload instanceof Integer) {
             builder.withIntegerAsBody((Integer) payload);
         } else if (payload instanceof JsonArray) {
-            builder.withJsonArrayAsBody((JsonArray) payload);
+            builder.withJsonArrayAsBody((JsonArray) payload)
+                    .contentType(JSON_CONTENT_TYPE);
         } else if (payload instanceof JsonObject) {
-            builder.withJsonObjectAsBody((JsonObject) payload);
+            builder.withJsonObjectAsBody((JsonObject) payload)
+                    .contentType(JSON_CONTENT_TYPE);
         } else if (payload instanceof Long) {
             builder.withLongAsBody((Long) payload);
         } else if (payload instanceof Short) {
             builder.withShortAsBody((Short) payload);
         } else if (payload instanceof UUID) {
             builder.withUuidAsBody((UUID) payload);
+        } else if (payload instanceof byte[]) {
+            builder.withBufferAsBody(Buffer.buffer((byte[]) payload));
         } else {
-            builder.withBody(payload.toString());
+            builder.withBody(Json.encode(payload))
+                    .contentType(JSON_CONTENT_TYPE);
         }
 
         builder.address(metadata.map(OutgoingAmqpMetadata::getAddress).orElse(null));
