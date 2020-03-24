@@ -71,8 +71,6 @@
 
     <mutiny.version>0.4.3</mutiny.version>
 
-    <asciidoctorj.version>1.5.8.1</asciidoctorj.version>
-
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
     <smallrye-reactive-converter-api.version>1.0.12</smallrye-reactive-converter-api.version>

@@ -46,3 +46,15 @@ jobs:
                   java-version: 'openjdk13'
             - name: Build with Maven
               run: mvn -B clean install --file pom.xml
+
+    up_to_date_antora:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+            - name: Install JDK 1.8
+              uses: joschi/setup-jdk@v1.0.0
+              with:
+                java-version: 'openjdk8'
+            - name: Build with Maven
+              # Fail the build is the antora.yaml becomes out of date
+              run: cd documentation; mvn verify scm:check-local-modification -Dincludes=src/main/doc/antora.yml
