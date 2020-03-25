@@ -473,7 +473,8 @@ public class MediatorConfigurationSupport {
         } else if (shape == Shape.PROCESSOR) {
             if (consumption == MediatorConfiguration.Consumption.PAYLOAD) {
                 return Acknowledgment.Strategy.POST_PROCESSING;
-            } else if (consumption == MediatorConfiguration.Consumption.MESSAGE) {
+            } else if (consumption == MediatorConfiguration.Consumption.MESSAGE
+                    || consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
                 return Acknowledgment.Strategy.MANUAL;
             } else {
                 return Acknowledgment.Strategy.PRE_PROCESSING;
