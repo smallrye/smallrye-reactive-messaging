@@ -22,7 +22,6 @@
 
   </properties>
 
-
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
@@ -44,6 +43,11 @@
       <artifactId>smallrye-reactive-messaging-amqp</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-camel</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
@@ -55,6 +59,12 @@
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.camel</groupId>
+      <artifactId>camel-file</artifactId>
+      <version>${camel.version}</version>
     </dependency>
 
     <dependency>
@@ -90,6 +100,7 @@
                 <source>src/main/doc/modules/ROOT/examples</source>
                 <source>src/main/doc/modules/kafka/examples</source>
                 <source>src/main/doc/modules/amqp/examples</source>
+                <source>src/main/doc/modules/camel/examples</source>
               </sources>
             </configuration>
           </execution>
@@ -143,7 +154,7 @@
           </execution>
           <execution>
             <id>copy-modules</id>
-            <phase>process-resources</phase>
+            <phase>verify</phase>
             <goals>
               <goal>copy-resources</goal>
             </goals>

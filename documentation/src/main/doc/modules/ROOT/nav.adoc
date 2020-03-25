@@ -35,6 +35,12 @@
 *** xref:amqp:amqp.adoc#amqp-outbound[Sending AMQP Messages]
 *** xref:amqp:amqp.adoc#amqp-customization[Configuring the client]
 
+** xref:camel:camel.adoc[Apache Camel]
+*** xref:camel:camel.adoc#camel-installation[Using the connector]
+*** xref:camel:camel.adoc#camel-inbound[Receiving data using Camel]
+*** xref:camel:camel.adoc#camel-outbound[Sending data using Camel]
+*** xref:camel:camel.adoc#camel-api[Using existing routes]
+
 * xref:testing/testing.adoc[Testing applications]
 
 //* xref:amqp.adoc[AMQP 1.0]

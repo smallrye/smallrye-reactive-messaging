@@ -11,7 +11,7 @@ To enable the Google Cloud Pub/Sub support, you need the following dependency:
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-gcp-pubsub</artifactId>
-  <version>{version}</version>
+  <version>{project-version}</version>
 </dependency>
 ----
 

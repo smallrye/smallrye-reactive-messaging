@@ -8,7 +8,7 @@ To use the AMQP Connector, add the following dependency to your project:
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-amqp</artifactId>
-  <version>{version}</version>
+  <version>{project-version}</version>
 </dependency>
 ----
 

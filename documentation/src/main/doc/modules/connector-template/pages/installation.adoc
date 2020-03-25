@@ -8,7 +8,7 @@ To you the $CONNECTOR Connector, add the following dependency to your project:
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-$CONNECTOR</artifactId>
-  <version>{version}</version>
+  <version>{project-version}</version>
 </dependency>
 ----
 

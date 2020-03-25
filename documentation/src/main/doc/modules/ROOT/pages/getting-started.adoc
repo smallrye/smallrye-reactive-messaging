@@ -11,7 +11,7 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-provider</artifactId>
-  <version>{version}</version>
+  <version>{project-version}</version>
 </dependency>
 <dependency>
  <groupId>io.smallrye.reactive</groupId>

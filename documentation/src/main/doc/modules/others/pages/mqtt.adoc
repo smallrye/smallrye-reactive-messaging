@@ -21,7 +21,7 @@ To enable the MQTT client support, you need the following dependency:
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
-  <version>{version}</version>
+  <version>{project-version}</version>
 </dependency>
 ----
 
@@ -89,7 +89,7 @@ To enable the MQTT server support, you need the following dependency:
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-mqtt-server</artifactId>
-  <version>{version}</version>
+  <version>{project-version}</version>
 </dependency>
 ----
 

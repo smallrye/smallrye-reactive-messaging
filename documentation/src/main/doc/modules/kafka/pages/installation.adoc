@@ -8,7 +8,7 @@ To use the Kafka Connector, add the following dependency to your project:
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging-kafka</artifactId>
-  <version>{version}</version>
+  <version>{project-version}</version>
 </dependency>
 ----
 
