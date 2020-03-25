@@ -229,7 +229,14 @@ public class SubscriberMediator extends AbstractMediator {
             sub = ((SubscriberBuilder) result).build();
         }
         if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
-            SubscriberWrapper<Object, Message> wrapper = new SubscriberWrapper<>(sub, x -> ((Message) x).getPayload());
+            SubscriberWrapper<Object, Message> wrapper = new SubscriberWrapper<>(sub, x -> ((Message) x).getPayload(), (x) -> {
+                Message m = ((Message) x);
+                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                    return m.ack();
+                } else {
+                    return CompletableFuture.completedFuture(null);
+                }
+            });
             this.subscriber = ReactiveStreams.<Message> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
                     .via(wrapper)
@@ -238,7 +245,7 @@ public class SubscriberMediator extends AbstractMediator {
             Subscriber<Message> casted = (Subscriber<Message>) sub;
             this.subscriber = ReactiveStreams.<Message> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
-                    .via(new SubscriberWrapper<>(casted, Function.identity()))
+                    .via(new SubscriberWrapper<>(casted, Function.identity(), null))
                     .ignore();
         }
     }

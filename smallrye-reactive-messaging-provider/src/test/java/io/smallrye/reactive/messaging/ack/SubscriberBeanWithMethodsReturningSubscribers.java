@@ -124,8 +124,9 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     public Subscriber<Message<String>> subWithDefaultAckWithMessage() {
         return ReactiveStreams.<Message<String>> builder()
                 .forEach(m -> {
-                    processed(DEFAULT_PROCESSING_ACK_MESSAGE, m.getPayload());
-                    microNap();
+                    m.ack().thenAccept(x -> {
+                        processed(DEFAULT_PROCESSING_ACK_MESSAGE, m.getPayload());
+                    });
                 })
                 .build();
     }

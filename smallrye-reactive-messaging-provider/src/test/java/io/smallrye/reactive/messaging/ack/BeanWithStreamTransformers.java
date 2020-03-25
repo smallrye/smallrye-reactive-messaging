@@ -278,22 +278,22 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     public PublisherBuilder<Message<String>> processorWithDefaultAckWithBuilder(
             PublisherBuilder<Message<String>> input) {
         return input
-            .flatMap(m -> {
-                AtomicInteger counter = new AtomicInteger();
-                return ReactiveStreams.of(Message.of(m.getPayload(), () -> {
-                    if (counter.incrementAndGet() == 2) {
-                        return m.ack();
-                    } else {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                }), Message.of(m.getPayload(), () -> {
-                    if (counter.incrementAndGet() == 2) {
-                        return m.ack();
-                    } else {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                }));
-            })
+                .flatMap(m -> {
+                    AtomicInteger counter = new AtomicInteger();
+                    return ReactiveStreams.of(Message.of(m.getPayload(), () -> {
+                        if (counter.incrementAndGet() == 2) {
+                            return m.ack();
+                        } else {
+                            return CompletableFuture.completedFuture(null);
+                        }
+                    }), Message.of(m.getPayload(), () -> {
+                        if (counter.incrementAndGet() == 2) {
+                            return m.ack();
+                        } else {
+                            return CompletableFuture.completedFuture(null);
+                        }
+                    }));
+                })
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT_BUILDER, m.getPayload()));
     }
 

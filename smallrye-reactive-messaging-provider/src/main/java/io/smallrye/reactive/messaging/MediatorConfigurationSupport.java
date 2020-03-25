@@ -478,12 +478,13 @@ public class MediatorConfigurationSupport {
             } else {
                 return Acknowledgment.Strategy.PRE_PROCESSING;
             }
-        } else if (shape == Shape.SUBSCRIBER
-                && (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD
-                        || consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE)) {
-            return Acknowledgment.Strategy.PRE_PROCESSING;
-        } else if (shape == Shape.SUBSCRIBER && consumption == MediatorConfiguration.Consumption.MESSAGE) {
-            return Acknowledgment.Strategy.MANUAL;
+        } else if (shape == Shape.SUBSCRIBER) {
+            if (consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
+                    || consumption == MediatorConfiguration.Consumption.MESSAGE) {
+                return Acknowledgment.Strategy.MANUAL;
+            } else {
+                return Acknowledgment.Strategy.POST_PROCESSING;
+            }
         } else {
             return Acknowledgment.Strategy.POST_PROCESSING;
         }
