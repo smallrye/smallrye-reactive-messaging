@@ -41,6 +41,12 @@
 *** xref:camel:camel.adoc#camel-outbound[Sending data using Camel]
 *** xref:camel:camel.adoc#camel-api[Using existing routes]
 
+** xref:jms:jms.adoc[JMS]
+*** xref:jms:jms.adoc#jms-installation[Using the connector]
+*** xref:jms:jms.adoc#jms-inbound[Receiving JMS Message]
+*** xref:jms:jms.adoc#jms-outbound[Sending JMS Message]
+*** xref:jms:jms.adoc#jms-configuration[Advanced configuration]
+
 * xref:testing/testing.adoc[Testing applications]
 
 //* xref:amqp.adoc[AMQP 1.0]
