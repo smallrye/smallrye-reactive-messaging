@@ -109,18 +109,30 @@ public class PublisherMediator extends AbstractMediator {
         setPublisher(ReactiveStreams.fromPublisher(pub).map(Message::of));
     }
 
-    private void produceIndividualMessages() {
-        setPublisher(ReactiveStreams.generate(() -> {
-            Message<?> message = invoke();
-            Objects.requireNonNull(message,
-                    "The method " + configuration.methodAsString() + " returned an invalid value: null");
-            return message;
-        }));
+    private <T> void produceIndividualMessages() {
+        if (configuration.isBlocking()) {
+            setPublisher(ReactiveStreams.<Uni<T>> generate(this::invokeBlocking)
+                    .flatMapCompletionStage(Uni::subscribeAsCompletionStage)
+                    .map(message -> (Message<?>)message));
+        } else {
+            setPublisher(ReactiveStreams.generate(() -> {
+                Message<?> message = invoke();
+                Objects.requireNonNull(message,
+                        "The method " + configuration.methodAsString() + " returned an invalid value: null");
+                return message;
+            }));
+        }
     }
 
     private <T> void produceIndividualPayloads() {
-        setPublisher(ReactiveStreams.<T> generate(this::invoke)
-                .map(Message::of));
+        if (configuration.isBlocking()) {
+            setPublisher(ReactiveStreams.<Uni<T>> generate(this::invokeBlocking)
+                    .flatMapCompletionStage(Uni::subscribeAsCompletionStage)
+                    .map(Message::of));
+        } else {
+            setPublisher(ReactiveStreams.<T> generate(this::invoke)
+                    .map(Message::of));
+        }
     }
 
     private void produceIndividualCompletionStageOfMessages() {

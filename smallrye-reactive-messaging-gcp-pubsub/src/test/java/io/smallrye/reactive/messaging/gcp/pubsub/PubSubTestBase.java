@@ -14,6 +14,8 @@ import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
@@ -46,6 +48,8 @@ public class PubSubTestBase {
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(ChannelProducer.class);
+        weld.addBeanClass(ExecutionHolder.class);
+        weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
         weld.addBeanClass(PubSubManager.class);

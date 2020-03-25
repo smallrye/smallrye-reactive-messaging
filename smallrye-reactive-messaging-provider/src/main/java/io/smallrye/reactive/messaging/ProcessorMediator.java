@@ -251,7 +251,21 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningIndividualPayloadAndConsumingIndividualItem() {
         // Item can be message or payload.
         if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-            this.processor = ReactiveStreams.<Message<?>> builder()
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input.getPayload()))
+                                .subscribeAsCompletionStage()
+                                .thenApply(result -> {
+                                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                        return input.withPayload(result);
+                                    } else {
+                                        return Message.of(result, input.getMetadata());
+                                    }
+                                }))
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
                     .<Message<?>> map(input -> {
                         Object result = invoke(input.getPayload());
@@ -262,8 +276,23 @@ public class ProcessorMediator extends AbstractMediator {
                         }
                     })
                     .buildRs();
+            }
         } else {
-            this.processor = ReactiveStreams.<Message<?>> builder()
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input))
+                                .subscribeAsCompletionStage()
+                                .thenApply(result -> {
+                                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                        return Message.of(result, input::ack);
+                                    } else {
+                                        return Message.of(result);
+                                    }
+                                }))
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
                     .<Message<?>> map(input -> {
                         Object result = invoke(input);
@@ -274,6 +303,7 @@ public class ProcessorMediator extends AbstractMediator {
                         }
                     })
                     .buildRs();
+            }
         }
     }
 

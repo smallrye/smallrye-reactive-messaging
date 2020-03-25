@@ -130,7 +130,7 @@ public class SubscriberMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
-                    .flatMapCompletionStage(message -> ((Uni<?>) invoke(message.getPayload()))
+                    .flatMapCompletionStage(message -> ((Uni<?>) invokeBlocking(message.getPayload()))
                             .subscribeAsCompletionStage()
                             .thenApply(x -> message))
                     .flatMapCompletionStage(x -> {

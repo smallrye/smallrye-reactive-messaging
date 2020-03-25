@@ -8,9 +8,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
+import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.AnnotatedType;
@@ -42,9 +44,14 @@ public class WorkerPoolRegistry {
     private Map<String, Integer> workerDefinitions = new HashMap<>();
     private Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
 
-    public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    public void terminate(
+            @Observes(notifyObserver = Reception.IF_EXISTS)
+            @Priority(100)
+            @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (!workerExecutors.isEmpty()) {
-            workerExecutors.values().forEach(WorkerExecutor::close);
+            for (WorkerExecutor executor : workerExecutors.values()) {
+                executor.close();
+            }
         }
     }
 

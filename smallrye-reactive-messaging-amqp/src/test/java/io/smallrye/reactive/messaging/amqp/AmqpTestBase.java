@@ -8,7 +8,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
 
-import io.vertx.mutiny.core.Vertx;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import repeat.RepeatRule;
 
 public class AmqpTestBase {
@@ -21,21 +21,22 @@ public class AmqpTestBase {
     @Rule
     public RepeatRule rule = new RepeatRule();
 
-    Vertx vertx;
+    ExecutionHolder executionHolder;
     String address;
     Integer port;
     AmqpUsage usage;
 
     @Before
     public void setup() {
-        vertx = Vertx.vertx();
+        executionHolder = new ExecutionHolder();
+        executionHolder.init();
         address = artemis.getContainerIpAddress();
         port = artemis.getMappedPort(5672);
         System.setProperty("amqp-host", address);
         System.setProperty("amqp-port", Integer.toString(port));
         System.setProperty("amqp-user", "artemis");
         System.setProperty("amqp-pwd", "simetraehcapa");
-        usage = new AmqpUsage(vertx, address, port);
+        usage = new AmqpUsage(executionHolder.vertx(), address, port);
     }
 
     @After
@@ -45,7 +46,8 @@ public class AmqpTestBase {
 
         CountDownLatch latch = new CountDownLatch(1);
         usage.close();
-        vertx.close().subscribe().with(x -> latch.countDown(), f -> latch.countDown());
+        executionHolder.vertx().close().subscribe().with(x -> latch.countDown(), f -> latch.countDown());
+        executionHolder.terminate(null);
 
         latch.await();
 

@@ -5,9 +5,9 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
+import javax.enterprise.event.Reception;
 import javax.inject.Inject;
 
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -15,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
@@ -39,7 +40,8 @@ public class MqttServerConnector implements IncomingConnectorFactory {
         this.vertx = executionHolder.vertx();
     }
 
-    public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    public void terminate(
+            @Observes(notifyObserver = Reception.IF_EXISTS) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (source != null) {
             source.close();
         }

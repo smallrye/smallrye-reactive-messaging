@@ -4,9 +4,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
+import javax.enterprise.event.Reception;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -57,7 +59,10 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     private Vertx vertx;
 
-    public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    public void terminate(
+            @Observes(notifyObserver = Reception.IF_EXISTS)
+            @Priority(50)
+            @BeforeDestroyed(ApplicationScoped.class) Object event) {
         sources.forEach(KafkaSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
     }

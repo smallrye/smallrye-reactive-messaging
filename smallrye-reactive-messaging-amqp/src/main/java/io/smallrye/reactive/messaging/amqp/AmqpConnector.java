@@ -16,7 +16,6 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -31,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
@@ -87,6 +87,11 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     @PostConstruct
     void init() {
         this.vertx = executionHolder.vertx();
+    }
+
+    // Needed for testing
+    void setup(ExecutionHolder executionHolder) {
+        this.executionHolder = executionHolder;
     }
 
     AmqpConnector() {

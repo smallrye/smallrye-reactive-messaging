@@ -14,7 +14,6 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.core.Vertx;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
@@ -68,6 +68,11 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         LOGGER.info("Initializing Connector");
         this.vertx = executionHolder.vertx().getDelegate();
         executor = Executors.newSingleThreadExecutor();
+    }
+
+    // For Testing
+    void setup(ExecutionHolder executionHolder) {
+        this.executionHolder = executionHolder;
     }
 
     /**
