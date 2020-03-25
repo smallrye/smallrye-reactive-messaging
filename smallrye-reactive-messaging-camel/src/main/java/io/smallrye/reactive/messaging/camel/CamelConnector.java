@@ -117,7 +117,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
 
             @Override
             public void onFailure(Exchange exchange) {
-                LOGGER.error("Exchange failed");
+                LOGGER.error("Exchange failed", exchange.getException());
             }
         });
         return exchange;
