@@ -135,7 +135,7 @@
     <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
   </li>
   <li class="nav-item" data-depth="3">
-    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messaging</a>
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
   </li>
   <li class="nav-item" data-depth="3">
     <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
@@ -145,10 +145,91 @@
   </li>
 </ul>
   </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
 </ul>
   </li>
   <li class="nav-item" data-depth="1">
     <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
   </li>
 </ul>
   </li>
@@ -212,111 +293,6 @@ the <a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x 
 </div>
 </div>
 <div class="sect1">
-<h2 id="_mqtt_client_incoming_or_outgoing"><a class="anchor" href="#_mqtt_client_incoming_or_outgoing"></a>MQTT client (incoming or outgoing)</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>For if you want to produce or consumer MQTT messages coming or going to an MQTT broker
-or server.</p>
-</div>
-<div class="sect2">
-<h3 id="_dependency"><a class="anchor" href="#_dependency"></a>Dependency</h3>
-<div class="paragraph">
-<p>To enable the MQTT client support, you need the following dependency:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
-  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
-  &lt;artifactId&gt;smallrye-reactive-messaging-mqtt&lt;/artifactId&gt;
-  &lt;version&gt;2.0&lt;/version&gt;
-&lt;/dependency&gt;</code></pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_retrieving_messages_from_an_mqtt_broker_or_server"><a class="anchor" href="#_retrieving_messages_from_an_mqtt_broker_or_server"></a>Retrieving messages from an MQTT broker or server</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>mp.messaging.incoming.data.topic=data
-mp.messaging.incoming.data.connector=smallrye-mqtt
-mp.messaging.incoming.data.host=localhost
-mp.messaging.incoming.data.port=8883
-mp.messaging.incoming.data.username=username
-mp.messaging.incoming.data.password=secret
-mp.messaging.incoming.data.broadcast=true</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Message coming from MQTT are <code>Message&lt;byte[]&gt;</code>. The payload is a <code>byte[]</code>. You can also receive
-<code>io.smallrye.reactive.messaging.mqtt.MqttMessage</code> which give you access to message metadata.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-If the <code>topic</code> attribute is not set the channel name is used instead.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_forwarding_messages_to_an_mqtt_broker_or_server"><a class="anchor" href="#_forwarding_messages_to_an_mqtt_broker_or_server"></a>Forwarding messages to an MQTT broker or server</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>mp.messaging.outgoing.data.topic=data
-mp.messaging.outgoing.data.connector=smallrye-mqtt
-mp.messaging.outgoing.data.host=localhost
-mp.messaging.outgoing.data.port=8883
-mp.messaging.outgoing.data.username=username
-mp.messaging.outgoing.data.password=secret</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The payload of message forwarded to an MQTT broker or server must be:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>a <code>io.vertx.core.json.JsonObject</code> or a <code>io.vertx.core.json.JsonArray</code></p>
-</li>
-<li>
-<p>a <code>String</code> or a primitive types</p>
-</li>
-<li>
-<p>a <code>byte[]</code> or a Vert.x Buffer</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Other objects are mapped to JSON.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-If the <code>topic</code> attribute is not set the channel name is used instead.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_advanced_configuration"><a class="anchor" href="#_advanced_configuration"></a>Advanced configuration</h3>
-<div class="paragraph">
-<p>Check <code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource</code> and
-<code>io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink</code> for further details on the attributes.</p>
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
 <h2 id="_mqtt_server"><a class="anchor" href="#_mqtt_server"></a>MQTT server</h2>
 <div class="sectionbody">
 <div class="paragraph">
@@ -349,7 +325,7 @@ The server has no persistence, if no subscribers are listening, messages will be
 </table>
 </div>
 <div class="sect2">
-<h3 id="_dependency_2"><a class="anchor" href="#_dependency_2"></a>Dependency</h3>
+<h3 id="_dependency"><a class="anchor" href="#_dependency"></a>Dependency</h3>
 <div class="paragraph">
 <p>To enable the MQTT server support, you need the following dependency:</p>
 </div>
@@ -358,7 +334,7 @@ The server has no persistence, if no subscribers are listening, messages will be
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-mqtt-server&lt;/artifactId&gt;
-  &lt;version&gt;2.0&lt;/version&gt;
+  &lt;version&gt;2.0.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
