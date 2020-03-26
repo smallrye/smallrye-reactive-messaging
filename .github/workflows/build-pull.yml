@@ -57,4 +57,5 @@ jobs:
                 java-version: 'openjdk8'
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
-              run: cd documentation; mvn verify scm:check-local-modification -Dincludes=src/main/doc/antora.yml
+              run: mvn install -DskipTests; mvn -pl documentation scm:check-local-modification -Dincludes=src/main/doc/antora.yml
+
