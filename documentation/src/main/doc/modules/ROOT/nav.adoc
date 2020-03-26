@@ -31,7 +31,7 @@
 
 ** xref:amqp:amqp.adoc[AMQP]
 *** xref:amqp:amqp.adoc#amqp-installation[Using the connector]
-*** xref:amqp:amqp.adoc#amqp-inbound[Receiving AMQP Messaging]
+*** xref:amqp:amqp.adoc#amqp-inbound[Receiving AMQP Messages]
 *** xref:amqp:amqp.adoc#amqp-outbound[Sending AMQP Messages]
 *** xref:amqp:amqp.adoc#amqp-customization[Configuring the client]
 
@@ -43,9 +43,14 @@
 
 ** xref:jms:jms.adoc[JMS]
 *** xref:jms:jms.adoc#jms-installation[Using the connector]
-*** xref:jms:jms.adoc#jms-inbound[Receiving JMS Message]
-*** xref:jms:jms.adoc#jms-outbound[Sending JMS Message]
+*** xref:jms:jms.adoc#jms-inbound[Receiving JMS Messages]
+*** xref:jms:jms.adoc#jms-outbound[Sending JMS Messages]
 *** xref:jms:jms.adoc#jms-configuration[Advanced configuration]
+
+** xref:mqtt:mqtt.adoc[MQTT]
+*** xref:mqtt:mqtt.adoc#mqtt-installation[Using the connector]
+*** xref:mqtt:mqtt.adoc#mqtt-inbound[Receiving MQTT Messages]
+*** xref:mqtt:mqtt.adoc#mqtt-outbound[Sending MQTT Messages]
 
 * xref:testing/testing.adoc[Testing applications]
 

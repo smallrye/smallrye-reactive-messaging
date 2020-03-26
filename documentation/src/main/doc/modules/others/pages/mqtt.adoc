@@ -7,69 +7,6 @@ the https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client[Vert.x MQTT Clien
 2. you can receive MQTT messages as an MQTT server. The MQTT support is based on the
 https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_server[Vert.x MQTT Server]
 
-== MQTT client (incoming or outgoing)
-
-For if you want to produce or consumer MQTT messages coming or going to an MQTT broker
-or server.
-
-=== Dependency
-
-To enable the MQTT client support, you need the following dependency:
-
-[source,xml,subs=attributes+]
-----
-<dependency>
-  <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
-  <version>{project-version}</version>
-</dependency>
-----
-
-=== Retrieving messages from an MQTT broker or server
-
-[source]
-----
-mp.messaging.incoming.data.topic=data
-mp.messaging.incoming.data.connector=smallrye-mqtt
-mp.messaging.incoming.data.host=localhost
-mp.messaging.incoming.data.port=8883
-mp.messaging.incoming.data.username=username
-mp.messaging.incoming.data.password=secret
-mp.messaging.incoming.data.broadcast=true
-----
-
-Message coming from MQTT are `Message<byte[]>`. The payload is a `byte[]`. You can also receive
-`io.smallrye.reactive.messaging.mqtt.MqttMessage` which give you access to message metadata.
-
-NOTE: If the `topic` attribute is not set the channel name is used instead.
-
-=== Forwarding messages to an MQTT broker or server
-
-[source]
-----
-mp.messaging.outgoing.data.topic=data
-mp.messaging.outgoing.data.connector=smallrye-mqtt
-mp.messaging.outgoing.data.host=localhost
-mp.messaging.outgoing.data.port=8883
-mp.messaging.outgoing.data.username=username
-mp.messaging.outgoing.data.password=secret
-----
-
-The payload of message forwarded to an MQTT broker or server must be:
-
-* a `io.vertx.core.json.JsonObject` or a `io.vertx.core.json.JsonArray`
-* a `String` or a primitive types
-* a `byte[]` or a Vert.x Buffer
-
-Other objects are mapped to JSON.
-
-NOTE: If the `topic` attribute is not set the channel name is used instead.
-
-=== Advanced configuration
-
-Check `io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSource` and
-`io.smallrye.reactive.messaging.mqtt.MqttSource.MqttSink` for further details on the attributes.
-
 == MQTT server
 
 For if you want your code to act as an MQTT server to receive MQTT messages from one or more
