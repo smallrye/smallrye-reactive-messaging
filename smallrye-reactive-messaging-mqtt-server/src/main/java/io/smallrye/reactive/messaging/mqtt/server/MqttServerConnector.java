@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt.server;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
@@ -12,10 +14,20 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 @Connector(MqttServerConnector.CONNECTOR_NAME)
+
+@ConnectorAttribute(name = "auto-generated-client-id", type = "boolean", direction = INCOMING, description = "Set if the MQTT server must generate clientId automatically", defaultValue = "true")
+@ConnectorAttribute(name = "ssl", type = "boolean", direction = INCOMING, description = "Set whether SSL/TLS is enabled", defaultValue = "false")
+@ConnectorAttribute(name = "max-message-size", type = "int", direction = INCOMING, description = "Set max MQTT message size. -1 means no limit", defaultValue = "-1")
+@ConnectorAttribute(name = "timeout-on-connect", type = "int", direction = INCOMING, description = "Connect timeout in seconds", defaultValue = "90")
+@ConnectorAttribute(name = "receive-buffer-size", type = "int", direction = INCOMING, description = "The receive buffer size", defaultValue = "-1")
+@ConnectorAttribute(name = "host", type = "string", direction = INCOMING, description = "Set the MQTT server host name/IP", defaultValue = "0.0.0.0")
+@ConnectorAttribute(name = "port", type = "int", description = "Set the MQTT server port. Default to 8883 if ssl is enabled, or 1883 without ssl", direction = INCOMING)
+@ConnectorAttribute(name = "broadcast", description = "Whether or not the messages should be dispatched to multiple consumers", type = "boolean", direction = INCOMING, defaultValue = "false")
 public class MqttServerConnector implements IncomingConnectorFactory {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt-server";
@@ -46,7 +58,7 @@ public class MqttServerConnector implements IncomingConnectorFactory {
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         if (source == null) {
-            source = new MqttServerSource(vertx, config);
+            source = new MqttServerSource(vertx, new MqttServerConnectorIncomingConfiguration(config));
         }
         return source.source();
     }
