@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 echo "Cleaning"
-mvn clean -N
+mvn clean -pl documentation
 
 
 echo "Building the doc from project root"
@@ -10,16 +10,16 @@ mvn javadoc:aggregate -DskipTests
 echo "Cloning repo"
 cd documentation || exit
 mvn verify
-
-# TODO Check that src/main/doc/antora.yml is not dirty
+mvn scm:check-local-modification -Dincludes=src/main/doc/antora.yml
+export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 antora generate target/antora/antora-playbook.yml --clean
 
 cd target || exit
 git clone -b gh-pages git@github.com:smallrye/smallrye-reactive-messaging.git site
 echo "Copy content"
-cp -R antora/build/site/* site/2.x-preview
-# TODO Versioning of the javadoc
-cp -R apidocs site/2.x-preview
+yes | cp -R antora/build/site/* site/2.x-preview
+mkdir -p "site/2.x-preview/${VERSION}"
+yes | cp -R apidocs "site/2.x-preview/${VERSION}"
 
 echo "Pushing"
 cd site  || exit
