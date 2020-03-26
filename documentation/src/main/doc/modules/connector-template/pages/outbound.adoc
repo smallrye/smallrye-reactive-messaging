@@ -14,7 +14,7 @@ Configure your application to write the messages from the `prices` channel into 
 ----
 $BASE_URL_PROPERTY=$URL      # <1> TASK: CHANGE HERE
 
-mp.messaging.incoming.prices.connector=$CONNECTOR-NAME       # <2>
+mp.messaging.outgoing.prices.connector=$CONNECTOR-NAME       # <2>
 $OTHER_ATTRIBUTES  # <3>
 ----
 1. Configure the broker location. You can configure it globally or per channel <-- TASK: CHANGE HERE

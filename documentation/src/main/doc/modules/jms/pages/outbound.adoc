@@ -12,7 +12,7 @@ Configure your application to write the messages from the `prices` channel into 
 
 [source]
 ----
-mp.messaging.incoming.prices.connector=smallrye-jms       # <1>
+mp.messaging.outgoing.prices.connector=smallrye-jms       # <1>
 ----
 1. Sets the connector for the `prices` channel
 
