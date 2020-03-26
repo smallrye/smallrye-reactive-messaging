@@ -35,7 +35,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<MqttMessage> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
@@ -59,7 +59,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<MqttMessage> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
@@ -85,7 +85,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("port", port);
         config.put("broadcast", true);
 
-        MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<MqttMessage> messages1 = new ArrayList<>();
         List<MqttMessage> messages2 = new ArrayList<>();
