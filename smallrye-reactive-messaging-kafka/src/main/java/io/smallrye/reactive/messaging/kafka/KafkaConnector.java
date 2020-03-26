@@ -60,9 +60,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     private Vertx vertx;
 
     public void terminate(
-            @Observes(notifyObserver = Reception.IF_EXISTS)
-            @Priority(50)
-            @BeforeDestroyed(ApplicationScoped.class) Object event) {
+            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         sources.forEach(KafkaSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
     }

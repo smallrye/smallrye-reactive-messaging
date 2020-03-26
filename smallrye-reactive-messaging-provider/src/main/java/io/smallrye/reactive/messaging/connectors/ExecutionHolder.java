@@ -21,9 +21,7 @@ public class ExecutionHolder {
     private Vertx vertx;
 
     public void terminate(
-            @Observes(notifyObserver = Reception.IF_EXISTS)
-            @Priority(200)
-            @BeforeDestroyed(ApplicationScoped.class) Object event) {
+            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(200) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {
             vertx.close().await().indefinitely();
         }

@@ -144,6 +144,10 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             Broadcast annotation = method.getAnnotation(Broadcast.class);
             return annotation != null ? annotation.value() : null;
         });
+
+        if (this.isBlocking) {
+            this.mediatorConfigurationSupport.validateBlocking(validationOutput);
+        }
     }
 
     @Override

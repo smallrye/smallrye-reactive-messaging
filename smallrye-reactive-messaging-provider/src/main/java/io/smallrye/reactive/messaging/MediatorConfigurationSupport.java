@@ -510,6 +510,29 @@ public class MediatorConfigurationSupport {
         return null;
     }
 
+    public void validateBlocking(ValidationOutput validationOutput) {
+        if (!(validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_MESSAGE)
+                || validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD)
+                || validationOutput.production.equals(MediatorConfiguration.Production.NONE))) {
+            throw getBlockingError("The @Blocking annotation is only supported for methods returning Message or a payload");
+        }
+
+        if (!(validationOutput.consumption.equals(MediatorConfiguration.Consumption.MESSAGE)
+                || validationOutput.consumption.equals(MediatorConfiguration.Consumption.PAYLOAD)
+                || validationOutput.consumption.equals(MediatorConfiguration.Consumption.NONE))) {
+            throw getBlockingError(
+                    "The @Blocking annotation is only supported for methods with parameters of Message or a payload");
+        }
+
+        if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
+            throw getBlockingError("The @Blocking annotation is only supported for methods returning Message or a payload");
+        }
+    }
+
+    private DefinitionException getBlockingError(String message) {
+        return new DefinitionException("Invalid method annotated with @Blocking: " + methodAsString + " - " + message);
+    }
+
     private DefinitionException getOutgoingError(String message) {
         return new DefinitionException("Invalid method annotated with @Outgoing: " + methodAsString + " - " + message);
     }

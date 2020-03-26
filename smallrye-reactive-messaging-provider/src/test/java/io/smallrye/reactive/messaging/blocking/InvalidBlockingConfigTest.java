@@ -12,7 +12,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
-public class InvalidBlockingTest extends WeldTestBaseWithoutTails {
+public class InvalidBlockingConfigTest extends WeldTestBaseWithoutTails {
     @Test(expected = DeploymentException.class)
     public void testBlockingWithNoIncomingOutgoingFails() {
         addBeanClass(InvalidBean.class);

@@ -236,15 +236,33 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningIndividualMessageAndConsumingIndividualItem() {
         // Item can be message or payload
         if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-            this.processor = ReactiveStreams.<Message<?>> builder()
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input.getPayload()))
+                                .subscribeAsCompletionStage()
+                                .thenApply(result -> (Message<?>) result))
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
                     .map(input -> (Message<?>) invoke(input.getPayload()))
                     .buildRs();
+            }
         } else {
-            this.processor = ReactiveStreams.<Message<?>> builder()
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input))
+                                .subscribeAsCompletionStage()
+                                .thenApply(result -> (Message<?>) result))
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
                     .map(input -> (Message<?>) invoke(input))
                     .buildRs();
+            }
         }
     }
 

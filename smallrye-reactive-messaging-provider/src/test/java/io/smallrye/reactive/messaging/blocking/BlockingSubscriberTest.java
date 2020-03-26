@@ -20,7 +20,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
-public class BlockingTest extends WeldTestBaseWithoutTails {
+public class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
     @BeforeClass
     public static void setupConfig() {
@@ -46,7 +46,9 @@ public class BlockingTest extends WeldTestBaseWithoutTails {
 
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
-        threadNames.forEach(name -> assertThat(name.startsWith("vert.x-worker-thread-")).isTrue());
+        for (String name : threadNames) {
+            assertThat(name.startsWith("vert.x-worker-thread-")).isTrue();
+        }
     }
 
     @Test
@@ -63,7 +65,9 @@ public class BlockingTest extends WeldTestBaseWithoutTails {
 
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
-        threadNames.forEach(name -> assertThat(name.startsWith("vert.x-worker-thread-")).isTrue());
+        for (String name : threadNames) {
+            assertThat(name.startsWith("vert.x-worker-thread-")).isTrue();
+        }
     }
 
     @Test
@@ -81,8 +85,12 @@ public class BlockingTest extends WeldTestBaseWithoutTails {
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.size()).isLessThanOrEqualTo(2);
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
-        threadNames.forEach(name -> assertThat(name.startsWith("my-pool-")).isTrue());
-        threadNames.forEach(name -> assertThat(name.startsWith("vert.x-worker-thread-")).isFalse());
+        for (String name : threadNames) {
+            assertThat(name.startsWith("my-pool-")).isTrue();
+        }
+        for (String name : threadNames) {
+            assertThat(name.startsWith("vert.x-worker-thread-")).isFalse();
+        }
     }
 
     @Test
@@ -100,8 +108,12 @@ public class BlockingTest extends WeldTestBaseWithoutTails {
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.size()).isLessThanOrEqualTo(2);
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
-        threadNames.forEach(name -> assertThat(name.startsWith("my-pool-")).isTrue());
-        threadNames.forEach(name -> assertThat(name.startsWith("vert.x-worker-thread-")).isFalse());
+        for (String name : threadNames) {
+            assertThat(name.startsWith("my-pool-")).isTrue();
+        }
+        for (String name : threadNames) {
+            assertThat(name.startsWith("vert.x-worker-thread-")).isFalse();
+        }
     }
 
     @Test
@@ -119,8 +131,12 @@ public class BlockingTest extends WeldTestBaseWithoutTails {
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.size()).isLessThanOrEqualTo(5);
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
-        threadNames.forEach(name -> assertThat(name.startsWith("another-pool-")).isTrue());
-        threadNames.forEach(name -> assertThat(name.startsWith("vert.x-worker-thread-")).isFalse());
+        for (String name : threadNames) {
+            assertThat(name.startsWith("another-pool-")).isTrue();
+        }
+        for (String name : threadNames) {
+            assertThat(name.startsWith("vert.x-worker-thread-")).isFalse();
+        }
     }
 
     @ApplicationScoped
