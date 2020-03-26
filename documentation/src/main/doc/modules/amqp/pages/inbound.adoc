@@ -48,7 +48,7 @@ The connector converts incoming AMQP Messages into Reactive Messaging `Message<T
 
 The http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html[AMQP Type System] defines the supported types.
 
-[options=headers]
+[options="header"]
 |===
 | AMQP Body Type | `<T>`
 | AMQP Value containing a http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html#section-primitive-type-definitions[AMQP Primitive Type] | the corresponding Java type

@@ -45,7 +45,7 @@ include::example$outbound/AmqpPriceMessageProducer.java[]
 When receiving a `Message<T>`, the connector convert the message into an AMQP Message.
 The payload is converted to the AMQP Message _body_.
 
-[options=headers]
+[options=header]
 |===
 | `T` | AMQP Message Body
 | primitive types or `String` | AMQP Value with the payload
