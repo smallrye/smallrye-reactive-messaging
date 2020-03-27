@@ -5,7 +5,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-public class PulsarSource implements Publisher<Message>, Subscription {
+public class PulsarSource<Message> implements Publisher<Message>, Subscription {
 
     @Override
     public void subscribe(Subscriber<? super Message> subscriber) {
