@@ -23,8 +23,7 @@ include::example$messages/MessageExamples.java[tag=copy]
 .Acknowledgement?
 ====
 Acknowledgement is an important part of messaging system.
-This will be covered in a dedicated section.
-// TODO link section.
+This will be covered in the xref:acknowledgement/acknowledgement.adoc[acknowledgement] section.
 ====
 
 [NOTE]

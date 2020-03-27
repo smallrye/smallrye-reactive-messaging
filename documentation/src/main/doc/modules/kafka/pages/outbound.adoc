@@ -54,7 +54,7 @@ By default, the written record contains:
 
 === Outbound Metadata
 
-When sending `Messages`, you can add an instance of `io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata` to influence how the message is going to written to Kafka.
+When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html[`OutgoingKafkaRecordMetadata`] to influence how the message is going to written to Kafka.
 For example, you can configure the topic directly in the message, or add Kafka headers, configure the record key...
 
 [source, java]

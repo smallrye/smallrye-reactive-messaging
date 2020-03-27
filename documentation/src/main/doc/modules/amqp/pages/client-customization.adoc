@@ -1,7 +1,7 @@
 [#amqp-customization]
 == Customizing the underlying AMQP client
 
-You can customize the underlying AMQP Client configuration by _producing_ an instance of `io.vertx.amqp.AmqpClientOptions`:
+You can customize the underlying AMQP Client configuration by _producing_ an instance of https://vertx.io/docs/apidocs/io/vertx/amqp/AmqpClientOptions.html[`AmqpClientOptions`]:
 
 [source,java,indent=0]
 ----

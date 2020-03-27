@@ -48,7 +48,7 @@ If you want to use a custom deserializer, add it to your `CLASSPATH` and configu
 
 === Inbound Metadata
 
-Messages coming from Kafka contains an instance of `io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata<K, T>` in the metadata.
+Messages coming from Kafka contains an instance of {javadoc-base}/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html[IncomingKafkaRecordMetadata<K, T>] in the metadata.
 `K` is the type of the record's key.
 `T` is the type of the record's value.
 It provides the key, topic, partitions, headers and so on:

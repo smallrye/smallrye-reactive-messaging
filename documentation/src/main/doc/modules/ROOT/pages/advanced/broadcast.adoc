@@ -9,7 +9,7 @@
 By default, messages transiting in a channel are only dispatched to a single consumer.
 Having multiple consumers is considered as an error, and is reported at deployment time.
 
-The `io.smallrye.reactive.messaging.annotations.Broadcast` annotation changes this behavior and indicates that messages transiting in the channel are dispatched to all the consumers.
+The {javadoc-base}/io/smallrye/reactive/messaging/annotations/Broadcast.html[`Broadcast`] annotation changes this behavior and indicates that messages transiting in the channel are dispatched to all the consumers.
 `@Broadcast` must be used with the `@Outgoing` annotation:
 
 [source, java, indent=0]

@@ -50,14 +50,14 @@ The payload is converted to the AMQP Message _body_.
 | `T` | AMQP Message Body
 | primitive types or `String` | AMQP Value with the payload
 | `Instant` or `UUID` | AMQP Value using the corresponding AMQP Type
-| `io.vertx.core.json.JsonObject` or `io.vertx.core.json.JsonArray` | AMQP Data using a binary content. The `content-type` is set to `application/json`
+| https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`] or https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html[`JsonArray`] | AMQP Data using a binary content. The `content-type` is set to `application/json`
 | `io.vertx.mutiny.core.buffer.Buffer` | AMQP Data using a binary content. No `content-type` set
 | Any other class | The payload is converted to JSON (using a Json Mapper). The result is wrapped into AMQP Data using a binary content. The `content-type` is set to `application/json`
 |===
 
 === Outbound Metadata
 
-When sending `Messages`, you can add an instance of `io.smallrye.reactive.messaging.amqp.OutgoingAmqpMetadata` to influence how the message is going to sent to AMQP.
+When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/amqp/OutgoingAmqpMetadata.html[`OutgoingAmqpMetadata`] to influence how the message is going to sent to AMQP.
 For example, you can configure the address, subjects, properties:
 
 [source, java]

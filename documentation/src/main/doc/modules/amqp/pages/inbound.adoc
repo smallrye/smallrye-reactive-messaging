@@ -54,13 +54,13 @@ The http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html[AM
 | AMQP Value containing a http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html#section-primitive-type-definitions[AMQP Primitive Type] | the corresponding Java type
 | AMQP Value using the `Binary` type | `byte[]`
 | AMQP Sequence | `List`
-| AMQP Data and the `content-type` is set to `application/json` | `io.vertx.core.json.JsonObject`
+| AMQP Data and the `content-type` is set to `application/json` | https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`]
 | AMQP Data with a different `content-type` | `byte[]`
 |===
 
 === Inbound Metadata
 
-Messages coming from AMQP contains an instance of `io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata` in the metadata.
+Messages coming from AMQP contains an instance of {javadoc-base}/io/smallrye/reactive/messaging/amqp/IncomingAmqpMetadata.html[`IncomingAmqpMetadata`] in the metadata.
 
 [source, java]
 ----

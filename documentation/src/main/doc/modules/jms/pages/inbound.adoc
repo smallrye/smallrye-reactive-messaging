@@ -57,7 +57,7 @@ If not, the default behavior is used (Java deserialization).
 
 === Inbound Metadata
 
-Messages coming from JMS contains an instance of `io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata` in the metadata.
+Messages coming from JMS contains an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/jms/IncomingJmsMessageMetadata.html[`IncomingJmsMessageMetadata`] in the metadata.
 
 [source, java]
 ----

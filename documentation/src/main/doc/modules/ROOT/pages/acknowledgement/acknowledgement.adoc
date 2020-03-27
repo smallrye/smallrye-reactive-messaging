@@ -82,7 +82,7 @@ include::example$ack/StreamAckExamples.java[tag=payload]
 
 === Controlling acknowledgement
 
-The `org.eclipse.microprofile.reactive.messaging.Acknowledgment` annotation lets you customize the default strategy that have been covered in the previous sections.
+The {javadoc-base}/org/eclipse/microprofile/reactive/messaging/Acknowledgment.html[`Acknowledgment`] annotation lets you customize the default strategy that have been covered in the previous sections.
 The `@Acknowledgement` annotation takes a _strategy_ as parameter.
 Reactive Messaging proposed 4 strategies:
 

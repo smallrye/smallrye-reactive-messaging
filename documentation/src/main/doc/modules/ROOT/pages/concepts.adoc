@@ -5,8 +5,6 @@ When dealing with event-driven or data streaming application, there are a few co
 [#messages]
 == Messages, Payload, Metadata
 
-
-
 A `Message` is an _envelope_ around a `payload`.
 Your application is going to receive, process and send `Messages`.
 
@@ -15,7 +13,7 @@ They can also be consumed by your application, or sent to a message broker.
 
 image::messages.png[]
 
-In Reactive Messaging, `Message` are represented by the `org.eclipse.microprofile.reactive.messaging.Message` class.
+In Reactive Messaging, `Message` are represented by the {javadoc-base}/org/eclipse/microprofile/reactive/messaging/Message.html[`Message`] class.
 Each `Message<T>` contains a _payload_ of type `<T>`. This payload can be retrieved using `message.getPayload()`:
 
 [source, java, indent=0]
@@ -25,13 +23,11 @@ include::example$messages/MessageExamples.java[tag=message]
 
 As you can see in the previous snippet, `Messages` can also have _metadata_.
 _Metadata_ are a way to extend messages with additional data.
-It can be metadata related to the message broker (`io.smallrye.reactive.messaging.kafka.KafkaMessageMetadata` for instance), or contain operational data (such as tracing metadata), or business-related data.
+It can be metadata related to the message broker ({javadoc-base}/apidocs/io/smallrye/reactive/messaging/kafka/KafkaMessageMetadata.html[`KafkaMessageMetadata`] for instance), or contain operational data (such as tracing metadata), or business-related data.
 
 NOTE: When retrieving metadata, you get an `Optional` as it may not be present.
 
-TIP: Metadata are also used to influence the outbound dispatching (how the message is going to be sent to the broker). //TODO Add link to dedicated section
-
-// TODO Link javadoc
+TIP: Metadata are also used to influence the outbound dispatching (how the message is going to be sent to the broker).
 
 [#channels]
 == Channels and Streams

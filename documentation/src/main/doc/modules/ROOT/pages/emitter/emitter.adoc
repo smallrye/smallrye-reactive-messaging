@@ -8,8 +8,8 @@ In other words, send messages to channels handled by reactive messaging and how 
 
 To send _things_ (payload or `Message`) from imperative code to a specific channel you need to use:
 
-1. the `org.eclipse.microprofile.reactive.messaging.Channel` annotations
-2. the `org.eclipse.microprofile.reactive.messaging.Emitter` type
+1. the {javadoc-base}/org/eclipse/microprofile/reactive/messaging/Channel.html[`org.eclipse.microprofile.reactive.messaging.Channel`] annotations
+2. the {javadoc-base}/org/eclipse/microprofile/reactive/messaging/Emitter.html[`org.eclipse.microprofile.reactive.messaging.Emitter`] type
 
 The `@Channel` lets you indicate to which channel you are going to send your payloads or messages.
 The `Emitter` is the object to use to send these payloads or messages.
@@ -75,7 +75,7 @@ When sending messages from imperative code to reactive code, you must be aware o
 Indeed, messages sent using the emitter and stored in a _queue_.
 If the consumer does not process the messages quickly enough, this queue can become a memory hog and you may even run out of memory.
 
-To control what need to happen when the queue becomes out of control, use the `org.eclipse.microprofile.reactive.messaging.OnOverflow` annotation.
+To control what need to happen when the queue becomes out of control, use the {javadoc-base}/org/eclipse/microprofile/reactive/messaging/OnOverflow.Strategy.html[`org.eclipse.microprofile.reactive.messaging.OnOverflow`] annotation.
 `@OnOverflow` lets you configure:
 
 * the maximum size of the queue (default is 256)

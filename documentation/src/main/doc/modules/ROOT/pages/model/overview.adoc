@@ -3,8 +3,8 @@
 
 Reactive Messaging provides two main annotations:
 
-* `org.eclipse.microprofile.reactive.messaging.Incoming` - indicates the consumed channel
-* `org.eclipse.microprofile.reactive.messaging.Outgoing` - indicates the populated channel
+* {javadoc-base}/org/eclipse/microprofile/reactive/messaging/Incoming.html[`org.eclipse.microprofile.reactive.messaging.Incoming`] - indicates the consumed channel
+* {javadoc-base}/org/eclipse/microprofile/reactive/messaging/Outgoing.html[`org.eclipse.microprofile.reactive.messaging.Outgoing`] - indicates the populated channel
 
 These annotations are used on #methods#:
 

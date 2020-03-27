@@ -40,8 +40,8 @@ include::example$outbound/MqttPriceMessageProducer.java[]
 
 The `Message` sent to MQTT can have various payload types:
 
-* `io.vertx.core.json.JsonObject`: JSON string encoded as `byte[]`
-* `io.vertx.core.json.JsonArray`: JSON string encoded as `byte[]`
+* https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`]: JSON string encoded as `byte[]`
+* https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html[`JsonArray`]: JSON string encoded as `byte[]`
 * `java.lang.String` and Java primitive types: `toString` encoded as `byte[]`
 * `byte[]`
 * complex objects: The objects are encoded to JSON and passed as `byte[]`
