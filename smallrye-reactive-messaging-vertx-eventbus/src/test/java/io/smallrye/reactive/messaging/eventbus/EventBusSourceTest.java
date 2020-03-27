@@ -34,7 +34,8 @@ public class EventBusSourceTest extends EventbusTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<EventBusMessage> messages = new ArrayList<>();
         Multi.createFrom().publisher(source.source().buildRs())
@@ -57,7 +58,8 @@ public class EventBusSourceTest extends EventbusTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("broadcast", true);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<EventBusMessage> messages1 = new ArrayList<>();
         List<EventBusMessage> messages2 = new ArrayList<>();
@@ -87,7 +89,8 @@ public class EventBusSourceTest extends EventbusTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("use-reply-as-ack", true);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
                 .onItem().castTo(EventBusMessage.class)
@@ -109,7 +112,8 @@ public class EventBusSourceTest extends EventbusTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
                 .onItem().castTo(EventBusMessage.class);

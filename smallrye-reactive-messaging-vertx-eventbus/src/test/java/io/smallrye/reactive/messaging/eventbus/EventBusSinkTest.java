@@ -40,9 +40,9 @@ public class EventBusSinkTest extends EventbusTestBase {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NoSuchElementException.class)
     public void rejectSinkWithoutAddress() {
-        new EventBusSink(vertx, new MapBasedConfig(Collections.emptyMap()));
+        new EventBusSink(vertx, new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(Collections.emptyMap())));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -51,7 +51,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         config.put("address", "hello");
         config.put("publish", true);
         config.put("expect-reply", true);
-        new EventBusSink(vertx, new MapBasedConfig(config));
+        new EventBusSink(vertx, new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
     }
 
     @Test
@@ -63,7 +63,8 @@ public class EventBusSinkTest extends EventbusTestBase {
 
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
+        EventBusSink sink = new EventBusSink(vertx,
+                new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
@@ -83,7 +84,8 @@ public class EventBusSinkTest extends EventbusTestBase {
 
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
+        EventBusSink sink = new EventBusSink(vertx,
+                new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
@@ -108,7 +110,8 @@ public class EventBusSinkTest extends EventbusTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("publish", true);
-        EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
+        EventBusSink sink = new EventBusSink(vertx,
+                new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
@@ -134,7 +137,8 @@ public class EventBusSinkTest extends EventbusTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("publish", false);
-        EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
+        EventBusSink sink = new EventBusSink(vertx,
+                new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
@@ -164,7 +168,8 @@ public class EventBusSinkTest extends EventbusTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("expect-reply", true);
-        EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
+        EventBusSink sink = new EventBusSink(vertx,
+                new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
@@ -191,7 +196,8 @@ public class EventBusSinkTest extends EventbusTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("codec", "PersonCodec");
-        EventBusSink sink = new EventBusSink(vertx, new MapBasedConfig(config));
+        EventBusSink sink = new EventBusSink(vertx,
+                new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)

@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.eventbus;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -18,21 +17,20 @@ public class EventBusSink {
     private final boolean publish;
     private final boolean expectReply;
     private final String codec;
-    private final int timeout;
+    private final long timeout;
 
-    EventBusSink(Vertx vertx, Config config) {
+    EventBusSink(Vertx vertx, VertxEventBusConnectorOutgoingConfiguration config) {
         this.vertx = Objects.requireNonNull(vertx, "Vert.x instance must not be `null`");
-        this.address = config.getOptionalValue("address", String.class)
-                .orElseThrow(() -> new IllegalArgumentException("`address` must be set"));
-        this.publish = config.getOptionalValue("publish", Boolean.class).orElse(false);
-        this.expectReply = config.getOptionalValue("expect-reply", Boolean.class).orElse(false);
+        this.address = config.getAddress();
+        this.publish = config.getPublish();
+        this.expectReply = config.getExpectReply();
 
         if (this.publish && this.expectReply) {
             throw new IllegalArgumentException("Cannot enable `publish` and `expect-reply` at the same time");
         }
 
-        this.codec = config.getOptionalValue("codec", String.class).orElse(null);
-        this.timeout = config.getOptionalValue("timeout", Integer.class).orElse(-1);
+        this.codec = config.getCodec().orElse(null);
+        this.timeout = config.getTimeout();
     }
 
     SubscriberBuilder<? extends Message<?>, Void> sink() {
