@@ -1,0 +1,26 @@
+[#mqtt-server-installation]
+== Using the MQTT Server connector
+
+To you the MQTT Server Connector, add the following dependency to your project:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-mqtt-server</artifactId>
+  <version>{project-version}</version>
+</dependency>
+----
+
+The connector name is: `smallrye-mqtt-server`.
+
+So, to indicate that a channel is managed by this connector you need:
+
+[source]
+----
+# Inbound
+mp.messaging.incoming.[channel-name].connector=smallrye-mqtt
+----
+
+IMPORTANT: The MQTT Server connector only implement the inbound connector facet.
+

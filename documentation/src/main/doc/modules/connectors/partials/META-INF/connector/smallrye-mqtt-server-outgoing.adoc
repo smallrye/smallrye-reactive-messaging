@@ -1,0 +1,6 @@
+.Outgoing Attributes of the 'smallrye-mqtt-server' connector
+[cols="25, 30, 15, 20",options="header"]
+|===
+|Attribute (_alias_) | Description | Mandatory | Default
+
+|===

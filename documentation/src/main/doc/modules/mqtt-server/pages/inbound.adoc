@@ -1,0 +1,49 @@
+[#mqtt-server-inbound]
+== Receiving messages from MQTT Clients
+
+The MQTT Server Connector starts an MQTT server and dispatches the messages sent by connected clients.
+It maps each of them into Reactive Messaging `Messages`.
+
+=== Example
+
+Configure your application to receive MQTT messages on the `prices` channel as follows:
+
+[source]
+----
+mp.messaging.incoming.prices.connector=smallrye-mqtt-server # <1>
+----
+1. Sets the connector for the `prices` channel
+
+NOTE: By default, the server starts on the host/interface `0.0.0.0` and port 1883. This can be overridden with the `host` and `port` attributes.
+
+IMPORTANT: Message coming from MQTT have a `byte[]` payload.
+
+Then, your application receives `Message<byte[]>`.
+You can consumes the payload directly:
+
+[source, java]
+----
+include::example$inbound/MqttServerPriceConsumer.java[]
+----
+
+Or, you can retrieve the `Message<byte[]>`:
+
+[source, java]
+----
+include::example$inbound/MqttServerPriceMessageConsumer.java[]
+----
+
+=== Deserialization
+
+The MQTT Connector does not handle the deserialization and creates a `Message<byte[]>`.
+
+=== Inbound Metadata
+
+The MQTT connector does not provide inbound metadata.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-mqtt-server-incoming.adoc[]
+
+The MQTT connector is based on the https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_server[Vert.x MQTT server].
+So you can pass any attribute supported by this server.

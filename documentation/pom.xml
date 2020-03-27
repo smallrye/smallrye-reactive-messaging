@@ -58,6 +58,11 @@
       <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-mqtt-server</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>jakarta.jms</groupId>
@@ -118,6 +123,7 @@
                 <source>src/main/doc/modules/camel/examples</source>
                 <source>src/main/doc/modules/jms/examples</source>
                 <source>src/main/doc/modules/mqtt/examples</source>
+                <source>src/main/doc/modules/mqtt-server/examples</source>
               </sources>
             </configuration>
           </execution>

@@ -1,0 +1,24 @@
+= MQTT Server
+
+The MQTT Server connector starts an MQTT server and forwards messages sent from MQTT clients to your Reactive Messaging application.
+The  MQTT Server connector is based on the https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_server[Vert.x MQTT Server].
+
+== Introduction
+
+http://mqtt.org/[MQTT] is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol.
+It was designed as an extremely lightweight publish/subscribe messaging transport.
+
+Unlike the MQTT Connector, this connector starts an MQTT server and receives messages from connected clients.
+These messages are routed to your Reactive Messaging application.
+
+WARNING: This isn't a fully featured MQTT server, it will only handle publish requests and their
+acknowledgment (for QoS 1 & 2). It will ignore subscription requests for instance.
+
+NOTE: The server has no persistence, if no subscribers are listening, messages will be dropped.
+
+
+include::installation.adoc[]
+include::inbound.adoc[]
+
+
+

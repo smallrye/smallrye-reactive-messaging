@@ -3,7 +3,7 @@
 The MQTT connector adds support for MQTT to Reactive Messaging.
 
 It lets you receive messages from an MQTT server or broker as well as send MQTT messages.
-The  MQTT connector is based on the https://vertx.io/docs/vertx-mqtt/java/[Vert.x MQTT Client].
+The  MQTT connector is based on the https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client[Vert.x MQTT Client].
 
 == Introduction
 
