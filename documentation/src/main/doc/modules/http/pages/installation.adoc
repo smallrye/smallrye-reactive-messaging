@@ -1,0 +1,26 @@
+[#http-installation]
+== Using the HTTP connector
+
+To you the HTTP Connector, add the following dependency to your project:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-http</artifactId>
+  <version>{project-version}</version>
+</dependency>
+----
+
+The connector name is: `smallrye-http`.
+
+So, to indicate that a channel is managed by this connector you need:
+
+[source]
+----
+# Outbound
+mp.messaging.outgoing.[channel-name].connector=smallrye-http
+----
+
+IMPORTANT: This connector only implements the outbound connector facet.
+

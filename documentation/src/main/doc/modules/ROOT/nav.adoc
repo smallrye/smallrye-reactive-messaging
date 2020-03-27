@@ -53,6 +53,9 @@
 *** xref:mqtt:mqtt.adoc#mqtt-outbound[Sending MQTT Messages]
 *** xref:mqtt-server:mqtt-server.adoc#[Exposing an MQTT server]
 
+** xref:http:http.adoc[HTTP]
+*** xref:http:http.adoc#http-installation[Using the connector]
+*** xref:http:http.adoc#http-outbound[Sending HTTP request]
 
 * xref:emitter/emitter.adoc[Emitters and Channels]
 ** xref:emitter/emitter.adoc#emitter-payloads[Sending payloads]
