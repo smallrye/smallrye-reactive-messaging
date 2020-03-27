@@ -1,8 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
-import org.eclipse.microprofile.config.Config;
-
 import io.vertx.core.json.JsonObject;
+import org.eclipse.microprofile.config.Config;
 
 public class JsonHelper {
 

@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.pulsar;
 import io.vertx.mutiny.core.Vertx;
 import org.junit.*;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 

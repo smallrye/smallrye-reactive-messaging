@@ -1,15 +1,5 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-
-import org.jboss.weld.environment.se.Weld;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-
 import io.debezium.kafka.KafkaCluster;
 import io.debezium.util.Testing;
 import io.smallrye.config.inject.ConfigExtension;
@@ -20,6 +10,15 @@ import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.vertx.mutiny.core.Vertx;
+import org.jboss.weld.environment.se.Weld;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Properties;
 
 public class KafkaTestBase {
 

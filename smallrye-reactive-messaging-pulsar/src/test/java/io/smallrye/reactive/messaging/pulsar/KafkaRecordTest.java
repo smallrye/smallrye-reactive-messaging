@@ -1,14 +1,14 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class KafkaRecordTest {
 

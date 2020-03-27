@@ -1,8 +1,6 @@
 package io.smallrye.reactive.messaging.pulsar;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.weld.junit5.WeldInitiator;
-import org.jboss.weld.junit5.WeldSetup;
 import org.testcontainers.containers.PulsarContainer;
 
 import javax.enterprise.context.SessionScoped;

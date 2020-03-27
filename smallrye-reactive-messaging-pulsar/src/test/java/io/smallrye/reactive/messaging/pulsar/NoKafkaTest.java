@@ -1,21 +1,8 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
-import static org.awaitility.Awaitility.await;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.enterprise.context.ApplicationScoped;
-
+import io.reactivex.Flowable;
+import io.reactivex.exceptions.MissingBackpressureException;
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -27,9 +14,20 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
-import io.reactivex.exceptions.MissingBackpressureException;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
+import javax.enterprise.context.ApplicationScoped;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+import static org.awaitility.Awaitility.await;
 
 public class NoKafkaTest {
 
