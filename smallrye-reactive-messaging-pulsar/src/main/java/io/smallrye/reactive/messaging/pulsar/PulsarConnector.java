@@ -1,15 +1,8 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.pulsar;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.BeforeDestroyed;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.vertx.mutiny.core.Vertx;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -19,13 +12,18 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.mutiny.core.Vertx;
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.BeforeDestroyed;
+import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @ApplicationScoped
-@Connector(KafkaConnector.CONNECTOR_NAME)
-public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+@Connector(PulsarConnector.CONNECTOR_NAME)
+public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     static final String CONNECTOR_NAME = "smallrye-kafka";
 
