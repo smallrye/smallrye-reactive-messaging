@@ -65,19 +65,13 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-http</artifactId>
+      <artifactId>smallrye-reactive-messaging-vertx-eventbus</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>jakarta.jms</groupId>
       <artifactId>jakarta.jms-api</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-vertx-eventbus</artifactId>
-      <version>${project.version}</version>
     </dependency>
 
     <dependency>
@@ -130,6 +124,7 @@
                 <source>src/main/doc/modules/mqtt/examples</source>
                 <source>src/main/doc/modules/mqtt-server/examples</source>
                 <source>src/main/doc/modules/http/examples</source>
+                <source>src/main/doc/modules/vertx-event-bus/examples</source>
               </sources>
             </configuration>
           </execution>

@@ -57,6 +57,11 @@
 *** xref:http:http.adoc#http-installation[Using the connector]
 *** xref:http:http.adoc#http-outbound[Sending HTTP request]
 
+** xref:vertx-event-bus:vertx-event-bus.adoc[Vert.x Event Bus]
+*** xref:vertx-event-bus:vertx-event-bus.adoc#vertx-event-bus-installation[Using the connector]
+*** xref:vertx-event-bus:vertx-event-bus.adoc#vertx-event-bus-inbound[Event Bus Messages]
+*** xref:vertx-event-bus:vertx-event-bus.adoc#vertx-event-bus-outbound[Sending Event Bus Messages]
+
 * xref:emitter/emitter.adoc[Emitters and Channels]
 ** xref:emitter/emitter.adoc#emitter-payloads[Sending payloads]
 ** xref:emitter/emitter.adoc#emitter-messages[Sending messages]

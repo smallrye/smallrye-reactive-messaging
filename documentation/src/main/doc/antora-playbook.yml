@@ -8,6 +8,8 @@ content:
         - url: ../
           start_path: documentation/target/antora
           branches: HEAD
+          edit_url: 'https://github.com/smallrye/smallrye-reactive-messaging/master/documentation/{path}'
+
 ui:
     bundle:
         url: ./ui-bundle.zip
