@@ -4,7 +4,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
-import com.sun.org.apache.xpath.internal.operations.Mult;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -17,8 +16,6 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.mutiny.Multi;
 import io.vertx.mutiny.core.Vertx;
-
-import java.util.concurrent.CompletableFuture;
 
 @ApplicationScoped
 @Connector(PulsarConnector.CONNECTOR_NAME)
