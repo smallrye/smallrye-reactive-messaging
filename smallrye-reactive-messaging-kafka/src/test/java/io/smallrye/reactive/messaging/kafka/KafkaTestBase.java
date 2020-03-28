@@ -89,7 +89,7 @@ public class KafkaTestBase {
         return weld;
     }
 
-    static void addConfig(MapBasedConfig config) {
+    public static void addConfig(MapBasedConfig config) {
         if (config != null) {
             config.write();
         } else {

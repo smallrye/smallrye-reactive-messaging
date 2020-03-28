@@ -1,0 +1,27 @@
+[#vertx-event-bus-installation]
+== Using the Vert.x Event Bus connector
+
+To you the Vert.x Event Bus Connector, add the following dependency to your project:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-vertx-eventbus</artifactId>
+  <version>{project-version}</version>
+</dependency>
+----
+
+The connector name is: `smallrye-vertx-eventbus`.
+
+So, to indicate that a channel is managed by this connector you need:
+
+[source]
+----
+# Inbound
+mp.messaging.incoming.[channel-name].connector=smallrye-vertx-eventbus
+
+# Outbound
+mp.messaging.outgoing.[channel-name].connector=smallrye-vertx-eventbus
+----
+

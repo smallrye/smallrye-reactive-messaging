@@ -45,7 +45,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         Subscriber subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -70,7 +70,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         Subscriber subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -95,7 +95,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         Subscriber subscriber = sink.getSink().build();
         Flowable.range(0, 10)

@@ -1,0 +1,61 @@
+[#vertx-event-bus-outbound]
+== Sending Vert.x Event Bus messages
+
+The Vert.x Event Bus Connector can send/publish Reactive Messaging `Messages` as Event Bus Message.
+
+=== Example
+
+Configure your application to send the messages from the `prices` channel on the event bus as follows:
+
+[source]
+----
+mp.messaging.outgoing.prices.connector=smallrye-vertx-eventbus       # <1>
+mp.messaging.outgoing.prices.address=<the-eventbus-address>          # <2>
+----
+1. Sets the connector for the `prices` channel
+2. Sets the event bus address on which the messages are sent
+
+Then, your application must send `Message<Double>` to the `prices` channel.
+It can use `double` payloads as in the following snippet:
+
+[source, java]
+----
+include::example$outbound/EventBusPriceProducer.java[]
+----
+
+Or, you can send `Message<Double>`:
+
+[source, java]
+----
+include::example$outbound/EventBusPriceMessageProducer.java[]
+----
+
+=== Serialization
+
+The serialization is handled by teh Vert.x Event Bus.
+You can configure the `codec` attribute to indicate which codec should be used to encode the payload:
+
+[source]
+----
+mp.messaging.outgoing.prices.connector=smallrye-vertx-eventbus
+mp.messaging.outgoing.prices.address=<the-eventbus-address>
+mp.messaging.outgoing.prices.codec=PriceCodec
+----
+
+The codec must have been registered on the event bus beforehand.
+
+=== Acknowledgement
+
+The Vert.x event bus does not support acknowledgement.
+However it provides reply support.
+
+You can set the `expect-reply` attribute to indicate that the Reactive Messaging message must be acknowledged when the reply is received.
+The `timeout` attribute lets you configure how long this reply is awaited.
+
+Note that `expect-reply` is incompatible with the `publish` attribute.
+If `expect-reply` is not set, the message is acknowledged just after having been sent/published on the event bus.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-vertx-eventbus-outgoing.adoc[]
+

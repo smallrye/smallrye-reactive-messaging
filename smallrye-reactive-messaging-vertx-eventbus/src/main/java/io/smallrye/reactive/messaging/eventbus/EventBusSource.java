@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.eventbus;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -19,12 +18,11 @@ class EventBusSource {
     private final Vertx vertx;
     private final boolean broadcast;
 
-    EventBusSource(Vertx vertx, Config config) {
+    EventBusSource(Vertx vertx, VertxEventBusConnectorIncomingConfiguration config) {
         this.vertx = Objects.requireNonNull(vertx, "The vert.x instance must not be `null`");
-        this.address = config.getOptionalValue("address", String.class)
-                .orElseThrow(() -> new IllegalArgumentException("`address` must be set"));
-        this.broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
-        this.ack = config.getOptionalValue("use-reply-as-ack", Boolean.class).orElse(false);
+        this.address = config.getAddress();
+        this.broadcast = config.getBroadcast();
+        this.ack = config.getUseReplyAsAck();
     }
 
     PublisherBuilder<? extends Message<?>> source() {
@@ -37,7 +35,7 @@ class EventBusSource {
                 .map(this::adapt);
     }
 
-    private Message<?> adapt(io.vertx.mutiny.core.eventbus.Message msg) {
+    private Message<?> adapt(io.vertx.mutiny.core.eventbus.Message<?> msg) {
         if (this.ack) {
             return new EventBusMessage<>(msg, () -> {
                 msg.replyAndForget("OK");

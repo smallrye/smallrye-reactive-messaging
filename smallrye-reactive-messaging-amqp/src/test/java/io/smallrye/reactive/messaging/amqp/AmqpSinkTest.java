@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.vertx.core.json.Json;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -334,6 +335,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
     private SubscriberBuilder<? extends Message, Void> createProviderAndSink(String topic) {
         Map<String, Object> config = new HashMap<>();
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("address", topic);
         config.put("name", "the name");
         config.put("host", address);
@@ -349,7 +351,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
     private SubscriberBuilder<? extends Message, Void> createProviderAndSinkUsingChannelName(String topic) {
         Map<String, Object> config = new HashMap<>();
-        config.put("channel-name", topic);
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("name", "the name");
         config.put("host", address);
         config.put("durable", false);

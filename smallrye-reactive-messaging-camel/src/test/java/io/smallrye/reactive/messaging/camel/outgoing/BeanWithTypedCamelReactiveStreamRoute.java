@@ -39,7 +39,8 @@ public class BeanWithTypedCamelReactiveStreamRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        from("seda:camel").process(exchange -> exchange.getOut().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
+        from("seda:camel")
+                .process(exchange -> exchange.getMessage().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
                 .to("reactive-streams:my-stream");
     }
 }

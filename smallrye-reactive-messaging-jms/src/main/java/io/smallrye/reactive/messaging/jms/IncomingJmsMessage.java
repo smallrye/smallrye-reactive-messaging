@@ -91,6 +91,9 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         if (clazz.equals(Byte.class)) {
             return (T) Byte.valueOf(value);
         }
+        if (clazz.equals(String.class)) {
+            return (T) value;
+        }
 
         return json.fromJson(value, clazz);
 

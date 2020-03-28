@@ -1,0 +1,35 @@
+= Testing without brokers
+
+It's not rare to have to test your application but deploying the infrastructure can be cumbersome.
+While Docker or Test Containers have improved the testing experience, you may want to _mock_ this infrastructure.
+
+SmallRye Reactive Messaging proposes an _in-memory_ connector for this exact purpose.
+It allows switching the connector used for a channel with an _in-memory_ connector.
+This in-memory connector provides a way to send messages to incoming channels, or check the received messages for outgoing
+channels.
+
+To use the _in-memory_ connector, you need to add the following dependency to your project:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
+  <version>{project-version}</version>
+  <scope>test</scope>
+</dependency>
+----
+
+Then, in a test, you can do something like:
+
+[source,java]
+----
+include::example$testing/MyTest.java[]
+----
+
+When switching a channel to the in-memory connector, all the configuration properties are ignored.
+
+[IMPORTANT]
+====
+This connector has been designed for testing purpose only.
+====

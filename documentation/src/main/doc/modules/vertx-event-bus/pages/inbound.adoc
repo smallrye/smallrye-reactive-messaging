@@ -1,0 +1,50 @@
+[#vertx-event-bus-inbound]
+== Receiving messages from the Vert.x Event Bus
+
+The Vert.x Event Bus Connector retrieves Event Bus Message and maps each of them into Reactive Messaging `Messages`.
+These messages are sent to the associated channel.
+
+=== Example
+
+
+Configure your application to receive Event Bus Message on the `prices` channel as follows:
+
+[source]
+----
+mp.messaging.incoming.prices.connector=smallrye-vertx-eventbus       # <1>
+mp.messaging.incoming.prices.address=the-eventbus-address            # <2>
+----
+1. Sets the connector for the `prices` channel
+2. Sets the `address` attribute - it's the listened event bus address
+
+Then, your application receives `Message<Double>`.
+You can consumes the payload directly:
+
+[source, java]
+----
+include::example$inbound/EventBusPriceConsumer.java[]
+----
+
+Or, you can retrieve the `Message<Double>`:
+
+[source, java]
+----
+include::example$inbound/EventBusPriceMessageConsumer.java[]
+----
+
+=== Deserialization
+
+The deserialization is handled by the Vert.x Event Bus.
+You need to configure the event bus sender to receive the right payload type.
+
+=== Acknowledgement
+
+The Vert.x event bus does not support acknowledgement.
+However it supports replies.
+If the `use-reply-as-ack` attribute is set to `true`, the connector sends a reply to the Event Bus Message when the produced Reactive Messaging message is acknowledged.
+The reply sent a simple `"OK"`.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-vertx-eventbus-incoming.adoc[]
+

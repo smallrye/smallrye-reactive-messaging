@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +19,6 @@ import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
@@ -46,6 +48,26 @@ import io.vertx.mutiny.core.buffer.Buffer;
 
 @ApplicationScoped
 @Connector(AmqpConnector.CONNECTOR_NAME)
+
+@ConnectorAttribute(name = "username", direction = INCOMING_AND_OUTGOING, description = "The username used to authenticate to the broker", type = "string", alias = "amqp-username")
+@ConnectorAttribute(name = "password", direction = INCOMING_AND_OUTGOING, description = "The password used to authenticate to the broker", type = "string", alias = "amqp-password")
+@ConnectorAttribute(name = "host", direction = INCOMING_AND_OUTGOING, description = "The broker hostname", type = "string", alias = "amqp-host", defaultValue = "localhost")
+@ConnectorAttribute(name = "port", direction = INCOMING_AND_OUTGOING, description = "The broker port", type = "int", alias = "amqp-port", defaultValue = "5672")
+@ConnectorAttribute(name = "use-ssl", direction = INCOMING_AND_OUTGOING, description = "Whether the AMQP connection uses SSL/TLS", type = "boolean", alias = "amqp-use-ssl", defaultValue = "false")
+@ConnectorAttribute(name = "reconnect-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of reconnection attempts", type = "int", alias = "amqp-reconnect-attempts", defaultValue = "100")
+@ConnectorAttribute(name = "reconnect-interval", direction = INCOMING_AND_OUTGOING, description = "The interval in second between two reconnection attempts", type = "int", alias = "amqp-reconnect-interval", defaultValue = "10")
+@ConnectorAttribute(name = "connect-timeout", direction = INCOMING_AND_OUTGOING, description = "The connection timeout in milliseconds", type = "int", alias = "amqp-connect-timeout", defaultValue = "1000")
+@ConnectorAttribute(name = "containerId", direction = INCOMING_AND_OUTGOING, description = "The AMQP container id", type = "string")
+@ConnectorAttribute(name = "address", direction = INCOMING_AND_OUTGOING, description = "The AMQP address. If not set, the channel name is used", type = "string")
+@ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
+
+@ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received AMQP messages must be acknowledged when received", type = "boolean", defaultValue = "false")
+
+@ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
+
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnector.class);
@@ -59,42 +81,6 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Inject
     private Instance<AmqpClientOptions> clientOptions;
-
-    @Inject
-    @ConfigProperty(name = "amqp-client-options-name")
-    private Optional<String> defaultClientOptionsName;
-
-    @Inject
-    @ConfigProperty(name = "amqp-port", defaultValue = "5672")
-    private Integer configuredPort;
-
-    @Inject
-    @ConfigProperty(name = "amqp-host", defaultValue = "localhost")
-    private String configuredHost;
-
-    @Inject
-    @ConfigProperty(name = "amqp-username")
-    private Optional<String> configuredUsername;
-
-    @Inject
-    @ConfigProperty(name = "amqp-password")
-    private Optional<String> configuredPassword;
-
-    @Inject
-    @ConfigProperty(name = "amqp-use-ssl")
-    private Optional<Boolean> configuredUseSsl;
-
-    @Inject
-    @ConfigProperty(name = "amqp-reconnect-attempts", defaultValue = "100")
-    private Optional<Integer> configuredReconnectAttempts;
-
-    @Inject
-    @ConfigProperty(name = "amqp-reconnect-interval", defaultValue = "10")
-    private Optional<Long> configuredReconnectInterval;
-
-    @Inject
-    @ConfigProperty(name = "amqp-connect-timeout", defaultValue = "1000")
-    private Optional<Integer> configuredConnectTimeout;
 
     private boolean internalVertxInstance = false;
     private Vertx vertx;
@@ -120,13 +106,11 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         this.vertx = null;
     }
 
-    private AmqpClient createClient(Config config) {
+    private AmqpClient createClient(AmqpConnectorCommonConfiguration config) {
         AmqpClient client;
-        Optional<String> clientOptionsName = config.getOptionalValue("client-options-name", String.class);
+        Optional<String> clientOptionsName = config.getClientOptionsName();
         if (clientOptionsName.isPresent()) {
             client = createClientFromClientOptionsBean(clientOptionsName.get());
-        } else if (this.defaultClientOptionsName != null && this.defaultClientOptionsName.isPresent()) {
-            client = createClientFromClientOptionsBean(this.defaultClientOptionsName.get());
         } else {
             client = getClient(config);
         }
@@ -144,80 +128,18 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         return AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()), options.get());
     }
 
-    private synchronized AmqpClient getClient(Config config) {
+    private synchronized AmqpClient getClient(AmqpConnectorCommonConfiguration config) {
         try {
-            String username = config.getOptionalValue("username", String.class)
-                    .orElseGet(() -> {
-                        if (this.configuredUsername != null) {
-                            return this.configuredUsername.orElse(null);
-                        } else {
-                            return null;
-                        }
-                    });
-            String password = config.getOptionalValue("password", String.class)
-                    .orElseGet(() -> {
-                        if (this.configuredPassword != null) {
-                            return this.configuredPassword.orElse(null);
-                        } else {
-                            return null;
-                        }
-                    });
-            String host = config.getOptionalValue("host", String.class)
-                    .orElseGet(() -> {
-                        if (this.configuredHost == null) {
-                            LOGGER.info("No AMQP host configured, using localhost");
-                            return "localhost";
-                        } else {
-                            return this.configuredHost;
-                        }
-                    });
-
-            int port = config.getOptionalValue("port", Integer.class)
-                    .orElseGet(() -> {
-                        if (this.configuredPort == null) {
-                            return 5672;
-                        } else {
-                            return this.configuredPort;
-                        }
-                    });
-
-            boolean useSsl = config.getOptionalValue("use-ssl", Boolean.class)
-                    .orElseGet(() -> {
-                        if (this.configuredUseSsl == null) {
-                            return false;
-                        } else {
-                            return this.configuredUseSsl.orElse(Boolean.FALSE);
-                        }
-                    });
-
-            int reconnectAttempts = config.getOptionalValue("reconnect-attempts", Integer.class)
-                    .orElseGet(() -> {
-                        if (this.configuredReconnectAttempts == null) {
-                            return 100;
-                        } else {
-                            return this.configuredReconnectAttempts.get();
-                        }
-                    });
-
-            long reconnectInterval = config.getOptionalValue("reconnect-interval", Long.class)
-                    .orElseGet(() -> {
-                        if (this.configuredReconnectInterval == null) {
-                            return 10L;
-                        } else {
-                            return this.configuredReconnectInterval.get();
-                        }
-                    });
-
-            int connectTimeout = config.getOptionalValue("connect-timeout", Integer.class)
-                    .orElseGet(() -> {
-                        if (this.configuredConnectTimeout == null) {
-                            return 1000;
-                        } else {
-                            return this.configuredConnectTimeout.get();
-                        }
-                    });
-
-            String containerId = config.getOptionalValue("containerId", String.class).orElse(null);
+            String username = config.getUsername().orElse(null);
+            String password = config.getPassword().orElse(null);
+            String host = config.getHost();
+            int port = config.getPort();
+            LOGGER.info("AMQP broker configured to {}:{} for channel {}", host, port, config.getChannel());
+            boolean useSsl = config.getUseSsl();
+            int reconnectAttempts = config.getReconnectAttempts();
+            int reconnectInterval = config.getReconnectInterval();
+            int connectTimeout = config.getConnectTimeout();
+            String containerId = config.getContainerId().orElse(null);
 
             AmqpClientOptions options = new AmqpClientOptions()
                     .setUsername(username)
@@ -242,20 +164,14 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         .map(m -> new AmqpMessage<>(m)));
     }
 
-    private String getAddressOrFail(Config config) {
-        return config.getOptionalValue("address", String.class)
-                .orElseGet(
-                        () -> config.getOptionalValue("channel-name", String.class)
-                                .orElseThrow(() -> new IllegalArgumentException("Address must be set")));
-    }
-
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        String address = getAddressOrFail(config);
-        boolean broadcast = config.getOptionalValue("broadcast", Boolean.class).orElse(false);
-        boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
-        boolean autoAck = config.getOptionalValue("auto-acknowledgement", Boolean.class).orElse(false);
-        Uni<AmqpReceiver> uni = createClient(config)
+        AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
+        String address = ic.getAddress().orElseGet(ic::getChannel);
+        boolean broadcast = ic.getBroadcast();
+        boolean durable = ic.getDurable();
+        boolean autoAck = ic.getAutoAcknowledgement();
+        Uni<AmqpReceiver> uni = createClient(ic)
                 .connect()
                 .flatMap(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
                         .setAutoAcknowledgement(autoAck)
@@ -275,14 +191,14 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        String configuredAddress = getAddressOrFail(config);
-        boolean durable = config.getOptionalValue("durable", Boolean.class).orElse(true);
-        long ttl = config.getOptionalValue("ttl", Long.class).orElse(0L);
+        AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
+        String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
+        boolean durable = oc.getDurable();
+        long ttl = oc.getTtl();
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        AmqpClient client = createClient(config);
+        AmqpClient client = createClient(oc);
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
             if (as == null) {

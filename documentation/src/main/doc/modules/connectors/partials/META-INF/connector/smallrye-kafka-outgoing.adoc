@@ -1,0 +1,48 @@
+.Outgoing Attributes of the 'smallrye-kafka' connector
+[cols="25, 30, 15, 20",options="header"]
+|===
+|Attribute (_alias_) | Description | Mandatory | Default
+
+| *acks* | The number of acknowledgments the producer requires the leader to have received before considering a request complete. This controls the durability of records that are sent. Accepted values are: 0, 1, all
+
+Type: _string_ | false | `1`
+
+| *bootstrap.servers*
+
+_(kafka.bootstrap.servers)_ | A comma-separated list of host:port to use for establishing the initial connection to the Kafka cluster.
+
+Type: _string_ | false | `localhost:9092`
+
+| *buffer.memory* | The total bytes of memory the producer can use to buffer records waiting to be sent to the server.
+
+Type: _long_ | false | `33554432`
+
+| *key* | A key to used when writing the record
+
+Type: _string_ | false | 
+
+| *key.serializer* | The serializer classname used to serialize the record's key
+
+Type: _string_ | false | `org.apache.kafka.common.serialization.StringSerializer`
+
+| *partition* | The target partition id. -1 to let the client determine the partition
+
+Type: _int_ | false | `-1`
+
+| *retries* | Setting a value greater than zero will cause the client to resend any record whose send fails with a potentially transient error.
+
+Type: _long_ | false | `2147483647`
+
+| *topic* | The consumed / populated Kafka topic. If not set, the channel name is used
+
+Type: _string_ | false | 
+
+| *value.serializer* | The serializer classname used to serialize the payload
+
+Type: _string_ | true | 
+
+| *waitForWriteCompletion* | Whether the client waits for Kafka to acknowledge the written record before acknowledging the message
+
+Type: _boolean_ | false | `true`
+
+|===

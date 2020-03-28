@@ -14,7 +14,6 @@ import javax.jms.Message;
 import javax.jms.Topic;
 import javax.json.bind.Jsonb;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
@@ -33,18 +32,17 @@ class JmsSource {
 
     private final JmsPublisher publisher;
 
-    JmsSource(JMSContext context, Config config, Jsonb json, Executor executor) {
-        String name = config.getOptionalValue("destination", String.class)
-                .orElseGet(() -> config.getValue("channel-name", String.class));
-
-        String selector = config.getOptionalValue("selector", String.class).orElse(null);
-        boolean nolocal = config.getOptionalValue("no-local", Boolean.TYPE).orElse(false);
-        boolean broadcast = config.getOptionalValue("broadcast", Boolean.TYPE).orElse(false);
+    JmsSource(JMSContext context, JmsConnectorIncomingConfiguration config, Jsonb json, Executor executor) {
+        String name = config.getDestination().orElseGet(config::getChannel);
+        String selector = config.getSelector().orElse(null);
+        boolean nolocal = config.getNoLocal();
+        boolean broadcast = config.getBroadcast();
+        boolean durable = config.getDurable();
 
         Destination destination = getDestination(context, name, config);
 
         JMSConsumer consumer;
-        if (config.getOptionalValue("durable", Boolean.TYPE).orElse(false)) {
+        if (durable) {
             if (!(destination instanceof Topic)) {
                 throw new IllegalArgumentException("Invalid destination, only topic can be durable");
             }
@@ -69,8 +67,8 @@ class JmsSource {
         publisher.close();
     }
 
-    private Destination getDestination(JMSContext context, String name, Config config) {
-        String type = config.getOptionalValue("destination-type", String.class).orElse("queue");
+    private Destination getDestination(JMSContext context, String name, JmsConnectorIncomingConfiguration config) {
+        String type = config.getDestinationType();
         switch (type.toLowerCase()) {
             case "queue":
                 LOGGER.info("Creating queue {}", name);

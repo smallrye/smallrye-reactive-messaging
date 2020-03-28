@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -26,10 +25,10 @@ public class HttpSource {
     private final Vertx vertx;
     private HttpServer server;
 
-    HttpSource(Vertx vertx, Config config) {
-        host = config.getOptionalValue("host", String.class).orElse("0.0.0.0");
-        port = config.getOptionalValue("port", Integer.class).orElse(8080);
+    HttpSource(Vertx vertx, HttpConnectorIncomingConfiguration config) {
         this.vertx = vertx;
+        this.host = config.getHost();
+        this.port = config.getPort();
     }
 
     PublisherBuilder<? extends Message<?>> source() {

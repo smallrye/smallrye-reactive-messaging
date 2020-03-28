@@ -1,0 +1,59 @@
+[#http-outbound]
+== Sending HTTP requests
+
+The HTTP Connector can map Reactive Messaging `Messages` as HTTP Request and send them to a remote HTTP service.
+
+=== Example
+
+Let's imagine you have a HTTP service running, and accessible using the `http://localhost:8089`.
+Configure your application to write the messages from the `service` channel into a HTTP request sent to this service as follows:
+
+[source]
+----
+mp.messaging.outgoing.service.connector=smallrye-http   # <1>
+mp.messaging.outgoing.service.url=http://localhost:8089  # <2>
+----
+1. Sets the connector for the `service` channel
+2. Configure the location of the HTTP service
+
+Then, your application must send `Message<String>` to the `service` channel.
+It can use `String` payloads as in the following snippet:
+
+[source, java]
+----
+include::example$outbound/HttpPriceProducer.java[]
+----
+
+Or, you can send `Message<String>`:
+
+[source, java]
+----
+include::example$outbound/HttpPriceMessageProducer.java[]
+----
+
+=== Serialization
+
+The HTTP connector support the following payloads:
+
+* `String`
+* `io.vertx.core.buffer.Buffer`
+* `byte[]`
+* `ByteBuffer`
+* https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`]
+* https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html[`JsonArray`]
+* Cloud Event
+
+The outgoing HTTP request body is the serialized payload (using one of the above types).
+The method is either `POST` (default) or `PUT`.
+
+=== Acknowledgement
+
+The `Message` is acknowledged when the HTTP service sends a `2xx` response.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-http-outgoing.adoc[]
+
+The  HTTP connector is based on the https://vertx.io/docs/vertx-web-client/java/[Vert.x Web Client].
+You can pass any supported property as channel attribute.
+

@@ -1,0 +1,94 @@
+.Outgoing Attributes of the 'smallrye-mqtt' connector
+[cols="25, 30, 15, 20",options="header"]
+|===
+|Attribute (_alias_) | Description | Mandatory | Default
+
+| *auto-clean-session* | Set to start with a clean session (`true` by default)
+
+Type: _boolean_ | false | `true`
+
+| *auto-generated-client-id* | Set if the MQTT client must generate clientId automatically
+
+Type: _boolean_ | false | `true`
+
+| *auto-keep-alive* | Set if the MQTT client must handle `PINGREQ` automatically
+
+Type: _boolean_ | false | `true`
+
+| *client-id* | Set the client identifier
+
+Type: _string_ | false | 
+
+| *connect-timeout-seconds* | Set the connect timeout (in seconds)
+
+Type: _int_ | false | `60`
+
+| *host* | Set the MQTT server host name/IP
+
+Type: _string_ | true | 
+
+| *keep-alive-seconds* | Set the keep alive timeout in seconds
+
+Type: _int_ | false | `30`
+
+| *max-inflight-queue* | Set max count of unacknowledged messages
+
+Type: _int_ | false | `10`
+
+| *max-message-size* | Set max MQTT message size. -1 means no limit
+
+Type: _int_ | false | `-1`
+
+| *password* | Set the password to connect to the server
+
+Type: _string_ | false | 
+
+| *port* | Set the MQTT server port. Default to 8883 if ssl is enabled, or 1883 without ssl
+
+Type: _int_ | false | 
+
+| *qos* | Set the QoS level when subscribing to the topic or when sending a message
+
+Type: _int_ | false | `0`
+
+| *reconnect-attempts* | Set the max reconnect attempts
+
+Type: _int_ | false | `5`
+
+| *reconnect-interval-seconds* | Set the reconnect interval in seconds
+
+Type: _int_ | false | `1`
+
+| *server-name* | Set the SNI server name
+
+Type: _string_ | false | 
+
+| *ssl* | Set whether SSL/TLS is enabled
+
+Type: _boolean_ | false | `false`
+
+| *topic* | Set the MQTT topic. If not set, the channel name is used
+
+Type: _string_ | false | 
+
+| *trust-all* | Set whether all server certificates should be trusted
+
+Type: _boolean_ | false | `false`
+
+| *username* | Set the username to connect to the server
+
+Type: _string_ | false | 
+
+| *will-flag* | Set if will information are provided on connection
+
+Type: _boolean_ | false | `false`
+
+| *will-qos* | Set the QoS level for the will message
+
+Type: _int_ | false | `0`
+
+| *will-retain* | Set if the will message must be retained
+
+Type: _boolean_ | false | `false`
+
+|===

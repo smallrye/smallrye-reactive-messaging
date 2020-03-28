@@ -14,6 +14,7 @@ import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -150,6 +151,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("host", address);
         config.put("name", "the name for broadcast");
         config.put("port", port);
@@ -445,6 +447,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     private Map<String, Object> getConfig(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, UUID.randomUUID().toString());
         config.put("host", address);
         config.put("port", port);
         config.put("name", "some name");
@@ -456,7 +459,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     @NotNull
     private Map<String, Object> getConfigUsingChannelName(String topic) {
         Map<String, Object> config = new HashMap<>();
-        config.put("channel-name", topic);
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("host", address);
         config.put("port", port);
         config.put("name", "some name");
