@@ -7,7 +7,7 @@
 
 Type: _string_ | true | 
 
-| *codec* | The class name of the codec used to encode the outgoing message
+| *codec* | The name of the codec used to encode the outgoing message. The codec must have been registered.
 
 Type: _string_ | false | 
 
