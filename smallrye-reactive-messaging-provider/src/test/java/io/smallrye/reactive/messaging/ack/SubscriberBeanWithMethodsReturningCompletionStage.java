@@ -110,17 +110,20 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
 
     @Incoming(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
     public CompletionStage<Void> defaultProcessingWithMessage(Message<String> message) {
-        return CompletableFuture.runAsync(() -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), EXECUTOR);
+        return CompletableFuture.runAsync(
+                () -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), EXECUTOR)
+                .thenCompose(x -> message.ack());
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
-    public Publisher<Message<String>> sourceToDefaultPocessingMessage() {
+    public Publisher<Message<String>> sourceToDefaultProcessingMessage() {
         return source(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
     }
 
     @Incoming(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
     public CompletionStage<Void> defaultProcessingWithPayload(String payload) {
-        return CompletableFuture.runAsync(() -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), EXECUTOR);
+        return CompletableFuture
+                .runAsync(() -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), EXECUTOR);
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)

@@ -37,7 +37,7 @@ CompletionStage<?> method(Message<I> msg)
 | @Incoming CompletionStage<?> method(I p) | Called for every incoming payload (sequentially) | #POST_PROCESSING#, PRE_PROCESSING, NONE
 | @Incoming Uni<?> method(Message<I> msg) | Called for every incoming message (sequentially) | #MANUAL#, NONE, PRE_PROCESSING
 | @Incoming Uni<?> method(I p) | Called for every incoming payload (sequentially) | #POST_PROCESSING#, PRE_PROCESSING, NONE
-| @Incoming Subscriber<Message<I>> method()  | Called once at _assembly_ time |  #POST_PROCESSING#, NONE, PRE_PROCESSING, MANUAL
+| @Incoming Subscriber<Message<I>> method()  | Called once at _assembly_ time |  #MANUAL#, POST_PROCESSING, NONE, PRE_PROCESSING
 | @Incoming Subscriber<I> method()  | Called once at _assembly_ time |  #POST_PROCESSING#, NONE, PRE_PROCESSING
 |===
 
@@ -78,7 +78,7 @@ Uni<O> method(I payload)
 |
 @Outgoing @Incoming
 Processor<Message<I>, Message<O>> method()
-| Called once at _assembly_ time |  #PRE_PROCESSING#, NONE, MANUAL | manual
+| Called once at _assembly_ time |  #MANUAL#, PRE_PROCESSING, NONE  | manual
 
 |
 @Outgoing @Incoming
@@ -87,7 +87,7 @@ Processor<I, O> method()
 
 | @Outgoing @Incoming
 ProcessorBuilder<Message<I>, Message<O>> method()
-| Called once at _assembly_ time |  #PRE_PROCESSING#, NONE, MANUAL | manual
+| Called once at _assembly_ time |  #MANUAL#, PRE_PROCESSING, NONE  | manual
 
 |
 @Outgoing @Incoming
@@ -97,7 +97,7 @@ ProcessorBuilder<I, O> method()
 |
 @Outgoing @Incoming
 Publisher<Message<O>> method(Message<I> msg)
-| Called once at _assembly_ time | #PRE_PROCESSING#, NONE, MANUAL | manual
+| Called once at _assembly_ time | #MANUAL#, PRE_PROCESSING, NONE  | manual
 
 |
 @Outgoing @Incoming
@@ -107,7 +107,7 @@ Publisher<O> method(I payload)
 |
 @Outgoing @Incoming
 Multi<Message<O>> method(Message<I> msg)
-| Called once at _assembly_ time | #PRE_PROCESSING#, NONE, MANUAL | manual
+| Called once at _assembly_ time | #MANUAL#, PRE_PROCESSING, NONE  | manual
 
 |
 @Outgoing @Incoming
@@ -118,7 +118,7 @@ Multi<O> method(I payload)
 |
 @Outgoing @Incoming
 PublisherBuilder<Message<O>> method(Message<I> msg)
-| Called once at _assembly_ time | #PRE_PROCESSING#, NONE, MANUAL | manual
+| Called once at _assembly_ time | #MANUAL#, PRE_PROCESSING, NONE  | manual
 
 |
 @Outgoing @Incoming

@@ -63,13 +63,13 @@ public class MessageProcessorAcknowledgementTest extends AcknowledgmentTestBase 
     @Test
     public void testDefaultAck() {
         SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-        assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
+        assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
     }
 
     @Test
     public void testDefaultAckBuilder() {
         SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-        assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_BUILDER);
+        assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_BUILDER);
     }
 
 }

@@ -6,7 +6,6 @@ import static org.awaitility.Awaitility.await;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -171,7 +170,7 @@ public class HttpSourceTest extends HttpTestBase {
         @Incoming("sink")
         public CompletionStage<Void> receive(Message m) {
             list.add(m);
-            return CompletableFuture.completedFuture(null);
+            return m.ack();
         }
 
         public List<Message> list() {

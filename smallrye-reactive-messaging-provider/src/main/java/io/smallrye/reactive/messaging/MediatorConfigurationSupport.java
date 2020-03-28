@@ -62,7 +62,8 @@ public class MediatorConfigurationSupport {
     private boolean isConsumingAPublisherOrAPublisherBuilder(Class[] parameterTypes) {
         if (parameterTypes.length >= 1) {
             Class<?> type = parameterTypes[0];
-            return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils.isAssignable(type, PublisherBuilder.class);
+            return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils
+                    .isAssignable(type, PublisherBuilder.class);
         }
         return false;
     }
@@ -73,8 +74,9 @@ public class MediatorConfigurationSupport {
         if (!incomings.isEmpty()) {
             return result;
         } else if (result != null) {
-            throw getOutgoingError("The @Acknowledgment annotation is only supported for method annotated with @Incoming: "
-                    + methodAsString);
+            throw getOutgoingError(
+                    "The @Acknowledgment annotation is only supported for method annotated with @Incoming: "
+                            + methodAsString);
         }
         return null;
     }
@@ -110,7 +112,8 @@ public class MediatorConfigurationSupport {
             // Case 1 or 2.
             // Validation -> No parameter
             if (parameterTypes.length != 0) {
-                throw getIncomingError("when returning a Subscriber or a SubscriberBuilder, no parameters are expected");
+                throw getIncomingError(
+                        "when returning a Subscriber or a SubscriberBuilder, no parameters are expected");
             }
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
@@ -322,8 +325,9 @@ public class MediatorConfigurationSupport {
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 5, 6, 7, 8
             if (parameterTypes.length != 1) {
-                throw new IllegalArgumentException("Invalid method annotated with @Outgoing and @Incoming " + methodAsString
-                        + " - one parameter expected");
+                throw new IllegalArgumentException(
+                        "Invalid method annotated with @Outgoing and @Incoming " + methodAsString
+                                + " - one parameter expected");
             }
 
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
@@ -380,7 +384,8 @@ public class MediatorConfigurationSupport {
         if (production == MediatorConfiguration.Production.INDIVIDUAL_MESSAGE
                 && acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
             throw new IllegalStateException(
-                    "Unsupported acknowledgement policy - POST_PROCESSING not supported when producing messages");
+                    "Unsupported acknowledgement policy - POST_PROCESSING not supported when producing messages for "
+                            + methodAsString);
         }
 
         return new ValidationOutput(production, consumption, useBuilderTypes);
@@ -410,7 +415,8 @@ public class MediatorConfigurationSupport {
                 ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
                 : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
 
-        GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable.check(Message.class, 0);
+        GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable
+                .check(Message.class, 0);
         if (firstParamTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
             throw getIncomingError("Expected a type parameter for the consumed Publisher");
         }
@@ -428,14 +434,16 @@ public class MediatorConfigurationSupport {
         // Validate method and be sure we are not in the case 2 and 4.
         if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD
                 && (acknowledgment == Acknowledgment.Strategy.MANUAL)) {
-            throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
-                    "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
+            throw getIncomingAndOutgoingError(
+                    "Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
+                            "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
         }
 
         if (production == MediatorConfiguration.Production.STREAM_OF_PAYLOAD
                 && acknowledgment == Acknowledgment.Strategy.MANUAL) {
-            throw getIncomingAndOutgoingError("Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
-                    "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
+            throw getIncomingAndOutgoingError(
+                    "Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
+                            "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
         }
 
         if (useBuilderTypes) {
@@ -454,15 +462,30 @@ public class MediatorConfigurationSupport {
         return new ValidationOutput(production, consumption, useBuilderTypes);
     }
 
-    public Acknowledgment.Strategy processDefaultAcknowledgement(Shape shape, MediatorConfiguration.Consumption consumption) {
+    public Acknowledgment.Strategy processDefaultAcknowledgement(Shape shape,
+            MediatorConfiguration.Consumption consumption) {
         if (shape == Shape.STREAM_TRANSFORMER) {
-            return Acknowledgment.Strategy.PRE_PROCESSING;
-        } else if (shape == Shape.PROCESSOR && consumption != MediatorConfiguration.Consumption.PAYLOAD) {
-            return Acknowledgment.Strategy.PRE_PROCESSING;
-        } else if (shape == Shape.SUBSCRIBER
-                && (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD
-                        || consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE)) {
-            return Acknowledgment.Strategy.PRE_PROCESSING;
+            if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
+                return Acknowledgment.Strategy.PRE_PROCESSING;
+            } else {
+                return Acknowledgment.Strategy.MANUAL;
+            }
+        } else if (shape == Shape.PROCESSOR) {
+            if (consumption == MediatorConfiguration.Consumption.PAYLOAD) {
+                return Acknowledgment.Strategy.POST_PROCESSING;
+            } else if (consumption == MediatorConfiguration.Consumption.MESSAGE
+                    || consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
+                return Acknowledgment.Strategy.MANUAL;
+            } else {
+                return Acknowledgment.Strategy.PRE_PROCESSING;
+            }
+        } else if (shape == Shape.SUBSCRIBER) {
+            if (consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
+                    || consumption == MediatorConfiguration.Consumption.MESSAGE) {
+                return Acknowledgment.Strategy.MANUAL;
+            } else {
+                return Acknowledgment.Strategy.POST_PROCESSING;
+            }
         } else {
             return Acknowledgment.Strategy.POST_PROCESSING;
         }
@@ -508,11 +531,13 @@ public class MediatorConfigurationSupport {
         private final MediatorConfiguration.Consumption consumption;
         private final Boolean useBuilderTypes;
 
-        public ValidationOutput(MediatorConfiguration.Production production, MediatorConfiguration.Consumption consumption) {
+        public ValidationOutput(MediatorConfiguration.Production production,
+                MediatorConfiguration.Consumption consumption) {
             this(production, consumption, null);
         }
 
-        public ValidationOutput(MediatorConfiguration.Production production, MediatorConfiguration.Consumption consumption,
+        public ValidationOutput(MediatorConfiguration.Production production,
+                MediatorConfiguration.Consumption consumption,
                 Boolean useBuilderTypes) {
             this.production = production;
             this.consumption = consumption;

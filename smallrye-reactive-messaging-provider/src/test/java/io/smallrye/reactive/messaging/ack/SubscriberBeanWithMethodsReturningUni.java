@@ -127,7 +127,8 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     public Uni<Void> defaultProcessingWithMessage(Message<String> message) {
         return Uni.createFrom().<Void> item(() -> null)
                 .emitOn(EXECUTOR)
-                .onItem().invoke(x -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message));
+                .onItem().invoke(x -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message))
+                .onItem().produceCompletionStage(x -> message.ack());
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE)

@@ -130,7 +130,8 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithAutoAck() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())).onComplete(
+                        m::ack))
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m))
                 .buildRs();
     }
@@ -207,7 +208,8 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT_BUILDER)
     public ProcessorBuilder<Message<String>, Message<String>> processorWithAutoAckBuilder() {
         return ReactiveStreams.<Message<String>> builder()
-                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
+                .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())).onComplete(
+                        m::ack))
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT_BUILDER, m));
     }
 
