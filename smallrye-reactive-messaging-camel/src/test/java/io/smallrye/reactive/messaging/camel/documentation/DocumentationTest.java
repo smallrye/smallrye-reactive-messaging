@@ -17,6 +17,7 @@ import org.junit.Test;
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
 import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class DocumentationTest extends CamelTestBase {
 
     private final Path orders = new File("target/orders").toPath();
@@ -93,27 +94,37 @@ public class DocumentationTest extends CamelTestBase {
         assertThat(bean.list()).allSatisfy(s -> assertThat(s).startsWith("file-"));
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void testPriceProducer() {
-        prices.toFile().mkdirs();
+        File file = prices.toFile();
+        file.mkdirs();
 
         addClasses(PriceProducer.class);
         addConfig(getProducerConfig());
         initialize();
 
-        await().until(() -> prices.toFile().listFiles().length >= 10);
+        await().until(() -> {
+            File[] files = file.listFiles();
+            return files != null && files.length >= 10;
+        });
 
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void testPriceMessageProducer() {
-        prices.toFile().mkdirs();
+        File file = prices.toFile();
+        file.mkdirs();
 
         addClasses(PriceMessageProducer.class);
         addConfig(getProducerConfig());
         initialize();
 
-        await().until(() -> prices.toFile().listFiles().length >= 10);
+        await().until(() -> {
+            File[] files = file.listFiles();
+            return files != null && files.length >= 10;
+        });
 
     }
 

@@ -32,9 +32,8 @@ public class CamelTestBase {
         container = weld.initialize();
     }
 
-    public CamelTestBase addClasses(Class... classes) {
+    public void addClasses(Class<?>... classes) {
         Arrays.stream(classes).forEach(weld::addBeanClass);
-        return this;
     }
 
     public static void addConfig(MapBasedConfig config) {
@@ -48,6 +47,7 @@ public class CamelTestBase {
     public static void clear() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.delete()) {
+            //noinspection ResultOfMethodCallIgnored
             out.delete();
         }
     }

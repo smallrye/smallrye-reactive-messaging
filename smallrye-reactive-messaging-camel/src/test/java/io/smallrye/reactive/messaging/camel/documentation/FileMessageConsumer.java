@@ -14,7 +14,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 @ApplicationScoped
 public class FileMessageConsumer {
 
-    private List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
 
     @Incoming("files")
     public CompletionStage<Void> consume(Message<GenericFile<File>> msg) {

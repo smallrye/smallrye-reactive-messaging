@@ -12,12 +12,12 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class FileConsumer {
 
-    private List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
 
     @Incoming("files")
     public void consume(GenericFile<File> file) {
         File actualFile = file.getFile();
-        list.add(file.getFileName());
+        list.add(actualFile.getName());
     }
 
     public List<String> list() {
