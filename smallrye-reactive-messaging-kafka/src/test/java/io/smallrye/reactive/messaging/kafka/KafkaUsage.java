@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory;
  */
 public class KafkaUsage {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(KafkaUsage.class);
-    private String brokers;
+    private final static Logger LOGGER = LoggerFactory.getLogger(KafkaUsage.class);
+    private final String brokers;
 
     public KafkaUsage() {
         this.brokers = "localhost:9092";
@@ -183,8 +183,7 @@ public class KafkaUsage {
             Consumer<ConsumerRecord<String, String>> consumerFunction) {
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
-        OffsetCommitCallback offsetCommitCallback = null;
-        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, continuation, offsetCommitCallback,
+        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, continuation, null,
                 completion, topics, consumerFunction);
     }
 
@@ -193,8 +192,7 @@ public class KafkaUsage {
         Deserializer<String> keyDes = new StringDeserializer();
         Deserializer<Integer> valDes = new IntegerDeserializer();
         String randomId = UUID.randomUUID().toString();
-        OffsetCommitCallback offsetCommitCallback = null;
-        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, offsetCommitCallback,
+        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, null,
                 completion, topics, consumerFunction);
     }
 

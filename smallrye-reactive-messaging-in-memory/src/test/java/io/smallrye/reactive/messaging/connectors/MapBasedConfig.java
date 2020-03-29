@@ -46,6 +46,7 @@ public class MapBasedConfig implements Config {
         return Collections.emptyList();
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void write() {
         File out = new File(CONFIG_FILE_PATH);
         if (out.isFile()) {

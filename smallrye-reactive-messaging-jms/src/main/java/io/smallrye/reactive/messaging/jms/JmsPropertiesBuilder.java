@@ -166,7 +166,7 @@ public class JmsPropertiesBuilder {
         }
 
         @Override
-        public Enumeration getPropertyNames() {
+        public Enumeration<String> getPropertyNames() {
             return Collections.enumeration(properties.keySet());
         }
 

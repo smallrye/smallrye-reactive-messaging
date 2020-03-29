@@ -54,6 +54,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         new EventBusSink(vertx, new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSinkUsingInteger() {
         String topic = UUID.randomUUID().toString();
@@ -66,15 +67,16 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx,
                 new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
+        SubscriberBuilder<? extends Message<?>, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
-                .map(v -> (Message) Message.of(v))
-                .subscribe((Subscriber) subscriber.build());
+                .map(v -> (Message<?>) Message.of(v))
+                .subscribe((Subscriber<Message<?>>) subscriber.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSinkUsingString() {
         String topic = UUID.randomUUID().toString();
@@ -87,15 +89,16 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx,
                 new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
+        SubscriberBuilder<? extends Message<?>, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber) subscriber.build());
+                .subscribe((Subscriber<Message<?>>) subscriber.build());
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testPublish() {
         String topic = UUID.randomUUID().toString();
@@ -113,17 +116,18 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx,
                 new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
+        SubscriberBuilder<? extends Message<?>, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber) subscriber.build());
+                .subscribe((Subscriber<Message<?>>) subscriber.build());
         await().untilAtomic(expected1, is(10));
         assertThat(expected1).hasValue(10);
         assertThat(expected2).hasValue(10);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testSendAndMultipleConsumers() {
         String topic = UUID.randomUUID().toString();
         AtomicInteger expected1 = new AtomicInteger(0);
@@ -140,11 +144,11 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx,
                 new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
+        SubscriberBuilder<? extends Message<?>, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber) subscriber.build());
+                .subscribe((Subscriber<Message<?>>) subscriber.build());
         await().untilAtomic(expected1, is(5));
         await().untilAtomic(expected2, is(5));
         assertThat(expected1).hasValueBetween(4, 6);
@@ -152,6 +156,7 @@ public class EventBusSinkTest extends EventbusTestBase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testExpectReply() {
         String topic = UUID.randomUUID().toString();
 
@@ -171,25 +176,25 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx,
                 new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
+        SubscriberBuilder<? extends Message<?>, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber) subscriber.build());
+                .subscribe((Subscriber<Message<?>>) subscriber.build());
 
         await().until(() -> integers.size() == 8 && last.get().body() == 8);
         last.get().replyAndForget("bar");
         await().until(() -> last.get().body() == 9);
+        assertThat(last.get().body()).isEqualTo(9);
         last.get().replyAndForget("baz");
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testCodec() {
         String topic = UUID.randomUUID().toString();
 
         List<Person> persons = new ArrayList<>();
-        vertx.eventBus().<Person> consumer(topic, m -> {
-            persons.add(m.body());
-        });
+        vertx.eventBus().<Person> consumer(topic, m -> persons.add(m.body()));
 
         vertx.eventBus().getDelegate().registerCodec(new PersonCodec());
 
@@ -199,13 +204,14 @@ public class EventBusSinkTest extends EventbusTestBase {
         EventBusSink sink = new EventBusSink(vertx,
                 new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        SubscriberBuilder<? extends Message, Void> subscriber = sink.sink();
+        SubscriberBuilder<? extends Message<?>, Void> subscriber = sink.sink();
         Multi.createFrom().range(0, 10)
                 .map(i -> new Person().setName("name").setAge(i))
                 .map(Message::of)
-                .subscribe((Subscriber) subscriber.build());
+                .subscribe((Subscriber<Message<?>>) subscriber.build());
 
         await().until(() -> persons.size() == 10);
+        assertThat(persons.size()).isEqualTo(10);
     }
 
     @Test
@@ -218,6 +224,7 @@ public class EventBusSinkTest extends EventbusTestBase {
         ProducingBean bean = container.getBeanManager().createInstance().select(ProducingBean.class).get();
 
         await().until(() -> bean.messages().size() == 10);
+        assertThat(bean.messages().size()).isEqualTo(10);
     }
 
     private MapBasedConfig getConfig() {

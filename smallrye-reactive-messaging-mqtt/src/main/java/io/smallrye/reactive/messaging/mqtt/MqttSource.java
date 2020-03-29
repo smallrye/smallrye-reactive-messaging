@@ -17,7 +17,7 @@ public class MqttSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MqttSource.class);
     private final PublisherBuilder<MqttMessage<?>> source;
-    private AtomicBoolean subscribed = new AtomicBoolean();
+    private final AtomicBoolean subscribed = new AtomicBoolean();
 
     public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config) {
         MqttClientOptions options = MqttHelpers.createMqttClientOptions(config);

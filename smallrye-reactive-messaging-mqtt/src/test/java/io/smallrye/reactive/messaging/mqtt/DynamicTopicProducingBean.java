@@ -17,7 +17,7 @@ import io.reactivex.Flowable;
 @ApplicationScoped
 public class DynamicTopicProducingBean {
 
-    private List<String> topics = new ArrayList<>(10);
+    private final List<String> topics = new ArrayList<>(10);
 
     @Incoming("dyn-data")
     @Outgoing("sink")

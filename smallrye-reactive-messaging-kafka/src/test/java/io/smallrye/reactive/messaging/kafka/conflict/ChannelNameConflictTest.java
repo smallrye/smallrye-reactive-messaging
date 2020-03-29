@@ -71,7 +71,7 @@ public class ChannelNameConflictTest extends KafkaTestBase {
                     .take(20);
         }
 
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incoming("my-topic")
         @Merge

@@ -58,8 +58,8 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private boolean internalVertxInstance = false;
     private Vertx vertx;
-    private List<MqttSource> sources = new CopyOnWriteArrayList<>();
-    private List<MqttSink> sinks = new CopyOnWriteArrayList<>();
+    private final List<MqttSource> sources = new CopyOnWriteArrayList<>();
+    private final List<MqttSink> sinks = new CopyOnWriteArrayList<>();
 
     public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {

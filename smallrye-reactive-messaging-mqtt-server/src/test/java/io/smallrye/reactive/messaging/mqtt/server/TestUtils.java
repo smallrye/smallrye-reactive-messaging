@@ -29,7 +29,7 @@ class TestUtils {
     static void sendMqttMessages(List<TestMqttMessage> messages,
             CompletableFuture<Integer> futurePort,
             VertxTestContext testContext) {
-        Checkpoint messageSent = testContext.checkpoint((int) messages.size());
+        Checkpoint messageSent = testContext.checkpoint(messages.size());
         Checkpoint clientClosed = testContext.checkpoint();
         futurePort.thenAccept(port -> new Thread(() -> {
             try {
@@ -65,11 +65,12 @@ class TestUtils {
         Assertions.assertFalse(message.isDuplicate());
     }
 
+    @SuppressWarnings("SubscriberImplementation")
     static Subscriber<io.smallrye.reactive.messaging.mqtt.server.MqttMessage> createSubscriber(VertxTestContext testContext,
             AtomicBoolean opened, List<TestMqttMessage> expectedMessages) {
         return new Subscriber<io.smallrye.reactive.messaging.mqtt.server.MqttMessage>() {
             Subscription sub;
-            AtomicInteger index = new AtomicInteger(0);
+            final AtomicInteger index = new AtomicInteger(0);
             Checkpoint messageReceived;
             Checkpoint messageAcknowledged;
 

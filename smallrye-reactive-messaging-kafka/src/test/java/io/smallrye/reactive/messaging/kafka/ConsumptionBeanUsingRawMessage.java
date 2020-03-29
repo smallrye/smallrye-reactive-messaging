@@ -13,8 +13,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 @ApplicationScoped
 public class ConsumptionBeanUsingRawMessage {
 
-    private List<Integer> list = new ArrayList<>();
-    private List<Message<Integer>> kafka = new ArrayList<>();
+    private final List<Integer> list = new ArrayList<>();
+    private final List<Message<Integer>> kafka = new ArrayList<>();
 
     @Incoming("data")
     @Outgoing("sink")

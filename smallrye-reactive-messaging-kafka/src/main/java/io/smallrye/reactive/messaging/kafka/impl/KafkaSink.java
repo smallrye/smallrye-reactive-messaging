@@ -53,7 +53,7 @@ public class KafkaSink {
                             return CompletableFuture.completedFuture(message);
                         }
 
-                        ProducerRecord record = getProducerRecord(message, metadata, actualTopic);
+                        ProducerRecord<?, ?> record = getProducerRecord(message, metadata, actualTopic);
                         LOGGER.debug("Sending message {} to Kafka topic '{}'", message, record.topic());
 
                         CompletableFuture<Message> future = new CompletableFuture<>();
@@ -69,7 +69,8 @@ public class KafkaSink {
                         };
                         CompletableFuture<? extends Message<?>> result = future.thenCompose(x -> message.ack())
                                 .thenApply(x -> message);
-                        stream.write(record, handler);
+                        //noinspection unchecked
+                        stream.write((ProducerRecord) record, handler);
                         if (waitForWriteCompletion) {
                             return result;
                         } else {
@@ -84,13 +85,18 @@ public class KafkaSink {
                 .ignore();
     }
 
-    @SuppressWarnings("rawtypes")
-    private ProducerRecord getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
+    private ProducerRecord<?, ?> getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
             String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
         Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
-        long actualTimestamp = om == null || om.getKey() == null ? -1
-                : om.getTimestamp() != null ? om.getTimestamp().toEpochMilli() : -1;
+
+        long actualTimestamp;
+        if ((om == null) || (om.getKey() == null)) {
+            actualTimestamp = -1;
+        } else {
+            actualTimestamp = (om.getTimestamp() != null) ? om.getTimestamp().toEpochMilli() : -1;
+        }
+
         Iterable<Header> kafkaHeaders = om == null || om.getHeaders() == null ? Collections.emptyList() : om.getHeaders();
         return new ProducerRecord<>(
                 actualTopic,
