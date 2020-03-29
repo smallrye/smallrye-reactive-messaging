@@ -1,15 +1,19 @@
 package io.smallrye.reactive.messaging.pulsar;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.common.policies.data.TenantInfo;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.concurrent.CompletableFuture;
 
 public class PulsarTestBase {
 
@@ -17,15 +21,18 @@ public class PulsarTestBase {
     private static final Integer BROKER_HTTP_PORT = 8080;
     private static final String METRICS_ENDPOINT = "/metrics";
 
-    PulsarClient client;
+    private PulsarClient client;
+    private Producer<String> producer;
+    private Consumer<String> consumer;
 
     @ClassRule
     public static GenericContainer pulsarContainer = new GenericContainer("apachepulsar/pulsar-all:2.5.0")
-            .withExposedPorts(BROKER_PORT, BROKER_HTTP_PORT)
-            .withCommand("/pulsar/bin/pulsar", "standalone")
-            .waitingFor(Wait.forHttp(METRICS_ENDPOINT)
-                    .forStatusCode(200)
-                    .forPort(BROKER_HTTP_PORT));
+        .withExposedPorts(BROKER_PORT, BROKER_HTTP_PORT)
+        .withCommand("/pulsar/bin/pulsar", "standalone")
+        .waitingFor(Wait.forHttp(METRICS_ENDPOINT)
+            .forStatusCode(200)
+            .forPort(BROKER_HTTP_PORT));
+
 
     @Test
     public void testContainer() {
@@ -42,11 +49,11 @@ public class PulsarTestBase {
             Integer brokerPort = pulsarContainer.getMappedPort(BROKER_PORT);
             Integer restPort = pulsarContainer.getMappedPort(BROKER_HTTP_PORT);
             final String socketUrl = "pulsar://localhost:" + brokerPort;
-            final String restUrl = "http://localhost:"+restPort;
+            final String restUrl = "http://localhost:" + restPort;
 
             client = PulsarClient.builder()
-                    .serviceUrl(socketUrl)
-                    .build();
+                .serviceUrl(socketUrl)
+                .build();
 
             PulsarAdmin admin = PulsarAdmin
                 .builder()
@@ -58,7 +65,14 @@ public class PulsarTestBase {
             admin.namespaces().createNamespace("test-tenant/test-namespace/");
             admin.topics().createNonPartitionedTopic("test-tenant/test-namespace/test-topic");
 
+            producer = client.newProducer(Schema.STRING)
+                .topic("test-tenant/test-namespace/test-topic")
+                .create();
 
+            consumer = client.newConsumer(Schema.STRING)
+                .topic("test-tenant/test-namespace/test-topic")
+                .subscriptionName("my-subscription")
+                .subscribe();
 
         } catch (PulsarClientException e) {
             Assert.fail("could not create pulsar client");
@@ -76,29 +90,11 @@ public class PulsarTestBase {
     @Test
     public void consumeMessage() {
         try {
-            Consumer<String> consumer = (Consumer<String>) client.newConsumer(Schema.STRING)
-                    .topic("test-tenant/test-namespace/test-topic")
-                    .subscriptionType(SubscriptionType.Exclusive)
-                    .subscriptionName("transactional-sub")
-                    .subscribe();
-            Producer<byte[]> producer = (Producer<byte[]>) client.newProducer()
-                    .topic("test-tenant/test-namespace/test-topic")
-                    .create();
-            producer.newMessage()
-                .key("my-message-key")
-                .value("my-async-message".getBytes())
-                .property("my-key", "my-value")
-                .property("my-other-key", "my-other-value")
-                .send();
 
-            Message<String> message = consumer.receive();
-            consumer.acknowledge(message);
 
-            Assert.assertEquals(String.valueOf(message.getData()), "my-async-message");
 
-        } catch (PulsarClientException e) {
+        } catch (Exception e) {
             Assert.fail("could not create producer");
         }
     }
-
 }
