@@ -12,16 +12,16 @@ import io.smallrye.reactive.messaging.PublisherDecorator;
 @ApplicationScoped
 public class CountingDecorator implements PublisherDecorator {
 
-    private AtomicInteger messsageCount = new AtomicInteger(0);
+    private AtomicInteger messageCount = new AtomicInteger(0);
 
     @Override
-    public PublisherBuilder<? extends Message> decorate(PublisherBuilder<? extends Message> publisher,
+    public PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> publisher,
             String channelName) {
-        return publisher.peek(m -> messsageCount.incrementAndGet());
+        return publisher.peek(m -> messageCount.incrementAndGet());
     }
 
-    public int getMesssageCount() {
-        return messsageCount.get();
+    public int getMessageCount() {
+        return messageCount.get();
     }
 
 }

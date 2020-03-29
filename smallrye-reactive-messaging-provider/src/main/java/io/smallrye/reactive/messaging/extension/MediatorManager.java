@@ -230,8 +230,8 @@ public class MediatorManager {
                 List<String> list = mediator.configuration().getIncoming();
                 if (list.size() == 1) {
                     // Single source.
-                    List<PublisherBuilder<? extends Message>> sources = channelRegistry.getPublishers(list.get(0));
-                    Optional<PublisherBuilder<? extends Message>> maybeSource = getAggregatedSource(sources, list.get(0),
+                    List<PublisherBuilder<? extends Message<?>>> sources = channelRegistry.getPublishers(list.get(0));
+                    Optional<PublisherBuilder<? extends Message<?>>> maybeSource = getAggregatedSource(sources, list.get(0),
                             mediator, lazy);
                     maybeSource.ifPresent(publisher -> {
                         mediator.connectToUpstream(publisher);
@@ -242,17 +242,18 @@ public class MediatorManager {
                         }
                     });
                 } else {
-                    List<PublisherBuilder<? extends Message>> upstreams = new ArrayList<>();
+                    List<PublisherBuilder<? extends Message<?>>> upstreams = new ArrayList<>();
                     for (String sn : list) {
-                        List<PublisherBuilder<? extends Message>> sources = channelRegistry.getPublishers(sn);
-                        Optional<PublisherBuilder<? extends Message>> maybeSource = getAggregatedSource(sources, sn, mediator,
+                        List<PublisherBuilder<? extends Message<?>>> sources = channelRegistry.getPublishers(sn);
+                        Optional<PublisherBuilder<? extends Message<?>>> maybeSource = getAggregatedSource(sources, sn,
+                                mediator,
                                 lazy);
                         maybeSource.ifPresent(upstreams::add);
                     }
 
                     if (upstreams.size() == list.size()) {
                         // We have all our upstreams
-                        Multi<? extends Message> merged = Multi.createBy().merging()
+                        Multi<? extends Message<?>> merged = Multi.createBy().merging()
                                 .streams(upstreams.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
                         mediator.connectToUpstream(ReactiveStreams.fromPublisher(merged));
                         LOGGER.info("Connecting {} to `{}`", mediator.getMethodAsString(), list);
@@ -300,16 +301,16 @@ public class MediatorManager {
         for (String name : unmanagedSubscribers) {
             List<AbstractMediator> list = lookupForMediatorsWithMatchingDownstream(name);
             EmitterImpl emitter = (EmitterImpl) channelRegistry.getEmitter(name);
-            List<SubscriberBuilder<? extends Message, Void>> subscribers = channelRegistry.getSubscribers(name);
+            List<SubscriberBuilder<? extends Message<?>, Void>> subscribers = channelRegistry.getSubscribers(name);
             for (AbstractMediator mediator : list) {
                 if (subscribers.size() == 1) {
                     LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
-                    mediator.getStream().to((SubscriberBuilder) subscribers.get(0)).run();
+                    mediator.getStream().to((SubscriberBuilder<Message<?>, Void>) subscribers.get(0)).run();
                 } else if (subscribers.size() > 2) {
                     LOGGER.warn("{} subscribers consuming the stream {}", subscribers.size(), name);
                     subscribers.forEach(s -> {
                         LOGGER.info("Connecting method {} to sink {}", mediator.getMethodAsString(), name);
-                        mediator.getStream().to((SubscriberBuilder) s).run();
+                        mediator.getStream().to((SubscriberBuilder<Message<?>, Void>) s).run();
                     });
                 }
             }
@@ -349,13 +350,15 @@ public class MediatorManager {
 
     private AbstractMediator createMediator(MediatorConfiguration configuration) {
         AbstractMediator mediator = mediatorFactory.create(configuration);
-        LOGGER.debug("Mediator created for {}", configuration.methodAsString());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Mediator created for {}", configuration.methodAsString());
+        }
         mediators.add(mediator);
         return mediator;
     }
 
-    private Optional<PublisherBuilder<? extends Message>> getAggregatedSource(
-            List<PublisherBuilder<? extends Message>> sources,
+    private Optional<PublisherBuilder<? extends Message<?>>> getAggregatedSource(
+            List<PublisherBuilder<? extends Message<?>>> sources,
             String sourceName,
             AbstractMediator mediator,
             List<LazySource> lazy) {

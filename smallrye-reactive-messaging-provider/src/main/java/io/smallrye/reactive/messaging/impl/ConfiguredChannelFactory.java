@@ -99,10 +99,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 if (name.contains(".")) { // We must remove the part after the first dot
                     String tmp = name;
                     name = tmp.substring(0, tmp.indexOf('.'));
-                    configs.put(name, new ConnectorConfig(prefix, root, name));
-                } else {
-                    configs.put(name, new ConnectorConfig(prefix, root, name));
                 }
+                configs.put(name, new ConnectorConfig(prefix, root, name));
             }
         });
         return configs;
@@ -150,7 +148,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         try {
             sourceConfiguration.forEach((name, conf) -> registry.register(name, createPublisherBuilder(name, conf)));
             sinkConfiguration.forEach((name, conf) -> registry.register(name, createSubscriberBuilder(name, conf)));
-        } catch (RuntimeException e) {
+        } catch (RuntimeException e) { // NOSONAR
             LOGGER.error("Unable to create the publisher or subscriber during initialization", e);
             throw e;
         }
@@ -162,7 +160,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         return config.getValue("connector", String.class);
     }
 
-    private PublisherBuilder<? extends Message> createPublisherBuilder(String name, Config config) {
+    private PublisherBuilder<? extends Message<?>> createPublisherBuilder(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
 
@@ -170,7 +168,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
                 .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown connector for " + name + "."));
 
-        PublisherBuilder<? extends Message> publisher = mySourceFactory.getPublisherBuilder(config);
+        PublisherBuilder<? extends Message<?>> publisher = mySourceFactory.getPublisherBuilder(config);
 
         for (PublisherDecorator decorator : publisherDecoratorInstance) {
             publisher = decorator.decorate(publisher, name);
@@ -179,7 +177,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         return publisher;
     }
 
-    private SubscriberBuilder<? extends Message, Void> createSubscriberBuilder(String name, Config config) {
+    private SubscriberBuilder<? extends Message<?>, Void> createSubscriberBuilder(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
 

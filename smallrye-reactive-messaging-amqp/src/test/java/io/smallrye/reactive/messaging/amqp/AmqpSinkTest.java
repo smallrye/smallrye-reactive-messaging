@@ -10,7 +10,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.vertx.core.json.Json;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -22,6 +21,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.vertx.core.json.Json;
 import repeat.Repeat;
 
 public class AmqpSinkTest extends AmqpTestBase {
@@ -83,7 +83,6 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(expected).hasValue(10);
     }
 
-
     static class Person {
         String name;
 
@@ -105,21 +104,21 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeStrings(topic,
-            v -> {
-            expected.getAndIncrement();
-            Person p = Json.decodeValue(v, Person.class);
-            assertThat(p.getName()).startsWith("bob-");
-            });
+                v -> {
+                    expected.getAndIncrement();
+                    Person p = Json.decodeValue(v, Person.class);
+                    assertThat(p.getName()).startsWith("bob-");
+                });
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-            .map(i -> {
-                Person p = new Person();
-                p.setName("bob-" + i);
-                return p;
-            })
-            .map(Message::of)
-            .subscribe((Subscriber) sink.build());
+                .map(i -> {
+                    Person p = new Person();
+                    p.setName("bob-" + i);
+                    return p;
+                })
+                .map(Message::of)
+                .subscribe((Subscriber) sink.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
