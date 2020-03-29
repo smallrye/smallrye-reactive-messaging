@@ -37,8 +37,8 @@ public class SnsVerticle extends AbstractVerticle {
     private final boolean mockSns;
     private final String snsUrl;
     private static final Logger LOG = LoggerFactory.getLogger(SnsVerticle.class);
-    private SnsMessageManager messageManager = new SnsMessageManager();
-    private BlockingQueue<SnsMessage> msgQ = new LinkedBlockingDeque<>();
+    private final SnsMessageManager messageManager = new SnsMessageManager();
+    private final BlockingQueue<SnsMessage> msgQ = new LinkedBlockingDeque<>();
     private String arn;
     private String topicEndpoint;
 
@@ -94,9 +94,7 @@ public class SnsVerticle extends AbstractVerticle {
                     }
                 }).thenAccept(x -> vertx.createHttpServer()
                         .requestHandler(router)
-                        .listen(port, ar -> {
-                            startFuture.handle(ar.mapEmpty());
-                        }));
+                        .listen(port, ar -> startFuture.handle(ar.mapEmpty())));
     }
 
     /**

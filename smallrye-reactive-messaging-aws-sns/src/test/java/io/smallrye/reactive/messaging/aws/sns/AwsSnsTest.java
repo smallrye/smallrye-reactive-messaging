@@ -24,7 +24,7 @@ import io.smallrye.mutiny.Multi;
 public class AwsSnsTest extends AwsSnsTestBase {
 
     private WeldContainer container;
-    private String topic = "sns-test";
+    private final String topic = "sns-test";
 
     @Before
     public void initTest() {
