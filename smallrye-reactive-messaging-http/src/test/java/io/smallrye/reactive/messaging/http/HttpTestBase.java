@@ -44,9 +44,8 @@ public class HttpTestBase {
         container = weld.initialize();
     }
 
-    public HttpTestBase addClasses(Class... classes) {
+    public void addClasses(Class<?>... classes) {
         Arrays.stream(classes).forEach(weld::addBeanClass);
-        return this;
     }
 
     public static void addConfig(HttpConnectorConfig config) {
@@ -57,6 +56,7 @@ public class HttpTestBase {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void clear() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.delete()) {

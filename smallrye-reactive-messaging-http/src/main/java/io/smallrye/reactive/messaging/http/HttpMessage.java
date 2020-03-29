@@ -97,7 +97,7 @@ public class HttpMessage<T> implements Message<T> {
         private T payload;
         private String method = "POST";
         private Map<String, List<String>> headers;
-        private Map<String, List<String>> query;
+        private final Map<String, List<String>> query;
         private String url;
         private Supplier<CompletionStage<Void>> ack = () -> CompletableFuture.completedFuture(null);
 

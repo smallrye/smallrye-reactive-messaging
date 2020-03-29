@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -70,19 +71,18 @@ public class HttpSourceTest extends HttpTestBase {
                 .thenReturn();
         assertThat(response.statusCode()).isEqualTo(202);
 
-        List<Message> list = get(Receiver.class).list();
-        assertThat(list).hasSize(4).allMatch(m -> m instanceof HttpMessage);
+        List<HttpMessage<?>> list = get(Receiver.class).list();
+        assertThat(list).hasSize(4).allMatch(Objects::nonNull);
         assertThat(list.get(0).getPayload()).isInstanceOf(byte[].class).matches(b -> Array.getLength(b) == 0);
         assertThat(list.get(1).getPayload()).isInstanceOf(byte[].class).matches(b -> Array.getLength(b) == 0);
         assertThat(list.get(2).getPayload()).isInstanceOf(byte[].class).matches(b -> Array.getLength(b) == 0);
         assertThat(list.get(3).getPayload()).isInstanceOf(byte[].class).matches(b -> Array.getLength(b) == 0);
 
-        assertThat(((HttpMessage) list.get(0)).getQuery()).hasSize(2).containsKeys("foo", "baz");
-
-        assertThat(((HttpMessage) list.get(0)).getUrl()).isEqualTo("/");
-        assertThat(((HttpMessage) list.get(1)).getUrl()).isEqualTo("/foo");
-        assertThat(((HttpMessage) list.get(2)).getUrl()).isEqualTo("/bar");
-        assertThat(((HttpMessage) list.get(3)).getUrl()).isEqualTo("/baz");
+        assertThat((list.get(0)).getQuery()).hasSize(2).containsKeys("foo", "baz");
+        assertThat(list.get(0).getUrl()).isEqualTo("/");
+        assertThat(list.get(1).getUrl()).isEqualTo("/foo");
+        assertThat(list.get(2).getUrl()).isEqualTo("/bar");
+        assertThat(list.get(3).getUrl()).isEqualTo("/baz");
     }
 
     @Test
@@ -101,8 +101,8 @@ public class HttpSourceTest extends HttpTestBase {
                 .thenReturn();
         assertThat(response.statusCode()).isEqualTo(202);
 
-        List<Message> list = get(Receiver.class).list();
-        assertThat(list).hasSize(2).allMatch(m -> m instanceof HttpMessage);
+        List<HttpMessage<?>> list = get(Receiver.class).list();
+        assertThat(list).hasSize(2).allMatch(Objects::nonNull);
         assertThat(list.get(0).getPayload()).isInstanceOf(byte[].class)
                 .matches(b -> new String((byte[]) b).equalsIgnoreCase("hello"));
         assertThat(list.get(1).getPayload()).isInstanceOf(byte[].class)
@@ -125,8 +125,8 @@ public class HttpSourceTest extends HttpTestBase {
                 .thenReturn();
         assertThat(response.statusCode()).isEqualTo(202);
 
-        List<Message> list = get(Receiver.class).list();
-        assertThat(list).hasSize(2).allMatch(m -> m instanceof HttpMessage);
+        List<HttpMessage<?>> list = get(Receiver.class).list();
+        assertThat(list).hasSize(2).allMatch(Objects::nonNull);
         assertThat(list.get(0).getPayload()).isInstanceOf(byte[].class)
                 .matches(b -> new String((byte[]) b).equalsIgnoreCase("hello"));
         assertThat(list.get(1).getPayload()).isInstanceOf(byte[].class)
@@ -151,29 +151,29 @@ public class HttpSourceTest extends HttpTestBase {
                 .post("/json")
                 .thenReturn();
         assertThat(response.statusCode()).isEqualTo(202);
-        List<Message> list = get(Receiver.class).list();
-        assertThat(list).hasSize(2).allMatch(m -> m instanceof HttpMessage);
+        List<HttpMessage<?>> list = get(Receiver.class).list();
+        assertThat(list).hasSize(2).allMatch(Objects::nonNull);
 
         assertThat(list.get(0).getPayload()).isInstanceOf(byte[].class)
                 .matches(b -> new String((byte[]) b).equalsIgnoreCase("hello"));
         assertThat(list.get(1).getPayload()).isInstanceOf(byte[].class)
                 .matches(b -> new String((byte[]) b).equalsIgnoreCase("{\"foo\":\"bar\"}"));
-        assertThat(((HttpMessage) list.get(0)).getHeaders()).containsKeys("X-test", "Content-Type");
-        assertThat(((HttpMessage) list.get(1)).getHeaders()).containsKeys("X-test", "Content-Type");
+        assertThat(list.get(0).getHeaders()).containsKeys("X-test", "Content-Type");
+        assertThat(list.get(1).getHeaders()).containsKeys("X-test", "Content-Type");
     }
 
     @ApplicationScoped
     public static class Receiver {
 
-        List<Message> list = new ArrayList<>();
+        final List<HttpMessage<?>> list = new ArrayList<>();
 
         @Incoming("sink")
-        public CompletionStage<Void> receive(Message m) {
-            list.add(m);
+        public CompletionStage<Void> receive(Message<?> m) {
+            list.add((HttpMessage<?>) m);
             return m.ack();
         }
 
-        public List<Message> list() {
+        public List<HttpMessage<?>> list() {
             return list;
         }
     }
