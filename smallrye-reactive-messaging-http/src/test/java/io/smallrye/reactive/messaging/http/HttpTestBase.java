@@ -59,7 +59,7 @@ public class HttpTestBase {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void clear() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
-        if (out.delete()) {
+        if (out.isFile()) {
             out.delete();
         }
     }

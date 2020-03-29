@@ -49,6 +49,7 @@ public class WeldTestBaseWithoutTails {
         clearConfigFile();
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private static void clearConfigFile() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {
@@ -65,10 +66,11 @@ public class WeldTestBaseWithoutTails {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void installConfig(String path) {
         releaseConfig();
         File file = new File(path);
-        if (file.exists()) {
+        if (file.isFile()) {
             File out = new File("target/test-classes/META-INF/microprofile-config.properties");
             if (out.isFile()) {
                 out.delete();

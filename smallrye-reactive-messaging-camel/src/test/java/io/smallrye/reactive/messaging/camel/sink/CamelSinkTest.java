@@ -50,7 +50,7 @@ public class CamelSinkTest extends CamelTestBase {
 
     private void assertFileContent() {
         await().until(() -> {
-            if (!path.toFile().exists()) {
+            if (!path.toFile().isFile()) {
                 return false;
             }
             List<String> list = Files.readAllLines(path);

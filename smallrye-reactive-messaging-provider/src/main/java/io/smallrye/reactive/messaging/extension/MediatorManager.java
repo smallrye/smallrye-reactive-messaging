@@ -61,7 +61,7 @@ public class MediatorManager {
     public static final String STRICT_MODE_PROPERTY = "smallrye-messaging-strict-binding";
     private final boolean strictMode = Boolean.parseBoolean(System.getProperty(STRICT_MODE_PROPERTY, "false"));
 
-    private final CollectedMediatorMetadata collected = new CollectedMediatorMetadata(strictMode);
+    private final CollectedMediatorMetadata collected = new CollectedMediatorMetadata();
 
     // TODO Populate this list
     private final List<Subscription> subscriptions = new CopyOnWriteArrayList<>();

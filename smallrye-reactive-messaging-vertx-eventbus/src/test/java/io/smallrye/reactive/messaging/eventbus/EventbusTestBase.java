@@ -46,7 +46,7 @@ public class EventbusTestBase {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void clear() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
-        if (out.exists()) {
+        if (out.isFile()) {
             out.delete();
         }
     }

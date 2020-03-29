@@ -46,7 +46,7 @@ public class AckChainTest extends WeldTestBaseWithoutTails {
 
     @ApplicationScoped
     public static class MyMessageProducer {
-        AtomicInteger acks = new AtomicInteger();
+        final AtomicInteger acks = new AtomicInteger();
 
         public int acks() {
             return acks.get();

@@ -15,7 +15,7 @@ public class SpiedBeanHelper {
 
     protected static final Executor EXECUTOR = Executors.newSingleThreadExecutor();
 
-    private class Entry {
+    private static class Entry {
         final String value;
         final long timeStamp;
 

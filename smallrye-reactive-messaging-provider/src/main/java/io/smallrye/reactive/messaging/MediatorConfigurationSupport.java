@@ -26,17 +26,14 @@ public class MediatorConfigurationSupport {
     private final Class<?>[] parameterTypes;
     private final GenericTypeAssignable returnTypeAssignable;
     private final GenericTypeAssignable firstMethodParamTypeAssignable;
-    private final boolean strict;
 
     public MediatorConfigurationSupport(String methodAsString, Class<?> returnType, Class<?>[] parameterTypes,
-            GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable,
-            boolean strictMode) {
+            GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable) {
         this.methodAsString = methodAsString;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
         this.returnTypeAssignable = returnTypeAssignable;
         this.firstMethodParamTypeAssignable = firstMethodParamTypeAssignable;
-        this.strict = strictMode;
     }
 
     public Shape determineShape(List<?> incomingValue, Object outgoingValue) {
@@ -404,7 +401,7 @@ public class MediatorConfigurationSupport {
 
         MediatorConfiguration.Production production;
         MediatorConfiguration.Consumption consumption;
-        Boolean useBuilderTypes;
+        boolean useBuilderTypes;
 
         // The mediator produces and consumes a stream
         GenericTypeAssignable.Result returnTypeGenericCheck = returnTypeAssignable.check(Message.class, 0);

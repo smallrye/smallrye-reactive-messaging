@@ -20,7 +20,6 @@
 package io.smallrye.reactive.messaging.tck;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
@@ -80,22 +79,6 @@ public class MockedSender<T> {
             if (queue.isEmpty()) {
                 break;
             }
-        }
-    }
-
-    public void completeAll() {
-        List<MessageProcessor> all = new ArrayList<>(publishers);
-        all.clear();
-        for (MessageProcessor publisher : all) {
-            publisher.onComplete();
-        }
-    }
-
-    public void failAll(Throwable error) {
-        List<MessageProcessor> all = new ArrayList<>(publishers);
-        all.clear();
-        for (MessageProcessor publisher : all) {
-            publisher.onError(error);
         }
     }
 

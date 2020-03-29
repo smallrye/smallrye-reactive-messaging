@@ -109,7 +109,7 @@ public class MessagingManager implements ChannelRegistar {
                 Bean.WRAPPED_MESSAGE));
     }
 
-    private class Source {
+    private static class Source {
 
         public Source(String name) {
             this.name = name;

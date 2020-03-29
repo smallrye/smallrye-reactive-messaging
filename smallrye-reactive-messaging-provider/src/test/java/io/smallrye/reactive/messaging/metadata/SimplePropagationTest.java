@@ -27,7 +27,6 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
             CounterMetadata c = message.getMetadata(CounterMetadata.class)
                     .orElseThrow(() -> new AssertionError("Metadata expected"));
             MsgMetadata m = message.getMetadata(MsgMetadata.class).orElseThrow(() -> new AssertionError("Metadata expected"));
-            ;
             assertThat(m.getMessage()).isEqualTo("hello");
             assertThat(c.getCount()).isNotEqualTo(0);
         }).hasSize(10);

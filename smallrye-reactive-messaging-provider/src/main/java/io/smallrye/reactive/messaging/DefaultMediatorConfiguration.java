@@ -62,7 +62,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private MediatorConfigurationSupport mediatorConfigurationSupport;
 
-    public DefaultMediatorConfiguration(Method method, Bean<?> bean, boolean strict) {
+    public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, "'method' must be set");
         this.returnType = method.getReturnType();
         this.parameterTypes = method.getParameterTypes();
@@ -72,8 +72,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                 this.parameterTypes,
                 new ReturnTypeGenericTypeAssignable(method),
                 this.parameterTypes.length == 0 ? new AlwaysInvalidIndexGenericTypeAssignable()
-                        : new MethodParamGenericTypeAssignable(method, 0),
-                strict);
+                        : new MethodParamGenericTypeAssignable(method, 0));
     }
 
     public void compute(Incomings incomings, Outgoing outgoing) {
@@ -136,18 +135,6 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     @Override
     public Shape shape() {
         return shape;
-    }
-
-    private void processBroadcast(Outgoing outgoing) {
-        Broadcast bc = method.getAnnotation(Broadcast.class);
-        if (outgoing != null) {
-            if (bc != null) {
-                this.broadcastValue = bc.value();
-            }
-        } else if (bc != null) {
-            throw getIncomingError(
-                    "The @Broadcast annotation is only supported for method annotated with @Outgoing: " + methodAsString());
-        }
     }
 
     private IllegalArgumentException getOutgoingError(String message) {
