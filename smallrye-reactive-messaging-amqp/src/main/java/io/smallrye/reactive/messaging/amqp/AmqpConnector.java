@@ -161,7 +161,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
         return Multi.createFrom().deferred(
                 () -> receiver.toMulti()
-                        .map(m -> new AmqpMessage<>(m)));
+                        .map(AmqpMessage::new));
     }
 
     @Override
@@ -234,7 +234,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Uni<Message<?>> send(AmqpSender sender, Message<?> msg, boolean durable, long ttl, String configuredAddress) {
         io.vertx.mutiny.amqp.AmqpMessage amqp;
         if (msg instanceof AmqpMessage) {
-            amqp = ((AmqpMessage) msg).getAmqpMessage();
+            amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
         } else if (msg.getPayload() instanceof io.vertx.mutiny.amqp.AmqpMessage) {
             amqp = (io.vertx.mutiny.amqp.AmqpMessage) msg.getPayload();
         } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
@@ -258,7 +258,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         LOGGER.debug("Sending AMQP message to address `{}` ",
                 actualAddress);
         return sender.sendWithAck(amqp)
-                .onItem().<Void> produceCompletionStage(x -> msg.ack())
+                .onItem().produceCompletionStage(x -> msg.ack())
                 .onItem().apply(x -> msg);
     }
 

@@ -14,7 +14,7 @@ public class ClientConfigurationBean {
     public AmqpClientOptions options() {
         return new AmqpClientOptions()
                 .setHost(System.getProperty("amqp-host"))
-                .setPort(Integer.valueOf(System.getProperty("amqp-port")))
+                .setPort(Integer.parseInt(System.getProperty("amqp-port")))
                 .setUsername(System.getProperty("amqp-user"))
                 .setPassword(System.getProperty("amqp-pwd"));
     }

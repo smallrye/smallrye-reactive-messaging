@@ -35,8 +35,8 @@ import io.vertx.proton.ProtonHelper;
 
 public class AmqpUsage {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(AmqpUsage.class);
-    private AmqpClient client;
+    private final static Logger LOGGER = LoggerFactory.getLogger(AmqpUsage.class);
+    private final AmqpClient client;
 
     public AmqpUsage(Vertx vertx, String host, int port) {
         this(vertx, host, port, "artemis", "simetraehcapa");
