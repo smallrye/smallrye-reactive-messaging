@@ -62,7 +62,7 @@ public class MqttSink {
                     boolean isRetain = false;
 
                     if (msg instanceof SendingMqttMessage) {
-                        MqttMessage mm = ((SendingMqttMessage) msg);
+                        MqttMessage<?> mm = ((SendingMqttMessage<?>) msg);
 
                         actualTopicToBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
                         actualQoS = mm.getQosLevel() == null ? actualQoS : mm.getQosLevel();

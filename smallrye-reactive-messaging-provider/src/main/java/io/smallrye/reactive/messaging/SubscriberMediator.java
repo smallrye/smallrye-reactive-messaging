@@ -20,8 +20,8 @@ import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
 public class SubscriberMediator extends AbstractMediator {
 
-    private PublisherBuilder<Message> source;
-    private SubscriberBuilder subscriber;
+    private PublisherBuilder<? extends Message<?>> source;
+    private SubscriberBuilder<Message<?>, Void> subscriber;
     /**
      * Keep track of the subscription to cancel it once the scope is terminated.
      */
@@ -71,7 +71,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     @Override
-    public SubscriberBuilder<Message, Void> getComputedSubscriber() {
+    public SubscriberBuilder<Message<?>, Void> getComputedSubscriber() {
         return subscriber;
     }
 
@@ -81,19 +81,19 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     @Override
-    public void connectToUpstream(PublisherBuilder<? extends Message> publisher) {
-        this.source = (PublisherBuilder) publisher;
+    public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
+        this.source = publisher;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "SubscriberImplementation" })
     @Override
     public void run() {
         assert this.source != null;
         assert this.subscriber != null;
         final Logger logger = LoggerFactory.getLogger(configuration.methodAsString());
         AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
-        Subscriber delegate = this.subscriber.build();
-        Subscriber delegating = new Subscriber() {
+        Subscriber<Message<?>> delegate = this.subscriber.build();
+        Subscriber<Message<?>> delegating = new Subscriber<Message<?>>() {
             @Override
             public void onSubscribe(Subscription s) {
                 subscription.set(s);
@@ -101,7 +101,7 @@ public class SubscriberMediator extends AbstractMediator {
             }
 
             @Override
-            public void onNext(Object o) {
+            public void onNext(Message<?> o) {
                 delegate.onNext(o);
             }
 
@@ -215,6 +215,7 @@ public class SubscriberMediator extends AbstractMediator {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void processMethodReturningASubscriber() {
         Object result = invoke();
         if (!(result instanceof Subscriber) && !(result instanceof SubscriberBuilder)) {
@@ -222,28 +223,34 @@ public class SubscriberMediator extends AbstractMediator {
                     "Invalid return type: " + result + " - expected a Subscriber or a SubscriberBuilder");
         }
 
-        Subscriber sub;
-        if (result instanceof Subscriber) {
-            sub = (Subscriber) result;
-        } else {
-            sub = ((SubscriberBuilder) result).build();
-        }
         if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
-            SubscriberWrapper<Object, Message> wrapper = new SubscriberWrapper<>(sub, x -> ((Message) x).getPayload(), (x) -> {
-                Message m = ((Message) x);
+            Subscriber<Object> sub;
+            if (result instanceof Subscriber) {
+                sub = (Subscriber<Object>) result;
+            } else {
+                sub = ((SubscriberBuilder<Object, Void>) result).build();
+            }
+
+            SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(sub, Message::getPayload, m -> {
                 if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                     return m.ack();
                 } else {
                     return CompletableFuture.completedFuture(null);
                 }
             });
-            this.subscriber = ReactiveStreams.<Message> builder()
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
                     .via(wrapper)
                     .ignore();
         } else {
-            Subscriber<Message> casted = (Subscriber<Message>) sub;
-            this.subscriber = ReactiveStreams.<Message> builder()
+            Subscriber<Message<?>> sub;
+            if (result instanceof Subscriber) {
+                sub = (Subscriber<Message<?>>) result;
+            } else {
+                sub = ((SubscriberBuilder<Message<?>, Void>) result).build();
+            }
+            Subscriber<Message<?>> casted = sub;
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(managePreProcessingAck())
                     .via(new SubscriberWrapper<>(casted, Function.identity(), null))
                     .ignore();

@@ -24,13 +24,13 @@ import io.smallrye.mutiny.Multi;
 public class PubSubTest extends PubSubTestBase {
 
     private WeldContainer container;
-    private String topic = "pubsub-test";
-    private String subscription = "pubsub-subscription-test";
+    private final String topic = "pubsub-test";
 
     @Before
     public void initTest() {
         final Weld weld = baseWeld();
         weld.addBeanClass(ConsumptionBean.class);
+        String subscription = "pubsub-subscription-test";
         addConfig(createSourceConfig(topic, subscription));
         container = weld.initialize();
     }
@@ -47,7 +47,7 @@ public class PubSubTest extends PubSubTestBase {
     }
 
     @Test
-    public void testSourceAndSink() throws Exception {
+    public void testSourceAndSink() {
         final ConsumptionBean consumptionBean = container.select(ConsumptionBean.class).get();
 
         // wait until the subscription is ready

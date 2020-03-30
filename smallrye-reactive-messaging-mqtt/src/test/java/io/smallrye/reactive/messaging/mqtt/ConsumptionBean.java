@@ -12,7 +12,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 @ApplicationScoped
 public class ConsumptionBean {
 
-    private List<Integer> list = new ArrayList<>();
+    private final List<Integer> list = new ArrayList<>();
 
     @Incoming("data")
     @Outgoing("sink")

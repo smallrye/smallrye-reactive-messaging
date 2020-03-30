@@ -13,7 +13,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 @ApplicationScoped
 public class BeanWithCamelSourceUsingRegularRoute extends RouteBuilder {
 
-    private List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
 
     @Incoming("data")
     public CompletionStage<Void> sink(Message<String> msg) {
@@ -27,7 +27,8 @@ public class BeanWithCamelSourceUsingRegularRoute extends RouteBuilder {
 
     @Override
     public void configure() {
-        from("seda:in").process(exchange -> exchange.getOut().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
+        from("seda:in").process(exchange -> exchange.getMessage()
+                .setBody(exchange.getIn().getBody(String.class).toUpperCase()))
                 .to("seda:out");
     }
 }

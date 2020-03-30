@@ -38,7 +38,7 @@ public abstract class AbstractMediator {
         // Do nothing by default.
     }
 
-    public void connectToUpstream(PublisherBuilder<? extends Message> publisher) {
+    public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
         // Do nothing by default.
     }
 
@@ -66,14 +66,14 @@ public abstract class AbstractMediator {
         try {
             Objects.requireNonNull(this.invoker, "Invoker not initialized");
             return (T) this.invoker.invoke(args);
-        } catch (RuntimeException e) {
+        } catch (RuntimeException e) { // NOSONAR
             LoggerFactory.getLogger(configuration().methodAsString())
                     .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
             throw e;
         }
     }
 
-    protected CompletionStage<Message> getAckOrCompletion(Message<?> message) {
+    protected CompletionStage<Message<?>> getAckOrCompletion(Message<?> message) {
         CompletionStage<Void> ack = message.ack();
         if (ack != null) {
             return ack.thenApply(x -> message);
@@ -82,7 +82,7 @@ public abstract class AbstractMediator {
         }
     }
 
-    public PublisherBuilder<? extends Message> getStream() {
+    public PublisherBuilder<? extends Message<?>> getStream() {
         return null;
     }
 
@@ -94,13 +94,13 @@ public abstract class AbstractMediator {
         return configuration.methodAsString();
     }
 
-    public SubscriberBuilder<Message, Void> getComputedSubscriber() {
+    public SubscriberBuilder<Message<?>, Void> getComputedSubscriber() {
         return null;
     }
 
     public abstract boolean isConnected();
 
-    protected Function<Message, ? extends CompletionStage<? extends Message>> managePreProcessingAck() {
+    protected Function<Message<?>, ? extends CompletionStage<? extends Message<?>>> managePreProcessingAck() {
         return message -> {
             if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
                 return getAckOrCompletion(message);
@@ -109,7 +109,7 @@ public abstract class AbstractMediator {
         };
     }
 
-    public PublisherBuilder<? extends Message> decorate(PublisherBuilder<? extends Message> input) {
+    public PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> input) {
         if (input == null) {
             return null;
         }
@@ -119,7 +119,7 @@ public abstract class AbstractMediator {
         }
 
         if (configuration.getBroadcast()) {
-            Multi<? extends Message> publisher = Multi.createFrom().publisher(input.buildRs());
+            Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(input.buildRs());
             if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
                 return ReactiveStreams.fromPublisher(publisher
                         .broadcast().toAtLeast(configuration.getNumberOfSubscriberBeforeConnecting()));

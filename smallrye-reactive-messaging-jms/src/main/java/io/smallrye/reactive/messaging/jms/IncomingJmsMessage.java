@@ -115,7 +115,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         return metadata;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked" })
     @Override
     public <C> C unwrap(Class<C> unwrapType) {
         if (Message.class.equals(unwrapType)) {
@@ -123,9 +123,6 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         }
         if (IncomingJmsMessageMetadata.class.equals(unwrapType)) {
             return (C) jmsMetadata;
-        }
-        if (Message.class.equals(unwrapType)) {
-            return (C) delegate;
         }
         throw new IllegalArgumentException("Unable to unwrap message to " + unwrapType);
     }

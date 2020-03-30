@@ -13,7 +13,7 @@ import io.smallrye.mutiny.Multi;
 @ApplicationScoped
 public class KafkaPriceMessageProducer {
 
-    private Random random = new Random();
+    private final Random random = new Random();
 
     @Outgoing("prices")
     public Multi<Message<Double>> generate() {

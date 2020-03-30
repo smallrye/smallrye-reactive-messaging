@@ -20,8 +20,6 @@ public class ConnectorConfig implements Config {
     private final String name;
     private final String connector;
 
-    private final String topic;
-
     protected ConnectorConfig(String prefix, Config overall, String channel) {
         this.prefix = Objects.requireNonNull(prefix, "the prefix must not be set");
         this.overall = Objects.requireNonNull(overall, "the config must not be set");
@@ -33,7 +31,6 @@ public class ConnectorConfig implements Config {
                         .orElseThrow(() -> new IllegalArgumentException("Invalid channel configuration - " +
                                 "the `connector` attribute must be set for channel `" + name + "`")));
 
-        this.topic = overall.getOptionalValue(channelKey("topic"), String.class).orElse(null);
         // Detect invalid channel-name attribute
         for (String key : overall.getPropertyNames()) {
             if ((channelKey(CHANNEL_NAME_ATTRIBUTE)).equalsIgnoreCase(key)) {
@@ -77,6 +74,7 @@ public class ConnectorConfig implements Config {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         if (CHANNEL_NAME_ATTRIBUTE.equalsIgnoreCase(propertyName)) {

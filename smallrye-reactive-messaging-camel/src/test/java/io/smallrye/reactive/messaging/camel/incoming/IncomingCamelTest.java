@@ -57,7 +57,7 @@ public class IncomingCamelTest extends CamelTestBase {
         initialize();
 
         await().until(() -> {
-            if (!path.toFile().exists()) {
+            if (!path.toFile().isFile()) {
                 return false;
             }
             List<String> list = Files.readAllLines(path);

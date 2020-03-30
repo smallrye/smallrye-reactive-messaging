@@ -54,7 +54,6 @@ public class JmsSinkTest extends JmsTestBase {
         MapBasedConfig config = new MapBasedConfig.Builder()
                 .put("destination", "queue-one")
                 .put("channel-name", "jms")
-
                 .build();
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
@@ -75,7 +74,6 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("destination", "my-topic")
                 .put("destination-type", "topic")
                 .put("channel-name", "jms")
-
                 .build();
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client1 = new MyJmsClient(jms.createTopic("my-topic"));

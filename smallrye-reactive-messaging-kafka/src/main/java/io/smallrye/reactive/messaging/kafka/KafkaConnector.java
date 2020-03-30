@@ -52,8 +52,8 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Inject
     private Instance<Vertx> instanceOfVertx;
 
-    private List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
-    private List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
+    private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
+    private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
 
     private boolean internalVertxInstance = false;
     private Vertx vertx;

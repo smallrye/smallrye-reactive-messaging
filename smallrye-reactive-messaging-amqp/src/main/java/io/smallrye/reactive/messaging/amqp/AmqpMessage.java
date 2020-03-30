@@ -1,11 +1,14 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.qpid.proton.amqp.Binary;
-import org.apache.qpid.proton.amqp.messaging.*;
+import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
+import org.apache.qpid.proton.amqp.messaging.AmqpValue;
+import org.apache.qpid.proton.amqp.messaging.Data;
+import org.apache.qpid.proton.amqp.messaging.Header;
+import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -15,6 +18,7 @@ import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
+    protected static final String APPLICATION_JSON = "application/json";
     protected final io.vertx.amqp.AmqpMessage message;
     protected final Metadata metadata;
     protected final IncomingAmqpMetadata amqpMetadata;
@@ -87,8 +91,10 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         return CompletableFuture.completedFuture(null);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public T getPayload() {
+        // Throw a class cass exception if it cannot be converted.
         return (T) convert(message);
     }
 
@@ -111,8 +117,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         }
 
         if (body instanceof AmqpSequence) {
-            List list = ((AmqpSequence) body).getValue();
-            return list;
+            return ((AmqpSequence) body).getValue();
         }
 
         if (body instanceof Data) {
@@ -120,7 +125,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
             byte[] bytes = new byte[bin.getLength()];
             System.arraycopy(bin.getArray(), bin.getArrayOffset(), bytes, 0, bin.getLength());
 
-            if ("application/json".equalsIgnoreCase(msg.contentType())) {
+            if (APPLICATION_JSON.equalsIgnoreCase(msg.contentType())) {
                 return Buffer.buffer(bytes).toJson();
             }
             return bytes;

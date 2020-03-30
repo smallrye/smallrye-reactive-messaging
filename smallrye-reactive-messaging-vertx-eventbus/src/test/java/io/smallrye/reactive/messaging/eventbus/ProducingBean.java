@@ -21,7 +21,7 @@ public class ProducingBean {
 
     @Inject
     Vertx vertx;
-    private List<io.vertx.mutiny.core.eventbus.Message> messages = new ArrayList<>();
+    private final List<io.vertx.mutiny.core.eventbus.Message<?>> messages = new ArrayList<>();
 
     @Incoming("data")
     @Outgoing("sink")
@@ -39,10 +39,10 @@ public class ProducingBean {
 
     @PostConstruct
     public void registerConsumer() {
-        vertx.eventBus().consumer("sink").handler(m -> messages.add(m));
+        vertx.eventBus().consumer("sink").handler(messages::add);
     }
 
-    public List<io.vertx.mutiny.core.eventbus.Message> messages() {
+    public List<io.vertx.mutiny.core.eventbus.Message<?>> messages() {
         return messages;
     }
 

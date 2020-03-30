@@ -34,6 +34,7 @@ public class HttpConnectorConfig implements Config {
                 .orElseThrow(() -> new NoSuchElementException("Configuration not found"));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         T value = (T) map.get(propertyName);
@@ -55,6 +56,7 @@ public class HttpConnectorConfig implements Config {
         return this;
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     void write() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {

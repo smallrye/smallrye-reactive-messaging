@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class MqttUsage {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(MqttUsage.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(MqttUsage.class);
     private final IMqttClient client;
 
     public MqttUsage(String host, int port) {

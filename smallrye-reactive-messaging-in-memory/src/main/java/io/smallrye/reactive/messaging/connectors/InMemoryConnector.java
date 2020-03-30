@@ -33,8 +33,8 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
 
     public static final String CONNECTOR = "smallrye-in-memory";
 
-    private Map<String, InMemorySourceImpl<?>> sources = new HashMap<>();
-    private Map<String, InMemorySinkImpl<?>> sinks = new HashMap<>();
+    private final Map<String, InMemorySourceImpl<?>> sources = new HashMap<>();
+    private final Map<String, InMemorySinkImpl<?>> sinks = new HashMap<>();
 
     /**
      * Switch the given channel to in-memory. It replaces the previously used connector with the in-memory

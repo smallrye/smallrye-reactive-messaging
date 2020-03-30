@@ -24,6 +24,7 @@ public class MyCollector {
     private AtomicReference<Throwable> error = new AtomicReference<>();
     private AtomicBoolean completed = new AtomicBoolean();
 
+    @SuppressWarnings("SubscriberImplementation")
     @Incoming("sink")
     public Subscriber<Message<String>> sink() {
         return new Subscriber<Message<String>>() {

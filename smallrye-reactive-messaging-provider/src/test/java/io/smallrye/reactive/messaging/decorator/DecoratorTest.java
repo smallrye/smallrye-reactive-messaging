@@ -69,7 +69,7 @@ public class DecoratorTest extends WeldTestBase {
         // Each message goes through A, is replicated and then goes through B and sink
         // Therefore each input message results in the counting decorator being incremented
         // five times
-        assertEquals(MultiStageBean.TEST_STRINGS.size() * 5, countingDecorator.getMesssageCount());
+        assertEquals(MultiStageBean.TEST_STRINGS.size() * 5, countingDecorator.getMessageCount());
     }
 
 }

@@ -18,18 +18,13 @@ import io.smallrye.reactive.messaging.annotations.Incomings;
 class CollectedMediatorMetadata {
 
     private final List<MediatorConfiguration> mediators = new ArrayList<>();
-    private final boolean strict;
-
-    CollectedMediatorMetadata(boolean strict) {
-        this.strict = strict;
-    }
 
     void add(Method method, Bean<?> bean) {
         mediators.add(createMediatorConfiguration(method, bean));
     }
 
     private MediatorConfiguration createMediatorConfiguration(Method met, Bean<?> bean) {
-        DefaultMediatorConfiguration configuration = new DefaultMediatorConfiguration(met, bean, strict);
+        DefaultMediatorConfiguration configuration = new DefaultMediatorConfiguration(met, bean);
 
         Incomings incomings = met.getAnnotation(Incomings.class);
         Incoming incoming = met.getAnnotation(Incoming.class);

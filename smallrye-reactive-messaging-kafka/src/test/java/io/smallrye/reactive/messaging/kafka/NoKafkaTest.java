@@ -114,7 +114,7 @@ public class NoKafkaTest {
     @ApplicationScoped
     public static class MyOutgoingBean {
 
-        AtomicInteger counter = new AtomicInteger();
+        final AtomicInteger counter = new AtomicInteger();
 
         @Outgoing("temperature-values")
         public Flowable<String> generate() {
@@ -132,7 +132,7 @@ public class NoKafkaTest {
     @ApplicationScoped
     public static class MyIncomingBean {
 
-        List<Integer> received = new CopyOnWriteArrayList<>();
+        final List<Integer> received = new CopyOnWriteArrayList<>();
 
         @Incoming("temperature-values")
         public void consume(int p) {
@@ -147,7 +147,7 @@ public class NoKafkaTest {
     @ApplicationScoped
     public static class MyOutgoingBeanWithoutBackPressure {
 
-        private AtomicReference<Throwable> error = new AtomicReference<>();
+        private final AtomicReference<Throwable> error = new AtomicReference<>();
 
         public Throwable error() {
             return error.get();
@@ -157,7 +157,7 @@ public class NoKafkaTest {
         public Flowable<String> generate() {
             return Flowable.interval(200, TimeUnit.MILLISECONDS)
                     .map(l -> Long.toString(l))
-                    .doOnError(t -> error.set(t));
+                    .doOnError(error::set);
         }
     }
 

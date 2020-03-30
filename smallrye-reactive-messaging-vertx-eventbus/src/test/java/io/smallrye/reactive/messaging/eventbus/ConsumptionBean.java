@@ -20,7 +20,7 @@ public class ConsumptionBean {
     @Inject
     Vertx vertx;
 
-    private List<Integer> list = new ArrayList<>();
+    private final List<Integer> list = new ArrayList<>();
 
     @Incoming("data")
     @Outgoing("sink")

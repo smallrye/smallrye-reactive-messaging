@@ -79,7 +79,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         }
 
         return ReactiveStreams.fromPublisher(publisher)
-                .map(m -> new CamelMessage<>(m));
+                .map(CamelMessage::new);
     }
 
     @Override
@@ -103,7 +103,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         return subscriber;
     }
 
-    private Exchange createExchangeFromMessage(Message message) {
+    private Exchange createExchangeFromMessage(Message<?> message) {
         if (message.getPayload() instanceof Exchange) {
             return (Exchange) message.getPayload();
         }

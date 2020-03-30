@@ -13,7 +13,7 @@ import io.smallrye.mutiny.Uni;
 
 public class PublisherMediator extends AbstractMediator {
 
-    private PublisherBuilder<Message> publisher;
+    private PublisherBuilder<? extends Message<?>> publisher;
 
     // Supported signatures:
     // 1. Publisher<Message<O>> method()
@@ -33,7 +33,7 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     @Override
-    public PublisherBuilder<Message> getStream() {
+    public PublisherBuilder<? extends Message<?>> getStream() {
         return Objects.requireNonNull(publisher);
     }
 
@@ -87,11 +87,11 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     private void produceAPublisherBuilderOfMessages() {
-        PublisherBuilder<Message> builder = invoke();
+        PublisherBuilder<Message<?>> builder = invoke();
         setPublisher(builder);
     }
 
-    private void setPublisher(PublisherBuilder publisher) {
+    private void setPublisher(PublisherBuilder<Message<?>> publisher) {
         this.publisher = decorate(publisher);
     }
 
@@ -111,7 +111,7 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceIndividualMessages() {
         setPublisher(ReactiveStreams.generate(() -> {
-            Message message = invoke();
+            Message<?> message = invoke();
             Objects.requireNonNull(message,
                     "The method " + configuration.methodAsString() + " returned an invalid value: null");
             return message;
@@ -124,7 +124,7 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     private void produceIndividualCompletionStageOfMessages() {
-        setPublisher(ReactiveStreams.<CompletionStage<Message>> generate(this::invoke)
+        setPublisher(ReactiveStreams.<CompletionStage<Message<?>>> generate(this::invoke)
                 .flatMapCompletionStage(Function.identity()));
     }
 
@@ -135,8 +135,8 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     private void produceIndividualUniOfMessages() {
-        setPublisher(ReactiveStreams.<CompletionStage<Message>> generate(() -> {
-            Uni<Message> uni = this.invoke();
+        setPublisher(ReactiveStreams.<CompletionStage<Message<?>>> generate(() -> {
+            Uni<Message<?>> uni = this.invoke();
             return uni.subscribeAsCompletionStage();
         })
                 .flatMapCompletionStage(Function.identity()));

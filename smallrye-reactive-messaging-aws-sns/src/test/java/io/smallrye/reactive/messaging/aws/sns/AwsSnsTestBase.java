@@ -29,7 +29,7 @@ public class AwsSnsTestBase {
     private int port;
 
     @ClassRule
-    public static final GenericContainer CONTAINER = new GenericContainer<>("s12v/sns")
+    public static final GenericContainer<?> CONTAINER = new GenericContainer<>("s12v/sns")
             .withExposedPorts(9911);
 
     @Before

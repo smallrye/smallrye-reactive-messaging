@@ -10,7 +10,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.vertx.core.json.Json;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -22,6 +21,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.vertx.core.json.Json;
 import repeat.Repeat;
 
 public class AmqpSinkTest extends AmqpTestBase {
@@ -53,11 +53,11 @@ public class AmqpSinkTest extends AmqpTestBase {
         usage.consumeIntegers(topic,
                 v -> expected.getAndIncrement());
 
-        SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(v -> (Message) Message.of(v))
-                .subscribe((Subscriber) sink.build());
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
 
         await().until(() -> expected.get() == 10);
         assertThat(expected).hasValue(10);
@@ -67,7 +67,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingString() {
         String topic = UUID.randomUUID().toString();
 
-        SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
 
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeStrings(topic,
@@ -77,12 +77,11 @@ public class AmqpSinkTest extends AmqpTestBase {
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber) sink.build());
+                .subscribe((Subscriber<? super Message<String>>) sink.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
     }
-
 
     static class Person {
         String name;
@@ -91,9 +90,8 @@ public class AmqpSinkTest extends AmqpTestBase {
             return name;
         }
 
-        public Person setName(String name) {
+        public void setName(String name) {
             this.name = name;
-            return this;
         }
     }
 
@@ -101,25 +99,25 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingObject() {
         String topic = UUID.randomUUID().toString();
 
-        SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
 
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeStrings(topic,
-            v -> {
-            expected.getAndIncrement();
-            Person p = Json.decodeValue(v, Person.class);
-            assertThat(p.getName()).startsWith("bob-");
-            });
+                v -> {
+                    expected.getAndIncrement();
+                    Person p = Json.decodeValue(v, Person.class);
+                    assertThat(p.getName()).startsWith("bob-");
+                });
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-            .map(i -> {
-                Person p = new Person();
-                p.setName("bob-" + i);
-                return p;
-            })
-            .map(Message::of)
-            .subscribe((Subscriber) sink.build());
+                .map(i -> {
+                    Person p = new Person();
+                    p.setName("bob-" + i);
+                    return p;
+                })
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Person>>) sink.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
@@ -157,18 +155,15 @@ public class AmqpSinkTest extends AmqpTestBase {
                     messages.add(new AmqpMessage<>(v));
                 });
 
-        SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(v -> {
-                    AmqpMessage<String> message = AmqpMessage.<String> builder()
-                            .withBody(HELLO + v)
-                            .withSubject("foo")
-                            .build();
-                    return message;
-                })
-                .subscribe((Subscriber) sink.build());
+                .map(v -> AmqpMessage.<String> builder()
+                        .withBody(HELLO + v)
+                        .withSubject("foo")
+                        .build())
+                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
@@ -185,13 +180,13 @@ public class AmqpSinkTest extends AmqpTestBase {
         AtomicInteger expected = new AtomicInteger(0);
 
         List<AmqpMessage<String>> messages = new CopyOnWriteArrayList<>();
-        usage.<String> consume(topic,
+        usage.consume(topic,
                 v -> {
                     expected.getAndIncrement();
                     messages.add(new AmqpMessage<>(v));
                 });
 
-        SubscriberBuilder<? extends Message, Void> sink = createProviderAndSink(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -200,7 +195,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .subject("bar")
                         .build())
                 .map(Message::of)
-                .subscribe((Subscriber) sink.build());
+                .subscribe((Subscriber<? super Message<io.vertx.mutiny.amqp.AmqpMessage>>) sink.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
@@ -217,18 +212,18 @@ public class AmqpSinkTest extends AmqpTestBase {
         AtomicInteger expected = new AtomicInteger(0);
 
         List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.<String> consume(topic,
+        usage.consume(topic,
                 v -> {
                     expected.getAndIncrement();
                     messages.add(new AmqpMessage<>(v));
                 });
 
-        SubscriberBuilder<? extends Message, Void> sink = createProviderAndSinkUsingChannelName(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkUsingChannelName(topic);
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> AmqpMessage.<String> builder().withBody(HELLO + v).withSubject("foo").build())
-                .subscribe((Subscriber) sink.build());
+                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
 
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
@@ -333,7 +328,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }
 
-    private SubscriberBuilder<? extends Message, Void> createProviderAndSink(String topic) {
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("address", topic);
@@ -349,7 +344,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
     }
 
-    private SubscriberBuilder<? extends Message, Void> createProviderAndSinkUsingChannelName(String topic) {
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkUsingChannelName(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("name", "the name");

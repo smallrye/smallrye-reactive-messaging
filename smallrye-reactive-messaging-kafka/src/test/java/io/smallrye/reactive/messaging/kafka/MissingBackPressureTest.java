@@ -109,7 +109,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
     @ApplicationScoped
     public static class MyOutgoingBean {
 
-        private Random random = new Random();
+        private final Random random = new Random();
 
         @Outgoing("temperature-values")
         public Flowable<KafkaRecord<String, String>> generate() {
@@ -133,8 +133,8 @@ public class MissingBackPressureTest extends KafkaTestBase {
 
         private volatile boolean stop = false;
 
-        private Random random = new Random();
-        private List<KafkaRecord<String, String>> emitted = new CopyOnWriteArrayList<>();
+        private final Random random = new Random();
+        private final List<KafkaRecord<String, String>> emitted = new CopyOnWriteArrayList<>();
 
         public void stop() {
             this.stop = true;

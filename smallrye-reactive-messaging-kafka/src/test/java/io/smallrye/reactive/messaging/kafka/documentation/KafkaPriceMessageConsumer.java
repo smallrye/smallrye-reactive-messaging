@@ -15,8 +15,9 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
 @ApplicationScoped
 public class KafkaPriceMessageConsumer {
 
-    private List<Double> list = new ArrayList<>();
+    private final List<Double> list = new ArrayList<>();
 
+    @SuppressWarnings({ "rawtypes" })
     @Incoming("prices")
     public CompletionStage<Void> consume(Message<Double> price) {
         // process your price.

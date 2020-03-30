@@ -10,11 +10,11 @@ public interface PublisherDecorator {
 
     /**
      * Decorate a publisher
-     * 
+     *
      * @param publisher the publisher to decorate
      * @param channelName the name of the channel to which this publisher publishes
      * @return the extended publisher
      */
-    public PublisherBuilder<? extends Message> decorate(PublisherBuilder<? extends Message> publisher, String channelName);
+    PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> publisher, String channelName);
 
 }

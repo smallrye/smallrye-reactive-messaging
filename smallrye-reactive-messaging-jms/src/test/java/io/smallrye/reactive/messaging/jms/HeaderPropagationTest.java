@@ -44,7 +44,7 @@ public class HeaderPropagationTest extends JmsTestBase {
     }
 
     @After
-    public void close() throws Exception {
+    public void close() {
         jms.close();
         factory.close();
         // Release the config objects

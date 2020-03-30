@@ -47,10 +47,9 @@ class HttpSink {
                 .ignore();
     }
 
-    @SuppressWarnings("unchecked")
     Uni<Void> send(Message<?> message) {
         Serializer<Object> serializer = Serializer.lookup(message.getPayload(), converterClass);
-        HttpRequest request = toHttpRequest(message);
+        HttpRequest<?> request = toHttpRequest(message);
         return serializer.convert(message.getPayload())
                 .onItem().produceUni(buffer -> invoke(request, buffer))
                 .onItem().produceCompletionStage(x -> message.ack());
@@ -97,7 +96,7 @@ class HttpSink {
         return request;
     }
 
-    private Uni<Void> invoke(HttpRequest<Object> request, Buffer buffer) {
+    private Uni<Void> invoke(HttpRequest<?> request, Buffer buffer) {
         return request
                 .sendBuffer(buffer)
                 .onItem().apply(resp -> {

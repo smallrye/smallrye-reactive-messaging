@@ -14,9 +14,9 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Merge;
 
-@SuppressWarnings({ "rawtypes", "PublisherImplementation" })
-class LazySource implements Publisher<Message> {
-    private PublisherBuilder<? extends Message> delegate;
+@SuppressWarnings({ "PublisherImplementation" })
+class LazySource implements Publisher<Message<?>> {
+    private PublisherBuilder<? extends Message<?>> delegate;
     private String source;
     private Merge.Mode mode;
 
@@ -26,7 +26,7 @@ class LazySource implements Publisher<Message> {
     }
 
     public void configure(ChannelRegistry registry, Logger logger) {
-        List<PublisherBuilder<? extends Message>> list = registry.getPublishers(source);
+        List<PublisherBuilder<? extends Message<?>>> list = registry.getPublishers(source);
         if (!list.isEmpty()) {
             switch (mode) {
                 case MERGE:
@@ -50,18 +50,18 @@ class LazySource implements Publisher<Message> {
         }
     }
 
-    private void merge(List<PublisherBuilder<? extends Message>> list) {
+    private void merge(List<PublisherBuilder<? extends Message<?>>> list) {
         this.delegate = ReactiveStreams.fromPublisher(Multi.createBy().merging().streams(
                 list.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList())));
     }
 
-    private void concat(List<PublisherBuilder<? extends Message>> list) {
+    private void concat(List<PublisherBuilder<? extends Message<?>>> list) {
         this.delegate = ReactiveStreams.fromPublisher(Multi.createBy().concatenating().streams(
                 list.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList())));
     }
 
     @Override
-    public void subscribe(Subscriber<? super Message> s) {
+    public void subscribe(Subscriber<? super Message<?>> s) {
         delegate.to(s).run();
     }
 }

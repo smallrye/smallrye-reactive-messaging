@@ -16,7 +16,7 @@ import io.vertx.mutiny.core.Vertx;
 public class SecureMqttTestBase {
 
     @ClassRule
-    public static GenericContainer mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
+    public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
             .withExposedPorts(1883)
             .withFileSystemBind("src/test/resources/mosquitto-secure", "/mosquitto/config", BindMode.READ_WRITE)
             .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));

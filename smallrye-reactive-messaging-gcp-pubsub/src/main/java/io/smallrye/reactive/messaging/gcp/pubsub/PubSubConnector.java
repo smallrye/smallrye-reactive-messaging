@@ -52,10 +52,12 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     @ConfigProperty(name = "mock-pubsub-topics")
     private boolean mockPubSubTopics;
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @Inject
     @ConfigProperty(name = "mock-pubsub-host")
     private Optional<String> host;
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @Inject
     @ConfigProperty(name = "mock-pubsub-port")
     private Optional<Integer> port;

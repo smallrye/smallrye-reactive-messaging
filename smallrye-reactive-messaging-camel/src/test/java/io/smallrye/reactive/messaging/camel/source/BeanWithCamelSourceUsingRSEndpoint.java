@@ -14,7 +14,7 @@ import io.smallrye.reactive.messaging.camel.CamelMessage;
 @ApplicationScoped
 public class BeanWithCamelSourceUsingRSEndpoint extends RouteBuilder {
 
-    private List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
 
     @Incoming("data")
     public CompletionStage<Void> sink(CamelMessage<String> msg) {
@@ -28,7 +28,8 @@ public class BeanWithCamelSourceUsingRSEndpoint extends RouteBuilder {
 
     @Override
     public void configure() {
-        from("seda:in").process(exchange -> exchange.getOut().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
+        from("seda:in").process(exchange -> exchange.getMessage()
+                .setBody(exchange.getIn().getBody(String.class).toUpperCase()))
                 .to("reactive-streams:out");
     }
 }

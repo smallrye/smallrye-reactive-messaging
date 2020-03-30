@@ -27,7 +27,7 @@ public class MetricDecorator implements PublisherDecorator {
     }
 
     @Override
-    public PublisherBuilder<? extends Message> decorate(PublisherBuilder<? extends Message> publisher,
+    public PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> publisher,
             String channelName) {
         if (registry != null) {
             return publisher.peek(incrementCount(channelName));
@@ -36,9 +36,9 @@ public class MetricDecorator implements PublisherDecorator {
         }
     }
 
-    private Consumer<Message> incrementCount(String channelName) {
+    private Consumer<Message<?>> incrementCount(String channelName) {
         Counter counter = registry.counter("mp.messaging.message.count", new Tag("channel", channelName));
-        return (m) -> counter.inc();
+        return m -> counter.inc();
     }
 
 }
