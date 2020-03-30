@@ -5,12 +5,14 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import javax.jms.JMSException;
+import javax.validation.Validation;
 
 import io.smallrye.reactive.messaging.annotations.Emitter;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.shade.org.apache.commons.lang3.Validate;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -35,13 +37,8 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
     static final String CONNECTOR_NAME = "smallrye-pulsar";
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConnector.class);
 
-
     @Inject
     private Instance<Vertx> instanceOfVertx;
-
-    @Inject
-    @ConfigProperty(name = "pulsar.bootstrap.servers", defaultValue = "localhost:6650")
-    private String servers;
 
     ExecutorService  executorService;
 
@@ -57,15 +54,18 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         return ReactiveStreams.<Message<?>> builder()
             .flatMapCompletionStage(m -> CompletableFuture.completedFuture(m))
-            .onError(t -> LOGGER.error("Unable to send message to JMS", t))
+            .onError(t -> LOGGER.error("Unable to send message to Pulsar", t))
             .ignore();
     }
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         try {
-            Consumer<String> consumer = null;
-            consumer = getClient(config).newConsumer(Schema.STRING).subscribe();
+            Consumer<String> consumer = getClient(config).
+                                        newConsumer(Schema.STRING)
+                                        .topic(config.getValue("topic",String.class))
+                                        .subscriptionName(config.getValue("subscription-name",String.class))
+                                        .subscribe();
             PulsarSource source = new PulsarSource(consumer);
             return ReactiveStreams.fromPublisher(source);
         } catch (PulsarClientException e) {
@@ -80,7 +80,7 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
         String port = config.getValue("port",String.class);
         url.append("pulsar://").append(host).append(":").append(port);
         try {
-            PulsarClient pulsarClient = PulsarClient.builder()
+            return PulsarClient.builder()
                 .serviceUrl(url.toString())
                 .build();
         } catch (PulsarClientException e) {
