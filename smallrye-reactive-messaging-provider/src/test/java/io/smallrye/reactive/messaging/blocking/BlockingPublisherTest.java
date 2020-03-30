@@ -20,10 +20,12 @@ public class BlockingPublisherTest extends WeldTestBaseWithoutTails {
         addBeanClass(BeanReturningPayloads.class);
         initialize();
 
-        List<PublisherBuilder<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
+        List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
-        List<Object> list = producer.get(0).map(Message::getPayload)
-                .limit(5).toList().run().toCompletableFuture().join();
+        List<Integer> list = producer.get(0).map(Message::getPayload)
+                .limit(5)
+                .map(i -> (Integer) i)
+                .toList().run().toCompletableFuture().join();
         assertThat(list).containsExactly(1, 2, 3, 4, 5);
 
         BeanReturningPayloads bean = container.getBeanManager().createInstance().select(BeanReturningPayloads.class).get();
@@ -40,10 +42,12 @@ public class BlockingPublisherTest extends WeldTestBaseWithoutTails {
         addBeanClass(BeanReturningMessages.class);
         initialize();
 
-        List<PublisherBuilder<? extends Message>> producer = registry(container).getPublishers("infinite-producer");
+        List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
-        List<Object> list = producer.get(0).map(Message::getPayload)
-                .limit(5).toList().run().toCompletableFuture().join();
+        List<Integer> list = producer.get(0).map(Message::getPayload)
+                .limit(5)
+                .map(i -> (Integer) i)
+                .toList().run().toCompletableFuture().join();
         assertThat(list).containsExactly(1, 2, 3, 4, 5);
 
         BeanReturningMessages bean = container.getBeanManager().createInstance().select(BeanReturningMessages.class).get();

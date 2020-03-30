@@ -75,7 +75,7 @@ public abstract class AbstractMediator {
             return (T) this.invoker.invoke(args);
         } catch (RuntimeException e) { // NOSONAR
             LoggerFactory.getLogger(configuration().methodAsString())
-                .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
+                    .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
             throw e;
         }
     }

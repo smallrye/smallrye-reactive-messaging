@@ -254,9 +254,9 @@ public class ProcessorMediator extends AbstractMediator {
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .map(input -> (Message<?>) invoke(input.getPayload()))
-                    .buildRs();
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .map(input -> (Message<?>) invoke(input.getPayload()))
+                        .buildRs();
             }
         } else {
             if (configuration.isBlocking()) {
@@ -268,9 +268,9 @@ public class ProcessorMediator extends AbstractMediator {
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .map(input -> (Message<?>) invoke(input))
-                    .buildRs();
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .map(input -> (Message<?>) invoke(input))
+                        .buildRs();
             }
         }
     }
@@ -293,16 +293,16 @@ public class ProcessorMediator extends AbstractMediator {
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .<Message<?>> map(input -> {
-                        Object result = invoke(input.getPayload());
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return input.withPayload(result);
-                        } else {
-                            return Message.of(result, input.getMetadata());
-                        }
-                    })
-                    .buildRs();
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> map(input -> {
+                            Object result = invoke(input.getPayload());
+                            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                return input.withPayload(result);
+                            } else {
+                                return Message.of(result, input.getMetadata());
+                            }
+                        })
+                        .buildRs();
             }
         } else {
             if (configuration.isBlocking()) {
@@ -320,16 +320,16 @@ public class ProcessorMediator extends AbstractMediator {
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .<Message<?>> map(input -> {
-                        Object result = invoke(input);
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return Message.of(result, input::ack);
-                        } else {
-                            return Message.of(result);
-                        }
-                    })
-                    .buildRs();
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> map(input -> {
+                            Object result = invoke(input);
+                            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                return Message.of(result, input::ack);
+                            } else {
+                                return Message.of(result);
+                            }
+                        })
+                        .buildRs();
             }
         }
     }

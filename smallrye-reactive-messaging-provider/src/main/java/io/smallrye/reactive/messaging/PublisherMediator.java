@@ -122,7 +122,7 @@ public class PublisherMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             setPublisher(ReactiveStreams.<Uni<T>> generate(this::invokeBlocking)
                     .flatMapCompletionStage(Uni::subscribeAsCompletionStage)
-                    .map(message -> (Message<?>)message));
+                    .map(message -> (Message<?>) message));
         } else {
             setPublisher(ReactiveStreams.generate(() -> {
                 Message<?> message = invoke();
