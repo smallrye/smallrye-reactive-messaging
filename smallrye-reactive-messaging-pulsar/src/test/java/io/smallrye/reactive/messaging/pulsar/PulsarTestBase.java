@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.pulsar;
 
+import io.reactivex.Observable;
+import io.reactivex.Observer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import org.apache.pulsar.client.admin.PulsarAdmin;

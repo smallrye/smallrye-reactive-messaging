@@ -100,6 +100,7 @@
     <module>examples/cloud-events</module>
 
     <module>examples/kafka-quickstart</module>
+    <module>examples/pulsar-quickstart</module>
     <module>examples/kafka-quickstart-kotlin</module>
     <module>examples/mqtt-quickstart</module>
     <module>examples/mqtt-server-quickstart</module>

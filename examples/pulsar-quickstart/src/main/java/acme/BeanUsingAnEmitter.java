@@ -1,14 +1,13 @@
 package acme;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-
-import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
 public class BeanUsingAnEmitter {
@@ -17,7 +16,7 @@ public class BeanUsingAnEmitter {
     @Channel("my-channel")
     Emitter<String> emitter;
 
-    public static void periodicallySendMessageToPulsar(Emitter<String> emitter) {
+    public void periodicallySendMessageToPulsar() {
         AtomicInteger counter = new AtomicInteger();
         Executors.newSingleThreadScheduledExecutor()
                 .scheduleAtFixedRate(() -> {
