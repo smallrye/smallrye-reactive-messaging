@@ -133,7 +133,11 @@ class MqttServerSource {
     }
 
     synchronized void close() {
-        mqttServer.closeAndForget();
+        mqttServer.close()
+                .onFailure().invoke(t -> logger.warn("An exception has been caught while closing the MQTT server", t))
+                .onItem().invoke(x -> logger.debug("MQTT server closed"))
+                .onFailure().recoverWithItem((Void) null)
+                .await().indefinitely();
     }
 
     synchronized int port() {

@@ -121,7 +121,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         if (blocking != null) {
             this.isBlocking = true;
             this.isOrderedExecution = blocking.ordered();
-            if (!blocking.value().equals(Blocking.NO_VALUE)) {
+            if (!blocking.value().equals(Blocking.DEFAULT_WORKER_POOL)) {
                 this.workerPoolName = blocking.value();
             }
         }
@@ -248,7 +248,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     }
 
     @Override
-    public boolean isOrderedExecution() {
+    public boolean isBlockingExecutionOrdered() {
         return isOrderedExecution;
     }
 

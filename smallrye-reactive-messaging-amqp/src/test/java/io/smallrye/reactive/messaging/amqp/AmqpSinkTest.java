@@ -33,7 +33,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     @After
     public void cleanup() {
         if (provider != null) {
-            provider.close();
+            provider.terminate(null);
         }
 
         if (container != null) {

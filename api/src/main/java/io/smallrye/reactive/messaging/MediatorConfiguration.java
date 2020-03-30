@@ -45,7 +45,7 @@ public interface MediatorConfiguration {
 
     String getWorkerPoolName();
 
-    boolean isOrderedExecution();
+    boolean isBlockingExecutionOrdered();
 
     /**
      * Implementation of the {@link Invoker} interface that can be used to invoke the method described by this configuration

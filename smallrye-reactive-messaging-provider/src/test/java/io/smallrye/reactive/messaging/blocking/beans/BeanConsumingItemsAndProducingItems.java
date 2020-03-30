@@ -18,6 +18,11 @@ public class BeanConsumingItemsAndProducingItems {
     @Incoming("count")
     @Outgoing("sink")
     public String process(int value) {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         threads.add(Thread.currentThread().getName());
         return Integer.toString(value + 1);
     }

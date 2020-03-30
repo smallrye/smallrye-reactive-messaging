@@ -514,18 +514,25 @@ public class MediatorConfigurationSupport {
         if (!(validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_MESSAGE)
                 || validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD)
                 || validationOutput.production.equals(MediatorConfiguration.Production.NONE))) {
-            throw getBlockingError("The @Blocking annotation is only supported for methods returning Message or a payload");
+            throw getBlockingError(
+                    "The @Blocking annotation is only supported for methods returning an individual Message or payload");
         }
 
         if (!(validationOutput.consumption.equals(MediatorConfiguration.Consumption.MESSAGE)
                 || validationOutput.consumption.equals(MediatorConfiguration.Consumption.PAYLOAD)
                 || validationOutput.consumption.equals(MediatorConfiguration.Consumption.NONE))) {
             throw getBlockingError(
-                    "The @Blocking annotation is only supported for methods with parameters of Message or a payload");
+                    "The @Blocking annotation is only supported for methods with parameters of an individual Message or payload");
         }
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
-            throw getBlockingError("The @Blocking annotation is only supported for methods returning Message or a payload");
+            throw getBlockingError(
+                    "The @Blocking annotation is only supported for methods returning an individual Message or a payload");
+        }
+
+        if (ClassUtils.isAssignable(returnType, Uni.class)) {
+            throw getBlockingError(
+                    "The @Blocking annotation is only supported for methods returning an individual Message or a payload");
         }
     }
 

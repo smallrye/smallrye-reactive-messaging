@@ -4,12 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -18,7 +16,11 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.annotations.Blocking;
+import io.smallrye.reactive.messaging.blocking.beans.IncomingCustomBlockingBean;
+import io.smallrye.reactive.messaging.blocking.beans.IncomingCustomTwoBlockingBean;
+import io.smallrye.reactive.messaging.blocking.beans.IncomingCustomUnorderedBlockingBean;
+import io.smallrye.reactive.messaging.blocking.beans.IncomingDefaultBlockingBean;
+import io.smallrye.reactive.messaging.blocking.beans.IncomingDefaultUnorderedBlockingBean;
 
 public class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
@@ -147,122 +149,4 @@ public class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
         }
     }
 
-    @ApplicationScoped
-    public static class IncomingDefaultBlockingBean {
-        private List<String> list = new CopyOnWriteArrayList<>();
-        private List<String> threads = new CopyOnWriteArrayList<>();
-
-        @Incoming("in")
-        @Blocking
-        public void consume(String s) {
-            threads.add(Thread.currentThread().getName());
-            list.add(s);
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public List<String> threads() {
-            return threads;
-        }
-    }
-
-    @ApplicationScoped
-    public static class IncomingDefaultUnorderedBlockingBean {
-        private List<String> list = new CopyOnWriteArrayList<>();
-        private List<String> threads = new CopyOnWriteArrayList<>();
-
-        @Incoming("in")
-        @Blocking(ordered = false)
-        public void consume(String s) {
-            if (s.equals("a") || s.equals("c") || s.equals("e")) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            threads.add(Thread.currentThread().getName());
-            list.add(s);
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public List<String> threads() {
-            return threads;
-        }
-    }
-
-    @ApplicationScoped
-    public static class IncomingCustomBlockingBean {
-        private List<String> list = new CopyOnWriteArrayList<>();
-        private List<String> threads = new CopyOnWriteArrayList<>();
-
-        @Incoming("in")
-        @Blocking("my-pool")
-        public void consume(String s) {
-            threads.add(Thread.currentThread().getName());
-            list.add(s);
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public List<String> threads() {
-            return threads;
-        }
-    }
-
-    @ApplicationScoped
-    public static class IncomingCustomUnorderedBlockingBean {
-        private List<String> list = new CopyOnWriteArrayList<>();
-        private List<String> threads = new CopyOnWriteArrayList<>();
-
-        @Incoming("in")
-        @Blocking(value = "my-pool", ordered = false)
-        public void consume(String s) {
-            if (s.equals("b") || s.equals("d") || s.equals("f")) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            threads.add(Thread.currentThread().getName());
-            list.add(s);
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public List<String> threads() {
-            return threads;
-        }
-    }
-
-    @ApplicationScoped
-    public static class IncomingCustomTwoBlockingBean {
-        private List<String> list = new CopyOnWriteArrayList<>();
-        private List<String> threads = new CopyOnWriteArrayList<>();
-
-        @Incoming("in")
-        @Blocking("another-pool")
-        public void consume(String s) {
-            threads.add(Thread.currentThread().getName());
-            list.add(s);
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public List<String> threads() {
-            return threads;
-        }
-    }
 }

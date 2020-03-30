@@ -10,8 +10,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.BeforeDestroyed;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
@@ -327,8 +330,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         return builder.build();
     }
 
-    @PreDestroy
-    public synchronized void close() {
+    public void terminate(
+            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         clients.forEach(c -> c.close().subscribeAsCompletionStage());
         clients.clear();
     }

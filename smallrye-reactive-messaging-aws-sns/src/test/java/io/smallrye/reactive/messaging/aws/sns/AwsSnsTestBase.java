@@ -21,6 +21,7 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
+import io.vertx.mutiny.core.Vertx;
 
 public class AwsSnsTestBase {
 
@@ -35,8 +36,7 @@ public class AwsSnsTestBase {
 
     @Before
     public void setup() {
-        executionHolder = new ExecutionHolder();
-        executionHolder.init();
+        executionHolder = new ExecutionHolder(Vertx.vertx());
         ip = CONTAINER.getContainerIpAddress();
         port = CONTAINER.getMappedPort(9911);
         LOGGER.debug("Container IP [{}] port [{}]", ip, port);

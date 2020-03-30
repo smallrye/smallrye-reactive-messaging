@@ -19,6 +19,11 @@ public class BeanConsumingItemsAndProducingMessages {
     @Incoming("count")
     @Outgoing("sink")
     public Message<String> process(int value) {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         threads.add(Thread.currentThread().getName());
         return Message.of(Integer.toString(value + 1));
     }

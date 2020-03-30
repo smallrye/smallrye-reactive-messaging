@@ -17,10 +17,44 @@ import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
 public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails {
+    @Test(expected = DeploymentException.class)
+    public void testBeanProducingUniOfPayloads() {
+        addBeanClass(BeanProducingUni.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingUni {
+        @Blocking
+        @Incoming("count")
+        @Outgoing("sink")
+        public Uni<String> process(int value) {
+            return Uni.createFrom().item(() -> Integer.toString(value + 1));
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testBeanProducingUniMessage() {
+        addBeanClass(BeanProducingUniOfMessage.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingUniOfMessage {
+        @Blocking
+        @Incoming("count")
+        @Outgoing("sink")
+        public Uni<Message<String>> process(Message<Integer> value) {
+            return Uni.createFrom().item(() -> Integer.toString(value.getPayload() + 1)).map(Message::of);
+        }
+    }
+
     @Test(expected = DeploymentException.class)
     public void testBeanProducingACompletionStageOfMessage() {
         addBeanClass(BeanProducingACompletionStageOfMessage.class);
@@ -248,6 +282,48 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
                     .flatMapRsPublisher(i -> Flowable.just(i, i))
                     .map(i -> Integer.toString(i))
                     .map(Message::of);
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testBeanProducingAMultiOfPayloadsAndConsumingIndividualPayload() {
+        addBeanClass(BeanProducingAMultiOfPayloadsAndConsumingIndividualPayload.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingAMultiOfPayloadsAndConsumingIndividualPayload {
+        @Blocking
+        @Incoming("count")
+        @Outgoing("sink")
+        public Multi<String> process(Integer payload) {
+            return Multi.createFrom().publisher(
+                    ReactiveStreams.of(payload)
+                            .map(i -> i + 1)
+                            .flatMapRsPublisher(i -> Flowable.just(i, i))
+                            .map(i -> Integer.toString(i)).buildRs());
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testBeanProducingAMultiOfMessagesAndConsumingIndividualMessage() {
+        addBeanClass(BeanProducingAMultiOfMessagesAndConsumingIndividualMessage.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingAMultiOfMessagesAndConsumingIndividualMessage {
+        @Blocking
+        @Incoming("count")
+        @Outgoing("sink")
+        public Multi<Message<String>> process(Message<Integer> message) {
+            return Multi.createFrom().publisher(
+                    ReactiveStreams.of(message)
+                            .map(Message::getPayload)
+                            .map(i -> i + 1)
+                            .flatMapRsPublisher(i -> Flowable.just(i, i))
+                            .map(i -> Integer.toString(i))
+                            .map(Message::of).buildRs());
         }
     }
 }

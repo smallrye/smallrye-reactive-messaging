@@ -45,6 +45,15 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     @Override
+    protected <T> Uni<T> invokeBlocking(Object... args) {
+        return super.<T> invokeBlocking(args)
+                .onItem()
+                .ifNull()
+                .failWith(new NullPointerException("The operation "
+                        + this.configuration.getMethod() + " has returned null"));
+    }
+
+    @Override
     public void initialize(Object bean) {
         super.initialize(bean);
         // Supported signatures:

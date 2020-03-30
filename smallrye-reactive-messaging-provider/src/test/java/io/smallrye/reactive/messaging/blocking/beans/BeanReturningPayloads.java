@@ -18,6 +18,11 @@ public class BeanReturningPayloads {
     @Blocking
     @Outgoing("infinite-producer")
     public int create() {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         threads.add(Thread.currentThread().getName());
         return count.incrementAndGet();
     }

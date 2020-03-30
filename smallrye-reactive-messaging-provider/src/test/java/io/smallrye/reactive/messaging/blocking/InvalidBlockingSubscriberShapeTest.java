@@ -18,6 +18,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
@@ -174,6 +175,86 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         @PreDestroy
         public void cleanup() {
             executor.shutdown();
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testThatWeCanConsumeMessagesFromAMethodReturningUni() {
+        addBeanClass(BeanConsumingMessagesAndReturningUniOfVoid.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanConsumingMessagesAndReturningUniOfVoid {
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        @Blocking
+        @Incoming("count")
+        public Uni<Void> consume(Message<String> message) {
+            return Uni.createFrom().item(() -> {
+                list.add(message.getPayload());
+                return null;
+            });
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testThatWeCanConsumePayloadsFromAMethodReturningUni() {
+        addBeanClass(BeanConsumingPayloadsAndReturningUniOfVoid.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanConsumingPayloadsAndReturningUniOfVoid {
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        @Blocking
+        @Incoming("count")
+        public Uni<Void> consume(String payload) {
+            return Uni.createFrom().item(() -> {
+                list.add(payload);
+                return null;
+            });
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testThatWeCanConsumeMessagesFromAMethodReturningUniOfSomething() {
+        addBeanClass(BeanConsumingMessagesAndReturningUniOfSomething.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanConsumingMessagesAndReturningUniOfSomething {
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        @Blocking
+        @Incoming("count")
+        public Uni<String> consume(Message<String> msg) {
+            return Uni.createFrom().item(() -> {
+                list.add(msg.getPayload());
+                return "hello";
+            });
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testThatWeCanConsumePayloadsFromAMethodReturningUniOfSomething() {
+        addBeanClass(BeanConsumingPayloadsAndReturningUniOfSomething.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanConsumingPayloadsAndReturningUniOfSomething {
+        private List<String> list = new CopyOnWriteArrayList<>();
+
+        @Blocking
+        @Incoming("count")
+        public Uni<String> consume(String payload) {
+            return Uni.createFrom().item(() -> {
+                list.add(payload);
+                return "hello";
+            });
         }
     }
 }

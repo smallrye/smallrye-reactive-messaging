@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt.server;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
@@ -41,7 +42,7 @@ public class MqttServerConnector implements IncomingConnectorFactory {
     }
 
     public void terminate(
-            @Observes(notifyObserver = Reception.IF_EXISTS) @BeforeDestroyed(ApplicationScoped.class) Object event) {
+            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (source != null) {
             source.close();
         }

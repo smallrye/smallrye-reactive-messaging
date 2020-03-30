@@ -21,10 +21,10 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
-import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.helpers.Validation;
 import io.vertx.core.Handler;
 import io.vertx.mutiny.core.Promise;
@@ -41,7 +41,7 @@ public class WorkerPoolRegistry {
     @Inject
     private Instance<Config> configInstance;
 
-    private Map<String, Integer> workerDefinitions = new HashMap<>();
+    private Map<String, Integer> workerConcurrency = new HashMap<>();
     private Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
 
     public void terminate(
@@ -54,7 +54,7 @@ public class WorkerPoolRegistry {
     }
 
     public <T> Uni<T> executeWork(Handler<Promise<T>> blockingCodeHandler, String workerName, boolean ordered) {
-        Objects.requireNonNull(blockingCodeHandler, "Code to execute not provided");
+        Objects.requireNonNull(blockingCodeHandler, "Action to execute not provided");
 
         if (workerName == null) {
             return executionHolder.vertx().executeBlocking(blockingCodeHandler, ordered);
@@ -69,11 +69,22 @@ public class WorkerPoolRegistry {
         if (workerExecutors.containsKey(workerName)) {
             return workerExecutors.get(workerName);
         }
-        if (workerDefinitions.containsKey(workerName)) {
-            WorkerExecutor executor = executionHolder.vertx().createSharedWorkerExecutor(workerName,
-                    workerDefinitions.get(workerName));
+        if (workerConcurrency.containsKey(workerName)) {
+            WorkerExecutor executor = workerExecutors.get(workerName);
+            if (executor == null) {
+                synchronized (this) {
+                    executor = workerExecutors.get(workerName);
+                    if (executor == null) {
+                        executor = executionHolder.vertx().createSharedWorkerExecutor(workerName,
+                                workerConcurrency.get(workerName));
+                        LoggerFactory.getLogger(WorkerPoolRegistry.class)
+                                .info("Created worker pool named " + workerName + " with concurrency of "
+                                        + workerConcurrency.get(workerName));
+                        workerExecutors.put(workerName, executor);
+                    }
+                }
+            }
             if (executor != null) {
-                workerExecutors.put(workerName, executor);
                 return executor;
             } else {
                 throw new RuntimeException("Failed to create Worker for " + workerName);
@@ -91,21 +102,20 @@ public class WorkerPoolRegistry {
 
         methods.stream()
                 .filter(m -> m.isAnnotationPresent(Blocking.class))
-                .forEach(m -> addWorker(m.getJavaMember()));
+                .forEach(m -> defineWorker(m.getJavaMember()));
     }
 
-    private void addWorker(Method method) {
+    private void defineWorker(Method method) {
         Objects.requireNonNull(method, "Method was empty");
 
         Blocking blocking = method.getAnnotation(Blocking.class);
 
-        // Validate @Blocking is used in conjunction with @Incomings, @Incoming, or @Outgoing
-        if (!(method.isAnnotationPresent(Incomings.class) || method.isAnnotationPresent(Incoming.class)
-                || method.isAnnotationPresent(Outgoing.class))) {
-            throw getBlockingError(method, "no @Incomings, @Incoming, or @Outgoing present");
+        // Validate @Blocking is used in conjunction with @Incoming, or @Outgoing
+        if (!(method.isAnnotationPresent(Incoming.class) || method.isAnnotationPresent(Outgoing.class))) {
+            throw getBlockingError(method, "no @Incoming or @Outgoing present");
         }
 
-        if (!blocking.value().equals(Blocking.NO_VALUE)) {
+        if (!blocking.value().equals(Blocking.DEFAULT_WORKER_POOL)) {
             // Validate @Blocking value is not empty, if set
             if (Validation.isBlank(blocking.value())) {
                 throw getBlockingError(method, "value is blank or null");
@@ -118,7 +128,7 @@ public class WorkerPoolRegistry {
                 throw getBlockingError(method, workerConfigKey + " was not defined");
             }
 
-            workerDefinitions.put(blocking.value(), concurrency.get());
+            workerConcurrency.put(blocking.value(), concurrency.get());
         }
     }
 

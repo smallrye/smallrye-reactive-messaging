@@ -19,6 +19,7 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
@@ -162,6 +163,40 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         @PreDestroy
         public void cleanup() {
             executor.shutdown();
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testProduceUniOfMessage() {
+        addBeanClass(BeanReturningUniOfMessage.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanReturningUniOfMessage {
+        private AtomicInteger count = new AtomicInteger();
+
+        @Blocking
+        @Outgoing("infinite-producer")
+        public Uni<Message<Integer>> create() {
+            return Uni.createFrom().item(() -> Message.of(count.incrementAndGet()));
+        }
+    }
+
+    @Test(expected = DeploymentException.class)
+    public void testProduceUniOfPayload() {
+        addBeanClass(BeanReturningUniOfPayload.class);
+        initialize();
+    }
+
+    @ApplicationScoped
+    public static class BeanReturningUniOfPayload {
+        private AtomicInteger count = new AtomicInteger();
+
+        @Blocking
+        @Outgoing("infinite-producer")
+        public Uni<Integer> create() {
+            return Uni.createFrom().item(() -> count.incrementAndGet());
         }
     }
 }

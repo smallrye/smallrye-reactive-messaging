@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import java.util.concurrent.CountDownLatch;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -9,6 +7,7 @@ import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.vertx.mutiny.core.Vertx;
 import repeat.RepeatRule;
 
 public class AmqpTestBase {
@@ -28,8 +27,7 @@ public class AmqpTestBase {
 
     @Before
     public void setup() {
-        executionHolder = new ExecutionHolder();
-        executionHolder.init();
+        executionHolder = new ExecutionHolder(Vertx.vertx());
         address = artemis.getContainerIpAddress();
         port = artemis.getMappedPort(5672);
         System.setProperty("amqp-host", address);
@@ -44,14 +42,8 @@ public class AmqpTestBase {
         System.clearProperty("amqp-host");
         System.clearProperty("amqp-port");
 
-        CountDownLatch latch = new CountDownLatch(1);
         usage.close();
-        executionHolder.vertx().close().subscribe().with(x -> latch.countDown(), f -> latch.countDown());
         executionHolder.terminate(null);
-
-        latch.await();
-
-        Thread.sleep(1000);
     }
 
 }

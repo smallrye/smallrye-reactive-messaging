@@ -80,6 +80,7 @@ public abstract class AbstractMediator {
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected <T> Uni<T> invokeBlocking(Object... args) {
         try {
             Objects.requireNonNull(this.invoker, "Invoker not initialized");
@@ -87,7 +88,7 @@ public abstract class AbstractMediator {
             return workerPoolRegistry.executeWork(
                     future -> future.complete((T) this.invoker.invoke(args)),
                     configuration.getWorkerPoolName(),
-                    configuration.isOrderedExecution());
+                    configuration.isBlockingExecutionOrdered());
         } catch (RuntimeException e) {
             LoggerFactory.getLogger(configuration().methodAsString())
                     .error("The method " + configuration().methodAsString() + " has thrown an exception", e);

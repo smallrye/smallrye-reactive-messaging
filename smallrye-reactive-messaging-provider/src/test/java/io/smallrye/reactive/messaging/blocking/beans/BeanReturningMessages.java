@@ -19,6 +19,11 @@ public class BeanReturningMessages {
     @Blocking
     @Outgoing("infinite-producer")
     public Message<Integer> create() {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         threads.add(Thread.currentThread().getName());
         return Message.of(count.incrementAndGet());
     }

@@ -6,30 +6,26 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
 @ApplicationScoped
-public class BeanConsumingMessagesAndProducingItems {
+public class IncomingCustomTwoBlockingBean {
+    private List<String> list = new CopyOnWriteArrayList<>();
     private List<String> threads = new CopyOnWriteArrayList<>();
 
-    @Blocking
-    @Incoming("count")
-    @Outgoing("sink")
-    public String process(Message<Integer> value) {
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    @Incoming("in")
+    @Blocking("another-pool")
+    public void consume(String s) {
         threads.add(Thread.currentThread().getName());
-        return Integer.toString(value.getPayload() + 1);
+        list.add(s);
+    }
+
+    public List<String> list() {
+        return list;
     }
 
     public List<String> threads() {
         return threads;
     }
-
 }

@@ -95,7 +95,7 @@ public class KafkaSource<K, V> {
 
     public void closeQuietly() {
         try {
-            this.consumer.closeAndForget();
+            this.consumer.closeAndAwait();
         } catch (Throwable e) {
             LOGGER.debug("An exception has been caught while closing the Kafka consumer", e);
         }
