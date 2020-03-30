@@ -1,0 +1,10 @@
+.Incoming Attributes of the 'smallrye-camel' connector
+[cols="25, 30, 15, 20",options="header"]
+|===
+|Attribute (_alias_) | Description | Mandatory | Default
+
+| *endpoint-uri* | The URI of the Camel endpoint (read from or written to)
+
+Type: _string_ | true | 
+
+|===

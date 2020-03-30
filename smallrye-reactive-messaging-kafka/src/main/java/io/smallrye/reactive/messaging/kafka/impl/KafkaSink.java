@@ -8,14 +8,13 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -33,20 +32,16 @@ public class KafkaSink {
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
     @SuppressWarnings("rawtypes")
-    public KafkaSink(Vertx vertx, Config config, String servers) {
-        JsonObject kafkaConfiguration = extractProducerConfiguration(config, servers);
+    public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
+        JsonObject kafkaConfiguration = extractProducerConfiguration(config);
 
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
         stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
 
-        partition = config.getOptionalValue("partition", Integer.class).orElse(-1);
-        key = config.getOptionalValue("key", String.class).orElse(null);
-        topic = getTopicOrNull(config);
-        waitForWriteCompletion = config.getOptionalValue("waitForWriteCompletion", Boolean.class).orElse(true);
-        if (topic == null) {
-            LOGGER.warn("No default topic configured, only sending messages with an explicit topic set");
-        }
-
+        partition = config.getPartition();
+        key = config.getKey().orElse(null);
+        topic = config.getTopic().orElseGet(config::getChannel);
+        waitForWriteCompletion = config.getWaitForWriteCompletion();
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(message -> {
                     try {
@@ -58,7 +53,7 @@ public class KafkaSink {
                             return CompletableFuture.completedFuture(message);
                         }
 
-                        ProducerRecord record = getProducerRecord(message, metadata, actualTopic);
+                        ProducerRecord<?, ?> record = getProducerRecord(message, metadata, actualTopic);
                         LOGGER.debug("Sending message {} to Kafka topic '{}'", message, record.topic());
 
                         CompletableFuture<Message> future = new CompletableFuture<>();
@@ -74,7 +69,8 @@ public class KafkaSink {
                         };
                         CompletableFuture<? extends Message<?>> result = future.thenCompose(x -> message.ack())
                                 .thenApply(x -> message);
-                        stream.write(record, handler);
+                        //noinspection unchecked
+                        stream.write((ProducerRecord) record, handler);
                         if (waitForWriteCompletion) {
                             return result;
                         } else {
@@ -89,13 +85,18 @@ public class KafkaSink {
                 .ignore();
     }
 
-    @SuppressWarnings("rawtypes")
-    private ProducerRecord getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
+    private ProducerRecord<?, ?> getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
             String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
         Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
-        long actualTimestamp = om == null || om.getKey() == null ? -1
-                : om.getTimestamp() != null ? om.getTimestamp().toEpochMilli() : -1;
+
+        long actualTimestamp;
+        if ((om == null) || (om.getKey() == null)) {
+            actualTimestamp = -1;
+        } else {
+            actualTimestamp = (om.getTimestamp() != null) ? om.getTimestamp().toEpochMilli() : -1;
+        }
+
         Iterable<Header> kafkaHeaders = om == null || om.getHeaders() == null ? Collections.emptyList() : om.getHeaders();
         return new ProducerRecord<>(
                 actualTopic,
@@ -106,23 +107,20 @@ public class KafkaSink {
                 kafkaHeaders);
     }
 
-    private JsonObject extractProducerConfiguration(Config config, String servers) {
-        JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config);
+    private JsonObject extractProducerConfiguration(KafkaConnectorOutgoingConfiguration config) {
+        JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config.config());
 
         // Acks must be a string, even when "1".
-        if (kafkaConfiguration.containsKey(ProducerConfig.ACKS_CONFIG)) {
-            kafkaConfiguration.put(ProducerConfig.ACKS_CONFIG,
-                    kafkaConfiguration.getValue(ProducerConfig.ACKS_CONFIG).toString());
-        }
+        kafkaConfiguration.put(ProducerConfig.ACKS_CONFIG, config.getAcks());
 
         if (!kafkaConfiguration.containsKey(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-            LOGGER.info("Setting {} to {}", ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
-            kafkaConfiguration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
+            LOGGER.info("Setting {} to {}", ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
+            kafkaConfiguration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         }
 
         if (!kafkaConfiguration.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
             LOGGER.info("Key deserializer omitted, using String as default");
-            kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, config.getKeySerializer());
         }
 
         kafkaConfiguration.remove("channel-name");
@@ -155,11 +153,5 @@ public class KafkaSink {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    private String getTopicOrNull(Config config) {
-        return config.getOptionalValue("topic", String.class)
-                .orElseGet(
-                        () -> config.getOptionalValue("channel-name", String.class).orElse(null));
     }
 }

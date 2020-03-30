@@ -77,29 +77,6 @@ public class MockedReceiver<T> {
     }
 
     /**
-     * Expect a message to eventually arrive with the given payload.
-     * <p>
-     * Any messages not matching the payload will be acknowledged and ignored.
-     */
-    public Message<T> expectEventualMessageWithPayload(T payload) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        Message<T> msg = receiveMessageWithPayload(payload, timeout.toMillis());
-        List<String> ignored = new ArrayList<>();
-        try {
-            while (!msg.getPayload().equals(payload)) {
-                ignored.add(msg.toString());
-                msg.ack();
-                long remaining = timeout.toMillis() - (System.currentTimeMillis() - start);
-                msg = receiveMessageWithPayload(payload, remaining);
-            }
-            return msg;
-        } catch (ReceiveTimeoutException e) {
-            throw new AssertionError(
-                    e.getMessage() + ". Did receive and ignore the following payloads: " + String.join(", ", ignored));
-        }
-    }
-
-    /**
      * Expect no more messages.
      */
     public void expectNoMessages(String errorMsg) {

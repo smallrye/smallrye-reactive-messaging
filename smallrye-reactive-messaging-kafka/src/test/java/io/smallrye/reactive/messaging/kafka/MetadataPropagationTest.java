@@ -76,7 +76,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         });
     }
 
-    private <T> T deploy(MapBasedConfig config, Class<T> clazz) {
+    private <T> void deploy(MapBasedConfig config, Class<T> clazz) {
         if (config != null) {
             config.write();
         } else {
@@ -87,7 +87,6 @@ public class MetadataPropagationTest extends KafkaTestBase {
         weld.addBeanClass(clazz);
 
         container = weld.initialize();
-        return container.getBeanManager().createInstance().select(clazz).get();
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {

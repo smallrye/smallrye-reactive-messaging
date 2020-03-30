@@ -1,0 +1,28 @@
+== Merge
+
+[IMPORTANT]
+.Experimental
+====
+`@Merge` is an experimental feature.
+====
+
+By default, messages transiting in a channel can arise from a single producer.
+Having multiple producers is considered as an error, and is reported at deployment time.
+
+The {javadoc-base}/io/smallrye/reactive/messaging/annotations/Merge.html[`Merge`] annotation changes this behavior and indicates that a channel can have multiple producers.
+`@Merge` must be used with the `@Merge` annotation:
+
+[source, java, indent=0]
+----
+include::example$merge/MergeExamples.java[tag=chain]
+----
+
+In the previous example, the consumer gets all the messages (from both producers).
+
+The `@Merge` annotation allows configuring how the incoming messages are merged.
+This is done by setting the `mode`:
+
+* `ONE` picks a single producers, others are ignored
+* `MERGE` gets all the messages in not defined orders. They are received as they come.
+* `CONCAT` concatenates the producers. The messages from one producers are received until the messages from others producers are received.
+

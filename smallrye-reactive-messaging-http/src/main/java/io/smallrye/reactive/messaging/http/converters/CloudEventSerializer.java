@@ -5,6 +5,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.cloudevents.CloudEventMessage;
 import io.vertx.mutiny.core.buffer.Buffer;
 
+@SuppressWarnings("rawtypes")
 public class CloudEventSerializer extends Serializer<CloudEventMessage> {
 
     @Override

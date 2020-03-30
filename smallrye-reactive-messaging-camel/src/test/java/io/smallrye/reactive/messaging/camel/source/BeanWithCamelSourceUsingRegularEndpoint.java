@@ -13,7 +13,7 @@ import io.smallrye.reactive.messaging.camel.CamelMessage;
 @ApplicationScoped
 public class BeanWithCamelSourceUsingRegularEndpoint {
 
-    private List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
 
     @Incoming("data")
     public CompletionStage<Void> sink(CamelMessage<String> msg) {

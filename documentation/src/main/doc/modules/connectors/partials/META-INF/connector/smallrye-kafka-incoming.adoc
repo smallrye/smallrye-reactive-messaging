@@ -1,0 +1,52 @@
+.Incoming Attributes of the 'smallrye-kafka' connector
+[cols="25, 30, 15, 20",options="header"]
+|===
+|Attribute (_alias_) | Description | Mandatory | Default
+
+| *bootstrap.servers*
+
+_(kafka.bootstrap.servers)_ | A comma-separated list of host:port to use for establishing the initial connection to the Kafka cluster.
+
+Type: _string_ | false | `localhost:9092`
+
+| *topic* | The consumed / populated Kafka topic. If not set, the channel name is used
+
+Type: _string_ | false | 
+
+| *key.deserializer* | The deserializer classname used to deserialize the record's key
+
+Type: _string_ | false | `org.apache.kafka.common.serialization.StringDeserializer`
+
+| *value.deserializer* | The deserializer classname used to deserialize the record's value
+
+Type: _string_ | true | 
+
+| *fetch.min.bytes* | The minimum amount of data the server should return for a fetch request. The default setting of 1 byte means that fetch requests are answered as soon as a single byte of data is available or the fetch request times out waiting for data to arrive.
+
+Type: _int_ | false | `1`
+
+| *group.id* | A unique string that identifies the consumer group the application belongs to. If not set, a unique, generated id is used
+
+Type: _string_ | false | 
+
+| *retry* | Whether or not the connection to the broker is re-attempted in case of failure
+
+Type: _boolean_ | false | `true`
+
+| *retry-attempts* | The maximum number of reconnection before failing. -1 means infinite retry
+
+Type: _int_ | false | `-1`
+
+| *retry-max-wait* | The max delay (in seconds) between 2 reconnects
+
+Type: _int_ | false | `30`
+
+| *broadcast* | Whether the Kafka records should be dispatched to multiple consumer
+
+Type: _boolean_ | false | `false`
+
+| *auto.offset.reset* | What to do when there is no initial offset in Kafka.Accepted values are earliest, latest and none
+
+Type: _string_ | false | `latest`
+
+|===

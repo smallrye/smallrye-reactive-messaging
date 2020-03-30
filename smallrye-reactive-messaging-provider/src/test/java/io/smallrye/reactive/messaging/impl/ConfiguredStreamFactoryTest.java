@@ -123,7 +123,7 @@ public class ConfiguredStreamFactoryTest {
         assertThat(config2.getValue("b", String.class)).isEqualTo("B22");
     }
 
-    private class DummyConfig implements Config {
+    private static class DummyConfig implements Config {
 
         private final Map<String, Object> backend;
 

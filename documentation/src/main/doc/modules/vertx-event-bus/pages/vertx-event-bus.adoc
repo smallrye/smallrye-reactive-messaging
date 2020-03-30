@@ -1,0 +1,20 @@
+= Vert.x Event Bus
+
+The Vert.x Event Bus connector adds support for the Vert.x Event Bus to Reactive Messaging.
+
+It allows a Reactive Messaging application to send and receive messages from the Vert.x event bus.
+It is mainly designed to ease the interaction with Vert.x applications.
+
+== Introduction
+
+The Vert.x event bus connector is able to:
+
+* receive messages from the Vert.x event bus and send them to the associated channel
+* send messages to the Vert.x event bus for each `Message` transiting on a channel
+
+include::installation.adoc[]
+include::inbound.adoc[]
+include::outbound.adoc[]
+
+
+

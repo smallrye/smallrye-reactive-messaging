@@ -34,9 +34,10 @@ public class EventBusSourceTest extends EventbusTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        List<EventBusMessage> messages = new ArrayList<>();
+        List<EventBusMessage<Integer>> messages = new ArrayList<>();
         Multi.createFrom().publisher(source.source().buildRs())
                 .onItem().castTo(EventBusMessage.class)
                 .subscribe().with(messages::add);
@@ -51,18 +52,20 @@ public class EventBusSourceTest extends EventbusTestBase {
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testBroadcast() {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("broadcast", true);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        List<EventBusMessage> messages1 = new ArrayList<>();
-        List<EventBusMessage> messages2 = new ArrayList<>();
-        Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
-                .onItem().castTo(EventBusMessage.class);
+        List<EventBusMessage<Integer>> messages1 = new ArrayList<>();
+        List<EventBusMessage<Integer>> messages2 = new ArrayList<>();
+        Multi<EventBusMessage<Integer>> multi = Multi.createFrom().publisher(source.source().buildRs())
+                .onItem().apply(x -> (EventBusMessage<Integer>) x);
         multi.subscribe().with(messages1::add);
         multi.subscribe().with(messages2::add);
 
@@ -87,14 +90,15 @@ public class EventBusSourceTest extends EventbusTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put("use-reply-as-ack", true);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
-                .onItem().castTo(EventBusMessage.class)
+        Multi<? extends EventBusMessage<?>> multi = Multi.createFrom().publisher(source.source().buildRs())
+                .onItem().apply(x -> (EventBusMessage<?>) x)
                 .onItem().produceCompletionStage(m -> m.ack().toCompletableFuture().thenApply(x -> m)).concatenate();
 
-        List<EventBusMessage> messages1 = new ArrayList<>();
-        multi.subscribe().with(messages1::add);
+        List<EventBusMessage<?>> messages = new ArrayList<>();
+        multi.subscribe().with(messages::add);
 
         AtomicBoolean acked = new AtomicBoolean();
         vertx.eventBus().request(topic, 1)
@@ -102,6 +106,7 @@ public class EventBusSourceTest extends EventbusTestBase {
                 .await().indefinitely();
 
         await().untilTrue(acked);
+        assertThat(messages).isNotEmpty();
     }
 
     @Test
@@ -109,12 +114,13 @@ public class EventBusSourceTest extends EventbusTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        EventBusSource source = new EventBusSource(vertx, new MapBasedConfig(config));
+        EventBusSource source = new EventBusSource(vertx,
+                new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        Multi<EventBusMessage> multi = Multi.createFrom().publisher(source.source().buildRs())
-                .onItem().castTo(EventBusMessage.class);
+        Multi<? extends EventBusMessage<?>> multi = Multi.createFrom().publisher(source.source().buildRs())
+                .onItem().apply(x -> (EventBusMessage<?>) x);
 
-        List<EventBusMessage> messages1 = new ArrayList<>();
+        List<EventBusMessage<?>> messages1 = new ArrayList<>();
         multi.subscribe().with(messages1::add);
 
         vertx.eventBus().sendAndForget(topic, 1, new DeliveryOptions()
@@ -122,7 +128,7 @@ public class EventBusSourceTest extends EventbusTestBase {
 
         await().until(() -> messages1.size() == 1);
 
-        EventBusMessage message = messages1.get(0);
+        EventBusMessage<?> message = messages1.get(0);
         assertThat(message.getHeader("X-key")).contains("value");
         assertThat(message.getHeaders("X-key")).containsExactly("value");
         assertThat(message.getAddress()).isEqualTo(topic);

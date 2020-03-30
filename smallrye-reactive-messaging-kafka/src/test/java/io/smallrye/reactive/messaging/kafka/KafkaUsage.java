@@ -20,6 +20,8 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.DoubleDeserializer;
+import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -33,8 +35,8 @@ import org.slf4j.LoggerFactory;
  */
 public class KafkaUsage {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(KafkaUsage.class);
-    private String brokers;
+    private final static Logger LOGGER = LoggerFactory.getLogger(KafkaUsage.class);
+    private final String brokers;
 
     public KafkaUsage() {
         this.brokers = "localhost:9092";
@@ -115,6 +117,14 @@ public class KafkaUsage {
         this.produce(randomId, messageCount, keySer, valSer, completionCallback, messageSupplier);
     }
 
+    public void produceDoubles(int messageCount, Runnable completionCallback,
+            Supplier<ProducerRecord<String, Double>> messageSupplier) {
+        Serializer<String> keySer = new StringSerializer();
+        Serializer<Double> valSer = new DoubleSerializer();
+        String randomId = UUID.randomUUID().toString();
+        this.produce(randomId, messageCount, keySer, valSer, completionCallback, messageSupplier);
+    }
+
     public void produceStrings(int messageCount, Runnable completionCallback,
             Supplier<ProducerRecord<String, String>> messageSupplier) {
         Serializer<String> keySer = new StringSerializer();
@@ -173,8 +183,7 @@ public class KafkaUsage {
             Consumer<ConsumerRecord<String, String>> consumerFunction) {
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
-        OffsetCommitCallback offsetCommitCallback = null;
-        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, continuation, offsetCommitCallback,
+        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, continuation, null,
                 completion, topics, consumerFunction);
     }
 
@@ -183,8 +192,16 @@ public class KafkaUsage {
         Deserializer<String> keyDes = new StringDeserializer();
         Deserializer<Integer> valDes = new IntegerDeserializer();
         String randomId = UUID.randomUUID().toString();
-        OffsetCommitCallback offsetCommitCallback = null;
-        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, offsetCommitCallback,
+        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, null,
+                completion, topics, consumerFunction);
+    }
+
+    private void consumeDoubles(BooleanSupplier continuation, Runnable completion, Collection<String> topics,
+            Consumer<ConsumerRecord<String, Double>> consumerFunction) {
+        Deserializer<String> keyDes = new StringDeserializer();
+        Deserializer<Double> valDes = new DoubleDeserializer();
+        String randomId = UUID.randomUUID().toString();
+        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, null,
                 completion, topics, consumerFunction);
     }
 
@@ -192,6 +209,17 @@ public class KafkaUsage {
             BiConsumer<String, String> consumer) {
         AtomicLong readCounter = new AtomicLong();
         this.consumeStrings(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion,
+                Collections.singleton(topicName),
+                (record) -> {
+                    consumer.accept(record.key(), record.value());
+                    readCounter.incrementAndGet();
+                });
+    }
+
+    public void consumeDoubles(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            BiConsumer<String, Double> consumer) {
+        AtomicLong readCounter = new AtomicLong();
+        this.consumeDoubles(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion,
                 Collections.singleton(topicName),
                 (record) -> {
                     consumer.accept(record.key(), record.value());

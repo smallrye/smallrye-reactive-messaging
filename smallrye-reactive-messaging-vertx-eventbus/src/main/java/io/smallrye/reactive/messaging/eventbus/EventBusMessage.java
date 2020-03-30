@@ -12,12 +12,12 @@ import io.vertx.core.MultiMap;
 public class EventBusMessage<T> implements Message<T> {
 
     private final Supplier<CompletionStage<Void>> ack;
-    private io.vertx.core.eventbus.Message<T> wrapped;
-    private T payload;
-    private String address;
-    private String replyAddress;
+    private final io.vertx.core.eventbus.Message<T> wrapped;
+    private final T payload;
+    private final String address;
+    private final String replyAddress;
 
-    private MultiMap headers;
+    private final MultiMap headers;
 
     EventBusMessage(io.vertx.core.eventbus.Message<T> m, Supplier<CompletionStage<Void>> ack) {
         this.wrapped = m;
@@ -28,6 +28,7 @@ public class EventBusMessage<T> implements Message<T> {
         this.ack = ack;
     }
 
+    @SuppressWarnings("unchecked")
     EventBusMessage(io.vertx.mutiny.core.eventbus.Message<T> m, Supplier<CompletionStage<Void>> ack) {
         this(m.getDelegate(), ack);
     }

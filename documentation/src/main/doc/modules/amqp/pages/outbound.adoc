@@ -1,0 +1,81 @@
+[#amqp-outbound]
+== Sending messages to AMQP
+
+The AMQP connector can write Reactive Messaging `Messages` as AMQP Messages.
+
+=== Example
+
+Let's imagine you have an AMQP broker (such as https://activemq.apache.org/components/artemis/[Apache ActiveMQ Artemis]) running, and accessible using the `amqp:5672` address (by default it would use `localhost:5672`).
+Configure your application to send the messages from the `prices` channel as AMQP Message as follows:
+
+[source]
+----
+amqp-host=amqp               # <1>
+amqp-port=5672               # <2>
+amqp-username=my-username    # <3>
+amqp-password=my-password    # <4>
+
+mp.messaging.outgoing.prices.connector=smallrye-amqp       # <5>
+----
+1. Configures the broker/router host name. You can do it per channel (using the `host` attribute) or globally using `amqp-host`
+2. Configures the broker/router port. You can do it per channel (using the `port` attribute) or globally using `amqp-port`. The default is `5672`.
+3. Configures the broker/router username if required. You can do it per channel (using the `username` attribute) or globally using `amqp-username`.
+4. Configures the broker/router password if required. You can do it per channel (using the `password` attribute) or globally using `amqp-password`.
+5. Instructs the `prices` channel to be managed by the AMQP connector
+
+NOTE: You don't need to set the _address_. By default, it uses the channel name (`prices`). You can configure the `address` attribute to override it.
+
+Then, your application must send `Message<Double>` to the `prices` channel.
+It can use `double` payloads as in the following snippet:
+
+[source, java]
+----
+include::example$outbound/AmqpPriceProducer.java[]
+----
+
+Or, you can send `Message<Double>`:
+
+[source, java]
+----
+include::example$outbound/AmqpPriceMessageProducer.java[]
+----
+
+=== Serialization
+
+When receiving a `Message<T>`, the connector convert the message into an AMQP Message.
+The payload is converted to the AMQP Message _body_.
+
+[options=header]
+|===
+| `T` | AMQP Message Body
+| primitive types or `String` | AMQP Value with the payload
+| `Instant` or `UUID` | AMQP Value using the corresponding AMQP Type
+| https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`] or https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html[`JsonArray`] | AMQP Data using a binary content. The `content-type` is set to `application/json`
+| `io.vertx.mutiny.core.buffer.Buffer` | AMQP Data using a binary content. No `content-type` set
+| Any other class | The payload is converted to JSON (using a Json Mapper). The result is wrapped into AMQP Data using a binary content. The `content-type` is set to `application/json`
+|===
+
+=== Outbound Metadata
+
+When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/amqp/OutgoingAmqpMetadata.html[`OutgoingAmqpMetadata`] to influence how the message is going to sent to AMQP.
+For example, you can configure the address, subjects, properties:
+
+[source, java]
+----
+include::example$outbound/AmqpOutboundMetadataExample.java[tag=code]
+----
+
+NOTE: To be able to override the address per message, the connector is using an _anonymous sender_.
+
+=== Acknowledgement
+
+By default, the Reactive Messaging `Message` is acknowledged when the broker acknowledged the message.
+When using routers, this acknowledgement may not be enabled.
+In this case, configure the `auto-acknowledgement` attribute to acknowledge the message as soon as it has been sent to the router.
+
+=== Configuration Reference
+
+include::connectors:partial$META-INF/connector/smallrye-amqp-outgoing.adoc[]
+
+You can also pass any property supported by the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP client] as attribute.
+

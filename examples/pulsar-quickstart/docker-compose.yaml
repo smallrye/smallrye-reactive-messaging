@@ -1,0 +1,26 @@
+version: '2'
+
+services:
+
+  zookeeper:
+    image: strimzi/kafka:0.11.3-kafka-2.1.0
+    command: [
+      "sh", "-c",
+      "bin/zookeeper-server-start.sh config/zookeeper.properties"
+    ]
+    ports:
+      - "2181:2181"
+    environment:
+      LOG_DIR: /tmp/logs
+
+  pulsar:
+      image: apachepulsar/pulsar
+      expose:
+          - 8080
+          - 6650
+      environment:
+          - PULSAR_MEM=" -Xms512m -Xmx512m -XX:MaxDirectMemorySize=1g"
+      command: >
+          /bin/bash -c
+          "bin/apply-config-from-env.py conf/standalone.conf
+          && bin/pulsar standalone"

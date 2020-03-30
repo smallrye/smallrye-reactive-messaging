@@ -69,19 +69,19 @@ public class MessageTransformerAcknowledgementTest extends AcknowledgmentTestBas
     @Test
     public void testDefaultAck() {
         SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-        assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
+        assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT);
     }
 
     @Test
     public void testDefaultAckCS() {
         SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-        assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_CS);
+        assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_CS);
     }
 
     @Test
     public void testDefaultAckUni() {
         SpiedBeanHelper bean = installInitializeAndGet(beanClass);
-        assertPreAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_UNI);
+        assertPostAcknowledgment(bean, DEFAULT_ACKNOWLEDGMENT_UNI);
     }
 
 }

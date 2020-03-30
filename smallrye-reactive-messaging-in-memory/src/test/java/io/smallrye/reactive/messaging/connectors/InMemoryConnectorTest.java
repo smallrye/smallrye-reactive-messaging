@@ -176,7 +176,7 @@ public class InMemoryConnectorTest extends WeldTestBase {
         @Incoming("foo")
         @Outgoing("bar")
         public Message<String> process(Message<String> s) {
-            return Message.of(s.getPayload().toUpperCase());
+            return s.withPayload(s.getPayload().toUpperCase());
         }
 
     }

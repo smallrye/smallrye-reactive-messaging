@@ -14,7 +14,7 @@ public class IncomingAmqpMetadata {
     /**
      * The Application Properties attached to the Message.
      */
-    public final JsonObject properties;
+    private final JsonObject properties;
 
     /**
      * The Content-Type of the message payload

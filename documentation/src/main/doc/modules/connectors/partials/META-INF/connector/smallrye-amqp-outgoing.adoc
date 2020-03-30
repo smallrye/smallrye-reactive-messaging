@@ -1,0 +1,76 @@
+.Outgoing Attributes of the 'smallrye-amqp' connector
+[cols="25, 30, 15, 20",options="header"]
+|===
+|Attribute (_alias_) | Description | Mandatory | Default
+
+| *address* | The AMQP address. If not set, the channel name is used
+
+Type: _string_ | false | 
+
+| *client-options-name*
+
+_(amqp-client-options-name)_ | The name of the AMQP Client Option bean used to customize the AMQP client configuration
+
+Type: _string_ | false | 
+
+| *connect-timeout*
+
+_(amqp-connect-timeout)_ | The connection timeout in milliseconds
+
+Type: _int_ | false | `1000`
+
+| *containerId* | The AMQP container id
+
+Type: _string_ | false | 
+
+| *durable* | Whether sent AMQP messages are marked durable
+
+Type: _boolean_ | false | `true`
+
+| *host*
+
+_(amqp-host)_ | The broker hostname
+
+Type: _string_ | false | `localhost`
+
+| *password*
+
+_(amqp-password)_ | The password used to authenticate to the broker
+
+Type: _string_ | false | 
+
+| *port*
+
+_(amqp-port)_ | The broker port
+
+Type: _int_ | false | `5672`
+
+| *reconnect-attempts*
+
+_(amqp-reconnect-attempts)_ | The number of reconnection attempts
+
+Type: _int_ | false | `100`
+
+| *reconnect-interval*
+
+_(amqp-reconnect-interval)_ | The interval in second between two reconnection attempts
+
+Type: _int_ | false | `10`
+
+| *ttl* | The time-to-live of the send AMQP messages. 0 to disable the TTL
+
+Type: _long_ | false | `0`
+
+| *use-ssl*
+
+_(amqp-use-ssl)_ | Whether the AMQP connection uses SSL/TLS
+
+Type: _boolean_ | false | `false`
+
+| *username*
+
+_(amqp-username)_ | The username used to authenticate to the broker
+
+Type: _string_ | false | 
+
+|===

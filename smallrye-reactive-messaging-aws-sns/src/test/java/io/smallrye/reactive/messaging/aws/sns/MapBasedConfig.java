@@ -24,7 +24,8 @@ public class MapBasedConfig implements Config {
 
     public static void clear() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
-        if (out.delete()) {
+        if (out.isFile()) {
+            //noinspection ResultOfMethodCallIgnored
             out.delete();
         }
     }
@@ -51,6 +52,7 @@ public class MapBasedConfig implements Config {
         return Collections.emptyList();
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     void write() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {

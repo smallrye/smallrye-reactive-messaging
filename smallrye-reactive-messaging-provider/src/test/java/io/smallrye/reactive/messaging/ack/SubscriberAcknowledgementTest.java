@@ -53,7 +53,7 @@ public class SubscriberAcknowledgementTest extends AcknowledgmentTestBase {
     @Test
     public void testDefaultProcessingAcknowledgementPayloadMessageWithMethodReturningSubscriber() {
         SubscriberBeanWithMethodsReturningSubscribers bean = installInitializeAndGet(beanClass);
-        assertPreAcknowledgment(bean, DEFAULT_PROCESSING_ACK_PAYLOAD);
+        assertPostAcknowledgment(bean, DEFAULT_PROCESSING_ACK_PAYLOAD);
     }
 
 }

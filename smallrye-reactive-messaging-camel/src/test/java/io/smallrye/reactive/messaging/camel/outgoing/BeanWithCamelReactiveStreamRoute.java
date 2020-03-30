@@ -21,7 +21,7 @@ public class BeanWithCamelReactiveStreamRoute extends RouteBuilder {
     @Inject
     private CamelReactiveStreamsService camel;
 
-    private List<String> values = new ArrayList<>();
+    private final List<String> values = new ArrayList<>();
 
     @Incoming("sink")
     public CompletionStage<Void> sink(String value) {
@@ -45,8 +45,9 @@ public class BeanWithCamelReactiveStreamRoute extends RouteBuilder {
     }
 
     @Override
-    public void configure() throws Exception {
-        from("seda:camel").process(exchange -> exchange.getOut().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
+    public void configure() {
+        from("seda:camel")
+                .process(exchange -> exchange.getMessage().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
                 .to("reactive-streams:my-stream");
     }
 }

@@ -51,7 +51,7 @@ public class PubSubManager {
         return PUBLISHER_MAP.computeIfAbsent(config, PubSubManager::buildPublisher);
     }
 
-    public Subscriber subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter) {
+    public void subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter) {
         final Subscriber subscriber = buildSubscriber(config, new PubSubMessageReceiver(emitter));
         emitter.onTermination(() -> {
             subscriber.stopAsync();
@@ -64,8 +64,6 @@ public class PubSubManager {
         subscriber.startAsync();
 
         EMITTERS.add(emitter);
-
-        return subscriber;
     }
 
     public SubscriptionAdminClient subscriptionAdminClient(final PubSubConfig config) {

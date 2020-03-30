@@ -28,7 +28,7 @@ public class DynamicMqttSinkTest extends MqttTestBase {
     }
 
     @Test
-    public void testABeanProducingMessagesSentToMQTT() throws InterruptedException {
+    public void testABeanProducingMessagesSentToMQTT() {
         Weld weld = baseWeld(getConfig());
         weld.addBeanClass(DynamicTopicProducingBean.class);
 

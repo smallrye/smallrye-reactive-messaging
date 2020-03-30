@@ -54,6 +54,7 @@ public class HeaderPropagationTest extends HttpTestBase {
                     .withUrl("http://localhost:8089/items")
                     .withPayload(input.getPayload())
                     .withHeaders(Collections.singletonMap("X-header", Collections.singletonList("value")))
+                    .withAck(input::ack)
                     .build();
         }
 

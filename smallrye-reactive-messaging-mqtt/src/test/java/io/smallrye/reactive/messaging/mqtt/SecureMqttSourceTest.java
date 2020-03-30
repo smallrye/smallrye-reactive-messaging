@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -37,9 +38,9 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         config.put("port", port);
         config.put("username", "user");
         config.put("password", "foo");
-        MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        List<MqttMessage> messages = new ArrayList<>();
+        List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
         await().until(source::isSubscribed);
@@ -48,7 +49,9 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
                 counter::getAndIncrement)).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-        assertThat(messages.stream().map(MqttMessage<byte[]>::getPayload)
+        assertThat(messages.stream()
+                .map(Message::getPayload)
+                .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);

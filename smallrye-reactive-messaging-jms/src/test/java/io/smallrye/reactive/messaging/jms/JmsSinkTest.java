@@ -54,9 +54,8 @@ public class JmsSinkTest extends JmsTestBase {
         MapBasedConfig config = new MapBasedConfig.Builder()
                 .put("destination", "queue-one")
                 .put("channel-name", "jms")
-
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -75,9 +74,8 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("destination", "my-topic")
                 .put("destination-type", "topic")
                 .put("channel-name", "jms")
-
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client1 = new MyJmsClient(jms.createTopic("my-topic"));
         MyJmsClient client2 = new MyJmsClient(jms.createTopic("my-topic"));
         subscriber = sink.getSink().build();
@@ -102,7 +100,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("channel-name", "jms")
 
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -128,7 +126,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("channel-name", "jms")
 
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -154,7 +152,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("channel-name", "jms")
 
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -178,7 +176,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("channel-name", "jms")
 
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -203,7 +201,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("channel-name", "jms")
 
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -228,7 +226,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("channel-name", "jms")
 
                 .build();
-        new JmsSink(jms, config, json, executor);
+        new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
     }
 
     @Test
@@ -238,7 +236,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .put("channel-name", "jms")
                 .put("ttl", 10000L)
                 .build();
-        JmsSink sink = new JmsSink(jms, config, json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());

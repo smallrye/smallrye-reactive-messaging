@@ -25,7 +25,7 @@ import io.vertx.core.json.JsonObject;
 public class HeaderPropagationTest extends AmqpTestBase {
 
     private WeldContainer container;
-    private Weld weld = new Weld();
+    private final Weld weld = new Weld();
 
     @After
     public void cleanup() {

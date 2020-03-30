@@ -20,7 +20,7 @@ public class BeanWithCamelSink {
     @Inject
     private CamelContext camel;
 
-    private List<String> values = new ArrayList<>();
+    private final List<String> values = new ArrayList<>();
 
     @Incoming("camel")
     public CompletionStage<Void> sink(String value) {

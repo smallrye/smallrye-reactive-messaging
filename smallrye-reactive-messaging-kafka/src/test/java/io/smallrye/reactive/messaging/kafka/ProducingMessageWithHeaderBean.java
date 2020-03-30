@@ -15,7 +15,7 @@ import io.reactivex.Flowable;
 @ApplicationScoped
 public class ProducingMessageWithHeaderBean {
 
-    private AtomicInteger counter = new AtomicInteger();
+    private final AtomicInteger counter = new AtomicInteger();
 
     @Incoming("data")
     @Outgoing("output-2")

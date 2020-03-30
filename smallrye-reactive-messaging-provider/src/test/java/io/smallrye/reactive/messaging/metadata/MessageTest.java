@@ -109,7 +109,6 @@ public class MessageTest {
         assertThatThrownBy(() -> msg.unwrap(String.class)).isInstanceOf(IllegalArgumentException.class);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testAccessThroughMessage() {
         Message<String> message = Message.of("hello", Metadata.of(new MyMetadata<>("value"), new CountMetadata(23)));

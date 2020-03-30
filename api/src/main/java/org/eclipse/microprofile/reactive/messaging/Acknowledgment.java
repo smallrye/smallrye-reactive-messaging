@@ -32,8 +32,8 @@ import java.lang.annotation.RetentionPolicy;
  * <li><code> @Incoming("channel") void method(I payload)</code>: Post-processing (default), Pre-processing, None</li>
  * <li><code> @Incoming("channel") CompletionStage&lt;?&gt; method(I payload)</code>: Post-processing (default), Pre-processing,
  * None</li>
- * <li><code> @Incoming("in") @Outgoing("out") Message&lt;O&gt; method(Message&lt;I&gt; msg)</code>: Pre-processing (default),
- * None, Manual</li>
+ * <li><code> @Incoming("in") @Outgoing("out") Message&lt;O&gt; method(Message&lt;I&gt; msg)</code>: Pre-processing,
+ * None, Manual (default)</li>
  * <li><code> @Incoming("in") @Outgoing("out") O method(I payload)</code>: Post-Processing (default), Pre-processing, None</li>
  * </ul>
  *

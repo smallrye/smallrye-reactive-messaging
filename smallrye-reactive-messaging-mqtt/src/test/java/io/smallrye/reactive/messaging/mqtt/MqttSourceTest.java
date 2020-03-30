@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
@@ -35,9 +36,9 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        List<MqttMessage> messages = new ArrayList<>();
+        List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
         await().until(source::isSubscribed);
@@ -46,7 +47,9 @@ public class MqttSourceTest extends MqttTestBase {
                 counter::getAndIncrement)).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-        assertThat(messages.stream().map(MqttMessage<byte[]>::getPayload)
+        assertThat(messages.stream()
+                .map(Message::getPayload)
+                .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -59,9 +62,9 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        List<MqttMessage> messages = new ArrayList<>();
+        List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
         await().until(source::isSubscribed);
@@ -70,7 +73,9 @@ public class MqttSourceTest extends MqttTestBase {
                 counter::getAndIncrement)).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
-        assertThat(messages.stream().map(MqttMessage<byte[]>::getPayload)
+        assertThat(messages.stream()
+                .map(Message::getPayload)
+                .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -85,10 +90,10 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("port", port);
         config.put("broadcast", true);
 
-        MqttSource source = new MqttSource(vertx, new MapBasedConfig(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
-        List<MqttMessage> messages1 = new ArrayList<>();
-        List<MqttMessage> messages2 = new ArrayList<>();
+        List<MqttMessage<?>> messages1 = new ArrayList<>();
+        List<MqttMessage<?>> messages2 = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages1::add).run();
         stream.forEach(messages2::add).run();
@@ -101,12 +106,16 @@ public class MqttSourceTest extends MqttTestBase {
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
-        assertThat(messages1.stream().map(MqttMessage<byte[]>::getPayload)
+        assertThat(messages1.stream()
+                .map(Message::getPayload)
+                .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        assertThat(messages2.stream().map(MqttMessage<byte[]>::getPayload)
+        assertThat(messages2.stream()
+                .map(Message::getPayload)
+                .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -131,7 +140,8 @@ public class MqttSourceTest extends MqttTestBase {
         ConsumptionBean bean = deploy();
         await().until(() -> container.select(MediatorManager.class).get().isInitialized());
 
-        await().until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+        await()
+                .until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();

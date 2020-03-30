@@ -10,7 +10,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class ConsumptionBean {
 
-    private List<String> messages = new CopyOnWriteArrayList<>();
+    private final List<String> messages = new CopyOnWriteArrayList<>();
 
     public List<String> messages() {
         return messages;

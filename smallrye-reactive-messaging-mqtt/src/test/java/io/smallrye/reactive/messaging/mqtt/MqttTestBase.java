@@ -23,7 +23,7 @@ import repeat.RepeatRule;
 public class MqttTestBase {
 
     @ClassRule
-    public static GenericContainer mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
+    public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
             .withExposedPorts(1883)
             .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
 
@@ -87,6 +87,7 @@ public class MqttTestBase {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void clear() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {

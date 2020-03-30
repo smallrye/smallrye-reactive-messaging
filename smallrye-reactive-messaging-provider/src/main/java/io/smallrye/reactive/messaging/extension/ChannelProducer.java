@@ -159,7 +159,7 @@ public class ChannelProducer {
     @SuppressWarnings("rawtypes")
     private Publisher<? extends Message> getPublisher(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        List<PublisherBuilder<? extends Message>> list = channelRegistry.getPublishers(name);
+        List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
         if (list.isEmpty()) {
             throw new IllegalStateException(
                     "Unable to find a stream with the name " + name + ", available streams are: "
@@ -172,7 +172,7 @@ public class ChannelProducer {
     @SuppressWarnings("rawtypes")
     private SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        List<SubscriberBuilder<? extends Message, Void>> list = channelRegistry.getSubscribers(name);
+        List<SubscriberBuilder<? extends Message<?>, Void>> list = channelRegistry.getSubscribers(name);
         if (list.isEmpty()) {
             throw new IllegalStateException(
                     "Unable to find a stream with the name " + name + ", available streams are: "

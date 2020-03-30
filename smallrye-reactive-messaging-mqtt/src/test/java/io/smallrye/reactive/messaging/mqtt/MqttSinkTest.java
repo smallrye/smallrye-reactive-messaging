@@ -32,6 +32,7 @@ public class MqttSinkTest extends MqttTestBase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSinkUsingInteger() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
@@ -45,18 +46,19 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        Subscriber subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
-                .map(v -> (Message) Message.of(v))
-                .subscribe(subscriber);
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSinkUsingChannelName() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
@@ -70,18 +72,19 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        Subscriber subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
-                .map(v -> (Message) Message.of(v))
-                .subscribe(subscriber);
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         await().untilAtomic(expected, is(10));
         assertThat(expected).hasValue(10);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSinkUsingString() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
@@ -95,13 +98,13 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MapBasedConfig(config));
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        Subscriber subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe(subscriber);
+                .subscribe((Subscriber<? super Message<String>>) subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         await().untilAtomic(expected, is(10));

@@ -36,6 +36,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSinkUsingInteger() throws InterruptedException {
         KafkaUsage usage = new KafkaUsage();
@@ -51,17 +52,21 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.serializer", IntegerSerializer.class.getName());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("partition", 0);
-        KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaSink sink = new KafkaSink(vertx, oc);
 
+        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber) sink.getSink().build());
+                .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testSinkUsingIntegerAndChannelName() throws InterruptedException {
         KafkaUsage usage = new KafkaUsage();
         String topic = UUID.randomUUID().toString();
@@ -76,17 +81,21 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.serializer", IntegerSerializer.class.getName());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("partition", 0);
-        KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaSink sink = new KafkaSink(vertx, oc);
 
+        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber) sink.getSink().build());
+                .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testSinkUsingString() throws InterruptedException {
         KafkaUsage usage = new KafkaUsage();
         String topic = UUID.randomUUID().toString();
@@ -101,12 +110,15 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("partition", 0);
-        KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaSink sink = new KafkaSink(vertx, oc);
 
+        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber) sink.getSink().build());
+                .subscribe((Subscriber<? super Message<String>>) subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -138,7 +150,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         return new MapBasedConfig(config);
     }
 
-    private <T> T deploy(MapBasedConfig config, Class<T> clazz) {
+    private void deploy(MapBasedConfig config, Class<?> clazz) {
         if (config != null) {
             config.write();
         } else {
@@ -147,9 +159,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         Weld weld = baseWeld();
         weld.addBeanClass(clazz);
-
         container = weld.initialize();
-        return container.getBeanManager().createInstance().select(clazz).get();
     }
 
     @Test
@@ -207,7 +217,9 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.serializer", IntegerSerializer.class.getName());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("partition", 0);
-        KafkaSink sink = new KafkaSink(vertx, new MapBasedConfig(config), SERVERS);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaSink sink = new KafkaSink(vertx, oc);
 
         Subscriber subscriber = sink.getSink().build();
         Flowable.range(0, 5)

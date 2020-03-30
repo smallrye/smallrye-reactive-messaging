@@ -1,8 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt.server;
 
-import static io.netty.handler.codec.mqtt.MqttQoS.AT_LEAST_ONCE;
-import static io.netty.handler.codec.mqtt.MqttQoS.AT_MOST_ONCE;
-import static io.netty.handler.codec.mqtt.MqttQoS.EXACTLY_ONCE;
+import static io.netty.handler.codec.mqtt.MqttQoS.*;
 import static org.awaitility.Awaitility.await;
 
 import java.util.Collections;
@@ -29,7 +27,8 @@ class MqttServerSourceTest {
     void testSingle(io.vertx.core.Vertx vertx, VertxTestContext testContext) {
         final Map<String, String> configMap = new HashMap<>();
         configMap.put("port", "0");
-        final MqttServerSource source = new MqttServerSource(new Vertx(vertx), TestUtils.config(configMap));
+        final MqttServerSource source = new MqttServerSource(new Vertx(vertx),
+                new MqttServerConnectorIncomingConfiguration(TestUtils.config(configMap)));
         final PublisherBuilder<MqttMessage> mqttMessagePublisherBuilder = source.source();
         final TestMqttMessage testMessage = new TestMqttMessage("hello/topic", 1, "Hello world!",
                 EXACTLY_ONCE.value(), false);
@@ -55,7 +54,8 @@ class MqttServerSourceTest {
     void testMultiple(io.vertx.core.Vertx vertx, VertxTestContext testContext) {
         final Map<String, String> configMap = new HashMap<>();
         configMap.put("port", "0");
-        final MqttServerSource source = new MqttServerSource(new Vertx(vertx), TestUtils.config(configMap));
+        final MqttServerSource source = new MqttServerSource(new Vertx(vertx),
+                new MqttServerConnectorIncomingConfiguration(TestUtils.config(configMap)));
         final PublisherBuilder<MqttMessage> mqttMessagePublisherBuilder = source.source();
         final List<TestMqttMessage> testMessages = new CopyOnWriteArrayList<>();
         testMessages

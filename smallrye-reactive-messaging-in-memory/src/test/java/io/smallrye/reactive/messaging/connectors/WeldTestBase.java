@@ -1,9 +1,6 @@
 package io.smallrye.reactive.messaging.connectors;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
@@ -57,29 +54,6 @@ public class WeldTestBase {
             config.write();
         } else {
             clearConfigFile();
-        }
-    }
-
-    public static void installConfig(String path) {
-        releaseConfig();
-        File file = new File(path);
-        if (file.exists()) {
-            File out = new File("target/test-classes/META-INF/microprofile-config.properties");
-            if (out.isFile()) {
-                out.delete();
-            }
-            out.getParentFile().mkdirs();
-            try {
-                Files.copy(file.toPath(), out.toPath());
-                System.out.println("Installed configuration:");
-                List<String> list = Files.readAllLines(out.toPath());
-                list.forEach(System.out::println);
-                System.out.println("---------");
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        } else {
-            throw new IllegalArgumentException("File " + file.getAbsolutePath() + " does not exist " + path);
         }
     }
 

@@ -10,17 +10,18 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 public interface ChannelRegistry {
 
-    PublisherBuilder<? extends Message> register(String name, PublisherBuilder<? extends Message> stream);
+    PublisherBuilder<? extends Message<?>> register(String name, PublisherBuilder<? extends Message<?>> stream);
 
-    SubscriberBuilder<? extends Message, Void> register(String name, SubscriberBuilder<? extends Message, Void> subscriber);
+    SubscriberBuilder<? extends Message<?>, Void> register(String name,
+            SubscriberBuilder<? extends Message<?>, Void> subscriber);
 
     void register(String name, Emitter<?> emitter);
 
-    List<PublisherBuilder<? extends Message>> getPublishers(String name);
+    List<PublisherBuilder<? extends Message<?>>> getPublishers(String name);
 
     Emitter<?> getEmitter(String name);
 
-    List<SubscriberBuilder<? extends Message, Void>> getSubscribers(String name);
+    List<SubscriberBuilder<? extends Message<?>, Void>> getSubscribers(String name);
 
     Set<String> getIncomingNames();
 

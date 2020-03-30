@@ -8,7 +8,6 @@ import java.util.concurrent.Executor;
 import javax.jms.*;
 import javax.json.bind.Jsonb;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -25,18 +24,17 @@ class JmsSink {
     private final Executor executor;
     private static final Logger LOGGER = LoggerFactory.getLogger(JmsSink.class);
 
-    JmsSink(JMSContext context, Config config, Jsonb jsonb, Executor executor) {
-        String name = config.getOptionalValue("destination", String.class)
-                .orElseGet(() -> config.getValue("channel-name", String.class));
+    JmsSink(JMSContext context, JmsConnectorOutgoingConfiguration config, Jsonb jsonb, Executor executor) {
+        String name = config.getDestination().orElseGet(config::getChannel);
 
-        this.destination = getDestination(context, name, config);
+        this.destination = getDestination(context, name, config.getDestinationType());
         this.context = context;
         this.json = jsonb;
         this.executor = executor;
 
         producer = context.createProducer();
-        config.getOptionalValue("delivery-delay", Long.TYPE).ifPresent(producer::setDeliveryDelay);
-        config.getOptionalValue("delivery-mode", String.class).ifPresent(v -> {
+        config.getDeliveryDelay().ifPresent(producer::setDeliveryDelay);
+        config.getDeliveryMode().ifPresent(v -> {
             if (v.equalsIgnoreCase("persistent")) {
                 producer.setDeliveryMode(DeliveryMode.PERSISTENT);
             } else if (v.equalsIgnoreCase("non_persistent")) {
@@ -46,23 +44,24 @@ class JmsSink {
                         "Invalid delivery mode, it should be either `persistent` or `non_persistent`: " + v);
             }
         });
-        config.getOptionalValue("disable-message-id", Boolean.TYPE).ifPresent(producer::setDisableMessageID);
-        config.getOptionalValue("disable-message-timestamp", Boolean.TYPE)
-                .ifPresent(producer::setDisableMessageTimestamp);
-        config.getOptionalValue("correlation-id", String.class).ifPresent(producer::setJMSCorrelationID);
-        config.getOptionalValue("ttl", Long.TYPE).ifPresent(producer::setTimeToLive);
-        config.getOptionalValue("priority", Integer.TYPE).ifPresent(producer::setPriority);
-        config.getOptionalValue("reply-to", String.class).ifPresent(rt -> producer.setJMSReplyTo(
-                config.getOptionalValue("reply-to-destination-type", String.class).map(type -> {
-                    if (type.equalsIgnoreCase("queue")) {
-                        return context.createQueue(rt);
-                    } else if (type.equalsIgnoreCase("topic")) {
-                        return context.createTopic(rt);
-                    } else {
-                        throw new IllegalArgumentException(
-                                "Invalid reply-to-destination-type, it should be either `queue` (default) or `topic`: " + type);
-                    }
-                }).orElseGet(() -> context.createQueue(rt))));
+        config.getDisableMessageId().ifPresent(producer::setDisableMessageID);
+        config.getDisableMessageTimestamp().ifPresent(producer::setDisableMessageTimestamp);
+        config.getCorrelationId().ifPresent(producer::setJMSCorrelationID);
+        config.getTtl().ifPresent(producer::setTimeToLive);
+        config.getPriority().ifPresent(producer::setPriority);
+        config.getReplyTo().ifPresent(rt -> {
+            String replyToDestinationType = config.getReplyToDestinationType();
+            Destination replyToDestination;
+            if (replyToDestinationType.equalsIgnoreCase("topic")) {
+                replyToDestination = context.createTopic(rt);
+            } else if (replyToDestinationType.equalsIgnoreCase("queue")) {
+                replyToDestination = context.createQueue(rt);
+            } else {
+                throw new IllegalArgumentException(
+                        "Invalid destination type, it should be either `queue` or `topic`: " + replyToDestinationType);
+            }
+            producer.setJMSReplyTo(replyToDestination);
+        });
 
         sink = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(m -> {
@@ -161,8 +160,7 @@ class JmsSink {
                 .thenApply(x -> incoming);
     }
 
-    private Destination getDestination(JMSContext context, String name, Config config) {
-        String type = config.getOptionalValue("destination-type", String.class).orElse("queue");
+    private Destination getDestination(JMSContext context, String name, String type) {
         switch (type.toLowerCase()) {
             case "queue":
                 return context.createQueue(name);

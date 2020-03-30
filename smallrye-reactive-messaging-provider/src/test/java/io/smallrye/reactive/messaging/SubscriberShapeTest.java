@@ -142,12 +142,12 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     @SuppressWarnings("unchecked")
     private void assertThatSubscriberWasPublished(SeContainer container) {
         assertThat(registry(container).getOutgoingNames()).contains("subscriber");
-        List<SubscriberBuilder<? extends Message, Void>> subscriber = registry(container).getSubscribers("subscriber");
+        List<SubscriberBuilder<? extends Message<?>, Void>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
         List<String> list = new ArrayList<>();
         Multi.createFrom().items("a", "b", "c").map(Message::of)
                 .onItem().invoke(m -> list.add(m.getPayload()))
-                .subscribe(((SubscriberBuilder) subscriber.get(0)).build());
+                .subscribe(((SubscriberBuilder<Message<?>, Void>) subscriber.get(0)).build());
         assertThat(list).containsExactly("a", "b", "c");
     }
 

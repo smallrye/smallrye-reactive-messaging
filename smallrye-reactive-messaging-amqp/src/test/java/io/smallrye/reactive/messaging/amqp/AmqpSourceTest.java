@@ -4,7 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,6 +18,7 @@ import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -64,9 +69,9 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.init();
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        List<Message> messages = new ArrayList<>();
+        List<Message<Integer>> messages = new ArrayList<>();
 
         AtomicBoolean opened = new AtomicBoolean();
         builder.buildRs().subscribe(createSubscriber(messages, opened));
@@ -93,9 +98,9 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.init();
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        List<Message> messages = new ArrayList<>();
+        List<Message<Integer>> messages = new ArrayList<>();
 
         AtomicBoolean opened = new AtomicBoolean();
         builder.buildRs().subscribe(createSubscriber(messages, opened));
@@ -114,7 +119,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     }
 
     @NotNull
-    private <T> Subscriber<T> createSubscriber(List<T> messages, AtomicBoolean opened) {
+    private <T, O> Subscriber<T> createSubscriber(List<Message<O>> messages, AtomicBoolean opened) {
         //noinspection SubscriberImplementation - Seriously IntelliJ ????
         return new Subscriber<T>() {
             Subscription sub;
@@ -126,9 +131,10 @@ public class AmqpSourceTest extends AmqpTestBase {
                 opened.set(true);
             }
 
+            @SuppressWarnings("unchecked")
             @Override
             public void onNext(T message) {
-                messages.add(message);
+                messages.add((Message<O>) message);
                 sub.request(1);
             }
 
@@ -150,6 +156,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("host", address);
         config.put("name", "the name for broadcast");
         config.put("port", port);
@@ -159,10 +166,10 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.init();
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
-        Publisher<? extends Message> rs = builder.buildRs();
-        List<Message> messages1 = new ArrayList<>();
-        List<Message> messages2 = new ArrayList<>();
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        Publisher<? extends Message<?>> rs = builder.buildRs();
+        List<Message<Integer>> messages1 = new ArrayList<>();
+        List<Message<Integer>> messages2 = new ArrayList<>();
 
         AtomicBoolean o1 = new AtomicBoolean();
         AtomicBoolean o2 = new AtomicBoolean();
@@ -219,11 +226,10 @@ public class AmqpSourceTest extends AmqpTestBase {
         provider.init();
 
         List<Message<byte[]>> messages = new ArrayList<>();
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
 
-        //noinspection unchecked
-        builder.to((Subscriber) createSubscriber(messages, opened)).run();
+        builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
         usage.produce(topic, 1, () -> AmqpMessage.create().withBufferAsBody(Buffer.buffer("foo".getBytes())).build());
@@ -242,11 +248,10 @@ public class AmqpSourceTest extends AmqpTestBase {
         provider.init();
 
         List<Message<JsonObject>> messages = new ArrayList<>();
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
 
-        //noinspection unchecked
-        builder.to((Subscriber) createSubscriber(messages, opened)).run();
+        builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
         JsonObject json = new JsonObject();
@@ -269,11 +274,10 @@ public class AmqpSourceTest extends AmqpTestBase {
         provider.init();
 
         List<Message<JsonArray>> messages = new ArrayList<>();
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
 
-        //noinspection unchecked
-        builder.to((Subscriber) createSubscriber(messages, opened)).run();
+        builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
         JsonArray list = new JsonArray();
@@ -296,11 +300,10 @@ public class AmqpSourceTest extends AmqpTestBase {
         provider = new AmqpConnector();
         provider.init();
 
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
 
-        //noinspection unchecked
-        builder.to((Subscriber) createSubscriber(messages, opened)).run();
+        builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
         List<String> list = new ArrayList<>();
@@ -322,11 +325,10 @@ public class AmqpSourceTest extends AmqpTestBase {
         provider = new AmqpConnector();
         provider.init();
 
-        PublisherBuilder<? extends Message> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
+        PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
 
-        //noinspection unchecked
-        builder.to((Subscriber) createSubscriber(messages, opened)).run();
+        builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
         List<String> list = new ArrayList<>();
@@ -391,7 +393,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     }
 
     @Test
-    public void testConfigGlobalOptionsByCDICorrect() throws InterruptedException {
+    public void testConfigGlobalOptionsByCDICorrect() {
         Weld weld = new Weld();
 
         weld.addBeanClass(AmqpConnector.class);
@@ -445,6 +447,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     private Map<String, Object> getConfig(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, UUID.randomUUID().toString());
         config.put("host", address);
         config.put("port", port);
         config.put("name", "some name");
@@ -456,7 +459,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     @NotNull
     private Map<String, Object> getConfigUsingChannelName(String topic) {
         Map<String, Object> config = new HashMap<>();
-        config.put("channel-name", topic);
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("host", address);
         config.put("port", port);
         config.put("name", "some name");

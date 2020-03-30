@@ -149,7 +149,8 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testMultipleRequests() {
-        JmsSource source = new JmsSource(jms, new MapBasedConfig.Builder().put("channel-name", "queue").build(),
+        JmsSource source = new JmsSource(jms,
+                new JmsConnectorIncomingConfiguration(new MapBasedConfig.Builder().put("channel-name", "queue").build()),
                 null, null);
         Publisher<IncomingJmsMessage<?>> publisher = source.getSource().buildRs();
 
@@ -201,8 +202,8 @@ public class JmsSourceTest extends JmsTestBase {
     @Test
     public void testBroadcast() {
         JmsSource source = new JmsSource(jms,
-                new MapBasedConfig.Builder()
-                        .put("channel-name", "queue").put("broadcast", true).build(),
+                new JmsConnectorIncomingConfiguration(new MapBasedConfig.Builder()
+                        .put("channel-name", "queue").put("broadcast", true).build()),
                 null, null);
         PublisherBuilder<IncomingJmsMessage<?>> publisher = source.getSource();
 

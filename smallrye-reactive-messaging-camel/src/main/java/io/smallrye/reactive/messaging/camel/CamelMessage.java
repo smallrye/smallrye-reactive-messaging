@@ -10,6 +10,7 @@ public class CamelMessage<T> implements Message<T> {
         this.exchange = exchange;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public T getPayload() {
         return (T) exchange.getIn().getBody();

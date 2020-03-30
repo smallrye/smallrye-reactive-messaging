@@ -84,16 +84,10 @@ public class ClassUtils {
                 return Double.TYPE.equals(toClass);
             }
             if (Character.TYPE.equals(cls)) {
-                return Integer.TYPE.equals(toClass)
-                        || Long.TYPE.equals(toClass)
-                        || Float.TYPE.equals(toClass)
-                        || Double.TYPE.equals(toClass);
+                return isInteger(toClass);
             }
             if (Short.TYPE.equals(cls)) {
-                return Integer.TYPE.equals(toClass)
-                        || Long.TYPE.equals(toClass)
-                        || Float.TYPE.equals(toClass)
-                        || Double.TYPE.equals(toClass);
+                return isInteger(toClass);
             }
             if (Byte.TYPE.equals(cls)) {
                 return Short.TYPE.equals(toClass)
@@ -106,6 +100,13 @@ public class ClassUtils {
             return false;
         }
         return toClass.isAssignableFrom(cls);
+    }
+
+    private static boolean isInteger(Class<?> toClass) {
+        return Integer.TYPE.equals(toClass)
+                || Long.TYPE.equals(toClass)
+                || Float.TYPE.equals(toClass)
+                || Double.TYPE.equals(toClass);
     }
 
     /**

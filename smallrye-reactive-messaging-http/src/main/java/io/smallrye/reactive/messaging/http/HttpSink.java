@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -30,14 +29,15 @@ class HttpSink {
     private final String converterClass;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
-    HttpSink(Vertx vertx, Config config) {
-        WebClientOptions options = new WebClientOptions(JsonHelper.asJsonObject(config));
-        url = config.getOptionalValue("url", String.class)
-                .orElseThrow(() -> new IllegalArgumentException("The `url` must be set"));
-        method = config.getOptionalValue("method", String.class)
-                .orElse("POST");
+    HttpSink(Vertx vertx, HttpConnectorOutgoingConfiguration config) {
+        WebClientOptions options = new WebClientOptions(JsonHelper.asJsonObject(config.config()));
+        url = config.getUrl();
+        if (url == null) {
+            throw new IllegalArgumentException("The `url` must be set");
+        }
+        method = config.getMethod();
         client = WebClient.create(vertx, options);
-        converterClass = config.getOptionalValue("converter", String.class).orElse(null);
+        converterClass = config.getConverter().orElse(null);
 
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(m -> send(m)
@@ -47,10 +47,9 @@ class HttpSink {
                 .ignore();
     }
 
-    @SuppressWarnings("unchecked")
     Uni<Void> send(Message<?> message) {
         Serializer<Object> serializer = Serializer.lookup(message.getPayload(), converterClass);
-        HttpRequest request = toHttpRequest(message);
+        HttpRequest<?> request = toHttpRequest(message);
         return serializer.convert(message.getPayload())
                 .onItem().produceUni(buffer -> invoke(request, buffer))
                 .onItem().produceCompletionStage(x -> message.ack());
@@ -97,7 +96,7 @@ class HttpSink {
         return request;
     }
 
-    private Uni<Void> invoke(HttpRequest<Object> request, Buffer buffer) {
+    private Uni<Void> invoke(HttpRequest<?> request, Buffer buffer) {
         return request
                 .sendBuffer(buffer)
                 .onItem().apply(resp -> {

@@ -15,7 +15,7 @@ import io.vertx.core.eventbus.MessageConsumer;
 
 public class EventBusUsage {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(EventBusUsage.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(EventBusUsage.class);
     private final EventBus bus;
 
     public EventBusUsage(EventBus bus) {

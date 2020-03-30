@@ -7,6 +7,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -23,7 +24,7 @@ import io.smallrye.mutiny.Multi;
 public class AwsSnsTest extends AwsSnsTestBase {
 
     private WeldContainer container;
-    private String topic = "sns-test";
+    private final String topic = "sns-test";
 
     @Before
     public void initTest() {
@@ -62,7 +63,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
     @Test
     public void testSourceAndSink() {
         if (!isTestSupported()) {
-            System.out.println("Test ignored on this operating system");
+            Logger.getAnonymousLogger().warning("Test not supported on this platform - skipping");
             return;
         }
         ConsumptionBean bean = container.select(ConsumptionBean.class).get();
@@ -80,12 +81,12 @@ public class AwsSnsTest extends AwsSnsTestBase {
         String prefix = "mp.messaging.incoming.source.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix.concat("connector"), SnsConnector.CONNECTOR_NAME);
-        config.put(prefix.concat("channel"), topic.concat("-transformed"));
+        config.put(prefix.concat("topic"), topic.concat("-transformed"));
         String appUrl = getAppUrl();
         int port = 8389;
         config.put(prefix.concat("port"), port);
-        config.put("sns-app-host", appUrl);
-        config.put("mock-sns-topics", true);
+        config.put(prefix.concat("host"), appUrl);
+        config.put(prefix.concat("mock-sns-topics"), true);
         config.put("sns-url", String.format("http://%s:%d", ip(), port()));
         return new MapBasedConfig(config);
     }
@@ -117,7 +118,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put("connector", SnsConnector.CONNECTOR_NAME);
-        config.put("channel", topic.concat("-transformed"));
+        config.put("topic", topic.concat("-transformed"));
         config.put("sns-url", String.format("http://%s:%d", ip(), port()));
         SnsConnector snsConnector = new SnsConnector();
         snsConnector.initConnector();

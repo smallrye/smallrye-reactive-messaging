@@ -15,12 +15,13 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 public class InternalChannelRegistry implements ChannelRegistry {
 
     private static final String NAME_MUST_BE_SET = "'name' must be set";
-    private final Map<String, List<PublisherBuilder<? extends Message>>> publishers = new HashMap<>();
-    private final Map<String, List<SubscriberBuilder<? extends Message, Void>>> subscribers = new HashMap<>();
+    private final Map<String, List<PublisherBuilder<? extends Message<?>>>> publishers = new HashMap<>();
+    private final Map<String, List<SubscriberBuilder<? extends Message<?>, Void>>> subscribers = new HashMap<>();
     private final Map<String, Emitter<?>> emitters = new HashMap<>();
 
     @Override
-    public synchronized PublisherBuilder<? extends Message> register(String name, PublisherBuilder<? extends Message> stream) {
+    public synchronized PublisherBuilder<? extends Message<?>> register(String name,
+            PublisherBuilder<? extends Message<?>> stream) {
         Objects.requireNonNull(name, NAME_MUST_BE_SET);
         Objects.requireNonNull(stream, "'stream' must be set");
         register(publishers, name, stream);
@@ -28,8 +29,8 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public synchronized SubscriberBuilder<? extends Message, Void> register(String name,
-            SubscriberBuilder<? extends Message, Void> subscriber) {
+    public synchronized SubscriberBuilder<? extends Message<?>, Void> register(String name,
+            SubscriberBuilder<? extends Message<?>, Void> subscriber) {
         Objects.requireNonNull(name, NAME_MUST_BE_SET);
         Objects.requireNonNull(subscriber, "'subscriber' must be set");
         register(subscribers, name, subscriber);
@@ -44,7 +45,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public synchronized List<PublisherBuilder<? extends Message>> getPublishers(String name) {
+    public synchronized List<PublisherBuilder<? extends Message<?>>> getPublishers(String name) {
         Objects.requireNonNull(name, NAME_MUST_BE_SET);
         return publishers.getOrDefault(name, Collections.emptyList());
     }
@@ -56,7 +57,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public synchronized List<SubscriberBuilder<? extends Message, Void>> getSubscribers(String name) {
+    public synchronized List<SubscriberBuilder<? extends Message<?>, Void>> getSubscribers(String name) {
         Objects.requireNonNull(name, NAME_MUST_BE_SET);
         return subscribers.getOrDefault(name, Collections.emptyList());
     }

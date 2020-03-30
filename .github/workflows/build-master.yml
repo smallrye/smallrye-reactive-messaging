@@ -66,6 +66,17 @@ jobs:
         run: |
           mvn verify sonar:sonar -Pcoverage -Dsonar.projectKey=smallrye_smallrye-reactive-messaging -Dsonar.projectName="SmallRye Reactive Messaging" -Dsonar.organization=smallrye -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_LOGIN
 
+  up_to_date_antora:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v1
+        - name: Install JDK 1.8
+          uses: joschi/setup-jdk@v1.0.0
+          with:
+              java-version: 'openjdk8'
+        - name: Build with Maven
+            # Fail the build is the antora.yaml becomes out of date
+          run: mvn install -DskipTests; mvn -pl documentation scm:check-local-modification -Dincludes=src/main/doc/antora.yml
 
 
 

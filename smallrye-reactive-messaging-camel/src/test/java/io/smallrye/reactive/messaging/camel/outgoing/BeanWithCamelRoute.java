@@ -20,7 +20,7 @@ public class BeanWithCamelRoute {
     @Inject
     private CamelReactiveStreamsService camel;
 
-    private List<String> values = new ArrayList<>();
+    private final List<String> values = new ArrayList<>();
 
     @Incoming("sink")
     public CompletionStage<Void> sink(String value) {

@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import io.smallrye.reactive.messaging.helpers.ClassUtils;
 import io.vertx.mutiny.core.buffer.Buffer;
 
 public abstract class Serializer<I> implements Converter<I, Buffer> {
@@ -19,12 +20,14 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
         CONVERTERS.add(new ByteBufferSerializer());
         CONVERTERS.add(new JsonArraySerializer());
         CONVERTERS.add(new JsonObjectSerializer());
+        //noinspection StaticInitializerReferencesSubClass
         CONVERTERS.add(new CloudEventSerializer());
     }
 
+    @SuppressWarnings("unchecked")
     public static synchronized <I> Serializer<I> lookup(Object payload, String converterClassName) {
         Objects.requireNonNull(payload, "Payload must not be null");
-        Optional<Serializer<?>> any = CONVERTERS.stream().filter(s -> AssignationUtils
+        Optional<Serializer<?>> any = CONVERTERS.stream().filter(s -> ClassUtils
                 .isAssignable(payload.getClass(), s.input()))
                 .findAny();
         if (any.isPresent()) {
@@ -42,11 +45,11 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
                         + CONVERTERS.stream().map(s -> s.input().getName()).collect(Collectors.toList()));
     }
 
+    @SuppressWarnings("unchecked")
     private static <I> Serializer<I> instantiate(String className) {
         try {
             Class<Serializer<I>> clazz = (Class<Serializer<I>>) Serializer.class.getClassLoader().loadClass(className);
-            Serializer<I> serializer = clazz.getDeclaredConstructor().newInstance();
-            return serializer;
+            return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             throw new IllegalArgumentException("Unable to load the class " + className + " or unable to instantiate it");
         }
