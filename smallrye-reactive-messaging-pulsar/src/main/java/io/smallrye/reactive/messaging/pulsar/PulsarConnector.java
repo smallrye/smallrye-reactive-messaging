@@ -37,13 +37,6 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
 
 
     @Inject
-    @ConfigProperty(name = "topic")
-    private String topic;
-
-    @Inject
-    private PulsarClient pulsarClient;
-
-    @Inject
     private Instance<Vertx> instanceOfVertx;
 
     @Inject
@@ -72,9 +65,24 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         try {
             Consumer<String> consumer = null;
-            consumer = pulsarClient.newConsumer(Schema.STRING).subscribe();
+            consumer = getClient(config).newConsumer(Schema.STRING).subscribe();
             PulsarSource source = new PulsarSource(consumer);
             return ReactiveStreams.fromPublisher(source);
+        } catch (PulsarClientException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private PulsarClient getClient(Config config){
+        StringBuilder url = new StringBuilder();
+        String host = config.getValue("host",String.class);
+        String port = config.getValue("port",String.class);
+        url.append("pulsar://").append(host).append(":").append(port);
+        try {
+            PulsarClient pulsarClient = PulsarClient.builder()
+                .serviceUrl(url.toString())
+                .build();
         } catch (PulsarClientException e) {
             e.printStackTrace();
         }
