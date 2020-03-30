@@ -1,21 +1,15 @@
 package io.smallrye.reactive.messaging.pulsar;
 
-import io.reactivex.Observable;
-import io.reactivex.Observer;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.common.policies.data.TenantInfo;
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.*;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.concurrent.CompletableFuture;
 
 public class PulsarTestBase {
 
