@@ -1,25 +1,22 @@
 package acme;
 
-import java.util.concurrent.*;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import javax.enterprise.context.ApplicationScoped;
-
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 @ApplicationScoped
 public class Sender {
 
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-//    @Outgoing("data")
-//    public CompletionStage<KafkaRecord<String, String>> send() {
-//        CompletableFuture<KafkaRecord<String, String>> future = new CompletableFuture<>();
-//        delay(() -> future.complete(KafkaRecord.of("kafka", "key", "hello from MicroProfile")));
-//        return future;
-//    }
-
-    private void delay(Runnable runnable) {
-        executor.schedule(runnable, 5, TimeUnit.SECONDS);
+    @Outgoing("pulsar-channel")
+    public PublisherBuilder<String> send() {
+        return ReactiveStreams.of("a", "b", "c");
     }
+
 
 }

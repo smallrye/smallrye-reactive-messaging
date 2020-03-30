@@ -1,19 +1,15 @@
 package acme;
 
-import java.time.Instant;
-import java.util.concurrent.CompletionStage;
+import io.smallrye.reactive.messaging.pulsar.PulsarMessage;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 import javax.enterprise.context.ApplicationScoped;
-
-import io.smallrye.reactive.messaging.pulsar.PulsarMessage;
-import org.apache.kafka.common.header.Headers;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
+import java.util.concurrent.CompletionStage;
 
 @ApplicationScoped
 public class Receiver {
 
-    @Incoming("pulsar")
+    @Incoming("pulsar-channel")
     public CompletionStage<Void> consume(PulsarMessage message) {
         byte[] payload = message.getPayload();
         String key = message.getKey();
