@@ -11,7 +11,6 @@ public class PulsarMessage implements Message<byte[]> {
         return delegate.getData();
     }
 
-
     public String getKey() {
         return delegate.getKey();
     }

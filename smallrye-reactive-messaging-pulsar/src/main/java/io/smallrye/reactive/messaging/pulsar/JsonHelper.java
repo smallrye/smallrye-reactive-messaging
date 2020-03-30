@@ -1,7 +1,8 @@
 package io.smallrye.reactive.messaging.pulsar;
 
-import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.config.Config;
+
+import io.vertx.core.json.JsonObject;
 
 public class JsonHelper {
 

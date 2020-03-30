@@ -9,7 +9,7 @@ import java.util.concurrent.CompletionStage;
 @ApplicationScoped
 public class Receiver {
 
-    @Incoming("pulsar-channel")
+    @Incoming("sink")
     public CompletionStage<Void> consume(PulsarMessage message) {
         byte[] payload = message.getPayload();
         String key = message.getKey();

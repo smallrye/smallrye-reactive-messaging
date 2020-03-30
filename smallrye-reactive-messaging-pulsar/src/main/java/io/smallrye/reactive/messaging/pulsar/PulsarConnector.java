@@ -1,6 +1,14 @@
 package io.smallrye.reactive.messaging.pulsar;
 
-import io.vertx.mutiny.core.Vertx;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -16,13 +24,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 @Connector(PulsarConnector.CONNECTOR_NAME)
@@ -34,7 +36,7 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
     @Inject
     private Instance<Vertx> instanceOfVertx;
 
-    ExecutorService  executorService;
+    ExecutorService executorService;
 
     @PostConstruct
     public void initialize() {
@@ -47,19 +49,18 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         return ReactiveStreams.<Message<?>> builder()
-            .flatMapCompletionStage(m -> CompletableFuture.completedFuture(m))
-            .onError(t -> LOGGER.error("Unable to send message to Pulsar", t))
-            .ignore();
+                .flatMapCompletionStage(m -> CompletableFuture.completedFuture(m))
+                .onError(t -> LOGGER.error("Unable to send message to Pulsar", t))
+                .ignore();
     }
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         try {
-            Consumer<String> consumer = getClient(config).
-                                        newConsumer(Schema.STRING)
-                                        .topic(config.getValue("topic",String.class))
-                                        .subscriptionName(config.getValue("subscription-name",String.class))
-                                        .subscribe();
+            Consumer<String> consumer = getClient(config).newConsumer(Schema.STRING)
+                    .topic(config.getValue("topic", String.class))
+                    .subscriptionName(config.getValue("subscription-name", String.class))
+                    .subscribe();
             PulsarSource source = new PulsarSource(consumer);
             return ReactiveStreams.fromPublisher(source);
         } catch (PulsarClientException e) {
@@ -68,20 +69,19 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
         return null;
     }
 
-    private PulsarClient getClient(Config config){
+    private PulsarClient getClient(Config config) {
         StringBuilder url = new StringBuilder();
-        String host = config.getValue("host",String.class);
-        String port = config.getValue("port",String.class);
+        String host = config.getValue("host", String.class);
+        String port = config.getValue("port", String.class);
         url.append("pulsar://").append(host).append(":").append(port);
         try {
             return PulsarClient.builder()
-                .serviceUrl(url.toString())
-                .build();
+                    .serviceUrl(url.toString())
+                    .build();
         } catch (PulsarClientException e) {
             e.printStackTrace();
         }
         return null;
     }
-
 
 }

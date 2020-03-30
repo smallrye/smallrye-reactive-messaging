@@ -1,6 +1,12 @@
 package io.smallrye.reactive.messaging.pulsar;
 
-import io.smallrye.mutiny.helpers.Subscriptions;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.jms.IllegalStateRuntimeException;
+
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.reactivestreams.Publisher;
@@ -9,11 +15,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jms.IllegalStateRuntimeException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import io.smallrye.mutiny.helpers.Subscriptions;
 
 public class PulsarSource<Message> implements Publisher<Message>, Subscription {
 
@@ -93,7 +95,7 @@ public class PulsarSource<Message> implements Publisher<Message>, Subscription {
     }
 
     long add(long req) {
-        for (; ; ) {
+        for (;;) {
             long r = requests.get();
             if (r == Long.MAX_VALUE) {
                 return Long.MAX_VALUE;
@@ -111,4 +113,3 @@ public class PulsarSource<Message> implements Publisher<Message>, Subscription {
         }
     }
 }
-
