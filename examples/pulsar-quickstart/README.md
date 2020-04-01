@@ -14,4 +14,8 @@ Run Docker
       apachepulsar/pulsar:2.5.0 \
       bin/pulsar standalone
 
+Run Docker Compose
+========================================
+
+    docker-compose up
 
