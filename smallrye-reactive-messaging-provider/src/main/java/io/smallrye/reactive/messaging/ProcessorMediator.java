@@ -248,9 +248,23 @@ public class ProcessorMediator extends AbstractMediator {
             if (configuration.isBlocking()) {
                 this.processor = ReactiveStreams.<Message<?>> builder()
                         .flatMapCompletionStage(managePreProcessingAck())
-                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input.getPayload()))
-                                .subscribeAsCompletionStage()
-                                .thenApply(result -> (Message<?>) result))
+                        .<Message<?>> flatMapCompletionStage(input -> {
+                            Uni<?> uni = invokeBlocking(input.getPayload());
+                            if (uni != null) {
+                                return uni
+                                        .subscribeAsCompletionStage()
+                                        .thenApply(result -> {
+                                            if (result != null) {
+                                                return (Message<?>) result;
+                                            } else {
+                                                throw new NullPointerException(
+                                                        "Result of " + getMethodAsString() + " was null");
+                                            }
+                                        });
+                            } else {
+                                throw new NullPointerException("Uni returned from " + getMethodAsString() + " was null");
+                            }
+                        })
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()

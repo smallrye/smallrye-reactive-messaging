@@ -1,6 +1,6 @@
 == @Blocking
 
-The `@Blocking` annotation can be used on a method annotated with `@Incomings`, `@Incoming`,
+The `@Blocking` annotation can be used on a method annotated with `@Incoming`,
 or `@Outgoing` to indicate that the method should be executed on a worker pool:
 
 [source, java]
