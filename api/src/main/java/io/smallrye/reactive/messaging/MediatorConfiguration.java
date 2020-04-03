@@ -41,6 +41,12 @@ public interface MediatorConfiguration {
 
     int getNumberOfSubscriberBeforeConnecting();
 
+    boolean isBlocking();
+
+    String getWorkerPoolName();
+
+    boolean isBlockingExecutionOrdered();
+
     /**
      * Implementation of the {@link Invoker} interface that can be used to invoke the method described by this configuration
      * The invoker class can either have a no-arg constructor in which case it's expected to be look up the bean

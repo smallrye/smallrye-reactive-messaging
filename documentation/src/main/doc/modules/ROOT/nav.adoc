@@ -20,6 +20,7 @@
 ** xref:advanced/broadcast.adoc[Broadcasting]
 ** xref:advanced/merge.adoc[Merging]
 ** xref:advanced/incomings.adoc[Multiple @Incoming]
+** xref:advanced/blocking.adoc[Handling blocking execution]
 ** xref:signatures/signatures.adoc[Method signatures]
 
 * xref:connectors/connectors.adoc[Connectors]

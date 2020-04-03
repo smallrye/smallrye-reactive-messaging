@@ -15,10 +15,13 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 
 public abstract class AbstractMediator {
 
     protected final MediatorConfiguration configuration;
+    protected WorkerPoolRegistry workerPoolRegistry;
     private Invoker invoker;
     private Instance<PublisherDecorator> decorators;
 
@@ -32,6 +35,10 @@ public abstract class AbstractMediator {
 
     public void setDecorators(Instance<PublisherDecorator> decorators) {
         this.decorators = decorators;
+    }
+
+    public void setWorkerPoolRegistry(WorkerPoolRegistry workerPoolRegistry) {
+        this.workerPoolRegistry = workerPoolRegistry;
     }
 
     public void run() {
@@ -67,6 +74,22 @@ public abstract class AbstractMediator {
             Objects.requireNonNull(this.invoker, "Invoker not initialized");
             return (T) this.invoker.invoke(args);
         } catch (RuntimeException e) { // NOSONAR
+            LoggerFactory.getLogger(configuration().methodAsString())
+                    .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
+            throw e;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T> Uni<T> invokeBlocking(Object... args) {
+        try {
+            Objects.requireNonNull(this.invoker, "Invoker not initialized");
+            Objects.requireNonNull(this.workerPoolRegistry, "Worker pool not initialized");
+            return workerPoolRegistry.executeWork(
+                    future -> future.complete((T) this.invoker.invoke(args)),
+                    configuration.getWorkerPoolName(),
+                    configuration.isBlockingExecutionOrdered());
+        } catch (RuntimeException e) {
             LoggerFactory.getLogger(configuration().methodAsString())
                     .error("The method " + configuration().methodAsString() + " has thrown an exception", e);
             throw e;

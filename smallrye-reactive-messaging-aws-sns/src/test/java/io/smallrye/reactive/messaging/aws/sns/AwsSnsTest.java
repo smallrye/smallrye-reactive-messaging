@@ -121,6 +121,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
         config.put("topic", topic.concat("-transformed"));
         config.put("sns-url", String.format("http://%s:%d", ip(), port()));
         SnsConnector snsConnector = new SnsConnector();
+        snsConnector.setup(executionHolder);
         snsConnector.initConnector();
         return snsConnector.getSubscriberBuilder(new MapBasedConfig(config));
     }

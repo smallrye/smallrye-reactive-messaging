@@ -45,6 +45,15 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     @Override
+    protected <T> Uni<T> invokeBlocking(Object... args) {
+        return super.<T> invokeBlocking(args)
+                .onItem()
+                .ifNull()
+                .failWith(new NullPointerException("The operation "
+                        + this.configuration.getMethod() + " has returned null"));
+    }
+
+    @Override
     public void initialize(Object bean) {
         super.initialize(bean);
         // Supported signatures:
@@ -236,44 +245,106 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningIndividualMessageAndConsumingIndividualItem() {
         // Item can be message or payload
         if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-            this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .map(input -> (Message<?>) invoke(input.getPayload()))
-                    .buildRs();
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> {
+                            Uni<?> uni = invokeBlocking(input.getPayload());
+                            if (uni != null) {
+                                return uni
+                                        .subscribeAsCompletionStage()
+                                        .thenApply(result -> {
+                                            if (result != null) {
+                                                return (Message<?>) result;
+                                            } else {
+                                                throw new NullPointerException(
+                                                        "Result of " + getMethodAsString() + " was null");
+                                            }
+                                        });
+                            } else {
+                                throw new NullPointerException("Uni returned from " + getMethodAsString() + " was null");
+                            }
+                        })
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .map(input -> (Message<?>) invoke(input.getPayload()))
+                        .buildRs();
+            }
         } else {
-            this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .map(input -> (Message<?>) invoke(input))
-                    .buildRs();
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input))
+                                .subscribeAsCompletionStage()
+                                .thenApply(result -> (Message<?>) result))
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .map(input -> (Message<?>) invoke(input))
+                        .buildRs();
+            }
         }
     }
 
     private void processMethodReturningIndividualPayloadAndConsumingIndividualItem() {
         // Item can be message or payload.
         if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-            this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .<Message<?>> map(input -> {
-                        Object result = invoke(input.getPayload());
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return input.withPayload(result);
-                        } else {
-                            return Message.of(result, input.getMetadata());
-                        }
-                    })
-                    .buildRs();
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input.getPayload()))
+                                .subscribeAsCompletionStage()
+                                .thenApply(result -> {
+                                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                        return input.withPayload(result);
+                                    } else {
+                                        return Message.of(result, input.getMetadata());
+                                    }
+                                }))
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> map(input -> {
+                            Object result = invoke(input.getPayload());
+                            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                return input.withPayload(result);
+                            } else {
+                                return Message.of(result, input.getMetadata());
+                            }
+                        })
+                        .buildRs();
+            }
         } else {
-            this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .<Message<?>> map(input -> {
-                        Object result = invoke(input);
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return Message.of(result, input::ack);
-                        } else {
-                            return Message.of(result);
-                        }
-                    })
-                    .buildRs();
+            if (configuration.isBlocking()) {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input))
+                                .subscribeAsCompletionStage()
+                                .thenApply(result -> {
+                                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                        return Message.of(result, input::ack);
+                                    } else {
+                                        return Message.of(result);
+                                    }
+                                }))
+                        .buildRs();
+            } else {
+                this.processor = ReactiveStreams.<Message<?>> builder()
+                        .flatMapCompletionStage(managePreProcessingAck())
+                        .<Message<?>> map(input -> {
+                            Object result = invoke(input);
+                            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                                return Message.of(result, input::ack);
+                            } else {
+                                return Message.of(result);
+                            }
+                        })
+                        .buildRs();
+            }
         }
     }
 

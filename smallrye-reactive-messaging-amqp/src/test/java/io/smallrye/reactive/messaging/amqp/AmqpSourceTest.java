@@ -31,6 +31,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.LoggerFactory;
 
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -47,7 +48,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     @After
     public void cleanup() {
         if (provider != null) {
-            provider.close();
             provider.terminate(null);
         }
 
@@ -68,6 +68,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("durable", false);
 
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
@@ -97,6 +98,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("durable", false);
 
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
@@ -165,6 +167,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("password", new String("simetraehcapa".getBytes()));
 
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         Publisher<? extends Message<?>> rs = builder.buildRs();
@@ -223,6 +226,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
 
         List<Message<byte[]>> messages = new ArrayList<>();
@@ -245,6 +249,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
 
         List<Message<JsonObject>> messages = new ArrayList<>();
@@ -271,6 +276,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
 
         List<Message<JsonArray>> messages = new ArrayList<>();
@@ -298,6 +304,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         List<Message<List<String>>> messages = new ArrayList<>();
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
 
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -323,6 +330,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         List<Message<byte[]>> messages = new ArrayList<>();
         provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
 
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -348,6 +356,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
+        weld.addBeanClass(ExecutionHolder.class);
 
         System.setProperty("mp-config", "incoming");
         System.setProperty("client-options-name", "myclientoptions");
@@ -362,6 +371,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
+        weld.addBeanClass(ExecutionHolder.class);
 
         System.setProperty("mp-config", "incoming");
         System.setProperty("client-options-name", "dummyoptionsnonexistent");
@@ -422,6 +432,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
+        weld.addBeanClass(ExecutionHolder.class);
 
         System.setProperty("mp-config", "incoming");
         System.setProperty("amqp-client-options-name", "myclientoptions");
@@ -436,6 +447,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
+        weld.addBeanClass(ExecutionHolder.class);
 
         System.setProperty("mp-config", "incoming");
         System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");

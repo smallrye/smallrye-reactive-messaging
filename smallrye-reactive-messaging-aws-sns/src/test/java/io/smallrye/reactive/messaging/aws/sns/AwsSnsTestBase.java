@@ -14,17 +14,19 @@ import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
-import io.vertx.core.Vertx;
+import io.vertx.mutiny.core.Vertx;
 
 public class AwsSnsTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AwsSnsTest.class);
-    private Vertx vertx;
+    ExecutionHolder executionHolder;
     private String ip;
     private int port;
 
@@ -34,7 +36,7 @@ public class AwsSnsTestBase {
 
     @Before
     public void setup() {
-        vertx = Vertx.vertx();
+        executionHolder = new ExecutionHolder(Vertx.vertx());
         ip = CONTAINER.getContainerIpAddress();
         port = CONTAINER.getMappedPort(9911);
         LOGGER.debug("Container IP [{}] port [{}]", ip, port);
@@ -50,7 +52,7 @@ public class AwsSnsTestBase {
 
     @After
     public void tearDown() {
-        vertx.close();
+        executionHolder.terminate(null);
     }
 
     static Weld baseWeld() {
@@ -64,6 +66,8 @@ public class AwsSnsTestBase {
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(ChannelProducer.class);
+        weld.addBeanClass(ExecutionHolder.class);
+        weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
         weld.addBeanClass(SnsConnector.class);

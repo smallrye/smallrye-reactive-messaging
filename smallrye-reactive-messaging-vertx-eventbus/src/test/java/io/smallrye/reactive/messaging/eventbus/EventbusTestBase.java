@@ -9,6 +9,8 @@ import org.junit.Before;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.MediatorFactory;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
@@ -26,6 +28,8 @@ public class EventbusTestBase {
         weld.addBeanClass(MediatorManager.class);
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
+        weld.addBeanClass(ExecutionHolder.class);
+        weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(VertxEventBusConnector.class);
 

@@ -1,13 +1,12 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import java.util.concurrent.CountDownLatch;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
 
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
 import repeat.RepeatRule;
 
@@ -21,21 +20,21 @@ public class AmqpTestBase {
     @Rule
     public RepeatRule rule = new RepeatRule();
 
-    Vertx vertx;
+    ExecutionHolder executionHolder;
     String address;
     Integer port;
     AmqpUsage usage;
 
     @Before
     public void setup() {
-        vertx = Vertx.vertx();
+        executionHolder = new ExecutionHolder(Vertx.vertx());
         address = artemis.getContainerIpAddress();
         port = artemis.getMappedPort(5672);
         System.setProperty("amqp-host", address);
         System.setProperty("amqp-port", Integer.toString(port));
         System.setProperty("amqp-user", "artemis");
         System.setProperty("amqp-pwd", "simetraehcapa");
-        usage = new AmqpUsage(vertx, address, port);
+        usage = new AmqpUsage(executionHolder.vertx(), address, port);
     }
 
     @After
@@ -43,13 +42,8 @@ public class AmqpTestBase {
         System.clearProperty("amqp-host");
         System.clearProperty("amqp-port");
 
-        CountDownLatch latch = new CountDownLatch(1);
         usage.close();
-        vertx.close().subscribe().with(x -> latch.countDown(), f -> latch.countDown());
-
-        latch.await();
-
-        Thread.sleep(1000);
+        executionHolder.terminate(null);
     }
 
 }
