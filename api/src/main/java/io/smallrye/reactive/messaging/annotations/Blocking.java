@@ -10,8 +10,10 @@ import java.lang.annotation.Target;
  * Identifies that a particular method performs blocking operations,
  * and as such should be executed on separate worker.
  *
- * When possible, the initial threads execution context is _restored_
- * once the blocking operation has completed.
+ * When supported, the caller execution context is captured and restored after
+ * the execution of the blocking method. This means that the rest of the pipeline
+ * would run in the same context (same thread). Typically this is the case if the
+ * caller is using a Vert.x Context (event loop or worker).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(METHOD)
