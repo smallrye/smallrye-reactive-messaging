@@ -11,7 +11,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <weld-core.version>3.1.3.Final</weld-core.version>
     <slf4j.version>1.7.30</slf4j.version>
-    <mutiny.version>0.4.3</mutiny.version>
+    <mutiny.version>0.4.4</mutiny.version>
 
     <mainClass>io.smallrye.reactive.messaging.example.eventclouds.Main</mainClass>
   </properties>
