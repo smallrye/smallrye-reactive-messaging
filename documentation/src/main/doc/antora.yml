@@ -10,7 +10,7 @@ asciidoc:
         project-version: '2.0.0-SNAPSHOT'
         weld-version: '3.1.3.Final'
         smallrye-config-version: '1.7.0'
-        mutiny-version: '0.4.3'
+        mutiny-version: '0.4.4'
         camel-version: '3.2.0'
         spec-version: '1.0'
         javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/2.x-preview/2.0.0-SNAPSHOT/apidocs'
