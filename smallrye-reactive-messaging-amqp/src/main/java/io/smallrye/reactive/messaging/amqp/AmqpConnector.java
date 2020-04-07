@@ -10,10 +10,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
+import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
@@ -32,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
@@ -77,29 +79,22 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private static final String JSON_CONTENT_TYPE = "application/json";
 
     @Inject
-    private Instance<Vertx> instanceOfVertx;
+    private ExecutionHolder executionHolder;
 
     @Inject
     private Instance<AmqpClientOptions> clientOptions;
 
-    private boolean internalVertxInstance = false;
     private Vertx vertx;
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
 
-    public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
-        if (internalVertxInstance) {
-            vertx.close().await().indefinitely();
-        }
-    }
-
     @PostConstruct
     void init() {
-        if (instanceOfVertx == null || instanceOfVertx.isUnsatisfied()) {
-            internalVertxInstance = true;
-            this.vertx = Vertx.vertx();
-        } else {
-            this.vertx = instanceOfVertx.get();
-        }
+        this.vertx = executionHolder.vertx();
+    }
+
+    // Needed for testing
+    void setup(ExecutionHolder executionHolder) {
+        this.executionHolder = executionHolder;
     }
 
     AmqpConnector() {
@@ -335,8 +330,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         return builder.build();
     }
 
-    @PreDestroy
-    public synchronized void close() {
+    public void terminate(
+            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         clients.forEach(c -> c.close().subscribeAsCompletionStage());
         clients.clear();
     }

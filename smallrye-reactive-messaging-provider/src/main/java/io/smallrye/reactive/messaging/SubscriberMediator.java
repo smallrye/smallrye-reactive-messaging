@@ -127,20 +127,36 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private void processMethodReturningVoid() {
-        this.subscriber = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .map(message -> {
-                    invoke(message.getPayload());
-                    return message;
-                })
-                .flatMapCompletionStage(x -> {
-                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                        return getAckOrCompletion(x);
-                    } else {
-                        return CompletableFuture.completedFuture(x);
-                    }
-                })
-                .ignore();
+        if (configuration.isBlocking()) {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(managePreProcessingAck())
+                    .flatMapCompletionStage(message -> ((Uni<?>) invokeBlocking(message.getPayload()))
+                            .subscribeAsCompletionStage()
+                            .thenApply(x -> message))
+                    .flatMapCompletionStage(x -> {
+                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                            return getAckOrCompletion(x);
+                        } else {
+                            return CompletableFuture.completedFuture(x);
+                        }
+                    })
+                    .ignore();
+        } else {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(managePreProcessingAck())
+                    .map(message -> {
+                        invoke(message.getPayload());
+                        return message;
+                    })
+                    .flatMapCompletionStage(x -> {
+                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                            return getAckOrCompletion(x);
+                        } else {
+                            return CompletableFuture.completedFuture(x);
+                        }
+                    })
+                    .ignore();
+        }
     }
 
     private void processMethodReturningACompletionStage() {

@@ -4,7 +4,6 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
@@ -13,7 +12,6 @@ import java.util.concurrent.Executors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -30,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.core.Vertx;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
@@ -58,9 +57,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     static final String CONNECTOR_NAME = "smallrye-aws-sns";
 
     @Inject
-    Instance<Vertx> instanceOfVertx;
-
-    private boolean internalVertxInstance = false;
+    ExecutionHolder executionHolder;
 
     private Vertx vertx;
     private ExecutorService executor;
@@ -69,13 +66,13 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     public void initConnector() {
         //Initialize vertx and threadExecutor
         LOGGER.info("Initializing Connector");
-        if (instanceOfVertx != null && instanceOfVertx.isUnsatisfied()) {
-            internalVertxInstance = true;
-            this.vertx = Vertx.vertx();
-        } else if (instanceOfVertx != null) {
-            this.vertx = instanceOfVertx.get();
-        }
+        this.vertx = executionHolder.vertx().getDelegate();
         executor = Executors.newSingleThreadExecutor();
+    }
+
+    // For Testing
+    void setup(ExecutionHolder executionHolder) {
+        this.executionHolder = executionHolder;
     }
 
     /**
@@ -83,9 +80,6 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
      */
     @PreDestroy
     public void preDestroy() {
-        if (internalVertxInstance) {
-            Optional.ofNullable(vertx).ifPresent(Vertx::close);
-        }
         if (executor != null) {
             executor.shutdown();
         }

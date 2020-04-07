@@ -33,7 +33,6 @@ public class AmqpSinkTest extends AmqpTestBase {
     @After
     public void cleanup() {
         if (provider != null) {
-            provider.close();
             provider.terminate(null);
         }
 
@@ -340,6 +339,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         config.put("password", new String("simetraehcapa".getBytes()));
 
         this.provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
         return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
     }
@@ -355,6 +355,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         config.put("password", new String("simetraehcapa".getBytes()));
 
         this.provider = new AmqpConnector();
+        provider.setup(executionHolder);
         provider.init();
         return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
     }

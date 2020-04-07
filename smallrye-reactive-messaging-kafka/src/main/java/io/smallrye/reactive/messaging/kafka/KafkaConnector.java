@@ -4,10 +4,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
+import javax.enterprise.event.Reception;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -20,6 +21,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
@@ -50,31 +52,22 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     static final String CONNECTOR_NAME = "smallrye-kafka";
 
     @Inject
-    private Instance<Vertx> instanceOfVertx;
+    private ExecutionHolder executionHolder;
 
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
 
-    private boolean internalVertxInstance = false;
     private Vertx vertx;
 
-    public void terminate(@Observes @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    public void terminate(
+            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         sources.forEach(KafkaSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
-
-        if (internalVertxInstance) {
-            vertx.closeAndAwait();
-        }
     }
 
     @PostConstruct
     void init() {
-        if (instanceOfVertx.isUnsatisfied()) {
-            internalVertxInstance = true;
-            this.vertx = Vertx.vertx();
-        } else {
-            this.vertx = instanceOfVertx.get();
-        }
+        this.vertx = executionHolder.vertx();
     }
 
     @Override

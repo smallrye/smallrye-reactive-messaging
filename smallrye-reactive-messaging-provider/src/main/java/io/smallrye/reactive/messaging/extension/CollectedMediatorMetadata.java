@@ -13,6 +13,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import io.smallrye.reactive.messaging.DefaultMediatorConfiguration;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 
 class CollectedMediatorMetadata {
@@ -29,12 +30,13 @@ class CollectedMediatorMetadata {
         Incomings incomings = met.getAnnotation(Incomings.class);
         Incoming incoming = met.getAnnotation(Incoming.class);
         Outgoing outgoing = met.getAnnotation(Outgoing.class);
+        Blocking blocking = met.getAnnotation(Blocking.class);
         if (incomings != null) {
-            configuration.compute(incomings, outgoing);
+            configuration.compute(incomings, outgoing, blocking);
         } else if (incoming != null) {
-            configuration.compute(Collections.singletonList(incoming), outgoing);
+            configuration.compute(Collections.singletonList(incoming), outgoing, blocking);
         } else {
-            configuration.compute(Collections.emptyList(), outgoing);
+            configuration.compute(Collections.emptyList(), outgoing, blocking);
         }
         return configuration;
     }
