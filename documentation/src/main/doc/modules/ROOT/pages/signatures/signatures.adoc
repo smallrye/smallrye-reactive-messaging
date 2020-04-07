@@ -48,7 +48,7 @@ CompletionStage<?> method(Message<I> msg)
 |
 @Outgoing @Incoming
 Message<O> method(Message<I> msg)
-| Called for every incoming message (sequentially) | #MANUAL#, NONE, POST_PROCESSING, PRE_PROCESSING | manual
+| Called for every incoming message (sequentially) | #MANUAL#, NONE, PRE_PROCESSING | manual
 
 |
 @Outgoing @Incoming
@@ -58,7 +58,7 @@ O method(I payload)
 |
 @Outgoing @Incoming
 CompletionStage<Message<O>> method(Message<I> msg)
-|  Called for every incoming message (sequentially) | #MANUAL#, NONE, PRE_PROCESSING, POST_PROCESSING | manual
+|  Called for every incoming message (sequentially) | #MANUAL#, NONE, PRE_PROCESSING | manual
 
 |
 @Outgoing @Incoming
@@ -68,7 +68,7 @@ CompletionStage<O> method(I payload)
 |
 @Outgoing @Incoming
 Uni<Message<O>> method(Message<I> msg)
-|  Called for every incoming message (sequentially) | #MANUAL#, NONE, PRE_PROCESSING, POST_PROCESSING | manual
+|  Called for every incoming message (sequentially) | #MANUAL#, NONE, PRE_PROCESSING | manual
 
 |
 @Outgoing @Incoming
