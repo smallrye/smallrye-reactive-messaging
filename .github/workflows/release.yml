@@ -15,7 +15,7 @@ jobs:
           java-version: 'openjdk8'
       - name: 'Run deployment for ${{ github.event.deployment.environment }}'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_API_SECRET }}
           SECRET_FILES_PASSPHRASE: ${{ secrets.SECRET_FILES_PASSPHRASE }}
           MILESTONE: ${{ github.event.deployment.payload.milestone }}
         run: |
