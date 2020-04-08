@@ -1,8 +1,8 @@
 package io.smallrye.reactive.messaging.example.eventclouds;
 
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-
 import javax.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @ApplicationScoped
 public class MyCloudEventSink {
