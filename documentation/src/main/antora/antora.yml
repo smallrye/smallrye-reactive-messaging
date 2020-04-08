@@ -13,5 +13,5 @@ asciidoc:
         mutiny-version: '${mutiny.version}'
         camel-version: '${camel.version}'
         spec-version: '${microprofile-reactive-messaging.version}'
-        javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/2.x-preview/${project.version}/apidocs'
+        javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/${project.version}/apidocs'
 
