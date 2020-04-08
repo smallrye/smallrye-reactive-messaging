@@ -3,13 +3,14 @@ version: '2'
 services:
 
   pulsar:
-      image: apachepulsar/pulsar:2.5.0
-      expose:
-          - 8080
-          - 6650
+      image: apachepulsar/pulsar-all:2.5.0
+      ports:
+        - 8080:8080
+        - 6650:6650
       environment:
           - PULSAR_MEM=" -Xms512m -Xmx512m -XX:MaxDirectMemorySize=1g"
       command: >
-          /bin/bash -c
-          "bin/apply-config-from-env.py conf/standalone.conf
-          && bin/pulsar standalone"
+          /bin/bash -c "bin/apply-config-from-env.py conf/standalone.conf && bin/pulsar standalone
+                        bin/pulsar-admin tenants create foo &&
+                        bin/pulsar-admin namespaces create foo/bar &&
+                        bin/pulsar-admin topics create foo/bar/example"
