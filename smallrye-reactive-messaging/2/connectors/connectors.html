@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt-server/mqtt-server.html">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../http/http.html">HTTP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-outbound">Sending HTTP request</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html">Vert.x Event Bus</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-inbound">Event Bus Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-outbound">Sending Event Bus Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">SmallRye Reactive Messaging</a></li>
+    <li><a href="connectors.html">Connectors</a></li>
+  </ul>
+</nav>
+  <div class="edit-this-page"><a href="https://github.com/smallrye/smallrye-reactive-messaging/master/documentation/documentation/target/antora/modules/ROOT/pages/connectors/connectors.adoc">Edit this Page</a></div>
+</div>
+<article class="doc">
+<h1 class="page">Connectors</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Reactive Messaging can handle messages generated from within the application but also interact with remote <em>brokers</em>.
+Reactive Messaging Connectors interacts with these remote <em>brokers</em> to retrieve messages and send messages using various protocols and technology.</p>
+</div>
+<div class="paragraph">
+<p>Each connector is dedicated to a specific technology.
+For example, a Kafka Connector is responsible to interact with Kafka, while a MQTT Connector is responsible for MQTT interactions.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_connector_name"><a class="anchor" href="#_connector_name"></a>Connector name</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Each connector has a name.
+This name is referenced by the application to indicate that a specific channel is managed by this connector.</p>
+</div>
+<div class="paragraph">
+<p>For example, the SmallRye Kafka Connector is named: <code>smallrye-kafka</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_inbound_and_outbound_connectors"><a class="anchor" href="#_inbound_and_outbound_connectors"></a>Inbound and Outbound connectors</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Connector can:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>retrieve messages from a remote broker (inbound)</p>
+</li>
+<li>
+<p>send messages to a remove broker (outbound)</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>A connector can, of course, implement both directions.</p>
+</div>
+<div class="paragraph">
+<p>Inbound connectors are responsible for:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Getting messages from the remote broker,</p>
+</li>
+<li>
+<p>Creating a Reactive Messaging <code>Message</code> associated with the retrieved message.</p>
+</li>
+<li>
+<p>Potentially associating technical metadata with the message. This includes unmarshalling the payload.</p>
+</li>
+<li>
+<p>Associating a acknowledgement callback to acknowledge the incoming message when the Reactive Messaging message is acknowledged.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">Reactive matters</div>
+<div class="paragraph">
+<p>The first step should follow the reactive streams principle: uses non-blocking technology, respects downstream requests.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Outbound connectors are responsible for:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Receiving Reactive Messaging <code>Message</code> and transform it into a structure understand by the remote broker.
+This includes marshalling the payload.</p>
+</li>
+<li>
+<p>If the <code>Message</code> contains outbound metadata (metadata set during the processing to influence the outbound structure and routing), taking them into account.</p>
+</li>
+<li>
+<p>Sending the message to the remote broker.</p>
+</li>
+<li>
+<p>Acknowledging the Reactive Messaging <code>Message</code> when the broker has accepted / acknowledged the message.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_configuring_connectors"><a class="anchor" href="#_configuring_connectors"></a>Configuring connectors</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Applications needs to configure the connector used by expressing which channel is managed by which connector.
+Non-mapped channels are local / in-memory.</p>
+</div>
+<div class="paragraph">
+<p>To configure connectors, you need to have an implementation of MicroProfile Config.
+If you don&#8217;t have one, add an implementation of MicroProfile Config in your <em>classpath</em>, such as:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye.config&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-config&lt;/artifactId&gt;
+  &lt;version&gt;1.7.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then edit the application configuration, generally <code>src/main/resources/META-INF/microprofile-config.properties</code>.</p>
+</div>
+<div class="paragraph">
+<p>The application configures the connector with a set of properties structured as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.[incoming|outgoing].[channel-name].[attribute]=[value]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.dummy-incoming-channel.connector=dummy
+mp.messaging.incoming.dummy-incoming-channel.attribute=value
+mp.messaging.outgoing.dummy-outgoing-channel.connector=dummy
+mp.messaging.outgoing.dummy-outgoing-channel.attribute=value</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each channel (both incoming and outgoing) are configured individually.</p>
+</div>
+<div class="paragraph">
+<p>The <code>[incoming|outgoing]</code> segment indicates the direction.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>an <code>incoming</code> channel consumes data from a message broker or something producing data.
+It&#8217;s an inbound interaction.
+It can be connected to a method annotated with an <code>@Incoming</code> using the same channel name.</p>
+</li>
+<li>
+<p>an <code>outgoing</code> consumes data from the application and forward it to a message broker or something consuming data.
+It&#8217;s an outbound interaction.
+It can be connected to a method annotated with an <code>@Outgoing</code> using the same channel name.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>[channel-name]</code> is the name of the channel.</p>
+</div>
+<div class="paragraph">
+<p>The <code>[attribute]=[value]</code> sets a specific connector attribute to the given value.
+Attributes depends on the sued connector.
+So, refer to the connector documentation to check the supported attributes.</p>
+</div>
+<div class="paragraph">
+<p>The <code>connector</code> attribute must be set for each mapped channel, and indicates the name of the connector responsible for the channel.</p>
+</div>
+<div class="paragraph">
+<p>Here is an example of a channel using an MQTT connector, consuming data from a MQTT broker, and a channel using a Kafka connector (writing data to Kafka):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code># [Channel - health] - Consume data from MQTT
+mp.messaging.incoming.health.topic=neo
+mp.messaging.incoming.health.connector=smallrye-mqtt
+mp.messaging.incoming.health.host=localhost
+mp.messaging.incoming.health.broadcast=true
+# [/Channel - health]
+
+# [Channel - data] - Produce data to Kafka
+mp.messaging.outgoing.data.connector=smallrye-kafka
+mp.messaging.outgoing.data.bootstrap.servers=localhost:9092
+mp.messaging.outgoing.data.key.serializer=org.apache.kafka.common.serialization.StringSerializer
+mp.messaging.outgoing.data.value.serializer=io.vertx.kafka.client.serialization.JsonObjectSerializer
+mp.messaging.outgoing.data.acks=1
+# [/Channel - data]</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+To use a connector you need to add it to your <em>CLASSPATH</em>.
+Generally, adding the dependency to your project is enough.
+Then, you need to know the name of the connector and set the <code>connector</code> attribute for each channels managed by this connector.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_connector_attribute_table"><a class="anchor" href="#_connector_attribute_table"></a>Connector attribute table</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In the connector documentation you will find a table listing the attribute supported by the connector.
+Be aware that attributes for inbound and outbound interactions may be different.</p>
+</div>
+<div class="paragraph">
+<p>These tables contains the following entries:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The name of the attribute, and potentially an <em>alias</em>.
+The name of the attribute is used with the <code>mp.messaging.[incoming|outgoing].[channel-name].[attribute]=[value]</code> syntax (the <code>attribute</code> segment).
+The <em>alias</em> (if set) is the name of a global MicroProfile Config property that avoids having to configure the attribute for each managed channel.
+For example, to set the location of your Kafka broker globally, you can use the <code>kafka.bootstrap.servers</code> alias.</p>
+</li>
+<li>
+<p>The description of the attribute, including the type.</p>
+</li>
+<li>
+<p>Whether of not the attribute is mandatory.
+If so, omitting it would fails the deployment.</p>
+</li>
+<li>
+<p>The default value if any.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
