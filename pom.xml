@@ -11,7 +11,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
-  <version>2.0.0-SNAPSHOT</version>
+  <version>2.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>MicroProfile Reactive Streams Messaging Implementation</name>
@@ -97,7 +97,6 @@
     <module>smallrye-reactive-messaging-pulsar</module>
 
     <module>examples/quickstart</module>
-    <module>examples/snippets</module>
     <module>examples/cloud-events</module>
 
     <module>examples/kafka-quickstart</module>

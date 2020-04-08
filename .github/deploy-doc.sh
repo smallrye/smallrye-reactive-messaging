@@ -17,14 +17,14 @@ antora generate target/antora/antora-playbook.yml --clean
 cd target || exit
 git clone -b gh-pages git@github.com:smallrye/smallrye-reactive-messaging.git site
 echo "Copy content"
-yes | cp -R antora/build/site/* site/2.x-preview
-mkdir -p "site/2.x-preview/${VERSION}"
-yes | cp -R apidocs "site/2.x-preview/${VERSION}"
+yes | cp -R antora/build/site/* site/
+mkdir -p "site/${VERSION}"
+yes | cp -R apidocs "site/${VERSION}"
 
 echo "Pushing"
 cd site  || exit
 git add -A
-git commit -m "update site"
+git commit -m "update site - version ${VERSION}"
 git push origin gh-pages
 
 echo "Done"
