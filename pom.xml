@@ -96,7 +96,6 @@
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
 
     <module>examples/quickstart</module>
-    <module>examples/snippets</module>
     <module>examples/cloud-events</module>
 
     <module>examples/kafka-quickstart</module>
