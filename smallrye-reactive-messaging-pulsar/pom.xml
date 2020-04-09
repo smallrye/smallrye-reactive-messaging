@@ -10,15 +10,6 @@
 
   <artifactId>smallrye-reactive-messaging-pulsar</artifactId>
 
-  <developers>
-    <developer>
-      <id>rafaelsousa</id>
-      <name>Rafael de Andrade Sousa</name>
-      <email>rafael.and[AT]gmail[DOT]com</email>
-      <url>https://github.com/rafaelsousa</url>
-    </developer>
-  </developers>
-
   <properties>
     <pulsar.version>2.5.0</pulsar.version>
     <debezium.version>1.0.3.Final</debezium.version>
