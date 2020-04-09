@@ -13,10 +13,5 @@ public class Sender {
 
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-    @Outgoing("producer")
-    public PublisherBuilder<String> send() {
-        return ReactiveStreams.of("a", "b", "c");
-    }
-
 
 }

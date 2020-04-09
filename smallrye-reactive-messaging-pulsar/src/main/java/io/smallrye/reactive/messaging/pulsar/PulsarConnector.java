@@ -9,6 +9,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.smallrye.mutiny.Multi;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -48,40 +49,15 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        return ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(m -> CompletableFuture.completedFuture(m))
-                .onError(t -> LOGGER.error("Unable to send message to Pulsar", t))
-                .ignore();
+        PulsarConsumer<Message> pulsarConsumer = new PulsarConsumer<>(config);
+        return pulsarConsumer.getSubscriberBuilder();
     }
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        try {
-            Consumer<String> consumer = getClient(config).newConsumer(Schema.STRING)
-                    .topic(config.getValue("topic", String.class))
-                    .subscriptionName(config.getValue("subscription-name", String.class))
-                    .subscribe();
-            PulsarSource source = new PulsarSource(consumer);
-            return ReactiveStreams.fromPublisher(source);
-        } catch (PulsarClientException e) {
-            e.printStackTrace();
-        }
-        return null;
+        PulsarProducer producer = new PulsarProducer(config);
+        return ReactiveStreams.fromPublisher(producer);
     }
 
-    private PulsarClient getClient(Config config) {
-        StringBuilder url = new StringBuilder();
-        String host = config.getValue("host", String.class);
-        String port = config.getValue("port", String.class);
-        url.append("pulsar://").append(host).append(":").append(port);
-        try {
-            return PulsarClient.builder()
-                    .serviceUrl(url.toString())
-                    .build();
-        } catch (PulsarClientException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
 }
