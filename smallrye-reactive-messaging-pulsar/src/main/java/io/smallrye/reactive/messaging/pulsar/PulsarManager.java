@@ -10,11 +10,9 @@ public class PulsarManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarManager.class);
     private final Config config;
 
-
-    public PulsarManager(Config config){
+    public PulsarManager(Config config) {
         this.config = config;
     }
-
 
     public PulsarClient createNewClient() {
         StringBuilder url = new StringBuilder();
@@ -23,22 +21,21 @@ public class PulsarManager {
         url.append("pulsar://").append(host).append(":").append(port);
         try {
             return PulsarClient.builder()
-                .serviceUrl(url.toString())
-                .build();
+                    .serviceUrl(url.toString())
+                    .build();
         } catch (PulsarClientException e) {
             e.printStackTrace();
         }
         return null;
     }
 
-
     public Consumer createNewConsumer() {
         try {
             return createNewClient()
-                .newConsumer(Schema.STRING)
-                .subscriptionType(SubscriptionType.Key_Shared)
-                .topic(config.getValue("topic",String.class))
-                .subscriptionName("temp").subscribe();
+                    .newConsumer(Schema.STRING)
+                    .subscriptionType(SubscriptionType.Key_Shared)
+                    .topic(config.getValue("topic", String.class))
+                    .subscriptionName("temp").subscribe();
         } catch (PulsarClientException e) {
             LOGGER.error(e.getMessage());
             return null;

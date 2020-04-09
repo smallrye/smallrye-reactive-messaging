@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.pulsar;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -9,11 +8,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
-import io.smallrye.mutiny.Multi;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.Schema;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -58,6 +52,5 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
         PulsarProducer producer = new PulsarProducer(config);
         return ReactiveStreams.fromPublisher(producer);
     }
-
 
 }
