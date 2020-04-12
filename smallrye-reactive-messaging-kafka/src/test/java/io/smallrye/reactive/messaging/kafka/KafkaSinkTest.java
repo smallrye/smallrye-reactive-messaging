@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -217,6 +218,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.serializer", IntegerSerializer.class.getName());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("partition", 0);
+        config.put("max-inflight-messages", 1);
         config.put("bootstrap.servers", SERVERS);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
         KafkaSink sink = new KafkaSink(vertx, oc);
@@ -234,6 +236,44 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(3); // 3 and 5 are ignored.
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Test
+    public void testInvalidTypeWithDefaultInflightMessages() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        String topic = UUID.randomUUID().toString();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                (k, v) -> expected.getAndIncrement());
+
+        Map<String, Object> config = getConfig();
+        config.put("topic", topic);
+        config.put("value.serializer", IntegerSerializer.class.getName());
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("partition", 0);
+        config.put("bootstrap.servers", SERVERS);
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaSink sink = new KafkaSink(vertx, oc);
+
+        Subscriber subscriber = sink.getSink().build();
+        Flowable.range(0, 5)
+                .map(i -> {
+                    if (i == 3 || i == 5) {
+                        return Integer.toString(i);
+                    }
+                    return i;
+                })
+                .map(Message::of)
+                .subscribe(subscriber);
+
+        await().until(() -> expected.get() >= 3);
+        // Default inflight is 5
+        // 1, 2, 3, 4, 5 are sent at the same time.
+        // As 3 fails, the stream is stopped, but, 1, 2, and 4 are already sent and potentially 6
+        assertThat(expected).hasValueGreaterThanOrEqualTo(3);
     }
 
     @Test
