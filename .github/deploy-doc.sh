@@ -2,6 +2,7 @@
 echo "Cleaning"
 mvn clean -pl documentation
 
+export VERSION=""
 
 echo "Building the doc from project root"
 
@@ -11,7 +12,7 @@ echo "Cloning repo"
 cd documentation || exit
 mvn verify
 mvn scm:check-local-modification -Dincludes=src/main/doc/antora.yml
-export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 antora generate target/antora/antora-playbook.yml --clean
 
 cd target || exit

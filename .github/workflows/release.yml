@@ -18,6 +18,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_API_SECRET }}
           SECRET_FILES_PASSPHRASE: ${{ secrets.SECRET_FILES_PASSPHRASE }}
           MILESTONE: ${{ github.event.deployment.payload.milestone }}
+          BUMP_TO_NEXT: ${{ github.event.deployment.payload.bump-to-next }}
         run: |
           sudo apt-get update -o Dir::Etc::sourcelist="sources.list" \
             -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
@@ -29,7 +30,7 @@ jobs:
             sdk install kotlin 1.3.61 && \
             sdk install kscript 2.9.0
 
-          chmod +x .github/deploy.sh .github/decrypt-secrets.sh
+          chmod +x .github/deploy.sh .github/decrypt-secrets.sh .github/deploy-doc.sh
 
           .github/decrypt-secrets.sh
 

@@ -13,11 +13,13 @@ init_git() {
 
     git update-index --assume-unchanged .github/deploy.sh
     git update-index --assume-unchanged .github/decrypt-secrets.sh
+    git update-index --assume-unchanged .github/deploy-doc.sh
 }
 
 deploy_release() {
     export RELEASE_VERSION=""
     export BRANCH="HEAD"
+    export NEXT_VERSION=""
 
     if [ -f /tmp/release-version ]; then
       RELEASE_VERSION=$(cat /tmp/release-version)
@@ -45,7 +47,21 @@ deploy_release() {
     echo "Deploying release artifacts"
     mvn -B deploy -DskipTests -Prelease -s maven-settings.xml
 
-    echo "[WARNING] - Documentation deployment not yet supported"
+    echo "Building documentation"
+    .github/deploy-doc.sh
+
+    if [ -f /tmp/next-version ]; then
+      NEXT_VERSION=$(cat /tmp/next-version)
+      echo "Setting master version to ${NEXT_VERSION}-SNAPSHOT"
+      git reset --hard
+      git checkout master
+      mvn -B versions:set -DnewVersion="${NEXT_VERSION}-SNAPSHOT" -DgenerateBackupPoms=false -s maven-settings.xml
+      git commit -am "[RELEASE] - Bump master to ${NEXT_VERSION}-SNAPSHOT"
+      git push origin master
+      echo "Master updated"
+    else
+        echo "No next version - skip updating the master version"
+    fi
 }
 
 init_git
