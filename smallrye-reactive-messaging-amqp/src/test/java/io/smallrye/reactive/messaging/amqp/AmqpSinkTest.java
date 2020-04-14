@@ -168,6 +168,59 @@ public class AmqpSinkTest extends AmqpTestBase {
     }
 
     @Test
+    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadata() throws InterruptedException {
+        Weld weld = new Weld();
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consumeIntegers("sink",
+                v -> latch.countDown());
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "not-used")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
+
+        container = weld.initialize();
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    @Test
+    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadataUsingNonAnonymousSender() throws InterruptedException {
+        Weld weld = new Weld();
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consumeIntegers("sink-foo",
+                v -> latch.countDown());
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink-foo")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("mp.messaging.outgoing.sink.use-anonymous-sender", false)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
+
+        container = weld.initialize();
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    @Test
     public void testSinkUsingAmqpMessage() {
         String topic = UUID.randomUUID().toString();
         AtomicInteger expected = new AtomicInteger(0);
