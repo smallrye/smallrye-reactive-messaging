@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
 import org.apache.qpid.proton.amqp.messaging.Data;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -31,6 +32,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.LoggerFactory;
 
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.vertx.core.json.JsonArray;
@@ -54,6 +56,9 @@ public class AmqpSourceTest extends AmqpTestBase {
         if (container != null) {
             container.shutdown();
         }
+
+        MapBasedConfig.clear();
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
 
         System.clearProperty("mp-config");
         System.clearProperty("client-options-name");
@@ -159,7 +164,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
-        config.put("host", address);
+        config.put("host", host);
         config.put("name", "the name for broadcast");
         config.put("port", port);
         config.put("broadcast", true);
@@ -195,11 +200,22 @@ public class AmqpSourceTest extends AmqpTestBase {
         assertThat(messages2.stream().map(Message::getPayload)
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        MapBasedConfig.clear();
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
     public void testABeanConsumingTheAMQPMessages() {
-        System.setProperty("mp-config", "incoming");
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
+
         ConsumptionBean bean = deploy();
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -358,8 +374,15 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
-        System.setProperty("mp-config", "incoming");
-        System.setProperty("client-options-name", "myclientoptions");
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("mp.messaging.incoming.data.client-options-name", "myclientoptions")
+                .write();
 
         container = weld.initialize();
     }
@@ -373,8 +396,15 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
-        System.setProperty("mp-config", "incoming");
-        System.setProperty("client-options-name", "dummyoptionsnonexistent");
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("mp.messaging.incoming.data.client-options-name", "dummyoptionsnonexistent")
+                .write();
 
         container = weld.initialize();
     }
@@ -387,8 +417,15 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
-        System.setProperty("mp-config", "incoming");
-        System.setProperty("client-options-name", "myclientoptions");
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("mp.messaging.incoming.data.client-options-name", "myclientoptions")
+                .write();
 
         container = weld.initialize();
         await().until(() -> container.select(MediatorManager.class).get().isInitialized());
@@ -410,8 +447,15 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
-        System.setProperty("mp-config", "incoming");
-        System.setProperty("amqp-client-options-name", "myclientoptions");
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("amqp-client-options-name", "myclientoptions")
+                .write();
 
         container = weld.initialize();
         await().until(() -> container.select(MediatorManager.class).get().isInitialized());
@@ -434,8 +478,15 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
-        System.setProperty("mp-config", "incoming");
-        System.setProperty("amqp-client-options-name", "myclientoptions");
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("amqp-client-options-name", "myclientoptions")
+                .write();
 
         container = weld.initialize();
     }
@@ -449,8 +500,15 @@ public class AmqpSourceTest extends AmqpTestBase {
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
-        System.setProperty("mp-config", "incoming");
-        System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("amqp-client-options-name", "dummyoptionsnonexistent")
+                .write();
 
         container = weld.initialize();
     }
@@ -460,7 +518,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, UUID.randomUUID().toString());
-        config.put("host", address);
+        config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
         config.put("username", "artemis");
@@ -472,7 +530,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     private Map<String, Object> getConfigUsingChannelName(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
-        config.put("host", address);
+        config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
         config.put("username", "artemis");
