@@ -41,7 +41,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpClient;
-import io.vertx.mutiny.amqp.AmqpConnection;
 import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.amqp.AmqpSender;
@@ -69,6 +68,7 @@ import io.vertx.mutiny.core.buffer.Buffer;
 
 @ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
+@ConnectorAttribute(name = "use-anonymous-sender", direction = OUTGOING, description = "Whether or not the connector should use an anonymous sender.", type = "boolean", defaultValue = "true")
 
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
@@ -191,19 +191,27 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
         boolean durable = oc.getDurable();
         long ttl = oc.getTtl();
+        boolean useAnonymousSender = oc.getUseAnonymousSender();
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         AmqpClient client = createClient(oc);
+
         return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
             AmqpSender as = sender.get();
             if (as == null) {
                 return client.connect()
-                        .flatMap(AmqpConnection::createAnonymousSender)
+                        .flatMap(connection -> {
+                            if (useAnonymousSender) {
+                                return connection.createAnonymousSender();
+                            } else {
+                                return connection.createSender(configuredAddress);
+                            }
+                        })
                         .map(s -> {
                             sender.set(s);
                             return s;
                         })
-                        .flatMap(s -> send(s, message, durable, ttl, configuredAddress))
+                        .flatMap(s -> send(s, message, durable, ttl, configuredAddress, useAnonymousSender))
                         .onFailure().invoke(failure -> {
                             if (clients.isEmpty()) {
                                 LOGGER.error("The AMQP message has not been sent, the client is closed");
@@ -212,21 +220,42 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                             }
                         }).subscribeAsCompletionStage();
             } else {
-                return send(as, message, durable, ttl, configuredAddress).subscribeAsCompletionStage();
+                return send(as, message, durable, ttl, configuredAddress, useAnonymousSender).subscribeAsCompletionStage();
             }
         }).ignore();
     }
 
-    private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress) {
-        if (amqp.address() != null) {
-            return amqp.address();
+    private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,
+            boolean isAnonymousSender) {
+        String address = amqp.address();
+        if (address != null) {
+            if (isAnonymousSender) {
+                return address;
+            } else {
+                LOGGER.warn(
+                        "Unable to use the address configured in the message ({}) - the connector is not using an anonymous sender, using {} instead",
+                        address, configuredAddress);
+                return configuredAddress;
+            }
+
         }
+
         return message.getMetadata(OutgoingAmqpMetadata.class)
-                .flatMap(o -> Optional.ofNullable(o.getAddress()))
+                .flatMap(o -> {
+                    String addressFromMessage = o.getAddress();
+                    if (addressFromMessage != null && !isAnonymousSender) {
+                        LOGGER.warn(
+                                "Unable to use the address configured in the message ({}) - the connector is not using an anonymous sender, using {} instead",
+                                addressFromMessage, configuredAddress);
+                        return Optional.empty();
+                    }
+                    return Optional.ofNullable(addressFromMessage);
+                })
                 .orElse(configuredAddress);
     }
 
-    private Uni<Message<?>> send(AmqpSender sender, Message<?> msg, boolean durable, long ttl, String configuredAddress) {
+    private Uni<Message<?>> send(AmqpSender sender, Message<?> msg, boolean durable, long ttl, String configuredAddress,
+            boolean isAnonymousSender) {
         io.vertx.mutiny.amqp.AmqpMessage amqp;
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
@@ -238,7 +267,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             amqp = convertToAmqpMessage(msg, durable, ttl);
         }
 
-        String actualAddress = getActualAddress(msg, amqp, configuredAddress);
+        String actualAddress = getActualAddress(msg, amqp, configuredAddress, isAnonymousSender);
         if (clients.isEmpty()) {
             LOGGER.error("The AMQP message to address `{}` has not been sent, the client is closed",
                     actualAddress);

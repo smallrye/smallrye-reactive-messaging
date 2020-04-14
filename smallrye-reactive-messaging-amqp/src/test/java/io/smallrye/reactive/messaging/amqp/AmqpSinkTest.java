@@ -63,6 +63,23 @@ public class AmqpSinkTest extends AmqpTestBase {
     }
 
     @Test
+    public void testSinkUsingIntegerUsingNonAnonymousSender() {
+        String topic = UUID.randomUUID().toString();
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeIntegers(topic,
+                v -> expected.getAndIncrement());
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic);
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        await().until(() -> expected.get() == 10);
+        assertThat(expected).hasValue(10);
+    }
+
+    @Test
     public void testSinkUsingString() {
         String topic = UUID.randomUUID().toString();
 
@@ -161,6 +178,39 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .map(v -> AmqpMessage.<String> builder()
                         .withBody(HELLO + v)
                         .withSubject("foo")
+                        .build())
+                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
+
+        await().untilAtomic(expected, is(10));
+        assertThat(expected).hasValue(10);
+
+        messages.forEach(m -> {
+            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
+            assertThat(m.getSubject()).isEqualTo("foo");
+        });
+    }
+
+    @Test
+    public void testSinkUsingAmqpMessageWithNonAnonymousSender() {
+        String topic = UUID.randomUUID().toString();
+        AtomicInteger expected = new AtomicInteger(0);
+
+        List<AmqpMessage<String>> messages = new ArrayList<>();
+        usage.consume(topic,
+                v -> {
+                    expected.getAndIncrement();
+                    v.getDelegate().accepted();
+                    messages.add(new AmqpMessage<>(v));
+                });
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic);
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(v -> AmqpMessage.<String> builder()
+                        .withBody(HELLO + v)
+                        .withSubject("foo")
+                        .withAddress("unused")
                         .build())
                 .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
 
@@ -335,6 +385,24 @@ public class AmqpSinkTest extends AmqpTestBase {
         config.put("host", address);
         config.put("durable", false);
         config.put("port", port);
+        config.put("username", "artemis");
+        config.put("password", new String("simetraehcapa".getBytes()));
+
+        this.provider = new AmqpConnector();
+        provider.setup(executionHolder);
+        provider.init();
+        return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+    }
+
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndNonAnonymousSink(String topic) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
+        config.put("address", topic);
+        config.put("name", "the name");
+        config.put("host", address);
+        config.put("durable", false);
+        config.put("port", port);
+        config.put("use-anonymous-sender", false);
         config.put("username", "artemis");
         config.put("password", new String("simetraehcapa".getBytes()));
 
