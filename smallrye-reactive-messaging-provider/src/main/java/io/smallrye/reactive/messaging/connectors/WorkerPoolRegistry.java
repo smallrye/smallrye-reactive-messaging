@@ -13,11 +13,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
+import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,9 @@ public class WorkerPoolRegistry {
 
     @Inject
     private ExecutionHolder executionHolder;
+
+    @Inject
+    private Instance<Config> configInstance;
 
     private Map<String, Integer> workerConcurrency = new HashMap<>();
     private Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
@@ -113,7 +117,7 @@ public class WorkerPoolRegistry {
 
             // Validate @Blocking worker pool has configuration to define concurrency
             String workerConfigKey = WORKER_CONFIG_PREFIX + "." + poolName + "." + WORKER_CONCURRENCY;
-            Optional<Integer> concurrency = ConfigProvider.getConfig().getOptionalValue(workerConfigKey, Integer.class);
+            Optional<Integer> concurrency = configInstance.get().getOptionalValue(workerConfigKey, Integer.class);
             if (!concurrency.isPresent()) {
                 throw getBlockingError(className, method, workerConfigKey + " was not defined");
             }
