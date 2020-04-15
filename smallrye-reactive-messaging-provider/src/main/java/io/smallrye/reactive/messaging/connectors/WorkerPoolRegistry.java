@@ -13,12 +13,11 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
-import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.slf4j.LoggerFactory;
@@ -37,9 +36,6 @@ public class WorkerPoolRegistry {
 
     @Inject
     private ExecutionHolder executionHolder;
-
-    @Inject
-    private Instance<Config> configInstance;
 
     private Map<String, Integer> workerConcurrency = new HashMap<>();
     private Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
@@ -105,39 +101,45 @@ public class WorkerPoolRegistry {
                 .forEach(m -> defineWorker(m.getJavaMember()));
     }
 
+    public void defineWorker(String className, String method, String poolName) {
+        Objects.requireNonNull(className, "className was empty");
+        Objects.requireNonNull(method, "Method was empty");
+
+        if (!poolName.equals(Blocking.DEFAULT_WORKER_POOL)) {
+            // Validate @Blocking value is not empty, if set
+            if (Validation.isBlank(poolName)) {
+                throw getBlockingError(className, method, "value is blank or null");
+            }
+
+            // Validate @Blocking worker pool has configuration to define concurrency
+            String workerConfigKey = WORKER_CONFIG_PREFIX + "." + poolName + "." + WORKER_CONCURRENCY;
+            Optional<Integer> concurrency = ConfigProvider.getConfig().getOptionalValue(workerConfigKey, Integer.class);
+            if (!concurrency.isPresent()) {
+                throw getBlockingError(className, method, workerConfigKey + " was not defined");
+            }
+
+            workerConcurrency.put(poolName, concurrency.get());
+        }
+    }
+
     private void defineWorker(Method method) {
         Objects.requireNonNull(method, "Method was empty");
 
         Blocking blocking = method.getAnnotation(Blocking.class);
 
+        String methodName = method.getName();
+        String className = method.getDeclaringClass().getName();
+
         // Validate @Blocking is used in conjunction with @Incoming, or @Outgoing
         if (!(method.isAnnotationPresent(Incoming.class) || method.isAnnotationPresent(Outgoing.class))) {
-            throw getBlockingError(method, "no @Incoming or @Outgoing present");
+            throw getBlockingError(className, methodName, "no @Incoming or @Outgoing present");
         }
 
-        if (!blocking.value().equals(Blocking.DEFAULT_WORKER_POOL)) {
-            // Validate @Blocking value is not empty, if set
-            if (Validation.isBlank(blocking.value())) {
-                throw getBlockingError(method, "value is blank or null");
-            }
-
-            // Validate @Blocking worker pool has configuration to define concurrency
-            String workerConfigKey = WORKER_CONFIG_PREFIX + "." + blocking.value() + "." + WORKER_CONCURRENCY;
-            Optional<Integer> concurrency = configInstance.get().getOptionalValue(workerConfigKey, Integer.class);
-            if (!concurrency.isPresent()) {
-                throw getBlockingError(method, workerConfigKey + " was not defined");
-            }
-
-            workerConcurrency.put(blocking.value(), concurrency.get());
-        }
+        defineWorker(className, methodName, blocking.value());
     }
 
-    private IllegalArgumentException getBlockingError(Method method, String message) {
+    private IllegalArgumentException getBlockingError(String className, String method, String message) {
         return new IllegalArgumentException(
-                "Invalid method annotated with @Blocking: " + methodAsString(method) + " - " + message);
-    }
-
-    public String methodAsString(Method method) {
-        return method.getDeclaringClass().getName() + "#" + method.getName();
+                "Invalid method annotated with @Blocking: " + className + "#" + method + " - " + message);
     }
 }
