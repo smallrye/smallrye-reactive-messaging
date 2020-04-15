@@ -201,6 +201,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             if (as == null) {
                 return client.connect()
                         .flatMap(connection -> {
+                            connection.exceptionHandler(t -> LOGGER.error("AMQP Connection failure", t));
                             if (useAnonymousSender) {
                                 return connection.createAnonymousSender();
                             } else {
@@ -220,7 +221,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                             }
                         }).subscribeAsCompletionStage();
             } else {
-                return send(as, message, durable, ttl, configuredAddress, useAnonymousSender).subscribeAsCompletionStage();
+                return send(as, message, durable, ttl, configuredAddress, useAnonymousSender)
+                        .subscribeAsCompletionStage();
             }
         }).ignore();
     }
