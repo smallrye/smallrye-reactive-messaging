@@ -10,6 +10,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -20,6 +21,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.Json;
 import repeat.Repeat;
@@ -40,9 +42,8 @@ public class AmqpSinkTest extends AmqpTestBase {
             container.shutdown();
         }
 
-        System.clearProperty("mp-config");
-        System.clearProperty("client-options-name");
-        System.clearProperty("amqp-client-options-name");
+        MapBasedConfig.clear();
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
@@ -53,6 +54,23 @@ public class AmqpSinkTest extends AmqpTestBase {
                 v -> expected.getAndIncrement());
 
         SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        await().until(() -> expected.get() == 10);
+        assertThat(expected).hasValue(10);
+    }
+
+    @Test
+    public void testSinkUsingIntegerUsingNonAnonymousSender() {
+        String topic = UUID.randomUUID().toString();
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeIntegers(topic,
+                v -> expected.getAndIncrement());
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic);
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
@@ -134,7 +152,68 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ProducingBean.class);
 
-        System.setProperty("mp-config", "outgoing");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
+
+        container = weld.initialize();
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    @Test
+    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadata() throws InterruptedException {
+        Weld weld = new Weld();
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consumeIntegers("sink",
+                v -> latch.countDown());
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "not-used")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
+
+        container = weld.initialize();
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    @Test
+    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadataUsingNonAnonymousSender() throws InterruptedException {
+        Weld weld = new Weld();
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consumeIntegers("sink-foo",
+                v -> latch.countDown());
+
+        weld.addBeanClass(AmqpConnector.class);
+        weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink-foo")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("mp.messaging.outgoing.sink.use-anonymous-sender", false)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
 
         container = weld.initialize();
 
@@ -161,6 +240,39 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .map(v -> AmqpMessage.<String> builder()
                         .withBody(HELLO + v)
                         .withSubject("foo")
+                        .build())
+                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
+
+        await().untilAtomic(expected, is(10));
+        assertThat(expected).hasValue(10);
+
+        messages.forEach(m -> {
+            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
+            assertThat(m.getSubject()).isEqualTo("foo");
+        });
+    }
+
+    @Test
+    public void testSinkUsingAmqpMessageWithNonAnonymousSender() {
+        String topic = UUID.randomUUID().toString();
+        AtomicInteger expected = new AtomicInteger(0);
+
+        List<AmqpMessage<String>> messages = new ArrayList<>();
+        usage.consume(topic,
+                v -> {
+                    expected.getAndIncrement();
+                    v.getDelegate().accepted();
+                    messages.add(new AmqpMessage<>(v));
+                });
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic);
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(v -> AmqpMessage.<String> builder()
+                        .withBody(HELLO + v)
+                        .withSubject("foo")
+                        .withAddress("unused")
                         .build())
                 .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
 
@@ -240,8 +352,16 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ProducingBean.class);
 
-        System.setProperty("mp-config", "outgoing");
-        System.setProperty("client-options-name", "myclientoptions");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
+                .write();
 
         container = weld.initialize();
     }
@@ -254,8 +374,16 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(ProducingBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
 
-        System.setProperty("mp-config", "outgoing");
-        System.setProperty("client-options-name", "dummyoptionsnonexistent");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("mp.messaging.outgoing.sink.client-options-name", "dummyoptionsnonexistent")
+                .write();
 
         container = weld.initialize();
     }
@@ -272,8 +400,16 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(ProducingBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
 
-        System.setProperty("mp-config", "outgoing");
-        System.setProperty("client-options-name", "myclientoptions");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
+                .write();
 
         container = weld.initialize();
 
@@ -287,8 +423,16 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ProducingBean.class);
 
-        System.setProperty("mp-config", "outgoing");
-        System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("amqp-client-options-name", "dummyoptionsnonexistent")
+                .write();
 
         container = weld.initialize();
     }
@@ -301,8 +445,16 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(ProducingBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
 
-        System.setProperty("mp-config", "outgoing");
-        System.setProperty("amqp-client-options-name", "dummyoptionsnonexistent");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("amqp-client-options-name", "dummyoptionsnonexistent")
+                .write();
 
         container = weld.initialize();
     }
@@ -319,8 +471,16 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(ProducingBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
 
-        System.setProperty("mp-config", "outgoing");
-        System.setProperty("amqp-client-options-name", "myclientoptions");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.durable", true)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .put("amqp-client-options-name", "myclientoptions")
+                .write();
 
         container = weld.initialize();
 
@@ -332,9 +492,27 @@ public class AmqpSinkTest extends AmqpTestBase {
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("address", topic);
         config.put("name", "the name");
-        config.put("host", address);
+        config.put("host", host);
         config.put("durable", false);
         config.put("port", port);
+        config.put("username", "artemis");
+        config.put("password", new String("simetraehcapa".getBytes()));
+
+        this.provider = new AmqpConnector();
+        provider.setup(executionHolder);
+        provider.init();
+        return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+    }
+
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndNonAnonymousSink(String topic) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
+        config.put("address", topic);
+        config.put("name", "the name");
+        config.put("host", host);
+        config.put("durable", false);
+        config.put("port", port);
+        config.put("use-anonymous-sender", false);
         config.put("username", "artemis");
         config.put("password", new String("simetraehcapa".getBytes()));
 
@@ -348,7 +526,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("name", "the name");
-        config.put("host", address);
+        config.put("host", host);
         config.put("durable", false);
         config.put("port", port);
         config.put("username", "artemis");

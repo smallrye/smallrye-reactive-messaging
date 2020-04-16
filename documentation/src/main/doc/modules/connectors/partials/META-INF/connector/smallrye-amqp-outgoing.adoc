@@ -61,6 +61,10 @@ Type: _int_ | false | `10`
 
 Type: _long_ | false | `0`
 
+| *use-anonymous-sender* | Whether or not the connector should use an anonymous sender.
+
+Type: _boolean_ | false | `true`
+
 | *use-ssl*
 
 _(amqp-use-ssl)_ | Whether the AMQP connection uses SSL/TLS

@@ -21,20 +21,22 @@ public class AmqpTestBase {
     public RepeatRule rule = new RepeatRule();
 
     ExecutionHolder executionHolder;
-    String address;
+    String host;
     Integer port;
+    String username = "artemis";
+    String password = "simetraehcapa";
     AmqpUsage usage;
 
     @Before
     public void setup() {
         executionHolder = new ExecutionHolder(Vertx.vertx());
-        address = artemis.getContainerIpAddress();
+        host = artemis.getContainerIpAddress();
         port = artemis.getMappedPort(5672);
-        System.setProperty("amqp-host", address);
+        System.setProperty("amqp-host", host);
         System.setProperty("amqp-port", Integer.toString(port));
-        System.setProperty("amqp-user", "artemis");
-        System.setProperty("amqp-pwd", "simetraehcapa");
-        usage = new AmqpUsage(executionHolder.vertx(), address, port);
+        System.setProperty("amqp-user", username);
+        System.setProperty("amqp-pwd", password);
+        usage = new AmqpUsage(executionHolder.vertx(), host, port);
     }
 
     @After
