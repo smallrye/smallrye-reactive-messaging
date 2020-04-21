@@ -28,15 +28,16 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     private AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
 
-    EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
+    public EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
         this.name = name;
         if (defaultBufferSize <= 0) {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
 
         Consumer<MultiEmitter<? super Message<? extends T>>> deferred = fe -> {
-            if (!internal.compareAndSet(null, fe)) {
-                fe.fail(new Exception("Emitter already created"));
+            MultiEmitter<? super Message<? extends T>> previous = internal.getAndSet(fe);
+            if (previous != null) {
+                previous.complete();
             }
         };
 

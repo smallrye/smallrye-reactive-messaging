@@ -34,7 +34,6 @@ public class HeaderPropagationTest extends AmqpTestBase {
         }
         // Release the config objects
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        System.clearProperty("mp-config");
     }
 
     @Test
@@ -44,7 +43,15 @@ public class HeaderPropagationTest extends AmqpTestBase {
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppGeneratingData.class);
 
-        System.setProperty("mp-config", "app-generating-data");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.amqp.address", "should-not-be-used")
+                .put("mp.messaging.outgoing.amqp.durable", true)
+                .put("mp.messaging.outgoing.amqp.host", host)
+                .put("mp.messaging.outgoing.amqp.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
 
         usage.consume("my-address", messages::add);
         container = weld.initialize();
@@ -64,7 +71,20 @@ public class HeaderPropagationTest extends AmqpTestBase {
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppProcessingData.class);
 
-        System.setProperty("mp-config", "app-processing-data");
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.amqp.address", "my-address")
+                .put("mp.messaging.outgoing.amqp.durable", true)
+                .put("mp.messaging.outgoing.amqp.host", host)
+                .put("mp.messaging.outgoing.amqp.port", port)
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+
+                .put("mp.messaging.incoming.source.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.source.address", "my-source")
+                .put("mp.messaging.incoming.source.host", host)
+                .put("mp.messaging.incoming.source.port", port)
+                .write();
 
         usage.consume("my-address", messages::add);
 

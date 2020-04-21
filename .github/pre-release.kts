@@ -29,9 +29,10 @@ val milestone_name = args[1]; // Fail if the second argument is not there
 val github = GitHubBuilder().withOAuthToken(token).build()
 val repository = github.getRepository(REPO)
 
-
 val newVersion = milestone_name;
 println("New version would be ${newVersion}")
+
+val bumpToNext = bumpToNext();
 
 println("Checking the existence of the ${newVersion} milestone")
 val milestones = repository.listMilestones(GHIssueState.ALL).asList()
@@ -54,6 +55,11 @@ failIfPredicate( { existingTag != null }, "There is a tag with name ${newVersion
 println("Write computed version to /tmp/release-version")
 File("/tmp/release-version").writeText(newVersion)
 
+if (bumpToNext()) {
+    val nextVersion = computeNextVersion(newVersion);
+    File("/tmp/next-version").writeText(nextVersion);
+}
+
 fun fail(message: String, code: Int = 2) {
     println(message)
     kotlin.system.exitProcess(code)
@@ -64,6 +70,20 @@ fun failIfPredicate(predicate: () -> Boolean, message: String, code: Int = 2) {
     if (success) {
         fail(message, code)
     }
+}
+
+fun computeNextVersion(releaseVersion : String) : String {
+    val segments = releaseVersion.split(".")
+    if (segments.size < 3) {
+        fail("Invalid version ${releaseVersion}, number of segments must be at least 3, found: ${segments.size}")
+    }
+    var newVersion = "${segments[0]}.${segments[1].toInt() + 1}.0"
+    return newVersion
+}
+
+fun bumpToNext() : Boolean {
+    val b = System.getenv("BUMP_TO_NEXT");
+    return b != null  && b == "true";
 }
 
 

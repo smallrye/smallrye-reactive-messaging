@@ -49,7 +49,7 @@ public class PublisherMediator extends AbstractMediator {
                 .onItem()
                 .ifNull()
                 .failWith(new NullPointerException("The operation "
-                        + this.configuration.getMethod() + " has returned null"));
+                        + this.configuration.methodAsString() + " has returned null"));
     }
 
     @Override

@@ -20,8 +20,10 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import io.reactivex.subscribers.TestSubscriber;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.extension.EmitterImpl;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
@@ -575,6 +577,21 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         public void consume(final String b) {
             list.add(b);
         }
+    }
+
+    @Test // Reproduce #511
+    public void testWeCanHaveSeveralSubscribers() {
+        EmitterImpl<String> emitter = new EmitterImpl<>("my-channel", "BUFFER", 128, 128);
+        Publisher<Message<? extends String>> publisher = emitter.getPublisher();
+
+        TestSubscriber<Message<? extends String>> sub1 = new TestSubscriber<>();
+        publisher.subscribe(sub1);
+
+        TestSubscriber<Message<? extends String>> sub2 = new TestSubscriber<>();
+        publisher.subscribe(sub2);
+
+        sub1.assertNoErrors();
+        sub2.assertNoErrors();
     }
 
 }
