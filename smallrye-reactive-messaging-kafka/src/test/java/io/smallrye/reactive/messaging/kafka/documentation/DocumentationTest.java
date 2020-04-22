@@ -53,10 +53,7 @@ public class DocumentationTest extends KafkaTestBase {
         AtomicInteger count = new AtomicInteger();
         usage.produceDoubles(50, null, () -> new ProducerRecord<>("prices", count.incrementAndGet() * 1.0));
 
-        await().until(() -> {
-            System.out.println(consumer.list().size());
-            return consumer.list().size() >= 50;
-        });
+        await().until(() -> consumer.list().size() >= 50);
     }
 
     @Test
@@ -84,10 +81,7 @@ public class DocumentationTest extends KafkaTestBase {
     public void testKafkaPriceProducer() {
         KafkaUsage usage = new KafkaUsage();
         List<Double> list = new CopyOnWriteArrayList<>();
-        usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> {
-            System.out.println("adding " + v);
-            list.add(v);
-        });
+        usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
 
         MapBasedConfig config = getProducerConfiguration();
         Weld weld = baseWeld();
@@ -103,10 +97,7 @@ public class DocumentationTest extends KafkaTestBase {
     public void testKafkaPriceMessageProducer() {
         KafkaUsage usage = new KafkaUsage();
         List<Double> list = new CopyOnWriteArrayList<>();
-        usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> {
-            System.out.println("adding " + v);
-            list.add(v);
-        });
+        usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
 
         MapBasedConfig config = getProducerConfiguration();
         Weld weld = baseWeld();
