@@ -17,7 +17,7 @@ public class SourceOnly {
         return Multi.createFrom().range(1, 11)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .flatMap(m -> ReactiveStreams.of(m, m).buildRs());
+                .concatMap(m -> ReactiveStreams.of(m, m).buildRs());
     }
 
 }
