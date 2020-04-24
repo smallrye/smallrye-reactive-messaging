@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.camel.sink;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
 import java.io.File;
@@ -65,6 +67,9 @@ public class CamelSinkTest extends CamelTestBase {
         initialize();
 
         assertFileContent();
+        BeanWithCamelSinkUsingRegularRoute bean = container.getBeanManager()
+                .createInstance().select(BeanWithCamelSinkUsingRegularRoute.class).get();
+        assertThat(bean.getList()).hasSize(4).allSatisfy(map -> assertThat(map).contains(entry("key", "value")));
     }
 
     private MapBasedConfig getConfigUsingRoute() {

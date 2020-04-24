@@ -7,6 +7,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.reactive.messaging.camel.OutgoingExchangeMetadata;
+
 @ApplicationScoped
 public class BeanWithCamelSinkUsingRegularEndpoint {
 
@@ -14,7 +16,7 @@ public class BeanWithCamelSinkUsingRegularEndpoint {
     public Publisher<Message<String>> source() {
         return ReactiveStreams.of("a", "b", "c", "d")
                 .map(String::toUpperCase)
-                .map(Message::of)
+                .map(m -> Message.of(m).addMetadata(new OutgoingExchangeMetadata().putProperty("key", "value")))
                 .buildRs();
     }
 
