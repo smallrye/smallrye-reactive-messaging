@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -21,6 +23,7 @@ import org.junit.Test;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.JsonObject;
+import repeat.Repeat;
 
 public class HeaderPropagationTest extends AmqpTestBase {
 
@@ -37,6 +40,7 @@ public class HeaderPropagationTest extends AmqpTestBase {
     }
 
     @Test
+    @Repeat(times = 5)
     public void testFromAppToAmqp() {
         List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
@@ -65,39 +69,55 @@ public class HeaderPropagationTest extends AmqpTestBase {
     }
 
     @Test
+    @Repeat(times = 5)
     public void testFromAmqpToAppToAmqp() {
+        String address = UUID.randomUUID().toString();
+        String source = UUID.randomUUID().toString();
         List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
         weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppProcessingData.class);
 
+        usage.consume(address, messages::add);
+
         new MapBasedConfig()
                 .put("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.amqp.address", "my-address")
+                .put("mp.messaging.outgoing.amqp.address", address)
                 .put("mp.messaging.outgoing.amqp.durable", true)
                 .put("mp.messaging.outgoing.amqp.host", host)
                 .put("mp.messaging.outgoing.amqp.port", port)
+                .put("mp.messaging.outgoing.amqp.durable", "true")
                 .put("amqp-username", username)
                 .put("amqp-password", password)
 
                 .put("mp.messaging.incoming.source.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.source.address", "my-source")
+                .put("mp.messaging.incoming.source.address", source)
+                .put("mp.messaging.incoming.source.durable", "true")
                 .put("mp.messaging.incoming.source.host", host)
                 .put("mp.messaging.incoming.source.port", port)
                 .write();
 
-        usage.consume("my-address", messages::add);
-
         container = weld.initialize();
 
         AtomicInteger count = new AtomicInteger();
-        usage.produce("my-source", 20, count::getAndIncrement);
+        usage.produce(source, 10, count::getAndIncrement);
 
-        await().until(() -> messages.size() >= 10);
+        await()
+                .pollDelay(1, TimeUnit.SECONDS)
+                .until(() -> {
+                    // We may have missed a few messages, so retry.
+                    int size = messages.size();
+                    System.out.println(size);
+                    int missing = 10 - size;
+                    if (missing > 0) {
+                        usage.produce(source, missing, count::getAndIncrement);
+                    }
+                    return missing == 0;
+                });
         assertThat(messages).allSatisfy(entry -> {
             assertThat(entry.subject()).isEqualTo("test");
             assertThat(entry.applicationProperties().getString("X-Header")).isEqualTo("value");
-            assertThat(entry.address()).isEqualTo("my-address");
+            assertThat(entry.address()).isEqualTo(address);
         });
     }
 
