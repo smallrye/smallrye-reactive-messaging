@@ -132,12 +132,7 @@ public class ReactiveMessagingExtension implements Extension {
             }
 
         } catch (Exception e) {
-            if (e.getCause() == null) {
-                done.addDeploymentProblem(e);
-            } else {
-                done.addDeploymentProblem(e.getCause());
-            }
-
+            done.addDeploymentProblem(e);
         }
     }
 
