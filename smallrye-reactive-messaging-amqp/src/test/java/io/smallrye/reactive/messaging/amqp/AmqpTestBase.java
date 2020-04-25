@@ -40,7 +40,7 @@ public class AmqpTestBase {
     }
 
     @After
-    public void tearDown() throws InterruptedException {
+    public void tearDown() {
         System.clearProperty("amqp-host");
         System.clearProperty("amqp-port");
 

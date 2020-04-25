@@ -60,7 +60,8 @@ class MqttServerConnectorTest {
 
     @Test
     void testBroadcast(@Any MqttServerConnector connector, VertxTestContext testContext) {
-        final AtomicBoolean opened = new AtomicBoolean();
+        final AtomicBoolean open1 = new AtomicBoolean();
+        final AtomicBoolean open2 = new AtomicBoolean();
         final Map<String, String> configMap = new HashMap<>();
         configMap.put("port", "0");
         configMap.put("broadcast", "true");
@@ -81,11 +82,12 @@ class MqttServerConnectorTest {
         assertEquals(builder, connector.getPublisherBuilder(TestUtils.config(configMap)));
 
         final Publisher<MqttMessage> publisher = builder.buildRs();
-        publisher.subscribe(createSubscriber(testContext, opened, testMessages));
-        publisher.subscribe(createSubscriber(testContext, opened, testMessages));
+        publisher.subscribe(createSubscriber(testContext, open1, testMessages));
+        publisher.subscribe(createSubscriber(testContext, open2, testMessages));
 
         TestUtils.sendMqttMessages(testMessages, CompletableFuture.supplyAsync(() -> {
-            await().until(opened::get);
+            await().until(open1::get);
+            await().until(open2::get);
             await().until(() -> connector.port() != 0);
             return connector.port();
         }), testContext);

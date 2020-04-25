@@ -4,20 +4,21 @@
 
 # Implementation of the MicroProfile Reactive Messaging specification
 
-This project is an implementation of the (next to be) Eclipse MicroProfile Reactive Messaging specification - a CDI 
-extension to build data streaming application. It provides support for:
+This project is an implementation of the (next to be) Eclipse MicroProfile Reactive Messaging specification - a CDI
+extension to build event-driven microservices and data streaming applications. It provides support for:
 
 * Apache Kafka
 * MQTT
 * AMQP 1.0
 * Apache Camel
+* A more!
 
-It also provides a way to inject _streams_ into CDI beans, and so link your Reactive Messaging streams into CDI beans, 
+It also provides a way to inject _streams_ into CDI beans, and so link your Reactive Messaging streams into CDI beans,
 or JAX-RS resources.
 
 ## Getting started
 
-### Prerequisites 
+### Prerequisites
 
 The build process requires Apache Maven and Java 8+ and can be performed using:
 
@@ -27,7 +28,7 @@ mvn clean install
 
 ### How to start
 
-The best way to start is to look at the `examples/quickstart` project. It's a Maven project listing the minimal set of 
+The best way to start is to look at the `examples/quickstart` project. It's a Maven project listing the minimal set of
 dependencies and containing a single class:
 
 ```java
