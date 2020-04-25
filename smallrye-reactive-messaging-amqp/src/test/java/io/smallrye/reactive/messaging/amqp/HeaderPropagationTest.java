@@ -23,7 +23,6 @@ import org.junit.Test;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.JsonObject;
-import repeat.Repeat;
 
 public class HeaderPropagationTest extends AmqpTestBase {
 
@@ -40,7 +39,6 @@ public class HeaderPropagationTest extends AmqpTestBase {
     }
 
     @Test
-    @Repeat(times = 5)
     public void testFromAppToAmqp() {
         List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
@@ -69,7 +67,6 @@ public class HeaderPropagationTest extends AmqpTestBase {
     }
 
     @Test
-    @Repeat(times = 5)
     public void testFromAmqpToAppToAmqp() {
         String address = UUID.randomUUID().toString();
         String source = UUID.randomUUID().toString();
