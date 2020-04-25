@@ -21,7 +21,7 @@
     <smallrye-reactive-streams-operators.version>1.0.7</smallrye-reactive-streams-operators.version>
     <weld-core.version>3.1.2.Final</weld-core.version>
     <slf4j.version>1.7.28</slf4j.version>
-    <mutiny.version>0.4.4</mutiny.version>
+    <mutiny.version>0.5.0</mutiny.version>
   </properties>
 
   <dependencies>
