@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
@@ -24,6 +25,7 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import repeat.Repeat;
 
 public class AmqpSinkTest extends AmqpTestBase {
@@ -485,6 +487,38 @@ public class AmqpSinkTest extends AmqpTestBase {
         container = weld.initialize();
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    @Test
+    public void testOutgoingMetadata() {
+        String topic = UUID.randomUUID().toString();
+        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        usage.consume(topic, messages::add);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(Message::of)
+                .map(m -> m.addMetadata(OutgoingAmqpMetadata.builder()
+                        .withSubject("subject")
+                        .withPriority(2)
+                        .withGroupId("group")
+                        .withContentType("text/plain")
+                        .withProperties(new JsonObject().put("key", "value"))
+                        .withCorrelationId("correlation-" + m.getPayload())
+                        .build()))
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        await().until(() -> messages.size() == 10);
+
+        assertThat(messages).allSatisfy(msg -> {
+            assertThat(msg.contentType()).isEqualTo("text/plain");
+            assertThat(msg.subject()).isEqualTo("subject");
+            assertThat(msg.priority()).isEqualTo((short) 2);
+            assertThat(msg.correlationId()).startsWith("correlation-");
+            assertThat(msg.groupId()).isEqualTo("group");
+            assertThat(msg.applicationProperties()).containsExactly(entry("key", "value"));
+        });
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic) {
