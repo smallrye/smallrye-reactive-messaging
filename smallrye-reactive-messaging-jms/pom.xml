@@ -11,7 +11,7 @@
   <artifactId>smallrye-reactive-messaging-jms</artifactId>
 
   <properties>
-    <artemis.version>2.11.0</artemis.version>
+    <artemis.version>2.12.0</artemis.version>
   </properties>
 
   <dependencies>
