@@ -13,7 +13,7 @@ import repeat.RepeatRule;
 public class AmqpTestBase {
 
     @ClassRule
-    public static GenericContainer<?> artemis = new GenericContainer<>("vromero/activemq-artemis:2.6.1-alpine")
+    public static GenericContainer<?> artemis = new GenericContainer<>("vromero/activemq-artemis:2.11.0-alpine")
             .withExposedPorts(8161)
             .withExposedPorts(5672);
 
