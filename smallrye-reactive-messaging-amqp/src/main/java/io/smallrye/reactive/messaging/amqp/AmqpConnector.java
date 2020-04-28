@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
@@ -345,19 +346,38 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     .contentType(JSON_CONTENT_TYPE);
         }
 
-        builder.address(metadata.map(OutgoingAmqpMetadata::getAddress).orElse(null));
-        builder.applicationProperties(metadata.map(OutgoingAmqpMetadata::getProperties).orElseGet(JsonObject::new));
-
-        builder.contentEncoding(metadata.map(OutgoingAmqpMetadata::getContentEncoding).orElse(null));
-        builder.contentType(metadata.map(OutgoingAmqpMetadata::getContentType).orElse(null));
-        builder.correlationId(metadata.map(OutgoingAmqpMetadata::getCorrelationId).orElse(null));
-        builder.groupId(metadata.map(OutgoingAmqpMetadata::getGroupId).orElse(null));
-        builder.id(metadata.map(OutgoingAmqpMetadata::getId).orElse(null));
-        int priority = metadata.map(OutgoingAmqpMetadata::getPriority).orElse(-1);
-        if (priority >= 0) {
-            builder.priority((short) priority);
-        }
-        builder.subject(metadata.map(OutgoingAmqpMetadata::getSubject).orElse(null));
+        metadata.ifPresent(new Consumer<OutgoingAmqpMetadata>() {
+            @Override
+            public void accept(OutgoingAmqpMetadata meta) {
+                if (meta.getAddress() != null) {
+                    builder.address(meta.getAddress());
+                }
+                if (meta.getProperties() != null && !meta.getProperties().isEmpty()) {
+                    builder.applicationProperties(meta.getProperties());
+                }
+                if (meta.getContentEncoding() != null) {
+                    builder.contentEncoding(meta.getContentEncoding());
+                }
+                if (meta.getContentType() != null) {
+                    builder.contentType(meta.getContentType());
+                }
+                if (meta.getCorrelationId() != null) {
+                    builder.correlationId(meta.getCorrelationId());
+                }
+                if (meta.getId() != null) {
+                    builder.id(meta.getId());
+                }
+                if (meta.getGroupId() != null) {
+                    builder.groupId(meta.getGroupId());
+                }
+                if (meta.getPriority() >= 0) {
+                    builder.priority((short) meta.getPriority());
+                }
+                if (meta.getSubject() != null) {
+                    builder.subject(meta.getSubject());
+                }
+            }
+        });
         return builder.build();
     }
 
