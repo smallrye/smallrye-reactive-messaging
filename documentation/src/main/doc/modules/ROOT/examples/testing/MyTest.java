@@ -16,7 +16,8 @@ public class MyTest {
     // 1. Switch the channels to the in-memory connector:
     @BeforeAll
     public static void switchMyChannels() {
-        InMemoryConnector.switchChannelToInMemory("prices", "processed-prices");
+        InMemoryConnector.switchIncomingChannelsToInMemory("prices");
+        InMemoryConnector.switchOutgoingChannelsToInMemory("processed-prices");
     }
 
     // 2. Don't forget to reset the channel after the tests:
