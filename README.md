@@ -86,8 +86,8 @@ Run the project with: `mvn compile exec:java -Dexec.mainClass=io.smallrye.reacti
 
 ## Built With
 
-* Apache Vert.x
-* RX Java 2
+* Eclipse Vert.x
+* SmallRye Mutiny
 * SmallRye Reactive Stream Operators (any implementation would work)
 * Weld (any implementation would work)
 
