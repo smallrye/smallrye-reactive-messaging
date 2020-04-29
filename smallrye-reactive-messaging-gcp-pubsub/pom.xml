@@ -17,7 +17,7 @@
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
-        <version>5.2.0</version>
+        <version>5.3.0</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
