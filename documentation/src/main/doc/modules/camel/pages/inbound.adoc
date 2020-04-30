@@ -48,7 +48,14 @@ Refer to the component documentation to check which type is produced.
 
 === Inbound Metadata
 
-The Camel connector does not provide inbound metadata.
+Messages coming from Camel contains an instance of {javadoc-base}/io/smallrye/reactive/messaging/camel/IncomingExchangeMetadata.html[`IncomingExchangeMetadata`] in the metadata.
+
+[source, java]
+----
+include::example$inbound/IncomingCamelMetadataExample.java[]
+----
+
+This object lets you retrieve the Camel `Exchange`.
 
 === Configuration Reference
 

@@ -15,7 +15,7 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 public class CamelTestBase {
 
     private Weld weld;
-    private WeldContainer container;
+    protected WeldContainer container;
 
     @Before
     public void init() {

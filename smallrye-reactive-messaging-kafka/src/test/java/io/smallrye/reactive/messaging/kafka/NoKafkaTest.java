@@ -56,7 +56,7 @@ public class NoKafkaTest {
                 });
 
         container = KafkaTestBase.baseWeld();
-        KafkaTestBase.addConfig(myKafkaSinkConfig());
+        KafkaTestBase.addConfig(myKafkaSinkConfigWithoutBlockLimit());
         container.addBeanClasses(MyOutgoingBean.class);
         container.initialize();
 
@@ -172,6 +172,18 @@ public class NoKafkaTest {
     }
 
     private MapBasedConfig myKafkaSinkConfig() {
+        String prefix = "mp.messaging.outgoing.temperature-values.";
+        Map<String, Object> config = new HashMap<>();
+        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        config.put(prefix + "value.serializer", StringSerializer.class.getName());
+        config.put(prefix + "max-inflight-messages", "2");
+        config.put(prefix + "max.block.ms", 1000);
+        config.put(prefix + "topic", "output");
+
+        return new MapBasedConfig(config);
+    }
+
+    private MapBasedConfig myKafkaSinkConfigWithoutBlockLimit() {
         String prefix = "mp.messaging.outgoing.temperature-values.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);

@@ -39,7 +39,7 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
             fail("Invalid weaving not detected");
         } catch (DeploymentException e) {
             assertThat(e.getCause())
-                    .isInstanceOf(WeavingException.class)
+                    .hasCauseInstanceOf(WeavingException.class)
                     .hasMessageContaining("`source`")
                     .hasMessageContaining("#sink")
                     .hasMessageContaining("(2)");
@@ -70,7 +70,8 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
         } catch (DeploymentException e) {
             e.getCause().printStackTrace();
             assertThat(e.getCause())
-                    .isInstanceOf(WeavingException.class)
+                    .isInstanceOf(DeploymentException.class)
+                    .hasCauseInstanceOf(WeavingException.class)
                     .hasMessageContaining("source")
                     .hasMessageContaining("Synchronous");
         }

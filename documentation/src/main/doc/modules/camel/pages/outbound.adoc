@@ -41,7 +41,13 @@ Refer to the Camel documentation to check which payload type is supported by the
 
 === Outbound Metadata
 
-The Camel connector does not provide outbound metadata support.
+When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/camel/OutgoingExchangeMetadata.html[`OutgoingExchangeMetadata`] to the message metadata.
+You can then influence how the outbound Camel `Exchange` is created, for example by adding properties:
+
+[source, java]
+----
+include::example$outbound/CamelOutboundMetadataExample.java[tag=code]
+----
 
 === Acknowledgement
 
