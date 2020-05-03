@@ -1,9 +1,6 @@
 package io.smallrye.reactive.messaging.connectors;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,8 +34,8 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     private final Map<String, InMemorySinkImpl<?>> sinks = new HashMap<>();
 
     /**
-     * Switch the given channel to in-memory. It replaces the previously used connector with the in-memory
-     * connector. It substitutes the connector for both the incoming and outgoing channel.
+     * Switch the given <em>incoming</em> channel to in-memory. It replaces the previously used connector with the
+     * in-memory connector.
      * <p>
      * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
      * retrieve the {@link InMemorySource} using:
@@ -48,40 +45,79 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      *
      *     //...
      *
+     *     &#64;Before
+     *     public void setup() {
+     *         InMemoryConnector.switchIncomingChannelsToInMemory("my-channel");
+     *     }
+     *
+     *     // ..
+     *
      *     InMemorySource&lt;Integer&gt; channel = connector.source("my-channel");
      *     channel.send(1);
      *     channel.send(2);
      *
      * </pre></code>
      * <p>
-     * With the {@link InMemorySource}, you can send messages to the channel, mocking the incoming messages.
      *
-     * You can also retrieve an {@link InMemorySink} using:
+     * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
+     *        a blank value
+     * @return The map of properties that have been defined. The method sets the system properties, but give
+     *         you this map to pass the properties around if needed.
+     */
+    public static Map<String, String> switchIncomingChannelsToInMemory(String... channels) {
+        Map<String, String> properties = new LinkedHashMap<>();
+        for (String channel : channels) {
+            if (channel == null || channel.trim().isEmpty()) {
+                throw new IllegalArgumentException("The channel name must not be `null` or blank");
+            }
+            String key = "mp.messaging.incoming." + channel + ".connector";
+            properties.put(key, CONNECTOR);
+            System.setProperty(key, CONNECTOR);
+        }
+        return properties;
+    }
+
+    /**
+     * Switch the given <em>outgoing</em> channel to in-memory. It replaces the previously used connector with the
+     * in-memory connector.
+     * <p>
+     * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
+     * retrieve the {@link InMemorySink} using:
      * <code><pre>
      *     &#64;Inject @Any
      *     InMemoryConnector connector;
      *
      *     //...
      *
+     *     &#64;Before
+     *     public void setup() {
+     *         InMemoryConnector.switchOutgoingChannelsToInMemory("my-channel");
+     *     }
+     *
+     *     // ..
+     *
      *     InMemorySink&lt;Integer&gt; channel = connector.sink("my-channel");
      *     assertThat(channel.received()).hasSize(3).extracting(Message::getPayload).containsExactly(1, 2);
      *
      * </pre></code>
      * <p>
-     * With the {@link InMemorySink}, you can checked the messages received by the channel, to verify that the expected
-     * messages have been received.
      *
      * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
      *        a blank value
+     * @return The map of properties that have been defined. The method sets the system properties, but give
+     *         you this map to pass these properties around if needed.
      */
-    public static void switchChannelToInMemory(String... channels) {
+    public static Map<String, String> switchOutgoingChannelsToInMemory(String... channels) {
+        Map<String, String> properties = new LinkedHashMap<>();
         for (String channel : channels) {
             if (channel == null || channel.trim().isEmpty()) {
                 throw new IllegalArgumentException("The channel name must not be `null` or blank");
             }
-            System.setProperty("mp.messaging.incoming." + channel + ".connector", CONNECTOR);
-            System.setProperty("mp.messaging.outgoing." + channel + ".connector", CONNECTOR);
+            String key = "mp.messaging.outgoing." + channel + ".connector";
+            properties.put(key, CONNECTOR);
+            System.setProperty(key, CONNECTOR);
         }
+        return properties;
     }
 
     /**
@@ -100,14 +136,16 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid incoming configuration, `channel-name` is not set"));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Invalid incoming configuration, `channel-name` is not set"));
         return sources.computeIfAbsent(name, InMemorySourceImpl::new).source;
     }
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid outgoing configuration, `channel-name` is not set"));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Invalid outgoing configuration, `channel-name` is not set"));
         return sinks.computeIfAbsent(name, InMemorySinkImpl::new).sink;
     }
 
