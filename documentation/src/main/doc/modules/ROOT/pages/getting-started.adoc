@@ -23,6 +23,11 @@ Creates a Maven project, and include the following dependency in your pom.xml:
   <artifactId>weld-se-core</artifactId>
   <version>{weld-version}</version>
 </dependency>
+<dependency>
+  <groupId>io.smallrye.config</groupId>
+  <artifactId>smallrye-config</artifactId>
+  <version>1.7.0</version>
+</dependency>
 ----
 
 Once created, create a class file with a `public static void main(String... args)` method:
