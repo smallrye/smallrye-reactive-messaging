@@ -358,7 +358,7 @@ Each record consists of a <em>key</em>, a <em>value</em>, and a <em>timestamp</e
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;2.0.1&lt;/version&gt;
+  &lt;version&gt;2.0.2&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -498,7 +498,7 @@ You need to configure the:</p>
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.1/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
+<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
 <code>K</code> is the type of the record&#8217;s key.
 <code>T</code> is the type of the record&#8217;s value.
 It provides the key, topic, partitions, headers and so on:</p>
@@ -802,7 +802,7 @@ You need to configure the:</p>
 <div class="sect2">
 <h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
 <div class="paragraph">
-<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.1/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
+<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
 For example, you can configure the topic directly in the message, or add Kafka headers, configure the record key&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
@@ -889,6 +889,13 @@ You can disable this by setting the <code>waitForWriteCompletion</code> attribut
 <p class="tableblock">Type: <em>string</em></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.apache.kafka.common.serialization.StringSerializer</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>max-inflight-messages</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of messages to be written to Kafka concurrently - The default value is the value from the <code>max.in.flight.requests.per.connection</code> Kafka property. It configures the maximum number of unacknowledged requests the client before blocking. Note that if this setting is set to be greater than 1 and there are failed sends, there is a risk of message re-ordering due to retries.</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>partition</strong></p></td>

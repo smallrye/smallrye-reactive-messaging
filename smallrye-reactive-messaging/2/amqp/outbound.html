@@ -461,7 +461,7 @@ The payload is converted to the AMQP Message <em>body</em>.</p>
 <div class="sect2">
 <h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
 <div class="paragraph">
-<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.1/apidocs/apidocs/io/smallrye/reactive/messaging/amqp/OutgoingAmqpMetadata.html"><code>OutgoingAmqpMetadata</code></a> to influence how the message is going to sent to AMQP.
+<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/apidocs/io/smallrye/reactive/messaging/amqp/OutgoingAmqpMetadata.html"><code>OutgoingAmqpMetadata</code></a> to influence how the message is going to sent to AMQP.
 For example, you can configure the address, subjects, properties:</p>
 </div>
 <div class="listingblock">
@@ -600,6 +600,13 @@ In this case, configure the <code>auto-acknowledgement</code> attribute to ackno
 <p class="tableblock">Type: <em>long</em></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>use-anonymous-sender</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether or not the connector should use an anonymous sender.</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>use-ssl</strong></p>

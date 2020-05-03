@@ -418,7 +418,42 @@ As we have seen, the File component produces <code>GenericFile</code>.</p>
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>The Camel connector does not provide inbound metadata.</p>
+<p>Messages coming from Camel contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/io/smallrye/reactive/messaging/camel/IncomingExchangeMetadata.html"><code>IncomingExchangeMetadata</code></a> in the metadata.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.camel.IncomingExchangeMetadata;
+import org.apache.camel.Exchange;
+import org.apache.camel.component.file.GenericFile;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.io.File;
+import java.util.Optional;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class IncomingCamelMetadataExample {
+
+    @Incoming("files")
+    public CompletionStage&lt;Void&gt; consume(Message&lt;GenericFile&lt;File&gt;&gt; msg) {
+        Optional&lt;IncomingExchangeMetadata&gt; metadata = msg.getMetadata(IncomingExchangeMetadata.class);
+        if (metadata.isPresent()) {
+            // Retrieve the camel exchange:
+            Exchange exchange = metadata.get().getExchange();
+        }
+        return msg.ack();
+    }
+
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This object lets you retrieve the Camel <code>Exchange</code>.</p>
 </div>
 </div>
 <div class="sect2">
