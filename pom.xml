@@ -68,7 +68,7 @@
     <microprofile-config.version>1.4</microprofile-config.version>
     <microprofile-metrics-api.version>2.3.1</microprofile-metrics-api.version>
 
-    <smallrye-config.version>1.7.0</smallrye-config.version>
+    <smallrye-config.version>1.8.0</smallrye-config.version>
     <smallrye-metrics.version>2.4.1</smallrye-metrics.version>
 
     <mutiny.version>0.5.0</mutiny.version>
