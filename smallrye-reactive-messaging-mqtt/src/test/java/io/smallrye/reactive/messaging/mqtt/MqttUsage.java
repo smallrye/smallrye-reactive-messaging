@@ -52,7 +52,6 @@ public class MqttUsage {
                 for (int i = 0; i != messageCount; ++i) {
                     byte[] payload = messageSupplier.get();
                     client.publish(topic, payload, 0, false);
-                    LOGGER.info("Producer sent message {}", new String(payload));
                 }
             } catch (Exception e) {
                 LOGGER.error("Unable to send message", e);

@@ -121,6 +121,35 @@ public class MqttSourceTest extends MqttTestBase {
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
+    @Test
+    public void testWithVeryLargeMessage() {
+        Random random = new Random();
+        String topic = UUID.randomUUID().toString();
+        Map<String, Object> config = new HashMap<>();
+        config.put("topic", topic);
+        config.put("host", address);
+        config.put("port", port);
+        config.put("max-message-size", 20 * 1024);
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+
+        byte[] large = new byte[10 * 1024];
+        random.nextBytes(large);
+
+        List<MqttMessage<?>> messages = new ArrayList<>();
+        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
+        stream.forEach(messages::add).run();
+        await().until(source::isSubscribed);
+        new Thread(() -> usage.produce(topic, 10, null,
+                () -> large)).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+        assertThat(messages.stream()
+                .map(Message::getPayload)
+                .map(x -> (byte[]) x)
+                .collect(Collectors.toList()))
+                        .contains(large);
+    }
+
     static MapBasedConfig getConfig() {
         String prefix = "mp.messaging.incoming.data.";
         Map<String, Object> config = new HashMap<>();
