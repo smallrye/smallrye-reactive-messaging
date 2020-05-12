@@ -35,9 +35,9 @@ Type: _int_ | false | `30`
 
 Type: _int_ | false | `10`
 
-| *max-message-size* | Set max MQTT message size. -1 means no limit
+| *max-message-size* | Set max MQTT message size in bytes
 
-Type: _int_ | false | `-1`
+Type: _int_ | false | `8092`
 
 | *password* | Set the password to connect to the server
 

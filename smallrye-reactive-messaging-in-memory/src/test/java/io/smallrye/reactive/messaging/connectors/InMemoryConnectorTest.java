@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -146,7 +147,8 @@ public class InMemoryConnectorTest extends WeldTestBase {
                 "mp.messaging.incoming.a.connector", "mp.messaging.incoming.b.connector",
                 "mp.messaging.outgoing.x.connector", "mp.messaging.outgoing.y.connector");
 
-        InMemoryConnector.switchChannelToInMemory("a", "b", "x", "y");
+        InMemoryConnector.switchIncomingChannelsToInMemory("a", "b");
+        InMemoryConnector.switchOutgoingChannelsToInMemory("x", "y");
         assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.a.connector", InMemoryConnector.CONNECTOR));
         assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.b.connector", InMemoryConnector.CONNECTOR));
         assertThat(System.getProperties()).contains(entry("mp.messaging.outgoing.x.connector", InMemoryConnector.CONNECTOR));
@@ -157,6 +159,24 @@ public class InMemoryConnectorTest extends WeldTestBase {
         assertThat(System.getProperties()).doesNotContainKeys(
                 "mp.messaging.incoming.a.connector", "mp.messaging.incoming.b.connector",
                 "mp.messaging.outgoing.x.connector", "mp.messaging.outgoing.y.connector");
+    }
+
+    @Test
+    public void testSwitchOnApplication() {
+        addBeanClass(MyBeanReceivingString.class);
+        Map<String, String> map1 = InMemoryConnector.switchIncomingChannelsToInMemory("foo");
+        Map<String, String> map2 = InMemoryConnector.switchOutgoingChannelsToInMemory("bar");
+        initialize();
+
+        assertThat(map1).containsExactly(entry("mp.messaging.incoming.foo.connector", InMemoryConnector.CONNECTOR));
+        assertThat(map2).containsExactly(entry("mp.messaging.outgoing.bar.connector", InMemoryConnector.CONNECTOR));
+
+        InMemoryConnector connector = container.getBeanManager().createInstance()
+                .select(InMemoryConnector.class, ConnectorLiteral.of(InMemoryConnector.CONNECTOR)).get();
+
+        connector.source("foo").send("hello");
+        assertThat(connector.sink("bar").received().stream()
+                .map(Message::getPayload).collect(Collectors.toList())).containsExactly("HELLO");
     }
 
     @ApplicationScoped
