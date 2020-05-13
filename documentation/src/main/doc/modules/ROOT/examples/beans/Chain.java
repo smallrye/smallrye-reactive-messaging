@@ -8,7 +8,7 @@ public class Chain {
 
 
     // tag::chain[]
-    @Incoming("source")
+    @Outgoing("source")
     public Multi<String> generate() {
         return Multi.createFrom().items("Hello", "from", "reactive", "messaging");
     }
@@ -19,7 +19,7 @@ public class Chain {
         return in.toUpperCase();
     }
 
-    @Outgoing("sink")
+    @Incoming("sink")
     public void consume(String processed) {
         System.out.println(processed);
     }
