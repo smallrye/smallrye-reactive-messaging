@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
@@ -9,9 +9,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -59,6 +62,10 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
 
+    @Inject
+    @Named("default-kafka-broker")
+    Instance<Map<String, Object>> defaultKafkaConfiguration;
+
     private Vertx vertx;
 
     public void terminate(
@@ -74,7 +81,11 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+        Config c = config;
+        if (!defaultKafkaConfiguration.isUnsatisfied()) {
+            c = merge(config, defaultKafkaConfiguration.get());
+        }
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(c);
         KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic);
         sources.add(source);
         return source.getSource();
@@ -82,9 +93,52 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
+        Config c = config;
+        if (!defaultKafkaConfiguration.isUnsatisfied()) {
+            c = merge(config, defaultKafkaConfiguration.get());
+        }
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
         KafkaSink sink = new KafkaSink(vertx, oc);
         sinks.add(sink);
         return sink.getSink();
+    }
+
+    private Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
+        System.out.println("Merging config with " + defaultKafkaCfg);
+        return new Config() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public <T> T getValue(String propertyName, Class<T> propertyType) {
+                T t = (T) defaultKafkaCfg.get(propertyName);
+                if (t == null) {
+                    return passedCfg.getValue(propertyName, propertyType);
+                }
+                return t;
+            }
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
+                T def = (T) defaultKafkaCfg.get(propertyName);
+                if (def != null) {
+                    return Optional.of(def);
+                }
+                return passedCfg.getOptionalValue(propertyName, propertyType);
+            }
+
+            @Override
+            public Iterable<String> getPropertyNames() {
+                Iterable<String> names = passedCfg.getPropertyNames();
+                Set<String> result = new HashSet<>();
+                names.forEach(result::add);
+                result.addAll(defaultKafkaCfg.keySet());
+                return result;
+            }
+
+            @Override
+            public Iterable<ConfigSource> getConfigSources() {
+                return passedCfg.getConfigSources();
+            }
+        };
     }
 }

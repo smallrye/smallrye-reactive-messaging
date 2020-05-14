@@ -22,6 +22,7 @@ For more details about Kafka, check the https://kafka.apache.org/intro[documenta
 include::installation.adoc[]
 include::inbound.adoc[]
 include::outbound.adoc[]
+include::default-configuration.adoc[]
 
 
 
