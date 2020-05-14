@@ -27,6 +27,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         if (container != null) {
             container.close();
         }
+        Clients.clear();
     }
 
     @Test
