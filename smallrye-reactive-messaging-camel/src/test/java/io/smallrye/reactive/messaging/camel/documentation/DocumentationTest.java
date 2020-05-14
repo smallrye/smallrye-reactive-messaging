@@ -140,7 +140,7 @@ public class DocumentationTest extends CamelTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put("mp.messaging.outgoing.prices.connector", "smallrye-camel");
         config.put("mp.messaging.outgoing.prices.endpoint-uri",
-                "file:target/prices/?fileName=${date:now:yyyyMMddssSS}.txt&charset=utf-8");
+                "file:target/prices/?fileName=$${date:now:yyyyMMddssSS}.txt&charset=utf-8");
         return new MapBasedConfig(config);
     }
 
