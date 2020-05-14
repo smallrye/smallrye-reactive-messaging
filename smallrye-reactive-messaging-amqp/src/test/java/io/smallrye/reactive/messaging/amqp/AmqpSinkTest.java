@@ -121,10 +121,10 @@ public class AmqpSinkTest extends AmqpTestBase {
         SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
 
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings(topic,
+        usage.consume(topic,
                 v -> {
                     expected.getAndIncrement();
-                    Person p = Json.decodeValue(v, Person.class);
+                    Person p = Json.decodeValue(v.bodyAsString(), Person.class);
                     assertThat(p.getName()).startsWith("bob-");
                 });
 
