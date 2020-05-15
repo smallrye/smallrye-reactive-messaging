@@ -8,6 +8,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.Destroyed;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -88,5 +90,9 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
         }
 
         return ready;
+    }
+
+    public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
+        Clients.clear();
     }
 }

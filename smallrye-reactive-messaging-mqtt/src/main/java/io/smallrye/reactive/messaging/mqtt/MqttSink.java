@@ -1,7 +1,9 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -24,7 +26,6 @@ public class MqttSink {
 
     private final String host;
     private final int port;
-    private final MqttClient client;
     private final String server;
     private final String topic;
     private final int qos;
@@ -39,47 +40,58 @@ public class MqttSink {
         port = config.getPort().orElse(def);
         server = config.getServerName().orElse(null);
         topic = config.getTopic().orElseGet(config::getChannel);
-        client = MqttClient.create(vertx, options);
         qos = config.getQos();
 
+        AtomicReference<MqttClient> reference = new AtomicReference<>();
         sink = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
-                    // If not connected, connect
-                    if (connected.get()) {
-                        //forwarding
+                    MqttClient client = reference.get();
+                    if (client != null && client.isConnected()) {
+                        connected.set(true);
                         return CompletableFuture.completedFuture(msg);
                     } else {
-                        return client.connect(port, host, server).subscribeAsCompletionStage()
-                                .thenApply(x -> {
+                        return Clients.getConnectedClient(vertx, host, port, server, options)
+                                .map(c -> {
+                                    reference.set(c);
                                     connected.set(true);
                                     return msg;
-                                });
+                                })
+                                .subscribeAsCompletionStage();
                     }
                 })
-                .flatMapCompletionStage(msg -> {
-                    String actualTopicToBeUsed = this.topic;
-                    MqttQoS actualQoS = MqttQoS.valueOf(this.qos);
-                    boolean isRetain = false;
-
-                    if (msg instanceof SendingMqttMessage) {
-                        MqttMessage<?> mm = ((SendingMqttMessage<?>) msg);
-
-                        actualTopicToBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
-                        actualQoS = mm.getQosLevel() == null ? actualQoS : mm.getQosLevel();
-                        isRetain = mm.isRetain();
+                .flatMapCompletionStage(msg -> send(reference, msg))
+                .onComplete(() -> {
+                    MqttClient c = reference.getAndSet(null);
+                    if (c != null) {
+                        connected.set(false);
+                        c.disconnectAndForget();
                     }
-
-                    if (actualTopicToBeUsed == null) {
-                        LOGGER.error("Ignoring message - no topic set");
-                        return CompletableFuture.completedFuture(msg);
-                    }
-
-                    return client.publish(actualTopicToBeUsed, convert(msg.getPayload()), actualQoS, false, isRetain)
-                            .subscribeAsCompletionStage();
                 })
-                .onComplete(client::disconnect)
                 .onError(t -> LOGGER.error("An error has been caught while sending a MQTT message to the broker", t))
                 .ignore();
+    }
+
+    private CompletionStage<?> send(AtomicReference<MqttClient> reference, Message<?> msg) {
+        MqttClient client = reference.get();
+        String actualTopicToBeUsed = this.topic;
+        MqttQoS actualQoS = MqttQoS.valueOf(this.qos);
+        boolean isRetain = false;
+
+        if (msg instanceof SendingMqttMessage) {
+            MqttMessage<?> mm = ((SendingMqttMessage<?>) msg);
+
+            actualTopicToBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
+            actualQoS = mm.getQosLevel() == null ? actualQoS : mm.getQosLevel();
+            isRetain = mm.isRetain();
+        }
+
+        if (actualTopicToBeUsed == null) {
+            LOGGER.error("Ignoring message - no topic set");
+            return CompletableFuture.completedFuture(msg);
+        }
+
+        return client.publish(actualTopicToBeUsed, convert(msg.getPayload()), actualQoS, false, isRetain)
+                .subscribeAsCompletionStage();
     }
 
     private Buffer convert(Object payload) {
