@@ -440,7 +440,7 @@ public class AmqpPriceMessageConsumer {
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>List</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">AMQP Data and the <code>content-type</code> is set to <code>application/json</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">AMQP Data (with binary content) and the <code>content-type</code> is set to <code>application/json</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html"><code>JsonObject</code></a></p></td>
 </tr>
 <tr>
@@ -449,11 +449,61 @@ public class AmqpPriceMessageConsumer {
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>If you send objects with this AMQP connector (outbound connector), it gets encoded as JSON and sent as binary.
+The <code>content-type</code> is set to <code>application/json</code>.
+You can receive this payload using (Vert.x) JSON Objects, and then map it to the object class you want:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ApplicationScoped
+public static class Generator {
+
+    @Outgoing("to-amqp")
+    public Multi&lt;Price&gt; prices() { <i class="conum" data-value="1"></i><b>(1)</b>
+        AtomicInteger count = new AtomicInteger();
+        return Multi.createFrom().ticks().every(Duration.ofMillis(1000))
+                .map(l -&gt; new Price().setPrice(count.incrementAndGet()))
+                .on().overflow().drop();
+    }
+
+}
+
+@ApplicationScoped
+public static class Consumer {
+
+    List&lt;Price&gt; prices = new CopyOnWriteArrayList&lt;&gt;();
+
+    @Incoming("from-amqp")
+    public void consume(JsonObject p) {   <i class="conum" data-value="2"></i><b>(2)</b>
+        Price price = p.mapTo(Price.class);  <i class="conum" data-value="3"></i><b>(3)</b>
+        prices.add(price);
+    }
+
+    public List&lt;Price&gt; list() {
+        return prices;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The <code>Price</code> instances are automatically encoded to JSON by the connector</p>
+</li>
+<li>
+<p>You can receive it using a <code>JsonObject</code></p>
+</li>
+<li>
+<p>Then, you can reconstruct the instance using the <code>mapTo</code> method</p>
+</li>
+</ol>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from AMQP contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/io/smallrye/reactive/messaging/amqp/IncomingAmqpMetadata.html"><code>IncomingAmqpMetadata</code></a> in the metadata.</p>
+<p>Messages coming from AMQP contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.3/apidocs/io/smallrye/reactive/messaging/amqp/IncomingAmqpMetadata.html"><code>IncomingAmqpMetadata</code></a> in the metadata.</p>
 </div>
 <div class="listingblock">
 <div class="content">

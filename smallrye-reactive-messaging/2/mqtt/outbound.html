@@ -517,10 +517,10 @@ public class MqttPriceMessageProducer {
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>max-message-size</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Set max MQTT message size. -1 means no limit</p>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set max MQTT message size in bytes</p>
 <p class="tableblock">Type: <em>int</em></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>8092</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>password</strong></p></td>
@@ -618,6 +618,19 @@ public class MqttPriceMessageProducer {
 <div class="paragraph">
 <p>The MQTT connector is based on the <a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x MQTT client</a>.
 So you can pass any attribute supported by this client.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+A single instance of <code>MqttClient</code> and a single connection is used for each <code>host</code> / <code>port</code> / <code>server-name</code> / <code>client-id</code>.
+This client is reused for both the inbound and outbound connectors.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>

@@ -358,7 +358,7 @@ Each record consists of a <em>key</em>, a <em>value</em>, and a <em>timestamp</e
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;2.0.2&lt;/version&gt;
+  &lt;version&gt;2.0.3&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -498,7 +498,7 @@ You need to configure the:</p>
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
+<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.3/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
 <code>K</code> is the type of the record&#8217;s key.
 <code>T</code> is the type of the record&#8217;s value.
 It provides the key, topic, partitions, headers and so on:</p>
@@ -802,7 +802,7 @@ You need to configure the:</p>
 <div class="sect2">
 <h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
 <div class="paragraph">
-<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
+<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.0.3/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
 For example, you can configure the topic directly in the message, or add Kafka headers, configure the record key&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
@@ -936,6 +936,51 @@ You can disable this by setting the <code>waitForWriteCompletion</code> attribut
 </table>
 <div class="paragraph">
 <p>You can also pass any property supported by the <a href="https://vertx.io/docs/vertx-kafka-client/java/">Vert.x Kafka client</a>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-default-configuration"><a class="anchor" href="#kafka-default-configuration"></a>Retrieving Kafka default configuration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If your application/runtime exposes as a CDI <em>bean</em> a <code>Map&lt;String, Object</code> named <code>default-kafka-broker</code>, this configuration is used to
+establish the connection with the Kafka broker:</p>
+</div>
+<div class="paragraph">
+<p>For example, you can imagine exposing this map as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Produces
+@ApplicationScoped
+@Named("default-kafka-broker")
+public Map&lt;String, Object&gt; createKafkaRuntimeConfig() {
+    Map&lt;String, Object&gt; properties = new HashMap&lt;&gt;();
+
+    StreamSupport
+        .stream(config.getPropertyNames().spliterator(), false)
+        .map(String::toLowerCase)
+        .filter(name -&gt; name.startsWith("kafka"))
+        .distinct()
+        .sorted()
+        .forEach(name -&gt; {
+            final String key = name.substring("kafka".length() + 1).toLowerCase().replaceAll("[^a-z0-9.]", ".");
+            final String value = config.getOptionalValue(name, String.class).orElse("");
+            properties.put(key, value);
+        });
+
+    return properties;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This previous example would extract all the configuration keys from MicroProfile Config starting with <code>kafka</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Quarkus</div>
+<div class="content">
+<pre>Starting Quarkus 1.5, this map is automatically exposed.</pre>
 </div>
 </div>
 </div>

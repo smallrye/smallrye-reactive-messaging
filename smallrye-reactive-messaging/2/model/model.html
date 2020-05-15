@@ -326,10 +326,10 @@ Your application is composed by <em>beans</em>.</p>
 <div class="ulist">
 <ul>
 <li>
-<p><a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/org/eclipse/microprofile/reactive/messaging/Incoming.html"><code>org.eclipse.microprofile.reactive.messaging.Incoming</code></a> - indicates the consumed channel</p>
+<p><a href="https://smallrye.io/smallrye-reactive-messaging/2.0.3/apidocs/org/eclipse/microprofile/reactive/messaging/Incoming.html"><code>org.eclipse.microprofile.reactive.messaging.Incoming</code></a> - indicates the consumed channel</p>
 </li>
 <li>
-<p><a href="https://smallrye.io/smallrye-reactive-messaging/2.0.2/apidocs/org/eclipse/microprofile/reactive/messaging/Outgoing.html"><code>org.eclipse.microprofile.reactive.messaging.Outgoing</code></a> - indicates the populated channel</p>
+<p><a href="https://smallrye.io/smallrye-reactive-messaging/2.0.3/apidocs/org/eclipse/microprofile/reactive/messaging/Outgoing.html"><code>org.eclipse.microprofile.reactive.messaging.Outgoing</code></a> - indicates the populated channel</p>
 </li>
 </ul>
 </div>
@@ -424,7 +424,7 @@ Having user code invoking them would not have the expected outcome.
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("source")
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("source")
 public Multi&lt;String&gt; generate() {
     return Multi.createFrom().items("Hello", "from", "reactive", "messaging");
 }
@@ -435,7 +435,7 @@ public String process(String in) {
     return in.toUpperCase();
 }
 
-@Outgoing("sink")
+@Incoming("sink")
 public void consume(String processed) {
     System.out.println(processed);
 }</code></pre>
