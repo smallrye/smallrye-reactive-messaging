@@ -54,9 +54,48 @@ The http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html[AM
 | AMQP Value containing a http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html#section-primitive-type-definitions[AMQP Primitive Type] | the corresponding Java type
 | AMQP Value using the `Binary` type | `byte[]`
 | AMQP Sequence | `List`
-| AMQP Data and the `content-type` is set to `application/json` | https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`]
+| AMQP Data (with binary content) and the `content-type` is set to `application/json` | https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`]
 | AMQP Data with a different `content-type` | `byte[]`
 |===
+
+If you send objects with this AMQP connector (outbound connector), it gets encoded as JSON and sent as binary.
+The `content-type` is set to `application/json`.
+You can receive this payload using (Vert.x) JSON Objects, and then map it to the object class you want:
+
+[source, java]
+----
+@ApplicationScoped
+public static class Generator {
+
+    @Outgoing("to-amqp")
+    public Multi<Price> prices() { // <1>
+        AtomicInteger count = new AtomicInteger();
+        return Multi.createFrom().ticks().every(Duration.ofMillis(1000))
+                .map(l -> new Price().setPrice(count.incrementAndGet()))
+                .on().overflow().drop();
+    }
+
+}
+
+@ApplicationScoped
+public static class Consumer {
+
+    List<Price> prices = new CopyOnWriteArrayList<>();
+
+    @Incoming("from-amqp")
+    public void consume(JsonObject p) {   // <2>
+        Price price = p.mapTo(Price.class);  // <3>
+        prices.add(price);
+    }
+
+    public List<Price> list() {
+        return prices;
+    }
+}
+----
+1. The `Price` instances are automatically encoded to JSON by the connector
+2. You can receive it using a `JsonObject`
+3. Then, you can reconstruct the instance using the `mapTo` method
 
 === Inbound Metadata
 

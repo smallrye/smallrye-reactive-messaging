@@ -342,7 +342,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         } else if (payload instanceof byte[]) {
             builder.withBufferAsBody(Buffer.buffer((byte[]) payload));
         } else {
-            builder.withBody(Json.encode(payload))
+            builder.withBufferAsBody(new Buffer(Json.encodeToBuffer(payload)))
                     .contentType(JSON_CONTENT_TYPE);
         }
 
