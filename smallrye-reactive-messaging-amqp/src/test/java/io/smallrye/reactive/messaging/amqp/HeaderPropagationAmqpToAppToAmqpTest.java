@@ -43,7 +43,6 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpTestBase {
         String source = UUID.randomUUID().toString();
         List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppProcessingData.class);
 
         usage.consume(address, messages::add);
@@ -75,12 +74,11 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpTestBase {
                 .until(() -> {
                     // We may have missed a few messages, so retry.
                     int size = messages.size();
-                    System.out.println(size);
                     int missing = 10 - size;
                     if (missing > 0) {
                         usage.produce(source, missing, count::getAndIncrement);
                     }
-                    return missing == 0;
+                    return missing <= 0;
                 });
         assertThat(messages).allSatisfy(entry -> {
             assertThat(entry.subject()).isEqualTo("test");

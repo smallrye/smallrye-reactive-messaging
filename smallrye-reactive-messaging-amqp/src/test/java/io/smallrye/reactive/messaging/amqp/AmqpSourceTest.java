@@ -226,7 +226,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     private ConsumptionBean deploy() {
         Weld weld = new Weld();
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
 
         container = weld.initialize();
@@ -362,7 +361,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigByCDIMissingBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
@@ -383,7 +381,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigByCDIIncorrectBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ExecutionHolder.class);
@@ -405,7 +402,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigByCDICorrect() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -435,7 +431,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigGlobalOptionsByCDICorrect() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -466,7 +461,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigGlobalOptionsByCDIMissingBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
@@ -487,7 +481,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigGlobalOptionsByCDIIncorrectBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ExecutionHolder.class);
