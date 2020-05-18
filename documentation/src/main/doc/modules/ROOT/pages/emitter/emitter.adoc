@@ -111,3 +111,6 @@ include::example$emitter/ChannelExamples.java[tag=channel]
 
 IMPORTANT: You must have a `@Outgoing("my-channel")` somewhere in your application (meaning a method generating messages transiting on the channel `my-channel`), or an inbound connector configured to manage the `prices` channel (`mp.messaging.incoming.prices...`)
 
+Be aware that when using a channel, the messages are not acknowledged automatically and, so, you must either handle the acknowledgment beforehand or manage it manually.
+
+
