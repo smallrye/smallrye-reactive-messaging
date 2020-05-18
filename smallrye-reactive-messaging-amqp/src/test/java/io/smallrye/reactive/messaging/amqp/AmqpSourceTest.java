@@ -74,7 +74,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
         List<Message<Integer>> messages = new ArrayList<>();
@@ -104,7 +103,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
         List<Message<Integer>> messages = new ArrayList<>();
@@ -173,7 +171,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         Publisher<? extends Message<?>> rs = builder.buildRs();
         List<Message<Integer>> messages1 = new ArrayList<>();
@@ -243,7 +240,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         List<Message<byte[]>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -266,7 +262,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         List<Message<JsonObject>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -293,7 +288,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         List<Message<JsonArray>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -321,7 +315,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<List<String>>> messages = new ArrayList<>();
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
@@ -347,7 +340,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<byte[]>> messages = new ArrayList<>();
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();

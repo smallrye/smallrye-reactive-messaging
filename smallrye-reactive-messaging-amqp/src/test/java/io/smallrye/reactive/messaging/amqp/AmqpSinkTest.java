@@ -534,7 +534,6 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
     }
 
@@ -552,7 +551,6 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
     }
 
@@ -568,7 +566,6 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
     }
 
