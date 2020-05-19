@@ -452,7 +452,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("amqp-password", password)
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
                 .write();
-        
+
         container = weld.initialize();
     }
 
