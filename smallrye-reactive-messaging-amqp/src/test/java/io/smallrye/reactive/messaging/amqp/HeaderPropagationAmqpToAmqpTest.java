@@ -39,7 +39,6 @@ public class HeaderPropagationAmqpToAmqpTest extends AmqpTestBase {
     public void testFromAppToAmqp() {
         List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(MyAppGeneratingData.class);
 
         new MapBasedConfig()
