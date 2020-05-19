@@ -38,7 +38,7 @@ public class ConnectionHolder {
                     Integer retryAttempts = configuration.getReconnectAttempts();
 
                     AmqpConnection current = holder.get();
-                    if (current != null && !current.getDelegate().isDisconnected()) {
+                    if (current != null && !current.isDisconnected()) {
                         return Uni.createFrom().item(current);
                     }
 
@@ -63,7 +63,7 @@ public class ConnectionHolder {
                                             }
                                         });
                                 // handle the case we are already disconnected.
-                                if (conn.getDelegate().isDisconnected() || holder.get() == null) {
+                                if (conn.isDisconnected() || holder.get() == null) {
                                     // Throwing the exception would trigger a retry.
                                     holder.set(null);
                                     throw new IllegalStateException("AMQP Connection disconnected");

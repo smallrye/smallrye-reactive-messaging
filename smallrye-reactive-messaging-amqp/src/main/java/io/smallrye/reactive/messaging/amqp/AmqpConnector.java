@@ -164,7 +164,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     // If we already have a sender, use it.
 
                     AmqpSender current = sender.get();
-                    if (current != null && !current.getDelegate().connection().isDisconnected()) {
+                    if (current != null && !current.connection().isDisconnected()) {
                         return Uni.createFrom().item(current);
                     }
 

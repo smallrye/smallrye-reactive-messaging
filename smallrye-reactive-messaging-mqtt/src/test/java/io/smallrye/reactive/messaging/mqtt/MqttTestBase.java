@@ -25,7 +25,7 @@ import repeat.RepeatRule;
 public class MqttTestBase {
 
     @ClassRule
-    public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6.7")
+    public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6")
             .withExposedPorts(1883)
             .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
 
