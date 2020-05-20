@@ -75,7 +75,7 @@
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
-    <smallrye-reactive-converter-api.version>1.0.12</smallrye-reactive-converter-api.version>
+    <smallrye-reactive-converter-api.version>1.0.13</smallrye-reactive-converter-api.version>
     <smallrye-vertx-mutiny-clients.version>0.0.16</smallrye-vertx-mutiny-clients.version>
   </properties>
 
