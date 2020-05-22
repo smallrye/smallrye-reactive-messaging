@@ -19,6 +19,8 @@ mp.messaging.outgoing.prices.endpoint-uri=file:prices/?fileName=${date:now:yyyyM
 1. Sets the connector for the `prices` channel
 2. Configure the `endpoint-uri` to write into files in the `prices` directory
 
+IMPORTANT: Depending on your implementation of MicroProfile Reactive Messaging, the `$` may need to be escaped as follows: `$${...}`
+
 Then, your application must send `Message<String>` to the `prices` channel.
 It can use `String` payloads as in the following snippet:
 

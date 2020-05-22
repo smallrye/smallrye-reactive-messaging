@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
+import static java.time.Duration.ofSeconds;
 
 import java.time.Instant;
 import java.util.List;
@@ -10,14 +11,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.amqp.AmqpClientOptions;
@@ -85,13 +85,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     @Inject
     private Instance<AmqpClientOptions> clientOptions;
 
-    private Vertx vertx;
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
-
-    @PostConstruct
-    void init() {
-        this.vertx = executionHolder.vertx();
-    }
 
     // Needed for testing
     void setup(ExecutionHolder executionHolder) {
@@ -99,65 +93,25 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     AmqpConnector() {
-        this.vertx = null;
+        // used for proxies
     }
 
-    private AmqpClient createClient(AmqpConnectorCommonConfiguration config) {
-        AmqpClient client;
-        Optional<String> clientOptionsName = config.getClientOptionsName();
-        if (clientOptionsName.isPresent()) {
-            client = createClientFromClientOptionsBean(clientOptionsName.get());
-        } else {
-            client = getClient(config);
-        }
-        clients.add(client);
-        return client;
-    }
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder) {
 
-    private AmqpClient createClientFromClientOptionsBean(String optionsBeanName) {
-        Instance<AmqpClientOptions> options = clientOptions.select(NamedLiteral.of(optionsBeanName));
-        if (options.isUnsatisfied()) {
-            throw new IllegalStateException(
-                    "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsBeanName);
-        }
-        LOGGER.debug("Creating AMQP client from bean named '{}'", optionsBeanName);
-        return AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()), options.get());
-    }
+        // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
+        BroadcastProcessor processor = BroadcastProcessor.create();
+        receiver.exceptionHandler(t -> {
+            LOGGER.error("AMQP Receiver error", t);
+            processor.onError(t);
+        });
+        holder.onFailure(processor::onError);
 
-    private synchronized AmqpClient getClient(AmqpConnectorCommonConfiguration config) {
-        try {
-            String username = config.getUsername().orElse(null);
-            String password = config.getPassword().orElse(null);
-            String host = config.getHost();
-            int port = config.getPort();
-            LOGGER.info("AMQP broker configured to {}:{} for channel {}", host, port, config.getChannel());
-            boolean useSsl = config.getUseSsl();
-            int reconnectAttempts = config.getReconnectAttempts();
-            int reconnectInterval = config.getReconnectInterval();
-            int connectTimeout = config.getConnectTimeout();
-            String containerId = config.getContainerId().orElse(null);
-
-            AmqpClientOptions options = new AmqpClientOptions()
-                    .setUsername(username)
-                    .setPassword(password)
-                    .setHost(host)
-                    .setPort(port)
-                    .setContainerId(containerId)
-                    .setSsl(useSsl)
-                    .setReconnectAttempts(reconnectAttempts)
-                    .setReconnectInterval(reconnectInterval)
-                    .setConnectTimeout(connectTimeout);
-            return AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()), options);
-        } catch (Exception e) {
-            LOGGER.error("Unable to create client", e);
-            throw new IllegalStateException("Unable to create a client, probably a config error", e);
-        }
-    }
-
-    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver) {
         return Multi.createFrom().deferred(
-                () -> receiver.toMulti()
-                        .map(AmqpMessage::new));
+                () -> {
+                    Multi<? extends Message<?>> stream = receiver.toMulti().map(AmqpMessage::new);
+                    return Multi.createBy().merging().streams(stream, processor);
+                });
     }
 
     @Override
@@ -167,23 +121,29 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         boolean broadcast = ic.getBroadcast();
         boolean durable = ic.getDurable();
         boolean autoAck = ic.getAutoAcknowledgement();
-        Uni<AmqpReceiver> uni = createClient(ic)
-                .connect()
-                .flatMap(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
-                        .setAutoAcknowledgement(autoAck)
-                        .setDurable(durable)));
 
-        PublisherBuilder<? extends Message<?>> builder = ReactiveStreams
-                .fromCompletionStage(uni.subscribeAsCompletionStage())
-                .flatMapRsPublisher(this::getStreamOfMessages);
+        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions);
+        ConnectionHolder holder = new ConnectionHolder(client, ic);
+
+        Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
+                .onItem().produceUni(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
+                        .setAutoAcknowledgement(autoAck)
+                        .setDurable(durable)))
+                .onItem().produceMulti(r -> getStreamOfMessages(r, holder));
+
+        Integer interval = ic.getReconnectInterval();
+        Integer attempts = ic.getReconnectAttempts();
+        multi = multi
+                // Retry on failure.
+                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve message from AMQP, retrying...", t))
+                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
+                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve messages from AMQP, no more retry", t));
 
         if (broadcast) {
-            return ReactiveStreams.fromPublisher(
-                    Multi.createFrom().publisher(builder.buildRs())
-                            .broadcast().toAllSubscribers());
+            multi = multi.broadcast().toAllSubscribers();
         }
 
-        return builder;
+        return ReactiveStreams.fromPublisher(multi);
     }
 
     @Override
@@ -195,37 +155,50 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         boolean useAnonymousSender = oc.getUseAnonymousSender();
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        AmqpClient client = createClient(oc);
+        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions);
+        ConnectionHolder holder = new ConnectionHolder(client, oc);
 
-        return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> {
-            AmqpSender as = sender.get();
-            if (as == null) {
-                return client.connect()
-                        .flatMap(connection -> {
-                            connection.exceptionHandler(t -> LOGGER.error("AMQP Connection failure", t));
-                            if (useAnonymousSender) {
-                                return connection.createAnonymousSender();
-                            } else {
-                                return connection.createSender(configuredAddress);
-                            }
-                        })
-                        .map(s -> {
-                            sender.set(s);
-                            return s;
-                        })
-                        .flatMap(s -> send(s, message, durable, ttl, configuredAddress, useAnonymousSender))
-                        .onFailure().invoke(failure -> {
-                            if (clients.isEmpty()) {
-                                LOGGER.error("The AMQP message has not been sent, the client is closed");
-                            } else {
-                                LOGGER.error("Unable to send the AMQP message", failure);
-                            }
-                        }).subscribeAsCompletionStage();
-            } else {
-                return send(as, message, durable, ttl, configuredAddress, useAnonymousSender)
-                        .subscribeAsCompletionStage();
-            }
-        }).ignore();
+        Uni<AmqpSender> getSender = Uni.createFrom().item(sender.get())
+                .onItem().ifNull().switchTo(() -> {
+
+                    // If we already have a sender, use it.
+
+                    AmqpSender current = sender.get();
+                    if (current != null && !current.connection().isDisconnected()) {
+                        return Uni.createFrom().item(current);
+                    }
+
+                    return holder.getOrEstablishConnection()
+                            .onItem().produceUni(connection -> {
+                                if (useAnonymousSender) {
+                                    return connection.createAnonymousSender();
+                                } else {
+                                    return connection.createSender(configuredAddress);
+                                }
+                            })
+                            .onItem().invoke(sender::set);
+                })
+                // If the downstream cancels or on failure, drop the sender.
+                .onFailure().invoke(t -> sender.set(null))
+                .on().cancellation(() -> sender.set(null));
+
+        return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> getSender
+                .flatMap(s -> send(s, message, durable, ttl, configuredAddress, useAnonymousSender, oc))
+
+                // Depending on the failure, we complete smoothly or propagate the failure which would trigger a retry.
+                .onFailure().recoverWithUni(failure -> {
+                    if (clients.isEmpty()) {
+                        LOGGER.error("The AMQP message has not been sent, the client is closed");
+                        return Uni.createFrom().item(message);
+                    } else {
+                        LOGGER.error("Unable to send the AMQP message", failure);
+                        return Uni.createFrom().failure(failure);
+                    }
+                })
+                .onFailure().retry()
+                .withBackOff(ofSeconds(1), ofSeconds(oc.getReconnectInterval())).atMost(oc.getReconnectAttempts())
+
+                .subscribeAsCompletionStage()).ignore();
     }
 
     private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,
@@ -258,7 +231,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     private Uni<Message<?>> send(AmqpSender sender, Message<?> msg, boolean durable, long ttl, String configuredAddress,
-            boolean isAnonymousSender) {
+            boolean isAnonymousSender, AmqpConnectorCommonConfiguration configuration) {
+        int retryAttempts = configuration.getReconnectAttempts();
+        int retryInterval = configuration.getReconnectInterval();
         io.vertx.mutiny.amqp.AmqpMessage amqp;
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
@@ -285,6 +260,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         LOGGER.debug("Sending AMQP message to address `{}` ",
                 actualAddress);
         return sender.sendWithAck(amqp)
+                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
                 .onItem().produceCompletionStage(x -> msg.ack())
                 .onItem().apply(x -> msg);
     }
@@ -342,7 +318,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         } else if (payload instanceof byte[]) {
             builder.withBufferAsBody(Buffer.buffer((byte[]) payload));
         } else {
-            builder.withBody(Json.encode(payload))
+            builder.withBufferAsBody(new Buffer(Json.encodeToBuffer(payload)))
                     .contentType(JSON_CONTENT_TYPE);
         }
 
@@ -385,5 +361,13 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         clients.forEach(c -> c.close().subscribeAsCompletionStage());
         clients.clear();
+    }
+
+    public Vertx getVertx() {
+        return executionHolder.vertx();
+    }
+
+    public void addClient(AmqpClient client) {
+        clients.add(client);
     }
 }

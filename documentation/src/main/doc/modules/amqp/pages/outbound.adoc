@@ -52,7 +52,7 @@ The payload is converted to the AMQP Message _body_.
 | `Instant` or `UUID` | AMQP Value using the corresponding AMQP Type
 | https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html[`JsonObject`] or https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html[`JsonArray`] | AMQP Data using a binary content. The `content-type` is set to `application/json`
 | `io.vertx.mutiny.core.buffer.Buffer` | AMQP Data using a binary content. No `content-type` set
-| Any other class | The payload is converted to JSON (using a Json Mapper). The result is wrapped into AMQP Data using a binary content. The `content-type` is set to `application/json`
+| Any other class | The payload is converted to JSON (using a Json Mapper). The result is wrapped into AMQP Data using a **binary** content. The `content-type` is set to `application/json`
 |===
 
 === Outbound Metadata

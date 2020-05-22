@@ -57,3 +57,6 @@ include::connectors:partial$META-INF/connector/smallrye-mqtt-outgoing.adoc[]
 
 The MQTT connector is based on the https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client[Vert.x MQTT client].
 So you can pass any attribute supported by this client.
+
+IMPORTANT: A single instance of `MqttClient` and a single connection is used for each `host` / `port` / `server-name` / `client-id`.
+This client is reused for both the inbound and outbound connectors.

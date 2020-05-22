@@ -7,11 +7,8 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.mqtt.MqttClient;
 
 public class MqttSource {
 
@@ -28,19 +25,18 @@ public class MqttSource {
         String server = config.getServerName().orElse(null);
         String topic = config.getTopic().orElseGet(config::getChannel);
         int qos = config.getQos();
-        MqttClient client = MqttClient.create(vertx, options);
         boolean broadcast = config.getBroadcast();
 
+        Clients.ClientHolder holder = Clients.getHolder(vertx, host, port, server, options);
         this.source = ReactiveStreams.fromPublisher(
-                client.connect(port, host, server)
-                        .onItem().produceMulti(a -> Multi.createFrom().<MqttMessage<?>> emitter(emitter -> {
-                            client.publishHandler(message -> emitter.emit(new ReceivingMqttMessage(message)));
-
-                            client.subscribe(topic, qos).subscribe().with(
-                                    i -> subscribed.set(true),
-                                    emitter::fail);
-
-                        }, BackPressureStrategy.BUFFER))
+                holder.connect()
+                        .onItem().produceMulti(client -> client.subscribe(topic, qos)
+                                .onItem().produceMulti(x -> {
+                                    subscribed.set(true);
+                                    return holder.stream()
+                                            .transform().byFilteringItemsWith(m -> m.topicName().equals(topic))
+                                            .onItem().apply(ReceivingMqttMessage::new);
+                                }))
                         .then(multi -> {
                             if (broadcast) {
                                 return multi.broadcast().toAllSubscribers();
@@ -49,7 +45,6 @@ public class MqttSource {
                         })
                         .on().cancellation(() -> {
                             subscribed.set(false);
-                            client.disconnectAndForget();
                         })
                         .onFailure().invoke(t -> LOGGER.error("Unable to establish a connection with the MQTT broker", t)));
     }

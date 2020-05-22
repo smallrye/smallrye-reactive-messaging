@@ -56,27 +56,27 @@
 
 
   <properties>
-    <vertx.version>3.9.0</vertx.version>
+    <vertx.version>3.9.1</vertx.version>
     <rxjava.version>2.2.19</rxjava.version>
     <slf4j-api.version>1.7.30</slf4j-api.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>3.1.3.Final</weld.version>
-    <camel.version>3.2.0</camel.version>
+    <camel.version>3.3.0</camel.version>
 
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
     <microprofile-config.version>1.4</microprofile-config.version>
-    <microprofile-metrics-api.version>2.3.1</microprofile-metrics-api.version>
+    <microprofile-metrics-api.version>2.3.2</microprofile-metrics-api.version>
 
-    <smallrye-config.version>1.7.0</smallrye-config.version>
-    <smallrye-metrics.version>2.4.1</smallrye-metrics.version>
+    <smallrye-config.version>1.8.0</smallrye-config.version>
+    <smallrye-metrics.version>2.4.2</smallrye-metrics.version>
 
     <mutiny.version>0.5.0</mutiny.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
-    <smallrye-reactive-converter-api.version>1.0.12</smallrye-reactive-converter-api.version>
-    <smallrye-vertx-mutiny-clients.version>0.0.15</smallrye-vertx-mutiny-clients.version>
+    <smallrye-reactive-converter-api.version>1.0.13</smallrye-reactive-converter-api.version>
+    <smallrye-vertx-mutiny-clients.version>0.0.16</smallrye-vertx-mutiny-clients.version>
   </properties>
 
   <modules>

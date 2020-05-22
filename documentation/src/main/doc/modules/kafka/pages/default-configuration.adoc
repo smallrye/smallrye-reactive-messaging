@@ -1,0 +1,39 @@
+[#kafka-default-configuration]
+== Retrieving Kafka default configuration
+
+If your application/runtime exposes as a CDI _bean_ a `Map<String, Object` named `default-kafka-broker`, this configuration is used to
+establish the connection with the Kafka broker:
+
+For example, you can imagine exposing this map as follows:
+
+[source, java]
+----
+@Produces
+@ApplicationScoped
+@Named("default-kafka-broker")
+public Map<String, Object> createKafkaRuntimeConfig() {
+    Map<String, Object> properties = new HashMap<>();
+
+    StreamSupport
+        .stream(config.getPropertyNames().spliterator(), false)
+        .map(String::toLowerCase)
+        .filter(name -> name.startsWith("kafka"))
+        .distinct()
+        .sorted()
+        .forEach(name -> {
+            final String key = name.substring("kafka".length() + 1).toLowerCase().replaceAll("[^a-z0-9.]", ".");
+            final String value = config.getOptionalValue(name, String.class).orElse("");
+            properties.put(key, value);
+        });
+
+    return properties;
+}
+----
+
+This previous example would extract all the configuration keys from MicroProfile Config starting with `kafka`.
+
+[NOTE]
+.Quarkus
+----
+Starting Quarkus 1.5, this map is automatically exposed.
+----

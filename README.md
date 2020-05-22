@@ -11,7 +11,7 @@ extension to build event-driven microservices and data streaming applications. I
 * MQTT
 * AMQP 1.0
 * Apache Camel
-* A more!
+* And more!
 
 It also provides a way to inject _streams_ into CDI beans, and so link your Reactive Messaging streams into CDI beans,
 or JAX-RS resources.

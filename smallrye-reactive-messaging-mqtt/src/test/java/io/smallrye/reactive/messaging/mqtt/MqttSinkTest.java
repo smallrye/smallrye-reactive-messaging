@@ -30,6 +30,7 @@ public class MqttSinkTest extends MqttTestBase {
         if (container != null) {
             container.close();
         }
+        Clients.clear();
     }
 
     @SuppressWarnings("unchecked")
@@ -114,6 +115,7 @@ public class MqttSinkTest extends MqttTestBase {
     @Test
     @Repeat(times = 5)
     public void testABeanProducingMessagesSentToMQTT() throws InterruptedException {
+        Clients.clear();
         Weld weld = baseWeld(getConfig());
         weld.addBeanClass(ProducingBean.class);
 

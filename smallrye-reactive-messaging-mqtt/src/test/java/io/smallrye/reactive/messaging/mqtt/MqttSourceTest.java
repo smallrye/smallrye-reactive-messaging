@@ -27,6 +27,7 @@ public class MqttSourceTest extends MqttTestBase {
         if (container != null) {
             container.close();
         }
+        Clients.clear();
     }
 
     @Test

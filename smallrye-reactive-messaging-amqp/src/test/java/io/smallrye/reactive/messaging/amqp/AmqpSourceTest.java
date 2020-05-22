@@ -74,7 +74,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
         List<Message<Integer>> messages = new ArrayList<>();
@@ -104,7 +103,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
         List<Message<Integer>> messages = new ArrayList<>();
@@ -173,7 +171,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         Publisher<? extends Message<?>> rs = builder.buildRs();
         List<Message<Integer>> messages1 = new ArrayList<>();
@@ -229,7 +226,6 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     private ConsumptionBean deploy() {
         Weld weld = new Weld();
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
 
         container = weld.initialize();
@@ -243,7 +239,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         List<Message<byte[]>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -266,7 +261,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         List<Message<JsonObject>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -293,7 +287,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         Map<String, Object> config = getConfig(topic);
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         List<Message<JsonArray>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
@@ -321,7 +314,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<List<String>>> messages = new ArrayList<>();
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
@@ -347,7 +339,6 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<byte[]>> messages = new ArrayList<>();
         provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
 
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
         AtomicBoolean opened = new AtomicBoolean();
@@ -370,7 +361,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigByCDIMissingBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
@@ -391,7 +381,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigByCDIIncorrectBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ExecutionHolder.class);
@@ -413,7 +402,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigByCDICorrect() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -443,7 +431,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigGlobalOptionsByCDICorrect() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -474,7 +461,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigGlobalOptionsByCDIMissingBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ExecutionHolder.class);
 
@@ -495,7 +481,6 @@ public class AmqpSourceTest extends AmqpTestBase {
     public void testConfigGlobalOptionsByCDIIncorrectBean() {
         Weld weld = new Weld();
 
-        weld.addBeanClass(AmqpConnector.class);
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ExecutionHolder.class);
