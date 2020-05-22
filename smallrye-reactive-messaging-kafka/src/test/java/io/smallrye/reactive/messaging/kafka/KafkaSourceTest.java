@@ -255,6 +255,32 @@ public class KafkaSourceTest extends KafkaTestBase {
         });
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSourceWithEmptyOptionalConfiguration() {
+        KafkaUsage usage = new KafkaUsage();
+        String topic = UUID.randomUUID().toString();
+        Map<String, Object> config = newCommonConfig();
+        config.put("topic", topic);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("bootstrap.servers", SERVERS);
+        config.put("sasl.jaas.config", ""); //optional configuration
+        config.put("sasl.mechanism", ""); //optional configuration
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getSource().forEach(messages::add).run();
+
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(10, null,
+            () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+        assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
+            .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+    }
+
     private ConsumptionBean deploy(MapBasedConfig config) {
         Weld weld = baseWeld();
         addConfig(config);

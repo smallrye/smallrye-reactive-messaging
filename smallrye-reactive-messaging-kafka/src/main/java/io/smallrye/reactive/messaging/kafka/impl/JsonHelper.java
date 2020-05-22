@@ -4,6 +4,8 @@ import org.eclipse.microprofile.config.Config;
 
 import io.vertx.core.json.JsonObject;
 
+import java.util.Optional;
+
 public class JsonHelper {
 
     public static JsonObject asJsonObject(Config config) {
@@ -11,29 +13,33 @@ public class JsonHelper {
         Iterable<String> propertyNames = config.getPropertyNames();
         for (String key : propertyNames) {
             try {
-                int i = config.getValue(key, Integer.class);
-                json.put(key, i);
-                continue;
+                Optional<Integer> i = config.getOptionalValue(key, Integer.class);
+                if (i.isPresent()) {
+                    json.put(key, i.get());
+                    continue;
+                }
             } catch (ClassCastException | IllegalArgumentException e) {
                 // Ignore me
             }
 
             try {
-                double d = config.getValue(key, Double.class);
-                json.put(key, d);
-                continue;
+                Optional<Double> d = config.getOptionalValue(key, Double.class);
+                if (d.isPresent()) {
+                    json.put(key, d.get());
+                    continue;
+                }
             } catch (ClassCastException | IllegalArgumentException e) {
                 // Ignore me
             }
 
             try {
-                String value = config.getValue(key, String.class);
-                if (value.trim().equalsIgnoreCase("false")) {
+                String value = config.getOptionalValue(key, String.class).orElse("").trim();
+                if (value.equalsIgnoreCase("false")) {
                     json.put(key, false);
-                } else if (value.trim().equalsIgnoreCase("true")) {
+                } else if (value.equalsIgnoreCase("true")) {
                     json.put(key, true);
                 } else {
-                    json.put(key, config.getValue(key, String.class));
+                    json.put(key, value);
                 }
             } catch (ClassCastException e) {
                 // Ignore the entry
