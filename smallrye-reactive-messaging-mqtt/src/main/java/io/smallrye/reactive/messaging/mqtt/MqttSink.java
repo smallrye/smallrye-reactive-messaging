@@ -91,6 +91,7 @@ public class MqttSink {
         }
 
         return client.publish(actualTopicToBeUsed, convert(msg.getPayload()), actualQoS, false, isRetain)
+                .onItem().produceCompletionStage(i -> msg.ack().thenApply(x -> msg))
                 .subscribeAsCompletionStage();
     }
 
