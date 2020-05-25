@@ -37,6 +37,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
+import io.vertx.amqp.AmqpSenderOptions;
 import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -59,8 +60,9 @@ import io.vertx.mutiny.core.buffer.Buffer;
 @ConnectorAttribute(name = "reconnect-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of reconnection attempts", type = "int", alias = "amqp-reconnect-attempts", defaultValue = "100")
 @ConnectorAttribute(name = "reconnect-interval", direction = INCOMING_AND_OUTGOING, description = "The interval in second between two reconnection attempts", type = "int", alias = "amqp-reconnect-interval", defaultValue = "10")
 @ConnectorAttribute(name = "connect-timeout", direction = INCOMING_AND_OUTGOING, description = "The connection timeout in milliseconds", type = "int", alias = "amqp-connect-timeout", defaultValue = "1000")
-@ConnectorAttribute(name = "containerId", direction = INCOMING_AND_OUTGOING, description = "The AMQP container id", type = "string")
+@ConnectorAttribute(name = "container-id", direction = INCOMING_AND_OUTGOING, description = "The AMQP container id", type = "string")
 @ConnectorAttribute(name = "address", direction = INCOMING_AND_OUTGOING, description = "The AMQP address. If not set, the channel name is used", type = "string")
+@ConnectorAttribute(name = "link-name", direction = INCOMING_AND_OUTGOING, description = "The name of the link. If not set, the channel name is used.", type = "string")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
 
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
@@ -123,12 +125,14 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         boolean autoAck = ic.getAutoAcknowledgement();
 
         AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions);
+        String link = ic.getLinkName().orElseGet(ic::getChannel);
         ConnectionHolder holder = new ConnectionHolder(client, ic);
 
         Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
                 .onItem().produceUni(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
                         .setAutoAcknowledgement(autoAck)
-                        .setDurable(durable)))
+                        .setDurable(durable)
+                        .setLinkName(link)))
                 .onItem().produceMulti(r -> getStreamOfMessages(r, holder));
 
         Integer interval = ic.getReconnectInterval();
@@ -156,6 +160,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions);
+        String link = oc.getLinkName().orElseGet(oc::getChannel);
         ConnectionHolder holder = new ConnectionHolder(client, oc);
 
         Uni<AmqpSender> getSender = Uni.createFrom().item(sender.get())
@@ -173,7 +178,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                                 if (useAnonymousSender) {
                                     return connection.createAnonymousSender();
                                 } else {
-                                    return connection.createSender(configuredAddress);
+                                    return connection.createSender(configuredAddress,
+                                            new AmqpSenderOptions().setLinkName(link));
                                 }
                             })
                             .onItem().invoke(sender::set);

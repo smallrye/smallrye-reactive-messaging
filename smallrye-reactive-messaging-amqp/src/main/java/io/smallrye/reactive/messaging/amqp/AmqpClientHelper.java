@@ -56,7 +56,10 @@ public class AmqpClientHelper {
             int reconnectAttempts = config.getReconnectAttempts();
             int reconnectInterval = config.getReconnectInterval();
             int connectTimeout = config.getConnectTimeout();
-            String containerId = config.getContainerId().orElse(null);
+
+            // We renamed containerID into container-id. So we must check both.
+            String containerId = config.getContainerId()
+                    .orElseGet(() -> config.config.getOptionalValue("containerId", String.class).orElse(null));
 
             AmqpClientOptions options = new AmqpClientOptions()
                     .setUsername(username)

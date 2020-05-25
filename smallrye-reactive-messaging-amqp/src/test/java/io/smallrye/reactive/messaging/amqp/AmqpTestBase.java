@@ -4,6 +4,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
@@ -14,6 +15,8 @@ public class AmqpTestBase {
 
     @ClassRule
     public static GenericContainer<?> artemis = new GenericContainer<>("vromero/activemq-artemis:2.11.0-alpine")
+            .withClasspathResourceMapping("brokers/broker-people-queue.xml", "/var/lib/artemis/etc-override/broker-0.xml",
+                    BindMode.READ_ONLY)
             .withExposedPorts(8161)
             .withExposedPorts(5672);
 
