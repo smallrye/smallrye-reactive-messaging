@@ -274,11 +274,11 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
-            () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
-            .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+                .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
     private ConsumptionBean deploy(MapBasedConfig config) {
