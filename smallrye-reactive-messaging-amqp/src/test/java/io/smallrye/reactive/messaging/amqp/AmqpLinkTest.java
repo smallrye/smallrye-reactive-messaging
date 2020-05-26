@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -62,7 +63,9 @@ public class AmqpLinkTest extends AmqpTestBase {
         container = weld.initialize();
 
         MyConsumer consumer = container.getBeanManager().createInstance().select(MyConsumer.class).get();
-        await().until(() -> consumer.list().size() == 3);
+        await()
+            .atMost(1, TimeUnit.MINUTES)
+            .until(() -> consumer.list().size() == 3);
         assertThat(consumer.list()).containsExactly("Luke", "Leia", "Han");
     }
 
