@@ -70,6 +70,7 @@
 
     <smallrye-config.version>1.8.0</smallrye-config.version>
     <smallrye-metrics.version>2.4.2</smallrye-metrics.version>
+    <smallrye-common.version>1.0.2</smallrye-common.version>
 
     <mutiny.version>0.5.0</mutiny.version>
 
@@ -167,6 +168,11 @@
         <groupId>io.smallrye.config</groupId>
         <artifactId>smallrye-config</artifactId>
         <version>${smallrye-config.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.common</groupId>
+        <artifactId>smallrye-common-annotation</artifactId>
+        <version>${smallrye-common.version}</version>
       </dependency>
 
       <dependency>
