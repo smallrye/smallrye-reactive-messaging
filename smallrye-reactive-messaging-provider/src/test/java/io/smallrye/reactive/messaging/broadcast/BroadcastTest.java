@@ -22,4 +22,24 @@ public class BroadcastTest extends WeldTestBaseWithoutTails {
         assertThat(bean.l1()).containsExactly("A", "B", "C", "D").containsExactlyElementsOf(bean.l2());
     }
 
+    @Test
+    public void testBroadcastOfEmitter() {
+        addBeanClass(BeanEmitterBroadcast.class, BeanEmitterConsumer.class);
+        initialize();
+
+        BeanEmitterBroadcast broadcastAndConsumer = get(BeanEmitterBroadcast.class);
+        BeanEmitterConsumer consumer = get(BeanEmitterConsumer.class);
+
+        broadcastAndConsumer.send("a");
+        broadcastAndConsumer.send("b");
+        broadcastAndConsumer.send("c");
+        broadcastAndConsumer.send("d");
+
+        assertThat(broadcastAndConsumer.emitter()).isNotNull();
+
+        await().until(() -> broadcastAndConsumer.list().size() == 4);
+        await().until(() -> consumer.list().size() == 4);
+
+        assertThat(broadcastAndConsumer.list()).containsExactly("a", "b", "c", "d").containsExactlyElementsOf(consumer.list());
+    }
 }
