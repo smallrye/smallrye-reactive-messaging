@@ -19,7 +19,7 @@ _(amqp-connect-timeout)_ | The connection timeout in milliseconds
 
 Type: _int_ | false | `1000`
 
-| *containerId* | The AMQP container id
+| *container-id* | The AMQP container id
 
 Type: _string_ | false | 
 
@@ -32,6 +32,10 @@ Type: _boolean_ | false | `true`
 _(amqp-host)_ | The broker hostname
 
 Type: _string_ | false | `localhost`
+
+| *link-name* | The name of the link. If not set, the channel name is used.
+
+Type: _string_ | false | 
 
 | *password*
 
