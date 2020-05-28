@@ -235,12 +235,12 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .subscribe(subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(3); // 3 and 5 are ignored.
+        assertThat(expected).hasValue(4); // 3 and 5 are ignored.
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
-    public void testInvalidTypeWithDefaultInflightMessages() throws InterruptedException {
+    public void testInvalidTypeWithDefaultInflightMessages() {
         KafkaUsage usage = new KafkaUsage();
         String topic = UUID.randomUUID().toString();
         CountDownLatch latch = new CountDownLatch(1);
