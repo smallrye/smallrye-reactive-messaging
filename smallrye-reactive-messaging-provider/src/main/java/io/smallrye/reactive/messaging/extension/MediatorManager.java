@@ -402,7 +402,7 @@ public class MediatorManager {
     public void initializeEmitter(EmitterConfiguration emitterConfiguration, long defaultBufferSize) {
         EmitterImpl<?> emitter = new EmitterImpl<>(emitterConfiguration, defaultBufferSize);
         Publisher<? extends Message<?>> publisher = emitter.getPublisher();
-        channelRegistry.register(emitterConfiguration.getName(), ReactiveStreams.fromPublisher(publisher));
-        channelRegistry.register(emitterConfiguration.getName(), emitter);
+        channelRegistry.register(emitterConfiguration.name, ReactiveStreams.fromPublisher(publisher));
+        channelRegistry.register(emitterConfiguration.name, emitter);
     }
 }

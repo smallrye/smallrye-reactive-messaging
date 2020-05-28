@@ -5,11 +5,11 @@ import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 
 public class EmitterConfiguration {
-    private final String name;
-    private OnOverflow.Strategy overflowBufferStrategy = null;
-    private long overflowBufferSize = -1;
-    private Boolean broadcast = Boolean.FALSE;
-    private int numberOfSubscriberBeforeConnecting = -1;
+    public final String name;
+    public final OnOverflow.Strategy overflowBufferStrategy;
+    public final long overflowBufferSize;
+    public final Boolean broadcast;
+    public final int numberOfSubscriberBeforeConnecting;
 
     public EmitterConfiguration(String name, OnOverflow onOverflow, Broadcast broadcast) {
         this.name = name;
@@ -17,31 +17,17 @@ public class EmitterConfiguration {
         if (onOverflow != null) {
             this.overflowBufferStrategy = onOverflow.value();
             this.overflowBufferSize = onOverflow.bufferSize();
+        } else {
+            this.overflowBufferStrategy = null;
+            this.overflowBufferSize = -1;
         }
 
         if (broadcast != null) {
             this.broadcast = Boolean.TRUE;
             this.numberOfSubscriberBeforeConnecting = broadcast.value();
+        } else {
+            this.broadcast = Boolean.FALSE;
+            this.numberOfSubscriberBeforeConnecting = -1;
         }
-    }
-
-    public String getName() {
-        return this.name;
-    }
-
-    public OnOverflow.Strategy getOverflowBufferStrategy() {
-        return this.overflowBufferStrategy;
-    }
-
-    public long getOverflowBufferSize() {
-        return this.overflowBufferSize;
-    }
-
-    public Boolean isBroadcast() {
-        return broadcast;
-    }
-
-    public int getNumberOfSubscriberBeforeConnecting() {
-        return this.numberOfSubscriberBeforeConnecting;
     }
 }

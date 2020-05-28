@@ -29,8 +29,9 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     private AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
 
+    @SuppressWarnings("unchecked")
     public EmitterImpl(EmitterConfiguration config, long defaultBufferSize) {
-        this.name = config.getName();
+        this.name = config.name;
         if (defaultBufferSize <= 0) {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
@@ -43,17 +44,17 @@ public class EmitterImpl<T> implements Emitter<T> {
         };
 
         Multi<Message<? extends T>> tempPublisher;
-        if (config.getOverflowBufferStrategy() == null) {
+        if (config.overflowBufferStrategy == null) {
             Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
             tempPublisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
         } else {
-            tempPublisher = getPublisherForStrategy(config.getOverflowBufferStrategy(), config.getOverflowBufferSize(),
+            tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy, config.overflowBufferSize,
                     defaultBufferSize, deferred);
         }
 
-        if (config.isBroadcast()) {
+        if (config.broadcast) {
             publisher = (Multi<Message<? extends T>>) BroadcastHelper
-                    .broadcastPublisher(tempPublisher, config.getNumberOfSubscriberBeforeConnecting()).buildRs();
+                    .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting).buildRs();
         } else {
             publisher = tempPublisher;
         }

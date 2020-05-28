@@ -20,7 +20,7 @@ public class BroadcastHelper {
      *
      * @param publisher The publisher to be wrapped
      * @param numberOfSubscriberBeforeConnecting Number of subscribers that must be present before broadcast occurs.
-     *                                           A value of 0 means any number of subscribers will trigger the broadcast.
+     *        A value of 0 means any number of subscribers will trigger the broadcast.
      * @return The wrapped {@code Publisher} in a new {@code PublisherBuilder}
      */
     public static PublisherBuilder<? extends Message<?>> broadcastPublisher(Publisher<? extends Message<?>> publisher,
