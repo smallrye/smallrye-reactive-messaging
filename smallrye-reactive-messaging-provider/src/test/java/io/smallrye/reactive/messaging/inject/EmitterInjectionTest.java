@@ -80,7 +80,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         await().until(() -> bean.list().size() == 4);
         assertThat(bean.list()).containsExactly("a", "b", "c", "d");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
+        assertThat(bean.emitter().hasRequests()).isFalse();
         assertThatThrownBy(() -> cs.get(2).toCompletableFuture().join()).isInstanceOf(CompletionException.class)
                 .hasCauseInstanceOf(IllegalArgumentException.class);
     }

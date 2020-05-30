@@ -81,4 +81,8 @@ Type: _boolean_ | false | `true`
 
 Type: _boolean_ | false | `false`
 
+| *failure-strategy* | Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Values can be `fail` (default), `accept`, `release`, `reject`
+
+Type: _string_ | false | `fail`
+
 |===

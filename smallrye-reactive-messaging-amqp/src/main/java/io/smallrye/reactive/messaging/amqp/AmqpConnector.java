@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
+import io.smallrye.reactive.messaging.amqp.fault.*;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.amqp.AmqpClientOptions;
@@ -70,6 +71,7 @@ import io.vertx.mutiny.core.buffer.Buffer;
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received AMQP messages must be acknowledged when received", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Values can be `fail` (default), `accept`, `release`, `reject`", defaultValue = "fail")
 
 @ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
@@ -90,7 +92,6 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Instance<AmqpClientOptions> clientOptions;
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
-    // Needed for testing
 
     private final Map<String, Boolean> ready = new ConcurrentHashMap<>();
 
@@ -103,7 +104,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder, String address) {
+    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder, String address,
+            AmqpFailureHandler onNack) {
         LOGGER.info("AMQP Receiver listening address {}", address);
         // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
         BroadcastProcessor processor = BroadcastProcessor.create();
@@ -115,7 +117,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         return Multi.createFrom().deferred(
                 () -> {
-                    Multi<? extends Message<?>> stream = receiver.toMulti().map(m -> new AmqpMessage<>(m, holder.getContext()));
+                    Multi<? extends Message<?>> stream = receiver.toMulti()
+                            .map(m -> new AmqpMessage<>(m, holder.getContext(), onNack));
                     return Multi.createBy().merging().streams(stream, processor);
                 });
     }
@@ -132,13 +135,15 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         String link = ic.getLinkName().orElseGet(ic::getChannel);
         ConnectionHolder holder = new ConnectionHolder(client, ic);
 
+        AmqpFailureHandler onNack = createFailureHandler(ic);
+
         Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
                 .onItem().produceUni(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)
                         .setLinkName(link)))
                 .onItem().invoke(r -> ready.put(ic.getChannel(), true))
-                .onItem().produceMulti(r -> getStreamOfMessages(r, holder, address));
+                .onItem().produceMulti(r -> getStreamOfMessages(r, holder, address, onNack));
 
         Integer interval = ic.getReconnectInterval();
         Integer attempts = ic.getReconnectAttempts();
@@ -275,7 +280,13 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 actualAddress);
         return sender.sendWithAck(amqp)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
-                .onItem().produceCompletionStage(x -> msg.ack())
+                .onItemOrFailure().produceUni((success, failure) -> {
+                    if (failure != null) {
+                        return Uni.createFrom().completionStage(msg.nack(failure));
+                    } else {
+                        return Uni.createFrom().completionStage(msg.ack());
+                    }
+                })
                 .onItem().apply(x -> msg);
     }
 
@@ -383,6 +394,24 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public void addClient(AmqpClient client) {
         clients.add(client);
+    }
+
+    private AmqpFailureHandler createFailureHandler(AmqpConnectorIncomingConfiguration config) {
+        String strategy = config.getFailureStrategy();
+        AmqpFailureHandler.Strategy actualStrategy = AmqpFailureHandler.Strategy.from(strategy);
+        switch (actualStrategy) {
+            case FAIL:
+                return new AmqpFailStop(LOGGER, config.getChannel());
+            case ACCEPT:
+                return new AmqpAccept(LOGGER, config.getChannel());
+            case REJECT:
+                return new AmqpReject(LOGGER, config.getChannel());
+            case RELEASE:
+                return new AmqpRelease(LOGGER, config.getChannel());
+            default:
+                throw new IllegalArgumentException("Invalid failure strategy: " + strategy);
+        }
+
     }
 
     public boolean isReady(String channel) {

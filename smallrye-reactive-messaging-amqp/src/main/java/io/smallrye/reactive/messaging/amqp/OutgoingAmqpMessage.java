@@ -80,6 +80,11 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
     }
 
     @Override
+    public CompletionStage<Void> nack(Throwable reason) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
     public JsonObject getApplicationProperties() {
         return amqpMetadata.getProperties();
     }
