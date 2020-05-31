@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -239,17 +238,6 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
 
         done.await(10, TimeUnit.SECONDS);
         return reasons;
-    }
-
-    @ApplicationScoped
-    public static class EmitterBean {
-        @Inject
-        @Channel("data")
-        Emitter<String> emitter;
-
-        public Emitter<String> emitter() {
-            return emitter;
-        }
     }
 
     @ApplicationScoped

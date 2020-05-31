@@ -50,9 +50,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
     @Override
     public void onNext(T item) {
         try {
-            System.out.println("onNext " + item);
             delegate.onNext(mapper.apply(item));
-            System.out.println("post onNext " + item);
             if (postAck != null) {
                 postAck.apply(item, null).thenAccept(x -> subscriber.get().onNext(item));
             } else {
@@ -60,7 +58,6 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
             }
         } catch (Exception e) {
             if (postAck != null) {
-                System.out.println("caught - nack ");
                 postAck.apply(item, e).thenAccept(x -> subscriber.get().onNext(item));
             } else {
                 subscriber.get().onError(e);
