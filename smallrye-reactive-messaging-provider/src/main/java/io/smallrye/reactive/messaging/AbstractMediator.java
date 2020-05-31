@@ -123,12 +123,14 @@ public abstract class AbstractMediator {
     public abstract boolean isConnected();
 
     protected Function<Message<?>, ? extends CompletionStage<? extends Message<?>>> managePreProcessingAck() {
-        return message -> {
-            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
-                return getAckOrCompletion(message);
-            }
-            return CompletableFuture.completedFuture(message);
-        };
+        return this::handlePreProcessingAck;
+    }
+
+    protected CompletionStage<Message<?>> handlePreProcessingAck(Message<?> message) {
+        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
+            return getAckOrCompletion(message);
+        }
+        return CompletableFuture.completedFuture(message);
     }
 
     public PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> input) {
