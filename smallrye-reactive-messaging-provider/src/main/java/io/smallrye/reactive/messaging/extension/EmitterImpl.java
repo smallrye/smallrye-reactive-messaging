@@ -13,6 +13,7 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
+import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
 
 /**
  * Implementation of the emitter pattern.
@@ -28,8 +29,9 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     private AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
 
-    public EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
-        this.name = name;
+    @SuppressWarnings("unchecked")
+    public EmitterImpl(EmitterConfiguration config, long defaultBufferSize) {
+        this.name = config.name;
         if (defaultBufferSize <= 0) {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
@@ -41,20 +43,27 @@ public class EmitterImpl<T> implements Emitter<T> {
             }
         };
 
-        if (overFlowStrategy == null) {
+        Multi<Message<? extends T>> tempPublisher;
+        if (config.overflowBufferStrategy == null) {
             Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
-            publisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
+            tempPublisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
         } else {
-            publisher = getPublisherForStrategy(overFlowStrategy, bufferSize, defaultBufferSize, deferred);
+            tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy, config.overflowBufferSize,
+                    defaultBufferSize, deferred);
+        }
+
+        if (config.broadcast) {
+            publisher = (Multi<Message<? extends T>>) BroadcastHelper
+                    .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting).buildRs();
+        } else {
+            publisher = tempPublisher;
         }
     }
 
-    Multi<Message<? extends T>> getPublisherForStrategy(String overFlowStrategy, long bufferSize,
+    Multi<Message<? extends T>> getPublisherForStrategy(OnOverflow.Strategy overFlowStrategy, long bufferSize,
             long defaultBufferSize,
             Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
-        OnOverflow.Strategy strategy = OnOverflow.Strategy.valueOf(overFlowStrategy);
-
-        switch (strategy) {
+        switch (overFlowStrategy) {
             case BUFFER:
                 Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
                 if (bufferSize > 0) {

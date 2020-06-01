@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,7 +25,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -386,14 +384,10 @@ public class MediatorManager {
 
     }
 
-    public void initializeEmitters(Map<String, OnOverflow> emitters) {
-        for (Map.Entry<String, OnOverflow> e : emitters.entrySet()) {
+    public void initializeEmitters(List<EmitterConfiguration> emitters) {
+        for (EmitterConfiguration config : emitters) {
             int bufferSize = getDefaultBufferSize();
-            if (e.getValue() != null) {
-                initializeEmitter(e.getKey(), e.getValue().value().name(), e.getValue().bufferSize(), bufferSize);
-            } else {
-                initializeEmitter(e.getKey(), null, bufferSize, bufferSize);
-            }
+            initializeEmitter(config, bufferSize);
         }
     }
 
@@ -405,10 +399,10 @@ public class MediatorManager {
         }
     }
 
-    public void initializeEmitter(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
-        EmitterImpl<?> emitter = new EmitterImpl<>(name, overFlowStrategy, bufferSize, defaultBufferSize);
+    public void initializeEmitter(EmitterConfiguration emitterConfiguration, long defaultBufferSize) {
+        EmitterImpl<?> emitter = new EmitterImpl<>(emitterConfiguration, defaultBufferSize);
         Publisher<? extends Message<?>> publisher = emitter.getPublisher();
-        channelRegistry.register(name, ReactiveStreams.fromPublisher(publisher));
-        channelRegistry.register(name, emitter);
+        channelRegistry.register(emitterConfiguration.name, ReactiveStreams.fromPublisher(publisher));
+        channelRegistry.register(emitterConfiguration.name, emitter);
     }
 }

@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.inject;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -23,6 +24,7 @@ import org.reactivestreams.Subscription;
 import io.reactivex.subscribers.TestSubscriber;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
 import io.smallrye.reactive.messaging.extension.EmitterImpl;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
@@ -581,7 +583,24 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @Test // Reproduce #511
     public void testWeCanHaveSeveralSubscribers() {
-        EmitterImpl<String> emitter = new EmitterImpl<>("my-channel", "BUFFER", 128, 128);
+        OnOverflow overflow = new OnOverflow() {
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return OnOverflow.class;
+            }
+
+            @Override
+            public Strategy value() {
+                return OnOverflow.Strategy.BUFFER;
+            }
+
+            @Override
+            public long bufferSize() {
+                return 128;
+            }
+        };
+        EmitterConfiguration config = new EmitterConfiguration("my-channel", overflow, null);
+        EmitterImpl<String> emitter = new EmitterImpl<>(config, 128);
         Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 
         TestSubscriber<Message<? extends String>> sub1 = new TestSubscriber<>();

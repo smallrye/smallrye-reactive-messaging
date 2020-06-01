@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 
@@ -78,14 +79,15 @@ public class ReactiveMessagingExtension implements Extension {
         ChannelRegistry registry = instance.select(ChannelRegistry.class)
                 .get();
 
-        Map<String, OnOverflow> emitters = new HashMap<>();
+        List<EmitterConfiguration> emitters = new ArrayList<>();
         for (InjectionPoint point : emitterInjectionPoints) {
             String name = ChannelProducer.getChannelName(point);
             OnOverflow onOverflow = point.getAnnotated().getAnnotation(OnOverflow.class);
             if (onOverflow == null) {
                 onOverflow = createOnOverflowForLegacyAnnotation(point);
             }
-            emitters.put(name, onOverflow);
+            Broadcast broadcast = point.getAnnotated().getAnnotation(Broadcast.class);
+            emitters.add(new EmitterConfiguration(name, onOverflow, broadcast));
         }
 
         WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();

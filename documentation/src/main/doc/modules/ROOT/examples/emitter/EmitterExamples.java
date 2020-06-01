@@ -1,5 +1,6 @@
 package emitter;
 
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 import messages.MyMetadata;
 import org.eclipse.microprofile.reactive.messaging.*;
 
@@ -51,6 +52,26 @@ public class EmitterExamples {
             }));
     }
     // end::message-meta[]
+
+    // tag::broadcast[]
+    @Inject
+    @Broadcast
+    @Channel("prices") Emitter<Double> emitter;
+
+    public void emit(double d) {
+        emitter.send(d);
+    }
+
+    @Incoming("prices")
+    public void handle(double d) {
+        // Handle the new price
+    }
+
+    @Incoming("prices")
+    public void audit(double d) {
+        // Audit the price change
+    }
+    // end::broadcast[]
 
     static class OverflowExample {
         // tag::overflow[]
