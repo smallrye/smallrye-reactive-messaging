@@ -99,8 +99,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder) {
-
+    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder, String address) {
+        LOGGER.info("AMQP Receiver listening address {}", address);
         // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
         BroadcastProcessor processor = BroadcastProcessor.create();
         receiver.exceptionHandler(t -> {
@@ -133,13 +133,13 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)
                         .setLinkName(link)))
-                .onItem().produceMulti(r -> getStreamOfMessages(r, holder));
+                .onItem().produceMulti(r -> getStreamOfMessages(r, holder, address));
 
         Integer interval = ic.getReconnectInterval();
         Integer attempts = ic.getReconnectAttempts();
         multi = multi
                 // Retry on failure.
-                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve message from AMQP, retrying...", t))
+                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve messages from AMQP, retrying...", t))
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
                 .onFailure().invoke(t -> LOGGER.error("Unable to retrieve messages from AMQP, no more retry", t));
 
