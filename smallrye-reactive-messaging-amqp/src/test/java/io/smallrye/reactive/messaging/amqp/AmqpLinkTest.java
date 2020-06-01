@@ -64,8 +64,8 @@ public class AmqpLinkTest extends AmqpTestBase {
 
         MyConsumer consumer = container.getBeanManager().createInstance().select(MyConsumer.class).get();
         await()
-            .atMost(1, TimeUnit.MINUTES)
-            .until(() -> consumer.list().size() == 3);
+                .atMost(1, TimeUnit.MINUTES)
+                .until(() -> consumer.list().size() == 3);
         assertThat(consumer.list()).containsExactly("Luke", "Leia", "Han");
     }
 
