@@ -56,15 +56,17 @@ public class EmitterImpl<T> implements Emitter<T> {
 
         switch (strategy) {
             case BUFFER:
-                Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
                 if (bufferSize > 0) {
-                    return getPublisherUsingBufferStrategy(bufferSize, multi);
+                    return ThrowingEmitter.create(deferred, bufferSize);
                 } else {
-                    return getPublisherUsingBufferStrategy(defaultBufferSize, multi);
+                    return ThrowingEmitter.create(deferred, defaultBufferSize);
                 }
 
             case UNBOUNDED_BUFFER:
                 return Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
+
+            case THROW_EXCEPTION:
+                return ThrowingEmitter.create(deferred, 0);
 
             case DROP:
                 return Multi.createFrom().emitter(deferred, BackPressureStrategy.DROP);
@@ -174,8 +176,9 @@ public class EmitterImpl<T> implements Emitter<T> {
     }
 
     @Override
-    public boolean isRequested() {
+    public boolean hasRequests() {
         MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         return !isCancelled() && emitter.requested() > 0;
     }
+
 }

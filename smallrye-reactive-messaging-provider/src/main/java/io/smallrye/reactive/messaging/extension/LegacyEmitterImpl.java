@@ -35,7 +35,7 @@ public class LegacyEmitterImpl<T> implements Emitter<T> {
 
     @Override
     public boolean isRequested() {
-        return delegate.isRequested();
+        return delegate.hasRequests();
     }
 
     @Override
