@@ -1,13 +1,17 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import java.util.concurrent.CompletionStage;
+
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class ReceivingMqttMessage implements MqttMessage<byte[]> {
     final MqttPublishMessage message;
+    final MqttFailureHandler onNack;
 
-    ReceivingMqttMessage(MqttPublishMessage message) {
+    ReceivingMqttMessage(MqttPublishMessage message, MqttFailureHandler onNack) {
         this.message = message;
+        this.onNack = onNack;
     }
 
     @Override
@@ -33,5 +37,10 @@ public class ReceivingMqttMessage implements MqttMessage<byte[]> {
 
     public String getTopic() {
         return message.topicName();
+    }
+
+    @Override
+    public CompletionStage<Void> nack(Throwable reason) {
+        return this.onNack.handle(reason);
     }
 }

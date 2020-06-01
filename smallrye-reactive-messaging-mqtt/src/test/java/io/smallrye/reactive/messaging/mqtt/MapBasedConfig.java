@@ -22,6 +22,18 @@ public class MapBasedConfig implements Config {
         this.map = map;
     }
 
+    public MapBasedConfig() {
+        map = new LinkedHashMap<>();
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public static void clear() {
+        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
+        if (out.isFile()) {
+            out.delete();
+        }
+    }
+
     @Override
     public <T> T getValue(String propertyName, Class<T> propertyType) {
         return getOptionalValue(propertyName, propertyType).orElseThrow(() -> new NoSuchElementException(propertyName));
@@ -45,7 +57,7 @@ public class MapBasedConfig implements Config {
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    void write() {
+    public void write() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {
             out.delete();
@@ -60,5 +72,10 @@ public class MapBasedConfig implements Config {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public MapBasedConfig put(String key, Object value) {
+        map.put(key, value);
+        return this;
     }
 }
