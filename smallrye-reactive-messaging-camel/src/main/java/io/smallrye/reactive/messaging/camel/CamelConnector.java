@@ -31,6 +31,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 @ApplicationScoped
 @Connector(CamelConnector.CONNECTOR_NAME)
 @ConnectorAttribute(name = "endpoint-uri", description = "The URI of the Camel endpoint (read from or written to)", mandatory = true, type = "string", direction = Direction.INCOMING_AND_OUTGOING)
+@ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a Camel exchange is nacked. Values can be `fail` (default) or `ignore`", defaultValue = "fail")
 public class CamelConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CamelConnector.class);
@@ -66,7 +67,11 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        String name = new CamelConnectorIncomingConfiguration(config).getEndpointUri();
+        CamelConnectorIncomingConfiguration ic = new CamelConnectorIncomingConfiguration(config);
+        String name = ic.getEndpointUri();
+        CamelFailureHandler.Strategy strategy = CamelFailureHandler.Strategy.from(ic.getFailureStrategy());
+        CamelFailureHandler onNack = createFailureHandler(strategy, ic.getChannel());
+
         Publisher<Exchange> publisher;
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
@@ -79,7 +84,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         }
 
         return ReactiveStreams.fromPublisher(publisher)
-                .map(CamelMessage::new);
+                .map(ex -> new CamelMessage<>(ex, onNack));
     }
 
     @Override
@@ -127,8 +132,20 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
             @Override
             public void onFailure(Exchange exchange) {
                 LOGGER.error("Exchange failed", exchange.getException());
+                message.nack(exchange.getException());
             }
         });
         return exchange;
+    }
+
+    private CamelFailureHandler createFailureHandler(CamelFailureHandler.Strategy strategy, String channel) {
+        switch (strategy) {
+            case IGNORE:
+                return new CamelIgnoreFailure(LOGGER, channel);
+            case FAIL:
+                return new CamelFailStop(LOGGER, channel);
+            default:
+                throw new IllegalArgumentException("Unknown failure strategy: " + strategy);
+        }
     }
 }

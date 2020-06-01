@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.camel;
 
+import java.util.concurrent.CompletionStage;
+
 import org.apache.camel.Exchange;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -7,9 +9,11 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 public class CamelMessage<T> implements Message<T> {
     private final Exchange exchange;
     private final Metadata metadata;
+    private final CamelFailureHandler onNack;
 
-    public CamelMessage(Exchange exchange) {
+    public CamelMessage(Exchange exchange, CamelFailureHandler onNack) {
         this.exchange = exchange;
+        this.onNack = onNack;
         metadata = Metadata.of(new IncomingExchangeMetadata(exchange));
     }
 
@@ -30,5 +34,10 @@ public class CamelMessage<T> implements Message<T> {
     @Override
     public Metadata getMetadata() {
         return metadata;
+    }
+
+    @Override
+    public CompletionStage<Void> nack(Throwable reason) {
+        return onNack.handle(this, reason);
     }
 }

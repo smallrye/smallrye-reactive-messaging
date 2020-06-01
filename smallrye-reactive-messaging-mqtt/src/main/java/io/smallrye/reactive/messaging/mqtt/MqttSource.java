@@ -27,7 +27,7 @@ public class MqttSource {
         int qos = config.getQos();
         boolean broadcast = config.getBroadcast();
         MqttFailureHandler.Strategy strategy = MqttFailureHandler.Strategy.from(config.getFailureStrategy());
-        MqttFailureHandler onNack = createFailureHander(strategy, config.getChannel());
+        MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
         Clients.ClientHolder holder = Clients.getHolder(vertx, host, port, server, options);
         this.source = ReactiveStreams.fromPublisher(
@@ -49,7 +49,7 @@ public class MqttSource {
                         .onFailure().invoke(t -> LOGGER.error("Unable to establish a connection with the MQTT broker", t)));
     }
 
-    private MqttFailureHandler createFailureHander(MqttFailureHandler.Strategy strategy, String channel) {
+    private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {
         switch (strategy) {
             case IGNORE:
                 return new MqttIgnoreFailure(LOGGER, channel);
