@@ -43,7 +43,7 @@ public class AmqpMessageTest {
         message.setBody(new AmqpValue("hello"));
         message.setMessageId("4321");
 
-        AmqpMessage<?> msg = new AmqpMessage<>(new AmqpMessageImpl(message));
+        AmqpMessage<?> msg = new AmqpMessage<>(new AmqpMessageImpl(message), null);
         assertThat(msg.getAddress()).isEqualTo("address");
         assertThat(msg.getApplicationProperties()).contains(entry("hello", "world"), entry("some", "content"));
         assertThat(msg.getContentType()).isEqualTo("text/plain");
