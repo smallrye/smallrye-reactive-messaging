@@ -63,6 +63,28 @@ include::example$inbound/KafkaMetadataExample.java[]
 Acknowledging a message coming from Kafka commit the offset.
 Refer to the Kafka documentation for details.
 
+=== Failure Management
+
+If a message produced from a Kafka record is _nacked_, a failure strategy is applied.
+The Kafka connector supports 3 strategies:
+
+* `fail` - fail the application, no more records will be processed. (default)
+The offset of the record that has not been processed correctly is not committed.
+* `ignore` - the failure is logged, but the processing continue.
+The offset of the record that has not been processed correctly is committed.
+* `dead-letter-queue` - the offset of the record that has not been processed correctly is committed, but the record is written to a (Kafka) _dead letter topic_.
+
+The strategy is selected using the `failure-strategy` attribute.
+
+In the case of `dead-letter-queue`, you can configure the following attributes:
+
+* `dead-letter-queue.topic`: the topic to use to write the records not processed correctly, default is `dead-letter-topic-$channel`, with `$channel` being the name of the channel.
+* `dead-letter-queue.key.serializer`: the serializer used to write the record key on the dead letter queue. By default, it deduces the serializer from the key deserializer.
+* `dead-letter-queue.value.serializer`: the serializer used to write the record value on the dead letter queue. By default, it deduces the serializer from the value deserializer.
+
+The record written on the dead letter queue contains the `dead-letter-reason` header with the nack reason (message from the exception passed to the `nack` method).
+It may also contain the `dead-letter-cause` with the message from the cause, if any.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-kafka-incoming.adoc[]

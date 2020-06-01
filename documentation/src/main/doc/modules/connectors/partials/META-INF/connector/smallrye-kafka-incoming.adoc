@@ -53,7 +53,7 @@ Type: _string_ | false | `latest`
 
 Type: _string_ | false | `fail`
 
-| *dead-letter-queue.topic* | When the `failure-strategy` is set to `dead-letter-queue` indicates on which topic the record is sent. Defaults is `dead-letter-topic-$channel
+| *dead-letter-queue.topic* | When the `failure-strategy` is set to `dead-letter-queue` indicates on which topic the record is sent. Defaults is `dead-letter-topic-$channel`
 
 Type: _string_ | false | 
 

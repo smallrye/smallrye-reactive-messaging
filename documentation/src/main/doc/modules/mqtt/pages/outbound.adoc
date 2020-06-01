@@ -51,6 +51,13 @@ The `Message` sent to MQTT can have various payload types:
 
 The MQTT connector does not provide outbound metadata.
 
+=== Acknowledgement
+
+MQTT acknowledgement depends on the QoS level.
+The message is acknowledged when the broker indicated the successful reception of the message (or immediately if the level of QoS does not support acknowledgment).
+
+If a MQTT message cannot be sent to the broker, the message is `nacked`.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-mqtt-outgoing.adoc[]
