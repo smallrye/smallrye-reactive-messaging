@@ -82,7 +82,7 @@ include::example$ack/StreamAckExamples.java[tag=payload]
 
 === Controlling acknowledgement
 
-The {javadoc-base}/org/eclipse/microprofile/reactive/messaging/acknowledgment .html[`Acknowledgment`] annotation lets you customize the default strategy presented in the previous sections.
+The {javadoc-base}/org/eclipse/microprofile/reactive/messaging/acknowledgment.html[`Acknowledgment`] annotation lets you customize the default strategy presented in the previous sections.
 The `@Acknowledgement` annotation takes a _strategy_ as parameter.
 Reactive Messaging proposed 4 strategies:
 
@@ -105,3 +105,31 @@ It cuts the acknowledgment chain, meaning that the rest of the processing is not
 This strategy is the default strategy when manipulating streams of payloads.
 
 Refer to the xref:signatures/signatures.adoc[signature list] to determine which strategies are available for a specific method signature and what's the default strategy.
+
+=== Negative acknowledgement
+
+Messages can also be _nacked_, which indicates that the message was not processed correctly.
+The `Message.nack` method indicates failing processing (and supply the reason), and, as for successful acknowledgment, the _nack_ is propagated through the chain of messages.
+
+If the message has been produced by a connector, this connector implements specific behavior when receiving a _nack_.
+It can fail (default), or ignore the failing, or implement a dead-letter queue mechanism.
+Refer to the connector documentation for further details about the available strategies.
+
+If the message is sent by an emitter using the `send(P)` method, the returned `CompletionStage` is completed _exceptionally_ with the _nack_ reason.
+
+[source, java, indent=0]
+----
+include::example$ack/NackOnEmitter.java[tag=emitter]
+----
+
+Negative acknowledgment can be manual or automatic.
+If your method handles instances of `Message` and the acknowledgment strategy is `MANUAL`, you can nack a message explicitly.
+You must indicate the reason (an exception) when calling the `nack` method.
+As for successful acknowledgment, the `nack` returns a `CompletionStage` completed when the `nack` has been processed.
+
+If your method uses the `POST_PROCESSING` acknowledgment strategy, and the method fails (either by throwing an exception or by producing a failure), the message is automatically nacked with the caught exception:
+
+[source, java, indent=0]
+----
+include::example$ack/AutoNack.java[tag=auto-nack]
+----
