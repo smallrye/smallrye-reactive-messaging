@@ -7,4 +7,8 @@
 
 Type: _string_ | true | 
 
+| *failure-strategy* | Specify the failure strategy to apply when a message produced from a Camel exchange is nacked. Values can be `fail` (default) or `ignore`
+
+Type: _string_ | false | `fail`
+
 |===
