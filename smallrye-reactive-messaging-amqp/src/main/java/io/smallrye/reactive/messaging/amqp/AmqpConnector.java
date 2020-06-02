@@ -5,8 +5,10 @@ import static java.time.Duration.ofSeconds;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -88,8 +90,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Instance<AmqpClientOptions> clientOptions;
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
-
     // Needed for testing
+
+    private final Map<String, Boolean> ready = new ConcurrentHashMap<>();
+
     void setup(ExecutionHolder executionHolder) {
         this.executionHolder = executionHolder;
     }
@@ -99,8 +103,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder) {
-
+    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder, String address) {
+        LOGGER.info("AMQP Receiver listening address {}", address);
         // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
         BroadcastProcessor processor = BroadcastProcessor.create();
         receiver.exceptionHandler(t -> {
@@ -133,13 +137,14 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)
                         .setLinkName(link)))
-                .onItem().produceMulti(r -> getStreamOfMessages(r, holder));
+                .onItem().invoke(r -> ready.put(ic.getChannel(), true))
+                .onItem().produceMulti(r -> getStreamOfMessages(r, holder, address));
 
         Integer interval = ic.getReconnectInterval();
         Integer attempts = ic.getReconnectAttempts();
         multi = multi
                 // Retry on failure.
-                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve message from AMQP, retrying...", t))
+                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve messages from AMQP, retrying...", t))
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
                 .onFailure().invoke(t -> LOGGER.error("Unable to retrieve messages from AMQP, no more retry", t));
 
@@ -182,7 +187,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                                             new AmqpSenderOptions().setLinkName(link));
                                 }
                             })
-                            .onItem().invoke(sender::set);
+                            .onItem().invoke(s -> {
+                                sender.set(s);
+                                ready.put(oc.getChannel(), true);
+                            });
                 })
                 // If the downstream cancels or on failure, drop the sender.
                 .onFailure().invoke(t -> sender.set(null))
@@ -375,5 +383,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public void addClient(AmqpClient client) {
         clients.add(client);
+    }
+
+    public boolean isReady(String channel) {
+        return ready.getOrDefault(channel, false);
     }
 }
