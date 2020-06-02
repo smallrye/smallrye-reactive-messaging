@@ -36,7 +36,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
+        assertThat(bean.emitter().hasRequests()).isFalse();
     }
 
     @Test
@@ -51,7 +51,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         await().until(() -> bean.list().size() == 3);
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
+        assertThat(bean.emitter().hasRequests()).isFalse();
     }
 
     @Test
@@ -62,7 +62,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
+        assertThat(bean.emitter().hasRequests()).isFalse();
     }
 
     @Test
@@ -72,7 +72,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("A", "B", "C");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
+        assertThat(bean.emitter().hasRequests()).isFalse();
     }
 
     @Test
@@ -82,7 +82,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isFalse();
-        assertThat(bean.emitter().isRequested()).isTrue();
+        assertThat(bean.emitter().hasRequests()).isTrue();
     }
 
     @Test
@@ -92,7 +92,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isFalse();
-        assertThat(bean.emitter().isRequested()).isTrue();
+        assertThat(bean.emitter().hasRequests()).isTrue();
     }
 
     @Test
@@ -103,7 +103,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
+        assertThat(bean.emitter().hasRequests()).isFalse();
         assertThat(bean.isCaught()).isTrue();
     }
 
@@ -115,7 +115,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b");
         assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().isRequested()).isFalse();
+        assertThat(bean.emitter().hasRequests()).isFalse();
         assertThat(bean.isCaught()).isTrue();
     }
 
