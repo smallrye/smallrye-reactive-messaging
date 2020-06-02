@@ -32,18 +32,25 @@ public @interface Blocking {
     String value() default DEFAULT_WORKER_POOL;
 
     /**
-     * Indicates whether the execution on the worker pool should be ordered.
-     * By default all executions are ordered.
+     * Indicates if executions of this method should be serialized and preserve the
+     * message ordering, or run concurrently with messages being emitted in the order
+     * that method executions complete.
      *
-     * The blocking processing of incoming messages is executed on workers.
-     * However, some computations may be faster than others.
-     * When ordered is set to <code>true</code>, the results are emitted in
-     * the same order as the input, preserving the ordering.
-     * When ordered is set to <code>false</code>, results are emitted as soon as
-     * the blocking computation has terminated,
-     * regardless of whether the computation of previous messages has completed.
+     * By default, or when ordered is set to <code>true</code>, executions of a
+     * blocking method are serialized and messages are processed
+     * in order. The results are emitted in the same order, preserving the relative
+     * message order. Multiple different <code>ordered=true</code>
+     * methods may be active on worker threads at one time, but each individual
+     * such method will be active once at most.
      *
-     * @return whether executions should be ordered.
+     * When ordered is set to <code>false</code> blocking method
+     * executions are run concurrently on worker threads and may finish in a different
+     * order from the order they were invoked. Results are emitted as soon as the blocking
+     * computation has finished. Message ordering, whether of input messages being observed
+     * by blocking methods running concurrently, or of output messages subsequently emitted
+     * is not preserved.
+     *
+     * @return whether executions are being be ordered.
      */
     boolean ordered() default true;
 }
