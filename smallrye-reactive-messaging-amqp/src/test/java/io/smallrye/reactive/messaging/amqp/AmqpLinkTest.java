@@ -8,17 +8,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.mutiny.Multi;
 
 public class AmqpLinkTest extends AmqpTestBase {
 
@@ -61,6 +63,12 @@ public class AmqpLinkTest extends AmqpTestBase {
                 .write();
 
         container = weld.initialize();
+        AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
+                ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
+        await().until(() -> connector.isReady("people-in"));
+
+        MyProducer producer = container.getBeanManager().createInstance().select(MyProducer.class).get();
+        producer.run();
 
         MyConsumer consumer = container.getBeanManager().createInstance().select(MyConsumer.class).get();
         await()
@@ -72,9 +80,14 @@ public class AmqpLinkTest extends AmqpTestBase {
     @ApplicationScoped
     public static class MyProducer {
 
-        @Outgoing("people-out")
-        public Multi<String> people() {
-            return Multi.createFrom().items("Luke", "Leia", "Han");
+        @Inject
+        @Channel("people-out")
+        Emitter<String> emitter;
+
+        public void run() {
+            emitter.send("Luke");
+            emitter.send("Leia");
+            emitter.send("Han");
         }
     }
 
