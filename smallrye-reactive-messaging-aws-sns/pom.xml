@@ -9,7 +9,7 @@
     <vertx.version>3.8.0</vertx.version>
   </properties>
   <artifactId>smallrye-reactive-messaging-aws-sns</artifactId>
-  <name>Smallrye Reactive Messaging for AWS SNS</name>
+  <name>SmallRye Reactive Messaging : Connector :: AWS SNS</name>
   <description>A module for Smallrye reactive messaging integration with AWS Simple Notification Service (SNS).</description>
   <dependencyManagement>
     <dependencies>

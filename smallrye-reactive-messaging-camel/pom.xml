@@ -10,6 +10,8 @@
 
   <artifactId>smallrye-reactive-messaging-camel</artifactId>
 
+  <name>SmallRye Reactive Messaging : Connector :: Camel</name>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.camel</groupId>

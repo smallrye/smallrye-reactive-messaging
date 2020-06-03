@@ -10,6 +10,8 @@
 
   <artifactId>tck</artifactId>
 
+  <name>SmallRye Reactive Messaging : TCK</name>
+
   <dependencies>
     <dependency>
       <groupId>org.eclipse.microprofile.reactive.messaging</groupId>

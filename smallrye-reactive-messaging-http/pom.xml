@@ -10,6 +10,8 @@
 
   <artifactId>smallrye-reactive-messaging-http</artifactId>
 
+  <name>SmallRye Reactive Messaging : Connector :: HTTP</name>
+
   <dependencies>
     <dependency>
       <groupId>io.vertx</groupId>

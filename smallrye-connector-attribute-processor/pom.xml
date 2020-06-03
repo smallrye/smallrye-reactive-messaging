@@ -12,6 +12,8 @@
 
   <artifactId>smallrye-connector-attribute-processor</artifactId>
 
+  <name>SmallRye Reactive Messaging : Attribute Processor</name>
+
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
