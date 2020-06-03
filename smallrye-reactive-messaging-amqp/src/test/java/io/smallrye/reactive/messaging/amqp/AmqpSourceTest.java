@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.amqp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
+import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.CHANNEL_NAME_ATTRIBUTE;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +20,6 @@ import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -82,6 +82,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.buildRs().subscribe(createSubscriber(messages, opened));
         await().until(opened::get);
 
+        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceTenIntegers(topic,
                 counter::getAndIncrement)).start();
@@ -110,6 +112,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         AtomicBoolean opened = new AtomicBoolean();
         builder.buildRs().subscribe(createSubscriber(messages, opened));
         await().until(opened::get);
+
+        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceTenIntegers(topic,
@@ -161,7 +165,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
+        config.put(CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("host", host);
         config.put("name", "the name for broadcast");
         config.put("port", port);
@@ -247,6 +251,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
+        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+
         usage.produce(topic, 1, () -> AmqpMessage.create().withBufferAsBody(Buffer.buffer("foo".getBytes())).build());
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> !messages.isEmpty());
@@ -268,6 +274,8 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
+
+        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
 
         JsonObject json = new JsonObject();
         String id = UUID.randomUUID().toString();
@@ -295,6 +303,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
+        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+
         JsonArray list = new JsonArray();
         String id = UUID.randomUUID().toString();
         list.add("ola");
@@ -321,6 +331,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
+        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+
         List<String> list = new ArrayList<>();
         list.add("tag");
         list.add("bonjour");
@@ -345,6 +357,8 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
+
+        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
 
         List<String> list = new ArrayList<>();
         list.add("hello");
@@ -502,7 +516,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     private Map<String, Object> getConfig(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put("address", topic);
-        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, UUID.randomUUID().toString());
+        config.put(CHANNEL_NAME_ATTRIBUTE, UUID.randomUUID().toString());
         config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
@@ -514,7 +528,7 @@ public class AmqpSourceTest extends AmqpTestBase {
     @NotNull
     private Map<String, Object> getConfigUsingChannelName(String topic) {
         Map<String, Object> config = new HashMap<>();
-        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
+        config.put(CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
