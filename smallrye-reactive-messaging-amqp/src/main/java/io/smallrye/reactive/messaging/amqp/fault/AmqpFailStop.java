@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.amqp.fault;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.slf4j.Logger;
 
 import io.smallrye.reactive.messaging.amqp.AmqpMessage;
+import io.smallrye.reactive.messaging.amqp.ConnectionHolder;
 import io.vertx.mutiny.core.Context;
 
 public class AmqpFailStop implements AmqpFailureHandler {
@@ -22,11 +22,7 @@ public class AmqpFailStop implements AmqpFailureHandler {
     public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Context context, Throwable reason) {
         // We mark the message as rejected and fail.
         logger.error("A message sent to channel `{}` has been nacked, rejecting the message and fail-stop", channel);
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        context.runOnContext(x -> {
-            msg.getAmqpMessage().rejected();
-            future.completeExceptionally(reason);
-        });
-        return future;
+        return ConnectionHolder.runOnContextAndReportFailure(context, reason, () -> msg.getAmqpMessage().rejected());
+
     }
 }

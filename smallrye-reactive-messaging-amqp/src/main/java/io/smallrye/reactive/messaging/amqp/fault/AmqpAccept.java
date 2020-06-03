@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.amqp.fault;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.slf4j.Logger;
 
 import io.smallrye.reactive.messaging.amqp.AmqpMessage;
+import io.smallrye.reactive.messaging.amqp.ConnectionHolder;
 import io.vertx.mutiny.core.Context;
 
 public class AmqpAccept implements AmqpFailureHandler {
@@ -24,11 +24,6 @@ public class AmqpAccept implements AmqpFailureHandler {
         logger.warn("A message sent to channel `{}` has been nacked, ignoring the failure and mark the message as accepted",
                 channel);
         logger.debug("The full ignored failure is", reason);
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        context.runOnContext(x -> {
-            msg.getAmqpMessage().accepted();
-            future.complete(null);
-        });
-        return future;
+        return ConnectionHolder.runOnContext(context, () -> msg.getAmqpMessage().accepted());
     }
 }

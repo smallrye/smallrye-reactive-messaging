@@ -2,6 +2,8 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static java.time.Duration.ofSeconds;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -108,5 +110,33 @@ public class ConnectionHolder {
                                 LOGGER.error("Unable to recover from AMQP connection disruption", t);
                             });
                 });
+    }
+
+    public static CompletionStage<Void> runOnContext(Context context, Runnable runnable) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        if (Vertx.currentContext() == context) {
+            runnable.run();
+            future.complete(null);
+        } else {
+            context.runOnContext(x -> {
+                runnable.run();
+                future.complete(null);
+            });
+        }
+        return future;
+    }
+
+    public static CompletionStage<Void> runOnContextAndReportFailure(Context context, Throwable reason, Runnable runnable) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        if (Vertx.currentContext() == context) {
+            runnable.run();
+            future.completeExceptionally(reason);
+        } else {
+            context.runOnContext(x -> {
+                runnable.run();
+                future.completeExceptionally(reason);
+            });
+        }
+        return future;
     }
 }
