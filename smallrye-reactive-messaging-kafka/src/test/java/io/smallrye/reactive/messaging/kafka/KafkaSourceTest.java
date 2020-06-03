@@ -49,6 +49,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
@@ -99,6 +100,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("broadcast", true);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
@@ -132,6 +134,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("retry-attempts", 100);
         config.put("retry-max-wait", 30);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
         List<KafkaRecord> messages1 = new ArrayList<>();
@@ -206,6 +209,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
@@ -266,6 +270,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("bootstrap.servers", SERVERS);
         config.put("sasl.jaas.config", ""); //optional configuration
         config.put("sasl.mechanism", ""); //optional configuration
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 

@@ -73,6 +73,8 @@ By default, the Reactive Messaging `Message` is acknowledged when the broker ack
 When using routers, this acknowledgement may not be enabled.
 In this case, configure the `auto-acknowledgement` attribute to acknowledge the message as soon as it has been sent to the router.
 
+If an AMQP message is rejected/released/modified by the broker (or cannot be sent successfully), the message is nacked.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-amqp-outgoing.adoc[]

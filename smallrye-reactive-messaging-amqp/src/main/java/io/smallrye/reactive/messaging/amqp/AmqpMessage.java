@@ -9,6 +9,7 @@ import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -20,16 +21,17 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     protected final Metadata metadata;
     protected final IncomingAmqpMetadata amqpMetadata;
     private final Context context;
+    protected final AmqpFailureHandler onNack;
 
     public static <T> AmqpMessageBuilder<T> builder() {
         return new AmqpMessageBuilder<>();
     }
 
-    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate, Context context) {
-        this(delegate.getDelegate(), context);
+    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate, Context context, AmqpFailureHandler onNack) {
+        this(delegate.getDelegate(), context, onNack);
     }
 
-    public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context) {
+    public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack) {
         this.message = msg;
         this.context = context;
         IncomingAmqpMetadata.IncomingAmqpMetadataBuilder builder = new IncomingAmqpMetadata.IncomingAmqpMetadataBuilder();
@@ -82,6 +84,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         }
         this.amqpMetadata = builder.build();
         this.metadata = Metadata.of(builder.build());
+        this.onNack = onNack;
     }
 
     @Override
@@ -95,6 +98,11 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
             future.complete(null);
         });
         return future;
+    }
+
+    @Override
+    public CompletionStage<Void> nack(Throwable reason) {
+        return onNack.handle(this, context, reason);
     }
 
     @SuppressWarnings("unchecked")

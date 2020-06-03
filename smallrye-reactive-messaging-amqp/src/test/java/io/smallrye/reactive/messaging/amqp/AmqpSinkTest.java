@@ -230,7 +230,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 v -> {
                     expected.getAndIncrement();
                     v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v, null));
+                    messages.add(new AmqpMessage<>(v, null, null));
                 });
 
         SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
@@ -262,7 +262,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 v -> {
                     expected.getAndIncrement();
                     v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v, null));
+                    messages.add(new AmqpMessage<>(v, null, null));
                 });
 
         SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic);
@@ -294,7 +294,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         usage.consume(topic,
                 v -> {
                     expected.getAndIncrement();
-                    messages.add(new AmqpMessage<>(v, null));
+                    messages.add(new AmqpMessage<>(v, null, null));
                 });
 
         SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
@@ -326,7 +326,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         usage.consume(topic,
                 v -> {
                     expected.getAndIncrement();
-                    messages.add(new AmqpMessage<>(v, null));
+                    messages.add(new AmqpMessage<>(v, null, null));
                 });
 
         SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkUsingChannelName(topic);

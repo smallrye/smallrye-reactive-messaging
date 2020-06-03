@@ -65,12 +65,14 @@ include::example$outbound/KafkaOutboundMetadataExample.java[tag=code]
 === Acknowledgement
 
 Kafka acknowledgement can take times depending on the configuration.
-Also it stores in-memory the records that cannot be written.
+Also, it stores in-memory the records that cannot be written.
 
 By default, the connector does not wait for Kafka to acknowledge the record and continue the processing (acknowledging the received `Message`).
 You can disable this by setting the `waitForWriteCompletion` attribute to `false`.
 
 Note the the `acks` attribute has a huge impact on the record acknowledgement.
+
+If a record cannot be written, the message is `nacked`.
 
 === Configuration Reference
 

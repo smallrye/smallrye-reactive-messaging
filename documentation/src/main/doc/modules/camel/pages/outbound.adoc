@@ -54,6 +54,7 @@ include::example$outbound/CamelOutboundMetadataExample.java[tag=code]
 === Acknowledgement
 
 The incoming messages are acknowledged when the underlying Camel exchange completes.
+If the exchange fails, the message is nacked.
 
 === Configuration Reference
 

@@ -42,6 +42,8 @@ This `CompletionStage` gets completed once the message created from the payload 
 include::example$emitter/EmitterExamples.java[tag=cs]
 ----
 
+If the processing fails, the `CompletionStage` gets completed exceptionally (with the reason of the nack).
+
 [#emitter-messages]
 == Sending messages
 
@@ -52,7 +54,7 @@ You can also send `Messages`:
 include::example$emitter/EmitterExamples.java[tag=message]
 ----
 
-When sending a `Message`, the emitter does not return a `CompletionStage`, but you can pass the acknowledgement callback, and be called when the message is acknowledged.
+When sending a `Message`, the emitter does not return a `CompletionStage`, but you can pass the ack/nack callback, and be called when the message is acked/nacked.
 
 [source, java, indent=0]
 ----

@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.reactivestreams.Publisher;
 
@@ -123,10 +124,14 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
         CompletableFuture<Void> future = new CompletableFuture<>();
-        emit(Message.of(msg, () -> {
+        emit(Message.of(msg, Metadata.empty(), () -> {
             future.complete(null);
-            return future;
-        }));
+            return CompletableFuture.completedFuture(null);
+        },
+                reason -> {
+                    future.completeExceptionally(reason);
+                    return CompletableFuture.completedFuture(null);
+                }));
         return future;
     }
 
@@ -140,7 +145,8 @@ public class EmitterImpl<T> implements Emitter<T> {
         }
         emitter.emit(message);
         if (synchronousFailure.get() != null) {
-            throw new IllegalStateException("The emitter encountered a failure while emitting", synchronousFailure.get());
+            throw new IllegalStateException("The emitter encountered a failure while emitting",
+                    synchronousFailure.get());
         }
     }
 

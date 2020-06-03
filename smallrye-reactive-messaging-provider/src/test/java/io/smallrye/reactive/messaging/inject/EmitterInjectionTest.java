@@ -1,12 +1,14 @@
 package io.smallrye.reactive.messaging.inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -63,6 +65,24 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
         assertThat(bean.emitter().hasRequests()).isFalse();
+    }
+
+    @Test
+    public void testWithPayloadsAndNack() {
+        final MyBeanEmittingPayloadsWithNack bean = installInitializeAndGet(MyBeanEmittingPayloadsWithNack.class);
+        bean.run();
+        List<CompletionStage<Void>> cs = bean.getCompletionStage();
+        assertThat(bean.emitter()).isNotNull();
+        assertThat(cs.get(0).toCompletableFuture().isDone()).isTrue();
+        assertThat(cs.get(1).toCompletableFuture().isDone()).isTrue();
+        assertThat(cs.get(2).toCompletableFuture().isDone()).isTrue();
+        assertThat(cs.get(3).toCompletableFuture().isDone()).isTrue();
+        await().until(() -> bean.list().size() == 4);
+        assertThat(bean.list()).containsExactly("a", "b", "c", "d");
+        assertThat(bean.emitter().isCancelled()).isTrue();
+        assertThat(bean.emitter().hasRequests()).isFalse();
+        assertThatThrownBy(() -> cs.get(2).toCompletableFuture().join()).isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -275,6 +295,49 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             } else {
                 return new CompletableFuture<>();
 
+            }
+
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyBeanEmittingPayloadsWithNack {
+        @Inject
+        @Channel("foo")
+        Emitter<String> emitter;
+        private final List<String> list = new CopyOnWriteArrayList<>();
+
+        private final List<CompletionStage<Void>> csList = new CopyOnWriteArrayList<>();
+
+        public Emitter<String> emitter() {
+            return emitter;
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+        public void run() {
+            csList.add(emitter.send("a"));
+            csList.add(emitter.send("b"));
+            csList.add(emitter.send("c"));
+            csList.add(emitter.send("d"));
+            emitter.complete();
+        }
+
+        List<CompletionStage<Void>> getCompletionStage() {
+            return csList;
+        }
+
+        @Incoming("foo")
+        @Acknowledgment(Strategy.MANUAL)
+        public CompletionStage<Void> consume(final Message<String> s) {
+            list.add(s.getPayload());
+
+            if ("c".equals(s.getPayload())) {
+                return s.nack(new IllegalArgumentException("c found"));
+            } else {
+                return s.ack();
             }
 
         }

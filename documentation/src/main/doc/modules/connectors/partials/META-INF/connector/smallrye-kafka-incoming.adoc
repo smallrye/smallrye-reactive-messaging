@@ -49,4 +49,20 @@ Type: _boolean_ | false | `false`
 
 Type: _string_ | false | `latest`
 
+| *failure-strategy* | Specify the failure strategy to apply when a message produced from a record is nacked. Values can be `fail` (default), `ignore`, or `dead-letter-queue`
+
+Type: _string_ | false | `fail`
+
+| *dead-letter-queue.topic* | When the `failure-strategy` is set to `dead-letter-queue` indicates on which topic the record is sent. Defaults is `dead-letter-topic-$channel`
+
+Type: _string_ | false | 
+
+| *dead-letter-queue.key.serializer* | When the `failure-strategy` is set to `dead-letter-queue` indicates the key serializer to use. If not set the serializer associated to the key deserializer is used
+
+Type: _string_ | false | 
+
+| *dead-letter-queue.value.serializer* | When the `failure-strategy` is set to `dead-letter-queue` indicates the value serializer to use. If not set the serializer associated to the value deserializer is used
+
+Type: _string_ | false | 
+
 |===

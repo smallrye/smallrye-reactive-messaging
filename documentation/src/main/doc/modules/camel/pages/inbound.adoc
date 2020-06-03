@@ -57,6 +57,17 @@ include::example$inbound/IncomingCamelMetadataExample.java[]
 
 This object lets you retrieve the Camel `Exchange`.
 
+=== Failure Management
+
+If a message produced from a Camel exchange  is _nacked_, a failure strategy is applied.
+The Camel connector supports 3 strategies:
+
+* `fail` - fail the application, no more MQTT messages will be processed. (default)
+The offset of the record that has not been processed correctly is not committed.
+* `ignore` - the failure is logged, but the processing continue.
+
+In both cases, the `exchange` is marked as rollback only and the nack reason is attached to the exchange.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-camel-incoming.adoc[]

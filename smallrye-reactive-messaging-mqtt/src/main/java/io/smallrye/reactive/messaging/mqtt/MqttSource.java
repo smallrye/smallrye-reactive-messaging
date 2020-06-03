@@ -26,6 +26,8 @@ public class MqttSource {
         String topic = config.getTopic().orElseGet(config::getChannel);
         int qos = config.getQos();
         boolean broadcast = config.getBroadcast();
+        MqttFailureHandler.Strategy strategy = MqttFailureHandler.Strategy.from(config.getFailureStrategy());
+        MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
         Clients.ClientHolder holder = Clients.getHolder(vertx, host, port, server, options);
         this.source = ReactiveStreams.fromPublisher(
@@ -35,7 +37,7 @@ public class MqttSource {
                                     subscribed.set(true);
                                     return holder.stream()
                                             .transform().byFilteringItemsWith(m -> m.topicName().equals(topic))
-                                            .onItem().apply(ReceivingMqttMessage::new);
+                                            .onItem().apply(m -> new ReceivingMqttMessage(m, onNack));
                                 }))
                         .then(multi -> {
                             if (broadcast) {
@@ -43,10 +45,19 @@ public class MqttSource {
                             }
                             return multi;
                         })
-                        .on().cancellation(() -> {
-                            subscribed.set(false);
-                        })
+                        .on().cancellation(() -> subscribed.set(false))
                         .onFailure().invoke(t -> LOGGER.error("Unable to establish a connection with the MQTT broker", t)));
+    }
+
+    private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {
+        switch (strategy) {
+            case IGNORE:
+                return new MqttIgnoreFailure(LOGGER, channel);
+            case FAIL:
+                return new MqttFailStop(LOGGER, channel);
+            default:
+                throw new IllegalArgumentException("Unknown failure strategy: " + strategy);
+        }
     }
 
     PublisherBuilder<MqttMessage<?>> getSource() {

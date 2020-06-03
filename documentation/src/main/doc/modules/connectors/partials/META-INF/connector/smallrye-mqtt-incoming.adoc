@@ -95,4 +95,8 @@ Type: _int_ | false | `0`
 
 Type: _boolean_ | false | `false`
 
+| *failure-strategy* | Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`
+
+Type: _string_ | false | `fail`
+
 |===

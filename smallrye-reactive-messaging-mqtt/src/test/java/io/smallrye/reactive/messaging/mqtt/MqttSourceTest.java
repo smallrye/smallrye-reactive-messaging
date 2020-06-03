@@ -37,6 +37,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
+        config.put("channel-name", topic);
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<MqttMessage<?>> messages = new ArrayList<>();
@@ -89,6 +90,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
+        config.put("channel-name", topic);
         config.put("broadcast", true);
 
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
@@ -130,6 +132,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
+        config.put("channel-name", topic);
         config.put("max-message-size", 20 * 1024);
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 

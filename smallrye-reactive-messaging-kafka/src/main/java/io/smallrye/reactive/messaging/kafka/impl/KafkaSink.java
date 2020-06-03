@@ -95,9 +95,15 @@ public class KafkaSink {
                 }
             });
         } else {
-            LOGGER.error("Message {} was not sent to Kafka topic '{}'", message, actualTopic,
+            LOGGER.error("Message {} was not sent to Kafka topic '{}' - nacking message", message, actualTopic,
                     ar.cause());
-            emitter.fail(ar.cause());
+            message.nack(ar.cause()).whenComplete((x, f) -> {
+                if (f != null) {
+                    emitter.fail(f);
+                } else {
+                    emitter.complete(null);
+                }
+            });
         }
     }
 

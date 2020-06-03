@@ -36,9 +36,13 @@ public class EmitterExamples {
     // tag::message-ack[]
     public void sendAsMessageWithAck(double d) {
         emitterForPrices.send(Message.of(d, () -> {
-            // Called when the message is acknowledged.
-            return CompletableFuture.completedFuture(null);
-        }));
+                // Called when the message is acknowledged.
+                return CompletableFuture.completedFuture(null);
+            },
+            reason -> {
+                // Called when the message is acknowledged negatively.
+                return CompletableFuture.completedFuture(null);
+            }));
     }
     // end::message-ack[]
 
@@ -48,6 +52,10 @@ public class EmitterExamples {
         emitterForPrices.send(Message.of(d, Metadata.of(metadata),
             () -> {
                 // Called when the message is acknowledged.
+                return CompletableFuture.completedFuture(null);
+            },
+            reason -> {
+                // Called when the message is acknowledged negatively.
                 return CompletableFuture.completedFuture(null);
             }));
     }

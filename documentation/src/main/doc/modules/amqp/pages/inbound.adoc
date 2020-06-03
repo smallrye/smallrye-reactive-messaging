@@ -110,6 +110,21 @@ include::example$inbound/AmqpMetadataExample.java[]
 
 When a Reactive Messaging `Message` associated with an AMQP Message is acknowledged, it informs the broker that the message has been _accepted_.
 
+=== Failure Management
+
+If a message produced from an AMQP message  is _nacked_, a failure strategy is applied.
+The AMQP connector supports 4 strategies:
+
+* `fail` - fail the application, no more AMQP messages will be processed (default).
+The AMQP message is mark as rejected.
+* `accept` - the failure is logged, but the processing continue.
+The AMQP message is mark as accepted.
+This strategy ignores the failure.
+* `release` - the failure is logged, but the processing continue.
+The AMQP message is mark as released.
+* `reject` - the failure is logged, but the processing continue.
+The AMQP message is mark as rejected.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-amqp-incoming.adoc[]

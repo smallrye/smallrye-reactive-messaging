@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -129,106 +130,75 @@ public class SubscriberMediator extends AbstractMediator {
     private void processMethodReturningVoid() {
         if (configuration.isBlocking()) {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .flatMapCompletionStage(message -> ((Uni<?>) invokeBlocking(message.getPayload()))
-                            .subscribeAsCompletionStage()
-                            .thenApply(x -> message))
-                    .flatMapCompletionStage(x -> {
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return getAckOrCompletion(x);
-                        } else {
-                            return CompletableFuture.completedFuture(x);
-                        }
-                    })
+                    .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
+                            .onItem().produceUni(msg -> invokeBlocking(msg.getPayload()))
+                            .onItemOrFailure().produceUni(handleInvocationResult(m))
+                            .subscribeAsCompletionStage())
                     .ignore();
         } else {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .map(message -> {
-                        invoke(message.getPayload());
-                        return message;
-                    })
-                    .flatMapCompletionStage(x -> {
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return getAckOrCompletion(x);
-                        } else {
-                            return CompletableFuture.completedFuture(x);
-                        }
-                    })
+                    .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
+                            .onItem().apply(msg -> invoke(msg.getPayload()))
+                            .onItemOrFailure().produceUni(handleInvocationResult(m))
+                            .subscribeAsCompletionStage())
                     .ignore();
         }
+    }
+
+    private BiFunction<Object, Throwable, Uni<? extends Message<? extends Object>>> handleInvocationResult(
+            Message<?> m) {
+        return (success, failure) -> {
+            if (failure != null) {
+                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                    return Uni.createFrom().completionStage(m.nack(failure).thenApply(x -> m));
+                } else {
+                    // Invocation failed, but the message may have been already acknowledged (PRE or MANUAL), so
+                    // we cannot nack. We propagate the failure downstream.
+                    return Uni.createFrom().failure(failure);
+                }
+            } else {
+                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                    return Uni.createFrom().completionStage(m.ack().thenApply(x -> m));
+                } else {
+                    return Uni.createFrom().item(m);
+                }
+            }
+        };
     }
 
     private void processMethodReturningACompletionStage() {
-        if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .flatMapCompletionStage(message -> {
-                        CompletionStage<?> stage = invoke(message.getPayload());
-                        return stage.thenApply(x -> message);
-                    })
-                    .flatMapCompletionStage(x -> {
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return getAckOrCompletion(x);
-                        } else {
-                            return CompletableFuture.completedFuture(x);
-                        }
-                    })
-                    .ignore();
-        } else {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .flatMapCompletionStage(message -> {
-                        CompletionStage<?> completion = invoke(message);
-                        return completion.thenApply(x -> message);
-                    })
-                    .flatMapCompletionStage(x -> {
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return getAckOrCompletion(x);
-                        } else {
-                            return CompletableFuture.completedFuture(x);
-                        }
-                    })
-                    .ignore();
-        }
+        boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
+        this.subscriber = ReactiveStreams.<Message<?>> builder()
+                .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                        .onItem().produceCompletionStage(m -> {
+                            CompletionStage<?> stage;
+                            if (invokeWithPayload) {
+                                stage = invoke(message.getPayload());
+                            } else {
+                                stage = invoke(message);
+                            }
+                            return stage.thenApply(x -> message);
+                        })
+                        .onItemOrFailure().produceUni(handleInvocationResult(message))
+                        .subscribeAsCompletionStage())
+                .ignore();
     }
 
     private void processMethodReturningAUni() {
-        if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .flatMapCompletionStage(message -> {
-                        Uni<?> uni = invoke(message.getPayload());
-                        return uni
-                                .onItem().apply(x -> message)
-                                .subscribeAsCompletionStage();
-                    })
-                    .flatMapCompletionStage(x -> {
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return getAckOrCompletion(x);
-                        } else {
-                            return CompletableFuture.completedFuture(x);
-                        }
-                    })
-                    .ignore();
-        } else {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .flatMapCompletionStage(message -> {
-                        Uni<?> uni = invoke(message);
-                        return uni
-                                .onItem().apply(x -> message)
-                                .subscribeAsCompletionStage();
-                    })
-                    .flatMapCompletionStage(x -> {
-                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                            return getAckOrCompletion(x);
-                        } else {
-                            return CompletableFuture.completedFuture(x);
-                        }
-                    })
-                    .ignore();
-        }
+        boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
+
+        this.subscriber = ReactiveStreams.<Message<?>> builder()
+                .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                        .onItem().produceUni(x -> {
+                            if (invokeWithPayload) {
+                                return invoke(message.getPayload());
+                            } else {
+                                return invoke(message);
+                            }
+                        })
+                        .onItemOrFailure().produceUni(handleInvocationResult(message))
+                        .subscribeAsCompletionStage())
+                .ignore();
     }
 
     @SuppressWarnings("unchecked")
@@ -247,15 +217,26 @@ public class SubscriberMediator extends AbstractMediator {
                 sub = ((SubscriberBuilder<Object, Void>) result).build();
             }
 
-            SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(sub, Message::getPayload, m -> {
-                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                    return m.ack();
-                } else {
-                    return CompletableFuture.completedFuture(null);
-                }
-            });
+            SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(sub, Message::getPayload,
+                    (m, t) -> {
+                        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                            if (t != null) {
+                                return m.nack(t);
+                            } else {
+                                return m.ack();
+                            }
+                        } else {
+                            CompletableFuture<Void> future = new CompletableFuture<>();
+                            if (t != null) {
+                                future.completeExceptionally(t);
+                            } else {
+                                future.complete(null);
+                            }
+                            return future;
+                        }
+                    });
             this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
+                    .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(wrapper)
                     .ignore();
         } else {
@@ -267,7 +248,7 @@ public class SubscriberMediator extends AbstractMediator {
             }
             Subscriber<Message<?>> casted = sub;
             this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(managePreProcessingAck())
+                    .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(new SubscriberWrapper<>(casted, Function.identity(), null))
                     .ignore();
         }

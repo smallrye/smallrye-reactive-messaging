@@ -14,7 +14,7 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
     private final OutgoingAmqpMetadata amqpMetadata;
 
     public OutgoingAmqpMessage(io.vertx.mutiny.amqp.AmqpMessage message, OutgoingAmqpMetadata amqpMetadata) {
-        super(message, null);
+        super(message, null, null);
         this.amqpMetadata = amqpMetadata;
         this.metadata = Metadata.of(amqpMetadata);
     }
@@ -76,6 +76,11 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
 
     @Override
     public CompletionStage<Void> ack() {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletionStage<Void> nack(Throwable reason) {
         return CompletableFuture.completedFuture(null);
     }
 
