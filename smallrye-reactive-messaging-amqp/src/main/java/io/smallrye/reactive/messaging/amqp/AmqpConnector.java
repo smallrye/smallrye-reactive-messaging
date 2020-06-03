@@ -115,7 +115,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         return Multi.createFrom().deferred(
                 () -> {
-                    Multi<? extends Message<?>> stream = receiver.toMulti().map(AmqpMessage::new);
+                    Multi<? extends Message<?>> stream = receiver.toMulti().map(m -> new AmqpMessage<>(m, holder.getContext()));
                     return Multi.createBy().merging().streams(stream, processor);
                 });
     }
