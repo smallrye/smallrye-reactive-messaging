@@ -6,6 +6,7 @@ import java.util.concurrent.CompletionStage;
 import org.slf4j.Logger;
 
 import io.smallrye.reactive.messaging.amqp.AmqpMessage;
+import io.vertx.mutiny.core.Context;
 
 public class AmqpFailStop implements AmqpFailureHandler {
 
@@ -18,12 +19,14 @@ public class AmqpFailStop implements AmqpFailureHandler {
     }
 
     @Override
-    public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Throwable reason) {
+    public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Context context, Throwable reason) {
         // We mark the message as rejected and fail.
         logger.error("A message sent to channel `{}` has been nacked, rejecting the message and fail-stop", channel);
-        msg.getAmqpMessage().rejected();
         CompletableFuture<Void> future = new CompletableFuture<>();
-        future.completeExceptionally(reason);
+        context.runOnContext(x -> {
+            msg.getAmqpMessage().rejected();
+            future.completeExceptionally(reason);
+        });
         return future;
     }
 }

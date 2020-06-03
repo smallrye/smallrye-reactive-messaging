@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.amqp.fault;
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.amqp.AmqpMessage;
+import io.vertx.mutiny.core.Context;
 
 public interface AmqpFailureHandler {
 
@@ -41,6 +42,6 @@ public interface AmqpFailureHandler {
         }
     }
 
-    <V> CompletionStage<Void> handle(AmqpMessage<V> message, Throwable reason);
+    <V> CompletionStage<Void> handle(AmqpMessage<V> message, Context context, Throwable reason);
 
 }

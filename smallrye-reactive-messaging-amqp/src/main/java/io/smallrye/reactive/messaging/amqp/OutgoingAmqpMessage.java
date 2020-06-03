@@ -14,7 +14,7 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
     private final OutgoingAmqpMetadata amqpMetadata;
 
     public OutgoingAmqpMessage(io.vertx.mutiny.amqp.AmqpMessage message, OutgoingAmqpMetadata amqpMetadata) {
-        super(message, null);
+        super(message, null, null);
         this.amqpMetadata = amqpMetadata;
         this.metadata = Metadata.of(amqpMetadata);
     }
