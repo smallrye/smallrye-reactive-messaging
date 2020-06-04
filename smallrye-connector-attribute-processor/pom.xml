@@ -12,7 +12,7 @@
 
   <artifactId>smallrye-connector-attribute-processor</artifactId>
 
-  <name>SmallRye Reactive Messaging : Attribute Processor</name>
+  <name>SmallRye Reactive Messaging : Connector Attribute Processor</name>
 
   <dependencies>
     <dependency>
