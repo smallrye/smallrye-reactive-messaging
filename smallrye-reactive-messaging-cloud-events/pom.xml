@@ -10,6 +10,8 @@
 
   <artifactId>smallrye-reactive-messaging-cloud-events</artifactId>
 
+  <name>SmallRye Reactive Messaging : Connector :: Cloud Events</name>
+
   <dependencies>
     <dependency>
       <groupId>io.cloudevents</groupId>

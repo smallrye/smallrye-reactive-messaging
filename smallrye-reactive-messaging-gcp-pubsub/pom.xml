@@ -10,7 +10,7 @@
 
   </properties>
   <artifactId>smallrye-reactive-messaging-gcp-pubsub</artifactId>
-  <name>Smallrye Reactive Messaging for GCP Pub/Sub</name>
+  <name>SmallRye Reactive Messaging : Connector :: GCP Pub/Sub</name>
   <description>A module for Smallrye reactive messaging integration with GCP Pub/Sub Service</description>
   <dependencyManagement>
     <dependencies>

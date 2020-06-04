@@ -11,8 +11,8 @@
 
   <artifactId>mqtt-server-quickstart</artifactId>
 
-  <name>SmallRye Reactive Messaging MQTT server quickstart</name>
-
+  <name>SmallRye Reactive Messaging : Quickstart :: MQTT Server</name>    
+  
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>

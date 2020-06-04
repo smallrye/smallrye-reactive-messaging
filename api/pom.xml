@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>smallrye-reactive-messaging-api</artifactId>
-    <name>SmallRye Reactive Messaging API</name>
+    <name>SmallRye Reactive Messaging : API</name>
 
     <dependencies>
         <!--

@@ -11,6 +11,8 @@
   </parent>
 
   <artifactId>reactive-messaging-quickstart</artifactId>
+  
+  <name>SmallRye Reactive Messaging : Quickstart :: General</name>    
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
