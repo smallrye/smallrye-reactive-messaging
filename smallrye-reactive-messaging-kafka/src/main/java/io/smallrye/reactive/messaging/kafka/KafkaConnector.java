@@ -107,7 +107,6 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     private Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
-        System.out.println("Merging config with " + defaultKafkaCfg);
         return new Config() {
             @SuppressWarnings("unchecked")
             @Override
