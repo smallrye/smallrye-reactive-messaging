@@ -23,6 +23,10 @@ Type: _int_ | false | `1000`
 
 Type: _string_ | false | 
 
+| *credit-retrieval-period* | The period (in milliseconds) between two attempts to retrieve the credits granted by the broker. This time is used when the sender run out of credits.
+
+Type: _int_ | false | `2000`
+
 | *durable* | Whether sent AMQP messages are marked durable
 
 Type: _boolean_ | false | `true`
