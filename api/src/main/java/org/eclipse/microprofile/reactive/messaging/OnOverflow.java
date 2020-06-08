@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,14 +18,17 @@
  */
 package org.eclipse.microprofile.reactive.messaging;
 
-import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.ElementType.CONSTRUCTOR;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Allows configuring the back pressure policy on injected {@link Emitter}:
+ * Configures the back pressure policy on an injected {@link Emitter}:
  *
  * <pre>
  * {
@@ -52,14 +55,24 @@ public @interface OnOverflow {
          * This creates a buffer with the size specified by {@link #bufferSize()} if present.
          * Otherwise, the size will be the value of the config property
          * <strong>mp.messaging.emitter.default-buffer-size</strong>.
-         * If the buffer is full, an error will be propagated.
+         * <p>
+         * If the buffer is full, an {@link IllegalStateException} will be thrown by the {@code Emitter.send} method.
          */
         BUFFER,
+
         /**
          * Buffers <strong>all</strong> values until the downstream consumes it.
-         * This creates an unbound buffer. If the buffer is full, the application will die of {@code OutOfMemory}.
+         * This creates an unbounded buffer so the application may run out of memory if values are continually added faster than
+         * they are consumed.
          */
         UNBOUNDED_BUFFER,
+
+        /**
+         * Causes an {@link IllegalStateException} to be thrown by the {@code Emitter.send} method if the downstream can't keep
+         * up.
+         */
+        THROW_EXCEPTION,
+
         /**
          * Drops the most recent value if the downstream can't keep up. It means that new value emitted by the upstream
          * are ignored.
@@ -67,7 +80,8 @@ public @interface OnOverflow {
         DROP,
 
         /**
-         * Propagates a failure in case the downstream can't keep up.
+         * Sends an error signal to the downstream subscriber in the case where it can't keep up.
+         * This terminates the reactive stream so no more values will be published.
          */
         FAIL,
 

@@ -10,14 +10,14 @@
 
   </properties>
   <artifactId>smallrye-reactive-messaging-gcp-pubsub</artifactId>
-  <name>Smallrye Reactive Messaging for GCP Pub/Sub</name>
+  <name>SmallRye Reactive Messaging : Connector :: GCP Pub/Sub</name>
   <description>A module for Smallrye reactive messaging integration with GCP Pub/Sub Service</description>
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
-        <version>5.4.0</version>
+        <version>5.5.0</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>

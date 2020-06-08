@@ -11,9 +11,11 @@
 
   <artifactId>smallrye-reactive-messaging-kafka</artifactId>
 
+  <name>SmallRye Reactive Messaging : Connector :: Kafka</name>
+
   <properties>
     <kafka.version>2.5.0</kafka.version>
-    <debezium.version>1.1.1.Final</debezium.version>
+    <debezium.version>1.1.2.Final</debezium.version>
   </properties>
 
   <dependencies>

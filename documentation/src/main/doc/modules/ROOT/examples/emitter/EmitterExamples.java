@@ -1,5 +1,6 @@
 package emitter;
 
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 import messages.MyMetadata;
 import org.eclipse.microprofile.reactive.messaging.*;
 
@@ -35,9 +36,13 @@ public class EmitterExamples {
     // tag::message-ack[]
     public void sendAsMessageWithAck(double d) {
         emitterForPrices.send(Message.of(d, () -> {
-            // Called when the message is acknowledged.
-            return CompletableFuture.completedFuture(null);
-        }));
+                // Called when the message is acknowledged.
+                return CompletableFuture.completedFuture(null);
+            },
+            reason -> {
+                // Called when the message is acknowledged negatively.
+                return CompletableFuture.completedFuture(null);
+            }));
     }
     // end::message-ack[]
 
@@ -48,9 +53,33 @@ public class EmitterExamples {
             () -> {
                 // Called when the message is acknowledged.
                 return CompletableFuture.completedFuture(null);
+            },
+            reason -> {
+                // Called when the message is acknowledged negatively.
+                return CompletableFuture.completedFuture(null);
             }));
     }
     // end::message-meta[]
+
+    // tag::broadcast[]
+    @Inject
+    @Broadcast
+    @Channel("prices") Emitter<Double> emitter;
+
+    public void emit(double d) {
+        emitter.send(d);
+    }
+
+    @Incoming("prices")
+    public void handle(double d) {
+        // Handle the new price
+    }
+
+    @Incoming("prices")
+    public void audit(double d) {
+        // Audit the price change
+    }
+    // end::broadcast[]
 
     static class OverflowExample {
         // tag::overflow[]

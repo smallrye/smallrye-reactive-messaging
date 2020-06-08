@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static org.awaitility.Awaitility.await;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
@@ -50,6 +52,7 @@ public class KafkaTestBase {
         } catch (Exception e) {
             // Ignore it.
         }
+        await().until(() -> !kafka.isRunning());
     }
 
     @Before
@@ -68,6 +71,7 @@ public class KafkaTestBase {
         } catch (Exception e) {
             // Ignore me.
         }
+        await().until(() -> !kafka.isRunning());
         Thread.sleep(i * 1000);
         kafka.startup();
     }

@@ -7,12 +7,14 @@ import java.util.function.Consumer;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
+import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
 
 /**
  * Implementation of the emitter pattern.
@@ -28,8 +30,9 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     private AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
 
-    public EmitterImpl(String name, String overFlowStrategy, long bufferSize, long defaultBufferSize) {
-        this.name = name;
+    @SuppressWarnings("unchecked")
+    public EmitterImpl(EmitterConfiguration config, long defaultBufferSize) {
+        this.name = config.name;
         if (defaultBufferSize <= 0) {
             throw new IllegalArgumentException("The default buffer size must be strictly positive");
         }
@@ -41,30 +44,39 @@ public class EmitterImpl<T> implements Emitter<T> {
             }
         };
 
-        if (overFlowStrategy == null) {
+        Multi<Message<? extends T>> tempPublisher;
+        if (config.overflowBufferStrategy == null) {
             Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
-            publisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
+            tempPublisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
         } else {
-            publisher = getPublisherForStrategy(overFlowStrategy, bufferSize, defaultBufferSize, deferred);
+            tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy, config.overflowBufferSize,
+                    defaultBufferSize, deferred);
+        }
+
+        if (config.broadcast) {
+            publisher = (Multi<Message<? extends T>>) BroadcastHelper
+                    .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting).buildRs();
+        } else {
+            publisher = tempPublisher;
         }
     }
 
-    Multi<Message<? extends T>> getPublisherForStrategy(String overFlowStrategy, long bufferSize,
+    Multi<Message<? extends T>> getPublisherForStrategy(OnOverflow.Strategy overFlowStrategy, long bufferSize,
             long defaultBufferSize,
             Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
-        OnOverflow.Strategy strategy = OnOverflow.Strategy.valueOf(overFlowStrategy);
-
-        switch (strategy) {
+        switch (overFlowStrategy) {
             case BUFFER:
-                Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
                 if (bufferSize > 0) {
-                    return getPublisherUsingBufferStrategy(bufferSize, multi);
+                    return ThrowingEmitter.create(deferred, bufferSize);
                 } else {
-                    return getPublisherUsingBufferStrategy(defaultBufferSize, multi);
+                    return ThrowingEmitter.create(deferred, defaultBufferSize);
                 }
 
             case UNBOUNDED_BUFFER:
                 return Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
+
+            case THROW_EXCEPTION:
+                return ThrowingEmitter.create(deferred, 0);
 
             case DROP:
                 return Multi.createFrom().emitter(deferred, BackPressureStrategy.DROP);
@@ -112,10 +124,14 @@ public class EmitterImpl<T> implements Emitter<T> {
             throw new IllegalArgumentException("`null` is not a valid value");
         }
         CompletableFuture<Void> future = new CompletableFuture<>();
-        emit(Message.of(msg, () -> {
+        emit(Message.of(msg, Metadata.empty(), () -> {
             future.complete(null);
-            return future;
-        }));
+            return CompletableFuture.completedFuture(null);
+        },
+                reason -> {
+                    future.completeExceptionally(reason);
+                    return CompletableFuture.completedFuture(null);
+                }));
         return future;
     }
 
@@ -129,7 +145,8 @@ public class EmitterImpl<T> implements Emitter<T> {
         }
         emitter.emit(message);
         if (synchronousFailure.get() != null) {
-            throw new IllegalStateException("The emitter encountered a failure while emitting", synchronousFailure.get());
+            throw new IllegalStateException("The emitter encountered a failure while emitting",
+                    synchronousFailure.get());
         }
     }
 
@@ -174,8 +191,9 @@ public class EmitterImpl<T> implements Emitter<T> {
     }
 
     @Override
-    public boolean isRequested() {
+    public boolean hasRequests() {
         MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         return !isCancelled() && emitter.requested() > 0;
     }
+
 }

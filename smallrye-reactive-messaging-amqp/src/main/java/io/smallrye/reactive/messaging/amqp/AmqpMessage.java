@@ -4,16 +4,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.qpid.proton.amqp.Binary;
-import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
-import org.apache.qpid.proton.amqp.messaging.AmqpValue;
-import org.apache.qpid.proton.amqp.messaging.Data;
-import org.apache.qpid.proton.amqp.messaging.Header;
-import org.apache.qpid.proton.amqp.messaging.Section;
+import org.apache.qpid.proton.amqp.messaging.*;
 import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
@@ -22,17 +20,20 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     protected final io.vertx.amqp.AmqpMessage message;
     protected final Metadata metadata;
     protected final IncomingAmqpMetadata amqpMetadata;
+    private final Context context;
+    protected final AmqpFailureHandler onNack;
 
     public static <T> AmqpMessageBuilder<T> builder() {
         return new AmqpMessageBuilder<>();
     }
 
-    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate) {
-        this(delegate.getDelegate());
+    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate, Context context, AmqpFailureHandler onNack) {
+        this(delegate.getDelegate(), context, onNack);
     }
 
-    public AmqpMessage(io.vertx.amqp.AmqpMessage msg) {
+    public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack) {
         this.message = msg;
+        this.context = context;
         IncomingAmqpMetadata.IncomingAmqpMetadataBuilder builder = new IncomingAmqpMetadata.IncomingAmqpMetadataBuilder();
         if (msg.address() != null) {
             builder.withAddress(msg.address());
@@ -83,12 +84,25 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         }
         this.amqpMetadata = builder.build();
         this.metadata = Metadata.of(builder.build());
+        this.onNack = onNack;
     }
 
     @Override
     public CompletionStage<Void> ack() {
-        this.message.accepted();
-        return CompletableFuture.completedFuture(null);
+        // We must switch to the context having created the message.
+        // This context is passed when this instance of message is created.
+        // It's more a Vert.x AMQP client issue which should ensure calling `accepted` on the right context.
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        this.context.runOnContext(x -> {
+            this.message.accepted();
+            future.complete(null);
+        });
+        return future;
+    }
+
+    @Override
+    public CompletionStage<Void> nack(Throwable reason) {
+        return onNack.handle(this, context, reason);
     }
 
     @SuppressWarnings("unchecked")

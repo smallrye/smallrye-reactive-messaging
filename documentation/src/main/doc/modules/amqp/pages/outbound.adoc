@@ -73,9 +73,51 @@ By default, the Reactive Messaging `Message` is acknowledged when the broker ack
 When using routers, this acknowledgement may not be enabled.
 In this case, configure the `auto-acknowledgement` attribute to acknowledge the message as soon as it has been sent to the router.
 
+If an AMQP message is rejected/released/modified by the broker (or cannot be sent successfully), the message is nacked.
+
+=== Back Pressure and Credits
+
+The back-pressure is handled by AMQP _credits_.
+The outbound connector only requests the amount of allowed credits.
+When the amount of credits reaches 0, it waits (in a non-blocking fashion) until the broker grants more credits to the AMQP sender.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-amqp-outgoing.adoc[]
 
 You can also pass any property supported by the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP client] as attribute.
 
+To use an existing _address_ or _queue_, you need to configure the `address`, `container-id` and, optionally, the `link-name` attributes.
+For example, if you have an Apache Artemis broker configured with:
+
+[source, xml]
+----
+<queues>
+    <queue name="people">
+        <address>people</address>
+        <durable>true</durable>
+        <user>artemis</user>
+    </queue>
+</queues>
+----
+
+You need the following configuration:
+
+[source, properties]
+----
+mp.messaging.outgoing.people.connector=smallrye-amqp
+mp.messaging.outgoing.people.durable=true
+mp.messaging.outgoing.people.address=people
+mp.messaging.outgoing.people.container-id=people
+----
+
+You may need to configure the `link-name` attribute, if the queue name is not the channel name:
+
+[source, properties]
+----
+mp.messaging.outgoing.people-out.connector=smallrye-amqp
+mp.messaging.outgoing.people-out.durable=true
+mp.messaging.outgoing.people-out.address=people
+mp.messaging.outgoing.people-out.container-id=people
+mp.messaging.outgoing.people-out.link-name=people
+----

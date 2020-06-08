@@ -10,13 +10,12 @@ import javax.enterprise.inject.Instance;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.slf4j.LoggerFactory;
 
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
 
 public abstract class AbstractMediator {
 
@@ -124,12 +123,14 @@ public abstract class AbstractMediator {
     public abstract boolean isConnected();
 
     protected Function<Message<?>, ? extends CompletionStage<? extends Message<?>>> managePreProcessingAck() {
-        return message -> {
-            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
-                return getAckOrCompletion(message);
-            }
-            return CompletableFuture.completedFuture(message);
-        };
+        return this::handlePreProcessingAck;
+    }
+
+    protected CompletionStage<Message<?>> handlePreProcessingAck(Message<?> message) {
+        if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
+            return getAckOrCompletion(message);
+        }
+        return CompletableFuture.completedFuture(message);
     }
 
     public PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> input) {
@@ -142,13 +143,7 @@ public abstract class AbstractMediator {
         }
 
         if (configuration.getBroadcast()) {
-            Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(input.buildRs());
-            if (configuration.getNumberOfSubscriberBeforeConnecting() != 0) {
-                return ReactiveStreams.fromPublisher(publisher
-                        .broadcast().toAtLeast(configuration.getNumberOfSubscriberBeforeConnecting()));
-            } else {
-                return ReactiveStreams.fromPublisher(publisher.broadcast().toAllSubscribers());
-            }
+            return BroadcastHelper.broadcastPublisher(input.buildRs(), configuration.getNumberOfSubscriberBeforeConnecting());
         } else {
             return input;
         }

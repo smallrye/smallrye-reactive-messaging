@@ -1,0 +1,30 @@
+package io.smallrye.reactive.messaging.amqp.fault;
+
+import java.util.concurrent.CompletionStage;
+
+import org.slf4j.Logger;
+
+import io.smallrye.reactive.messaging.amqp.AmqpMessage;
+import io.smallrye.reactive.messaging.amqp.ConnectionHolder;
+import io.vertx.mutiny.core.Context;
+
+public class AmqpRelease implements AmqpFailureHandler {
+
+    private final Logger logger;
+    private final String channel;
+
+    public AmqpRelease(Logger logger, String channel) {
+        this.logger = logger;
+        this.channel = channel;
+    }
+
+    @Override
+    public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Context context, Throwable reason) {
+        // We mark the message as rejected and fail.
+        logger.warn(
+                "A message sent to channel `{}` has been nacked, ignoring the failure and mark the message as released",
+                channel);
+        logger.debug("The full ignored failure is", reason);
+        return ConnectionHolder.runOnContext(context, () -> msg.getAmqpMessage().released());
+    }
+}

@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.smallrye</groupId>
     <artifactId>smallrye-parent</artifactId>
-    <version>18</version>
+    <version>20</version>
   </parent>
 
   <groupId>io.smallrye.reactive</groupId>
@@ -14,7 +14,8 @@
   <version>2.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>MicroProfile Reactive Streams Messaging Implementation</name>
+  <name>SmallRye Reactive Messaging</name>
+  
   <description>An implementation of the MicroProfile Reactive Streams Messaging specification</description>
   <url>http://smallrye.io</url>
 
@@ -70,13 +71,14 @@
 
     <smallrye-config.version>1.8.0</smallrye-config.version>
     <smallrye-metrics.version>2.4.2</smallrye-metrics.version>
+    <smallrye-common.version>1.0.2</smallrye-common.version>
 
-    <mutiny.version>0.5.0</mutiny.version>
+    <mutiny.version>0.5.2</mutiny.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
     <smallrye-reactive-converter-api.version>1.0.13</smallrye-reactive-converter-api.version>
-    <smallrye-vertx-mutiny-clients.version>0.0.16</smallrye-vertx-mutiny-clients.version>
+    <smallrye-vertx-mutiny-clients.version>0.1.0</smallrye-vertx-mutiny-clients.version>
   </properties>
 
   <modules>
@@ -169,6 +171,11 @@
         <groupId>io.smallrye.config</groupId>
         <artifactId>smallrye-config</artifactId>
         <version>${smallrye-config.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.common</groupId>
+        <artifactId>smallrye-common-annotation</artifactId>
+        <version>${smallrye-common.version}</version>
       </dependency>
 
       <dependency>

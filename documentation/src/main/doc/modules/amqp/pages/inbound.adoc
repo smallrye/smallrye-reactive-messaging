@@ -110,8 +110,58 @@ include::example$inbound/AmqpMetadataExample.java[]
 
 When a Reactive Messaging `Message` associated with an AMQP Message is acknowledged, it informs the broker that the message has been _accepted_.
 
+=== Failure Management
+
+If a message produced from an AMQP message  is _nacked_, a failure strategy is applied.
+The AMQP connector supports 4 strategies:
+
+* `fail` - fail the application, no more AMQP messages will be processed (default).
+The AMQP message is mark as rejected.
+* `accept` - the failure is logged, but the processing continue.
+The AMQP message is mark as accepted.
+This strategy ignores the failure.
+* `release` - the failure is logged, but the processing continue.
+The AMQP message is mark as released.
+* `reject` - the failure is logged, but the processing continue.
+The AMQP message is mark as rejected.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-amqp-incoming.adoc[]
 
 You can also pass any property supported by the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP client] as attribute.
+
+To use an existing _address_ or _queue_, you need to configure the `address`, `container-id` and, optionally, the `link-name` attributes.
+For example, if you have an Apache Artemis broker configured with:
+
+[source, xml]
+----
+<queues>
+    <queue name="people">
+        <address>people</address>
+        <durable>true</durable>
+        <user>artemis</user>
+    </queue>
+</queues>
+----
+
+You need the following configuration:
+
+[source, properties]
+----
+mp.messaging.incoming.people.connector=smallrye-amqp
+mp.messaging.incoming.people.durable=true
+mp.messaging.incoming.people.address=people
+mp.messaging.incoming.people.container-id=people
+----
+
+You may need to configure the `link-name` attribute, if the queue name is not the channel name:
+
+[source, properties]
+----
+mp.messaging.incoming.people-in.connector=smallrye-amqp
+mp.messaging.incoming.people-in.durable=true
+mp.messaging.incoming.people-in.address=people
+mp.messaging.incoming.people-in.container-id=people
+mp.messaging.incoming.people-in.link-name=people
+----

@@ -11,6 +11,8 @@
 
   <artifactId>smallrye-reactive-messaging-mqtt</artifactId>
 
+  <name>SmallRye Reactive Messaging : Connector :: MQTT</name>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

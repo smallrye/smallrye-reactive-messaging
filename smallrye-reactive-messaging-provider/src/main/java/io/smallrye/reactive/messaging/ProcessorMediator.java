@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -13,6 +12,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
@@ -46,11 +46,7 @@ public class ProcessorMediator extends AbstractMediator {
 
     @Override
     protected <T> Uni<T> invokeBlocking(Object... args) {
-        return super.<T> invokeBlocking(args)
-                .onItem()
-                .ifNull()
-                .failWith(new NullPointerException("The operation "
-                        + this.configuration.methodAsString() + " has returned null"));
+        return super.invokeBlocking(args);
     }
 
     @Override
@@ -247,46 +243,44 @@ public class ProcessorMediator extends AbstractMediator {
         if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
             if (configuration.isBlocking()) {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .<Message<?>> flatMapCompletionStage(input -> {
-                            Uni<?> uni = invokeBlocking(input.getPayload());
-                            if (uni != null) {
-                                return uni
-                                        .subscribeAsCompletionStage()
-                                        .thenApply(result -> {
-                                            if (result != null) {
-                                                return (Message<?>) result;
-                                            } else {
-                                                throw new NullPointerException(
-                                                        "Result of " + getMethodAsString() + " was null");
-                                            }
-                                        });
-                            } else {
-                                throw new NullPointerException("Uni returned from " + getMethodAsString() + " was null");
-                            }
-                        })
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().produceUni(x -> invokeBlocking(message.getPayload()))
+                                .onItem().apply(x -> (Message<?>) x)
+                                .onItemOrFailure().<Message<Object>> produceUni(this::handlePostInvocationWithMessage)
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .map(input -> (Message<?>) invoke(input.getPayload()))
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().apply(x -> invoke(message.getPayload()))
+                                .onItem().apply(x -> (Message<?>) x)
+                                .onItemOrFailure().<Message<Object>> produceUni(this::handlePostInvocationWithMessage)
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             }
         } else {
             if (configuration.isBlocking()) {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input))
-                                .subscribeAsCompletionStage()
-                                .thenApply(result -> (Message<?>) result))
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().produceUni(x -> invokeBlocking(message))
+                                .onItem().apply(x -> (Message<?>) x)
+                                .onItemOrFailure().<Message<Object>> produceUni(this::handlePostInvocationWithMessage)
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .map(input -> (Message<?>) invoke(input))
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().apply(x -> invoke(message))
+                                .onItem().apply(x -> (Message<?>) x)
+                                .onItemOrFailure().<Message<Object>> produceUni(this::handlePostInvocationWithMessage)
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             }
         }
+    }
+
+    private boolean isPostAck() {
+        return configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING;
     }
 
     private void processMethodReturningIndividualPayloadAndConsumingIndividualItem() {
@@ -294,108 +288,121 @@ public class ProcessorMediator extends AbstractMediator {
         if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
             if (configuration.isBlocking()) {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input.getPayload()))
-                                .subscribeAsCompletionStage()
-                                .thenApply(result -> {
-                                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                                        return input.withPayload(result);
-                                    } else {
-                                        return Message.of(result, input.getMetadata());
-                                    }
-                                }))
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().produceUni(x -> (Uni<?>) invokeBlocking(message.getPayload()))
+                                .onItemOrFailure()
+                                .<Message<Object>> produceUni((res, fail) -> handlePostInvocation(message, res, fail))
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .<Message<?>> map(input -> {
-                            Object result = invoke(input.getPayload());
-                            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                                return input.withPayload(result);
-                            } else {
-                                return Message.of(result, input.getMetadata());
-                            }
-                        })
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().apply(input -> invoke(input.getPayload()))
+                                .onItemOrFailure()
+                                .<Message<Object>> produceUni((res, fail) -> handlePostInvocation(message, res, fail))
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             }
         } else {
+            // Method consuming message and producing payloads
             if (configuration.isBlocking()) {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .<Message<?>> flatMapCompletionStage(input -> ((Uni<?>) invokeBlocking(input))
-                                .subscribeAsCompletionStage()
-                                .thenApply(result -> {
-                                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                                        return Message.of(result, input::ack);
-                                    } else {
-                                        return Message.of(result);
-                                    }
-                                }))
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().produceUni(x -> (Uni<?>) invokeBlocking(message))
+                                .onItemOrFailure()
+                                .<Message<Object>> produceUni((res, fail) -> handlePostInvocation(message, res, fail))
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
-                        .flatMapCompletionStage(managePreProcessingAck())
-                        .<Message<?>> map(input -> {
-                            Object result = invoke(input);
-                            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                                return Message.of(result, input::ack);
-                            } else {
-                                return Message.of(result);
-                            }
-                        })
+                        .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                                .onItem().apply(this::invoke)
+                                .onItemOrFailure()
+                                .<Message<Object>> produceUni((res, fail) -> handlePostInvocation(message, res, fail))
+                                .onItem().produceMulti(this::handleSkip))
                         .buildRs();
             }
         }
     }
 
+    private Publisher<? extends Message<Object>> handleSkip(Message<Object> m) {
+        if (m == null) { // If message is null, skip.
+            return Multi.createFrom().empty();
+        } else {
+            return Multi.createFrom().item(m);
+        }
+    }
+
+    private Uni<? extends Message<Object>> handlePostInvocation(Message<?> message, Object res, Throwable fail) {
+        if (fail != null) {
+            if (isPostAck()) {
+                return Uni.createFrom()
+                        .completionStage(message.nack(fail).thenApply(x -> (Message<Object>) null));
+            } else {
+                throw new ProcessingException(getMethodAsString(), fail);
+            }
+        } else if (res != null) {
+            if (isPostAck()) {
+                return Uni.createFrom().item(message.withPayload(res));
+            } else {
+                return Uni.createFrom().item(Message.of(res, message.getMetadata()));
+            }
+        } else {
+            // the method returned null, the message is not forwarded, but we ack the message in post ack
+            if (isPostAck()) {
+                return Uni.createFrom()
+                        .completionStage(message.ack().thenApply(x -> (Message<Object>) null));
+            } else {
+                return Uni.createFrom().nullItem();
+            }
+        }
+    }
+
+    private Uni<? extends Message<Object>> handlePostInvocationWithMessage(Message<?> res,
+            Throwable fail) {
+        if (fail != null) {
+            throw new ProcessingException(getMethodAsString(), fail);
+        } else if (res != null) {
+            return Uni.createFrom().item((Message<Object>) res);
+        } else {
+            // the method returned null, the message is not forwarded
+            return Uni.createFrom().nullItem();
+        }
+    }
+
     private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualMessage() {
         this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .flatMapCompletionStage(this::<CompletionStage<Message<?>>> invoke)
+                .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                        .onItem().produceCompletionStage(x -> invoke(message))
+                        .onItemOrFailure().produceUni((res, fail) -> handlePostInvocationWithMessage((Message) res, fail))
+                        .onItem().produceMulti(this::handleSkip))
                 .buildRs();
     }
 
     private void processMethodReturningAUniOfMessageAndConsumingIndividualMessage() {
         this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .flatMapCompletionStage(input -> {
-                    Uni<Message<?>> uni = invoke(input);
-                    return uni.subscribeAsCompletionStage();
-                })
+                .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                        .onItem().produceUni(x -> invoke(message))
+                        .onItemOrFailure().produceUni((res, fail) -> handlePostInvocationWithMessage((Message) res, fail))
+                        .onItem().produceMulti(this::handleSkip))
                 .buildRs();
     }
 
     private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualPayload() {
         this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .<Message<?>> flatMapCompletionStage(input -> {
-                    CompletionStage<Object> cs = invoke(input.getPayload());
-                    return cs
-                            .thenApply(res -> Message.of(res, input.getMetadata(), () -> {
-                                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                                    return input.ack();
-                                } else {
-                                    return CompletableFuture.<Void> completedFuture(null);
-                                }
-                            }));
-                })
+                .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                        .onItem().produceCompletionStage(x -> invoke(message.getPayload()))
+                        .onItemOrFailure().produceUni((res, fail) -> handlePostInvocation(message, res, fail))
+                        .onItem().produceMulti(this::handleSkip))
                 .buildRs();
     }
 
     private void processMethodReturningAUniOfPayloadAndConsumingIndividualPayload() {
         this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .<Message<?>> flatMapCompletionStage(input -> {
-                    Uni<Object> uni = invoke(input.getPayload());
-                    return uni
-                            .map(res -> Message.of(res, input.getMetadata(), () -> {
-                                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                                    return input.ack();
-                                } else {
-                                    return CompletableFuture.completedFuture(null);
-                                }
-                            })).subscribeAsCompletionStage();
-                })
+                .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                        .onItem().produceUni(x -> invoke(message.getPayload()))
+                        .onItemOrFailure().produceUni((res, fail) -> handlePostInvocation(message, res, fail))
+                        .onItem().produceMulti(this::handleSkip))
                 .buildRs();
     }
 

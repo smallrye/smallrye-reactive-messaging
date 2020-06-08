@@ -2,6 +2,8 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static java.time.Duration.ofSeconds;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -11,19 +13,47 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpConnection;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 
 public class ConnectionHolder {
 
     private final AmqpClient client;
     private final AmqpConnectorCommonConfiguration configuration;
-    private final AtomicReference<AmqpConnection> holder = new AtomicReference<>();
+    private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionHolder.class);
+    private final Vertx vertx;
     private Consumer<Throwable> callback;
 
     public ConnectionHolder(AmqpClient client,
-            AmqpConnectorCommonConfiguration configuration) {
+            AmqpConnectorCommonConfiguration configuration,
+            Vertx vertx) {
         this.client = client;
         this.configuration = configuration;
+        this.vertx = vertx;
+    }
+
+    public Context getContext() {
+        CurrentConnection connection = holder.get();
+        if (connection != null) {
+            return connection.context;
+        } else {
+            return null;
+        }
+    }
+
+    public Vertx getVertx() {
+        return vertx;
+    }
+
+    private static class CurrentConnection {
+        final AmqpConnection connection;
+        final Context context;
+
+        private CurrentConnection(AmqpConnection connection, Context context) {
+            this.connection = connection;
+            this.context = context;
+        }
     }
 
     public synchronized void onFailure(Consumer<Throwable> callback) {
@@ -31,22 +61,31 @@ public class ConnectionHolder {
     }
 
     public Uni<AmqpConnection> getOrEstablishConnection() {
-        return Uni.createFrom().item(holder::get)
+        return Uni.createFrom().item(() -> {
+            CurrentConnection connection = holder.get();
+            if (connection != null && connection.connection != null && !connection.connection.isDisconnected()) {
+                return connection.connection;
+            } else {
+                return null;
+            }
+        })
                 .onItem().ifNull().switchTo(() -> {
                     // we don't have a connection, try to connect.
                     Integer retryInterval = configuration.getReconnectInterval();
                     Integer retryAttempts = configuration.getReconnectAttempts();
 
-                    AmqpConnection current = holder.get();
-                    if (current != null && !current.isDisconnected()) {
-                        return Uni.createFrom().item(current);
+                    CurrentConnection reference = holder.get();
+
+                    if (reference != null && reference.connection != null && !reference.connection.isDisconnected()) {
+                        AmqpConnection connection = reference.connection;
+                        return Uni.createFrom().item(connection);
                     }
 
                     return client.connect()
                             .on().subscribed(s -> LOGGER.info("Establishing connection with AMQP broker"))
                             .onItem().apply(conn -> {
                                 LOGGER.info("Connection with AMQP broker established");
-                                holder.set(conn);
+                                holder.set(new CurrentConnection(conn, Vertx.currentContext()));
                                 conn
                                         .exceptionHandler(t -> {
                                             holder.set(null);
@@ -78,5 +117,33 @@ public class ConnectionHolder {
                                 LOGGER.error("Unable to recover from AMQP connection disruption", t);
                             });
                 });
+    }
+
+    public static CompletionStage<Void> runOnContext(Context context, Runnable runnable) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        if (Vertx.currentContext() == context) {
+            runnable.run();
+            future.complete(null);
+        } else {
+            context.runOnContext(x -> {
+                runnable.run();
+                future.complete(null);
+            });
+        }
+        return future;
+    }
+
+    public static CompletionStage<Void> runOnContextAndReportFailure(Context context, Throwable reason, Runnable runnable) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        if (Vertx.currentContext() == context) {
+            runnable.run();
+            future.completeExceptionally(reason);
+        } else {
+            context.runOnContext(x -> {
+                runnable.run();
+                future.completeExceptionally(reason);
+            });
+        }
+        return future;
     }
 }

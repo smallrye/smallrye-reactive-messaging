@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.reactivestreams.Processor;
@@ -12,11 +13,12 @@ import org.reactivestreams.Subscription;
 public class SubscriberWrapper<I, T> implements Processor<T, T> {
 
     private final Subscriber<I> delegate;
-    private final Function<T, CompletionStage<Void>> postAck;
+    private final BiFunction<T, Throwable, CompletionStage<Void>> postAck;
     AtomicReference<Subscriber<? super T>> subscriber = new AtomicReference<>();
     private Function<T, I> mapper;
 
-    public SubscriberWrapper(Subscriber<I> subscriber, Function<T, I> mapper, Function<T, CompletionStage<Void>> postAck) {
+    public SubscriberWrapper(Subscriber<I> subscriber, Function<T, I> mapper,
+            BiFunction<T, Throwable, CompletionStage<Void>> postAck) {
         this.delegate = Objects.requireNonNull(subscriber);
         this.mapper = Objects.requireNonNull(mapper);
         this.postAck = postAck;
@@ -50,12 +52,16 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
         try {
             delegate.onNext(mapper.apply(item));
             if (postAck != null) {
-                postAck.apply(item).thenAccept(x -> subscriber.get().onNext(item));
+                postAck.apply(item, null).thenAccept(x -> subscriber.get().onNext(item));
             } else {
                 subscriber.get().onNext(item);
             }
         } catch (Exception e) {
-            subscriber.get().onError(e);
+            if (postAck != null) {
+                postAck.apply(item, e).thenAccept(x -> subscriber.get().onNext(item));
+            } else {
+                subscriber.get().onError(e);
+            }
         }
     }
 

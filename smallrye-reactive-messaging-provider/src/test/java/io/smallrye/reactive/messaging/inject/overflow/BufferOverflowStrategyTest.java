@@ -20,7 +20,6 @@ import org.junit.Test;
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.schedulers.Schedulers;
-import io.smallrye.mutiny.subscription.BackPressureFailure;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class BufferOverflowStrategyTest extends WeldTestBaseWithoutTails {
@@ -54,7 +53,8 @@ public class BufferOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
         await().until(() -> bean.exception() != null);
         assertThat(bean.output()).doesNotContain("999");
-        assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
+        assertThat(bean.failure()).isNull();
+        assertThat(bean.exception()).isInstanceOf(IllegalStateException.class);
     }
 
     @ApplicationScoped

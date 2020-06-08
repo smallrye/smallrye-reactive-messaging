@@ -1,24 +1,26 @@
-![Maven Central](https://img.shields.io/maven-central/v/io.smallrye.reactive/smallrye-reactive-messaging)
-[![Build Status](https://semaphoreci.com/api/v1/smallrye/smallrye-reactive-messaging/branches/master/badge.svg)](https://semaphoreci.com/smallrye/smallrye-reactive-messaging)
+[![Maven Central](https://img.shields.io/maven-central/v/io.smallrye.reactive/smallrye-reactive-messaging)](https://search.maven.org/search?q=a:smallrye-reactive-messaging)
+[![Continuous Integration Build](https://github.com/smallrye/smallrye-reactive-messaging/workflows/Continuous%20Integration%20Build/badge.svg)](https://github.com/smallrye/smallrye-reactive-messaging/actions)
 [![License](https://img.shields.io/github/license/smallrye/smallrye-reactive-messaging.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 # Implementation of the MicroProfile Reactive Messaging specification
 
-This project is an implementation of the (next to be) Eclipse MicroProfile Reactive Messaging specification - a CDI
+This project is an implementation of the (next to be) [Eclipse MicroProfile Reactive Messaging](https://github.com/eclipse/microprofile-reactive-messaging) specification - a CDI
 extension to build event-driven microservices and data streaming applications. It provides support for:
 
-* Apache Kafka
-* MQTT
-* AMQP 1.0
-* Apache Camel
+* [Apache Kafka](https://kafka.apache.org/)
+* [MQTT](http://mqtt.org/)
+* [AMQP](https://www.amqp.org/) 1.0
+* [Apache Camel](https://camel.apache.org/)
 * And more!
 
-It also provides a way to inject _streams_ into CDI beans, and so link your Reactive Messaging streams into CDI beans,
-or JAX-RS resources.
+It also provides a way to inject _streams_ into CDI beans, and so link your [Reactive Messaging streams](https://github.com/eclipse/microprofile-reactive-streams-operators) 
+into [CDI](http://www.cdi-spec.org/) beans,or [JAX-RS](https://github.com/eclipse-ee4j/jaxrs-api) resources.
 
 ## Getting started
 
 ### Prerequisites
+
+See [PREREQUISITES.md](PREREQUISITES.md) for details.
 
 The build process requires Apache Maven and Java 8+ and can be performed using:
 
@@ -86,10 +88,10 @@ Run the project with: `mvn compile exec:java -Dexec.mainClass=io.smallrye.reacti
 
 ## Built With
 
-* Eclipse Vert.x
-* SmallRye Mutiny
-* SmallRye Reactive Stream Operators (any implementation would work)
-* Weld (any implementation would work)
+* [Eclipse Vert.x](https://vertx.io/)
+* [SmallRye Mutiny](https://github.com/smallrye/smallrye-mutiny)
+* [SmallRye Reactive Stream Operators](https://github.com/smallrye/smallrye-reactive-streams-operators) (any implementation would work)
+* [Weld](https://weld.cdi-spec.org/) (any implementation would work)
 
 ## Contributing
 
@@ -97,7 +99,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details, and the process for 
 
 ## Sponsors
 
-The project is sponsored by Red Hat.
+The project is sponsored by [Red Hat](https://www.redhat.com).
 
 ## License
 

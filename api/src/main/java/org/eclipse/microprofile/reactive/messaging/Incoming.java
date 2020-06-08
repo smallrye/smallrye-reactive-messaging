@@ -23,6 +23,7 @@ import java.lang.annotation.*;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import io.smallrye.common.annotation.Experimental;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 
 /**
@@ -87,7 +88,8 @@ import io.smallrye.reactive.messaging.annotations.Incomings;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@Repeatable(Incomings.class) // Experimental
+@Repeatable(Incomings.class)
+@Experimental("The repeatability is a SmallRye-specific feature")
 public @interface Incoming {
 
     /**

@@ -4,7 +4,7 @@ It is not rare to combine in a single application imperative parts (Jax-RS, regu
 In these case, it's often required to send _messages_ from the imperative part to the reactive part.
 In other words, send messages to channels handled by reactive messaging and how can you retrieve messages.
 
-== @Emitter and @Channel
+== Emitter and @Channel
 
 To send _things_ (payload or `Message`) from imperative code to a specific channel you need to use:
 
@@ -42,6 +42,8 @@ This `CompletionStage` gets completed once the message created from the payload 
 include::example$emitter/EmitterExamples.java[tag=cs]
 ----
 
+If the processing fails, the `CompletionStage` gets completed exceptionally (with the reason of the nack).
+
 [#emitter-messages]
 == Sending messages
 
@@ -52,7 +54,7 @@ You can also send `Messages`:
 include::example$emitter/EmitterExamples.java[tag=message]
 ----
 
-When sending a `Message`, the emitter does not return a `CompletionStage`, but you can pass the acknowledgement callback, and be called when the message is acknowledged.
+When sending a `Message`, the emitter does not return a `CompletionStage`, but you can pass the ack/nack callback, and be called when the message is acked/nacked.
 
 [source, java, indent=0]
 ----
@@ -113,4 +115,16 @@ IMPORTANT: You must have a `@Outgoing("my-channel")` somewhere in your applicati
 
 Be aware that when using a channel, the messages are not acknowledged automatically and, so, you must either handle the acknowledgment beforehand or manage it manually.
 
+[#emitter-broadcast]
+== Emitter and @Broadcast
 
+When using an `Emitter`, you can now `@Broadcast` what is emitted to all subscribers.
+
+Here is an example of emitting a price with two methods marked `@Incoming` to receive the broadcast:
+
+[source, java, indent=0]
+----
+include::example$emitter/EmitterExamples.java[tag=broadcast]
+----
+
+For more details see xref:advanced/broadcast.adoc[@Broadcast] documentation.

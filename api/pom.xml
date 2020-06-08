@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>smallrye-reactive-messaging-api</artifactId>
-    <name>SmallRye Reactive Messaging API</name>
+    <name>SmallRye Reactive Messaging : API</name>
 
     <dependencies>
         <!--
@@ -23,6 +23,10 @@
       <dependency>
         <groupId>org.eclipse.microprofile.config</groupId>
         <artifactId>microprofile-config-api</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.common</groupId>
+        <artifactId>smallrye-common-annotation</artifactId>
       </dependency>
       <dependency>
         <groupId>jakarta.enterprise</groupId>

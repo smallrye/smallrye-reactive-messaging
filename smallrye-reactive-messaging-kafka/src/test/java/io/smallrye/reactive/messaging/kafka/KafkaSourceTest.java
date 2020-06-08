@@ -49,6 +49,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
@@ -99,6 +100,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("broadcast", true);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
@@ -132,6 +134,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("retry-attempts", 100);
         config.put("retry-max-wait", 30);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
         List<KafkaRecord> messages1 = new ArrayList<>();
@@ -206,6 +209,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
 
@@ -253,6 +257,33 @@ public class KafkaSourceTest extends KafkaTestBase {
             assertThat(metadata.getPartition()).isGreaterThan(-1);
             assertThat(metadata.getOffset()).isGreaterThan(-1);
         });
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSourceWithEmptyOptionalConfiguration() {
+        KafkaUsage usage = new KafkaUsage();
+        String topic = UUID.randomUUID().toString();
+        Map<String, Object> config = newCommonConfig();
+        config.put("topic", topic);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("bootstrap.servers", SERVERS);
+        config.put("sasl.jaas.config", ""); //optional configuration
+        config.put("sasl.mechanism", ""); //optional configuration
+        config.put("channel-name", topic);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getSource().forEach(messages::add).run();
+
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+        assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
+                .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
     private ConsumptionBean deploy(MapBasedConfig config) {

@@ -1,6 +1,9 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static org.awaitility.Awaitility.await;
+
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
@@ -20,6 +23,7 @@ public class MqttUsage {
         try {
             client = new MqttClient("tcp://" + host + ":" + port, UUID.randomUUID().toString());
             client.connect();
+            await().until(client::isConnected);
         } catch (MqttException e) {
             throw new RuntimeException(e);
         }
@@ -32,6 +36,7 @@ public class MqttUsage {
             options.setUserName(user);
             options.setPassword(pwd.toCharArray());
             client.connect(options);
+            await().until(client::isConnected);
         } catch (MqttException e) {
             throw new RuntimeException(e);
         }
@@ -84,6 +89,7 @@ public class MqttUsage {
      */
     public void consumeRaw(String topic, BooleanSupplier continuation, Runnable completion,
             IMqttMessageListener messageListener) {
+        CountDownLatch subscribed = new CountDownLatch(1);
         Thread t = new Thread(() -> {
             LOGGER.info("Starting consumer to read messages on {}", topic);
             try {
@@ -94,6 +100,7 @@ public class MqttUsage {
                         client.unsubscribe(topic);
                     }
                 });
+                subscribed.countDown();
             } catch (Exception e) {
                 LOGGER.error("Unable to receive messages from {}", topic, e);
             } finally {
@@ -105,6 +112,12 @@ public class MqttUsage {
         });
         t.setName(topic + "-thread");
         t.start();
+        try {
+            subscribed.await(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
     }
 
     /**

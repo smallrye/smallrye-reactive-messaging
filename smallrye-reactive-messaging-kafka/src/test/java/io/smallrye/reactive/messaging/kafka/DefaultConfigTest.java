@@ -90,6 +90,7 @@ public class DefaultConfigTest extends KafkaTestBase {
         prefix = "mp.messaging.incoming.source.";
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "topic", "some-topic");
+        config.put(prefix + "auto.offset.reset", "earliest");
 
         config.put("kafka.value.serializer", StringSerializer.class.getName());
         config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());

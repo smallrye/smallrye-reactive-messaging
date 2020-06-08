@@ -63,7 +63,7 @@ public class EventbusTestBase {
 
     @After
     public void tearDown() {
-        vertx.close();
+        vertx.closeAndAwait();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 

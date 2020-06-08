@@ -47,6 +47,15 @@ The MQTT Connector does not handle the deserialization and creates a `Message<by
 
 The MQTT connector does not provide inbound metadata.
 
+=== Failure Management
+
+If a message produced from a MQTT message is _nacked_, a failure strategy is applied.
+The MQTT connector supports 3 strategies:
+
+* `fail` - fail the application, no more MQTT messages will be processed. (default)
+The offset of the record that has not been processed correctly is not committed.
+* `ignore` - the failure is logged, but the processing continue.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-mqtt-incoming.adoc[]

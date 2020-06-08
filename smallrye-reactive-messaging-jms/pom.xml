@@ -10,6 +10,8 @@
 
   <artifactId>smallrye-reactive-messaging-jms</artifactId>
 
+  <name>SmallRye Reactive Messaging : Connector :: JMS</name>  
+
   <properties>
     <artemis.version>2.12.0</artemis.version>
   </properties>

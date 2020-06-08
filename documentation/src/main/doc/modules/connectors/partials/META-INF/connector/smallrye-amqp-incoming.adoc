@@ -51,11 +51,15 @@ _(amqp-connect-timeout)_ | The connection timeout in milliseconds
 
 Type: _int_ | false | `1000`
 
-| *containerId* | The AMQP container id
+| *container-id* | The AMQP container id
 
 Type: _string_ | false | 
 
 | *address* | The AMQP address. If not set, the channel name is used
+
+Type: _string_ | false | 
+
+| *link-name* | The name of the link. If not set, the channel name is used.
 
 Type: _string_ | false | 
 
@@ -76,5 +80,9 @@ Type: _boolean_ | false | `true`
 | *auto-acknowledgement* | Whether the received AMQP messages must be acknowledged when received
 
 Type: _boolean_ | false | `false`
+
+| *failure-strategy* | Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Values can be `fail` (default), `accept`, `release`, `reject`
+
+Type: _string_ | false | `fail`
 
 |===

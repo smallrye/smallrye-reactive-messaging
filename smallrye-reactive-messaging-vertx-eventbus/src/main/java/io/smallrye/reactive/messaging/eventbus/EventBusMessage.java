@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.eventbus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -38,7 +39,7 @@ public class EventBusMessage<T> implements Message<T> {
         if (this.ack != null) {
             return ack.get();
         }
-        return null;
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.smallrye.mutiny.Uni;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -91,6 +92,13 @@ public class MqttSink {
         }
 
         return client.publish(actualTopicToBeUsed, convert(msg.getPayload()), actualQoS, false, isRetain)
+                .onItemOrFailure().produceUni((s, f) -> {
+                    if (f != null) {
+                        return Uni.createFrom().completionStage(msg.nack(f).thenApply(x -> msg));
+                    } else {
+                        return Uni.createFrom().completionStage(msg.ack().thenApply(x -> msg));
+                    }
+                })
                 .subscribeAsCompletionStage();
     }
 

@@ -15,6 +15,10 @@ import org.slf4j.LoggerFactory;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
@@ -23,8 +27,10 @@ public class KafkaSource<K, V> {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
     private final PublisherBuilder<? extends Message<?>> source;
     private final KafkaConsumer<K, V> consumer;
+    private KafkaFailureHandler failureHandler;
 
     public KafkaSource(Vertx vertx, KafkaConnectorIncomingConfiguration config) {
+
         Map<String, String> kafkaConfiguration = new HashMap<>();
 
         String group = config.getGroupId().orElseGet(() -> {
@@ -58,6 +64,8 @@ public class KafkaSource<K, V> {
         this.consumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         String topic = config.getTopic().orElseGet(config::getChannel);
 
+        failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
+
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> LOGGER.error("Unable to read a record from Kafka topic '{}'", topic, t));
 
@@ -86,7 +94,24 @@ public class KafkaSource<K, V> {
                             // The Kafka subscription must happen on the subscription.
                             this.consumer.subscribeAndAwait(topic);
                         }))
-                .map(rec -> new IncomingKafkaRecord<>(consumer, rec));
+                .map(rec -> new IncomingKafkaRecord<>(consumer, rec, failureHandler));
+    }
+
+    private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config, Vertx vertx,
+            Map<String, String> kafkaConfiguration) {
+        String strategy = config.getFailureStrategy();
+        KafkaFailureHandler.Strategy actualStrategy = KafkaFailureHandler.Strategy.from(strategy);
+        switch (actualStrategy) {
+            case FAIL:
+                return new KafkaFailStop(LOGGER, config.getChannel());
+            case IGNORE:
+                return new KafkaIgnoreFailure(LOGGER, config.getChannel());
+            case DEAD_LETTER_QUEUE:
+                return KafkaDeadLetterQueue.create(LOGGER, vertx, kafkaConfiguration, config);
+            default:
+                throw new IllegalArgumentException("Invalid failure strategy: " + strategy);
+        }
+
     }
 
     public PublisherBuilder<? extends Message<?>> getSource() {

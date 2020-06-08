@@ -10,7 +10,8 @@
 
   <artifactId>smallrye-reactive-messaging-provider</artifactId>
 
-
+  <name>SmallRye Reactive Messaging : Provider</name>
+  
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>

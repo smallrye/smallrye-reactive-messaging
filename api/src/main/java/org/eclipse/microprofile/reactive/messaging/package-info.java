@@ -22,7 +22,8 @@
  * This package is a copy from the original package from the specification.
  * The original can be found on https://github.com/eclipse/microprofile-reactive-messaging.
  * This copy is there to experiment around the spec.
- * New features or changes are marked with the `experimental` tag.
+ * New features or changes are marked with the `experimental` tag and {@link io.smallrye.common.annotation.Experimental}
+ * annotation.
  *
  * The MicroProfile Reactive Messaging API.
  * <p>
@@ -39,7 +40,7 @@
  * interfaces directly, or container specific implementations of streams.
  * <p>
  * Here is an example use of this API:
- * 
+ *
  * <pre>
  *   &#64;ApplicationScoped
  *   public class EmailPublisher {

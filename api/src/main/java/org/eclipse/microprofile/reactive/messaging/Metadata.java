@@ -2,6 +2,8 @@ package org.eclipse.microprofile.reactive.messaging;
 
 import java.util.*;
 
+import io.smallrye.common.annotation.Experimental;
+
 /**
  * Message metadata containers.
  * <p>
@@ -15,6 +17,7 @@ import java.util.*;
  * <p>
  * <strong>IMPORTANT:</strong> Experimental.
  */
+@Experimental("metadata propagation is a SmallRye-specific feature")
 public class Metadata implements Iterable<Object> {
 
     private final Set<Object> backend;
