@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
-
-import javax.enterprise.inject.spi.DefinitionException;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -71,9 +71,7 @@ public class MediatorConfigurationSupport {
         if (!incomings.isEmpty()) {
             return result;
         } else if (result != null) {
-            throw getOutgoingError(
-                    "The @Acknowledgment annotation is only supported for method annotated with @Incoming: "
-                            + methodAsString);
+            throw ex.definitionExceptionUnsupported("@Outgoing", methodAsString);
         }
         return null;
     }
@@ -89,7 +87,7 @@ public class MediatorConfigurationSupport {
             case STREAM_TRANSFORMER:
                 return validateStreamTransformer(acknowledgment);
             default:
-                throw new IllegalStateException("Unknown shape: " + shape);
+                throw ex.illegalStateExceptionForValidate(shape);
         }
     }
 
@@ -109,12 +107,11 @@ public class MediatorConfigurationSupport {
             // Case 1 or 2.
             // Validation -> No parameter
             if (parameterTypes.length != 0) {
-                throw getIncomingError(
-                        "when returning a Subscriber or a SubscriberBuilder, no parameters are expected");
+                throw ex.definitionNoParamOnSubscriber("@Incoming", methodAsString);
             }
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getIncomingError("the returned Subscriber must declare a type parameter");
+                throw ex.definitionSubscriberTypeParam("@Incoming", methodAsString);
             }
             // Need to distinguish 1 or 2
             MediatorConfiguration.Consumption consumption = assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
@@ -128,7 +125,7 @@ public class MediatorConfigurationSupport {
             // Case 3 or 4
             // Expected parameter 1, Message or payload
             if (parameterTypes.length != 1) {
-                throw getIncomingError("when returning a CompletionStage, one parameter is expected");
+                throw ex.definitionOnParam("@Incoming", methodAsString, "CompletionStage");
             }
             // This check must be enabled once the TCK is released.
             //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
@@ -145,7 +142,7 @@ public class MediatorConfigurationSupport {
             // Case 3 or 4 - Uni variants
             // Expected parameter 1, Message or payload
             if (parameterTypes.length != 1) {
-                throw getIncomingError("when returning a Uni, one parameter is expected");
+                throw ex.definitionOnParam("@Incoming", methodAsString, "Uni");
             }
             // This check must be enabled once the TCK is released.
             //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
@@ -169,8 +166,7 @@ public class MediatorConfigurationSupport {
 
             // Detect the case 5 that is not supported (anymore, decision taken during the MP reactive hangout Sept. 11th, 2018)
             if (consumption == MediatorConfiguration.Consumption.MESSAGE) {
-                throw getIncomingError(
-                        "The signature is not supported as it requires 'blocking' acknowledgment, return a CompletionStage<Message<?> instead.");
+                throw ex.definitionBlockingAcknowledgment("@Incoming", methodAsString);
             }
 
             // Must be enabled once we update the tCK.
@@ -183,7 +179,7 @@ public class MediatorConfigurationSupport {
             return new ValidationOutput(production, consumption);
         }
 
-        throw getIncomingError("Unsupported signature");
+        throw ex.definitionUnsupportedSignature("@Incoming", methodAsString);
     }
 
     private ValidationOutput validatePublisher() {
@@ -200,17 +196,17 @@ public class MediatorConfigurationSupport {
         // 8. CompletionStage<O> method(), Uni<O>
 
         if (returnType == Void.TYPE) {
-            throw getOutgoingError("the method must not be `void`");
+            throw ex.definitionNotVoid("@Outgoing", methodAsString);
         }
 
         if (parameterTypes.length != 0) {
-            throw getOutgoingError("no parameters expected");
+            throw ex.definitionNoParametersExpected("@Outgoing", methodAsString);
         }
 
         if (ClassUtils.isAssignable(returnType, Publisher.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getOutgoingError("the returned Publisher must declare a type parameter");
+                throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, "Publisher");
             }
 
             // Case 1 or 2
@@ -224,7 +220,7 @@ public class MediatorConfigurationSupport {
         if (ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getOutgoingError("the returned PublisherBuilder must declare a type parameter");
+                throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, "PublisherBuilder");
             }
 
             // Case 3 or 4
@@ -243,7 +239,7 @@ public class MediatorConfigurationSupport {
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getOutgoingError("the returned CompletionStage must declare a type parameter");
+                throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, "CompletionStage");
             }
 
             // Case 7 and 8
@@ -257,7 +253,7 @@ public class MediatorConfigurationSupport {
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getOutgoingError("the returned Uni must declare a type parameter");
+                throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, "Uni");
             }
 
             // Case 7 and 8 -> Uni variant
@@ -298,11 +294,11 @@ public class MediatorConfigurationSupport {
             // Case 1, 2 or 3, 4
 
             if (parameterTypes.length != 0) {
-                throw getIncomingAndOutgoingError("the method must not have parameters");
+                throw ex.definitionMustNotHaveParams("@Incoming & @Outgoing", methodAsString);
             }
             GenericTypeAssignable.Result firstGenericParamOfReturn = returnTypeAssignable.check(Message.class, 0);
             if (firstGenericParamOfReturn == GenericTypeAssignable.Result.NotGeneric) {
-                throw getIncomingAndOutgoingError("Expected 2 type parameters for the returned Processor");
+                throw ex.definitionExpectedTwoParams("@Incoming & @Outgoing", methodAsString);
             }
             consumption = firstGenericParamOfReturn == GenericTypeAssignable.Result.Assignable
                     ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
@@ -310,7 +306,7 @@ public class MediatorConfigurationSupport {
 
             GenericTypeAssignable.Result secondGenericParamOfReturn = returnTypeAssignable.check(Message.class, 1);
             if (secondGenericParamOfReturn == GenericTypeAssignable.Result.NotGeneric) {
-                throw getIncomingAndOutgoingError("Expected 2 type parameters for the returned Processor");
+                throw ex.definitionExpectedTwoParams("@Incoming & @Outgoing", methodAsString);
             }
             production = secondGenericParamOfReturn == GenericTypeAssignable.Result.Assignable
                     ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
@@ -322,14 +318,12 @@ public class MediatorConfigurationSupport {
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 5, 6, 7, 8
             if (parameterTypes.length != 1) {
-                throw new IllegalArgumentException(
-                        "Invalid method annotated with @Outgoing and @Incoming " + methodAsString
-                                + " - one parameter expected");
+                throw ex.illegalArgumentForValidateProcessor(methodAsString);
             }
 
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw getOutgoingError("Expected a type parameter for the returned Publisher");
+                throw ex.definitionExpectedReturnedParam("@Outgoing", methodAsString, "Publisher");
             }
             production = assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                     ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
@@ -348,7 +342,8 @@ public class MediatorConfigurationSupport {
                 // Case 11 or 12
                 GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
                 if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                    throw getIncomingAndOutgoingError("Expected a type parameter in the return CompletionStage");
+                    throw ex.definitionExpectedReturnedParam("@Incoming & @Outgoing", methodAsString,
+                            "CompletionStage");
                 }
 
                 production = assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
@@ -360,7 +355,7 @@ public class MediatorConfigurationSupport {
                 // Case 11 or 12 - Uni variant
                 GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
                 if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                    throw getIncomingAndOutgoingError("Expected a type parameter in the return Uni");
+                    throw ex.definitionExpectedReturnedParam("@Incoming & @Outgoing", methodAsString, "Uni");
                 }
 
                 production = assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
@@ -380,9 +375,7 @@ public class MediatorConfigurationSupport {
 
         if (production == MediatorConfiguration.Production.INDIVIDUAL_MESSAGE
                 && acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
-            throw new IllegalStateException(
-                    "Unsupported acknowledgement policy - POST_PROCESSING not supported when producing messages for "
-                            + methodAsString);
+            throw ex.illegalStateForValidateProcessor(methodAsString);
         }
 
         return new ValidationOutput(production, consumption, useBuilderTypes);
@@ -406,7 +399,7 @@ public class MediatorConfigurationSupport {
         // The mediator produces and consumes a stream
         GenericTypeAssignable.Result returnTypeGenericCheck = returnTypeAssignable.check(Message.class, 0);
         if (returnTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
-            throw getOutgoingError("Expected a type parameter for the returned Publisher");
+            throw ex.definitionExpectedReturnedParam("@Outgoing", methodAsString, "Publisher");
         }
         production = returnTypeGenericCheck == GenericTypeAssignable.Result.Assignable
                 ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
@@ -415,7 +408,7 @@ public class MediatorConfigurationSupport {
         GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable
                 .check(Message.class, 0);
         if (firstParamTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
-            throw getIncomingError("Expected a type parameter for the consumed Publisher");
+            throw ex.definitionExpectedConsumendParam("@Incoming", methodAsString, "Publisher");
         }
         consumption = firstParamTypeGenericCheck == GenericTypeAssignable.Result.Assignable
                 ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
@@ -425,22 +418,18 @@ public class MediatorConfigurationSupport {
 
         // Post Acknowledgement is not supported
         if (acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
-            throw getIncomingAndOutgoingError("Automatic post-processing acknowledgment is not supported.");
+            throw ex.definitionAutoAckNotSupported("@Incoming & @Outgoing", methodAsString);
         }
 
         // Validate method and be sure we are not in the case 2 and 4.
         if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD
                 && (acknowledgment == Acknowledgment.Strategy.MANUAL)) {
-            throw getIncomingAndOutgoingError(
-                    "Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
-                            "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
+            throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
         }
 
         if (production == MediatorConfiguration.Production.STREAM_OF_PAYLOAD
                 && acknowledgment == Acknowledgment.Strategy.MANUAL) {
-            throw getIncomingAndOutgoingError(
-                    "Consuming a stream of payload is not supported with MANUAL acknowledgment. " +
-                            "Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.");
+            throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
         }
 
         if (useBuilderTypes) {
@@ -449,8 +438,7 @@ public class MediatorConfigurationSupport {
             // Ensure that the parameter is also using the MP Reactive Streams Operator types.
             Class<?> paramClass = parameterTypes[0];
             if (!ClassUtils.isAssignable(paramClass, PublisherBuilder.class)) {
-                throw getIncomingAndOutgoingError(
-                        "If the method produces a PublisherBuilder, it needs to consume a PublisherBuilder.");
+                throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString);
             }
         }
 
@@ -493,8 +481,7 @@ public class MediatorConfigurationSupport {
         if (incomings != null && !incomings.isEmpty()) {
             return result;
         } else if (result != null) {
-            throw getOutgoingError(
-                    "The @Merge annotation is only supported for method annotated with @Incoming: " + methodAsString);
+            throw ex.definitionMergeOnlyIncoming("@Outgoing", methodAsString);
         }
         return null;
     }
@@ -504,8 +491,7 @@ public class MediatorConfigurationSupport {
         if (outgoing != null) {
             return result;
         } else if (result != null) {
-            throw getIncomingError(
-                    "The @Broadcast annotation is only supported for method annotated with @Outgoing: " + methodAsString);
+            throw ex.definitionBroadcastOnlyOutgoing("@Incoming", methodAsString);
         }
         return null;
     }
@@ -514,43 +500,22 @@ public class MediatorConfigurationSupport {
         if (!(validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_MESSAGE)
                 || validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD)
                 || validationOutput.production.equals(MediatorConfiguration.Production.NONE))) {
-            throw getBlockingError(
-                    "The @Blocking annotation is only supported for methods returning an individual Message or payload");
+            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
         }
 
         if (!(validationOutput.consumption.equals(MediatorConfiguration.Consumption.MESSAGE)
                 || validationOutput.consumption.equals(MediatorConfiguration.Consumption.PAYLOAD)
                 || validationOutput.consumption.equals(MediatorConfiguration.Consumption.NONE))) {
-            throw getBlockingError(
-                    "The @Blocking annotation is only supported for methods with parameters of an individual Message or payload");
+            throw ex.definitionBlockingOnlyIndividualParam("@Blocking", methodAsString);
         }
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
-            throw getBlockingError(
-                    "The @Blocking annotation is only supported for methods returning an individual Message or a payload");
+            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
         }
 
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
-            throw getBlockingError(
-                    "The @Blocking annotation is only supported for methods returning an individual Message or a payload");
+            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
         }
-    }
-
-    private DefinitionException getBlockingError(String message) {
-        return new DefinitionException("Invalid method annotated with @Blocking: " + methodAsString + " - " + message);
-    }
-
-    private DefinitionException getOutgoingError(String message) {
-        return new DefinitionException("Invalid method annotated with @Outgoing: " + methodAsString + " - " + message);
-    }
-
-    private DefinitionException getIncomingError(String message) {
-        return new DefinitionException("Invalid method annotated with @Incoming: " + methodAsString + " - " + message);
-    }
-
-    private DefinitionException getIncomingAndOutgoingError(String message) {
-        return new DefinitionException(
-                "Invalid method annotated with @Incoming and @Outgoing: " + methodAsString + " - " + message);
     }
 
     public static class ValidationOutput {

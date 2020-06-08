@@ -1,5 +1,9 @@
 package io.smallrye.reactive.messaging.connectors;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +25,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -41,8 +44,8 @@ public class WorkerPoolRegistry {
     @Inject
     private Instance<Config> configInstance;
 
-    private Map<String, Integer> workerConcurrency = new HashMap<>();
-    private Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
+    private final Map<String, Integer> workerConcurrency = new HashMap<>();
+    private final Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(100) @BeforeDestroyed(ApplicationScoped.class) Object event) {
@@ -54,7 +57,7 @@ public class WorkerPoolRegistry {
     }
 
     public <T> Uni<T> executeWork(Handler<Promise<T>> blockingCodeHandler, String workerName, boolean ordered) {
-        Objects.requireNonNull(blockingCodeHandler, "Action to execute not provided");
+        Objects.requireNonNull(blockingCodeHandler, msg.actionNotProvided());
 
         if (workerName == null) {
             return executionHolder.vertx().executeBlocking(blockingCodeHandler, ordered);
@@ -64,7 +67,7 @@ public class WorkerPoolRegistry {
     }
 
     private WorkerExecutor getWorker(String workerName) {
-        Objects.requireNonNull(workerName, "Worker Name not specified");
+        Objects.requireNonNull(workerName, msg.workerNameNotSpecified());
 
         if (workerExecutors.containsKey(workerName)) {
             return workerExecutors.get(workerName);
@@ -77,9 +80,7 @@ public class WorkerPoolRegistry {
                     if (executor == null) {
                         executor = executionHolder.vertx().createSharedWorkerExecutor(workerName,
                                 workerConcurrency.get(workerName));
-                        LoggerFactory.getLogger(WorkerPoolRegistry.class)
-                                .info("Created worker pool named " + workerName + " with concurrency of "
-                                        + workerConcurrency.get(workerName));
+                        log.workerPoolCreated(workerName, workerConcurrency.get(workerName));
                         workerExecutors.put(workerName, executor);
                     }
                 }
@@ -87,16 +88,16 @@ public class WorkerPoolRegistry {
             if (executor != null) {
                 return executor;
             } else {
-                throw new RuntimeException("Failed to create Worker for " + workerName);
+                throw ex.runtimeForFailedWorker(workerName);
             }
         }
 
         // Shouldn't get here
-        throw new IllegalArgumentException("@Blocking referred to invalid worker name.");
+        throw ex.illegalArgumentForFailedWorker();
     }
 
     public <T> void analyzeWorker(AnnotatedType<T> annotatedType) {
-        Objects.requireNonNull(annotatedType, "AnnotatedType was empty");
+        Objects.requireNonNull(annotatedType, msg.annotatedTypeWasEmpty());
 
         Set<AnnotatedMethod<? super T>> methods = annotatedType.getMethods();
 
@@ -106,20 +107,21 @@ public class WorkerPoolRegistry {
     }
 
     public void defineWorker(String className, String method, String poolName) {
-        Objects.requireNonNull(className, "className was empty");
-        Objects.requireNonNull(method, "Method was empty");
+        Objects.requireNonNull(className, msg.classNameWasEmpty());
+        Objects.requireNonNull(method, msg.methodWasEmpty());
 
         if (!poolName.equals(Blocking.DEFAULT_WORKER_POOL)) {
             // Validate @Blocking value is not empty, if set
             if (Validation.isBlank(poolName)) {
-                throw getBlockingError(className, method, "value is blank or null");
+                throw ex.illegalArgumentForAnnotationNullOrBlank("@Blocking", className + "#" + method);
             }
 
             // Validate @Blocking worker pool has configuration to define concurrency
             String workerConfigKey = WORKER_CONFIG_PREFIX + "." + poolName + "." + WORKER_CONCURRENCY;
             Optional<Integer> concurrency = configInstance.get().getOptionalValue(workerConfigKey, Integer.class);
             if (!concurrency.isPresent()) {
-                throw getBlockingError(className, method, workerConfigKey + " was not defined");
+                throw ex.illegalArgumentForWorkerConfigKey("@Blocking", className + "#" + method,
+                        workerConfigKey);
             }
 
             workerConcurrency.put(poolName, concurrency.get());
@@ -127,7 +129,7 @@ public class WorkerPoolRegistry {
     }
 
     private void defineWorker(Method method) {
-        Objects.requireNonNull(method, "Method was empty");
+        Objects.requireNonNull(method, msg.methodWasEmpty());
 
         Blocking blocking = method.getAnnotation(Blocking.class);
 
@@ -136,14 +138,10 @@ public class WorkerPoolRegistry {
 
         // Validate @Blocking is used in conjunction with @Incoming, or @Outgoing
         if (!(method.isAnnotationPresent(Incoming.class) || method.isAnnotationPresent(Outgoing.class))) {
-            throw getBlockingError(className, methodName, "no @Incoming or @Outgoing present");
+            throw ex.illegalArgumentForAnnotation("@Blocking", className + "#" + method);
         }
 
         defineWorker(className, methodName, blocking.value());
     }
 
-    private IllegalArgumentException getBlockingError(String className, String method, String message) {
-        return new IllegalArgumentException(
-                "Invalid method annotated with @Blocking: " + className + "#" + method + " - " + message);
-    }
 }

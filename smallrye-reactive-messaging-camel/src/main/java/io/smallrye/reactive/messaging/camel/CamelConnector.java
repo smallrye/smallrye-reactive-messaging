@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.camel;
 
+import static io.smallrye.reactive.messaging.camel.i18n.CamelExceptions.ex;
+import static io.smallrye.reactive.messaging.camel.i18n.CamelLogging.log;
+
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -22,8 +25,6 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
@@ -34,7 +35,6 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a Camel exchange is nacked. Values can be `fail` (default) or `ignore`", defaultValue = "fail")
 public class CamelConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CamelConnector.class);
     private static final String REACTIVE_STREAMS_SCHEME = "reactive-streams:";
     public static final String CONNECTOR_NAME = "smallrye-camel";
 
@@ -76,10 +76,10 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
             name = name.substring(REACTIVE_STREAMS_SCHEME.length());
-            LOGGER.info("Creating publisher from Camel stream named {}", name);
+            log.creatingPublisherFromStream(name);
             publisher = reactive.fromStream(name);
         } else {
-            LOGGER.info("Creating publisher from Camel endpoint {}", name);
+            log.creatingPublisherFromEndpoint(name);
             publisher = reactive.from(name);
         }
 
@@ -95,12 +95,12 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
             name = name.substring(REACTIVE_STREAMS_SCHEME.length());
-            LOGGER.info("Creating subscriber from Camel stream named {}", name);
+            log.creatingSubscriberFromStream(name);
             subscriber = ReactiveStreams.<Message<?>> builder()
                     .map(this::createExchangeFromMessage)
                     .to(reactive.streamSubscriber(name));
         } else {
-            LOGGER.info("Creating publisher from Camel endpoint {}", name);
+            log.creatingSubscriberFromEndpoint(name);
             subscriber = ReactiveStreams.<Message<?>> builder()
                     .map(this::createExchangeFromMessage)
                     .to(reactive.subscriber(name));
@@ -131,7 +131,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
 
             @Override
             public void onFailure(Exchange exchange) {
-                LOGGER.error("Exchange failed", exchange.getException());
+                log.exchangeFailed(exchange.getException());
                 message.nack(exchange.getException());
             }
         });
@@ -141,11 +141,11 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
     private CamelFailureHandler createFailureHandler(CamelFailureHandler.Strategy strategy, String channel) {
         switch (strategy) {
             case IGNORE:
-                return new CamelIgnoreFailure(LOGGER, channel);
+                return new CamelIgnoreFailure(channel);
             case FAIL:
-                return new CamelFailStop(LOGGER, channel);
+                return new CamelFailStop(channel);
             default:
-                throw new IllegalArgumentException("Unknown failure strategy: " + strategy);
+                throw ex.illegalArgumentUnknownStrategy(strategy);
         }
     }
 }

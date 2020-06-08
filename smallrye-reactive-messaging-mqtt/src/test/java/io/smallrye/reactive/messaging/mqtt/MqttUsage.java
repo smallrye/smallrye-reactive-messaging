@@ -10,13 +10,16 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.eclipse.paho.client.mqttv3.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.jboss.logging.Logger;
 
 public class MqttUsage {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(MqttUsage.class);
+    private final static Logger LOGGER = Logger.getLogger(MqttUsage.class);
     private final IMqttClient client;
 
     public MqttUsage(String host, int port) {
@@ -52,7 +55,7 @@ public class MqttUsage {
      */
     public void produce(String topic, int messageCount, Runnable completionCallback, Supplier<byte[]> messageSupplier) {
         Thread t = new Thread(() -> {
-            LOGGER.info("Starting MQTT client to write {} messages", messageCount);
+            LOGGER.infof("Starting MQTT client to write %s messages", messageCount);
             try {
                 for (int i = 0; i != messageCount; ++i) {
                     byte[] payload = messageSupplier.get();
@@ -91,10 +94,10 @@ public class MqttUsage {
             IMqttMessageListener messageListener) {
         CountDownLatch subscribed = new CountDownLatch(1);
         Thread t = new Thread(() -> {
-            LOGGER.info("Starting consumer to read messages on {}", topic);
+            LOGGER.infof("Starting consumer to read messages on %s", topic);
             try {
                 client.subscribe(topic, (top, msg) -> {
-                    LOGGER.info("Consumer {}: consuming message {}", topic, new String(msg.getPayload()));
+                    LOGGER.infof("Consumer %s: consuming message %s", topic, new String(msg.getPayload()));
                     messageListener.messageArrived(top, msg);
                     if (!continuation.getAsBoolean()) {
                         client.unsubscribe(topic);
@@ -102,12 +105,12 @@ public class MqttUsage {
                 });
                 subscribed.countDown();
             } catch (Exception e) {
-                LOGGER.error("Unable to receive messages from {}", topic, e);
+                LOGGER.errorf("Unable to receive messages from %s", topic, e);
             } finally {
                 if (completion != null) {
                     completion.run();
                 }
-                LOGGER.debug("Stopping consumer {}", topic);
+                LOGGER.debugf("Stopping consumer %s", topic);
             }
         });
         t.setName(topic + "-thread");

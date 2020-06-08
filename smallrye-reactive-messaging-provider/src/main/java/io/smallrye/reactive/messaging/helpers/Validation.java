@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.helpers;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 public class Validation {
 
     private Validation() {
@@ -8,11 +10,11 @@ public class Validation {
 
     public static <T> T notNull(T instance, String name) {
         if (isBlank(name)) {
-            throw new IllegalArgumentException("`name` must be set");
+            throw ex.validationForMustBeSet("name");
         }
 
         if (instance == null) {
-            throw new IllegalArgumentException(name + " must not be `null`");
+            throw ex.validationForNotNull(name);
         }
 
         return instance;
@@ -21,14 +23,14 @@ public class Validation {
 
     public static <T> T[] notEmpty(T[] array, String name) {
         if (isBlank(name)) {
-            throw new IllegalArgumentException("`name` must be set");
+            throw ex.validationForMustBeSet("name");
         }
 
         if (array == null) {
-            throw new IllegalArgumentException(name + " must not be `null`");
+            throw ex.validationForNotNull(name);
         }
         if (array.length == 0) {
-            throw new IllegalArgumentException(name + " must not be `empty`");
+            throw ex.validationForNotEmpty(name);
         }
 
         return array;
@@ -36,16 +38,16 @@ public class Validation {
 
     public static <T> T[] noNullElements(T[] array, String name) {
         if (isBlank(name)) {
-            throw new IllegalArgumentException("`name` must be set");
+            throw ex.validationForMustBeSet("name");
         }
 
         if (array == null) {
-            throw new IllegalArgumentException(name + " must not be `null`");
+            throw ex.validationForNotNull(name);
         }
 
         for (T t : array) {
             if (t == null) {
-                throw new IllegalArgumentException(name + " must not contain a `null` element");
+                throw ex.validationForContainsNull(name);
             }
         }
 
@@ -72,9 +74,9 @@ public class Validation {
         return true;
     }
 
-    public static void isTrue(boolean mustBeTrue, String format, Object... var) {
+    public static void isTrue(boolean mustBeTrue, String message) {
         if (!mustBeTrue) {
-            throw new IllegalArgumentException(String.format(format, var));
+            throw ex.validateIsTrue(message);
         }
     }
 }

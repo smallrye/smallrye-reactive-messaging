@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.eventbus;
 
+import static io.smallrye.reactive.messaging.eventbus.i18n.EventBusExceptions.ex;
+import static io.smallrye.reactive.messaging.eventbus.i18n.EventBusMessages.msg;
+
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -20,13 +23,13 @@ public class EventBusSink {
     private final long timeout;
 
     EventBusSink(Vertx vertx, VertxEventBusConnectorOutgoingConfiguration config) {
-        this.vertx = Objects.requireNonNull(vertx, "Vert.x instance must not be `null`");
+        this.vertx = Objects.requireNonNull(vertx, msg.vertXInstanceMustNotBeNull());
         this.address = config.getAddress();
         this.publish = config.getPublish();
         this.expectReply = config.getExpectReply();
 
         if (this.publish && this.expectReply) {
-            throw new IllegalArgumentException("Cannot enable `publish` and `expect-reply` at the same time");
+            throw ex.illegalArgumentPublishAndExpectReply();
         }
 
         this.codec = config.getCodec().orElse(null);

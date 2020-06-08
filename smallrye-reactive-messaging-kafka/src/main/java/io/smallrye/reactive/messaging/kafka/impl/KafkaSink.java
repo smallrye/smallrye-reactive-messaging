@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -15,8 +18,6 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -29,7 +30,7 @@ import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
 
 public class KafkaSink {
-    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSink.class);
+
     private final KafkaWriteStream<?, ?> stream;
     private final int partition;
     private final String key;
@@ -40,7 +41,7 @@ public class KafkaSink {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
 
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
-        stream.exceptionHandler(t -> LOGGER.error("Unable to write to Kafka", t));
+        stream.exceptionHandler(t -> log.unableToWrite(t));
 
         partition = config.getPartition();
         key = config.getKey().orElse(null);
@@ -54,7 +55,7 @@ public class KafkaSink {
         int inflight = maxInflight;
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .via(new KafkaSenderProcessor(inflight, waitForWriteCompletion, writeMessageToKafka()))
-                .onError(t -> LOGGER.error("Unable to dispatch message to Kafka", t))
+                .onError(t -> log.unableToDispatch(t))
                 .ignore();
     }
 
@@ -65,18 +66,18 @@ public class KafkaSink {
                 OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
                 String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
                 if (actualTopic == null) {
-                    LOGGER.error("Ignoring message - no topic set");
+                    log.ignoringNoTopicSet();
                     return Uni.createFrom().item(() -> null);
                 }
 
                 ProducerRecord<?, ?> record = getProducerRecord(message, metadata, actualTopic);
-                LOGGER.debug("Sending message {} to Kafka topic '{}'", message, actualTopic);
+                log.sendingMessageToTopic(message, actualTopic);
 
                 //noinspection unchecked,rawtypes
                 return Uni.createFrom()
                         .emitter(e -> stream.write((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to send a record to Kafka ", e);
+                log.unableToSendRecord(e);
                 return Uni.createFrom().failure(e);
             }
         };
@@ -86,7 +87,7 @@ public class KafkaSink {
             UniEmitter<? super Void> emitter) {
         String actualTopic = record.topic();
         if (ar.succeeded()) {
-            LOGGER.debug("Message {} sent successfully to Kafka topic '{}'", message, actualTopic);
+            log.successfullyToTopic(message, actualTopic);
             message.ack().whenComplete((x, f) -> {
                 if (f != null) {
                     emitter.fail(f);
@@ -95,8 +96,7 @@ public class KafkaSink {
                 }
             });
         } else {
-            LOGGER.error("Message {} was not sent to Kafka topic '{}' - nacking message", message, actualTopic,
-                    ar.cause());
+            log.nackingMessage(message, actualTopic, ar.cause());
             message.nack(ar.cause()).whenComplete((x, f) -> {
                 if (f != null) {
                     emitter.fail(f);
@@ -140,12 +140,12 @@ public class KafkaSink {
         kafkaConfiguration.put(ProducerConfig.ACKS_CONFIG, config.getAcks());
 
         if (!kafkaConfiguration.containsKey(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-            LOGGER.info("Setting {} to {}", ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
+            log.configServers(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
             kafkaConfiguration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         }
 
         if (!kafkaConfiguration.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
-            LOGGER.info("Key deserializer omitted, using String as default");
+            log.keyDeserializerOmitted();
             kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, config.getKeySerializer());
         }
 
@@ -172,12 +172,12 @@ public class KafkaSink {
         try {
             this.stream.close(ar -> {
                 if (ar.failed()) {
-                    LOGGER.debug("An error has been caught while closing the Kafka Write Stream", ar.cause());
+                    log.errorWhileClosingWriteStream(ar.cause());
                 }
                 latch.countDown();
             });
         } catch (Throwable e) {
-            LOGGER.debug("An error has been caught while closing the Kafka Write Stream", e);
+            log.errorWhileClosingWriteStream(e);
             latch.countDown();
         }
         try {
@@ -206,7 +206,7 @@ public class KafkaSink {
         public void subscribe(
                 Subscriber<? super Message<?>> subscriber) {
             if (!downstream.compareAndSet(null, subscriber)) {
-                Subscriptions.fail(subscriber, new IllegalStateException("Only one subscriber allowed"));
+                Subscriptions.fail(subscriber, ex.illegalStateOnlyOneSubscriber());
             } else {
                 if (subscription.get() != null) {
                     subscriber.onSubscribe(this);
@@ -247,7 +247,7 @@ public class KafkaSink {
         @Override
         public void request(long l) {
             if (l != Long.MAX_VALUE) {
-                throw new IllegalStateException("Expecting downstream to consume without back-pressure");
+                throw ex.illegalStateConsumeWithoutBackPressure();
             }
             subscription.get().request(inflights);
         }

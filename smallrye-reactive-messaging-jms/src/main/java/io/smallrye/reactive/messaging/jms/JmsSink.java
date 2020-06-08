@@ -1,18 +1,23 @@
 package io.smallrye.reactive.messaging.jms;
 
-import java.lang.IllegalStateException;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
-import javax.jms.*;
+import javax.jms.BytesMessage;
+import javax.jms.DeliveryMode;
+import javax.jms.Destination;
+import javax.jms.JMSContext;
+import javax.jms.JMSException;
+import javax.jms.JMSProducer;
 import javax.json.bind.Jsonb;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class JmsSink {
 
@@ -22,7 +27,6 @@ class JmsSink {
     private final JMSContext context;
     private final Jsonb json;
     private final Executor executor;
-    private static final Logger LOGGER = LoggerFactory.getLogger(JmsSink.class);
 
     JmsSink(JMSContext context, JmsConnectorOutgoingConfiguration config, Jsonb jsonb, Executor executor) {
         String name = config.getDestination().orElseGet(config::getChannel);
@@ -40,8 +44,7 @@ class JmsSink {
             } else if (v.equalsIgnoreCase("non_persistent")) {
                 producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
             } else {
-                throw new IllegalArgumentException(
-                        "Invalid delivery mode, it should be either `persistent` or `non_persistent`: " + v);
+                throw ex.illegalArgumentInvalidDeliveryMode(v);
             }
         });
         config.getDisableMessageId().ifPresent(producer::setDisableMessageID);
@@ -57,8 +60,7 @@ class JmsSink {
             } else if (replyToDestinationType.equalsIgnoreCase("queue")) {
                 replyToDestination = context.createQueue(rt);
             } else {
-                throw new IllegalArgumentException(
-                        "Invalid destination type, it should be either `queue` or `topic`: " + replyToDestinationType);
+                throw ex.illegalArgumentInvalidDestinationType(replyToDestinationType);
             }
             producer.setJMSReplyTo(replyToDestination);
         });
@@ -71,7 +73,7 @@ class JmsSink {
                         throw new IllegalStateException(e);
                     }
                 })
-                .onError(t -> LOGGER.error("Unable to send message to JMS", t))
+                .onError(t -> log.unableToSend(t))
                 .ignore();
 
     }
@@ -129,8 +131,7 @@ class JmsSink {
 
             if (properties != null) {
                 if (!(properties instanceof JmsPropertiesBuilder.OutgoingJmsProperties)) {
-                    throw new javax.jms.IllegalStateException("Unable to map JMS properties to the outgoing message, "
-                            + "OutgoingJmsProperties expected, found " + properties.getClass().getName());
+                    throw ex.illegalStateUnableToMapProperties(properties.getClass().getName());
                 }
                 JmsPropertiesBuilder.OutgoingJmsProperties op = ((JmsPropertiesBuilder.OutgoingJmsProperties) properties);
                 op.getProperties().forEach(p -> p.apply(outgoing));
@@ -167,7 +168,7 @@ class JmsSink {
             case "topic":
                 return context.createTopic(name);
             default:
-                throw new IllegalArgumentException("Unknown destination type: " + type);
+                throw ex.illegalStateUnknownDestinationType(type);
         }
 
     }

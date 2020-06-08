@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -161,9 +163,7 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
         List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
         if (list.isEmpty()) {
-            throw new IllegalStateException(
-                    "Unable to find a stream with the name " + name + ", available streams are: "
-                            + channelRegistry.getIncomingNames());
+            throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
         }
         // TODO Manage merge.
         return list.get(0).buildRs();
@@ -174,9 +174,7 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
         List<SubscriberBuilder<? extends Message<?>, Void>> list = channelRegistry.getSubscribers(name);
         if (list.isEmpty()) {
-            throw new IllegalStateException(
-                    "Unable to find a stream with the name " + name + ", available streams are: "
-                            + channelRegistry.getOutgoingNames());
+            throw ex.illegalStateForStream(name, channelRegistry.getOutgoingNames());
         }
         return list.get(0);
     }
@@ -186,9 +184,7 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
         Emitter emitter = channelRegistry.getEmitter(name);
         if (emitter == null) {
-            throw new IllegalStateException(
-                    "Unable to find a emitter with the name " + name + ", available emitters are: "
-                            + channelRegistry.getEmitterNames());
+            throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
         }
         return emitter;
     }
@@ -210,7 +206,7 @@ public class ChannelProducer {
                 return ((io.smallrye.reactive.messaging.annotations.Channel) qualifier).value();
             }
         }
-        throw new IllegalStateException("@Channel qualifier not found on + " + injectionPoint);
+        throw ex.illegalStateForAnnotationNotFound("@Channel", injectionPoint);
     }
 
     static Channel getChannelQualifier(InjectionPoint injectionPoint) {

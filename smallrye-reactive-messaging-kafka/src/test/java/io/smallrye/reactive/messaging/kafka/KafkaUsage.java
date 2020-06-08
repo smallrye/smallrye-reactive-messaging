@@ -27,15 +27,14 @@ import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 /**
  * @author <a href="http://escoffier.me">Clement Escoffier</a>
  */
 public class KafkaUsage {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(KafkaUsage.class);
+    private final static Logger LOGGER = Logger.getLogger(KafkaUsage.class);
     private final String brokers;
 
     public KafkaUsage() {
@@ -90,19 +89,19 @@ public class KafkaUsage {
             Supplier<ProducerRecord<K, V>> messageSupplier) {
         Properties props = getProducerProperties(producerName);
         Thread t = new Thread(() -> {
-            LOGGER.info("Starting producer {} to write {} messages", producerName, messageCount);
+            LOGGER.infof("Starting producer %s to write %s messages", producerName, messageCount);
             try (KafkaProducer<K, V> producer = new KafkaProducer<>(props, keySerializer, valueSerializer)) {
                 for (int i = 0; i != messageCount; ++i) {
                     ProducerRecord<K, V> record = messageSupplier.get();
                     producer.send(record);
                     producer.flush();
-                    LOGGER.info("Producer {}: sent message {}", producerName, record);
+                    LOGGER.infof("Producer %s: sent message %s", producerName, record);
                 }
             } finally {
                 if (completionCallback != null) {
                     completionCallback.run();
                 }
-                LOGGER.info("Stopping producer {}", producerName);
+                LOGGER.infof("Stopping producer %s", producerName);
             }
         });
         t.setName(producerName + "-thread");
@@ -156,12 +155,12 @@ public class KafkaUsage {
             java.util.function.Consumer<ConsumerRecord<K, V>> consumerFunction) {
         Properties props = getConsumerProperties(groupId, clientId, autoOffsetReset);
         Thread t = new Thread(() -> {
-            LOGGER.info("Starting consumer {} to read messages", clientId);
+            LOGGER.infof("Starting consumer %s to read messages", clientId);
             try (KafkaConsumer<K, V> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer)) {
                 consumer.subscribe(new ArrayList<>(topics));
                 while (continuation.getAsBoolean()) {
                     consumer.poll(Duration.ofMillis(10)).forEach(record -> {
-                        LOGGER.info("Consumer {}: consuming message {}", clientId, record);
+                        LOGGER.infof("Consumer %s: consuming message %s", clientId, record);
                         consumerFunction.accept(record);
                         if (offsetCommitCallback != null) {
                             consumer.commitAsync(offsetCommitCallback);
@@ -172,7 +171,7 @@ public class KafkaUsage {
                 if (completion != null) {
                     completion.run();
                 }
-                LOGGER.debug("Stopping consumer {}", clientId);
+                LOGGER.debugf("Stopping consumer %s", clientId);
             }
         });
         t.setName(clientId + "-thread");

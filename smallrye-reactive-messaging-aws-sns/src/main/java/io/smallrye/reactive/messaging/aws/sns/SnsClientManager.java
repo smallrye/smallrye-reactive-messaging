@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
+import static io.smallrye.reactive.messaging.aws.sns.i18n.SnsExceptions.ex;
+import static io.smallrye.reactive.messaging.aws.sns.i18n.SnsMessages.msg;
+
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -51,12 +54,12 @@ class SnsClientManager {
         if (cfg.isMockSnsTopic()) {
             URL snsUrl;
             try {
-                Objects.requireNonNull(cfg.getHost(), "Host cannot be null");
+                Objects.requireNonNull(cfg.getHost(), msg.hostNotNull());
                 snsUrl = new URL(cfg.getHost());
                 clientBuilder.endpointOverride(snsUrl.toURI());
                 clientBuilder.region(Region.AP_SOUTH_1);
             } catch (MalformedURLException | URISyntaxException e) {
-                throw new IllegalArgumentException("Invalid URL", e);
+                throw ex.illegalArgumentInvalidURL(e);
             }
         }
         client = clientBuilder.build();

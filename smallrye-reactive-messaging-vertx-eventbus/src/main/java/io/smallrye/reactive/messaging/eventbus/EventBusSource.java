@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.eventbus;
 
+import static io.smallrye.reactive.messaging.eventbus.i18n.EventBusMessages.msg;
+
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,7 +21,7 @@ class EventBusSource {
     private final boolean broadcast;
 
     EventBusSource(Vertx vertx, VertxEventBusConnectorIncomingConfiguration config) {
-        this.vertx = Objects.requireNonNull(vertx, "The vert.x instance must not be `null`");
+        this.vertx = Objects.requireNonNull(vertx, msg.vertXInstanceMustNotBeNull());
         this.address = config.getAddress();
         this.broadcast = config.getBroadcast();
         this.ack = config.getUseReplyAsAck();

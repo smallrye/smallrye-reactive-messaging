@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubMessages.msg;
+
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -16,13 +18,13 @@ public class PubSubMessage implements Message<String> {
     private final AckReplyConsumer ackReplyConsumer;
 
     public PubSubMessage(final PubsubMessage message) {
-        this.message = Objects.requireNonNull(message, "message is required");
+        this.message = Objects.requireNonNull(message, msg.isRequired("message"));
         this.ackReplyConsumer = null;
     }
 
     public PubSubMessage(final PubsubMessage message, final AckReplyConsumer ackReplyConsumer) {
-        this.message = Objects.requireNonNull(message, "message is required");
-        this.ackReplyConsumer = Objects.requireNonNull(ackReplyConsumer, "ackReplyConsumer is required");
+        this.message = Objects.requireNonNull(message, msg.isRequired("message"));
+        this.ackReplyConsumer = Objects.requireNonNull(ackReplyConsumer, msg.isRequired("ackReplyConsumer"));
     }
 
     public PubsubMessage getMessage() {

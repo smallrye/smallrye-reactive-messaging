@@ -1,6 +1,12 @@
 package io.smallrye.reactive.messaging.connectors;
 
-import java.util.*;
+import static io.smallrye.reactive.messaging.connectors.i18n.InMemoryExceptions.ex;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -68,7 +74,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         Map<String, String> properties = new LinkedHashMap<>();
         for (String channel : channels) {
             if (channel == null || channel.trim().isEmpty()) {
-                throw new IllegalArgumentException("The channel name must not be `null` or blank");
+                throw ex.illegalArgumentChannelNameNull();
             }
             String key = "mp.messaging.incoming." + channel + ".connector";
             properties.put(key, CONNECTOR);
@@ -111,7 +117,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         Map<String, String> properties = new LinkedHashMap<>();
         for (String channel : channels) {
             if (channel == null || channel.trim().isEmpty()) {
-                throw new IllegalArgumentException("The channel name must not be `null` or blank");
+                throw ex.illegalArgumentChannelNameNull();
             }
             String key = "mp.messaging.outgoing." + channel + ".connector";
             properties.put(key, CONNECTOR);
@@ -137,7 +143,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
                 .orElseThrow(
-                        () -> new IllegalArgumentException("Invalid incoming configuration, `channel-name` is not set"));
+                        () -> ex.illegalArgumentInvalidIncomingConfig());
         return sources.computeIfAbsent(name, InMemorySourceImpl::new).source;
     }
 
@@ -145,7 +151,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
                 .orElseThrow(
-                        () -> new IllegalArgumentException("Invalid outgoing configuration, `channel-name` is not set"));
+                        () -> ex.illegalArgumentInvalidOutgoingConfig());
         return sinks.computeIfAbsent(name, InMemorySinkImpl::new).sink;
     }
 
@@ -165,11 +171,11 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      */
     public <T> InMemorySource<T> source(String channel) {
         if (channel == null) {
-            throw new IllegalArgumentException("`channel` must not be `null`");
+            throw ex.illegalArgumentChannelMustNotBeNull();
         }
         InMemorySourceImpl<?> source = sources.get(channel);
         if (source == null) {
-            throw new IllegalArgumentException("Unknown channel " + channel);
+            throw ex.illegalArgumentUnknownChannel(channel);
         }
         //noinspection unchecked
         return (InMemorySource<T>) source;
@@ -190,11 +196,11 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      */
     public <T> InMemorySink<T> sink(String channel) {
         if (channel == null) {
-            throw new IllegalArgumentException("`channel` must not be `null`");
+            throw ex.illegalArgumentChannelMustNotBeNull();
         }
         InMemorySink<?> sink = sinks.get(channel);
         if (sink == null) {
-            throw new IllegalArgumentException("Unknown channel " + channel);
+            throw ex.illegalArgumentUnknownChannel(channel);
         }
         //noinspection unchecked
         return (InMemorySink<T>) sink;
@@ -267,6 +273,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
             return new ArrayList<>(list);
         }
 
+        @Override
         public void clear() {
             completed.set(false);
             failure.set(null);

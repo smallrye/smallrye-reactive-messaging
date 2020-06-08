@@ -34,11 +34,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jboss.weld</groupId>
       <artifactId>weld-junit5</artifactId>
       <version>${version.weld.junit5}</version>
@@ -85,14 +80,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
-          <annotationProcessors>
-            <annotationProcessor>
-              io.smallrye.reactive.messaging.connector.ConnectorAttributeProcessor
-            </annotationProcessor>
-          </annotationProcessors>
-        </configuration>
       </plugin>
     </plugins>
   </build>

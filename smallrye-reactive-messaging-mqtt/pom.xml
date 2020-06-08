@@ -30,12 +30,12 @@
       <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
+<!--    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>1.2.3</version>
       <scope>test</scope>
-    </dependency>
+    </dependency>-->
     <dependency>
       <groupId>com.github.cbismuth</groupId>
       <artifactId>junit-repeat-rule</artifactId>
@@ -67,14 +67,14 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
+<!--        <configuration>
           <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
           <annotationProcessors>
             <annotationProcessor>
               io.smallrye.reactive.messaging.connector.ConnectorAttributeProcessor
             </annotationProcessor>
           </annotationProcessors>
-        </configuration>
+        </configuration>-->
       </plugin>
     </plugins>
   </build>

@@ -4,12 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import org.jboss.logging.Logger;
 import org.jboss.weld.environment.se.Weld;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.config.inject.ConfigExtension;
@@ -25,7 +24,8 @@ import io.vertx.mutiny.core.Vertx;
 
 public class AwsSnsTestBase {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AwsSnsTest.class);
+    private static final Logger LOGGER = Logger.getLogger(AwsSnsTest.class);
+
     ExecutionHolder executionHolder;
     private String ip;
     private int port;
@@ -39,7 +39,7 @@ public class AwsSnsTestBase {
         executionHolder = new ExecutionHolder(Vertx.vertx());
         ip = CONTAINER.getContainerIpAddress();
         port = CONTAINER.getMappedPort(9911);
-        LOGGER.debug("Container IP [{}] port [{}]", ip, port);
+        LOGGER.debugf("Container IP [%s] port [%d]", ip, port);
     }
 
     int port() {

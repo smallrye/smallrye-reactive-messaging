@@ -1,26 +1,27 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.util.List;
 
 public class WeavingException extends RuntimeException {
 
     public WeavingException(String source, String method, int number) {
-        super("Unable to connect stream `" + source + "` (" + method + ") - several publishers are available (" + number + "), "
-                +
-                "use the @Merge annotation to indicate the merge strategy.");
+        super(msg.weavingUnableToConnect(source, method, number));
     }
 
     /**
      * Used when a synchronous error is caught during the subscription
      * 
+     * @param source the source
      * @param cause the cause
      */
     public WeavingException(String source, Throwable cause) {
-        super("Synchronous error caught during the subscription of `" + source + "`", cause);
+        super(msg.weavingSynchronousError(source), cause);
     }
 
     public WeavingException(List<String> sources, Throwable cause) {
-        super("Synchronous error caught during the subscription of " + sources, cause);
+        super(msg.weavingSynchronousError(sources.toString()), cause);
     }
 
     public WeavingException(String message) {

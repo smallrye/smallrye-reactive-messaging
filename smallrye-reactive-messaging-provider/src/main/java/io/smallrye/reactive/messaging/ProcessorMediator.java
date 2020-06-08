@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -24,7 +27,7 @@ public class ProcessorMediator extends AbstractMediator {
     public ProcessorMediator(MediatorConfiguration configuration) {
         super(configuration);
         if (configuration.shape() != Shape.PROCESSOR) {
-            throw new IllegalArgumentException("Expected a Processor shape, received a " + configuration.shape());
+            throw ex.illegalArgumentForProcessorShape(configuration.shape());
         }
     }
 
@@ -88,8 +91,7 @@ public class ProcessorMediator extends AbstractMediator {
                         processMethodReturningAPublisherOfMessageAndConsumingMessages();
                     }
                 } else {
-                    throw new IllegalArgumentException(
-                            "Invalid Processor - unsupported signature for " + configuration.methodAsString());
+                    throw ex.illegalArgumentForInitialize(configuration.methodAsString());
                 }
                 break;
             case STREAM_OF_PAYLOAD:
@@ -113,8 +115,7 @@ public class ProcessorMediator extends AbstractMediator {
                         processMethodReturningAPublisherOfPayloadsAndConsumingPayloads();
                     }
                 } else {
-                    throw new IllegalArgumentException(
-                            "Invalid Processor - unsupported signature for " + configuration.methodAsString());
+                    throw ex.illegalArgumentForInitialize(configuration.methodAsString());
                 }
                 break;
             case INDIVIDUAL_MESSAGE:
@@ -142,7 +143,7 @@ public class ProcessorMediator extends AbstractMediator {
                 processMethodReturningAUniOfPayloadAndConsumingIndividualPayload();
                 break;
             default:
-                throw new IllegalArgumentException("Unexpected production type: " + configuration.production());
+                throw ex.illegalArgumentForUnexpectedProduction(configuration.production());
         }
     }
 
@@ -166,7 +167,7 @@ public class ProcessorMediator extends AbstractMediator {
 
     private void processMethodReturningAProcessorBuilderOfMessages() {
         ProcessorBuilder<Message<?>, Message<?>> builder = Objects.requireNonNull(invoke(),
-                "The method " + configuration.methodAsString() + " returned `null`");
+                msg.methodReturnedNull(configuration.methodAsString()));
 
         this.processor = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(managePreProcessingAck())
@@ -176,7 +177,8 @@ public class ProcessorMediator extends AbstractMediator {
 
     private void processMethodReturningAProcessorOfMessages() {
         Processor<Message<?>, Message<?>> result = Objects.requireNonNull(invoke(),
-                "The method " + configuration.methodAsString() + " returned `null`");
+                msg.methodReturnedNull(configuration.methodAsString()));
+
         this.processor = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
                     if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
@@ -204,8 +206,7 @@ public class ProcessorMediator extends AbstractMediator {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private void processMethodReturningAProcessorBuilderOfPayloads() {
         ProcessorBuilder returnedProcessorBuilder = invoke();
-        Objects.requireNonNull(returnedProcessorBuilder, "The method " + configuration.methodAsString()
-                + " has returned an invalid value: null");
+        Objects.requireNonNull(returnedProcessorBuilder, msg.methodReturnedNull(configuration.methodAsString()));
 
         this.processor = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(managePreProcessingAck())
@@ -339,7 +340,7 @@ public class ProcessorMediator extends AbstractMediator {
                 return Uni.createFrom()
                         .completionStage(message.nack(fail).thenApply(x -> (Message<Object>) null));
             } else {
-                throw new ProcessingException(getMethodAsString(), fail);
+                throw ex.processingException(getMethodAsString(), fail);
             }
         } else if (res != null) {
             if (isPostAck()) {
@@ -361,7 +362,7 @@ public class ProcessorMediator extends AbstractMediator {
     private Uni<? extends Message<Object>> handlePostInvocationWithMessage(Message<?> res,
             Throwable fail) {
         if (fail != null) {
-            throw new ProcessingException(getMethodAsString(), fail);
+            throw ex.processingException(getMethodAsString(), fail);
         } else if (res != null) {
             return Uni.createFrom().item((Message<Object>) res);
         } else {

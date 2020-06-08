@@ -7,15 +7,14 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 
 public class EventBusUsage {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(EventBusUsage.class);
+    private final static Logger LOGGER = Logger.getLogger(EventBusUsage.class);
     private final EventBus bus;
 
     public EventBusUsage(EventBus bus) {
@@ -34,7 +33,7 @@ public class EventBusUsage {
     public void produce(String topic, int messageCount, boolean send, Runnable completionCallback,
             Supplier<Object> messageSupplier) {
         Thread t = new Thread(() -> {
-            LOGGER.info("Starting event bus client to write {} messages", messageCount);
+            LOGGER.infof("Starting event bus client to write %s messages", messageCount);
             try {
                 for (int i = 0; i != messageCount; ++i) {
                     Object payload = messageSupplier.get();
@@ -43,7 +42,7 @@ public class EventBusUsage {
                     } else {
                         bus.publish(topic, payload);
                     }
-                    LOGGER.info("Producer sent message {}", payload);
+                    LOGGER.infof("Producer sent message %s", payload);
                 }
             } catch (Exception e) {
                 LOGGER.error("Unable to send message", e);
@@ -78,12 +77,12 @@ public class EventBusUsage {
             Consumer<Object> consumerFunction) {
         CountDownLatch done = new CountDownLatch(1);
         Thread t = new Thread(() -> {
-            LOGGER.info("Starting consumer to read messages on {}", topic);
+            LOGGER.infof("Starting consumer to read messages on %s", topic);
             try {
                 MessageConsumer<Object> consumer = bus.consumer(topic);
                 consumer
                         .handler(msg -> {
-                            LOGGER.info("Consumer {}: consuming message {}", topic, msg.body());
+                            LOGGER.infof("Consumer %s: consuming message %s", topic, msg.body());
                             consumerFunction.accept(msg.body());
                             if (!continuation.getAsBoolean()) {
                                 consumer.unregister();
@@ -91,7 +90,7 @@ public class EventBusUsage {
                         })
                         .completionHandler(x -> done.countDown());
             } catch (Exception e) {
-                LOGGER.error("Unable to receive messages from {}", topic, e);
+                LOGGER.errorf("Unable to receive messages from %s", topic, e);
             }
         });
         t.setName(topic + "-thread");

@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
+
 import java.util.concurrent.CompletionStage;
 
 public interface MqttFailureHandler {
@@ -15,7 +17,7 @@ public interface MqttFailureHandler {
             if (s.equalsIgnoreCase("ignore")) {
                 return IGNORE;
             }
-            throw new IllegalArgumentException("Unknown failure strategy: " + s);
+            throw ex.illegalArgumentUnknownStrategy(s);
         }
     }
 

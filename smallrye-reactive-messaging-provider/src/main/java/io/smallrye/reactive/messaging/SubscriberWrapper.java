@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,7 +40,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
                     // Ignored.
                 }
             });
-            s.onError(new IllegalStateException("Broadcast not supported"));
+            s.onError(ex.illegalStateForNotSupported("Broadcast"));
         }
     }
 

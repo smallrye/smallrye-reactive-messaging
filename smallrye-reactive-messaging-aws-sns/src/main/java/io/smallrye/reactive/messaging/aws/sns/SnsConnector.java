@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.aws.sns;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
+import static io.smallrye.reactive.messaging.aws.sns.i18n.SnsLogging.log;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -22,8 +23,6 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -53,7 +52,6 @@ import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 public class SnsConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SnsConnector.class);
     static final String CONNECTOR_NAME = "smallrye-aws-sns";
 
     @Inject
@@ -65,7 +63,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
     @PostConstruct
     public void initConnector() {
         //Initialize vertx and threadExecutor
-        LOGGER.info("Initializing Connector");
+        log.initializingConnector();
         this.vertx = executionHolder.vertx().getDelegate();
         executor = Executors.newSingleThreadExecutor();
     }
@@ -93,7 +91,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
         boolean mock = oc.getMockSnsTopics();
         return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(m -> send(m, topic, snsUrl, mock))
-                .onError(t -> LOGGER.error("Error while sending the message to SNS topic {}", topic, t))
+                .onError(t -> log.errorSendingToTopic(topic, t))
                 .ignore();
     }
 
@@ -116,7 +114,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                         .message((String) message.getPayload())
                         .build()))
                 .thenApply(resp -> {
-                    LOGGER.info("Message sent successfully with id {}", resp.messageId());
+                    log.successfullySend(resp.messageId());
                     return message;
                 });
     }
@@ -146,7 +144,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                         .onItem().produceMulti(x -> Uni.createFrom().item(() -> {
                             // We get a request, block until we get a msg and emit it.
                             try {
-                                LOGGER.trace("Polling message");
+                                log.polling();
                                 return snsVerticle.pollMsg();
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();

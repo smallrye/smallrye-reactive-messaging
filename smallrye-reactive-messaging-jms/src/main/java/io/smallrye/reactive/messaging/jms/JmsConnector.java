@@ -1,8 +1,14 @@
 package io.smallrye.reactive.messaging.jms;
 
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -139,9 +145,9 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
     private ConnectionFactory pickTheFactory(String factoryName) {
         if (factories.isUnsatisfied()) {
             if (factoryName == null) {
-                throw new IllegalStateException("Cannot find a javax.jms.ConnectionFactory bean");
+                throw ex.illegalStateCannotFindFactory();
             } else {
-                throw new IllegalStateException("Cannot find a javax.jms.ConnectionFactory bean named " + factoryName);
+                throw ex.illegalStateCannotFindNamedFactory(factoryName);
             }
         }
 
@@ -154,9 +160,9 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
 
         if (!iterator.hasNext()) {
             if (factoryName == null) {
-                throw new IllegalStateException("Cannot find a javax.jms.ConnectionFactory bean");
+                throw ex.illegalStateCannotFindFactory();
             } else {
-                throw new IllegalStateException("Cannot find a javax.jms.ConnectionFactory bean named " + factoryName);
+                throw ex.illegalStateCannotFindNamedFactory(factoryName);
             }
         }
 
@@ -179,7 +185,7 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
                 sessionMode = JMSContext.DUPS_OK_ACKNOWLEDGE;
                 break;
             default:
-                throw new IllegalArgumentException("Unknown session mode: " + mode);
+                throw ex.illegalStateUnknowSessionMode(mode);
         }
 
         if (username != null) {

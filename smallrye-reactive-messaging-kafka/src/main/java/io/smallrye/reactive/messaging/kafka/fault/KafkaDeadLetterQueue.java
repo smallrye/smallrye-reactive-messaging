@@ -1,11 +1,12 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
@@ -16,19 +17,17 @@ import io.vertx.mutiny.kafka.client.producer.KafkaProducerRecord;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
-    private final Logger logger;
     private final String channel;
     private final KafkaProducer producer;
     private final String topic;
 
-    public KafkaDeadLetterQueue(Logger logger, String channel, String topic, KafkaProducer producer) {
-        this.logger = logger;
+    public KafkaDeadLetterQueue(String channel, String topic, KafkaProducer producer) {
         this.channel = channel;
         this.topic = topic;
         this.producer = producer;
     }
 
-    public static KafkaFailureHandler create(Logger logger, Vertx vertx,
+    public static KafkaFailureHandler create(Vertx vertx,
             Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf) {
         Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
         // TODO The producer may warn about consumer configuration - we may have to remove them.
@@ -42,14 +41,13 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
         String deadQueueTopic = conf.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + conf.getChannel());
 
-        logger.debug("Dead queue letter configured with: topic: `{}`, key serializer: `{}`, value serializer: `{}`",
-                deadQueueTopic,
+        log.deadLetterConfig(deadQueueTopic,
                 deadQueueProducerConfig.get("key.serializer"), deadQueueProducerConfig.get("value.serializer"));
 
         KafkaProducer<Object, Object> producer = io.vertx.mutiny.kafka.client.producer.KafkaProducer
                 .create(vertx, deadQueueProducerConfig);
 
-        return new KafkaDeadLetterQueue(logger, conf.getChannel(), deadQueueTopic, producer);
+        return new KafkaDeadLetterQueue(conf.getChannel(), deadQueueTopic, producer);
 
     }
 
@@ -69,9 +67,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         if (reason.getCause() != null) {
             dead.addHeader("dead-letter-cause", reason.getCause().getMessage());
         }
-        logger
-                .info("A message sent to channel `{}` has been nacked, sending the record to a dead letter topic {}",
-                        channel, topic);
+        log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
                 .subscribeAsCompletionStage();
     }

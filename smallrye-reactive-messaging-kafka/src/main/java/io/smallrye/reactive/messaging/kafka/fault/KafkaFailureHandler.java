@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
+
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
@@ -21,7 +23,7 @@ public interface KafkaFailureHandler {
             if (s.equalsIgnoreCase("dead-letter-queue")) {
                 return DEAD_LETTER_QUEUE;
             }
-            throw new IllegalArgumentException("Unknown failure strategy: " + s);
+            throw ex.illegalArgumentUnknownStrategy(s);
         }
     }
 
