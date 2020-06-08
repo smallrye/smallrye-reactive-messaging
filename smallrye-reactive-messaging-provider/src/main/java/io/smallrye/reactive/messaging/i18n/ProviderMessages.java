@@ -19,8 +19,8 @@ public interface ProviderMessages {
     @Message(id = 101, value = "Worker pool not initialized")
     String workerPoolNotInitialized();
 
-    @Message(id = 102, value = "'%s' must be set")
-    String mustBeSet(String name);
+    @Message(id = 102, value = "'name' must be set")
+    String nameMustBeSet();
 
     @Message(id = 103, value = "Exception thrown when calling the method %s")
     String methodCallingExceptionMessage(String method);
@@ -72,4 +72,19 @@ public interface ProviderMessages {
 
     @Message(id = 119, value = "the channel name must be set")
     String channelMustNotBeSet();
+
+    @Message(id = 120, value = "'stream' must be set")
+    String streamMustBeSet();
+
+    @Message(id = 121, value = "'subscriber' must be set")
+    String subscriberMustBeSet();
+
+    @Message(id = 122, value = "'emitter' must be set")
+    String emitterMustBeSet();
+
+    @Message(id = 123, value = "'method' must be set")
+    String methodMustBeSet();
+
+    @Message(id = 124, value = "'bean' must be set")
+    String beanMustBeSet();
 }

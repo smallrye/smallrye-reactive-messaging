@@ -98,8 +98,8 @@ public interface ProviderExceptions {
     @Message(id = 22, value = "Invalid back-pressure strategy: %s")
     IllegalArgumentException illegalArgumentForBackPressure(OnOverflow.Strategy overFlowStrategy);
 
-    @Message(id = 23, value = "`%s` is not a valid value")
-    IllegalArgumentException illegalArgumentForValue(String val);
+    @Message(id = 23, value = "`null` is not a valid value")
+    IllegalArgumentException illegalArgumentForNullValue();
 
     @Message(id = 24, value = "The emitter encountered a failure")
     IllegalStateException illegalStateForEmitter(@Cause Throwable throwable);
@@ -143,8 +143,8 @@ public interface ProviderExceptions {
     @Message(id = 38, value = "%s")
     IllegalArgumentException illegalArgumentTypeToString(String typeName);
 
-    @Message(id = 39, value = "`%s` must be set")
-    IllegalArgumentException validationForMustBeSet(String variable);
+    @Message(id = 39, value = "`name` must be set")
+    IllegalArgumentException nameMustBeSet();
 
     @Message(id = 40, value = "%s must not be `null`")
     IllegalArgumentException validationForNotNull(String name);

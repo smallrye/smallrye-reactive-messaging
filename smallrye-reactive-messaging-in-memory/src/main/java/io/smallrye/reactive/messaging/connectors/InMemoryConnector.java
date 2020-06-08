@@ -142,16 +142,14 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
-                .orElseThrow(
-                        () -> ex.illegalArgumentInvalidIncomingConfig());
+                .orElseThrow(ex::illegalArgumentInvalidIncomingConfig);
         return sources.computeIfAbsent(name, InMemorySourceImpl::new).source;
     }
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
-                .orElseThrow(
-                        () -> ex.illegalArgumentInvalidOutgoingConfig());
+                .orElseThrow(ex::illegalArgumentInvalidOutgoingConfig);
         return sinks.computeIfAbsent(name, InMemorySinkImpl::new).sink;
     }
 

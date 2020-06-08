@@ -6,10 +6,12 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+/**
+ * Exceptions for AWS SNS Connector
+ * Assigned ID range is 15200-15299
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface SnsLogging {
-
-    // 15200-15299 (logging)
 
     SnsLogging log = Logger.getMessageLogger(SnsLogging.class, "io.smallrye.reactive.messaging.aws.sns");
 

@@ -6,12 +6,14 @@ import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
+/**
+ * Exceptions for HTTP Connector
+ * Assigned ID range is 16300-16399
+ */
 @MessageBundle(projectCode = "SRMSG")
 public interface HttpExceptions {
 
     HttpExceptions ex = Messages.getBundle(HttpExceptions.class);
-
-    // 16300-16399 (exceptions)
 
     @Message(id = 16300, value = "The `url` must be set")
     IllegalArgumentException illegalArgumentUrlNotSet();

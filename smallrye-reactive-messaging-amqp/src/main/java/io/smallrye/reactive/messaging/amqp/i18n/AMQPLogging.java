@@ -6,10 +6,12 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+/**
+ * Logging for AMQP Connector
+ * Assigned ID range is 16200-16299
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface AMQPLogging {
-
-    // 16200-16299 (logging)
 
     AMQPLogging log = Logger.getMessageLogger(AMQPLogging.class, "io.smallrye.reactive.messaging.amqp");
 

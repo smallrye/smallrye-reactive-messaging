@@ -10,7 +10,7 @@ public class Validation {
 
     public static <T> T notNull(T instance, String name) {
         if (isBlank(name)) {
-            throw ex.validationForMustBeSet("name");
+            throw ex.nameMustBeSet();
         }
 
         if (instance == null) {
@@ -23,7 +23,7 @@ public class Validation {
 
     public static <T> T[] notEmpty(T[] array, String name) {
         if (isBlank(name)) {
-            throw ex.validationForMustBeSet("name");
+            throw ex.nameMustBeSet();
         }
 
         if (array == null) {
@@ -38,7 +38,7 @@ public class Validation {
 
     public static <T> T[] noNullElements(T[] array, String name) {
         if (isBlank(name)) {
-            throw ex.validationForMustBeSet("name");
+            throw ex.nameMustBeSet();
         }
 
         if (array == null) {

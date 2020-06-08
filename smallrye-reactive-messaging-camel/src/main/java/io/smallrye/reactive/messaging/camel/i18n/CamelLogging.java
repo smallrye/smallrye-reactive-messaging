@@ -6,10 +6,12 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+/**
+ * Logging for Camel Connector
+ * Assigned ID range is 17800-17899
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface CamelLogging {
-
-    // 17800-17899 (logging)
 
     CamelLogging log = Logger.getMessageLogger(CamelLogging.class, "io.smallrye.reactive.messaging.camel");
 

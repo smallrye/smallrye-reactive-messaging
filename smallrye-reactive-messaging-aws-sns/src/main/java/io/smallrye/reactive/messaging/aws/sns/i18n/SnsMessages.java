@@ -4,12 +4,14 @@ import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
+/**
+ * Messages for AWS SNS Connector
+ * Assigned ID range is 15100-15199
+ */
 @MessageBundle(projectCode = "SRMSG")
 public interface SnsMessages {
 
     SnsMessages msg = Messages.getBundle(SnsMessages.class);
-
-    // 15100-15199 (String messages)
 
     @Message(id = 15100, value = "Host cannot be null")
     String hostNotNull();

@@ -5,10 +5,12 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+/**
+ * Logging for HTTP Connector
+ * Assigned ID range is 16500-16599
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface HttpLogging {
-
-    // 16500-16599 (logging)
 
     HttpLogging log = Logger.getMessageLogger(HttpLogging.class, "io.smallrye.reactive.messaging.http");
 

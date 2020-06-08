@@ -6,12 +6,14 @@ import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
+/**
+ * Messages for AMQP Connector
+ * Assigned ID range is 16100-16199
+ */
 @MessageBundle(projectCode = "SRMSG")
 public interface AMQPMessages {
 
     AMQPMessages msg = Messages.getBundle(AMQPMessages.class);
-
-    // 16100-16199 (String messages)
 
     @Message(id = 16100, value = "Invoker not initialized")
     String invokerNotInitialized();

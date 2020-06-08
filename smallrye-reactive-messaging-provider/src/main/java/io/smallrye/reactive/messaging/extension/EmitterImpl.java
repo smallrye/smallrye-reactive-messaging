@@ -123,7 +123,7 @@ public class EmitterImpl<T> implements Emitter<T> {
     @Override
     public synchronized CompletionStage<Void> send(T msg) {
         if (msg == null) {
-            throw ex.illegalArgumentForValue("null");
+            throw ex.illegalArgumentForNullValue();
         }
         CompletableFuture<Void> future = new CompletableFuture<>();
         emit(Message.of(msg, Metadata.empty(), () -> {
@@ -154,7 +154,7 @@ public class EmitterImpl<T> implements Emitter<T> {
     @Override
     public synchronized <M extends Message<? extends T>> void send(M msg) {
         if (msg == null) {
-            throw ex.illegalArgumentForValue("null");
+            throw ex.illegalArgumentForNullValue();
         }
         emit(msg);
     }

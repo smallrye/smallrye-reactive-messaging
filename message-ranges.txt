@@ -81,11 +81,27 @@
 17800-17899 = logging
 
 # Kafka (smallrye-reactive-messaging-kafka)
-18000-18333 = exceptions
-18334-18666 = messaging
-18667-18999 = logging
+18000-18099 = exceptions
+18100-18199 = messaging
+18200-18299 = logging
 
 # In Memory (smallrye-reactive-messaging-in-memory)
-19000-19333 = exceptions
-19334-19666 = messaging
-19667-19999 = logging
+18300-18399 = exceptions
+18400-18499 = messaging
+18500-18599 = logging
+
+18600-18699
+18700-18799
+18800-18899
+
+19000-19099
+19100-19199
+19200-19299
+
+19300-19399
+19400-19499
+19500-19599
+
+19600-19699
+19700-19799
+19800-19899

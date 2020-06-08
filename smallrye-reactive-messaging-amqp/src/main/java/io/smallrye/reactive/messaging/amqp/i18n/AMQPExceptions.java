@@ -5,12 +5,14 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
+/**
+ * Exceptions for AMQP Connector
+ * Assigned ID range is 16000-16099
+ */
 @MessageBundle(projectCode = "SRMSG")
 public interface AMQPExceptions {
 
     AMQPExceptions ex = Messages.getBundle(AMQPExceptions.class);
-
-    // 16000-16099 (exceptions)
 
     @Message(id = 16000, value = "Cannot find a %s bean named %s")
     IllegalStateException illegalStateFindingBean(String className, String beanName);

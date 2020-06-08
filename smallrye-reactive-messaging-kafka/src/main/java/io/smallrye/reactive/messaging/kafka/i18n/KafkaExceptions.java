@@ -4,12 +4,14 @@ import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
+/**
+ * Exceptions for Kafka Connector
+ * Assigned ID range is 18000-18099
+ */
 @MessageBundle(projectCode = "SRMSG")
 public interface KafkaExceptions {
 
     KafkaExceptions ex = Messages.getBundle(KafkaExceptions.class);
-
-    // 18000-18333 (exceptions)
 
     @Message(id = 18000, value = "`message` does not contain metadata of class %s")
     IllegalArgumentException illegalArgumentNoMetadata(Class c);

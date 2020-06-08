@@ -5,10 +5,12 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+/**
+ * Logging for EventBus Connector
+ * Assigned ID range is 16800-16899
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface EventBusLogging {
-
-    // 16800-16899 (logging)
 
     EventBusLogging log = Logger.getMessageLogger(EventBusLogging.class, "io.smallrye.reactive.messaging.eventbus");
 

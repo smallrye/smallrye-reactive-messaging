@@ -43,7 +43,7 @@ public class LegacyEmitterImpl<T> implements Emitter<T> {
     @Override
     public synchronized Emitter<T> send(T msg) {
         if (msg == null) {
-            throw ex.illegalArgumentForValue("null");
+            throw ex.illegalArgumentForNullValue();
         }
         if (msg instanceof Message) {
             delegate.send((Message) msg);

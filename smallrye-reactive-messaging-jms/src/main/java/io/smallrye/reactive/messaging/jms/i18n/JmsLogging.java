@@ -6,10 +6,12 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+/**
+ * Logging for JMS Connector
+ * Assigned ID range is 15800-15899
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface JmsLogging {
-
-    // 15800-15899 (logging)
 
     JmsLogging log = Logger.getMessageLogger(JmsLogging.class, "io.smallrye.reactive.messaging.jms");
 

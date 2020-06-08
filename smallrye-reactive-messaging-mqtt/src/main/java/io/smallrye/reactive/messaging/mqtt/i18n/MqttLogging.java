@@ -6,6 +6,10 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+/**
+ * Logging for MQTT Connector
+ * Assigned ID range is 17100-17199
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface MqttLogging {
 

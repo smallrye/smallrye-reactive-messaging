@@ -5,12 +5,14 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
+/**
+ * Exceptions for GCP Pub/Sub Connector
+ * Assigned ID range is 14600-14699
+ */
 @MessageBundle(projectCode = "SRMSG")
 public interface PubSubExceptions {
 
     PubSubExceptions ex = Messages.getBundle(PubSubExceptions.class);
-
-    // 14600-14699 (exceptions)
 
     @Message(id = 14600, value = "Unable to build pub/sub subscription admin client")
     IllegalStateException illegalStateUnableToBuildSubscriptionAdminClient(@Cause Throwable t);

@@ -9,10 +9,12 @@ import org.jboss.logging.annotations.MessageLogger;
 import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.PubsubMessage;
 
+/**
+ * Logging for GCP Pub/Sub Connector
+ * Assigned ID range is 14800-14899
+ */
 @MessageLogger(projectCode = "SRMSG")
 public interface PubSubLogging {
-
-    // 14800-14899 (logging)
 
     PubSubLogging log = Logger.getMessageLogger(PubSubLogging.class, "io.smallrye.reactive.messaging.gcp.pubsub");
 

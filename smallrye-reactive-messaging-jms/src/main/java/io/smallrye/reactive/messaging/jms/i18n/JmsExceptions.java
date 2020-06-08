@@ -5,12 +5,14 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
+/**
+ * Exceptions for JMS Connector
+ * Assigned ID range is 15600-15699
+ */
 @MessageBundle(projectCode = "SRMSG")
 public interface JmsExceptions {
 
     JmsExceptions ex = Messages.getBundle(JmsExceptions.class);
-
-    // 15600-15699 (exceptions)
 
     @Message(id = 15600, value = "Unable to load the class")
     IllegalArgumentException illegalStateUnableToLoadClass(@Cause Throwable t);

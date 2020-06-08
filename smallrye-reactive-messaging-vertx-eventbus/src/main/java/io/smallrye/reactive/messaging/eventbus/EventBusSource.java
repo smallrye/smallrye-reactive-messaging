@@ -1,8 +1,5 @@
 package io.smallrye.reactive.messaging.eventbus;
 
-import static io.smallrye.reactive.messaging.eventbus.i18n.EventBusMessages.msg;
-
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -21,7 +18,7 @@ class EventBusSource {
     private final boolean broadcast;
 
     EventBusSource(Vertx vertx, VertxEventBusConnectorIncomingConfiguration config) {
-        this.vertx = Objects.requireNonNull(vertx, msg.vertXInstanceMustNotBeNull());
+        this.vertx = vertx;
         this.address = config.getAddress();
         this.broadcast = config.getBroadcast();
         this.ack = config.getUseReplyAsAck();
