@@ -5,15 +5,11 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
 import static java.time.Duration.ofSeconds;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
@@ -41,16 +37,10 @@ import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
-import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpClient;
-import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.amqp.AmqpSender;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 @ApplicationScoped
 @Connector(AmqpConnector.CONNECTOR_NAME)
@@ -75,13 +65,12 @@ import io.vertx.mutiny.core.buffer.Buffer;
 
 @ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
+@ConnectorAttribute(name = "credit-retrieval-period", direction = OUTGOING, description = "The period (in milliseconds) between two attempts to retrieve the credits granted by the broker. This time is used when the sender run out of credits.", type = "int", defaultValue = "2000")
 @ConnectorAttribute(name = "use-anonymous-sender", direction = OUTGOING, description = "Whether or not the connector should use an anonymous sender.", type = "boolean", defaultValue = "true")
 
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     static final String CONNECTOR_NAME = "smallrye-amqp";
-
-    private static final String JSON_CONTENT_TYPE = "application/json";
 
     @Inject
     private ExecutionHolder executionHolder;
@@ -102,7 +91,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder, String address,
+    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder,
+            String address,
             AmqpFailureHandler onNack) {
         log.receiverListeningAddress(address);
 
@@ -132,7 +122,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions);
         String link = ic.getLinkName().orElseGet(ic::getChannel);
-        ConnectionHolder holder = new ConnectionHolder(client, ic);
+        ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
 
         AmqpFailureHandler onNack = createFailureHandler(ic);
 
@@ -163,14 +153,12 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
         String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
-        boolean durable = oc.getDurable();
-        long ttl = oc.getTtl();
         boolean useAnonymousSender = oc.getUseAnonymousSender();
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions);
         String link = oc.getLinkName().orElseGet(oc::getChannel);
-        ConnectionHolder holder = new ConnectionHolder(client, oc);
+        ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
 
         Uni<AmqpSender> getSender = Uni.createFrom().item(sender.get())
                 .onItem().ifNull().switchTo(() -> {
@@ -200,179 +188,15 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .onFailure().invoke(t -> sender.set(null))
                 .on().cancellation(() -> sender.set(null));
 
-        return ReactiveStreams.<Message<?>> builder().flatMapCompletionStage(message -> getSender
-                .flatMap(s -> send(s, message, durable, ttl, configuredAddress, useAnonymousSender, oc))
+        AmqpCreditBasedSender processor = new AmqpCreditBasedSender(
+                this,
+                holder,
+                oc,
+                getSender);
 
-                // Depending on the failure, we complete smoothly or propagate the failure which would trigger a retry.
-                .onFailure().recoverWithUni(failure -> {
-                    if (clients.isEmpty()) {
-                        log.messageNotSendClientClosed();
-                        return Uni.createFrom().item(message);
-                    } else {
-                        log.unableToSendMessage(failure);
-                        return Uni.createFrom().failure(failure);
-                    }
-                })
-                .onFailure().retry()
-                .withBackOff(ofSeconds(1), ofSeconds(oc.getReconnectInterval())).atMost(oc.getReconnectAttempts())
-
-                .subscribeAsCompletionStage()).ignore();
-    }
-
-    private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,
-            boolean isAnonymousSender) {
-        String address = amqp.address();
-        if (address != null) {
-            if (isAnonymousSender) {
-                return address;
-            } else {
-                log.unableToUseAddress(address, configuredAddress);
-                return configuredAddress;
-            }
-
-        }
-
-        return message.getMetadata(OutgoingAmqpMetadata.class)
-                .flatMap(o -> {
-                    String addressFromMessage = o.getAddress();
-                    if (addressFromMessage != null && !isAnonymousSender) {
-                        log.unableToUseAddress(addressFromMessage, configuredAddress);
-                        return Optional.empty();
-                    }
-                    return Optional.ofNullable(addressFromMessage);
-                })
-                .orElse(configuredAddress);
-    }
-
-    private Uni<Message<?>> send(AmqpSender sender, Message<?> msg, boolean durable, long ttl, String configuredAddress,
-            boolean isAnonymousSender, AmqpConnectorCommonConfiguration configuration) {
-        int retryAttempts = configuration.getReconnectAttempts();
-        int retryInterval = configuration.getReconnectInterval();
-        io.vertx.mutiny.amqp.AmqpMessage amqp;
-        if (msg instanceof AmqpMessage) {
-            amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
-        } else if (msg.getPayload() instanceof io.vertx.mutiny.amqp.AmqpMessage) {
-            amqp = (io.vertx.mutiny.amqp.AmqpMessage) msg.getPayload();
-        } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
-            amqp = new io.vertx.mutiny.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
-        } else {
-            amqp = convertToAmqpMessage(msg, durable, ttl);
-        }
-
-        String actualAddress = getActualAddress(msg, amqp, configuredAddress, isAnonymousSender);
-        if (clients.isEmpty()) {
-            log.messageToAddressNotSend(actualAddress);
-            return Uni.createFrom().item(msg);
-        }
-
-        if (!actualAddress.equals(amqp.address())) {
-            amqp = new io.vertx.mutiny.amqp.AmqpMessage(
-                    new AmqpMessageBuilderImpl(amqp.getDelegate()).address(actualAddress).build());
-        }
-
-        log.sendingMessageToAddress(actualAddress);
-        return sender.sendWithAck(amqp)
-                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
-                .onItemOrFailure().produceUni((success, failure) -> {
-                    if (failure != null) {
-                        return Uni.createFrom().completionStage(msg.nack(failure));
-                    } else {
-                        return Uni.createFrom().completionStage(msg.ack());
-                    }
-                })
-                .onItem().apply(x -> msg);
-    }
-
-    private io.vertx.mutiny.amqp.AmqpMessage convertToAmqpMessage(Message<?> message, boolean durable, long ttl) {
-        Object payload = message.getPayload();
-        Optional<OutgoingAmqpMetadata> metadata = message.getMetadata(OutgoingAmqpMetadata.class);
-        AmqpMessageBuilder builder = io.vertx.mutiny.amqp.AmqpMessage.create();
-
-        if (durable) {
-            builder.durable(true);
-        } else {
-            builder.durable(metadata.map(OutgoingAmqpMetadata::isDurable).orElse(false));
-        }
-
-        if (ttl > 0) {
-            builder.ttl(ttl);
-        } else {
-            long t = metadata.map(OutgoingAmqpMetadata::getTtl).orElse(-1L);
-            if (t > 0) {
-                builder.ttl(t);
-            }
-        }
-
-        if (payload instanceof String) {
-            builder.withBody((String) payload);
-        } else if (payload instanceof Boolean) {
-            builder.withBooleanAsBody((Boolean) payload);
-        } else if (payload instanceof Buffer) {
-            builder.withBufferAsBody((Buffer) payload);
-        } else if (payload instanceof Byte) {
-            builder.withByteAsBody((Byte) payload);
-        } else if (payload instanceof Character) {
-            builder.withCharAsBody((Character) payload);
-        } else if (payload instanceof Double) {
-            builder.withDoubleAsBody((Double) payload);
-        } else if (payload instanceof Float) {
-            builder.withFloatAsBody((Float) payload);
-        } else if (payload instanceof Instant) {
-            builder.withInstantAsBody((Instant) payload);
-        } else if (payload instanceof Integer) {
-            builder.withIntegerAsBody((Integer) payload);
-        } else if (payload instanceof JsonArray) {
-            builder.withJsonArrayAsBody((JsonArray) payload)
-                    .contentType(JSON_CONTENT_TYPE);
-        } else if (payload instanceof JsonObject) {
-            builder.withJsonObjectAsBody((JsonObject) payload)
-                    .contentType(JSON_CONTENT_TYPE);
-        } else if (payload instanceof Long) {
-            builder.withLongAsBody((Long) payload);
-        } else if (payload instanceof Short) {
-            builder.withShortAsBody((Short) payload);
-        } else if (payload instanceof UUID) {
-            builder.withUuidAsBody((UUID) payload);
-        } else if (payload instanceof byte[]) {
-            builder.withBufferAsBody(Buffer.buffer((byte[]) payload));
-        } else {
-            builder.withBufferAsBody(new Buffer(Json.encodeToBuffer(payload)))
-                    .contentType(JSON_CONTENT_TYPE);
-        }
-
-        metadata.ifPresent(new Consumer<OutgoingAmqpMetadata>() {
-            @Override
-            public void accept(OutgoingAmqpMetadata meta) {
-                if (meta.getAddress() != null) {
-                    builder.address(meta.getAddress());
-                }
-                if (meta.getProperties() != null && !meta.getProperties().isEmpty()) {
-                    builder.applicationProperties(meta.getProperties());
-                }
-                if (meta.getContentEncoding() != null) {
-                    builder.contentEncoding(meta.getContentEncoding());
-                }
-                if (meta.getContentType() != null) {
-                    builder.contentType(meta.getContentType());
-                }
-                if (meta.getCorrelationId() != null) {
-                    builder.correlationId(meta.getCorrelationId());
-                }
-                if (meta.getId() != null) {
-                    builder.id(meta.getId());
-                }
-                if (meta.getGroupId() != null) {
-                    builder.groupId(meta.getGroupId());
-                }
-                if (meta.getPriority() >= 0) {
-                    builder.priority((short) meta.getPriority());
-                }
-                if (meta.getSubject() != null) {
-                    builder.subject(meta.getSubject());
-                }
-            }
-        });
-        return builder.build();
+        return ReactiveStreams.<Message<?>> builder()
+                .via(processor)
+                .ignore();
     }
 
     public void terminate(
@@ -409,5 +233,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public boolean isReady(String channel) {
         return ready.getOrDefault(channel, false);
+    }
+
+    public List<AmqpClient> getClients() {
+        return clients;
     }
 }

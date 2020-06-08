@@ -28,4 +28,8 @@ public interface AMQPExceptions {
 
     @Message(id = 16004, value = "Unknown failure strategy: %s")
     IllegalArgumentException illegalArgumentUnknownFailureStrategy(String strategy);
+
+    @Message(id = 16005, value = "Only one subscriber allowed")
+    IllegalStateException illegalStateOnlyOneSubscriberAllowed();
+
 }

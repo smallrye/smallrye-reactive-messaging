@@ -102,4 +102,17 @@ public interface AMQPLogging {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 16221, value = "A message sent to channel `%s` has been nacked, ignoring the failure and mark the message as released")
     void nackedReleaseMessage(String channel);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 16222, value = "Retrieved credits for channel `%s`: %s")
+    void retrievedCreditsForChannel(String channel, long credits);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 16223, value = "No more credit for channel %s, requesting more credits")
+    void noMoreCreditsForChannel(String channel);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 16224, value = "The AMQP message to address `%s` has not been sent, the client is closed")
+    void messageNoSend(String actualAddress);
+
 }
