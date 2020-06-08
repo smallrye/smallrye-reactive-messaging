@@ -519,6 +519,23 @@ public class AmqpSinkTest extends AmqpTestBase {
         });
     }
 
+    @Test
+    public void testCreditBasedFlowControl() {
+        String topic = UUID.randomUUID().toString();
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeIntegers(topic,
+                v -> expected.getAndIncrement());
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        //noinspection unchecked
+        Multi.createFrom().range(0, 5000)
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        await().until(() -> expected.get() == 5000);
+        assertThat(expected).hasValue(5000);
+    }
+
     private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);

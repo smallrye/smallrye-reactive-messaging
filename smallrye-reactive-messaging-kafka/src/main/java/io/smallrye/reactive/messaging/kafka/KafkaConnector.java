@@ -113,7 +113,6 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     private Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
-
         log.mergingConfigWith(defaultKafkaCfg);
 
         return new Config() {
