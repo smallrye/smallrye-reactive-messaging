@@ -22,12 +22,15 @@ public class ConnectionHolder {
     private final AmqpConnectorCommonConfiguration configuration;
     private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionHolder.class);
+    private final Vertx vertx;
     private Consumer<Throwable> callback;
 
     public ConnectionHolder(AmqpClient client,
-            AmqpConnectorCommonConfiguration configuration) {
+            AmqpConnectorCommonConfiguration configuration,
+            Vertx vertx) {
         this.client = client;
         this.configuration = configuration;
+        this.vertx = vertx;
     }
 
     public Context getContext() {
@@ -37,6 +40,10 @@ public class ConnectionHolder {
         } else {
             return null;
         }
+    }
+
+    public Vertx getVertx() {
+        return vertx;
     }
 
     private static class CurrentConnection {
