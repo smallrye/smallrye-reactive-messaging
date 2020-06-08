@@ -5,7 +5,7 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
-@MessageBundle(projectCode = "SRRML")
+@MessageBundle(projectCode = "SRMSG")
 public interface JmsExceptions {
 
     JmsExceptions ex = Messages.getBundle(JmsExceptions.class);

@@ -11,7 +11,7 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.mutiny.mqtt.messages.MqttSubscribeMessage;
 
-@MessageLogger(projectCode = "SRRML")
+@MessageLogger(projectCode = "SRMSG")
 public interface MqttServerLogging {
 
     // 17500-17599 (logging)

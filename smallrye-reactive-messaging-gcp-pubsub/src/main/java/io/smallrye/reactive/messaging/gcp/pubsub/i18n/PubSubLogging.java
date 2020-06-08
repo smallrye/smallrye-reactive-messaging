@@ -9,7 +9,7 @@ import org.jboss.logging.annotations.MessageLogger;
 import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.PubsubMessage;
 
-@MessageLogger(projectCode = "SRRML")
+@MessageLogger(projectCode = "SRMSG")
 public interface PubSubLogging {
 
     // 14800-14899 (logging)

@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.cloudevents.i18n;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.MessageLogger;
 
-@MessageLogger(projectCode = "SRRML")
+@MessageLogger(projectCode = "SRMSG")
 public interface CloudEventLogging {
 
     // 15500-15599 (logging)

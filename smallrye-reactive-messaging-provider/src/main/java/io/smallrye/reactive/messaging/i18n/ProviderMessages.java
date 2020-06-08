@@ -6,7 +6,7 @@ import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
-@MessageBundle(projectCode = "SRRML")
+@MessageBundle(projectCode = "SRMSG")
 public interface ProviderMessages {
 
     ProviderMessages msg = Messages.getBundle(ProviderMessages.class);

@@ -6,7 +6,7 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
-@MessageLogger(projectCode = "SRRML")
+@MessageLogger(projectCode = "SRMSG")
 public interface MqttLogging {
 
     // 17100-17199 (logging)

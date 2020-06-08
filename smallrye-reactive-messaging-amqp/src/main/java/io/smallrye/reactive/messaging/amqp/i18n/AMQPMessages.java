@@ -6,7 +6,7 @@ import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
-@MessageBundle(projectCode = "SRRML")
+@MessageBundle(projectCode = "SRMSG")
 public interface AMQPMessages {
 
     AMQPMessages msg = Messages.getBundle(AMQPMessages.class);

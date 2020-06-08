@@ -76,18 +76,3 @@ Running the previous example should give the following output:
 >> REACTIVE
 >> MESSAGE
 ----
-
-[NOTE]
-====
-SmallRye Reactive Messaging uses SLF4J as logger.
-Check the https://www.slf4j.org/manual.html[SLF4J documentation] to configure the logs.
-For testing purpose, you can simply add the following dependency to your `pom.xml` file:
-[source,xml]
-----
-<dependency>
-  <groupId>org.slf4j</groupId>
-  <artifactId>slf4j-simple</artifactId>
-  <version>1.7.30</version>
-</dependency>
-----
-====

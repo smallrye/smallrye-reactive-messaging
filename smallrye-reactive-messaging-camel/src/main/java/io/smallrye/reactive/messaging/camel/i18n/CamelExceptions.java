@@ -6,7 +6,7 @@ import org.jboss.logging.annotations.MessageBundle;
 
 import io.smallrye.reactive.messaging.camel.CamelFailureHandler;
 
-@MessageBundle(projectCode = "SRRML")
+@MessageBundle(projectCode = "SRMSG")
 public interface CamelExceptions {
 
     CamelExceptions ex = Messages.getBundle(CamelExceptions.class);
