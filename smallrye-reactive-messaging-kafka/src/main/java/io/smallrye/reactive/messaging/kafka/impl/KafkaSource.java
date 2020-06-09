@@ -9,9 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
@@ -25,9 +22,9 @@ import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class KafkaSource<K, V> {
-    private final PublisherBuilder<? extends Message<?>> source;
+    private final Multi<IncomingKafkaRecord<K, V>> stream;
     private final KafkaConsumer<K, V> consumer;
-    private KafkaFailureHandler failureHandler;
+    private final KafkaFailureHandler failureHandler;
 
     public KafkaSource(Vertx vertx, KafkaConnectorIncomingConfiguration config) {
 
@@ -60,6 +57,7 @@ public class KafkaSource<K, V> {
         kafkaConfiguration.remove("retry");
         kafkaConfiguration.remove("retry-attempts");
         kafkaConfiguration.remove("broadcast");
+        kafkaConfiguration.remove("partitions");
 
         this.consumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         String topic = config.getTopic().orElseGet(config::getChannel);
@@ -69,7 +67,8 @@ public class KafkaSource<K, V> {
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> log.unableToReadRecord(topic, t));
 
-        if (config.getRetry()) {
+        boolean retry = config.getRetry();
+        if (retry) {
             int max = config.getRetryAttempts();
             int maxWait = config.getRetryMaxWait();
             if (max == -1) {
@@ -84,16 +83,11 @@ public class KafkaSource<K, V> {
             }
         }
 
-        if (config.getBroadcast()) {
-            multi = multi.broadcast().toAllSubscribers();
-        }
-
-        this.source = ReactiveStreams.fromPublisher(
-                multi
-                        .on().subscribed(s -> {
-                            // The Kafka subscription must happen on the subscription.
-                            this.consumer.subscribeAndAwait(topic);
-                        }))
+        this.stream = multi
+                .on().subscribed(s -> {
+                    // The Kafka subscription must happen on the subscription.
+                    this.consumer.subscribeAndAwait(topic);
+                })
                 .map(rec -> new IncomingKafkaRecord<>(consumer, rec, failureHandler));
     }
 
@@ -114,8 +108,8 @@ public class KafkaSource<K, V> {
 
     }
 
-    public PublisherBuilder<? extends Message<?>> getSource() {
-        return source;
+    public Multi<IncomingKafkaRecord<K, V>> getStream() {
+        return stream;
     }
 
     public void closeQuietly() {

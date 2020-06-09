@@ -27,7 +27,7 @@ import io.vertx.mutiny.core.Vertx;
 
 public class KafkaTestBase {
 
-    private static KafkaCluster kafka;
+    protected static KafkaCluster kafka;
     static final String SERVERS = "localhost:9092";
 
     Vertx vertx;
