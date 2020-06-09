@@ -198,7 +198,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         log.sendingMessageToAddress(actualAddress);
-
         return sender.sendWithAck(amqp)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
                 .onItemOrFailure().produceUni((success, failure) -> {

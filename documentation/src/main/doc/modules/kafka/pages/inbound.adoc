@@ -63,6 +63,8 @@ include::example$inbound/KafkaMetadataExample.java[]
 Acknowledging a message coming from Kafka commit the offset.
 Refer to the Kafka documentation for details.
 
+IMPORTANT: To let the connector handles the offset commit, you must set the `enable.auto.commit` attribute to `false`.
+
 === Failure Management
 
 If a message produced from a Kafka record is _nacked_, a failure strategy is applied.
