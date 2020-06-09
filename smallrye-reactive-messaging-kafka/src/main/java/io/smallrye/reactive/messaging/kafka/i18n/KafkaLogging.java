@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.i18n;
 
 import java.util.Map;
 
+import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
@@ -12,8 +13,8 @@ import org.jboss.logging.annotations.MessageLogger;
  * Logging for Kafka Connector
  * Assigned ID range is 18200-18299
  */
-@MessageLogger(projectCode = "SRMSG")
-public interface KafkaLogging {
+@MessageLogger(projectCode = "SRMSG", length = 5)
+public interface KafkaLogging extends BasicLogger {
 
     KafkaLogging log = Logger.getMessageLogger(KafkaLogging.class, "io.smallrye.reactive.messaging.kafka");
 

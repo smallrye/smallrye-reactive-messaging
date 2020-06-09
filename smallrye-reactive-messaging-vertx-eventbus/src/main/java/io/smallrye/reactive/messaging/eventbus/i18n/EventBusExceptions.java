@@ -8,7 +8,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for EventBus Connector
  * Assigned ID range is 16600-16699
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface EventBusExceptions {
 
     EventBusExceptions ex = Messages.getBundle(EventBusExceptions.class);

@@ -8,7 +8,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Messages for GCP Pub/Sub Connector
  * Assigned ID range is 14700-14799
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface PubSubMessages {
 
     PubSubMessages msg = Messages.getBundle(PubSubMessages.class);

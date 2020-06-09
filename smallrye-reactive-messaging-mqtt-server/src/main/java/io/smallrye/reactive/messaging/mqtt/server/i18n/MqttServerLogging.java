@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt.server.i18n;
 
+import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
@@ -15,8 +16,8 @@ import io.vertx.mutiny.mqtt.messages.MqttSubscribeMessage;
  * Logging for MQTT Server Connector
  * Assigned ID range is 17500-17599
  */
-@MessageLogger(projectCode = "SRMSG")
-public interface MqttServerLogging {
+@MessageLogger(projectCode = "SRMSG", length = 5)
+public interface MqttServerLogging extends BasicLogger {
 
     MqttServerLogging log = Logger.getMessageLogger(MqttServerLogging.class, "io.smallrye.reactive.messaging.mqtt.server");
 

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.jms.i18n;
 
+import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
@@ -10,8 +11,8 @@ import org.jboss.logging.annotations.MessageLogger;
  * Logging for JMS Connector
  * Assigned ID range is 15800-15899
  */
-@MessageLogger(projectCode = "SRMSG")
-public interface JmsLogging {
+@MessageLogger(projectCode = "SRMSG", length = 5)
+public interface JmsLogging extends BasicLogger {
 
     JmsLogging log = Logger.getMessageLogger(JmsLogging.class, "io.smallrye.reactive.messaging.jms");
 

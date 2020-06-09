@@ -8,7 +8,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Messages for HTTP Connector
  * Assigned ID range is 16400-16499
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface HttpMessages {
 
     HttpMessages msg = Messages.getBundle(HttpMessages.class);

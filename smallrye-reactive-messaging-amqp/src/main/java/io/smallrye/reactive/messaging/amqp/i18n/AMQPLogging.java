@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.amqp.i18n;
 
+import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
@@ -10,8 +11,8 @@ import org.jboss.logging.annotations.MessageLogger;
  * Logging for AMQP Connector
  * Assigned ID range is 16200-16299
  */
-@MessageLogger(projectCode = "SRMSG")
-public interface AMQPLogging {
+@MessageLogger(projectCode = "SRMSG", length = 5)
+public interface AMQPLogging extends BasicLogger {
 
     AMQPLogging log = Logger.getMessageLogger(AMQPLogging.class, "io.smallrye.reactive.messaging.amqp");
 

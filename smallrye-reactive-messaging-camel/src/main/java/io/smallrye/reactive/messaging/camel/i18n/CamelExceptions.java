@@ -10,7 +10,7 @@ import io.smallrye.reactive.messaging.camel.CamelFailureHandler;
  * Exceptions for Camel Connector
  * Assigned ID range is 17600-17699
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface CamelExceptions {
 
     CamelExceptions ex = Messages.getBundle(CamelExceptions.class);

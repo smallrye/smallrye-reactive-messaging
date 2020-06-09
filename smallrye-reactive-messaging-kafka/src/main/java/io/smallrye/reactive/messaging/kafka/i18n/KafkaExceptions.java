@@ -8,7 +8,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for Kafka Connector
  * Assigned ID range is 18000-18099
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface KafkaExceptions {
 
     KafkaExceptions ex = Messages.getBundle(KafkaExceptions.class);

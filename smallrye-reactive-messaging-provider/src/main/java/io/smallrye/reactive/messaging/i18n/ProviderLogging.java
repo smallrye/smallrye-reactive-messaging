@@ -6,14 +6,15 @@ import java.util.Set;
 import javax.enterprise.inject.spi.Bean;
 
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
-@MessageLogger(projectCode = "SRMSG")
-public interface ProviderLogging {
+@MessageLogger(projectCode = "SRMSG", length = 5)
+public interface ProviderLogging extends BasicLogger {
 
     // 00200-00299 (logging)
 

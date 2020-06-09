@@ -8,7 +8,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for In-memory Connector
  * Assigned ID range is 18300-18399
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface InMemoryExceptions {
 
     InMemoryExceptions ex = Messages.getBundle(InMemoryExceptions.class);

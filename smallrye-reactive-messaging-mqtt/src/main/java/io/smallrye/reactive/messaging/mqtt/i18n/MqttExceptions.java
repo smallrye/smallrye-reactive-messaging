@@ -8,7 +8,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for MQTT Connector
  * Assigned ID range is 17000-17099
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface MqttExceptions {
 
     MqttExceptions ex = Messages.getBundle(MqttExceptions.class);

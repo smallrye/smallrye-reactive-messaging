@@ -9,7 +9,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for GCP Pub/Sub Connector
  * Assigned ID range is 14600-14699
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface PubSubExceptions {
 
     PubSubExceptions ex = Messages.getBundle(PubSubExceptions.class);

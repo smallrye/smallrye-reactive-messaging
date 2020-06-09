@@ -9,7 +9,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for AWS SNS Connector
  * Assigned ID range is 15000-15099
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface SnsExceptions {
 
     SnsExceptions ex = Messages.getBundle(SnsExceptions.class);

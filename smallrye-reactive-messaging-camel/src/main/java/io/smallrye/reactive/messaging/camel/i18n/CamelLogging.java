@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.camel.i18n;
 
+import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
@@ -10,8 +11,8 @@ import org.jboss.logging.annotations.MessageLogger;
  * Logging for Camel Connector
  * Assigned ID range is 17800-17899
  */
-@MessageLogger(projectCode = "SRMSG")
-public interface CamelLogging {
+@MessageLogger(projectCode = "SRMSG", length = 5)
+public interface CamelLogging extends BasicLogger {
 
     CamelLogging log = Logger.getMessageLogger(CamelLogging.class, "io.smallrye.reactive.messaging.camel");
 

@@ -22,7 +22,7 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.WeavingException;
 import io.smallrye.reactive.messaging.annotations.Merge;
 
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface ProviderExceptions {
 
     ProviderExceptions ex = Messages.getBundle(ProviderExceptions.class);

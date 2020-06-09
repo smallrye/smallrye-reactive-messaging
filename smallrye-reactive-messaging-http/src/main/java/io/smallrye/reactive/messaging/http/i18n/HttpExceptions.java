@@ -10,7 +10,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for HTTP Connector
  * Assigned ID range is 16300-16399
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface HttpExceptions {
 
     HttpExceptions ex = Messages.getBundle(HttpExceptions.class);

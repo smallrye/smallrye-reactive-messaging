@@ -8,7 +8,7 @@ import org.jboss.logging.annotations.MessageBundle;
  * Exceptions for Cloud event Connector
  * Assigned ID range is 15300-15399
  */
-@MessageBundle(projectCode = "SRMSG")
+@MessageBundle(projectCode = "SRMSG", length = 5)
 public interface CloudEventExceptions {
 
     CloudEventExceptions ex = Messages.getBundle(CloudEventExceptions.class);
