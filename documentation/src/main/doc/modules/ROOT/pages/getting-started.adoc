@@ -79,7 +79,7 @@ Running the previous example should give the following output:
 
 [NOTE]
 ====
-SmallRye Reactive Messaging uses JBoss-logger as logger.
+SmallRye Reactive Messaging uses JBoss-logging to log.
 
 For testing purpose, you can simply add a `logging.properties` file in `${basedir}/src/main/resources/logging.properties`
 
