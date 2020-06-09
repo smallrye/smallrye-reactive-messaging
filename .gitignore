@@ -131,3 +131,4 @@ local.properties
 .settings
 .classpath
 .factorypath
+/examples/quickstart/nbactions.xml
