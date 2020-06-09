@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -67,7 +70,7 @@ public class StreamTransformerMediator extends AbstractMediator {
                 }
                 break;
             default:
-                throw new IllegalArgumentException("Unexpected consumption type: " + configuration.consumption());
+                throw ex.illegalArgumentForUnexpectedConsumption(configuration.consumption());
         }
 
         assert function != null;
@@ -79,8 +82,7 @@ public class StreamTransformerMediator extends AbstractMediator {
                     .flatMapCompletionStage(managePreProcessingAck());
 
             PublisherBuilder<Message<?>> builder = invoke(prependedWithAck);
-            Objects.requireNonNull(builder,
-                    "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
+            Objects.requireNonNull(builder, msg.methodReturnedNull(configuration.methodAsString()));
             return builder;
         };
     }
@@ -96,8 +98,7 @@ public class StreamTransformerMediator extends AbstractMediator {
                 prependedWithAck = (Publisher) converter.get().fromPublisher(prependedWithAck);
             }
             Publisher<Message<?>> result = invoke(prependedWithAck);
-            Objects.requireNonNull(result,
-                    "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
+            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return ReactiveStreams.fromPublisher(result);
         };
     }
@@ -108,8 +109,7 @@ public class StreamTransformerMediator extends AbstractMediator {
                     .flatMapCompletionStage(managePreProcessingAck())
                     .map(Message::getPayload);
             PublisherBuilder<Object> result = invoke(unwrapped);
-            Objects.requireNonNull(result,
-                    "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
+            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return result.map(o -> (Message<?>) Message.of(o));
         };
     }
@@ -126,8 +126,7 @@ public class StreamTransformerMediator extends AbstractMediator {
                 stream = (Publisher<?>) converter.get().fromPublisher(stream);
             }
             Publisher<Object> result = invoke(stream);
-            Objects.requireNonNull(result,
-                    "The method " + configuration.methodAsString() + " has returned an invalid value: `null`");
+            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return ReactiveStreams.fromPublisher(result)
                     .map(o -> (Message<?>) Message.of(o));
         };

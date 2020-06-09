@@ -1,14 +1,13 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static java.time.Duration.ofSeconds;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.amqp.AmqpClient;
@@ -21,7 +20,7 @@ public class ConnectionHolder {
     private final AmqpClient client;
     private final AmqpConnectorCommonConfiguration configuration;
     private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionHolder.class);
+
     private final Vertx vertx;
     private Consumer<Throwable> callback;
 
@@ -82,14 +81,14 @@ public class ConnectionHolder {
                     }
 
                     return client.connect()
-                            .on().subscribed(s -> LOGGER.info("Establishing connection with AMQP broker"))
+                            .on().subscribed(s -> log.establishingConnection())
                             .onItem().apply(conn -> {
-                                LOGGER.info("Connection with AMQP broker established");
+                                log.connectionEstablished();
                                 holder.set(new CurrentConnection(conn, Vertx.currentContext()));
                                 conn
                                         .exceptionHandler(t -> {
                                             holder.set(null);
-                                            LOGGER.error("AMQP Connection failure", t);
+                                            log.connectionFailure(t);
 
                                             // The callback failure allows propagating the failure downstream,
                                             // as we are disconnected from the flow.
@@ -105,16 +104,16 @@ public class ConnectionHolder {
                                 if (conn.isDisconnected() || holder.get() == null) {
                                     // Throwing the exception would trigger a retry.
                                     holder.set(null);
-                                    throw new IllegalStateException("AMQP Connection disconnected");
+                                    throw ex.illegalStateConnectionDisconnected();
                                 }
                                 return conn;
                             })
                             .onFailure()
-                            .invoke(t -> LOGGER.error("Unable to connect to the broker, retry will be attempted", t))
+                            .invoke(t -> log.unableToConnectToBroker(t))
                             .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
                             .onFailure().invoke(t -> {
                                 holder.set(null);
-                                LOGGER.error("Unable to recover from AMQP connection disruption", t);
+                                log.unableToRecoverFromConnectionDisruption(t);
                             });
                 });
     }

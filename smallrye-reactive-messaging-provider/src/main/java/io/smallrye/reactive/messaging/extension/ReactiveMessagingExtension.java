@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.extension;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
+
 import java.lang.annotation.Annotation;
 import java.util.*;
 
@@ -10,8 +13,6 @@ import javax.enterprise.inject.spi.*;
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -21,12 +22,10 @@ import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 
 public class ReactiveMessagingExtension implements Extension {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveMessagingExtension.class);
-
-    private List<MediatorBean<?>> mediatorBeans = new ArrayList<>();
-    private List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
-    private List<InjectionPoint> emitterInjectionPoints = new ArrayList<>();
-    private List<WorkerPoolBean<?>> workerPoolBeans = new ArrayList<>();
+    private final List<MediatorBean<?>> mediatorBeans = new ArrayList<>();
+    private final List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
+    private final List<InjectionPoint> emitterInjectionPoints = new ArrayList<>();
+    private final List<WorkerPoolBean<?>> workerPoolBeans = new ArrayList<>();
 
     <T> void processClassesContainingMediators(@Observes ProcessManagedBean<T> event) {
         AnnotatedType<?> annotatedType = event.getAnnotatedBeanClass();
@@ -101,7 +100,7 @@ public class ReactiveMessagingExtension implements Extension {
         mediatorManager.initializeEmitters(emitters);
 
         for (MediatorBean mediatorBean : mediatorBeans) {
-            LOGGER.info("Analyzing mediator bean: {}", mediatorBean.bean);
+            log.analyzingMediatorBean(mediatorBean.bean);
             mediatorManager.analyze(mediatorBean.annotatedType, mediatorBean.bean);
         }
         mediatorBeans.clear();
@@ -114,8 +113,7 @@ public class ReactiveMessagingExtension implements Extension {
             for (InjectionPoint ip : streamInjectionPoints) {
                 String name = ChannelProducer.getChannelName(ip);
                 if (!names.contains(name)) {
-                    done.addDeploymentProblem(
-                            new DeploymentException("No channel found for name: " + name + ", injection point: " + ip));
+                    done.addDeploymentProblem(ex.deploymentNoChannel(name, ip));
                 }
                 // TODO validate the required type
             }
@@ -127,8 +125,8 @@ public class ReactiveMessagingExtension implements Extension {
                 if (!emitter.isSubscribed()) {
                     // Subscription may happen later, just print a warning.
                     // Attempting an emission without being subscribed would result in an error.
-                    LOGGER.warn("No subscriber for channel {}  attached to the emitter {}.{}", name,
-                            ip.getBean().getBeanClass().getName(), ip.getMember().getName());
+                    log.noSubscriberForChannelAttachedToEmitter(name, ip.getBean().getBeanClass().getName(),
+                            ip.getMember().getName());
                 }
                 // TODO validate the required type
             }

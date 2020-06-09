@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt.server;
 
 import static io.netty.handler.codec.mqtt.MqttQoS.AT_LEAST_ONCE;
 import static io.netty.handler.codec.mqtt.MqttQoS.EXACTLY_ONCE;
+import static io.smallrye.reactive.messaging.mqtt.server.i18n.MqttServerLogging.log;
 import static io.vertx.mqtt.MqttServerOptions.DEFAULT_PORT;
 import static io.vertx.mqtt.MqttServerOptions.DEFAULT_TLS_PORT;
 
@@ -9,8 +10,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.reactivex.processors.BehaviorProcessor;
 import io.vertx.mqtt.MqttServerOptions;
@@ -19,7 +18,6 @@ import io.vertx.mutiny.mqtt.MqttServer;
 
 class MqttServerSource {
 
-    private final Logger logger = LoggerFactory.getLogger(MqttServerSource.class);
     private final boolean broadcast;
     private final PublisherBuilder<MqttMessage> source;
     private final MqttServer mqttServer;
@@ -45,50 +43,41 @@ class MqttServerSource {
         final BehaviorProcessor<MqttMessage> processor = BehaviorProcessor.create();
 
         mqttServer.exceptionHandler(error -> {
-            logger.error("Exception thrown", error);
+            log.exceptionThrown(error);
             processor.onError(error);
         });
 
         mqttServer.endpointHandler(endpoint -> {
-            logger.debug("MQTT client [{}] request to connect, clean session = {}",
-                    endpoint.clientIdentifier(), endpoint.isCleanSession());
+            log.requestToConnect(endpoint.clientIdentifier(), endpoint.isCleanSession());
 
             if (endpoint.auth() != null) {
-                logger.trace("[username = {}, password = {}]", endpoint.auth().getUsername(),
-                        endpoint.auth().getPassword());
+                log.requestToConnectUserName(endpoint.auth().getUsername(), endpoint.auth().getPassword());
             }
             if (endpoint.will() != null) {
-                logger.trace("[will topic = {} msg = {} QoS = {} isRetain = {}]",
-                        endpoint.will().getWillTopic(), endpoint.will().getWillMessageBytes(),
+                log.requestToConnectWill(endpoint.will().getWillTopic(), endpoint.will().getWillMessageBytes(),
                         endpoint.will().getWillQos(), endpoint.will().isWillRetain());
             }
 
-            logger.trace("[keep alive timeout = {}]", endpoint.keepAliveTimeSeconds());
+            log.requestToConnectKeepAlive(endpoint.keepAliveTimeSeconds());
 
             endpoint.exceptionHandler(
-                    error -> logger.error("Error with client " + endpoint.clientIdentifier(), error));
+                    error -> log.errorWithClient(endpoint.clientIdentifier(), error));
 
             endpoint.disconnectHandler(
-                    v -> logger.debug("MQTT client [{}] disconnected", endpoint.clientIdentifier()));
+                    v -> log.clientDisconnected(endpoint.clientIdentifier()));
 
             endpoint.pingHandler(
-                    v -> logger.trace("Ping received from client [{}]", endpoint.clientIdentifier()));
+                    v -> log.pingReceived(endpoint.clientIdentifier()));
 
             endpoint.publishHandler(message -> {
-                logger.debug("Just received message [{}] with QoS [{}] from client [{}]",
-                        message.payload(),
-                        message.qosLevel(), endpoint.clientIdentifier());
+                log.receivedMessageFromClient(message.payload(), message.qosLevel(), endpoint.clientIdentifier());
 
                 processor.onNext(new MqttMessage(message, endpoint.clientIdentifier(), () -> {
                     if (message.qosLevel() == AT_LEAST_ONCE) {
-                        logger.trace("Send PUBACK to client [{}] for message [{}]",
-                                endpoint.clientIdentifier(),
-                                message.messageId());
+                        log.sendToClient("PUBACK", endpoint.clientIdentifier(), message.messageId());
                         endpoint.publishAcknowledge(message.messageId());
                     } else if (message.qosLevel() == EXACTLY_ONCE) {
-                        logger.trace("Send PUBREC to client [{}] for message [{}]",
-                                endpoint.clientIdentifier(),
-                                message.messageId());
+                        log.sendToClient("PUBREC", endpoint.clientIdentifier(), message.messageId());
                         endpoint.publishReceived(message.messageId());
                     }
                     return CompletableFuture.completedFuture(null);
@@ -96,14 +85,12 @@ class MqttServerSource {
             });
 
             endpoint.publishReleaseHandler(messageId -> {
-                logger.trace("Send PUBCOMP to client [{}] for message [{}]", endpoint.clientIdentifier(),
-                        messageId);
+                log.sendToClient("PUBCOMP", endpoint.clientIdentifier(), messageId);
                 endpoint.publishComplete(messageId);
             });
 
             endpoint.subscribeHandler(subscribeMessage -> {
-                logger.trace("Received subscription message {} from client [{}], closing connection",
-                        subscribeMessage, endpoint.clientIdentifier());
+                log.receivedSubscription(subscribeMessage, endpoint.clientIdentifier());
                 endpoint.close();
             });
 
@@ -114,9 +101,8 @@ class MqttServerSource {
 
         this.source = ReactiveStreams.fromPublisher(processor
                 .delaySubscription(mqttServer.listen()
-                        .onItem().invoke(ignored -> logger
-                                .info("MQTT server listening on {}:{}", options.getHost(), mqttServer.actualPort()))
-                        .onFailure().invoke(throwable -> logger.error("Failed to start MQTT server", throwable))
+                        .onItem().invoke(ignored -> log.serverListeningOn(options.getHost(), mqttServer.actualPort()))
+                        .onFailure().invoke(throwable -> log.failedToStart(throwable))
                         .toMulti()
                         .then(flow -> {
                             if (broadcast) {
@@ -125,7 +111,7 @@ class MqttServerSource {
                                 return flow;
                             }
                         }))
-                .doOnSubscribe(subscription -> logger.debug("New subscriber added {}", subscription)));
+                .doOnSubscribe(subscription -> log.newSubscriberAdded(subscription)));
     }
 
     synchronized PublisherBuilder<MqttMessage> source() {
@@ -134,8 +120,8 @@ class MqttServerSource {
 
     synchronized void close() {
         mqttServer.close()
-                .onFailure().invoke(t -> logger.warn("An exception has been caught while closing the MQTT server", t))
-                .onItem().invoke(x -> logger.debug("MQTT server closed"))
+                .onFailure().invoke(t -> log.exceptionWhileClosing(t))
+                .onItem().invoke(x -> log.closed())
                 .onFailure().recoverWithItem((Void) null)
                 .await().indefinitely();
     }

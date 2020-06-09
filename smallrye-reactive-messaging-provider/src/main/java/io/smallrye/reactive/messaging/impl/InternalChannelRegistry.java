@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.impl;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.util.*;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -14,7 +16,6 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 @ApplicationScoped
 public class InternalChannelRegistry implements ChannelRegistry {
 
-    private static final String NAME_MUST_BE_SET = "'name' must be set";
     private final Map<String, List<PublisherBuilder<? extends Message<?>>>> publishers = new HashMap<>();
     private final Map<String, List<SubscriberBuilder<? extends Message<?>, Void>>> subscribers = new HashMap<>();
     private final Map<String, Emitter<?>> emitters = new HashMap<>();
@@ -22,8 +23,8 @@ public class InternalChannelRegistry implements ChannelRegistry {
     @Override
     public synchronized PublisherBuilder<? extends Message<?>> register(String name,
             PublisherBuilder<? extends Message<?>> stream) {
-        Objects.requireNonNull(name, NAME_MUST_BE_SET);
-        Objects.requireNonNull(stream, "'stream' must be set");
+        Objects.requireNonNull(name, msg.nameMustBeSet());
+        Objects.requireNonNull(stream, msg.streamMustBeSet());
         register(publishers, name, stream);
         return stream;
     }
@@ -31,34 +32,34 @@ public class InternalChannelRegistry implements ChannelRegistry {
     @Override
     public synchronized SubscriberBuilder<? extends Message<?>, Void> register(String name,
             SubscriberBuilder<? extends Message<?>, Void> subscriber) {
-        Objects.requireNonNull(name, NAME_MUST_BE_SET);
-        Objects.requireNonNull(subscriber, "'subscriber' must be set");
+        Objects.requireNonNull(name, msg.nameMustBeSet());
+        Objects.requireNonNull(subscriber, msg.subscriberMustBeSet());
         register(subscribers, name, subscriber);
         return subscriber;
     }
 
     @Override
     public synchronized void register(String name, Emitter<?> emitter) {
-        Objects.requireNonNull(name, NAME_MUST_BE_SET);
-        Objects.requireNonNull(emitter, "'emitter' must be set");
+        Objects.requireNonNull(name, msg.nameMustBeSet());
+        Objects.requireNonNull(emitter, msg.emitterMustBeSet());
         emitters.put(name, emitter);
     }
 
     @Override
     public synchronized List<PublisherBuilder<? extends Message<?>>> getPublishers(String name) {
-        Objects.requireNonNull(name, NAME_MUST_BE_SET);
+        Objects.requireNonNull(name, msg.nameMustBeSet());
         return publishers.getOrDefault(name, Collections.emptyList());
     }
 
     @Override
     public synchronized Emitter<?> getEmitter(String name) {
-        Objects.requireNonNull(name, NAME_MUST_BE_SET);
+        Objects.requireNonNull(name, msg.nameMustBeSet());
         return emitters.get(name);
     }
 
     @Override
     public synchronized List<SubscriberBuilder<? extends Message<?>, Void>> getSubscribers(String name) {
-        Objects.requireNonNull(name, NAME_MUST_BE_SET);
+        Objects.requireNonNull(name, msg.nameMustBeSet());
         return subscribers.getOrDefault(name, Collections.emptyList());
     }
 

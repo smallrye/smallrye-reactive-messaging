@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Optional;
@@ -11,8 +13,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -20,8 +20,6 @@ import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
 public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>, Subscription {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AmqpCreditBasedSender.class);
 
     private final ConnectionHolder holder;
     private final Uni<AmqpSender> retrieveSender;
@@ -54,7 +52,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     public void subscribe(
             Subscriber<? super Message<?>> subscriber) {
         if (!downstream.compareAndSet(null, subscriber)) {
-            Subscriptions.fail(subscriber, new IllegalStateException("Only one subscriber allowed"));
+            Subscriptions.fail(subscriber, ex.illegalStateOnlyOneSubscriberAllowed());
         } else {
             if (upstream.get() != null) {
                 subscriber.onSubscribe(this);
@@ -90,7 +88,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         Subscription subscription = upstream.get();
         if (credits != 0L && subscription != Subscriptions.CANCELLED) {
             requested.set(credits);
-            LOGGER.debug("Retrieved credits for channel `{}`: {}", configuration.getChannel(), credits);
+            log.retrievedCreditsForChannel(configuration.getChannel(), credits);
             subscription.request(credits);
             return credits;
         }
@@ -116,8 +114,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     }
 
     private void onNoMoreCredit() {
-        LOGGER.debug("No more credit for channel {}, requesting more credits",
-                configuration.getChannel());
+        log.noMoreCreditsForChannel(configuration.getChannel());
         holder.getContext().runOnContext(x -> {
             if (isCancelled()) {
                 return;
@@ -191,8 +188,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
         String actualAddress = getActualAddress(msg, amqp, configuredAddress, isAnonymousSender);
         if (connector.getClients().isEmpty()) {
-            LOGGER.error("The AMQP message to address `{}` has not been sent, the client is closed",
-                    actualAddress);
+            log.messageNoSend(actualAddress);
             return Uni.createFrom().item(msg);
         }
 
@@ -201,8 +197,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                     new AmqpMessageBuilderImpl(amqp.getDelegate()).address(actualAddress).build());
         }
 
-        LOGGER.debug("Sending AMQP message to address `{}` ",
-                actualAddress);
+        log.sendingMessageToAddress(actualAddress);
         return sender.sendWithAck(amqp)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
                 .onItemOrFailure().produceUni((success, failure) -> {
@@ -222,9 +217,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             if (isAnonymousSender) {
                 return address;
             } else {
-                LOGGER.warn(
-                        "Unable to use the address configured in the message ({}) - the connector is not using an anonymous sender, using {} instead",
-                        address, configuredAddress);
+                log.unableToUseAddress(address, configuredAddress);
                 return configuredAddress;
             }
 
@@ -234,9 +227,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                 .flatMap(o -> {
                     String addressFromMessage = o.getAddress();
                     if (addressFromMessage != null && !isAnonymousSender) {
-                        LOGGER.warn(
-                                "Unable to use the address configured in the message ({}) - the connector is not using an anonymous sender, using {} instead",
-                                addressFromMessage, configuredAddress);
+                        log.unableToUseAddress(addressFromMessage, configuredAddress);
                         return Optional.empty();
                     }
                     return Optional.ofNullable(addressFromMessage);

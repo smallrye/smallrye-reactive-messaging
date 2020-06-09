@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.connectors;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
+
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
@@ -7,8 +9,6 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
-
-import org.slf4j.LoggerFactory;
 
 import io.vertx.mutiny.core.Vertx;
 
@@ -44,7 +44,7 @@ public class ExecutionHolder {
         if (instanceOfVertx == null || instanceOfVertx.isUnsatisfied()) {
             internalVertxInstance = true;
             this.vertx = Vertx.vertx();
-            LoggerFactory.getLogger(ExecutionHolder.class).info("Created new Vertx instance");
+            log.vertXInstanceCreated();
         } else {
             this.vertx = instanceOfVertx.get();
         }

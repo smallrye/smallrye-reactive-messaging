@@ -1,20 +1,18 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
+
 import java.util.Optional;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.core.Vertx;
 
 public class AmqpClientHelper {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AmqpClientHelper.class);
 
     private AmqpClientHelper() {
         // avoid direct instantiation.
@@ -38,10 +36,9 @@ public class AmqpClientHelper {
             String optionsBeanName) {
         Instance<AmqpClientOptions> options = instance.select(NamedLiteral.of(optionsBeanName));
         if (options.isUnsatisfied()) {
-            throw new IllegalStateException(
-                    "Cannot find a " + AmqpClientOptions.class.getName() + " bean named " + optionsBeanName);
+            throw ex.illegalStateFindingBean(AmqpClientOptions.class.getName(), optionsBeanName);
         }
-        LOGGER.debug("Creating AMQP client from bean named '{}'", optionsBeanName);
+        log.createClientFromBean(optionsBeanName);
         return AmqpClient.create(vertx, options.get());
     }
 
@@ -51,7 +48,7 @@ public class AmqpClientHelper {
             String password = config.getPassword().orElse(null);
             String host = config.getHost();
             int port = config.getPort();
-            LOGGER.info("AMQP broker configured to {}:{} for channel {}", host, port, config.getChannel());
+            log.brokerConfigured(host, port, config.getChannel());
             boolean useSsl = config.getUseSsl();
             int reconnectAttempts = config.getReconnectAttempts();
             int reconnectInterval = config.getReconnectInterval();
@@ -73,8 +70,8 @@ public class AmqpClientHelper {
                     .setConnectTimeout(connectTimeout);
             return AmqpClient.create(vertx, options);
         } catch (Exception e) {
-            LOGGER.error("Unable to create client", e);
-            throw new IllegalStateException("Unable to create a client, probably a config error", e);
+            log.unableToCreateClient(e);
+            throw ex.illegalStateUnableToCreateClient(e);
         }
     }
 }

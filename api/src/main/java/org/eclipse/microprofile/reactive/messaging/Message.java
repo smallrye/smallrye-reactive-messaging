@@ -23,10 +23,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 import java.util.stream.StreamSupport;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.common.annotation.Experimental;
 
@@ -41,7 +39,7 @@ import io.smallrye.common.annotation.Experimental;
  */
 public interface Message<T> {
 
-    Logger LOGGER = LoggerFactory.getLogger(Message.class);
+    Logger LOGGER = Logger.getLogger(Message.class.getName());
 
     /**
      * Create a message with the given payload.
@@ -464,11 +462,10 @@ public interface Message<T> {
         }
         Function<Throwable, CompletionStage<Void>> nack = getNack();
         if (nack == null) {
-            LOGGER
-                    .warn("A message has been nacked, but no nack function has been provided. The reason was: {}",
-                            reason.getMessage());
-            LOGGER
-                    .debug("The full failure is:", reason);
+            LOGGER.warning(
+                    String.format("A message has been nacked, but no nack function has been provided. The reason was: %s",
+                            reason.getMessage()));
+            LOGGER.finer(String.format("The full failure is: %s", reason));
             return CompletableFuture.completedFuture(null);
         } else {
             return nack.apply(reason);

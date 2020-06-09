@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
@@ -13,8 +16,6 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.helpers.ClassUtils;
@@ -26,7 +27,7 @@ public class SubscriberMediator extends AbstractMediator {
     /**
      * Keep track of the subscription to cancel it once the scope is terminated.
      */
-    private AtomicReference<Subscription> subscription = new AtomicReference<>();
+    private final AtomicReference<Subscription> subscription = new AtomicReference<>();
 
     // Supported signatures:
     // 1. Subscriber<Message<I>> method()
@@ -39,7 +40,7 @@ public class SubscriberMediator extends AbstractMediator {
     public SubscriberMediator(MediatorConfiguration configuration) {
         super(configuration);
         if (configuration.shape() != Shape.SUBSCRIBER) {
-            throw new IllegalArgumentException("Expected a Subscriber shape, received a " + configuration.shape());
+            throw ex.illegalArgumentForSubscriberShape(configuration.shape());
         }
     }
 
@@ -65,7 +66,7 @@ public class SubscriberMediator extends AbstractMediator {
                 }
                 break;
             default:
-                throw new IllegalArgumentException("Unexpected consumption type: " + configuration.consumption());
+                throw ex.illegalArgumentForUnexpectedConsumption(configuration.consumption());
         }
 
         assert this.subscriber != null;
@@ -91,7 +92,7 @@ public class SubscriberMediator extends AbstractMediator {
     public void run() {
         assert this.source != null;
         assert this.subscriber != null;
-        final Logger logger = LoggerFactory.getLogger(configuration.methodAsString());
+
         AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
         Subscriber<Message<?>> delegate = this.subscriber.build();
         Subscriber<Message<?>> delegating = new Subscriber<Message<?>>() {
@@ -108,7 +109,7 @@ public class SubscriberMediator extends AbstractMediator {
 
             @Override
             public void onError(Throwable t) {
-                logger.error("Error caught during the stream processing", t);
+                log.streamProcessingException(t);
                 syncErrorCatcher.set(t);
                 delegate.onError(t);
             }
@@ -123,7 +124,7 @@ public class SubscriberMediator extends AbstractMediator {
         // Check if a synchronous error has been caught
         Throwable throwable = syncErrorCatcher.get();
         if (throwable != null) {
-            throw new WeavingException(configuration.getIncoming(), throwable);
+            throw ex.weavingForIncoming(configuration.getIncoming(), throwable);
         }
     }
 
@@ -205,8 +206,7 @@ public class SubscriberMediator extends AbstractMediator {
     private void processMethodReturningASubscriber() {
         Object result = invoke();
         if (!(result instanceof Subscriber) && !(result instanceof SubscriberBuilder)) {
-            throw new IllegalStateException(
-                    "Invalid return type: " + result + " - expected a Subscriber or a SubscriberBuilder");
+            throw ex.illegalStateExceptionForSubscriberOrSubscriberBuilder(result.getClass().getName());
         }
 
         if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {

@@ -1,18 +1,18 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mutiny.core.Vertx;
 
 public class MqttSource {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MqttSource.class);
     private final PublisherBuilder<MqttMessage<?>> source;
     private final AtomicBoolean subscribed = new AtomicBoolean();
 
@@ -46,17 +46,17 @@ public class MqttSource {
                             return multi;
                         })
                         .on().cancellation(() -> subscribed.set(false))
-                        .onFailure().invoke(t -> LOGGER.error("Unable to establish a connection with the MQTT broker", t)));
+                        .onFailure().invoke(t -> log.unableToConnectToBroker(t)));
     }
 
     private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {
         switch (strategy) {
             case IGNORE:
-                return new MqttIgnoreFailure(LOGGER, channel);
+                return new MqttIgnoreFailure(channel);
             case FAIL:
-                return new MqttFailStop(LOGGER, channel);
+                return new MqttFailStop(channel);
             default:
-                throw new IllegalArgumentException("Unknown failure strategy: " + strategy);
+                throw ex.illegalArgumentUnknownStrategy(strategy.toString());
         }
     }
 

@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 import javax.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
@@ -16,8 +18,8 @@ public class MediatorFactory {
             case STREAM_TRANSFORMER:
                 return new StreamTransformerMediator(configuration);
             default:
-                throw new IllegalArgumentException("Unsupported shape " + configuration.shape()
-                        + " for method " + configuration.methodAsString());
+                throw ex.illegalArgumentForUnsupportedShape(configuration.shape(),
+                        configuration.methodAsString());
         }
     }
 

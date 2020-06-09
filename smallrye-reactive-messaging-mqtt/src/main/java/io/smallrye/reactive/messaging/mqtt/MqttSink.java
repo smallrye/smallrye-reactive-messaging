@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -8,8 +10,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
@@ -22,8 +22,6 @@ import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.mutiny.mqtt.MqttClient;
 
 public class MqttSink {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MqttSink.class);
 
     private final String host;
     private final int port;
@@ -68,7 +66,7 @@ public class MqttSink {
                         c.disconnectAndForget();
                     }
                 })
-                .onError(t -> LOGGER.error("An error has been caught while sending a MQTT message to the broker", t))
+                .onError(t -> log.errorWhileSendingMessageToBroker(t))
                 .ignore();
     }
 
@@ -87,7 +85,7 @@ public class MqttSink {
         }
 
         if (actualTopicToBeUsed == null) {
-            LOGGER.error("Ignoring message - no topic set");
+            log.ignoringNoTopicSet();
             return CompletableFuture.completedFuture(msg);
         }
 

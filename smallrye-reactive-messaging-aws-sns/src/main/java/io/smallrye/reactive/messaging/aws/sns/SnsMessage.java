@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
+import static io.smallrye.reactive.messaging.aws.sns.i18n.SnsMessages.msg;
+
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -30,7 +32,7 @@ public class SnsMessage implements Message<String> {
      * @param snsNotification the notification, must not be {@code null}
      */
     public SnsMessage(SnsNotification snsNotification) {
-        Objects.requireNonNull(snsNotification, "SNS Message cannot be null.");
+        Objects.requireNonNull(snsNotification, msg.messageNotNull());
         this.snsNotification = snsNotification;
         payload = null;
     }

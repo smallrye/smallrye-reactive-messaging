@@ -1,6 +1,13 @@
 package io.smallrye.reactive.messaging.impl;
 
-import java.util.*;
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -8,7 +15,6 @@ import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -16,8 +22,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
@@ -28,8 +32,6 @@ import io.smallrye.reactive.messaging.PublisherDecorator;
  */
 @ApplicationScoped
 public class ConfiguredChannelFactory implements ChannelRegistar {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConfiguredChannelFactory.class);
 
     private final Instance<IncomingConnectorFactory> incomingConnectorFactories;
     private final Instance<OutgoingConnectorFactory> outgoingConnectorFactories;
@@ -70,13 +72,13 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
             this.incomingConnectorFactories = incomingConnectorFactories;
             this.outgoingConnectorFactories = outgoingConnectorFactories;
             if (logConnectors) {
-                LOGGER.info("Found incoming connectors: {}", getConnectors(beanManager, IncomingConnectorFactory.class));
-                LOGGER.info("Found outgoing connectors: {}", getConnectors(beanManager, OutgoingConnectorFactory.class));
+                log.foundIncomingConnectors(getConnectors(beanManager, IncomingConnectorFactory.class));
+                log.foundOutgoingConnectors(getConnectors(beanManager, OutgoingConnectorFactory.class));
             }
             //TODO Should we try to merge all the config?
             // For now take the first one.
             this.config = config.stream().findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Unable to retrieve the config"));
+                    .orElseThrow(() -> ex.illegalStateRetieveConfig());
         }
     }
 
@@ -109,11 +111,11 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     @Override
     public void initialize() {
         if (this.config == null) {
-            LOGGER.info("No MicroProfile Config found, skipping");
+            log.skippingMPConfig();
             return;
         }
 
-        LOGGER.info("Channel manager initializing...");
+        log.channelManagerInitializing();
 
         Map<String, ConnectorConfig> sourceConfiguration = extractConfigurationFor(ConnectorFactory.INCOMING_PREFIX, config);
         Map<String, ConnectorConfig> sinkConfiguration = extractConfigurationFor(ConnectorFactory.OUTGOING_PREFIX, config);
@@ -137,9 +139,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         Set<String> sinks = sinkConfiguration.keySet();
         sources.retainAll(sinks);
         if (!sources.isEmpty()) {
-            throw new DeploymentException(
-                    "Invalid configuration, the following channel names cannot be used for both incoming and outgoing: "
-                            + sources);
+            throw ex.deploymentInvalidConfiguration(sources);
         }
 
     }
@@ -149,7 +149,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
             sourceConfiguration.forEach((name, conf) -> registry.register(name, createPublisherBuilder(name, conf)));
             sinkConfiguration.forEach((name, conf) -> registry.register(name, createSubscriberBuilder(name, conf)));
         } catch (RuntimeException e) { // NOSONAR
-            LOGGER.error("Unable to create the publisher or subscriber during initialization", e);
+            log.unableToCreatePublisherOrSubscriber(e);
             throw e;
         }
     }
@@ -166,7 +166,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
         // Look for the factory and throw an exception if missing
         IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
-                .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown connector for " + name + "."));
+                .stream().findFirst().orElseThrow(() -> ex.illegalArgumentUnknownConnector(name));
 
         PublisherBuilder<? extends Message<?>> publisher = mySourceFactory.getPublisherBuilder(config);
 
@@ -183,7 +183,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
         // Look for the factory and throw an exception if missing
         OutgoingConnectorFactory mySinkFactory = outgoingConnectorFactories.select(ConnectorLiteral.of(connector))
-                .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown connector for " + name + "."));
+                .stream().findFirst().orElseThrow(() -> ex.illegalArgumentUnknownConnector(name));
 
         return mySinkFactory.getSubscriberBuilder(config);
     }

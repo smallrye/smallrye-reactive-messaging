@@ -31,12 +31,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>com.github.cbismuth</groupId>
       <artifactId>junit-repeat-rule</artifactId>
       <version>1.1.2</version>
@@ -66,12 +60,15 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
+        <artifactId>maven-compiler-plugin</artifactId>        
         <configuration>
           <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
           <annotationProcessors>
             <annotationProcessor>
               io.smallrye.reactive.messaging.connector.ConnectorAttributeProcessor
+            </annotationProcessor>
+            <annotationProcessor>
+              org.jboss.logging.processor.apt.LoggingToolsProcessor
             </annotationProcessor>
           </annotationProcessors>
         </configuration>

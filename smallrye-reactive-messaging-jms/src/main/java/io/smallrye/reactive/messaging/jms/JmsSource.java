@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.jms;
 
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,15 +22,12 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
 
 class JmsSource {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JmsSource.class);
     private final PublisherBuilder<IncomingJmsMessage<?>> source;
 
     private final JmsPublisher publisher;
@@ -44,7 +44,7 @@ class JmsSource {
         JMSConsumer consumer;
         if (durable) {
             if (!(destination instanceof Topic)) {
-                throw new IllegalArgumentException("Invalid destination, only topic can be durable");
+                throw ex.illegalArgumentInvalidDestination();
             }
             consumer = context.createDurableConsumer((Topic) destination, name, selector, nolocal);
         } else {
@@ -71,13 +71,13 @@ class JmsSource {
         String type = config.getDestinationType();
         switch (type.toLowerCase()) {
             case "queue":
-                LOGGER.info("Creating queue {}", name);
+                log.creatingQueue(name);
                 return context.createQueue(name);
             case "topic":
-                LOGGER.info("Creating topic {}", name);
+                log.creatingTopic(name);
                 return context.createTopic(name);
             default:
-                throw new IllegalArgumentException("Unknown destination type: " + type);
+                throw ex.illegalArgumentUnknownDestinationType(type);
         }
 
     }
@@ -114,7 +114,7 @@ class JmsSource {
             if (downstream.compareAndSet(null, s)) {
                 s.onSubscribe(this);
             } else {
-                Subscriptions.fail(s, new IllegalStateException("There is already a subscriber"));
+                Subscriptions.fail(s, ex.illegalStateAlreadySubscriber());
             }
         }
 
@@ -144,7 +144,7 @@ class JmsSource {
                             downstream.get().onNext(message);
                         }
                     } catch (IllegalStateRuntimeException e) {
-                        LOGGER.warn("Unable to receive JMS messages - client has been closed");
+                        log.clientClosed();
                     }
 
                 });

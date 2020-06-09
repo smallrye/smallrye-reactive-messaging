@@ -1,14 +1,13 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
+import static io.smallrye.reactive.messaging.aws.sns.i18n.SnsLogging.log;
+
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingDeque;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.amazonaws.services.sns.message.DefaultSnsMessageHandler;
 import com.amazonaws.services.sns.message.SnsMessageManager;
@@ -36,7 +35,7 @@ public class SnsVerticle extends AbstractVerticle {
     private final int port;
     private final boolean mockSns;
     private final String snsUrl;
-    private static final Logger LOG = LoggerFactory.getLogger(SnsVerticle.class);
+
     private final SnsMessageManager messageManager = new SnsMessageManager();
     private final BlockingQueue<SnsMessage> msgQ = new LinkedBlockingDeque<>();
     private String arn;
@@ -77,12 +76,12 @@ public class SnsVerticle extends AbstractVerticle {
                     arn = res.topicArn();
                     topicEndpoint = mockSns ? String.format("%s:%d/sns/%s", endpoint, port, topic)
                             : String.format("%s/sns/%s", endpoint, topic);
-                    LOG.info(String.format("Topic ARN is %s, Endpoint is %s", arn, topicEndpoint));
+                    log.topicAndEndpointInfo(arn, topicEndpoint);
                     return isSubscribed(snsClient, arn);
                 })
                 .thenCompose(subscribed -> {
                     if (!subscribed) {
-                        LOG.info("Subscribing to topic {} with arn {}", topicEndpoint, arn);
+                        log.subscribingToTopic(topicEndpoint, arn);
                         return snsClient.subscribe(SubscribeRequest
                                 .builder()
                                 .topicArn(arn)
@@ -104,7 +103,7 @@ public class SnsVerticle extends AbstractVerticle {
      */
     private void receiveSnsMsg(RoutingContext routingContext) {
         JsonObject snsNotification = routingContext.getBodyAsJson();
-        LOG.info("Message received from SNS");
+        log.messageReceived();
         if (mockSns) {
             //In case of fake SNS. it will receive message without full AWS SNS attributes
             //so messageManager will not do its full functionality and it will not work.
@@ -121,14 +120,14 @@ public class SnsVerticle extends AbstractVerticle {
                     public void handle(SnsNotification notification) {
                         SnsMessage snsMessage = new SnsMessage(notification);
                         msgQ.add(snsMessage);
-                        LOG.trace("New message has been added to the queue");
+                        log.messageAddedToQueue();
                     }
                 });
         routingContext.response().setStatusCode(200).end();
     }
 
     SnsMessage pollMsg() throws InterruptedException {
-        LOG.trace("Polling message from SNS");
+        log.pollingMessage();
         return msgQ.take();
     }
 

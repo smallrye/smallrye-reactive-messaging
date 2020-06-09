@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
+
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
@@ -32,8 +34,7 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     public static <K, T> OutgoingKafkaRecord<K, T> from(Message<T> message) {
         OutgoingKafkaRecordMetadata<K> kafkaMetadata = message
                 .getMetadata(OutgoingKafkaRecordMetadata.class)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "`message` does not contain metadata of class " + OutgoingKafkaRecordMetadata.class));
+                .orElseThrow(() -> ex.illegalArgumentNoMetadata(OutgoingKafkaRecordMetadata.class));
 
         return new OutgoingKafkaRecord<>(kafkaMetadata.getTopic(), kafkaMetadata.getKey(), message.getPayload(),
                 kafkaMetadata.getTimestamp(), kafkaMetadata.getPartition(), kafkaMetadata.getHeaders(), message.getAck());

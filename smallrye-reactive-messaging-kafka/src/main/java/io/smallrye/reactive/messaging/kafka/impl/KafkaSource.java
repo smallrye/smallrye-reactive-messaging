@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,8 +12,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
@@ -24,7 +25,6 @@ import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class KafkaSource<K, V> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
     private final PublisherBuilder<? extends Message<?>> source;
     private final KafkaConsumer<K, V> consumer;
     private KafkaFailureHandler failureHandler;
@@ -35,7 +35,7 @@ public class KafkaSource<K, V> {
 
         String group = config.getGroupId().orElseGet(() -> {
             String s = UUID.randomUUID().toString();
-            LOGGER.warn("No `group.id` set in the configuration, generate a random id: {}", s);
+            log.noGroupId(s);
             return s;
         });
 
@@ -45,12 +45,12 @@ public class KafkaSource<K, V> {
 
         String servers = config.getBootstrapServers();
         if (!kafkaConfiguration.containsKey(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-            LOGGER.info("Setting {} to {}", ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
+            log.configServers(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
             kafkaConfiguration.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
         }
 
         if (!kafkaConfiguration.containsKey(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)) {
-            LOGGER.info("Key deserializer omitted, using String as default");
+            log.keyDeserializerOmitted();
             kafkaConfiguration.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, config.getKeyDeserializer());
         }
 
@@ -67,7 +67,7 @@ public class KafkaSource<K, V> {
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
 
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
-                .onFailure().invoke(t -> LOGGER.error("Unable to read a record from Kafka topic '{}'", topic, t));
+                .onFailure().invoke(t -> log.unableToReadRecord(topic, t));
 
         if (config.getRetry()) {
             int max = config.getRetryAttempts();
@@ -103,13 +103,13 @@ public class KafkaSource<K, V> {
         KafkaFailureHandler.Strategy actualStrategy = KafkaFailureHandler.Strategy.from(strategy);
         switch (actualStrategy) {
             case FAIL:
-                return new KafkaFailStop(LOGGER, config.getChannel());
+                return new KafkaFailStop(config.getChannel());
             case IGNORE:
-                return new KafkaIgnoreFailure(LOGGER, config.getChannel());
+                return new KafkaIgnoreFailure(config.getChannel());
             case DEAD_LETTER_QUEUE:
-                return KafkaDeadLetterQueue.create(LOGGER, vertx, kafkaConfiguration, config);
+                return KafkaDeadLetterQueue.create(vertx, kafkaConfiguration, config);
             default:
-                throw new IllegalArgumentException("Invalid failure strategy: " + strategy);
+                throw ex.illegalArgumentInvalidStrategy(strategy);
         }
 
     }
@@ -122,7 +122,7 @@ public class KafkaSource<K, V> {
         try {
             this.consumer.closeAndAwait();
         } catch (Throwable e) {
-            LOGGER.debug("An exception has been caught while closing the Kafka consumer", e);
+            log.exceptionOnClose(e);
         }
     }
 }
