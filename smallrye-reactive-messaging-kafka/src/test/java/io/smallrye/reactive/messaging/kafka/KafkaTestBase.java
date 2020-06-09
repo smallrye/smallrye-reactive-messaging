@@ -47,12 +47,14 @@ public class KafkaTestBase {
 
     @AfterClass
     public static void stopKafkaBroker() {
-        try {
-            kafka.shutdown();
-        } catch (Exception e) {
-            // Ignore it.
+        if (kafka != null) {
+            try {
+                kafka.shutdown();
+            } catch (Exception e) {
+                // Ignore it.
+            }
+            await().until(() -> !kafka.isRunning());
         }
-        await().until(() -> !kafka.isRunning());
     }
 
     @Before

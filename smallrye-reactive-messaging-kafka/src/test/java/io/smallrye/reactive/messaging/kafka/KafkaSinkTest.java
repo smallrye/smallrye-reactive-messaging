@@ -228,6 +228,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("partition", 0);
         config.put("max-inflight-messages", 1);
         config.put("bootstrap.servers", SERVERS);
+        config.put("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
         KafkaSink sink = new KafkaSink(vertx, oc);
 
