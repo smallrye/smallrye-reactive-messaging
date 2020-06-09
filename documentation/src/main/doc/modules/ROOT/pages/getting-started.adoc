@@ -26,7 +26,7 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 <dependency>
   <groupId>io.smallrye.config</groupId>
   <artifactId>smallrye-config</artifactId>
-  <version>1.8.0</version>
+  <version>{smallrye-config-version}</version>
 </dependency>
 ----
 

@@ -131,4 +131,6 @@ local.properties
 .settings
 .classpath
 .factorypath
-/examples/quickstart/nbactions.xml
+
+# Netbeans
+**/nb*.xml
