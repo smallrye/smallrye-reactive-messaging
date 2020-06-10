@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -28,9 +31,9 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private final Method method;
 
-    private Class<?> returnType;
+    private final Class<?> returnType;
 
-    private Class<?>[] parameterTypes;
+    private final Class<?>[] parameterTypes;
 
     private Shape shape;
 
@@ -67,13 +70,13 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private boolean isOrderedExecution;
 
-    private MediatorConfigurationSupport mediatorConfigurationSupport;
+    private final MediatorConfigurationSupport mediatorConfigurationSupport;
 
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
-        this.method = Objects.requireNonNull(method, "'method' must be set");
+        this.method = Objects.requireNonNull(method, msg.methodMustBeSet());
         this.returnType = method.getReturnType();
         this.parameterTypes = method.getParameterTypes();
-        this.mediatorBean = Objects.requireNonNull(bean, "'bean' must be set");
+        this.mediatorBean = Objects.requireNonNull(bean, msg.beanMustBeSet());
 
         this.mediatorConfigurationSupport = new MediatorConfigurationSupport(methodAsString(), this.returnType,
                 this.parameterTypes,
@@ -85,7 +88,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     public void compute(Incomings incomings, Outgoing outgoing, Blocking blocking) {
         Incoming[] values = incomings.value();
         if (values.length == 0) {
-            throw getIncomingError("@Incomings must contain a non-empty array of @Incoming");
+            throw ex.illegalArgumentForAnnotationNonEmpty("@Incoming", methodAsString());
         }
         compute(Arrays.asList(values), outgoing, blocking);
     }
@@ -94,7 +97,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         if (incomings != null) {
             for (Incoming incoming : incomings) {
                 if (Validation.isBlank(incoming.value())) {
-                    throw getIncomingError("value is blank or null");
+                    throw ex.illegalArgumentForAnnotationNullOrBlank("@Incoming", methodAsString());
                 }
             }
         } else {
@@ -102,7 +105,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         }
 
         if (outgoing != null && Validation.isBlank(outgoing.value())) {
-            throw getOutgoingError("value is blank or null");
+            throw ex.illegalArgumentForAnnotationNullOrBlank("@Outgoing", methodAsString());
         }
 
         this.shape = this.mediatorConfigurationSupport.determineShape(incomings, outgoing);
@@ -153,14 +156,6 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     @Override
     public Shape shape() {
         return shape;
-    }
-
-    private IllegalArgumentException getOutgoingError(String message) {
-        return new IllegalArgumentException("Invalid method annotated with @Outgoing: " + methodAsString() + " - " + message);
-    }
-
-    private IllegalArgumentException getIncomingError(String message) {
-        return new IllegalArgumentException("Invalid method annotated with @Incoming: " + methodAsString() + " - " + message);
     }
 
     @Override
@@ -303,8 +298,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         private static Type getGenericParameterType(Method method, int paramIndex) {
             Type[] genericParameterTypes = method.getGenericParameterTypes();
             if (genericParameterTypes.length < paramIndex + 1) {
-                throw new IllegalArgumentException("Method " + method + " only has " + genericParameterTypes.length
-                        + " so parameter with index " + paramIndex + " cannot be retrieved");
+                throw ex.illegalArgumentForGenericParameterType(method, genericParameterTypes.length,
+                        paramIndex);
             }
             return genericParameterTypes[paramIndex];
         }

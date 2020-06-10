@@ -26,7 +26,7 @@ Creates a Maven project, and include the following dependency in your pom.xml:
 <dependency>
   <groupId>io.smallrye.config</groupId>
   <artifactId>smallrye-config</artifactId>
-  <version>1.7.0</version>
+  <version>{smallrye-config-version}</version>
 </dependency>
 ----
 
@@ -79,15 +79,27 @@ Running the previous example should give the following output:
 
 [NOTE]
 ====
-SmallRye Reactive Messaging uses SLF4J as logger.
-Check the https://www.slf4j.org/manual.html[SLF4J documentation] to configure the logs.
-For testing purpose, you can simply add the following dependency to your `pom.xml` file:
-[source,xml]
+SmallRye Reactive Messaging uses JBoss-logging to log.
+
+For testing purpose, you can simply add a `logging.properties` file in `${basedir}/src/main/resources/logging.properties`
+
+Then run the application using:
+
+[source,bash]
 ----
-<dependency>
-  <groupId>org.slf4j</groupId>
-  <artifactId>slf4j-simple</artifactId>
-  <version>1.7.30</version>
-</dependency>
+mvn package exec:java -Dexec.mainClass=quickstart.Main -Djava.util.logging.config.file=${basedir}/src/main/resources/logging.properties
 ----
+
+Example logging.properties:
+
+```
+handlers= java.util.logging.ConsoleHandler
+
+java.util.logging.ConsoleHandler.level = FINEST
+java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter
+java.util.logging.SimpleFormatter.format=[%1$tF %1$tT] [%4$-7s] %5$s %n
+
+.level=OFF
+acme.level=FINEST
+```
 ====

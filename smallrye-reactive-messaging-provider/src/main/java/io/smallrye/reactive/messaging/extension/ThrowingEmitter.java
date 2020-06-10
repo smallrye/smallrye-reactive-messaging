@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -54,7 +56,7 @@ class ThrowingEmitter<T> implements MultiEmitter<T> {
         } while (requests > 0 && !requested.compareAndSet(requests, requests - 1));
 
         if (requests <= 0) {
-            throw new IllegalStateException("Insufficient downstream requests to emit item");
+            throw ex.illegalStateInsufficientDownstreamRequests();
         }
 
         delegate.emit(item);

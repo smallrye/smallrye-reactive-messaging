@@ -1,0 +1,107 @@
+# This document is intended to establish the ranges for message IDs in the various sub-projects.
+
+# Range     = owner
+
+# Provider (smallrye-reactive-messaging-provider)
+00000-00099 = exceptions
+00100-00199 = messaging
+00200-00299 = logging
+
+00300-00399 =
+00400-00499 =
+00500-00599 =
+06000-06999 =
+07000-07999 =
+08000-08999 =
+09000-09999 =
+10000-10999 =
+11000-11999 =
+12000-12999 =
+13000-13999 =
+
+
+# 
+14000-14099 = 
+14100-14199 = 
+14200-14299 = 
+
+# 
+14300-14399 = 
+14400-14499 = 
+14500-14599 = 
+
+# GCP Pub/Sub (smallrye-reactive-messaging-gcp-pubsub)
+14600-14699 = exceptions
+14700-14799 = messaging
+14800-14899 = logging
+
+# AWS-SNS (smallrye-reactive-messaging-aws-sns)
+15000-15099 = exceptions
+15100-15199 = messaging
+15200-15299 = logging
+
+# Cloud Events (smallrye-reactive-messaging-cloud-events)
+15300-15399 = exceptions
+15400-15499 = messaging
+15500-15599 = logging
+
+# JMS (smallrye-reactive-messaging-jms)
+15600-15699 = exceptions
+15700-15799 = messaging
+15800-15899 = logging
+
+# AMQP (smallrye-reactive-messaging-amqp)
+16000-16099 = exceptions
+16100-16199 = messaging
+16200-16299 = logging
+
+# HTTP (smallrye-reactive-messaging-http)
+16300-16399 = exceptions
+16400-16499 = messaging
+16500-16599 = logging
+
+# VertX EventBus (smallrye-reactive-messaging-vertx-eventbus)
+16600-16699 = exceptions
+16700-16799 = messaging
+16800-16899 = logging
+
+# MQTT (smallrye-reactive-messaging-mqtt)
+17000-17099 = exceptions
+17100-17199 = messaging
+17200-17299 = logging
+
+# MQTT Server (smallrye-reactive-messaging-mqtt-server)
+17300-17399 = exceptions
+17400-17499 = messaging
+17500-17599 = logging
+
+# Camel (smallrye-reactive-messaging-camel)
+17600-17699 = exceptions
+17700-17799 = messaging
+17800-17899 = logging
+
+# Kafka (smallrye-reactive-messaging-kafka)
+18000-18099 = exceptions
+18100-18199 = messaging
+18200-18299 = logging
+
+# In Memory (smallrye-reactive-messaging-in-memory)
+18300-18399 = exceptions
+18400-18499 = messaging
+18500-18599 = logging
+
+18600-18699
+18700-18799
+18800-18899
+
+19000-19099
+19100-19199
+19200-19299
+
+19300-19399
+19400-19499
+19500-19599
+
+19600-19699
+19700-19799
+19800-19899

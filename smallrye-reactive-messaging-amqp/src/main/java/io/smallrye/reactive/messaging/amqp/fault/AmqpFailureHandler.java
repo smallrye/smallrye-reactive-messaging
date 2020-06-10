@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp.fault;
 
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
+
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.amqp.AmqpMessage;
@@ -38,7 +40,7 @@ public interface AmqpFailureHandler {
             if (s.equalsIgnoreCase("reject")) {
                 return REJECT;
             }
-            throw new IllegalArgumentException("Unknown failure strategy: " + s);
+            throw ex.illegalArgumentUnknownFailureStrategy(s);
         }
     }
 

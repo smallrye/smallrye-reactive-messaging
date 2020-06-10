@@ -1,6 +1,12 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.util.*;
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
@@ -107,6 +113,8 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     private Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
+        log.mergingConfigWith(defaultKafkaCfg);
+
         return new Config() {
             @SuppressWarnings("unchecked")
             @Override

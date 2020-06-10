@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.helpers;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -60,8 +63,7 @@ public class TypeUtils {
         if (toType instanceof TypeVariable<?>) {
             return isAssignable(type, (TypeVariable<?>) toType);
         }
-
-        throw new IllegalStateException("found an unhandled type: " + toType);
+        throw ex.illegalStateUnhandledType(toType);
     }
 
     /**
@@ -127,7 +129,7 @@ public class TypeUtils {
             return false;
         }
 
-        throw new IllegalStateException("found an unhandled type: " + type);
+        throw ex.illegalStateUnhandledType(type);
     }
 
     /**
@@ -287,7 +289,7 @@ public class TypeUtils {
             return false;
         }
 
-        throw new IllegalStateException("found an unhandled type: " + type);
+        throw ex.illegalStateUnhandledType(type);
     }
 
     /**
@@ -424,7 +426,7 @@ public class TypeUtils {
             return false;
         }
 
-        throw new IllegalStateException("found an unhandled type: " + type);
+        throw ex.illegalStateUnhandledType(type);
     }
 
     /**
@@ -442,8 +444,7 @@ public class TypeUtils {
             final Type replacementType = typeVarAssigns.get(type);
 
             if (replacementType == null) {
-                throw new IllegalArgumentException("missing assignment type for type variable "
-                        + type);
+                throw ex.illegalArgumentMissingAssignment(type);
             }
             return replacementType;
         }
@@ -558,7 +559,7 @@ public class TypeUtils {
 
             return null;
         }
-        throw new IllegalStateException("found an unhandled type: " + type);
+        throw ex.illegalStateUnhandledType(type);
     }
 
     /**
@@ -686,8 +687,7 @@ public class TypeUtils {
                 } else if (midType instanceof Class<?>) {
                     midClass = (Class<?>) midType;
                 } else {
-                    throw new IllegalStateException("Unexpected generic"
-                            + " interface type found: " + midType);
+                    throw ex.illegalStateUnexpectedGenericInterface(midType);
                 }
 
                 // check if this interface is further up the inheritance chain
@@ -739,7 +739,7 @@ public class TypeUtils {
      *         redundant types.
      */
     public static Type[] normalizeUpperBounds(final Type[] bounds) {
-        Validation.notNull(bounds, "null value specified for bounds array");
+        Validation.notNull(bounds, msg.nullSpecifiedForBounds());
         // don't bother if there's only one (or none) type
         if (bounds.length < 2) {
             return bounds;
@@ -777,7 +777,7 @@ public class TypeUtils {
      * @return a non-empty array containing the bounds of the type variable.
      */
     private static Type[] getImplicitBounds(final TypeVariable<?> typeVariable) {
-        Validation.notNull(typeVariable, "typeVariable is null");
+        Validation.notNull(typeVariable, msg.isNull("typeVariable"));
         final Type[] bounds = typeVariable.getBounds();
 
         return bounds.length == 0 ? new Type[] { Object.class } : normalizeUpperBounds(bounds);
@@ -796,7 +796,7 @@ public class TypeUtils {
      *         type.
      */
     static Type[] getImplicitUpperBounds(final WildcardType wildcardType) {
-        Validation.notNull(wildcardType, "wildcardType is null");
+        Validation.notNull(wildcardType, msg.isNull("wildcardType"));
         final Type[] bounds = wildcardType.getUpperBounds();
 
         return bounds.length == 0 ? new Type[] { Object.class } : normalizeUpperBounds(bounds);
@@ -814,7 +814,7 @@ public class TypeUtils {
      *         type.
      */
     static Type[] getImplicitLowerBounds(final WildcardType wildcardType) {
-        Validation.notNull(wildcardType, "wildcardType is null");
+        Validation.notNull(wildcardType, msg.isNull("wildcardType"));
         final Type[] bounds = wildcardType.getLowerBounds();
 
         return bounds.length == 0 ? new Type[] { null } : bounds;
@@ -921,22 +921,20 @@ public class TypeUtils {
 
     private static ParameterizedType parameterizeWithOwner(final Type owner, final Class<?> raw,
             final Type... typeArguments) {
-        Validation.notNull(raw, "raw class is null");
+        Validation.notNull(raw, msg.isNull("raw class"));
         final Type useOwner;
         if (raw.getEnclosingClass() == null) {
-            Validation.isTrue(owner == null, "no owner allowed for top-level %s", raw);
+            Validation.isTrue(owner == null, msg.noOwnerAllowed(raw));
             useOwner = null;
         } else if (owner == null) {
             useOwner = raw.getEnclosingClass();
         } else {
-            Validation.isTrue(isAssignable(owner, raw.getEnclosingClass()),
-                    "%s is invalid owner type for parameterized %s", owner, raw);
+            Validation.isTrue(isAssignable(owner, raw.getEnclosingClass()), msg.invalidOwnerForParameterized(owner, raw));
             useOwner = owner;
         }
-        Validation.noNullElements(typeArguments, "null type argument at index %s");
+        Validation.noNullElements(typeArguments, "typeArguments");
         Validation.isTrue(raw.getTypeParameters().length == typeArguments.length,
-                "invalid number of type parameters specified: expected %d, got %d", raw.getTypeParameters().length,
-                typeArguments.length);
+                msg.invalidNumberOfTypeParameters(raw.getTypeParameters().length, typeArguments.length));
 
         return new ParameterizedTypeImpl(raw, useOwner, Arrays.asList(typeArguments));
     }
@@ -1017,7 +1015,7 @@ public class TypeUtils {
         if (type instanceof GenericArrayType) {
             return genericArrayTypeToString((GenericArrayType) type);
         }
-        throw new IllegalArgumentException(type.getTypeName());
+        throw ex.illegalArgumentTypeToString(type.getTypeName());
     }
 
     static String toLongString(final TypeVariable<?> var) {

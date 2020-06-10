@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.cloudevents;
 
+import static io.smallrye.reactive.messaging.cloudevents.i18n.CloudEventExceptions.ex;
+
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,7 +32,7 @@ public class DefaultCloudEventMessage<T> implements CloudEventMessage<T> {
 
     @Override
     public T getPayload() {
-        return delegate.getData().orElseThrow(() -> new IllegalArgumentException("Invalid message - no payload"));
+        return delegate.getData().orElseThrow(() -> ex.illegalArgumentInvalidMessage());
     }
 
     @Override

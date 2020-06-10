@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.http;
 
+import static io.smallrye.reactive.messaging.http.i18n.HttpExceptions.ex;
+import static io.smallrye.reactive.messaging.http.i18n.HttpLogging.log;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -7,8 +10,6 @@ import java.util.Map;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.http.converters.Serializer;
@@ -21,8 +22,6 @@ import io.vertx.mutiny.ext.web.client.WebClient;
 
 class HttpSink {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HttpSink.class);
-
     private final String url;
     private final String method;
     private final WebClient client;
@@ -33,7 +32,7 @@ class HttpSink {
         WebClientOptions options = new WebClientOptions(JsonHelper.asJsonObject(config.config()));
         url = config.getUrl();
         if (url == null) {
-            throw new IllegalArgumentException("The `url` must be set");
+            throw ex.illegalArgumentUrlNotSet();
         }
         method = config.getMethod();
         client = WebClient.create(vertx, options);
@@ -73,8 +72,7 @@ class HttpSink {
                 request = client.putAbs(actualUrl);
                 break;
             default:
-                throw new IllegalArgumentException(
-                        "Invalid HTTP Verb: " + actualMethod + ", only PUT and POST are supported");
+                throw ex.illegalArgumentInvalidVerb(actualMethod);
         }
 
         MultiMap requestHttpHeaders = request.headers();
@@ -103,11 +101,8 @@ class HttpSink {
                     if (resp.statusCode() >= 200 && resp.statusCode() < 300) {
                         return null;
                     } else {
-                        LOGGER.debug("HTTP request POST {}  has failed with status code: {}, body is: {}", url,
-                                resp.statusCode(),
-                                resp.body() != null ? resp.body().toString() : "NO CONTENT");
-                        throw new RuntimeException(
-                                "HTTP request POST " + url + " has not returned a valid status: " + resp.statusCode());
+                        log.postFailed(url, resp.statusCode(), resp.body() != null ? resp.body().toString() : "NO CONTENT");
+                        throw ex.runtimePostInvalidStatus(url, resp.statusCode());
                     }
                 });
     }

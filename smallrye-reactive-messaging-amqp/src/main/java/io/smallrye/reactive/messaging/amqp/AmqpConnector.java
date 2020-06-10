@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
 import static java.time.Duration.ofSeconds;
 
@@ -25,8 +27,6 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -70,8 +70,6 @@ import io.vertx.mutiny.core.Vertx;
 
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AmqpConnector.class);
-
     static final String CONNECTOR_NAME = "smallrye-amqp";
 
     @Inject
@@ -96,11 +94,12 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder,
             String address,
             AmqpFailureHandler onNack) {
-        LOGGER.info("AMQP Receiver listening address {}", address);
+        log.receiverListeningAddress(address);
+
         // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
         BroadcastProcessor processor = BroadcastProcessor.create();
         receiver.exceptionHandler(t -> {
-            LOGGER.error("AMQP Receiver error", t);
+            log.receiverError(t);
             processor.onError(t);
         });
         holder.onFailure(processor::onError);
@@ -139,9 +138,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         Integer attempts = ic.getReconnectAttempts();
         multi = multi
                 // Retry on failure.
-                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve messages from AMQP, retrying...", t))
+                .onFailure().invoke(t -> log.retrieveMessagesRetrying(t))
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
-                .onFailure().invoke(t -> LOGGER.error("Unable to retrieve messages from AMQP, no more retry", t));
+                .onFailure().invoke(t -> log.retrieveMessagesNoMoreRetrying(t));
 
         if (broadcast) {
             multi = multi.broadcast().toAllSubscribers();
@@ -219,15 +218,15 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         AmqpFailureHandler.Strategy actualStrategy = AmqpFailureHandler.Strategy.from(strategy);
         switch (actualStrategy) {
             case FAIL:
-                return new AmqpFailStop(LOGGER, config.getChannel());
+                return new AmqpFailStop(config.getChannel());
             case ACCEPT:
-                return new AmqpAccept(LOGGER, config.getChannel());
+                return new AmqpAccept(config.getChannel());
             case REJECT:
-                return new AmqpReject(LOGGER, config.getChannel());
+                return new AmqpReject(config.getChannel());
             case RELEASE:
-                return new AmqpRelease(LOGGER, config.getChannel());
+                return new AmqpRelease(config.getChannel());
             default:
-                throw new IllegalArgumentException("Invalid failure strategy: " + strategy);
+                throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }
 
     }

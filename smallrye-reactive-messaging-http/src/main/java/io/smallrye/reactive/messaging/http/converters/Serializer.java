@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.http.converters;
 
+import static io.smallrye.reactive.messaging.http.i18n.HttpExceptions.ex;
+import static io.smallrye.reactive.messaging.http.i18n.HttpMessages.msg;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,7 +29,7 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
 
     @SuppressWarnings("unchecked")
     public static synchronized <I> Serializer<I> lookup(Object payload, String converterClassName) {
-        Objects.requireNonNull(payload, "Payload must not be null");
+        Objects.requireNonNull(payload, msg.payloadMustNotBeNull());
         Optional<Serializer<?>> any = CONVERTERS.stream().filter(s -> ClassUtils
                 .isAssignable(payload.getClass(), s.input()))
                 .findAny();
@@ -40,9 +43,8 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
             return serializer;
         }
 
-        throw new IllegalArgumentException(
-                "Unable to find a serializer for type: " + payload.getClass() + ", supported types are: "
-                        + CONVERTERS.stream().map(s -> s.input().getName()).collect(Collectors.toList()));
+        throw ex.unableToFindSerializer(payload.getClass(),
+                CONVERTERS.stream().map(s -> s.input().getName()).collect(Collectors.toList()));
     }
 
     @SuppressWarnings("unchecked")
@@ -51,7 +53,7 @@ public abstract class Serializer<I> implements Converter<I, Buffer> {
             Class<Serializer<I>> clazz = (Class<Serializer<I>>) Serializer.class.getClassLoader().loadClass(className);
             return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Unable to load the class " + className + " or unable to instantiate it");
+            throw ex.unableToLoadClass(className);
         }
     }
 

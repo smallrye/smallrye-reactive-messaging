@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.jms;
 
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -34,7 +36,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         try {
             this.clazz = cn != null ? load(cn) : null;
         } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException("Unable to load the class " + e);
+            throw ex.illegalStateUnableToLoadClass(e);
         }
 
         this.jmsMetadata = new IncomingJmsMessageMetadata(message);
@@ -124,7 +126,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         if (IncomingJmsMessageMetadata.class.equals(unwrapType)) {
             return (C) jmsMetadata;
         }
-        throw new IllegalArgumentException("Unable to unwrap message to " + unwrapType);
+        throw ex.illegalStateUnableToUnwrap(unwrapType);
     }
 
 }

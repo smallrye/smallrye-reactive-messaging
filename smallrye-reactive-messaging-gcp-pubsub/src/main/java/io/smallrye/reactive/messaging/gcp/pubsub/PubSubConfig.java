@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubMessages.msg;
+
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -18,8 +20,8 @@ public class PubSubConfig {
 
     public PubSubConfig(final String projectId, final String topic, final Path credentialPath, final boolean mockPubSubTopics,
             final String host, final Integer port) {
-        this.projectId = Objects.requireNonNull(projectId, "projectId must be non-null");
-        this.topic = Objects.requireNonNull(topic, "topic must be non-null");
+        this.projectId = Objects.requireNonNull(projectId, msg.mustNotBeNull("projectId"));
+        this.topic = Objects.requireNonNull(topic, msg.mustNotBeNull("topic"));
         this.credentialPath = credentialPath;
         this.subscription = null;
         this.mockPubSubTopics = mockPubSubTopics;
@@ -29,8 +31,8 @@ public class PubSubConfig {
 
     public PubSubConfig(final String projectId, final String topic, final Path credentialPath, final String subscription,
             final boolean mockPubSubTopics, final String host, final Integer port) {
-        this.projectId = Objects.requireNonNull(projectId, "projectId must be non-null");
-        this.topic = Objects.requireNonNull(topic, "topic must be non-null");
+        this.projectId = Objects.requireNonNull(projectId, msg.mustNotBeNull("projectId"));
+        this.topic = Objects.requireNonNull(topic, msg.mustNotBeNull("topic"));
         this.credentialPath = credentialPath;
         this.subscription = subscription;
         this.mockPubSubTopics = mockPubSubTopics;

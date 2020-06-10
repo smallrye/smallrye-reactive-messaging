@@ -1,6 +1,13 @@
 package io.smallrye.reactive.messaging.jms;
 
-import java.util.*;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import javax.jms.Message;
@@ -82,10 +89,10 @@ public class JmsPropertiesBuilder {
 
     private void validate(String key, Object value) {
         if (key == null || key.trim().length() == 0) {
-            throw new IllegalArgumentException("The key must not be `null` or blank");
+            throw ex.illegalStateKeyNull();
         }
         if (value == null) {
-            throw new IllegalArgumentException("The value must not be `null`");
+            throw ex.illegalStateValueNull();
         }
     }
 

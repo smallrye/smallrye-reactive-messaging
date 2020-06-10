@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.impl;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.*;
 
 import java.util.*;
@@ -21,22 +23,19 @@ public class ConnectorConfig implements Config {
     private final String connector;
 
     protected ConnectorConfig(String prefix, Config overall, String channel) {
-        this.prefix = Objects.requireNonNull(prefix, "the prefix must not be set");
-        this.overall = Objects.requireNonNull(overall, "the config must not be set");
-        this.name = Objects.requireNonNull(channel, "the channel name must be set");
+        this.prefix = Objects.requireNonNull(prefix, msg.prefixMustNotBeSet());
+        this.overall = Objects.requireNonNull(overall, msg.configMustNotBeSet());
+        this.name = Objects.requireNonNull(channel, msg.channelMustNotBeSet());
 
         Optional<String> value = overall.getOptionalValue(channelKey(CONNECTOR_ATTRIBUTE), String.class);
         this.connector = value
                 .orElseGet(() -> overall.getOptionalValue(channelKey("type"), String.class) // Legacy
-                        .orElseThrow(() -> new IllegalArgumentException("Invalid channel configuration - " +
-                                "the `connector` attribute must be set for channel `" + name + "`")));
+                        .orElseThrow(() -> ex.illegalArgumentChannelConnectorConfiguration(name)));
 
         // Detect invalid channel-name attribute
         for (String key : overall.getPropertyNames()) {
             if ((channelKey(CHANNEL_NAME_ATTRIBUTE)).equalsIgnoreCase(key)) {
-                throw new IllegalArgumentException(
-                        "Invalid channel configuration -  the `channel-name` attribute cannot be used" +
-                                " in configuration (channel `" + name + "`)");
+                throw ex.illegalArgumentInvalidChannelConfiguration(name);
             }
         }
     }
@@ -68,8 +67,8 @@ public class ConnectorConfig implements Config {
                 return overall.getValue(connectorKey(propertyName), propertyType);
             } catch (NoSuchElementException e2) {
                 // Catch the exception to provide a more meaningful error messages.
-                throw new NoSuchElementException("Cannot find attribute `" + propertyName + "` for channel `" + name + "`. " +
-                        "Has been tried: " + channelKey(propertyName) + " and " + connectorKey(propertyName));
+                throw ex.noSuchElementForAttribute(propertyName, name, channelKey(propertyName),
+                        connectorKey(propertyName));
             }
         }
     }

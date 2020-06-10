@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.annotations.Emitter;
@@ -41,7 +43,7 @@ public class LegacyEmitterImpl<T> implements Emitter<T> {
     @Override
     public synchronized Emitter<T> send(T msg) {
         if (msg == null) {
-            throw new IllegalArgumentException("`null` is not a valid value");
+            throw ex.illegalArgumentForNullValue();
         }
         if (msg instanceof Message) {
             delegate.send((Message) msg);

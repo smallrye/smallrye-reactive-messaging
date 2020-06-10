@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.extension;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,13 +30,13 @@ public class EmitterImpl<T> implements Emitter<T> {
 
     private final String name;
 
-    private AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
+    private final AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
 
     @SuppressWarnings("unchecked")
     public EmitterImpl(EmitterConfiguration config, long defaultBufferSize) {
         this.name = config.name;
         if (defaultBufferSize <= 0) {
-            throw new IllegalArgumentException("The default buffer size must be strictly positive");
+            throw ex.illegalArgumentForDefaultBuffer();
         }
 
         Consumer<MultiEmitter<? super Message<? extends T>>> deferred = fe -> {
@@ -91,7 +93,7 @@ public class EmitterImpl<T> implements Emitter<T> {
                 return Multi.createFrom().emitter(deferred, BackPressureStrategy.IGNORE);
 
             default:
-                throw new IllegalArgumentException("Invalid back-pressure strategy: " + overFlowStrategy);
+                throw ex.illegalArgumentForBackPressure(overFlowStrategy);
         }
     }
 
@@ -121,7 +123,7 @@ public class EmitterImpl<T> implements Emitter<T> {
     @Override
     public synchronized CompletionStage<Void> send(T msg) {
         if (msg == null) {
-            throw new IllegalArgumentException("`null` is not a valid value");
+            throw ex.illegalArgumentForNullValue();
         }
         CompletableFuture<Void> future = new CompletableFuture<>();
         emit(Message.of(msg, Metadata.empty(), () -> {
@@ -138,22 +140,21 @@ public class EmitterImpl<T> implements Emitter<T> {
     private synchronized void emit(Message<? extends T> message) {
         MultiEmitter<? super Message<? extends T>> emitter = verify(internal, name);
         if (synchronousFailure.get() != null) {
-            throw new IllegalStateException("The emitter encountered a failure", synchronousFailure.get());
+            throw ex.illegalStateForEmitter(synchronousFailure.get());
         }
         if (emitter.isCancelled()) {
-            throw new IllegalStateException("The downstream has cancelled the consumption");
+            throw ex.illegalStateForDownstreamCancel();
         }
         emitter.emit(message);
         if (synchronousFailure.get() != null) {
-            throw new IllegalStateException("The emitter encountered a failure while emitting",
-                    synchronousFailure.get());
+            throw ex.illegalStateForEmitterWhileEmitting(synchronousFailure.get());
         }
     }
 
     @Override
     public synchronized <M extends Message<? extends T>> void send(M msg) {
         if (msg == null) {
-            throw new IllegalArgumentException("`null` is not a valid value");
+            throw ex.illegalArgumentForNullValue();
         }
         emit(msg);
     }
@@ -163,10 +164,10 @@ public class EmitterImpl<T> implements Emitter<T> {
             String name) {
         MultiEmitter<? super Message<? extends T>> emitter = reference.get();
         if (emitter == null) {
-            throw new IllegalStateException("No subscriber found for the channel " + name);
+            throw ex.illegalStateForNoSubscriber(name);
         }
         if (emitter.isCancelled()) {
-            throw new IllegalStateException("The subscription to " + name + " has been cancelled");
+            throw ex.illegalStateForCancelledSubscriber(name);
         }
         return emitter;
     }
@@ -179,7 +180,7 @@ public class EmitterImpl<T> implements Emitter<T> {
     @Override
     public synchronized void error(Exception e) {
         if (e == null) {
-            throw new IllegalArgumentException("`null` is not a valid exception");
+            throw ex.illegalArgumentForException("null");
         }
         verify(internal, name).fail(e);
     }

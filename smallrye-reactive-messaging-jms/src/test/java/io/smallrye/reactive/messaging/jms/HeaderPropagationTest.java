@@ -13,7 +13,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.jms.*;
+import javax.jms.ConnectionFactory;
+import javax.jms.Destination;
+import javax.jms.JMSConsumer;
+import javax.jms.JMSContext;
+import javax.jms.JMSException;
+import javax.jms.JMSProducer;
+import javax.jms.ObjectMessage;
+import javax.jms.Queue;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.config.ConfigProvider;

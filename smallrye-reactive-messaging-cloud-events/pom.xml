@@ -24,6 +24,7 @@
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
     </dependency>
+    
   </dependencies>
 
   <profiles>

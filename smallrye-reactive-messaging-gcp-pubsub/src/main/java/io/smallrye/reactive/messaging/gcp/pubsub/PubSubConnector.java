@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.log;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -21,8 +23,6 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.api.gax.rpc.AlreadyExistsException;
 import com.google.api.gax.rpc.NotFoundException;
@@ -39,8 +39,6 @@ import io.smallrye.mutiny.Multi;
 @ApplicationScoped
 @Connector(PubSubConnector.CONNECTOR_NAME)
 public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PubSubConnector.class);
 
     static final String CONNECTOR_NAME = "smallrye-gcp-pubsub";
 
@@ -119,7 +117,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
             try {
                 topicAdminClient.createTopic(topicName);
             } catch (final AlreadyExistsException ae) {
-                LOGGER.trace("Topic {} already exists", topicName, ae);
+                log.topicExistAlready(topicName, ae);
             }
         }
     }

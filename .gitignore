@@ -131,3 +131,6 @@ local.properties
 .settings
 .classpath
 .factorypath
+
+# Netbeans
+**/nb*.xml

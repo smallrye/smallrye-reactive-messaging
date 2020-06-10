@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -28,7 +31,7 @@ public class PublisherMediator extends AbstractMediator {
     public PublisherMediator(MediatorConfiguration configuration) {
         super(configuration);
         if (configuration.shape() != Shape.PUBLISHER) {
-            throw new IllegalArgumentException("Expected a Publisher shape, received a " + configuration.shape());
+            throw ex.illegalArgumentForPublisherShape(configuration.shape());
         }
     }
 
@@ -48,8 +51,7 @@ public class PublisherMediator extends AbstractMediator {
         return super.<T> invokeBlocking(args)
                 .onItem()
                 .ifNull()
-                .failWith(new NullPointerException("The operation "
-                        + this.configuration.methodAsString() + " has returned null"));
+                .failWith(ex.nullPointerOnInvokeBlocking(this.configuration.methodAsString()));
     }
 
     @Override
@@ -89,7 +91,7 @@ public class PublisherMediator extends AbstractMediator {
                 produceIndividualUniOfPayloads();
                 break;
             default:
-                throw new IllegalArgumentException("Unexpected production type: " + configuration.production());
+                throw ex.illegalArgumentForUnexpectedProduction(configuration.production());
         }
 
         assert this.publisher != null;
@@ -126,8 +128,7 @@ public class PublisherMediator extends AbstractMediator {
         } else {
             setPublisher(ReactiveStreams.generate(() -> {
                 Message<?> message = invoke();
-                Objects.requireNonNull(message,
-                        "The method " + configuration.methodAsString() + " returned an invalid value: null");
+                Objects.requireNonNull(message, msg.methodReturnedNull(configuration.methodAsString()));
                 return message;
             }));
         }

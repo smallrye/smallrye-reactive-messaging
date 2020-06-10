@@ -1,23 +1,21 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.slf4j.Logger;
-
 public class MqttFailStop implements MqttFailureHandler {
 
-    private final Logger logger;
     private final String channel;
 
-    public MqttFailStop(Logger logger, String channel) {
-        this.logger = logger;
+    public MqttFailStop(String channel) {
         this.channel = channel;
     }
 
     @Override
     public CompletionStage<Void> handle(Throwable reason) {
-        logger.error("A message sent to channel `{}` has been nacked, fail-stop", channel);
+        log.messageNackedFailStop(channel);
         CompletableFuture<Void> future = new CompletableFuture<>();
         future.completeExceptionally(reason);
         return future;
