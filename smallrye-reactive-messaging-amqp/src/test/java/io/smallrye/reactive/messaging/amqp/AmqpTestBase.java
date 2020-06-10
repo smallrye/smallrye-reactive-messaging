@@ -42,6 +42,7 @@ public class AmqpTestBase {
         System.setProperty("amqp-user", username);
         System.setProperty("amqp-pwd", password);
         usage = new AmqpUsage(executionHolder.vertx(), host, port);
+        MapBasedConfig.clear();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
