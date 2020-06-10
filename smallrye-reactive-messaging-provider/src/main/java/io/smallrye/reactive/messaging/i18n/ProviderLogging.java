@@ -129,7 +129,7 @@ public interface ProviderLogging extends BasicLogger {
     void foundIncomingConnectors(List<String> connectors);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 227, value = "Found incoming connectors: %s")
+    @Message(id = 227, value = "Found outgoing connectors: %s")
     void foundOutgoingConnectors(List<String> connectors);
 
     @LogMessage(level = Logger.Level.INFO)
