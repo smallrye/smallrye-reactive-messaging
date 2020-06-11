@@ -94,3 +94,5 @@ It may also contain the `dead-letter-cause` with the message from the cause, if 
 include::connectors:partial$META-INF/connector/smallrye-kafka-incoming.adoc[]
 
 You can also pass any property supported by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client] as attribute.
+
+include::consumer-rebalance-listener.adoc[]
