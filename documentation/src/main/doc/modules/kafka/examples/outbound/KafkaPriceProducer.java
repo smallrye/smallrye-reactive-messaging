@@ -10,9 +10,9 @@ import java.util.Random;
 @ApplicationScoped
 public class KafkaPriceProducer {
 
-    private Random random = new Random();
+    private final Random random = new Random();
 
-    @Outgoing("prices")
+    @Outgoing("prices-out")
     public Multi<Double> generate() {
         // Build an infinite stream of random prices
         // It emits a price every second

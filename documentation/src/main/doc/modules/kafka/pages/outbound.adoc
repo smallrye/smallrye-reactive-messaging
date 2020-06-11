@@ -12,14 +12,14 @@ Configure your application to write the messages from the `prices` channel into 
 ----
 kafka.bootstrap.servers=kafka:9092      # <1>
 
-mp.messaging.outgoing.prices.connector=smallrye-kafka   # <2>
-mp.messaging.outgoing.prices.value.serializer=org.apache.kafka.common.serialization.DoubleSerializer  # <3>
+mp.messaging.outgoing.prices-out.connector=smallrye-kafka   # <2>
+mp.messaging.outgoing.prices-out.value.serializer=org.apache.kafka.common.serialization.DoubleSerializer  # <3>
+mp.messaging.outgoing.prices-out.topic=prices   # <4>
 ----
 1. Configure the broker location. You can configure it globally or per channel
 2. Configure the connector to manage the `prices` channel
 3. Sets the (Kafka) serializer to encode the message payload into the record's value
-
-NOTE: You don't need to set the Kafka topic. By default, it uses the channel name (`prices`). You can configure the `topic` attribute to override it.
+4. Make sure the topic name is `prices` (and not the default `prices-out`)
 
 Then, your application must send `Message<Double>` to the `prices` channel.
 It can use `double` payloads as in the following snippet:

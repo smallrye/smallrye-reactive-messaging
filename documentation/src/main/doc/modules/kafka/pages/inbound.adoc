@@ -14,10 +14,12 @@ kafka.bootstrap.servers=kafka:9092      # <1>
 
 mp.messaging.incoming.prices.connector=smallrye-kafka       # <2>
 mp.messaging.incoming.prices.value.deserializer=org.apache.kafka.common.serialization.DoubleDeserializer    # <3>
+mp.messaging.incoming.prices.broadcast=true     # <4>
 ----
 1. Configure the broker location. You can configure it globally or per channel
 2. Configure the connector to manage the `prices` channel
 3. Sets the (Kafka) deserializer to read the record's value
+4. Make sure that we can receive from more that one consumer (see `KafkaPriceConsumer` and `KafkaPriceMessageConsumer` below) 
 
 NOTE: You don't need to set the Kafka topic. By default, it uses the channel name (`prices`). You can configure the `topic` attribute to override it.
 
