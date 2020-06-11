@@ -27,7 +27,7 @@ import io.vertx.mutiny.core.Vertx;
 
 public class KafkaTestBase {
 
-    private static KafkaCluster kafka;
+    protected static KafkaCluster kafka;
     static final String SERVERS = "localhost:9092";
 
     Vertx vertx;
@@ -39,7 +39,7 @@ public class KafkaTestBase {
         File directory = Testing.Files.createTestingDirectory(System.getProperty("java.io.tmpdir"), true);
         kafka = new KafkaCluster().withPorts(2182, 9092).addBrokers(1)
                 .usingDirectory(directory)
-                .deleteDataUponShutdown(true)
+                .deleteDataUponShutdown(false)
                 .withKafkaConfiguration(props)
                 .deleteDataPriorToStartup(true)
                 .startup();
@@ -47,12 +47,14 @@ public class KafkaTestBase {
 
     @AfterClass
     public static void stopKafkaBroker() {
-        try {
-            kafka.shutdown();
-        } catch (Exception e) {
-            // Ignore it.
+        if (kafka != null) {
+            try {
+                kafka.shutdown();
+            } catch (Exception e) {
+                // Ignore it.
+            }
+            await().until(() -> !kafka.isRunning());
         }
-        await().until(() -> !kafka.isRunning());
     }
 
     @Before

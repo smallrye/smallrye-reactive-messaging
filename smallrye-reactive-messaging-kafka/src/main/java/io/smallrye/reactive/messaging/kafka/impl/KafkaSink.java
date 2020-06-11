@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.impl;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -35,13 +36,15 @@ public class KafkaSink {
     private final int partition;
     private final String key;
     private final String topic;
+    private final KafkaConnectorOutgoingConfiguration config;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
+        this.config = config;
 
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
-        stream.exceptionHandler(t -> log.unableToWrite(t));
+        stream.exceptionHandler(log::unableToWrite);
 
         partition = config.getPartition();
         key = config.getKey().orElse(null);
@@ -55,7 +58,7 @@ public class KafkaSink {
         int inflight = maxInflight;
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .via(new KafkaSenderProcessor(inflight, waitForWriteCompletion, writeMessageToKafka()))
-                .onError(t -> log.unableToDispatch(t))
+                .onError(log::unableToDispatch)
                 .ignore();
     }
 
@@ -75,7 +78,15 @@ public class KafkaSink {
 
                 //noinspection unchecked,rawtypes
                 return Uni.createFrom()
-                        .emitter(e -> stream.write((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
+                        .<Void> emitter(
+                                e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)))
+                        .onFailure().retry()
+                        .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(config.getRetries())
+                        .onFailure().recoverWithUni(t -> {
+                            // Even with the retry we still fail, nack the message.
+                            log.nackingMessage(message, actualTopic, t);
+                            return Uni.createFrom().completionStage(message.nack(t));
+                        });
             } catch (RuntimeException e) {
                 log.unableToSendRecord(e);
                 return Uni.createFrom().failure(e);
@@ -83,7 +94,7 @@ public class KafkaSink {
         };
     }
 
-    private void handleWriteResult(AsyncResult<Void> ar, Message<?> message, ProducerRecord<?, ?> record,
+    private void handleWriteResult(AsyncResult<?> ar, Message<?> message, ProducerRecord<?, ?> record,
             UniEmitter<? super Void> emitter) {
         String actualTopic = record.topic();
         if (ar.succeeded()) {
@@ -96,14 +107,8 @@ public class KafkaSink {
                 }
             });
         } else {
-            log.nackingMessage(message, actualTopic, ar.cause());
-            message.nack(ar.cause()).whenComplete((x, f) -> {
-                if (f != null) {
-                    emitter.fail(f);
-                } else {
-                    emitter.complete(null);
-                }
-            });
+            // Fail, there will be retry.
+            emitter.fail(ar.cause());
         }
     }
 

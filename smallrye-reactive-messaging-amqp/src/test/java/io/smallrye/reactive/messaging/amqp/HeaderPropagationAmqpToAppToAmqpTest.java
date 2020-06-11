@@ -39,6 +39,7 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpTestBase {
 
     @Test
     public void testFromAmqpToAppToAmqp() {
+
         String address = UUID.randomUUID().toString();
         String source = UUID.randomUUID().toString();
         List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
