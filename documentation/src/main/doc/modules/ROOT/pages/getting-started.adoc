@@ -85,21 +85,22 @@ For testing purpose, you can simply add a `logging.properties` file in `${basedi
 
 Then run the application using:
 
+====
+
 [source,bash]
 ----
 mvn package exec:java -Dexec.mainClass=quickstart.Main -Djava.util.logging.config.file=${basedir}/src/main/resources/logging.properties
 ----
 
+
 Example logging.properties:
 
-```
-handlers= java.util.logging.ConsoleHandler
-
-java.util.logging.ConsoleHandler.level = FINEST
-java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter
+[source,bash]
+----
+handlers=java.util.logging.ConsoleHandler
+java.util.logging.ConsoleHandler.level=FINEST
+java.util.logging.ConsoleHandler.formatter=java.util.logging.SimpleFormatter
 java.util.logging.SimpleFormatter.format=[%1$tF %1$tT] [%4$-7s] %5$s %n
-
 .level=OFF
 acme.level=FINEST
-```
-====
+----
