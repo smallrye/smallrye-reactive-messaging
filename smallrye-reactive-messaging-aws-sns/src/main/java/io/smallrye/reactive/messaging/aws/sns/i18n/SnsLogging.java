@@ -14,7 +14,7 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface SnsLogging extends BasicLogger {
 
-    SnsLogging log = Logger.getMessageLogger(SnsLogging.class, "io.smallrye.reactive.messaging.aws.sns");
+    SnsLogging log = Logger.getMessageLogger(SnsLogging.class, "io.smallrye.reactive.messaging.aws-sns");
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 15200, value = "Initializing Connector")

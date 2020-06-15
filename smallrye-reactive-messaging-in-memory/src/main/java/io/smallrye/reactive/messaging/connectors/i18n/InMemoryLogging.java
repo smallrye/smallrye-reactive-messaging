@@ -11,5 +11,5 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface InMemoryLogging extends BasicLogger {
 
-    InMemoryLogging log = Logger.getMessageLogger(InMemoryLogging.class, "io.smallrye.reactive.messaging");
+    InMemoryLogging log = Logger.getMessageLogger(InMemoryLogging.class, "io.smallrye.reactive.messaging.in-memory");
 }
