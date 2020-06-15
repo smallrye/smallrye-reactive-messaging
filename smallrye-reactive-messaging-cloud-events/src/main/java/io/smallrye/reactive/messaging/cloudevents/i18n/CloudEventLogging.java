@@ -11,5 +11,5 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface CloudEventLogging extends BasicLogger {
 
-    CloudEventLogging log = Logger.getMessageLogger(CloudEventLogging.class, "io.smallrye.reactive.messaging.cloudevents");
+    CloudEventLogging log = Logger.getMessageLogger(CloudEventLogging.class, "io.smallrye.reactive.messaging.cloud-events");
 }

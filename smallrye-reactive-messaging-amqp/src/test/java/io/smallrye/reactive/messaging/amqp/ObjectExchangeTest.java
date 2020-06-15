@@ -1,7 +1,14 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.vertx.core.json.JsonObject;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -12,13 +19,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.vertx.core.json.JsonObject;
 
 public class ObjectExchangeTest extends AmqpTestBase {
 
@@ -40,26 +42,26 @@ public class ObjectExchangeTest extends AmqpTestBase {
         weld.addBeanClass(Generator.class);
 
         new MapBasedConfig()
-            .put("mp.messaging.outgoing.to-amqp.connector", AmqpConnector.CONNECTOR_NAME)
-            .put("mp.messaging.outgoing.to-amqp.address", "prices")
-            .put("mp.messaging.outgoing.to-amqp.durable", true)
-            .put("mp.messaging.outgoing.to-amqp.host", host)
-            .put("mp.messaging.outgoing.to-amqp.port", port)
+                .put("mp.messaging.outgoing.to-amqp.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.to-amqp.address", "prices")
+                .put("mp.messaging.outgoing.to-amqp.durable", true)
+                .put("mp.messaging.outgoing.to-amqp.host", host)
+                .put("mp.messaging.outgoing.to-amqp.port", port)
 
-            .put("mp.messaging.incoming.from-amqp.connector", AmqpConnector.CONNECTOR_NAME)
-            .put("mp.messaging.incoming.from-amqp.address", "prices")
-            .put("mp.messaging.incoming.from-amqp.durable", true)
-            .put("mp.messaging.incoming.from-amqp.host", host)
-            .put("mp.messaging.incoming.from-amqp.port", port)
+                .put("mp.messaging.incoming.from-amqp.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.from-amqp.address", "prices")
+                .put("mp.messaging.incoming.from-amqp.durable", true)
+                .put("mp.messaging.incoming.from-amqp.host", host)
+                .put("mp.messaging.incoming.from-amqp.port", port)
 
-            .put("amqp-username", username)
-            .put("amqp-password", password)
-            .write();
+                .put("amqp-username", username)
+                .put("amqp-password", password)
+                .write();
 
         container = weld.initialize();
 
         AmqpConnector connector = container.getBeanManager().createInstance()
-            .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
+                .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
 
         await().until(() -> connector.isReady("from-amqp") && connector.isReady("to-amqp"));
 
@@ -91,7 +93,9 @@ public class ObjectExchangeTest extends AmqpTestBase {
     @ApplicationScoped
     public static class Generator {
 
-        @Inject @Channel("to-amqp") Emitter<Price> emitter;
+        @Inject
+        @Channel("to-amqp")
+        Emitter<Price> emitter;
 
         public void send() {
             emitter.send(new Price().setPrice(1));

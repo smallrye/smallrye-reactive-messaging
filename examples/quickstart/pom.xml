@@ -11,8 +11,8 @@
   </parent>
 
   <artifactId>reactive-messaging-quickstart</artifactId>
-  
-  <name>SmallRye Reactive Messaging : Quickstart :: General</name>    
+
+  <name>SmallRye Reactive Messaging : Quickstart :: General</name>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -25,7 +25,7 @@
 
 
   <dependencies>
-    
+
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
@@ -49,8 +49,6 @@
       <artifactId>weld-se-core</artifactId>
       <version>${weld-core.version}</version>
     </dependency>
-
-
   </dependencies>
 
   <build>
