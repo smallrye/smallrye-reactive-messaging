@@ -43,6 +43,7 @@ public class AmqpTestBase {
         System.setProperty("amqp-pwd", password);
         usage = new AmqpUsage(executionHolder.vertx(), host, port);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        MapBasedConfig.clear();
     }
 
     @After
@@ -52,6 +53,8 @@ public class AmqpTestBase {
 
         usage.close();
         executionHolder.terminate(null);
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        MapBasedConfig.clear();
     }
 
 }

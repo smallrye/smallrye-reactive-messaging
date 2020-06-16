@@ -65,4 +65,12 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
+| *partitions* | The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targetted topic
+
+Type: _int_ | false | `1`
+
+| *consumer-rebalance-listener.name* | The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.
+
+Type: _string_ | false | 
+
 |===

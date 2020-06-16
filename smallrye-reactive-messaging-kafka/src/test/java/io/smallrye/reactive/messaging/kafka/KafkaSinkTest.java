@@ -146,11 +146,14 @@ public class KafkaSinkTest extends KafkaTestBase {
         return new MapBasedConfig(config);
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMessageProducingBean() {
+    private MapBasedConfig getKafkaSinkConfigForMessageProducingBean(String t) {
         String prefix = "mp.messaging.outgoing.output-2.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
+        if (t != null) {
+            config.put(prefix + "topic", t);
+        }
 
         return new MapBasedConfig(config);
     }
@@ -189,7 +192,8 @@ public class KafkaSinkTest extends KafkaTestBase {
         AtomicInteger expected = new AtomicInteger(0);
         List<String> keys = new ArrayList<>();
         List<String> headers = new ArrayList<>();
-        usage.consumeIntegers("output-2", 10, 10, TimeUnit.SECONDS,
+        String topic = UUID.randomUUID().toString();
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 record -> {
                     keys.add(record.key());
@@ -198,7 +202,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForMessageProducingBean(), ProducingKafkaMessageBean.class);
+        deploy(getKafkaSinkConfigForMessageProducingBean(topic), ProducingKafkaMessageBean.class);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -224,6 +228,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("partition", 0);
         config.put("max-inflight-messages", 1);
         config.put("bootstrap.servers", SERVERS);
+        config.put("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
         KafkaSink sink = new KafkaSink(vertx, oc);
 
@@ -287,7 +292,8 @@ public class KafkaSinkTest extends KafkaTestBase {
         AtomicInteger expected = new AtomicInteger(0);
         List<String> keys = new ArrayList<>();
         List<String> headers = new ArrayList<>();
-        usage.consumeIntegers("output-2", 10, 10, TimeUnit.SECONDS,
+        String topic = UUID.randomUUID().toString();
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 record -> {
                     keys.add(record.key());
@@ -296,7 +302,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForMessageProducingBean(), ProducingMessageWithHeaderBean.class);
+        deploy(getKafkaSinkConfigForMessageProducingBean(topic), ProducingMessageWithHeaderBean.class);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);

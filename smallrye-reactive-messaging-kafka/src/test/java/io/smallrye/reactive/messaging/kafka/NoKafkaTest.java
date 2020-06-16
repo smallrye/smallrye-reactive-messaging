@@ -37,7 +37,9 @@ public class NoKafkaTest {
 
     @After
     public void tearDown() {
-        container.shutdown();
+        if (container != null) {
+            container.shutdown();
+        }
         KafkaTestBase.stopKafkaBroker();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
@@ -103,12 +105,15 @@ public class NoKafkaTest {
 
         nap();
 
-        Throwable throwable = weld.select(MyOutgoingBeanWithoutBackPressure.class).get().error();
-        assertThat(throwable).isNotNull().isInstanceOf(MissingBackpressureException.class);
+        MyOutgoingBeanWithoutBackPressure bean = weld
+                .select(MyOutgoingBeanWithoutBackPressure.class).get();
+        Throwable throwable = bean.error();
+        assertThat(throwable).isNotNull();
+        assertThat(throwable).isInstanceOf(MissingBackpressureException.class);
     }
 
     private void nap() throws InterruptedException {
-        Thread.sleep(1000);
+        Thread.sleep(1000); // NOSONAR
     }
 
     @ApplicationScoped
@@ -156,6 +161,7 @@ public class NoKafkaTest {
         @Outgoing("temperature-values")
         public Flowable<String> generate() {
             return Flowable.interval(200, TimeUnit.MILLISECONDS)
+                    // No overflow management - we want it to fail.
                     .map(l -> Long.toString(l))
                     .doOnError(error::set);
         }

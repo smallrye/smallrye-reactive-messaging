@@ -4,12 +4,21 @@ import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 
+/**
+ * Emitter configuration.
+ *
+ * Using public fields for proxies.
+ */
 public class EmitterConfiguration {
-    public final String name;
-    public final OnOverflow.Strategy overflowBufferStrategy;
-    public final long overflowBufferSize;
-    public final Boolean broadcast;
-    public final int numberOfSubscriberBeforeConnecting;
+    public String name;
+    public OnOverflow.Strategy overflowBufferStrategy;
+    public long overflowBufferSize;
+    public boolean broadcast;
+    public int numberOfSubscriberBeforeConnecting;
+
+    public EmitterConfiguration() {
+        // Used for proxies.
+    }
 
     public EmitterConfiguration(String name, OnOverflow onOverflow, Broadcast broadcast) {
         this.name = name;

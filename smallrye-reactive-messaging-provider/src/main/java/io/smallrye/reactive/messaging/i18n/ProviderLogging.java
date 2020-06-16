@@ -18,7 +18,7 @@ public interface ProviderLogging extends BasicLogger {
 
     // 00200-00299 (logging)
 
-    ProviderLogging log = Logger.getMessageLogger(ProviderLogging.class, "io.smallrye.reactive.messaging");
+    ProviderLogging log = Logger.getMessageLogger(ProviderLogging.class, "io.smallrye.reactive.messaging.provider");
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 200, value = "The method %s has thrown an exception")
@@ -129,7 +129,7 @@ public interface ProviderLogging extends BasicLogger {
     void foundIncomingConnectors(List<String> connectors);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 227, value = "Found incoming connectors: %s")
+    @Message(id = 227, value = "Found outgoing connectors: %s")
     void foundOutgoingConnectors(List<String> connectors);
 
     @LogMessage(level = Logger.Level.INFO)

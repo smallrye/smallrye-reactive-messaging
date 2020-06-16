@@ -19,7 +19,7 @@ import io.vertx.mutiny.mqtt.messages.MqttSubscribeMessage;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface MqttServerLogging extends BasicLogger {
 
-    MqttServerLogging log = Logger.getMessageLogger(MqttServerLogging.class, "io.smallrye.reactive.messaging.mqtt.server");
+    MqttServerLogging log = Logger.getMessageLogger(MqttServerLogging.class, "io.smallrye.reactive.messaging.mqtt-server");
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 17500, value = "Exception thrown")

@@ -11,7 +11,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
-  <version>2.1.0-SNAPSHOT</version>
+  <version>2.2.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>SmallRye Reactive Messaging</name>
@@ -68,7 +68,7 @@
     <microprofile-config.version>1.4</microprofile-config.version>
     <microprofile-metrics-api.version>2.3.2</microprofile-metrics-api.version>
 
-    <smallrye-config.version>1.8.0</smallrye-config.version>
+    <smallrye-config.version>1.8.1</smallrye-config.version>
     <smallrye-metrics.version>2.4.2</smallrye-metrics.version>
     <smallrye-common.version>1.0.2</smallrye-common.version>
 

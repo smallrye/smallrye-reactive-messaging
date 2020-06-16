@@ -17,6 +17,17 @@ mvn package exec:java
 
 Then, looking at the output you can see successful incoming en outgoing messages.
 
+## Logging
+
+SmallRye Reactive Messaging uses JBoss Logging.
+You can configure the output by configuring the `src/main/resources/logging.properties` and run the example with:
+
+```bash
+ mvn package exec:java -Dexec.mainClass=quickstart.Main -Djava.util.logging.config.file=./src/main/resources/logging.properties
+```
+
+In this case, JBoss Logging use the JDK Logger as backend.
+
 ## Anatomy
 
 In addition to the commandline output, the application is composed of a single component:
