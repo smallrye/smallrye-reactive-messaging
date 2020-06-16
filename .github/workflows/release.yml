@@ -20,7 +20,7 @@ jobs:
             - uses: actions/checkout@v2
             - uses: AdoptOpenJDK/install-jdk@v1
               with:
-                  version: 11
+                  version: 8
             - name: 'Run deployment for ${{ github.event.deployment.environment }}'
               env:
                   GITHUB_TOKEN: ${{ secrets.GH_API_SECRET }}
