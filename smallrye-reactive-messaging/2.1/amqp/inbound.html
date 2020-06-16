@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2.1">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt-server/mqtt-server.html">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../http/http.html">HTTP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-outbound">Sending HTTP request</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html">Vert.x Event Bus</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-inbound">Event Bus Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-outbound">Sending Event Bus Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2.1</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2.1</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+</nav>
+  <div class="edit-this-page"><a href="">Edit this Page</a></div>
+</div>
+<article class="doc">
+<div class="sect1">
+<h2 id="amqp-inbound"><a class="anchor" href="#amqp-inbound"></a>Receiving messages from AMQP</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The AMQP connector lets you retrieve messages from an <a href="https://www.amqp.org/product/architecture">AMQP broker or router</a>.
+The AMQP connector retrieves <em>AMQP Messages</em> and maps each of them into Reactive Messaging <code>Messages</code>.</p>
+</div>
+<div class="sect2">
+<h3 id="_example"><a class="anchor" href="#_example"></a>Example</h3>
+<div class="paragraph">
+<p>Let&#8217;s imagine you have an AMQP broker (such as <a href="https://activemq.apache.org/components/artemis/">Apache ActiveMQ Artemis</a>) running, and accessible using the <code>amqp:5672</code> address (by default it would use <code>localhost:5672</code>).
+Configure your application to receive AMQP Messages on the <code>prices</code> channel as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>amqp-host=amqp               <i class="conum" data-value="1"></i><b>(1)</b>
+amqp-port=5672               <i class="conum" data-value="2"></i><b>(2)</b>
+amqp-username=my-username    <i class="conum" data-value="3"></i><b>(3)</b>
+amqp-password=my-password    <i class="conum" data-value="4"></i><b>(4)</b>
+
+mp.messaging.incoming.prices.connector=smallrye-amqp  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Configures the broker/router host name. You can do it per channel (using the <code>host</code> attribute) or globally using <code>amqp-host</code></p>
+</li>
+<li>
+<p>Configures the broker/router port. You can do it per channel (using the <code>port</code> attribute) or globally using <code>amqp-port</code>. The default is <code>5672</code>.</p>
+</li>
+<li>
+<p>Configures the broker/router username if required. You can do it per channel (using the <code>username</code> attribute) or globally using <code>amqp-username</code>.</p>
+</li>
+<li>
+<p>Configures the broker/router password if required. You can do it per channel (using the <code>password</code> attribute) or globally using <code>amqp-password</code>.</p>
+</li>
+<li>
+<p>Instructs the <code>prices</code> channel to be managed by the AMQP connector</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You don&#8217;t need to set the AMQP <em>address</em>. By default, it uses the channel name (<code>prices</code>). You can configure the <code>address</code> attribute to override it.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Then, your application receives <code>Message&lt;Double&gt;</code>.
+You can consumes the payload directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class AmqpPriceConsumer {
+
+    @Incoming("prices")
+    public void consume(double price) {
+        // process your price.
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or, you can retrieve the <code>Message&lt;Double&gt;</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class AmqpPriceMessageConsumer {
+
+    @Incoming("prices")
+    public CompletionStage&lt;Void&gt; consume(Message&lt;Double&gt; price) {
+        // process your price.
+
+        // Acknowledge the incoming message, marking the AMQP message as `accepted`.
+        return price.ack();
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deserialization"><a class="anchor" href="#_deserialization"></a>Deserialization</h3>
+<div class="paragraph">
+<p>The connector converts incoming AMQP Messages into Reactive Messaging <code>Message&lt;T&gt;</code> instances.
+<code>T</code> depends on the <em>body</em> of the received AMQP Message.</p>
+</div>
+<div class="paragraph">
+<p>The <a href="http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html">AMQP Type System</a> defines the supported types.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">AMQP Body Type</th>
+<th class="tableblock halign-left valign-top"><code>&lt;T&gt;</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">AMQP Value containing a <a href="http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html#section-primitive-type-definitions">AMQP Primitive Type</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">the corresponding Java type</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">AMQP Value using the <code>Binary</code> type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>byte[]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">AMQP Sequence</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>List</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">AMQP Data (with binary content) and the <code>content-type</code> is set to <code>application/json</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html"><code>JsonObject</code></a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">AMQP Data with a different <code>content-type</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>byte[]</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>If you send objects with this AMQP connector (outbound connector), it gets encoded as JSON and sent as binary.
+The <code>content-type</code> is set to <code>application/json</code>.
+You can receive this payload using (Vert.x) JSON Objects, and then map it to the object class you want:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ApplicationScoped
+public static class Generator {
+
+    @Outgoing("to-amqp")
+    public Multi&lt;Price&gt; prices() { <i class="conum" data-value="1"></i><b>(1)</b>
+        AtomicInteger count = new AtomicInteger();
+        return Multi.createFrom().ticks().every(Duration.ofMillis(1000))
+                .map(l -&gt; new Price().setPrice(count.incrementAndGet()))
+                .on().overflow().drop();
+    }
+
+}
+
+@ApplicationScoped
+public static class Consumer {
+
+    List&lt;Price&gt; prices = new CopyOnWriteArrayList&lt;&gt;();
+
+    @Incoming("from-amqp")
+    public void consume(JsonObject p) {   <i class="conum" data-value="2"></i><b>(2)</b>
+        Price price = p.mapTo(Price.class);  <i class="conum" data-value="3"></i><b>(3)</b>
+        prices.add(price);
+    }
+
+    public List&lt;Price&gt; list() {
+        return prices;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The <code>Price</code> instances are automatically encoded to JSON by the connector</p>
+</li>
+<li>
+<p>You can receive it using a <code>JsonObject</code></p>
+</li>
+<li>
+<p>Then, you can reconstruct the instance using the <code>mapTo</code> method</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
+<div class="paragraph">
+<p>Messages coming from AMQP contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.1.0/apidocs/io/smallrye/reactive/messaging/amqp/IncomingAmqpMetadata.html"><code>IncomingAmqpMetadata</code></a> in the metadata.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata;
+import io.vertx.core.json.JsonObject;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import java.util.Optional;
+
+public class AmqpMetadataExample {
+
+    public void metadata() {
+        Message&lt;Double&gt; incoming = Message.of(12.0);
+        // tag::code[]
+        Optional&lt;IncomingAmqpMetadata&gt; metadata = incoming.getMetadata(IncomingAmqpMetadata.class);
+        metadata.ifPresent(meta -&gt; {
+            String address = meta.getAddress();
+            String subject = meta.getSubject();
+            boolean durable = meta.isDurable();
+            // Use io.vertx.core.json.JsonObject
+            JsonObject properties = meta.getProperties();
+            // ...
+        });
+        // end::code[]
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_acknowledgement"><a class="anchor" href="#_acknowledgement"></a>Acknowledgement</h3>
+<div class="paragraph">
+<p>When a Reactive Messaging <code>Message</code> associated with an AMQP Message is acknowledged, it informs the broker that the message has been <em>accepted</em>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_failure_management"><a class="anchor" href="#_failure_management"></a>Failure Management</h3>
+<div class="paragraph">
+<p>If a message produced from an AMQP message  is <em>nacked</em>, a failure strategy is applied.
+The AMQP connector supports 4 strategies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>fail</code> - fail the application, no more AMQP messages will be processed (default).
+The AMQP message is mark as rejected.</p>
+</li>
+<li>
+<p><code>accept</code> - the failure is logged, but the processing continue.
+The AMQP message is mark as accepted.
+This strategy ignores the failure.</p>
+</li>
+<li>
+<p><code>release</code> - the failure is logged, but the processing continue.
+The AMQP message is mark as released.</p>
+</li>
+<li>
+<p><code>reject</code> - the failure is logged, but the processing continue.
+The AMQP message is mark as rejected.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuration_reference"><a class="anchor" href="#_configuration_reference"></a>Configuration Reference</h3>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Incoming Attributes of the 'smallrye-amqp' connector</caption>
+<colgroup>
+<col style="width: 27.7777%;">
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 22.2224%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Attribute (<em>alias</em>)</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Mandatory</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>username</strong></p>
+<p class="tableblock"><em>(amqp-username)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The username used to authenticate to the broker</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>password</strong></p>
+<p class="tableblock"><em>(amqp-password)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The password used to authenticate to the broker</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>host</strong></p>
+<p class="tableblock"><em>(amqp-host)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The broker hostname</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>localhost</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>port</strong></p>
+<p class="tableblock"><em>(amqp-port)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The broker port</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5672</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>use-ssl</strong></p>
+<p class="tableblock"><em>(amqp-use-ssl)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the AMQP connection uses SSL/TLS</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>reconnect-attempts</strong></p>
+<p class="tableblock"><em>(amqp-reconnect-attempts)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The number of reconnection attempts</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>100</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>reconnect-interval</strong></p>
+<p class="tableblock"><em>(amqp-reconnect-interval)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The interval in second between two reconnection attempts</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>connect-timeout</strong></p>
+<p class="tableblock"><em>(amqp-connect-timeout)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The connection timeout in milliseconds</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1000</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>container-id</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The AMQP container id</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>address</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The AMQP address. If not set, the channel name is used</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>link-name</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The name of the link. If not set, the channel name is used.</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>client-options-name</strong></p>
+<p class="tableblock"><em>(amqp-client-options-name)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The name of the AMQP Client Option bean used to customize the AMQP client configuration</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>broadcast</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the received AMQP messages must be dispatched to multiple <em>subscribers</em></p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>durable</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether AMQP subscription is durable</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>auto-acknowledgement</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the received AMQP messages must be acknowledged when received</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>failure-strategy</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Values can be <code>fail</code> (default), <code>accept</code>, <code>release</code>, <code>reject</code></p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fail</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>You can also pass any property supported by the <a href="https://vertx.io/docs/vertx-amqp-client/java/">Vert.x AMQP client</a> as attribute.</p>
+</div>
+<div class="paragraph">
+<p>To use an existing <em>address</em> or <em>queue</em>, you need to configure the <code>address</code>, <code>container-id</code> and, optionally, the <code>link-name</code> attributes.
+For example, if you have an Apache Artemis broker configured with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;queues&gt;
+    &lt;queue name="people"&gt;
+        &lt;address&gt;people&lt;/address&gt;
+        &lt;durable&gt;true&lt;/durable&gt;
+        &lt;user&gt;artemis&lt;/user&gt;
+    &lt;/queue&gt;
+&lt;/queues&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You need the following configuration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">mp.messaging.incoming.people.connector=smallrye-amqp
+mp.messaging.incoming.people.durable=true
+mp.messaging.incoming.people.address=people
+mp.messaging.incoming.people.container-id=people</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You may need to configure the <code>link-name</code> attribute, if the queue name is not the channel name:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">mp.messaging.incoming.people-in.connector=smallrye-amqp
+mp.messaging.incoming.people-in.durable=true
+mp.messaging.incoming.people-in.address=people
+mp.messaging.incoming.people-in.container-id=people
+mp.messaging.incoming.people-in.link-name=people</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
