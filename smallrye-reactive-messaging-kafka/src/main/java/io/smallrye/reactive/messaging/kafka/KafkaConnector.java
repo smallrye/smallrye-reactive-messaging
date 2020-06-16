@@ -66,12 +66,16 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "partition", type = "int", direction = Direction.OUTGOING, description = "The target partition id. -1 to let the client determine the partition", defaultValue = "-1")
 @ConnectorAttribute(name = "waitForWriteCompletion", type = "boolean", direction = Direction.OUTGOING, description = "Whether the client waits for Kafka to acknowledge the written record before acknowledging the message", defaultValue = "true")
 @ConnectorAttribute(name = "max-inflight-messages", type = "int", direction = Direction.OUTGOING, description = "The maximum number of messages to be written to Kafka concurrently - The default value is the value from the `max.in.flight.requests.per.connection` Kafka property. It configures the maximum number of unacknowledged requests the client before blocking. Note that if this setting is set to be greater than 1 and there are failed sends, there is a risk of message re-ordering due to retries.", defaultValue = "5")
+@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.")
 public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
     @Inject
     ExecutionHolder executionHolder;
+
+    @Inject
+    Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
 
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
@@ -106,7 +110,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         }
 
         if (partitions == 1) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic, consumerRebalanceListeners);
             sources.add(source);
 
             boolean broadcast = ic.getBroadcast();
@@ -120,7 +124,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         // create an instance of source per partitions.
         List<Publisher<IncomingKafkaRecord<Object, Object>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic, consumerRebalanceListeners);
             sources.add(source);
             streams.add(source.getStream());
         }

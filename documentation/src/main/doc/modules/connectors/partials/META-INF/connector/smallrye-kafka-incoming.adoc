@@ -69,4 +69,8 @@ Type: _string_ | false |
 
 Type: _int_ | false | `1`
 
+| *consumer-rebalance-listener.name* | The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.
+
+Type: _string_ | false | 
+
 |===

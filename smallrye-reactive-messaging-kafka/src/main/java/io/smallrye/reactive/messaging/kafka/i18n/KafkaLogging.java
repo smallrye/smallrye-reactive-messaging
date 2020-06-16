@@ -93,4 +93,41 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18218, value = "An exception has been caught while closing the Kafka consumer")
     void exceptionOnClose(@Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18219, value = "Loading KafkaConsumerRebalanceListener from configured name '%s'")
+    void loadingConsumerRebalanceListenerFromConfiguredName(String configuredName);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18220, value = "Loading KafkaConsumerRebalanceListener from group id '%s'")
+    void loadingConsumerRebalanceListenerFromGroupId(String consumerGroup);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18221, value = "Unable to execute consumer assigned re-balance listener for group '%s'. The consumer has been paused. Will retry until the consumer session times out in which case will resume to force a new re-balance attempt.")
+    void unableToExecuteConsumerAssignedRebalanceListener(String consumerGroup, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18222, value = "Unable to execute consumer revoked re-balance listener for group '%s'")
+    void unableToExecuteConsumerRevokedRebalanceListener(String consumerGroup, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18223, value = "Executing consumer assigned re-balance listener for group '%s'")
+    void executingConsumerAssignedRebalanceListener(String consumerGroup);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18224, value = "Executing consumer revoked re-balance listener for group '%s'")
+    void executingConsumerRevokedRebalanceListener(String consumerGroup);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18225, value = "Executed consumer assigned re-balance listener for group '%s'")
+    void executedConsumerAssignedRebalanceListener(String consumerGroup);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18226, value = "Executed consumer revoked re-balance listener for group '%s'")
+    void executedConsumerRevokedRebalanceListener(String consumerGroup);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18227, value = "Re-enabling consumer for group '%s'. This consumer was paused because of a re-balance failure.")
+    void reEnablingConsumerforGroup(String consumerGroup);
+
 }
