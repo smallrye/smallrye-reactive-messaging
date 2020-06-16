@@ -7,7 +7,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
@@ -32,16 +31,11 @@ public class KafkaSource<K, V> {
     private final KafkaFailureHandler failureHandler;
 
     public KafkaSource(Vertx vertx,
+            String group,
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners) {
 
         Map<String, String> kafkaConfiguration = new HashMap<>();
-
-        String group = config.getGroupId().orElseGet(() -> {
-            String s = UUID.randomUUID().toString();
-            log.noGroupId(s);
-            return s;
-        });
 
         JsonHelper.asJsonObject(config.config())
                 .forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
