@@ -63,7 +63,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic, getConsumerRebalanceListeners());
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -91,7 +92,8 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         kafka.createTopic(topic, 3, 1);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic, getConsumerRebalanceListeners());
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -118,7 +120,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("bootstrap.servers", SERVERS);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic, getConsumerRebalanceListeners());
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                getConsumerRebalanceListeners());
 
         List<KafkaRecord> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -223,7 +226,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic, getConsumerRebalanceListeners());
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                getConsumerRebalanceListeners());
         List<KafkaRecord> messages1 = new ArrayList<>();
         source.getStream().subscribe().with(m -> messages1.add(m));
 
@@ -253,11 +257,13 @@ public class KafkaSourceTest extends KafkaTestBase {
         return config;
     }
 
-    private MapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener) {
+    private MapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
         String prefix = "mp.messaging.incoming.data.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "group.id", "my-group");
+        if (group != null) {
+            config.put(prefix + "group.id", group);
+        }
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
         config.put(prefix + "enable.auto.commit", "false");
         config.put(prefix + "auto.offset.reset", "earliest");
@@ -291,7 +297,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessages() {
-        ConsumptionBean bean = deploy(myKafkaSourceConfig(0, null));
+        ConsumptionBean bean = deploy(myKafkaSourceConfig(0, null, "my-group"));
         KafkaUsage usage = new KafkaUsage();
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -313,7 +319,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
         kafka.createTopic("data-2", 2, 1);
-        ConsumptionBean bean = deploy(myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName()));
+        ConsumptionBean bean = deploy(myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         KafkaUsage usage = new KafkaUsage();
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -343,7 +349,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @Test(expected = UnsatisfiedResolutionException.class)
     public void testABeanConsumingWithMissingRebalanceListenerConfiguredByName() throws Throwable {
         try {
-            deploy(myKafkaSourceConfig(0, "not exists"));
+            deploy(myKafkaSourceConfig(0, "not exists", "my-group"));
         } catch (DeploymentException ex) {
             throw ex.getCause();
         }
@@ -444,7 +450,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic, getConsumerRebalanceListeners());
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -470,7 +477,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testABeanConsumingTheKafkaMessagesWithRawMessage() {
-        ConsumptionBeanUsingRawMessage bean = deployRaw(myKafkaSourceConfig(0, null));
+        ConsumptionBeanUsingRawMessage bean = deployRaw(myKafkaSourceConfig(0, null, "my-group"));
         KafkaUsage usage = new KafkaUsage();
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -505,7 +512,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("sasl.mechanism", ""); //optional configuration
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, ic, getConsumerRebalanceListeners());
+        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);

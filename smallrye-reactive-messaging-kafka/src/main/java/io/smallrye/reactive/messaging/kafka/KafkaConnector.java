@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
@@ -109,8 +110,14 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             throw new IllegalArgumentException("`partitions` must be greater than 0");
         }
 
+        String group = ic.getGroupId().orElseGet(() -> {
+            String s = UUID.randomUUID().toString();
+            log.noGroupId(s);
+            return s;
+        });
+
         if (partitions == 1) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic, consumerRebalanceListeners);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners);
             sources.add(source);
 
             boolean broadcast = ic.getBroadcast();
@@ -124,7 +131,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         // create an instance of source per partitions.
         List<Publisher<IncomingKafkaRecord<Object, Object>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic, consumerRebalanceListeners);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners);
             sources.add(source);
             streams.add(source.getStream());
         }
