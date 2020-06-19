@@ -20,11 +20,14 @@ public class CamelTestBase {
     @Before
     public void init() {
         weld = new Weld();
+        clear();
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @After
     public void cleanUp() {
         weld.shutdown();
+        clear();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
