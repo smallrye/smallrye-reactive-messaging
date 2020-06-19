@@ -72,7 +72,7 @@
     <smallrye-metrics.version>2.4.2</smallrye-metrics.version>
     <smallrye-common.version>1.0.2</smallrye-common.version>
 
-    <mutiny.version>0.5.2</mutiny.version>
+    <mutiny.version>0.5.3</mutiny.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
