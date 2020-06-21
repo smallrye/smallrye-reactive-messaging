@@ -19,7 +19,7 @@ mp.messaging.incoming.prices.broadcast=true     # <4>
 1. Configure the broker location. You can configure it globally or per channel
 2. Configure the connector to manage the `prices` channel
 3. Sets the (Kafka) deserializer to read the record's value
-4. Make sure that we can receive from more that one consumer (see `KafkaPriceConsumer` and `KafkaPriceMessageConsumer` below) 
+4. Make sure that we can receive from more that one consumer (see `KafkaPriceConsumer` and `KafkaPriceMessageConsumer` below)
 
 NOTE: You don't need to set the Kafka topic. By default, it uses the channel name (`prices`). You can configure the `topic` attribute to override it.
 
@@ -57,7 +57,7 @@ It provides the key, topic, partitions, headers and so on:
 
 [source, java]
 ----
-include::example$inbound/KafkaMetadataExample.java[]
+include::example$inbound/KafkaMetadataExample.java[tags=code]
 ----
 
 === Acknowledgement
