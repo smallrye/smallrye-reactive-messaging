@@ -1,6 +1,5 @@
 package acme;
 
-import java.time.LocalDate;
 import java.util.concurrent.*;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -18,8 +17,8 @@ public class Sender {
     public CompletionStage<MqttMessage> send() {
         CompletableFuture<MqttMessage> future = new CompletableFuture<>();
         delay(() -> {
-            System.out.println("Sending message on dynamic topic: hello");
-            future.complete(MqttMessage.of("mqtt-" + LocalDate.now().toString(), "hello from dynamic topic",
+            System.out.println("Sending message on topic: hello");
+            future.complete(MqttMessage.of("hello", "hello from dynamic topic",
                     null, true));
         });
         return future;

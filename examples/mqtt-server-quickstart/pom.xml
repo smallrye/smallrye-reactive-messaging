@@ -11,8 +11,8 @@
 
   <artifactId>mqtt-server-quickstart</artifactId>
 
-  <name>SmallRye Reactive Messaging : Quickstart :: MQTT Server</name>    
-  
+  <name>SmallRye Reactive Messaging : Quickstart :: MQTT Server</name>
+
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -22,6 +22,8 @@
     <weld-core.version>3.1.2.Final</weld-core.version>
     <slf4j.version>1.7.28</slf4j.version>
     <mutiny.version>0.5.3</mutiny.version>
+
+    <mainClass>acme.Main</mainClass>
   </properties>
 
   <dependencies>
@@ -87,6 +89,23 @@
         <artifactId>nexus-staging-maven-plugin</artifactId>
         <configuration>
           <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <id>start-example</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>${mainClass}</mainClass>
+          <classpathScope>compile</classpathScope>
         </configuration>
       </plugin>
     </plugins>

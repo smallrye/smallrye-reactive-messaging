@@ -10,7 +10,7 @@
   </parent>
 
   <artifactId>kafka-quickstart-kotlin</artifactId>
-  
+
   <name>SmallRye Reactive Messaging : Quickstart :: Kafka Kotlin</name>
 
   <properties>
@@ -136,6 +136,7 @@
         </executions>
         <configuration>
           <mainClass>${mainClass}</mainClass>
+          <classpathScope>compile</classpathScope>
         </configuration>
       </plugin>
 
