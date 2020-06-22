@@ -22,7 +22,6 @@ public class Clients {
 
     static Uni<MqttClient> getConnectedClient(Vertx vertx, String host, int port, String server,
             MqttClientOptions options) {
-
         String id = host + port + "<" + (server == null ? "" : server)
                 + ">-[" + (options.getClientId() != null ? options.getClientId() : "") + "]";
         ClientHolder holder = clients.computeIfAbsent(id, key -> {

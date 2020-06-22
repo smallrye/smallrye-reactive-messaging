@@ -4,17 +4,20 @@ import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class MqttSource {
 
     private final PublisherBuilder<MqttMessage<?>> source;
     private final AtomicBoolean subscribed = new AtomicBoolean();
+    private final Pattern pattern;
 
     public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config) {
         MqttClientOptions options = MqttHelpers.createMqttClientOptions(config);
@@ -29,16 +32,26 @@ public class MqttSource {
         MqttFailureHandler.Strategy strategy = MqttFailureHandler.Strategy.from(config.getFailureStrategy());
         MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
+        if (topic.contains("#") || topic.contains("+")) {
+            String replace = topic.replace("+", "[^/]+")
+                    .replace("#", ".+");
+            pattern = Pattern.compile(replace);
+        } else {
+            pattern = null;
+        }
+
         Clients.ClientHolder holder = Clients.getHolder(vertx, host, port, server, options);
         this.source = ReactiveStreams.fromPublisher(
                 holder.connect()
-                        .onItem().produceMulti(client -> client.subscribe(topic, qos)
-                                .onItem().produceMulti(x -> {
-                                    subscribed.set(true);
-                                    return holder.stream()
-                                            .transform().byFilteringItemsWith(m -> m.topicName().equals(topic))
-                                            .onItem().apply(m -> new ReceivingMqttMessage(m, onNack));
-                                }))
+                        .onItem().produceMulti(client -> {
+                            return client.subscribe(topic, qos)
+                                    .onItem().produceMulti(x -> {
+                                        subscribed.set(true);
+                                        return holder.stream()
+                                                .transform().byFilteringItemsWith(m -> matches(topic, m))
+                                                .onItem().apply(m -> new ReceivingMqttMessage(m, onNack));
+                                    });
+                        })
                         .then(multi -> {
                             if (broadcast) {
                                 return multi.broadcast().toAllSubscribers();
@@ -47,6 +60,13 @@ public class MqttSource {
                         })
                         .on().cancellation(() -> subscribed.set(false))
                         .onFailure().invoke(t -> log.unableToConnectToBroker(t)));
+    }
+
+    private boolean matches(String topic, MqttPublishMessage m) {
+        if (pattern != null) {
+            return pattern.matcher(m.topicName()).matches();
+        }
+        return m.topicName().equals(topic);
     }
 
     private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {
