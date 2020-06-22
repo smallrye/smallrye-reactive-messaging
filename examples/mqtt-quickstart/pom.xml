@@ -11,8 +11,8 @@
 
   <artifactId>mqtt-quickstart</artifactId>
 
-  <name>SmallRye Reactive Messaging : Quickstart :: MQTT</name>    
-  
+  <name>SmallRye Reactive Messaging : Quickstart :: MQTT</name>
+
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -101,6 +101,7 @@
         </executions>
         <configuration>
           <mainClass>${mainClass}</mainClass>
+          <classpathScope>compile</classpathScope>
         </configuration>
       </plugin>
 

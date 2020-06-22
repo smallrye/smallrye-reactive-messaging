@@ -17,7 +17,7 @@ public class MqttServerQuickstart {
 
     @Incoming("my-server")
     public CompletionStage<Void> source(MqttMessage message) {
-        LOGGER.info("MQTT Message received {}", message);
+        LOGGER.info("MQTT Message received {}", new String(message.getPayload()));
         return message.ack();
     }
 }
