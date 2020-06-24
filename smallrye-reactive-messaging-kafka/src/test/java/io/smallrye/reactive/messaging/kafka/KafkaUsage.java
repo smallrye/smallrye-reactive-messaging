@@ -226,7 +226,7 @@ public class KafkaUsage {
                 });
     }
 
-    void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+    public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, Integer> consumer) {
         AtomicLong readCounter = new AtomicLong();
         this.consumeIntegers(
