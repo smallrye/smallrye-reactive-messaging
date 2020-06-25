@@ -1,0 +1,77 @@
+[#kafka-avro-configuration]
+== Using Apache Avro serializer/deserializer
+
+If you are using https://avro.apache.org/[Apache Avro] serializer/deserializer, please note the following properties:
+
+=== For https://docs.confluent.io/current/schema-registry/serdes-develop/serdes-avro.html[Confluent] Schema Registry
+
+==== Consumer
+
+[options="header"]
+|===
+| "value.deserializer" | "io.confluent.kafka.serializers.KafkaAvroDeserializer"
+| "schema.registry.url" | "http://<your_host>:<your_port>/api/ccompat"
+| "specific.avro.reader" | true
+|===
+
+Example:
+[source, java]
+----
+props.put(org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, io.confluent.kafka.serializers.KafkaAvroDeserializer.class.getName()); 
+props.put(io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8080/api/ccompat"); // Or whatever your host and port is
+props.put(io.confluent.kafka.serializers.KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, true);
+----
+
+==== Producer
+
+[options="header"]
+|===
+| "value.serializer" | "io.confluent.kafka.serializers.KafkaAvroSerializer"
+| "schema.registry.url" | "http://<your_host>:<your_port>/api/ccompat"
+|===
+
+Example:
+[source, java]
+----
+props.put(org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, io.confluent.kafka.serializers.KafkaAvroSerializer.class.getName());
+props.put(io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8080/api/ccompat"); // Or whatever your host and port is
+----
+
+=== For https://github.com/Apicurio/apicurio-registry[Apicurio] Schema Registry
+
+==== Consumer
+
+[options="header"]
+|===
+| "value.deserializer" | "io.apicurio.registry.utils.serde.AvroKafkaDeserializer"
+| "apicurio.registry.url" | "http://<your_host>:<your_port>/api"
+| "apicurio.registry.avro-datum-provider" | "io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider"
+|===
+
+Example:
+[source, java]
+----
+props.put(org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, io.apicurio.registry.utils.serde.AvroKafkaDeserializer.class.getName());
+props.put(io.apicurio.registry.utils.serde.AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://localhost:8080/api"); // Or whatever your host and port is
+props.put(io.apicurio.registry.utils.serde.avro.AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider.class.getName());
+----
+
+==== Producer
+
+[options="header"]
+|===
+| "value.serializer" | "io.apicurio.registry.utils.serde.AvroKafkaSerializer"
+| "apicurio.registry.url" | "http://<your_host>:<your_port>/api"
+| "apicurio.registry.avro-datum-provider" | "io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider"
+| "apicurio.registry.global-id" | "io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy"
+| "apicurio.registry.artifact-id" | "io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy"
+|===
+
+Example:
+[source, java]
+----
+
+props.put(io.apicurio.registry.utils.serde.AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy.class.getName());
+props.put(io.apicurio.registry.utils.serde.AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy.class.getName());
+props.put(io.apicurio.registry.utils.serde.avro.AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider.class.getName());
+----
