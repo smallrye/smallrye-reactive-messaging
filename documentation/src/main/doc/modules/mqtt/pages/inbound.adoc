@@ -39,6 +39,8 @@ Or, you can retrieve the `Message<byte[]>`:
 include::example$inbound/MqttPriceMessageConsumer.java[]
 ----
 
+The inbound topic can use the https://mosquitto.org/man/mqtt-7.html[MQTT wildcards] (`+` and `#`).
+
 === Deserialization
 
 The MQTT Connector does not handle the deserialization and creates a `Message<byte[]>`.

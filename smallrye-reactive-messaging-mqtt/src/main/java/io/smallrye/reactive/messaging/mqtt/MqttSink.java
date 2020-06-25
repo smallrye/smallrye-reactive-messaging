@@ -45,9 +45,21 @@ public class MqttSink {
         sink = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
                     MqttClient client = reference.get();
-                    if (client != null && client.isConnected()) {
-                        connected.set(true);
-                        return CompletableFuture.completedFuture(msg);
+                    if (client != null) {
+                        if (client.isConnected()) {
+                            connected.set(true);
+                            return CompletableFuture.completedFuture(msg);
+                        } else {
+                            CompletableFuture<Message<?>> future = new CompletableFuture<>();
+                            vertx.setPeriodic(100, id -> {
+                                if (client.isConnected()) {
+                                    vertx.cancelTimer(id);
+                                    connected.set(true);
+                                    future.complete(msg);
+                                }
+                            });
+                            return future;
+                        }
                     } else {
                         return Clients.getConnectedClient(vertx, host, port, server, options)
                                 .map(c -> {
@@ -78,7 +90,6 @@ public class MqttSink {
 
         if (msg instanceof SendingMqttMessage) {
             MqttMessage<?> mm = ((SendingMqttMessage<?>) msg);
-
             actualTopicToBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
             actualQoS = mm.getQosLevel() == null ? actualQoS : mm.getQosLevel();
             isRetain = mm.isRetain();
