@@ -23,6 +23,7 @@ include::installation.adoc[]
 include::inbound.adoc[]
 include::outbound.adoc[]
 include::default-configuration.adoc[]
+include::avro-configuration.adoc[]
 
 
 
