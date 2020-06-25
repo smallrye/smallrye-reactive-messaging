@@ -15,7 +15,7 @@
   <packaging>pom</packaging>
 
   <name>SmallRye Reactive Messaging</name>
-  
+
   <description>An implementation of the MicroProfile Reactive Streams Messaging specification</description>
   <url>http://smallrye.io</url>
 
@@ -122,7 +122,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      
+
       <dependency>
         <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
         <artifactId>microprofile-reactive-messaging-api</artifactId>
@@ -192,7 +192,7 @@
   </dependencyManagement>
 
   <dependencies>
-      
+
     <dependency>
       <groupId>org.jboss.logging</groupId>
       <artifactId>jboss-logging</artifactId>
@@ -205,7 +205,7 @@
       <groupId>org.jboss.logging</groupId>
       <artifactId>jboss-logging-processor</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-api</artifactId>
@@ -216,7 +216,7 @@
       <artifactId>mutiny</artifactId>
       <version>${mutiny.version}</version>
     </dependency>
-    
+
     <!-- Test -->
     <dependency>
       <groupId>org.jboss.weld.se</groupId>
