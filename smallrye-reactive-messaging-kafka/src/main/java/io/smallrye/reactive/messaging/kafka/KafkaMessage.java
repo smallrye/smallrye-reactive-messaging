@@ -24,7 +24,7 @@ public interface KafkaMessage<K, T> extends Message<T>, KafkaRecord<K, T> {
      */
     static <K, T> OutgoingKafkaRecord<K, T> of(K key, T value) {
         return new OutgoingKafkaRecord<>(null, key, value, null, -1,
-                new RecordHeaders(), null, null);
+                new RecordHeaders(), null, null, null);
     }
 
     /**
@@ -38,7 +38,7 @@ public interface KafkaMessage<K, T> extends Message<T>, KafkaRecord<K, T> {
      * @return the new outgoing kafka message
      */
     static <K, T> OutgoingKafkaRecord<K, T> of(String topic, K key, T value) {
-        return new OutgoingKafkaRecord<>(topic, key, value, null, -1, new RecordHeaders(), null, null);
+        return new OutgoingKafkaRecord<>(topic, key, value, null, -1, new RecordHeaders(), null, null, null);
     }
 
     /**
@@ -54,7 +54,7 @@ public interface KafkaMessage<K, T> extends Message<T>, KafkaRecord<K, T> {
      * @return the new outgoing kafka message
      */
     static <K, T> OutgoingKafkaRecord<K, T> of(String topic, K key, T value, Instant timestamp, int partition) {
-        return new OutgoingKafkaRecord<>(topic, key, value, timestamp, partition, new RecordHeaders(), null, null);
+        return new OutgoingKafkaRecord<>(topic, key, value, timestamp, partition, new RecordHeaders(), null, null, null);
     }
 
 }
