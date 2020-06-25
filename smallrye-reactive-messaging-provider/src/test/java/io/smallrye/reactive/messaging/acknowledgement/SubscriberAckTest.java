@@ -138,8 +138,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         assertThat(acked).hasSize(8);
         assertThat(nacked).hasSize(2);
         assertThat(throwables).hasSize(2)
-                .anySatisfy(t -> assertThat(t).isInstanceOf(CompletionException.class)
-                        .hasCauseInstanceOf(IllegalArgumentException.class).hasMessageContaining("2"))
+                .anySatisfy(t -> assertThat(t).isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("2"))
                 .anySatisfy(t -> assertThat(t)
                         .isInstanceOf(ProcessingException.class)
                         .hasCauseInstanceOf(InvocationTargetException.class).hasStackTraceContaining("8"));
@@ -182,8 +182,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         assertThat(acked).hasSize(8);
         assertThat(nacked).hasSize(2);
         assertThat(throwables).hasSize(2)
-                .anySatisfy(t -> assertThat(t).isInstanceOf(CompletionException.class)
-                        .hasCauseInstanceOf(IllegalArgumentException.class).hasMessageContaining("2"))
+                .anySatisfy(t -> assertThat(t).isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("2"))
                 .anySatisfy(t -> assertThat(t)
                         .isInstanceOf(ProcessingException.class)
                         .hasCauseInstanceOf(InvocationTargetException.class).hasStackTraceContaining("8"));
