@@ -36,17 +36,17 @@ public class KafkaSink {
     private final int partition;
     private final String key;
     private final String topic;
-    private final KafkaConnectorOutgoingConfiguration config;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
+    private final long retries;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
-        this.config = config;
 
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
         stream.exceptionHandler(log::unableToWrite);
 
         partition = config.getPartition();
+        retries = config.getRetries();
         key = config.getKey().orElse(null);
         topic = config.getTopic().orElseGet(config::getChannel);
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
@@ -77,13 +77,17 @@ public class KafkaSink {
                 log.sendingMessageToTopic(message, actualTopic);
 
                 //noinspection unchecked,rawtypes
-                return Uni.createFrom()
-                        .<Void> emitter(
-                                e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)))
-                        .onFailure().retry()
-                        .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(config.getRetries())
+                Uni<Void> uni = Uni.createFrom()
+                        .emitter(
+                                e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
+
+                if (this.retries > 0) {
+                    uni = uni.onFailure().retry()
+                            .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
+                }
+                return uni
                         .onFailure().recoverWithUni(t -> {
-                            // Even with the retry we still fail, nack the message.
+                            // Log and nack the messages on failure.
                             log.nackingMessage(message, actualTopic, t);
                             return Uni.createFrom().completionStage(message.nack(t));
                         });
