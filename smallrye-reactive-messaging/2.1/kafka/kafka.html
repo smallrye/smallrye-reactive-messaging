@@ -361,7 +361,7 @@ Each record consists of a <em>key</em>, a <em>value</em>, and a <em>timestamp</e
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;2.1.0&lt;/version&gt;
+  &lt;version&gt;2.1.1&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -505,29 +505,14 @@ You need to configure the:</p>
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.1.0/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
+<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.1.1/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
 <code>K</code> is the type of the record&#8217;s key.
 <code>T</code> is the type of the record&#8217;s value.
 It provides the key, topic, partitions, headers and so on:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
-
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
-import org.eclipse.microprofile.reactive.messaging.Message;
-
-import java.time.Instant;
-import java.util.Optional;
-
-public class KafkaMetadataExample {
-
-
-    public void metadata() {
-        Message&lt;Double&gt; incoming = Message.of(12.0);
-        // tag::code[]
-        Optional&lt;IncomingKafkaRecordMetadata&lt;String, Double&gt;&gt; metadata = incoming.getMetadata(IncomingKafkaRecordMetadata.class);
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">        Optional&lt;IncomingKafkaRecordMetadata&lt;String, Double&gt;&gt; metadata = incoming.getMetadata(IncomingKafkaRecordMetadata.class);
         metadata.ifPresent(meta -&gt; {
             // The topic
             String topic = meta.getTopic();
@@ -542,11 +527,7 @@ public class KafkaMetadataExample {
             KafkaConsumerRecord&lt;String, Double&gt; record = meta.getRecord();
 
             // ...
-        });
-        // end::code[]
-    }
-
-}</code></pre>
+        });</code></pre>
 </div>
 </div>
 </div>
@@ -1033,7 +1014,7 @@ You need to configure the:</p>
 <div class="sect2">
 <h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
 <div class="paragraph">
-<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.1.0/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
+<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.1.1/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
 For example, you can configure the topic directly in the message, or add Kafka headers, configure the record key&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
@@ -1235,6 +1216,165 @@ public Map&lt;String, Object&gt; createKafkaRuntimeConfig() {
 </td>
 </tr>
 </table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-avro-configuration"><a class="anchor" href="#kafka-avro-configuration"></a>Using Apache Avro serializer/deserializer</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If you are using <a href="https://avro.apache.org/">Apache Avro</a> serializer/deserializer, please note the following properties:</p>
+</div>
+<div class="sect2">
+<h3 id="_for_confluent_schema_registry"><a class="anchor" href="#_for_confluent_schema_registry"></a>For <a href="https://docs.confluent.io/current/schema-registry/serdes-develop/serdes-avro.html">Confluent</a> Schema Registry</h3>
+<div class="sect3">
+<h4 id="_consumer"><a class="anchor" href="#_consumer"></a>Consumer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.deserializer"</th>
+<th class="tableblock halign-left valign-top">"io.confluent.kafka.serializers.KafkaAvroDeserializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"schema.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"specific.avro.reader"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.[channel].value.deserializer=io.confluent.kafka.serializers.KafkaAvroDeserializer
+mp.messaging.incoming.[channel].schema.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/
+mp.messaging.incoming.[channel].specific.avro.reader=true</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_producer"><a class="anchor" href="#_producer"></a>Producer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.serializer"</th>
+<th class="tableblock halign-left valign-top">"io.confluent.kafka.serializers.KafkaAvroSerializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"schema.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/"</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.[channel].value.serializer=io.confluent.kafka.serializers.KafkaAvroSerializer
+mp.messaging.outgoing.[channel].schema.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_for_apicurio_schema_registry"><a class="anchor" href="#_for_apicurio_schema_registry"></a>For <a href="https://github.com/Apicurio/apicurio-registry">Apicurio</a> Schema Registry</h3>
+<div class="sect3">
+<h4 id="_consumer_2"><a class="anchor" href="#_consumer_2"></a>Consumer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.deserializer"</th>
+<th class="tableblock halign-left valign-top">"io.apicurio.registry.utils.serde.AvroKafkaDeserializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/api"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.avro-datum-provider"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider"</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.[channel].value.deserializer=io.apicurio.registry.utils.serde.AvroKafkaDeserializer
+mp.messaging.incoming.[channel].apicurio.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/api
+mp.messaging.incoming.[channel].apicurio.registry.avro-datum-provider=io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_producer_2"><a class="anchor" href="#_producer_2"></a>Producer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.serializer"</th>
+<th class="tableblock halign-left valign-top">"io.apicurio.registry.utils.serde.AvroKafkaSerializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/api"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.avro-datum-provider"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.global-id"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.artifact-id"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy"</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.[channel].value.serializer=io.apicurio.registry.utils.serde.AvroKafkaSerializer
+mp.messaging.outgoing.[channel].apicurio.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/api
+mp.messaging.outgoing.[channel].apicurio.registry.avro-datum-provider=io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider
+mp.messaging.outgoing.[channel].apicurio.registry.global-id=io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy
+mp.messaging.outgoing.[channel].apicurio.registry.artifact-id=io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy</code></pre>
+</div>
+</div>
+</div>
 </div>
 </div>
 </div>
