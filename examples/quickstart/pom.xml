@@ -23,7 +23,6 @@
     <mutiny.version>0.5.4</mutiny.version>
   </properties>
 
-
   <dependencies>
 
     <dependency>
@@ -41,7 +40,6 @@
     <dependency>
       <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
-      <version>${smallrye-config.version}</version>
     </dependency>
 
     <dependency>
@@ -93,7 +91,6 @@
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.8</version>
         <configuration>
           <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
         </configuration>
