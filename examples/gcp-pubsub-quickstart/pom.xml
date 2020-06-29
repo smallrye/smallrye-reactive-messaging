@@ -92,6 +92,7 @@
         </executions>
         <configuration>
           <mainClass>${mainClass}</mainClass>
+          <classpathScope>compile</classpathScope>
         </configuration>
       </plugin>
 
