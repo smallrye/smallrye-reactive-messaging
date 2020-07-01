@@ -17,6 +17,7 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
+import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
@@ -70,6 +71,7 @@ public class WeldTestBase {
                 ConfiguredChannelFactory.class,
                 LegacyConfiguredChannelFactory.class,
                 MetricDecorator.class,
+                HealthCenter.class,
 
                 // In memory connector
                 InMemoryConnector.class,

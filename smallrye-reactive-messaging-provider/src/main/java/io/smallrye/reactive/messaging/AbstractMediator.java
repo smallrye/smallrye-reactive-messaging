@@ -18,6 +18,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
 
 public abstract class AbstractMediator {
@@ -26,6 +27,7 @@ public abstract class AbstractMediator {
     protected WorkerPoolRegistry workerPoolRegistry;
     private Invoker invoker;
     private Instance<PublisherDecorator> decorators;
+    protected HealthCenter health;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -150,4 +152,7 @@ public abstract class AbstractMediator {
         }
     }
 
+    public void setHealth(HealthCenter health) {
+        this.health = health;
+    }
 }

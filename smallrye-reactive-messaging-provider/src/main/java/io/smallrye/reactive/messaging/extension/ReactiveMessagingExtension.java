@@ -9,6 +9,7 @@ import java.util.*;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
+import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -26,6 +27,9 @@ public class ReactiveMessagingExtension implements Extension {
     private final List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
     private final List<InjectionPoint> emitterInjectionPoints = new ArrayList<>();
     private final List<WorkerPoolBean<?>> workerPoolBeans = new ArrayList<>();
+
+    @Inject
+    HealthCenter health;
 
     <T> void processClassesContainingMediators(@Observes ProcessManagedBean<T> event) {
         AnnotatedType<?> annotatedType = event.getAnnotatedBeanClass();
@@ -133,6 +137,9 @@ public class ReactiveMessagingExtension implements Extension {
 
         } catch (Exception e) {
             done.addDeploymentProblem(e);
+            if (health != null) {
+                health.report("deployment", e);
+            }
         }
     }
 
