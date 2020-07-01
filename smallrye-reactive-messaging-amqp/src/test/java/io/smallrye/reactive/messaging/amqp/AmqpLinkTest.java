@@ -49,7 +49,7 @@ public class AmqpLinkTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.people-out.link-name", "people")
                 .put("mp.messaging.outgoing.people-out.host", host)
                 .put("mp.messaging.outgoing.people-out.port", port)
-                .put("mp.messaging.outgoing.people-out.durable", true)
+                .put("mp.messaging.outgoing.people-out.durable", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
 

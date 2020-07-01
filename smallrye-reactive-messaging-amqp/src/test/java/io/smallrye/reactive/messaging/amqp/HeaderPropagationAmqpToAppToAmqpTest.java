@@ -54,7 +54,7 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.amqp.durable", true)
                 .put("mp.messaging.outgoing.amqp.host", host)
                 .put("mp.messaging.outgoing.amqp.port", port)
-                .put("mp.messaging.outgoing.amqp.durable", "true")
+                .put("mp.messaging.outgoing.amqp.durable", "false")
                 .put("amqp-username", username)
                 .put("amqp-password", password)
 

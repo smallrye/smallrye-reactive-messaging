@@ -15,12 +15,13 @@ import repeat.RepeatRule;
 
 public class AmqpTestBase {
 
-    @ClassRule
-    public static GenericContainer<?> artemis = new GenericContainer<>("vromero/activemq-artemis:2.11.0-alpine")
-            .withClasspathResourceMapping("brokers/broker-people-queue.xml", "/var/lib/artemis/etc-override/broker-0.xml",
-                    BindMode.READ_ONLY)
-            .withExposedPorts(8161)
-            .withExposedPorts(5672);
+//    @ClassRule
+//    public static GenericContainer<?> artemis = new GenericContainer<>("vromero/activemq-artemis:2.11.0-alpine")
+//            .withClasspathResourceMapping("brokers/broker-people-queue.xml", "/var/lib/artemis/etc-override/broker-0.xml",
+//                    BindMode.READ_ONLY)
+//            .withLogConsumer(of -> System.out.print("[ARTEMIS] " + of.getUtf8String()))
+//            .withExposedPorts(8161)
+//            .withExposedPorts(5672);
 
     @Rule
     public RepeatRule rule = new RepeatRule();
@@ -28,15 +29,15 @@ public class AmqpTestBase {
     ExecutionHolder executionHolder;
     String host;
     Integer port;
-    String username = "artemis";
-    String password = "simetraehcapa";
+    String username = "admin";
+    String password = "admin";
     AmqpUsage usage;
 
     @Before
     public void setup() {
         executionHolder = new ExecutionHolder(Vertx.vertx());
-        host = artemis.getContainerIpAddress();
-        port = artemis.getMappedPort(5672);
+        host = "127.0.0.1";
+        port = 5672;
         System.setProperty("amqp-host", host);
         System.setProperty("amqp-port", Integer.toString(port));
         System.setProperty("amqp-user", username);

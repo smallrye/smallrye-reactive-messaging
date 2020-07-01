@@ -7,6 +7,11 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
 
+/**
+ * @param <T>
+ * @deprecated Use {@link OutgoingAmqpMetadata} instead.
+ */
+@Deprecated
 public class AmqpMessageBuilder<T> {
 
     private final io.vertx.mutiny.amqp.AmqpMessageBuilder builder;
@@ -162,7 +167,7 @@ public class AmqpMessageBuilder<T> {
             amqpMetadataBuilder.withAddress(delegate.address());
         }
         if (delegate.applicationProperties() != null) {
-            amqpMetadataBuilder.withProperties(delegate.applicationProperties());
+            amqpMetadataBuilder.withApplicationProperties(delegate.applicationProperties());
         }
         if (delegate.contentType() != null) {
             amqpMetadataBuilder.withContentType(delegate.contentType());
@@ -177,11 +182,11 @@ public class AmqpMessageBuilder<T> {
             amqpMetadataBuilder.withGroupId(delegate.groupId());
         }
         if (delegate.id() != null) {
-            amqpMetadataBuilder.withId(delegate.id());
+            amqpMetadataBuilder.withMessageId(delegate.id());
         }
         amqpMetadataBuilder.withDurable(delegate.isDurable());
         if (delegate.priority() >= 0) {
-            amqpMetadataBuilder.withPriority(delegate.priority());
+            amqpMetadataBuilder.withPriority((short) delegate.priority());
         }
         if (delegate.subject() != null) {
             amqpMetadataBuilder.withSubject(delegate.subject());

@@ -1,295 +1,324 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import org.apache.qpid.proton.amqp.messaging.Header;
+import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
+import org.apache.qpid.proton.amqp.messaging.Footer;
+import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
 
+import io.vertx.amqp.AmqpMessage;
 import io.vertx.core.json.JsonObject;
 
 public class IncomingAmqpMetadata {
 
-    /**
-     * The AMQP Address.
-     */
-    private final String address;
+    private final AmqpMessage message;
+
+    public IncomingAmqpMetadata(AmqpMessage message) {
+        this.message = message;
+    }
 
     /**
-     * The Application Properties attached to the Message.
+     * The AMQP address of the message.
+     * <p>
+     * The address is stored in the {@code to} field which identifies the node that is the intended destination of the
+     * message. On any given transfer this might not be the node at the receiving end of the link.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the address
      */
-    private final JsonObject properties;
+    public String getAddress() {
+        return message.address();
+    }
 
     /**
-     * The Content-Type of the message payload
+     * The application-properties section is a part of the bare message used for structured application data.
+     * Routers and brokers can use the data within this structure for the purposes of filtering or routing.
+     * <p>
+     * The keys of this map are restricted to be of type string and the values are restricted to be of simple types only,
+     * that is, excluding map, list, and array types.
+     *
+     * @return the application properties
+     * @apiNote http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-application-properties
      */
-    private final String contentType;
+    public JsonObject getProperties() {
+        return message.applicationProperties();
+    }
 
     /**
-     * The Content-Encoding of the message payload
+     * The RFC-2046 MIME type for the message's application-data section (body).
+     * As per RFC-2046 this can contain a charset parameter defining the character encoding used: e.g.,
+     * 'text/plain; charset="utf-8"'.
+     * <p>
+     * If the payload is known to be truly opaque binary data, the content-type should be set to application/octet-stream.
+     * <p>
+     * Stored in the message properties.
      */
-    private final String contentEncoding;
+    public String getContentType() {
+        return message.unwrap().getContentType();
+    }
 
     /**
-     * The correlation id of the message.
+     * The content-encoding property is used as a modifier to the content-type.
+     * When present, its value indicates what additional content encodings have been applied to the application-data,
+     * and thus what decoding mechanisms need to be applied in order to obtain the media-type referenced by the
+     * content-type header field.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the content-encoding
      */
-    private final String correlationId;
+    public String getContentEncoding() {
+        return message.unwrap().getContentEncoding();
+    }
 
     /**
-     * The creation time of the message.
+     * An absolute time when this message was created.
+     * <p>
+     * Stored in the message properties.
      */
-    private final long creationTime;
+    public long getCreationTime() {
+        return message.creationTime();
+    }
 
     /**
-     * The delivery count.
+     * The number of unsuccessful previous attempts to deliver this message. If this value is non-zero it can be taken
+     * as an indication that the delivery might be a duplicate. On first delivery, the value is zero. It is incremented
+     * upon an outcome being settled at the sender, according to rules defined for each outcome.
+     * <p>
+     * Stored in the message header
+     *
+     * @return the delivery count
      */
-    private final int deliveryCount;
+    public int getDeliveryCount() {
+        return message.deliveryCount();
+    }
 
     /**
-     * The expiration time of the message.
+     * An absolute time when this message is considered to be expired.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the expiry time, 0 is none
      */
-    private final long expirationTime;
+    public long getExpiryTime() {
+        return message.expiryTime();
+    }
 
     /**
-     * The group Id of the message.
+     * Identifies the group the message belongs to.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the group id if set
      */
-    private final String groupId;
+    public String getGroupId() {
+        return message.groupId();
+    }
 
     /**
-     * The group sequence of the message.
+     * The relative position of this message within its group.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the sequence number, 0 if not set
      */
-    private final long groupSequence;
+    public long getGroupSequence() {
+        return message.groupSequence();
+    }
 
     /**
-     * The message id.
+     * The message-id, if set, uniquely identifies a message within the message system.
+     * The message producer is usually responsible for setting the message-id in such a way that it is assured to be
+     * globally unique. A broker may discard a message as a duplicate if the value of the message-id matches that of a
+     * previously received message sent to the same node.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the id
      */
-    private final String id;
+    public String getId() {
+        return message.id();
+    }
+
+    /**
+     * The identity of the user responsible for producing the message.
+     * The client sets this value, and it may be authenticated by intermediaries.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the user id
+     */
+    public String getUserId() {
+        byte[] userId = message.unwrap().getUserId();
+        if (userId != null) {
+            return new String(userId);
+        } else {
+            return null;
+        }
+    }
 
     /**
      * Whether the message is durable.
+     * <p>
+     * Durable messages must not be lost even if an intermediary is unexpectedly terminated and restarted. A target
+     * which is not capable of fulfilling this guarantee must not accept messages where the durable header is set to
+     * true: if the source allows the rejected outcome then the message should be rejected with the precondition-failed
+     * error, otherwise the link must be detached by the receiver with the same error.
+     * <p>
+     * Stored in the message header.
+     *
+     * @return whether the message is marked as durable
      */
-    private final boolean durable;
-
-    /**
-     * Whether this consumer is the first acquirer.
-     */
-    private final boolean firstAcquirer;
-
-    /**
-     * The message priority
-     */
-    private final int priority;
-
-    /**
-     * The message subject
-     */
-    private final String subject;
-
-    /**
-     * The message time-to-live
-     */
-    private final long ttl;
-
-    /**
-     * The message header
-     */
-    private final Header header;
-
-    public IncomingAmqpMetadata(String address, JsonObject properties, String contentType,
-            String contentEncoding, String correlationId, long creationTime, int deliveryCount, long expirationTime,
-            String groupId, long groupSequence, String id, boolean durable, boolean firstAcquirer, int priority,
-            String subject, long ttl, Header header) {
-        this.address = address;
-        this.properties = properties;
-        this.contentType = contentType;
-        this.contentEncoding = contentEncoding;
-        this.correlationId = correlationId;
-        this.creationTime = creationTime;
-        this.deliveryCount = deliveryCount;
-        this.expirationTime = expirationTime;
-        this.groupId = groupId;
-        this.groupSequence = groupSequence;
-        this.id = id;
-        this.durable = durable;
-        this.firstAcquirer = firstAcquirer;
-        this.priority = priority;
-        this.subject = subject;
-        this.ttl = ttl;
-        this.header = header;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public JsonObject getProperties() {
-        return properties;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    public String getContentEncoding() {
-        return contentEncoding;
-    }
-
-    public String getCorrelationId() {
-        return correlationId;
-    }
-
-    public long getCreationTime() {
-        return creationTime;
-    }
-
-    public int getDeliveryCount() {
-        return deliveryCount;
-    }
-
-    public long getExpiryTime() {
-        return expirationTime;
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public long getGroupSequence() {
-        return groupSequence;
-    }
-
-    public String getId() {
-        return id;
-    }
-
     public boolean isDurable() {
-        return durable;
+        return message.isDurable();
     }
 
+    /**
+     * If this value is true, then this message has not been acquired by any other link. If this value is false, then
+     * this message may have previously been acquired by another link or links.
+     * <p>
+     * Stored in the message header.
+     *
+     * @return whether this message has been acquired by another link before.
+     */
     public boolean isFirstAcquirer() {
-        return firstAcquirer;
+        return message.isFirstAcquirer();
     }
 
-    public int getPriority() {
-        return priority;
+    /**
+     * This priority field contains the relative message priority. Higher numbers indicate higher priority messages.
+     * Messages with higher priorities may be delivered before those with lower priorities.
+     * <p>
+     * Stored in the message header.
+     *
+     * @return the priority
+     */
+    public short getPriority() {
+        return (short) message.priority();
     }
 
+    /**
+     * A common field for summary information about the message content and purpose.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the subject if any
+     */
     public String getSubject() {
-        return subject;
+        return message.subject();
     }
 
+    /**
+     * The address of the node to send replies to.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the reply-to address
+     */
+    public String getReplyTo() {
+        return message.replyTo();
+    }
+
+    /**
+     * This is a client-specific id that is used so that client can send replies to this message to a specific group.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the reply-to address
+     */
+    public String getReplyToGroupId() {
+        return message.unwrap().getReplyToGroupId();
+    }
+
+    /**
+     * This is a client-specific id that can be used to mark or identify messages between clients.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return the reply-to address
+     */
+    public String getCorrelationId() {
+        return message.correlationId();
+    }
+
+    /**
+     * Duration in milliseconds for which the message is to be considered "live". If this is set then a message
+     * expiration time will be computed based on the time of arrival at an intermediary. Messages that live longer
+     * than their expiration time will be discarded (or dead lettered). When a message is transmitted by an
+     * intermediary that was received with a ttl, the transmitted message's header SHOULD contain a ttl that is
+     * computed as the difference between the current time and the formerly computed message expiration time, i.e., t
+     * he reduced ttl, so that messages will eventually die if they end up in a delivery loop.
+     * <p>
+     * Stored in the message header
+     *
+     * @return the ttl, 0 if not set
+     */
     public long getTtl() {
-        return ttl;
+        return message.ttl();
     }
 
-    public Header getHeader() {
-        return header;
+    /**
+     * @return the expiry time
+     * @deprecated Use {@link #getExpiryTime()} instead
+     */
+    @Deprecated
+    public long getExpirationTime() {
+        return getExpiryTime();
     }
 
-    static final class IncomingAmqpMetadataBuilder {
-        private JsonObject properties = new JsonObject();
-        private String address;
-        private String contentType;
-        private String contentEncoding;
-        private String correlationId;
-        private long creationTime;
-        private int deliveryCount;
-        private long expirationTime;
-        private String groupId;
-        private long groupSequence;
-        private String id;
-        private boolean durable;
-        private boolean firstAcquirer;
-        private int priority = -1;
-        private String subject;
-        private long ttl;
-        private Header header = new Header();
+    /**
+     * The delivery annotations.
+     * <p>
+     * The delivery-annotations section is used for delivery-specific non-standard properties at the head of the message.
+     * Delivery annotations convey information from the sending peer to the receiving peer. If the recipient does not
+     * understand the annotation it cannot be acted upon and its effects (such as any implied propagation) cannot be
+     * acted upon. Annotations might be specific to one implementation, or common to multiple implementations.
+     * The capabilities negotiated on link attach and on the source and target should be used to establish which
+     * annotations a peer supports. A registry of defined annotations and their meanings is maintained.
+     * <p>
+     * The symbolic key "rejected" is reserved for the use of communicating error information regarding rejected
+     * messages. Any values associated with the "rejected" key must be of type error.
+     * <p>
+     * If the delivery-annotations section is omitted, it is equivalent to a delivery-annotations section containing an
+     * empty map of annotations.
+     *
+     * @apiNote http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-delivery-annotations
+     */
+    public DeliveryAnnotations getDeliveryAnnotations() {
+        return message.unwrap().getDeliveryAnnotations();
+    }
 
-        public IncomingAmqpMetadataBuilder withAddress(String address) {
-            this.address = address;
-            return this;
-        }
+    /**
+     * The message annotations.
+     * <p>
+     * The message-annotations section is used for properties of the message which are aimed at the infrastructure and
+     * should be propagated across every delivery step. Message annotations convey information about the message.
+     * Intermediaries must propagate the annotations unless the annotations are explicitly augmented or modified
+     * (e.g., by the use of the modified outcome).
+     * <p>
+     * The capabilities negotiated on link attach and on the source and target can be used to establish which
+     * annotations a peer understands; however, in a network of AMQP intermediaries it might not be possible to know if
+     * every intermediary will understand the annotation. Note that for some annotations it might not be necessary for
+     * the intermediary to understand their purpose, i.e., they could be used purely as an attribute which can be
+     * filtered on.
+     * <p>
+     * A registry of defined annotations and their meanings is maintained.
+     * <p>
+     * If the message-annotations section is omitted, it is equivalent to a message-annotations section containing an
+     * empty map of annotations.
+     *
+     * @apiNote http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-message-annotations
+     */
+    public MessageAnnotations getMessageAnnotations() {
+        return message.unwrap().getMessageAnnotations();
+    }
 
-        public IncomingAmqpMetadataBuilder withProperties(JsonObject properties) {
-            this.properties = properties;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withContentType(String contentType) {
-            this.contentType = contentType;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withContentEncoding(String contentEncoding) {
-            this.contentEncoding = contentEncoding;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withCorrelationId(String correlationId) {
-            this.correlationId = correlationId;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withCreationTime(long creationTime) {
-            this.creationTime = creationTime;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withDeliveryCount(int deliveryCount) {
-            this.deliveryCount = deliveryCount;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withExpirationTime(long expirationTime) {
-            this.expirationTime = expirationTime;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withGroupId(String groupId) {
-            this.groupId = groupId;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withGroupSequence(long groupSequence) {
-            this.groupSequence = groupSequence;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withId(String id) {
-            this.id = id;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withDurable(boolean durable) {
-            this.durable = durable;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withFirstAcquirer(boolean firstAcquirer) {
-            this.firstAcquirer = firstAcquirer;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withPriority(int priority) {
-            this.priority = priority;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withSubject(String subject) {
-            this.subject = subject;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withTtl(long ttl) {
-            this.ttl = ttl;
-            return this;
-        }
-
-        public IncomingAmqpMetadataBuilder withHeader(Header header) {
-            this.header = header;
-            return this;
-        }
-
-        public IncomingAmqpMetadata build() {
-            return new IncomingAmqpMetadata(address, properties, contentType, contentEncoding, correlationId,
-                    creationTime, deliveryCount, expirationTime, groupId, groupSequence, id, durable, firstAcquirer,
-                    priority, subject, ttl, header);
-        }
+    /**
+     * Transport footers for a message.
+     * The footer section is used for details about the message or delivery which can only be calculated or evaluated
+     * once the whole bare message has been constructed or seen (for example message hashes, HMACs, signatures and
+     * encryption details).
+     */
+    public Footer getFooter() {
+        return message.unwrap().getFooter();
     }
 }

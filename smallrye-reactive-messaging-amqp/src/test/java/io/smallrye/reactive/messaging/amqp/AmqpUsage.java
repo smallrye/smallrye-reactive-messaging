@@ -19,6 +19,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import io.vertx.mutiny.amqp.AmqpConnection;
 import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class AmqpUsage {
     private final AmqpClient client;
 
     public AmqpUsage(Vertx vertx, String host, int port) {
-        this(vertx, host, port, "artemis", "simetraehcapa");
+        this(vertx, host, port, "admin", "admin");
     }
 
     public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
@@ -122,12 +123,18 @@ public class AmqpUsage {
     }
 
     public void consumeIntegers(String topic, Consumer<Integer> consumer) {
-        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
+        AmqpConnection connection = client
+            .connectAndAwait();
+        connection.exceptionHandler(t -> t.printStackTrace());
+        connection.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
                 .map(r -> r.handler(msg -> {
                     LOGGER.info("Consumer {}: consuming message {}", topic, msg.bodyAsInteger());
                     consumer.accept(msg.bodyAsInteger());
                 }))
-                .await().indefinitely();
+                .await().indefinitely()
+        .exceptionHandler(t -> t.printStackTrace());
+
+
     }
 
     public void close() {

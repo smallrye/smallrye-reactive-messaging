@@ -44,7 +44,7 @@ public class ObjectExchangeTest extends AmqpTestBase {
         new MapBasedConfig()
                 .put("mp.messaging.outgoing.to-amqp.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.to-amqp.address", "prices")
-                .put("mp.messaging.outgoing.to-amqp.durable", true)
+                .put("mp.messaging.outgoing.to-amqp.durable", false)
                 .put("mp.messaging.outgoing.to-amqp.host", host)
                 .put("mp.messaging.outgoing.to-amqp.port", port)
 

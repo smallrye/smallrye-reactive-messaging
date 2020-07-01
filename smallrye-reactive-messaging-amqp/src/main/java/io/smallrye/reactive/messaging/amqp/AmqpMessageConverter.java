@@ -1,20 +1,28 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import java.sql.Date;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import java.util.function.Consumer;
 
+import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.messaging.AmqpValue;
+import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
+import org.apache.qpid.proton.amqp.messaging.Data;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.amqp.AmqpMessageBuilder;
+import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpMessageConverter {
     private static final String JSON_CONTENT_TYPE = "application/json";
+    private static final String BINARY_CONTENT_TYPE = "application/octet-stream";
 
     private AmqpMessageConverter() {
         // Avoid direct instantiation.
@@ -22,93 +30,107 @@ public class AmqpMessageConverter {
 
     static io.vertx.mutiny.amqp.AmqpMessage convertToAmqpMessage(Message<?> message, boolean durable, long ttl) {
         Object payload = message.getPayload();
-        Optional<OutgoingAmqpMetadata> metadata = message.getMetadata(OutgoingAmqpMetadata.class);
-        AmqpMessageBuilder builder = io.vertx.mutiny.amqp.AmqpMessage.create();
+        OutgoingAmqpMetadata metadata = message.getMetadata(OutgoingAmqpMetadata.class)
+                .orElse(new OutgoingAmqpMetadata());
 
+        org.apache.qpid.proton.message.Message output = org.apache.qpid.proton.message.Message.Factory.create();
+
+        // Header
         if (durable) {
-            builder.durable(true);
+            output.setDurable(true);
         } else {
-            builder.durable(metadata.map(OutgoingAmqpMetadata::isDurable).orElse(false));
+            output.setDurable(metadata.isDurable());
         }
 
+        output.setPriority(metadata.getPriority());
         if (ttl > 0) {
-            builder.ttl(ttl);
+            output.setTtl(0);
         } else {
-            long t = metadata.map(OutgoingAmqpMetadata::getTtl).orElse(-1L);
-            if (t > 0) {
-                builder.ttl(t);
-            }
+            output.setTtl(metadata.getTtl());
         }
 
-        if (payload instanceof String) {
-            builder.withBody((String) payload);
-        } else if (payload instanceof Boolean) {
-            builder.withBooleanAsBody((Boolean) payload);
+        // Annotations
+        output.setDeliveryAnnotations(metadata.getDeliveryAnnotations());
+        output.setMessageAnnotations(metadata.getMessageAnnotations());
+
+        // Properties
+        output.setMessageId(metadata.getMessageId());
+        output.setUserId(metadata.getUserId() != null ? metadata.getUserId().getBytes() : null);
+        output.setAddress(metadata.getAddress());
+        output.setSubject(metadata.getSubject());
+        output.setReplyTo(metadata.getReplyTo());
+        output.setCorrelationId(metadata.getCorrelationId());
+        output.setContentType(metadata.getContentType());
+        output.setContentEncoding(metadata.getContentEncoding());
+        output.setExpiryTime(metadata.getExpiryTime());
+        output.setCreationTime(metadata.getCreationTime());
+        output.setGroupId(metadata.getGroupId());
+        output.setGroupSequence(metadata.getGroupSequence());
+        output.setReplyToGroupId(metadata.getReplyToGroupId());
+
+        output.setApplicationProperties(new ApplicationProperties(metadata.getProperties().getMap()));
+
+        // Application data section:
+        if (payload instanceof String || isPrimitive(payload.getClass()) || payload instanceof UUID) {
+            output.setBody(new AmqpValue(payload));
+
         } else if (payload instanceof Buffer) {
-            builder.withBufferAsBody((Buffer) payload);
-        } else if (payload instanceof Byte) {
-            builder.withByteAsBody((Byte) payload);
-        } else if (payload instanceof Character) {
-            builder.withCharAsBody((Character) payload);
-        } else if (payload instanceof Double) {
-            builder.withDoubleAsBody((Double) payload);
-        } else if (payload instanceof Float) {
-            builder.withFloatAsBody((Float) payload);
+            output.setBody(new Data(new Binary(((Buffer) payload).getBytes())));
+            if (output.getContentType() == null) {
+                output.setContentType(BINARY_CONTENT_TYPE);
+            }
+        } else if (payload instanceof io.vertx.core.buffer.Buffer) {
+            output.setBody(new Data(new Binary(((io.vertx.core.buffer.Buffer) payload).getBytes())));
+            if (output.getContentType() == null) {
+                output.setContentType(BINARY_CONTENT_TYPE);
+            }
         } else if (payload instanceof Instant) {
-            builder.withInstantAsBody((Instant) payload);
-        } else if (payload instanceof Integer) {
-            builder.withIntegerAsBody((Integer) payload);
+            output.setBody(new AmqpValue(Date.from((Instant) payload)));
         } else if (payload instanceof JsonArray) {
-            builder.withJsonArrayAsBody((JsonArray) payload)
-                    .contentType(JSON_CONTENT_TYPE);
+            byte[] bytes = ((JsonArray) payload).toBuffer().getBytes();
+            output.setBody(new Data(new Binary(bytes)));
+            if (output.getContentType() == null) {
+                output.setContentType(JSON_CONTENT_TYPE);
+            }
         } else if (payload instanceof JsonObject) {
-            builder.withJsonObjectAsBody((JsonObject) payload)
-                    .contentType(JSON_CONTENT_TYPE);
-        } else if (payload instanceof Long) {
-            builder.withLongAsBody((Long) payload);
-        } else if (payload instanceof Short) {
-            builder.withShortAsBody((Short) payload);
-        } else if (payload instanceof UUID) {
-            builder.withUuidAsBody((UUID) payload);
+            byte[] bytes = ((JsonObject) payload).toBuffer().getBytes();
+            output.setBody(new Data(new Binary(bytes)));
+            if (output.getContentType() == null) {
+                output.setContentType(JSON_CONTENT_TYPE);
+            }
         } else if (payload instanceof byte[]) {
-            builder.withBufferAsBody(Buffer.buffer((byte[]) payload));
+            output.setBody(new Data(new Binary(((byte[]) payload))));
+            if (output.getContentType() == null) {
+                output.setContentType(BINARY_CONTENT_TYPE);
+            }
+        } else if (payload instanceof Map || payload instanceof List) {
+            // This branch must be after the JSON Object and JSON Array checks
+            output.setBody(new AmqpValue(payload));
         } else {
-            builder.withBufferAsBody(new Buffer(Json.encodeToBuffer(payload)))
-                    .contentType(JSON_CONTENT_TYPE);
+            byte[] bytes = Json.encodeToBuffer(payload).getBytes();
+            output.setBody(new Data(new Binary(bytes)));
+            if (output.getContentType() == null) {
+                output.setContentType(JSON_CONTENT_TYPE);
+            }
         }
 
-        metadata.ifPresent(new Consumer<OutgoingAmqpMetadata>() {
-            @Override
-            public void accept(OutgoingAmqpMetadata meta) {
-                if (meta.getAddress() != null) {
-                    builder.address(meta.getAddress());
-                }
-                if (meta.getProperties() != null && !meta.getProperties().isEmpty()) {
-                    builder.applicationProperties(meta.getProperties());
-                }
-                if (meta.getContentEncoding() != null) {
-                    builder.contentEncoding(meta.getContentEncoding());
-                }
-                if (meta.getContentType() != null) {
-                    builder.contentType(meta.getContentType());
-                }
-                if (meta.getCorrelationId() != null) {
-                    builder.correlationId(meta.getCorrelationId());
-                }
-                if (meta.getId() != null) {
-                    builder.id(meta.getId());
-                }
-                if (meta.getGroupId() != null) {
-                    builder.groupId(meta.getGroupId());
-                }
-                if (meta.getPriority() >= 0) {
-                    builder.priority((short) meta.getPriority());
-                }
-                if (meta.getSubject() != null) {
-                    builder.subject(meta.getSubject());
-                }
-            }
-        });
-        return builder.build();
+        // Footer
+        output.setFooter(metadata.getFooter());
+
+        return new AmqpMessage(new AmqpMessageImpl(output));
+    }
+
+    private static final List<Class<?>> PRIMITIVES = Arrays.asList(
+            Boolean.class,
+            Byte.class,
+            Character.class,
+            Short.class,
+            Integer.class,
+            Double.class,
+            Float.class,
+            Long.class);
+
+    private static boolean isPrimitive(Class<?> clazz) {
+        return clazz.isPrimitive() || PRIMITIVES.contains(clazz);
     }
 }
