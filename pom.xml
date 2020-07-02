@@ -73,6 +73,7 @@
     <smallrye-metrics.version>2.4.2</smallrye-metrics.version>
     <smallrye-common.version>1.0.2</smallrye-common.version>
     <smallrye-health.version>2.2.1</smallrye-health.version>
+    <smallrye-testing.version>0.1.0</smallrye-testing.version>
 
     <mutiny.version>0.5.4</mutiny.version>
     <artemis.version>2.12.0</artemis.version>
@@ -166,6 +167,12 @@
         <groupId>io.smallrye.common</groupId>
         <artifactId>smallrye-common-annotation</artifactId>
         <version>${smallrye-common.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.testing</groupId>
+        <artifactId>smallrye-testing-utilities</artifactId>
+        <version>${smallrye-testing.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <dependency>
@@ -266,8 +273,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -287,21 +299,6 @@
 
     <pluginManagement>
       <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.2.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>3.2.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
-        </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>

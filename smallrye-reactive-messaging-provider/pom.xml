@@ -11,7 +11,7 @@
   <artifactId>smallrye-reactive-messaging-provider</artifactId>
 
   <name>SmallRye Reactive Messaging : Provider</name>
-  
+
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
@@ -30,7 +30,7 @@
       <artifactId>microprofile-metrics-api</artifactId>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>io.reactivex.rxjava2</groupId>
       <artifactId>rxjava</artifactId>
@@ -53,6 +53,18 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>io.smallrye.testing</groupId>
+      <artifactId>smallrye-testing-utilities</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.logmanager</groupId>
+      <artifactId>jboss-logmanager</artifactId>
+      <version>2.1.17.Final</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>
