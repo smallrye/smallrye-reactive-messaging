@@ -95,6 +95,9 @@ public class MediatorManager {
     @Inject
     Instance<PublisherDecorator> decorators;
 
+    @Inject
+    HealthCenter health;
+
     private volatile boolean initialized;
 
     public MediatorManager() {
@@ -166,6 +169,7 @@ public class MediatorManager {
                     log.initializingMethod(mediator.getMethodAsString());
 
                     mediator.setDecorators(decorators);
+                    mediator.setHealth(health);
                     mediator.setWorkerPoolRegistry(workerPoolRegistry);
 
                     try {
