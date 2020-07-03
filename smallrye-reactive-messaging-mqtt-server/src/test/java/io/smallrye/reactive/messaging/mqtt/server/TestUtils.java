@@ -31,12 +31,12 @@ class TestUtils {
             VertxTestContext testContext) {
         Checkpoint messageSent = testContext.checkpoint(messages.size());
         Checkpoint clientClosed = testContext.checkpoint();
-        futurePort.thenAccept(port -> new Thread(() -> {
+        futurePort.thenAccept(port -> {
             try {
                 final MqttClient mqttClient = new MqttClient("tcp://localhost:" + port,
                         MqttClient.generateClientId());
                 mqttClient.connect();
-                messages.forEach(message -> {
+                for (TestMqttMessage message : messages) {
                     try {
                         MqttMessage mqttMessage = new MqttMessage(message.getBody().getBytes());
                         mqttMessage.setQos(message.getQos());
@@ -45,16 +45,18 @@ class TestUtils {
                         mqttClient.publish(message.getTopic(), mqttMessage);
                         messageSent.flag();
                     } catch (MqttException e) {
+                        e.printStackTrace();
                         testContext.failNow(e);
+                        break;
                     }
-                });
-                mqttClient.disconnect();
-                mqttClient.close();
+                }
+                mqttClient.disconnect(10);
+                mqttClient.close(true);
                 clientClosed.flag();
             } catch (MqttException e) {
                 testContext.failNow(e);
             }
-        }).start());
+        });
     }
 
     static void assertMqttEquals(TestMqttMessage expected, io.smallrye.reactive.messaging.mqtt.server.MqttMessage message) {
@@ -65,21 +67,19 @@ class TestUtils {
         Assertions.assertFalse(message.isDuplicate());
     }
 
-    @SuppressWarnings("SubscriberImplementation")
+    @SuppressWarnings({ "SubscriberImplementation", "ReactiveStreamsSubscriberImplementation" })
     static Subscriber<io.smallrye.reactive.messaging.mqtt.server.MqttMessage> createSubscriber(VertxTestContext testContext,
             AtomicBoolean opened, List<TestMqttMessage> expectedMessages) {
         return new Subscriber<io.smallrye.reactive.messaging.mqtt.server.MqttMessage>() {
             Subscription sub;
             final AtomicInteger index = new AtomicInteger(0);
             Checkpoint messageReceived;
-            Checkpoint messageAcknowledged;
 
             @Override
             public void onSubscribe(Subscription s) {
                 this.sub = s;
                 this.messageReceived = testContext.checkpoint(expectedMessages.size());
-                this.messageAcknowledged = testContext.checkpoint(expectedMessages.size());
-                sub.request(5);
+                sub.request(100);
                 opened.set(true);
             }
 
@@ -87,8 +87,7 @@ class TestUtils {
             public void onNext(io.smallrye.reactive.messaging.mqtt.server.MqttMessage message) {
                 testContext.verify(() -> TestUtils.assertMqttEquals(expectedMessages.get(index.getAndIncrement()), message));
                 messageReceived.flag();
-                message.ack().thenAccept(v -> messageAcknowledged.flag());
-                sub.request(1);
+                message.ack();
             }
 
             @Override
