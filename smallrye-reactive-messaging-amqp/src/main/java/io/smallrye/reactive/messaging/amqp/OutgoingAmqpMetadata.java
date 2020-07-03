@@ -1,146 +1,245 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.qpid.proton.amqp.Symbol;
+import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
+import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
+import org.apache.qpid.proton.amqp.messaging.Footer;
+import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
+import org.apache.qpid.proton.message.Message;
+
 import io.vertx.core.json.JsonObject;
 
 public class OutgoingAmqpMetadata {
-    /**
-     * The AMQP address for an outgoing message.
-     */
-    private final String address;
 
-    /**
-     * The AMQP application properties for an outgoing message.
-     */
-    private final JsonObject properties;
+    private final Message message;
 
-    /**
-     * The content-type for an outgoing message.
-     */
-    private final String contentType;
+    public OutgoingAmqpMetadata() {
+        message = Message.Factory.create();
+    }
 
-    /**
-     * The content-encoding for an outgoing message.
-     */
-    private final String contentEncoding;
+    public OutgoingAmqpMetadata(String address, boolean durable, short priority, long ttl,
+            DeliveryAnnotations deliveryAnnotations, MessageAnnotations messageAnnotations, String id, String userId,
+            String subject, String replyTo, String correlationId, String contentType, String contentEncoding,
+            long expiryTime, long creationTime, String groupId, long groupSequence, String replyToGroupId,
+            JsonObject applicationProperties, Footer footer) {
+        this();
+        message.setAddress(address);
+        message.setDurable(durable);
+        if (priority > 0) {
+            message.setPriority(priority);
+        }
+        if (ttl > 0) {
+            message.setTtl(ttl);
+        }
 
-    /**
-     * The correlation-id for an outgoing message.
-     */
-    private final String correlationId;
+        message.setDeliveryAnnotations(deliveryAnnotations);
+        message.setMessageAnnotations(messageAnnotations);
 
-    /**
-     * The group-id for an outgoing message.
-     */
-    private final String groupId;
+        message.setMessageId(id);
+        if (userId != null) {
+            message.setUserId(userId.getBytes());
+        }
+        message.setSubject(subject);
+        message.setReplyTo(replyTo);
+        message.setCorrelationId(correlationId);
+        message.setContentType(contentType);
+        message.setContentEncoding(contentEncoding);
+        if (expiryTime > 0) {
+            message.setExpiryTime(expiryTime);
+        }
+        if (creationTime > 0) {
+            message.setCreationTime(creationTime);
+        }
+        message.setGroupId(groupId);
+        if (groupSequence >= 0) {
+            message.setGroupSequence(groupSequence);
+        }
+        message.setReplyToGroupId(replyToGroupId);
 
-    /**
-     * The message id for an outgoing message.
-     */
-    private final String id;
+        message.setApplicationProperties(new ApplicationProperties(applicationProperties.getMap()));
 
-    /**
-     * Whether an outgoing message is durable.
-     */
-    private final boolean durable;
-
-    /**
-     * The priority of an outgoing message.
-     * Type: int
-     */
-    private final int priority;
-
-    /**
-     * The subject of an outgoing message.
-     */
-    private final String subject;
-
-    /**
-     * The ttl of an outgoing message.
-     */
-    private final long ttl;
-
-    public OutgoingAmqpMetadata(String address, JsonObject properties, String contentType,
-            String contentEncoding, String correlationId, String groupId, String id, boolean durable, int priority,
-            String subject, long ttl) {
-        this.address = address;
-        this.properties = properties;
-        this.contentType = contentType;
-        this.contentEncoding = contentEncoding;
-        this.correlationId = correlationId;
-        this.groupId = groupId;
-        this.id = id;
-        this.durable = durable;
-        this.priority = priority;
-        this.subject = subject;
-        this.ttl = ttl;
+        message.setFooter(footer);
     }
 
     public String getAddress() {
-        return address;
+        return message.getAddress();
     }
 
-    public JsonObject getProperties() {
-        return properties;
+    public String getUserId() {
+        byte[] userId = message.getUserId();
+        if (userId != null) {
+            return new String(userId);
+        }
+        return null;
     }
 
-    public String getContentType() {
-        return contentType;
-    }
-
-    public String getContentEncoding() {
-        return contentEncoding;
-    }
-
-    public String getCorrelationId() {
-        return correlationId;
+    public String getReplyTo() {
+        return message.getReplyTo();
     }
 
     public String getGroupId() {
-        return groupId;
+        return message.getGroupId();
     }
 
-    public String getId() {
-        return id;
+    public String getContentType() {
+        return message.getContentType();
     }
 
-    public boolean isDurable() {
-        return durable;
+    public long getExpiryTime() {
+        return message.getExpiryTime();
     }
 
-    public int getPriority() {
-        return priority;
+    public String getCorrelationId() {
+        Object correlationId = message.getCorrelationId();
+        if (correlationId != null) {
+            return correlationId.toString();
+        }
+        return null;
+    }
+
+    public String getContentEncoding() {
+        return message.getContentEncoding();
     }
 
     public String getSubject() {
-        return subject;
+        return message.getSubject();
+    }
+
+    public DeliveryAnnotations getDeliveryAnnotations() {
+        DeliveryAnnotations annotations = message.getDeliveryAnnotations();
+        if (annotations == null) {
+            return new DeliveryAnnotations(Collections.emptyMap());
+        }
+        return annotations;
+    }
+
+    public MessageAnnotations getMessageAnnotations() {
+        MessageAnnotations annotations = message.getMessageAnnotations();
+        if (annotations == null) {
+            return new MessageAnnotations(Collections.emptyMap());
+        }
+        return annotations;
+    }
+
+    public Footer getFooter() {
+        Footer footer = message.getFooter();
+        if (footer == null) {
+            return new Footer(Collections.emptyMap());
+        }
+        return footer;
+    }
+
+    public boolean isDurable() {
+        return message.isDurable();
+    }
+
+    public short getPriority() {
+        return message.getPriority();
     }
 
     public long getTtl() {
-        return ttl;
+        return message.getTtl();
+    }
+
+    public String getMessageId() {
+        Object messageId = message.getMessageId();
+        if (messageId != null) {
+            return messageId.toString();
+        }
+        return null;
+    }
+
+    public long getGroupSequence() {
+        return message.getGroupSequence();
+    }
+
+    public String getReplyToGroupId() {
+        return message.getReplyToGroupId();
+    }
+
+    public long getCreationTime() {
+        return message.getCreationTime();
+    }
+
+    public JsonObject getProperties() {
+        ApplicationProperties applicationProperties = message.getApplicationProperties();
+        if (applicationProperties != null) {
+            return new JsonObject(applicationProperties.getValue());
+        } else {
+            return new JsonObject();
+        }
     }
 
     public static OutgoingAmqpMetadataBuilder builder() {
         return new OutgoingAmqpMetadataBuilder();
     }
 
+    public static OutgoingAmqpMetadataBuilder from(OutgoingAmqpMetadata existing) {
+        return new OutgoingAmqpMetadataBuilder(existing);
+    }
+
     public static final class OutgoingAmqpMetadataBuilder {
-        private String address;
-        private JsonObject properties = new JsonObject();
+
+        // Header
+        private boolean durable;
+        private short priority = -1;
+        private long ttl = -1;
+
+        private Map<Symbol, Object> deliveryAnnotations = new HashMap<>();
+        private Map<Symbol, Object> messageAnnotations = new HashMap<>();
+
+        // Properties
+        private String address; // to field
+        private String id;
+        private String userId;
+        private String subject;
+        private String replyTo;
+        private String correlationId;
         private String contentType;
         private String contentEncoding;
-        private String correlationId;
+        private long expiryTime = -1;
+        private long creationTime = -1;
         private String groupId;
-        private String id;
-        private boolean durable;
-        private int priority;
-        private String subject;
-        private long ttl;
+        private long groupSequence = -1;
+        private String replyToGroupId;
+
+        private JsonObject applicationProperties = new JsonObject();
+
+        private final Map<String, Object> footer = new HashMap<>();
 
         private OutgoingAmqpMetadataBuilder() {
         }
 
-        public static OutgoingAmqpMetadataBuilder anOutgoingAmqpMetadata() {
-            return new OutgoingAmqpMetadataBuilder();
+        private OutgoingAmqpMetadataBuilder(OutgoingAmqpMetadata existing) {
+            this.address = existing.message.getAddress();
+
+            this.durable = existing.isDurable();
+            this.priority = existing.getPriority();
+            this.ttl = existing.getTtl();
+
+            this.applicationProperties = existing.getProperties();
+
+            this.deliveryAnnotations.putAll(existing.getDeliveryAnnotations().getValue());
+            this.messageAnnotations.putAll(existing.getMessageAnnotations().getValue());
+
+            this.id = existing.getMessageId();
+            this.userId = existing.getUserId();
+            this.subject = existing.getSubject();
+            this.replyTo = existing.getReplyTo();
+            this.correlationId = existing.getCorrelationId();
+            this.contentType = existing.getContentType();
+            this.contentEncoding = existing.getContentEncoding();
+            this.expiryTime = existing.getExpiryTime();
+            this.creationTime = existing.getCreationTime();
+            this.groupId = existing.getGroupId();
+            this.groupSequence = existing.getGroupSequence();
+            this.replyToGroupId = existing.getReplyToGroupId();
+
+            this.footer.putAll(existing.getFooter().getValue());
         }
 
         public OutgoingAmqpMetadataBuilder withAddress(String address) {
@@ -148,8 +247,64 @@ public class OutgoingAmqpMetadata {
             return this;
         }
 
-        public OutgoingAmqpMetadataBuilder withProperties(JsonObject properties) {
-            this.properties = properties;
+        public OutgoingAmqpMetadataBuilder withDurable(boolean durable) {
+            this.durable = durable;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withPriority(short priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withTtl(long ttl) {
+            this.ttl = ttl;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withDeliveryAnnotations(DeliveryAnnotations deliveryAnnotations) {
+            this.deliveryAnnotations = deliveryAnnotations.getValue();
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withMessageAnnotations(MessageAnnotations messageAnnotations) {
+            this.messageAnnotations = messageAnnotations.getValue();
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withDeliveryAnnotations(String key, Object value) {
+            if (this.deliveryAnnotations == null) {
+                this.deliveryAnnotations = new HashMap<>();
+            }
+            this.deliveryAnnotations.put(Symbol.valueOf(key), value);
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withMessageAnnotations(String key, Object value) {
+            if (this.messageAnnotations == null) {
+                this.messageAnnotations = new HashMap<>();
+            }
+            this.messageAnnotations.put(Symbol.valueOf(key), value);
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withMessageId(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withUserId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withReplyTo(String replyTo) {
+            this.replyTo = replyTo;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withCorrelationId(String correlationId) {
+            this.correlationId = correlationId;
             return this;
         }
 
@@ -163,8 +318,13 @@ public class OutgoingAmqpMetadata {
             return this;
         }
 
-        public OutgoingAmqpMetadataBuilder withCorrelationId(String correlationId) {
-            this.correlationId = correlationId;
+        public OutgoingAmqpMetadataBuilder withExpiryTime(long expiryTime) {
+            this.expiryTime = expiryTime;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withCreationTime(long creationTime) {
+            this.creationTime = creationTime;
             return this;
         }
 
@@ -173,18 +333,13 @@ public class OutgoingAmqpMetadata {
             return this;
         }
 
-        public OutgoingAmqpMetadataBuilder withId(String id) {
-            this.id = id;
+        public OutgoingAmqpMetadataBuilder withGroupSequence(int groupSequence) {
+            this.groupSequence = groupSequence;
             return this;
         }
 
-        public OutgoingAmqpMetadataBuilder withDurable(boolean durable) {
-            this.durable = durable;
-            return this;
-        }
-
-        public OutgoingAmqpMetadataBuilder withPriority(int priority) {
-            this.priority = priority;
+        public OutgoingAmqpMetadataBuilder withReplyToGroupId(String replyToGroupId) {
+            this.replyToGroupId = replyToGroupId;
             return this;
         }
 
@@ -193,14 +348,37 @@ public class OutgoingAmqpMetadata {
             return this;
         }
 
-        public OutgoingAmqpMetadataBuilder withTtl(long ttl) {
-            this.ttl = ttl;
+        public OutgoingAmqpMetadataBuilder withApplicationProperty(String key, Object value) {
+            applicationProperties.put(key, value);
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withApplicationProperties(JsonObject json) {
+            applicationProperties = json;
+            return this;
+        }
+
+        public OutgoingAmqpMetadataBuilder withFooter(String key, Object value) {
+            footer.put(key, value);
             return this;
         }
 
         public OutgoingAmqpMetadata build() {
-            return new OutgoingAmqpMetadata(address, properties, contentType, contentEncoding, correlationId, groupId,
-                    id, durable, priority, subject, ttl);
+            return new OutgoingAmqpMetadata(
+                    address,
+                    // header
+                    durable, priority, ttl,
+                    new DeliveryAnnotations(deliveryAnnotations),
+                    new MessageAnnotations(messageAnnotations),
+                    // properties
+                    id, userId, subject, replyTo, correlationId, contentType, contentEncoding, expiryTime, creationTime,
+                    groupId, groupSequence, replyToGroupId,
+
+                    // application properties,
+                    applicationProperties,
+
+                    new Footer(footer));
         }
     }
+
 }

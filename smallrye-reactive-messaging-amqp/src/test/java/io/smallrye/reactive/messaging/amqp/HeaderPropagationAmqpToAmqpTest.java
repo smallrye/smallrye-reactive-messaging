@@ -44,7 +44,7 @@ public class HeaderPropagationAmqpToAmqpTest extends AmqpTestBase {
         new MapBasedConfig()
                 .put("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.amqp.address", "should-not-be-used")
-                .put("mp.messaging.outgoing.amqp.durable", true)
+                .put("mp.messaging.outgoing.amqp.durable", false)
                 .put("mp.messaging.outgoing.amqp.host", host)
                 .put("mp.messaging.outgoing.amqp.port", port)
                 .put("amqp-username", username)

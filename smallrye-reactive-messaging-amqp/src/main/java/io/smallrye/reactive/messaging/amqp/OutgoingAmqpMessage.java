@@ -41,7 +41,7 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
 
     @Override
     public Object getMessageId() {
-        return amqpMetadata.getId();
+        return amqpMetadata.getMessageId();
     }
 
     @Override

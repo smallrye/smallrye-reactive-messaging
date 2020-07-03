@@ -16,7 +16,7 @@ import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
-import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
+import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
 public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>, Subscription {
@@ -176,12 +176,17 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         int retryAttempts = configuration.getReconnectAttempts();
         int retryInterval = configuration.getReconnectInterval();
         io.vertx.mutiny.amqp.AmqpMessage amqp;
+
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
         } else if (msg.getPayload() instanceof io.vertx.mutiny.amqp.AmqpMessage) {
             amqp = (io.vertx.mutiny.amqp.AmqpMessage) msg.getPayload();
         } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
             amqp = new io.vertx.mutiny.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
+        } else if (msg.getPayload() instanceof org.apache.qpid.proton.message.Message) {
+            org.apache.qpid.proton.message.Message message = (org.apache.qpid.proton.message.Message) msg.getPayload();
+            AmqpMessageImpl vertxMessage = new AmqpMessageImpl(message);
+            amqp = new io.vertx.mutiny.amqp.AmqpMessage(vertxMessage);
         } else {
             amqp = AmqpMessageConverter.convertToAmqpMessage(msg, durable, ttl);
         }
@@ -193,8 +198,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         if (!actualAddress.equals(amqp.address())) {
-            amqp = new io.vertx.mutiny.amqp.AmqpMessage(
-                    new AmqpMessageBuilderImpl(amqp.getDelegate()).address(actualAddress).build());
+            amqp.getDelegate().unwrap().setAddress(actualAddress);
         }
 
         log.sendingMessageToAddress(actualAddress);
@@ -207,7 +211,9 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                         return Uni.createFrom().completionStage(msg.ack());
                     }
                 })
-                .onItem().apply(x -> msg);
+                .onItem().apply(x -> {
+                    return msg;
+                });
     }
 
     private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,
@@ -220,7 +226,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                 log.unableToUseAddress(address, configuredAddress);
                 return configuredAddress;
             }
-
         }
 
         return message.getMetadata(OutgoingAmqpMetadata.class)

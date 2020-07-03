@@ -21,13 +21,13 @@ import java.util.function.Supplier;
 
 import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpClient;
+import io.vertx.mutiny.amqp.AmqpConnection;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 import io.vertx.mutiny.core.Vertx;
@@ -35,12 +35,8 @@ import io.vertx.proton.ProtonHelper;
 
 public class AmqpUsage {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(AmqpUsage.class);
+    private final static Logger LOGGER = Logger.getLogger(AmqpUsage.class);
     private final AmqpClient client;
-
-    public AmqpUsage(Vertx vertx, String host, int port) {
-        this(vertx, host, port, "artemis", "simetraehcapa");
-    }
 
     public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
         this.client = AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()),
@@ -58,7 +54,7 @@ public class AmqpUsage {
         CountDownLatch done = new CountDownLatch(messageCount);
         client.createSender(topic).subscribe().with(sender -> {
             Thread t = new Thread(() -> {
-                LOGGER.info("Starting AMQP sender to write {} messages", messageCount);
+                LOGGER.infof("Starting AMQP sender to write %s messages", messageCount);
                 try {
                     for (int i = 0; i != messageCount; ++i) {
                         Object payload = messageSupplier.get();
@@ -84,7 +80,7 @@ public class AmqpUsage {
                         }
 
                         sender.sendWithAck(msg).subscribe().with(x -> {
-                            LOGGER.info("Producer sent message {}", payload);
+                            LOGGER.infof("Producer sent message %s", payload);
                             done.countDown();
                         }, Throwable::printStackTrace);
 
@@ -115,16 +111,18 @@ public class AmqpUsage {
             Consumer<io.vertx.mutiny.amqp.AmqpMessage> consumerFunction) {
         client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
                 .map(r -> r.handler(msg -> {
-                    LOGGER.info("Consumer {}: consuming message", topic);
+                    LOGGER.infof("Consumer %s: consuming message", topic);
                     consumerFunction.accept(msg);
                 }))
                 .await().indefinitely();
     }
 
     public void consumeIntegers(String topic, Consumer<Integer> consumer) {
-        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
+        AmqpConnection connection = client
+                .connectAndAwait();
+        connection.createReceiver(topic, new AmqpReceiverOptions())
                 .map(r -> r.handler(msg -> {
-                    LOGGER.info("Consumer {}: consuming message {}", topic, msg.bodyAsInteger());
+                    LOGGER.infof("Consumer %s: consuming message %s", topic, msg.bodyAsInteger());
                     consumer.accept(msg.bodyAsInteger());
                 }))
                 .await().indefinitely();

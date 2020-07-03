@@ -21,17 +21,17 @@ import org.apache.qpid.proton.amqp.messaging.Data;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.jboss.logging.Logger;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.LoggerFactory;
 
+import io.smallrye.common.constraint.NotNull;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
@@ -149,7 +149,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
             @Override
             public void onError(Throwable t) {
-                LoggerFactory.getLogger("SUBSCRIBER").error("Error caught in stream", t);
+                Logger.getLogger("SUBSCRIBER").error("Error caught in stream", t);
             }
 
             @Override
@@ -170,8 +170,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("name", "the name for broadcast");
         config.put("port", port);
         config.put("broadcast", true);
-        config.put("username", "artemis");
-        config.put("password", new String("simetraehcapa".getBytes()));
+        config.put("username", username);
+        config.put("password", password);
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
@@ -520,8 +520,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
-        config.put("username", "artemis");
-        config.put("password", new String("simetraehcapa".getBytes()));
+        config.put("username", username);
+        config.put("password", password);
         return config;
     }
 
@@ -532,8 +532,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
-        config.put("username", "artemis");
-        config.put("password", new String("simetraehcapa".getBytes()));
+        config.put("username", username);
+        config.put("password", password);
         return config;
     }
 

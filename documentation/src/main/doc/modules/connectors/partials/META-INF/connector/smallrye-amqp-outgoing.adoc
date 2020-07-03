@@ -29,7 +29,7 @@ Type: _int_ | false | `2000`
 
 | *durable* | Whether sent AMQP messages are marked durable
 
-Type: _boolean_ | false | `true`
+Type: _boolean_ | false | `false`
 
 | *host*
 

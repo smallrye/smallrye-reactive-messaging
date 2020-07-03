@@ -109,7 +109,7 @@ public class ConnectionHolder {
                                 return conn;
                             })
                             .onFailure()
-                            .invoke(t -> log.unableToConnectToBroker(t))
+                            .invoke(log::unableToConnectToBroker)
                             .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
                             .onFailure().invoke(t -> {
                                 holder.set(null);
