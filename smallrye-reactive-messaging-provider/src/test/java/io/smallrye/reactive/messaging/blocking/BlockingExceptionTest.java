@@ -29,7 +29,6 @@ public class BlockingExceptionTest extends WeldTestBaseWithoutTails {
         await().until(() -> bean.list().size() == 5);
         assertThat(bean.list()).contains("a", "b", "d", "e", "f");
 
-        //TODO: Assert the log output contains an exception
         assertThat(logCapture.records()).isNotNull()
                 .filteredOn(r -> r.getMessage().contains("SRMSG00200"))
                 .hasSize(1)

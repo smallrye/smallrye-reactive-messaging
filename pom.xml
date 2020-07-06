@@ -78,6 +78,8 @@
     <mutiny.version>0.5.4</mutiny.version>
     <artemis.version>2.12.0</artemis.version>
 
+    <jboss-log-manager.version>2.1.17.Final</jboss-log-manager.version>
+
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
     <smallrye-reactive-converter-api.version>1.0.13</smallrye-reactive-converter-api.version>
@@ -204,6 +206,12 @@
         <groupId>io.reactivex.rxjava2</groupId>
         <artifactId>rxjava</artifactId>
         <version>${rxjava.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.logmanager</groupId>
+        <artifactId>jboss-logmanager</artifactId>
+        <version>${jboss-log-manager.version}</version>
       </dependency>
 
       <!-- From this project -->
