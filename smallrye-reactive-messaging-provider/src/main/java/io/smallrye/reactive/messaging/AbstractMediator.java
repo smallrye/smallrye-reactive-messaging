@@ -89,7 +89,14 @@ public abstract class AbstractMediator {
             Objects.requireNonNull(this.invoker, msg.invokerNotInitialized());
             Objects.requireNonNull(this.workerPoolRegistry, msg.workerPoolNotInitialized());
             return workerPoolRegistry.executeWork(
-                    future -> future.complete((T) this.invoker.invoke(args)),
+                    future -> {
+                        try {
+                            future.complete((T) this.invoker.invoke(args));
+                        } catch (RuntimeException e) {
+                            log.methodException(configuration().methodAsString(), e);
+                            future.fail(e);
+                        }
+                    },
                     configuration.getWorkerPoolName(),
                     configuration.isBlockingExecutionOrdered());
         } catch (RuntimeException e) {
