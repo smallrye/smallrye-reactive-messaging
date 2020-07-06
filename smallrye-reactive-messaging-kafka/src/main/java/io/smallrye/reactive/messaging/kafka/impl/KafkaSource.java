@@ -4,9 +4,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
@@ -14,6 +13,7 @@ import javax.enterprise.inject.literal.NamedLiteral;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
@@ -22,6 +22,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
@@ -29,6 +30,10 @@ public class KafkaSource<K, V> {
     private final Multi<IncomingKafkaRecord<K, V>> stream;
     private final KafkaConsumer<K, V> consumer;
     private final KafkaFailureHandler failureHandler;
+    private final KafkaConnectorIncomingConfiguration configuration;
+    private final KafkaAdminClient admin;
+    private final List<Throwable> failures = new ArrayList<>();
+    private final String topic;
 
     public KafkaSource(Vertx vertx,
             String group,
@@ -36,6 +41,7 @@ public class KafkaSource<K, V> {
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners) {
 
         Map<String, String> kafkaConfiguration = new HashMap<>();
+        this.configuration = config;
 
         JsonHelper.asJsonObject(config.config())
                 .forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
@@ -60,8 +66,13 @@ public class KafkaSource<K, V> {
         kafkaConfiguration.remove("broadcast");
         kafkaConfiguration.remove("partitions");
         kafkaConfiguration.remove("consumer-rebalance-listener.name");
+        kafkaConfiguration.remove("health.enabled");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
+
+        Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
+        this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
+
         config
                 .getConsumerRebalanceListenerName()
                 .map(name -> {
@@ -128,12 +139,15 @@ public class KafkaSource<K, V> {
                 });
         this.consumer = kafkaConsumer;
 
-        String topic = config.getTopic().orElseGet(config::getChannel);
+        topic = configuration.getTopic().orElseGet(configuration::getChannel);
 
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
 
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
-                .onFailure().invoke(t -> log.unableToReadRecord(topic, t));
+                .onFailure().invoke(t -> {
+                    log.unableToReadRecord(topic, t);
+                    reportFailure(t);
+                });
 
         boolean retry = config.getRetry();
         if (retry) {
@@ -153,10 +167,21 @@ public class KafkaSource<K, V> {
 
         this.stream = multi
                 .on().subscribed(s -> {
+                    this.consumer.exceptionHandler(this::reportFailure);
                     // The Kafka subscription must happen on the subscription.
                     this.consumer.subscribeAndAwait(topic);
                 })
-                .map(rec -> new IncomingKafkaRecord<>(consumer, rec, failureHandler));
+                .map(rec -> new IncomingKafkaRecord<>(consumer, rec, failureHandler))
+                .onFailure().invoke(this::reportFailure);
+    }
+
+    public synchronized void reportFailure(Throwable failure) {
+        log.failureReported(topic, failure);
+        // Don't keep all the failures, there are only there for reporting.
+        if (failures.size() == 10) {
+            failures.remove(0);
+        }
+        failures.add(failure);
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config, Vertx vertx,
@@ -165,11 +190,11 @@ public class KafkaSource<K, V> {
         KafkaFailureHandler.Strategy actualStrategy = KafkaFailureHandler.Strategy.from(strategy);
         switch (actualStrategy) {
             case FAIL:
-                return new KafkaFailStop(config.getChannel());
+                return new KafkaFailStop(config.getChannel(), this);
             case IGNORE:
                 return new KafkaIgnoreFailure(config.getChannel());
             case DEAD_LETTER_QUEUE:
-                return KafkaDeadLetterQueue.create(vertx, kafkaConfiguration, config);
+                return KafkaDeadLetterQueue.create(vertx, kafkaConfiguration, config, this);
             default:
                 throw ex.illegalArgumentInvalidStrategy(strategy);
         }
@@ -186,5 +211,43 @@ public class KafkaSource<K, V> {
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
+    }
+
+    public void isAlive(HealthReport.HealthReportBuilder builder) {
+        if (configuration.getHealthEnabled()) {
+            List<Throwable> actualFailures;
+            synchronized (this) {
+                actualFailures = new ArrayList<>(failures);
+            }
+            if (!actualFailures.isEmpty()) {
+                builder.add(configuration.getChannel(), false,
+                        actualFailures.stream().map(Throwable::getMessage).collect(Collectors.joining()));
+            } else {
+                builder.add(configuration.getChannel(), true);
+            }
+        }
+
+        // If health is disable do not add anything to the builder.
+    }
+
+    public void isReady(HealthReport.HealthReportBuilder builder) {
+        // This method must not be called from the event loop.
+        if (configuration.getHealthEnabled()) {
+            Set<String> topics;
+            try {
+                topics = admin.listTopics()
+                        .await().atMost(Duration.ofSeconds(2));
+                if (topics.contains(topic)) {
+                    builder.add(configuration.getChannel(), true);
+                } else {
+                    builder.add(configuration.getChannel(), false, "Unable to find topic " + topic);
+                }
+            } catch (Exception failed) {
+                builder.add(configuration.getChannel(), false, "No response from broker for topic "
+                        + topic + " : " + failed);
+            }
+        }
+
+        // If health is disable do not add anything to the builder.
     }
 }

@@ -1,14 +1,12 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -16,19 +14,17 @@ import org.apache.kafka.common.header.Header;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
 public class KafkaSink {
 
@@ -38,11 +34,15 @@ public class KafkaSink {
     private final String topic;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
     private final long retries;
+    private final KafkaConnectorOutgoingConfiguration configuration;
+    private final KafkaAdminClient admin;
+    private final List<Throwable> failures = new ArrayList<>();
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
 
-        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
+        Map<String, Object> kafkaConfigurationMap = kafkaConfiguration.getMap();
+        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfigurationMap);
         stream.exceptionHandler(log::unableToWrite);
 
         partition = config.getPartition();
@@ -56,10 +56,26 @@ public class KafkaSink {
                     .orElse(5);
         }
         int inflight = maxInflight;
+
+        this.configuration = config;
+
+        this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
+
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .via(new KafkaSenderProcessor(inflight, waitForWriteCompletion, writeMessageToKafka()))
-                .onError(log::unableToDispatch)
+                .onError(f -> {
+                    log.unableToDispatch(f);
+                    reportFailure(f);
+                })
                 .ignore();
+    }
+
+    private synchronized void reportFailure(Throwable failure) {
+        // Don't keep all the failures, there are only there for reporting.
+        if (failures.size() == 10) {
+            failures.remove(0);
+        }
+        failures.add(failure);
     }
 
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
@@ -160,7 +176,8 @@ public class KafkaSink {
 
         // Max inflight
         if (!kafkaConfiguration.containsKey(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION)) {
-            kafkaConfiguration.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, config.getMaxInflightMessages());
+            kafkaConfiguration
+                    .put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, config.getMaxInflightMessages());
         }
 
         kafkaConfiguration.remove("channel-name");
@@ -174,6 +191,43 @@ public class KafkaSink {
 
     public SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return subscriber;
+    }
+
+    public void isAlive(HealthReport.HealthReportBuilder builder) {
+        if (configuration.getHealthEnabled()) {
+            List<Throwable> actualFailures;
+            synchronized (this) {
+                actualFailures = new ArrayList<>(failures);
+            }
+            if (!actualFailures.isEmpty()) {
+                builder.add(configuration.getChannel(), false,
+                        actualFailures.stream().map(Throwable::getMessage).collect(Collectors.joining()));
+            } else {
+                builder.add(configuration.getChannel(), true);
+            }
+        }
+        // If health is disable do not add anything to the builder.
+    }
+
+    public void isReady(HealthReport.HealthReportBuilder builder) {
+        // This method must not be called from the event loop.
+        if (configuration.getHealthEnabled()) {
+            Set<String> topics;
+            try {
+                topics = admin.listTopics()
+                        .await().atMost(Duration.ofSeconds(2));
+                if (topics.contains(topic)) {
+                    builder.add(configuration.getChannel(), true);
+                } else {
+                    builder.add(configuration.getChannel(), false, "Unable to find topic " + topic);
+                }
+            } catch (Exception failed) {
+                builder.add(configuration.getChannel(), false, "No response from broker for topic "
+                        + topic + " : " + failed);
+            }
+        }
+
+        // If health is disable do not add anything to the builder.
     }
 
     public void closeQuietly() {
@@ -196,104 +250,4 @@ public class KafkaSink {
         }
     }
 
-    private static class KafkaSenderProcessor
-            implements Processor<Message<?>, Message<?>>, Subscription {
-
-        private final long inflights;
-        private final boolean waitForCompletion;
-        private final Function<Message<?>, Uni<Void>> send;
-        private final AtomicReference<Subscription> subscription = new AtomicReference<>();
-        private final AtomicReference<Subscriber<? super Message<?>>> downstream = new AtomicReference<>();
-
-        public KafkaSenderProcessor(int inflights, boolean waitForCompletion, Function<Message<?>, Uni<Void>> send) {
-            this.inflights = inflights;
-            this.waitForCompletion = waitForCompletion;
-            this.send = send;
-        }
-
-        @Override
-        public void subscribe(
-                Subscriber<? super Message<?>> subscriber) {
-            if (!downstream.compareAndSet(null, subscriber)) {
-                Subscriptions.fail(subscriber, ex.illegalStateOnlyOneSubscriber());
-            } else {
-                if (subscription.get() != null) {
-                    subscriber.onSubscribe(this);
-                }
-            }
-        }
-
-        @Override
-        public void onSubscribe(Subscription subscription) {
-            if (this.subscription.compareAndSet(null, subscription)) {
-                Subscriber<? super Message<?>> subscriber = downstream.get();
-                if (subscriber != null) {
-                    subscriber.onSubscribe(this);
-                }
-            } else {
-                Subscriber<? super Message<?>> subscriber = downstream.get();
-                if (subscriber != null) {
-                    subscriber.onSubscribe(Subscriptions.CANCELLED);
-                }
-            }
-        }
-
-        @Override
-        public void onNext(Message<?> message) {
-            if (waitForCompletion) {
-                send.apply(message)
-                        .subscribe().with(
-                                x -> requestNext(message),
-                                this::onError);
-            } else {
-                send.apply(message)
-                        .subscribe().with(x -> {
-                        }, this::onError);
-                requestNext(message);
-            }
-        }
-
-        @Override
-        public void request(long l) {
-            if (l != Long.MAX_VALUE) {
-                throw ex.illegalStateConsumeWithoutBackPressure();
-            }
-            subscription.get().request(inflights);
-        }
-
-        @Override
-        public void cancel() {
-            Subscription s = KafkaSenderProcessor.this.subscription.getAndSet(Subscriptions.CANCELLED);
-            if (s != null) {
-                s.cancel();
-            }
-        }
-
-        private void requestNext(Message<?> message) {
-            Subscriber<? super Message<?>> down = downstream.get();
-            if (down != null) {
-                down.onNext(message);
-            }
-            Subscription up = this.subscription.get();
-            if (up != null) {
-                up.request(1);
-            }
-        }
-
-        @Override
-        public void onError(Throwable throwable) {
-            Subscriber<? super Message<?>> subscriber = downstream.getAndSet(null);
-            if (subscriber != null) {
-                subscriber.onError(throwable);
-            }
-        }
-
-        @Override
-        public void onComplete() {
-            Subscriber<? super Message<?>> subscriber = downstream.getAndSet(null);
-            if (subscriber != null) {
-                subscriber.onComplete();
-            }
-        }
-    }
 }

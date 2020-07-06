@@ -10,6 +10,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.producer.KafkaProducer;
 import io.vertx.mutiny.kafka.client.producer.KafkaProducerRecord;
@@ -20,17 +21,18 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     private final String channel;
     private final KafkaProducer producer;
     private final String topic;
+    private final KafkaSource<?, ?> source;
 
-    public KafkaDeadLetterQueue(String channel, String topic, KafkaProducer producer) {
+    public KafkaDeadLetterQueue(String channel, String topic, KafkaProducer producer, KafkaSource<?, ?> source) {
         this.channel = channel;
         this.topic = topic;
         this.producer = producer;
+        this.source = source;
     }
 
     public static KafkaFailureHandler create(Vertx vertx,
-            Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf) {
+            Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source) {
         Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
-        // TODO The producer may warn about consumer configuration - we may have to remove them.
 
         String keyDeserializer = deadQueueProducerConfig.remove("key.deserializer");
         String valueDeserializer = deadQueueProducerConfig.remove("value.deserializer");
@@ -47,7 +49,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         KafkaProducer<Object, Object> producer = io.vertx.mutiny.kafka.client.producer.KafkaProducer
                 .create(vertx, deadQueueProducerConfig);
 
-        return new KafkaDeadLetterQueue(conf.getChannel(), deadQueueTopic, producer);
+        return new KafkaDeadLetterQueue(conf.getChannel(), deadQueueTopic, producer, source);
 
     }
 
@@ -69,6 +71,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         }
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
+                .onFailure().invoke(t -> source.reportFailure((Throwable) t))
                 .subscribeAsCompletionStage();
     }
 }

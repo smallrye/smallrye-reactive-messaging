@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.kafka.client.common.TopicPartition;
 
@@ -173,7 +174,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcastWithPartitions() {
         KafkaUsage usage = new KafkaUsage();
@@ -212,7 +213,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .containsExactlyInAnyOrder(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes" })
     @Test
     public void testRetry() throws IOException, InterruptedException {
         KafkaUsage usage = new KafkaUsage();
@@ -229,7 +230,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
         List<KafkaRecord> messages1 = new ArrayList<>();
-        source.getStream().subscribe().with(m -> messages1.add(m));
+        source.getStream().subscribe().with(messages1::add);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
@@ -314,6 +315,15 @@ public class KafkaSourceTest extends KafkaTestBase {
             assertThat(m.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(m.getPartition()).isGreaterThan(-1);
         });
+
+        HealthReport liveness = getHealth(container).getLiveness();
+        HealthReport readiness = getHealth(container).getReadiness();
+        assertThat(liveness.isOk()).isTrue();
+        assertThat(readiness.isOk()).isTrue();
+        assertThat(liveness.getChannels()).hasSize(1);
+        assertThat(readiness.getChannels()).hasSize(1);
+        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("data");
+        assertThat(readiness.getChannels().get(0).getChannel()).isEqualTo("data");
     }
 
     @Test
@@ -497,6 +507,15 @@ public class KafkaSourceTest extends KafkaTestBase {
             assertThat(metadata.getPartition()).isGreaterThan(-1);
             assertThat(metadata.getOffset()).isGreaterThan(-1);
         });
+
+        HealthReport liveness = getHealth(container).getLiveness();
+        HealthReport readiness = getHealth(container).getReadiness();
+        assertThat(liveness.isOk()).isTrue();
+        assertThat(readiness.isOk()).isTrue();
+        assertThat(liveness.getChannels()).hasSize(1);
+        assertThat(readiness.getChannels()).hasSize(1);
+        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("data");
+        assertThat(readiness.getChannels().get(0).getChannel()).isEqualTo("data");
     }
 
     @SuppressWarnings("unchecked")

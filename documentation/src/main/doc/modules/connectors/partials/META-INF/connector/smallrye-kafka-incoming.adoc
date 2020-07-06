@@ -13,6 +13,10 @@ Type: _string_ | false | `localhost:9092`
 
 Type: _string_ | false | 
 
+| *health-enabled* | Whether health reporting is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
 | *key.deserializer* | The deserializer classname used to deserialize the record's key
 
 Type: _string_ | false | `org.apache.kafka.common.serialization.StringDeserializer`

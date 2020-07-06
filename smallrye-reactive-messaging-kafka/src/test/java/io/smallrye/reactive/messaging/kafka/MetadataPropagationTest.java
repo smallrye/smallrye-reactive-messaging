@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -196,7 +195,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
 
     @ApplicationScoped
     public static class MyAppWithKafkaMetadata {
-        private final List<Integer> received = new ArrayList<>();
+        private final List<Integer> received = new CopyOnWriteArrayList<>();
         private Metadata metadata;
         private final MetadataValue original = new MetadataValue("important");
 

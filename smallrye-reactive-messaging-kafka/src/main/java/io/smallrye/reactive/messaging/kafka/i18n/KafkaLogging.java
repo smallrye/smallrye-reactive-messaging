@@ -130,4 +130,8 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18227, value = "Re-enabling consumer for group '%s'. This consumer was paused because of a re-balance failure.")
     void reEnablingConsumerforGroup(String consumerGroup);
 
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18228, value = "A failure has been reported for Kafka topic '%s'")
+    void failureReported(String topic, @Cause Throwable t);
+
 }
