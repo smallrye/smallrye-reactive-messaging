@@ -75,6 +75,7 @@
     <smallrye-health.version>2.2.1</smallrye-health.version>
 
     <mutiny.version>0.5.4</mutiny.version>
+    <artemis.version>2.12.0</artemis.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
