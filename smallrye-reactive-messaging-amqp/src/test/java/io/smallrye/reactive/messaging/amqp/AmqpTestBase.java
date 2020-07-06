@@ -1,10 +1,12 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.*;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.vertx.mutiny.core.Vertx;
 import repeat.RepeatRule;
 
@@ -49,11 +51,28 @@ public class AmqpTestBase {
 
     @After
     public void tearDown() {
-
         usage.close();
         executionHolder.terminate(null);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
         MapBasedConfig.clear();
+    }
+
+    public boolean isAmqpConnectorReady(WeldContainer container) {
+        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        return health.getReadiness().isOk();
+    }
+
+    public boolean isAmqpConnectorReady(AmqpConnector connector) {
+        return connector.getReadiness().isOk();
+    }
+
+    public boolean isAmqpConnectorAlive(WeldContainer container) {
+        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        return health.getLiveness().isOk();
+    }
+
+    public boolean isAmqpConnectorAlive(AmqpConnector connector) {
+        return connector.getLiveness().isOk();
     }
 
 }

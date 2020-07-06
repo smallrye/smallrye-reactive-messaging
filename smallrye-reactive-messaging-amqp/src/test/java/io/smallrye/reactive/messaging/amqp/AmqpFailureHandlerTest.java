@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -45,20 +46,25 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
     }
 
     @Test
-    public void testFailStrategy() {
-        getFailConfig();
+    public void testFailStrategy() throws InterruptedException {
+        String address = UUID.randomUUID().toString();
+        getFailConfig(address);
         MyReceiverBean bean = deploy();
         AtomicInteger counter = new AtomicInteger();
 
         AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                 ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
-        await().until(() -> connector.isReady("amqp"));
+        await().until(() -> isAmqpConnectorReady(connector));
+        await().until(() -> isAmqpConnectorAlive(connector));
 
-        usage.produceTenIntegers("fail", counter::getAndIncrement);
+        usage.produceTenIntegers(address, counter::getAndIncrement);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other messages should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3);
+
+        await().until(() -> !isAmqpConnectorReady(connector));
+        await().until(() -> !isAmqpConnectorAlive(connector));
     }
 
     @Test
@@ -69,15 +75,17 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
 
         AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                 ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
-        await()
-                .atMost(1, TimeUnit.MINUTES)
-                .until(() -> connector.isReady("amqp"));
+        await().until(() -> isAmqpConnectorReady(connector));
+        await().until(() -> isAmqpConnectorAlive(connector));
 
         usage.produceTenIntegers("accept", counter::getAndIncrement);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All messages should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        assertThat(isAmqpConnectorAlive(connector)).isTrue();
+        assertThat(isAmqpConnectorReady(connector)).isTrue();
     }
 
     @Test
@@ -87,7 +95,8 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
         AtomicInteger counter = new AtomicInteger();
         AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                 ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
-        await().until(() -> connector.isReady("amqp"));
+        await().until(() -> isAmqpConnectorReady(connector));
+        await().until(() -> isAmqpConnectorAlive(connector));
 
         usage.produceTenIntegers("release", counter::getAndIncrement);
 
@@ -97,6 +106,9 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
         assertThat(bean.list()).satisfies(l -> assertThat(l.indexOf(3)).isNotEqualTo(l.lastIndexOf(3)));
         assertThat(bean.list()).satisfies(l -> assertThat(l.indexOf(6)).isNotEqualTo(l.lastIndexOf(6)));
         assertThat(bean.list()).satisfies(l -> assertThat(l.indexOf(9)).isNotEqualTo(l.lastIndexOf(9)));
+
+        assertThat(isAmqpConnectorAlive(connector)).isTrue();
+        assertThat(isAmqpConnectorReady(connector)).isTrue();
     }
 
     @Test
@@ -106,18 +118,22 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
         AtomicInteger counter = new AtomicInteger();
         AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                 ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
-        await().until(() -> connector.isReady("amqp"));
+        await().until(() -> isAmqpConnectorReady(connector));
+        await().until(() -> isAmqpConnectorAlive(connector));
 
         usage.produceTenIntegers("reject", counter::getAndIncrement);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All messages should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        assertThat(isAmqpConnectorAlive(connector)).isTrue();
+        assertThat(isAmqpConnectorReady(connector)).isTrue();
     }
 
-    private void getFailConfig() {
+    private void getFailConfig(String address) {
         new MapBasedConfig()
-                .put("mp.messaging.incoming.amqp.address", "fail")
+                .put("mp.messaging.incoming.amqp.address", address)
                 .put("mp.messaging.incoming.amqp.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.amqp.host", host)
                 .put("mp.messaging.incoming.amqp.port", port)

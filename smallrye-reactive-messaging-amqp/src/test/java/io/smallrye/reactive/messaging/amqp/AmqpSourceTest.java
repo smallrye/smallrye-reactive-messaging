@@ -82,7 +82,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.buildRs().subscribe(createSubscriber(messages, opened));
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceTenIntegers(topic,
@@ -113,7 +114,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.buildRs().subscribe(createSubscriber(messages, opened));
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceTenIntegers(topic,
@@ -185,6 +187,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         rs.subscribe(createSubscriber(messages1, o1));
         rs.subscribe(createSubscriber(messages2, o2));
 
+        await().until(() -> isAmqpConnectorReady(provider));
+
         await()
                 .pollDelay(5, TimeUnit.SECONDS)
                 .until(() -> o1.get() && o2.get());
@@ -218,6 +222,10 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .write();
 
         ConsumptionBean bean = deploy();
+
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
+
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
 
@@ -251,7 +259,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         usage.produce(topic, 1, () -> AmqpMessage.create().withBufferAsBody(Buffer.buffer("foo".getBytes())).build());
 
@@ -275,7 +284,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         JsonObject json = new JsonObject();
         String id = UUID.randomUUID().toString();
@@ -303,7 +313,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         JsonArray list = new JsonArray();
         String id = UUID.randomUUID().toString();
@@ -331,7 +342,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         List<String> list = new ArrayList<>();
         list.add("tag");
@@ -358,7 +370,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         List<String> list = new ArrayList<>();
         list.add("hello");
