@@ -3,12 +3,7 @@ package io.smallrye.reactive.messaging.kafka.fault;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +24,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 
 public class KafkaFailureHandlerTest extends KafkaTestBase {
@@ -48,6 +44,12 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
     public void testFailStrategy() {
         addConfig(getFailConfig());
         container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
+
+        await().until(() -> {
+            HealthReport readiness = getHealth(container).getReadiness();
+            return readiness.isOk();
+        });
+
         KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
@@ -57,12 +59,23 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3);
+
+        await().until(() -> {
+            HealthReport liveness = getHealth(container).getLiveness();
+            return !liveness.isOk();
+        });
     }
 
     @Test
     public void testIgnoreStrategy() {
         addConfig(getIgnoreConfig());
         container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
+
+        await().until(() -> {
+            HealthReport readiness = getHealth(container).getReadiness();
+            return readiness.isOk();
+        });
+
         KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
@@ -72,6 +85,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All records should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        HealthReport liveness = getHealth(container).getLiveness();
+        assertThat(liveness.isOk()).isTrue();
     }
 
     @Test
@@ -86,6 +102,12 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
         addConfig(getDeadLetterQueueConfig());
         container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
+
+        await().until(() -> {
+            HealthReport readiness = getHealth(container).getReadiness();
+            return readiness.isOk();
+        });
+
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("dead-letter-default", counter.getAndIncrement()))).start();
@@ -101,6 +123,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             assertThat(new String(r.headers().lastHeader("dead-letter-reason").value())).startsWith("nack 3 -");
             assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
         });
+
+        HealthReport liveness = getHealth(container).getLiveness();
+        assertThat(liveness.isOk()).isTrue();
     }
 
     @Test
@@ -115,6 +140,12 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
         addConfig(getDeadLetterQueueWithCustomConfig());
         container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
+
+        await().until(() -> {
+            HealthReport readiness = getHealth(container).getReadiness();
+            return readiness.isOk();
+        });
+
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("dead-letter-custom", counter.getAndIncrement()))).start();
@@ -130,6 +161,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             assertThat(new String(r.headers().lastHeader("dead-letter-reason").value())).startsWith("nack 3 -");
             assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
         });
+
+        HealthReport liveness = getHealth(container).getLiveness();
+        assertThat(liveness.isOk()).isTrue();
     }
 
     private MapBasedConfig getFailConfig() {

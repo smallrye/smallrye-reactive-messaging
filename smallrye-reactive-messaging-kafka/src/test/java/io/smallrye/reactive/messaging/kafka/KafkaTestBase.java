@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -107,6 +108,10 @@ public class KafkaTestBase {
         } else {
             MapBasedConfig.clear();
         }
+    }
+
+    public HealthCenter getHealth(WeldContainer container) {
+        return container.getBeanManager().createInstance().select(HealthCenter.class).get();
     }
 
 }

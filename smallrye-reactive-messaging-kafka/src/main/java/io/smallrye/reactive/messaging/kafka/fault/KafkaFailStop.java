@@ -6,13 +6,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 
 public class KafkaFailStop implements KafkaFailureHandler {
 
     private final String channel;
+    private final KafkaSource<?, ?> source;
 
-    public KafkaFailStop(String channel) {
+    public <K, V> KafkaFailStop(String channel, KafkaSource<?, ?> source) {
         this.channel = channel;
+        this.source = source;
     }
 
     @Override
@@ -22,6 +25,8 @@ public class KafkaFailStop implements KafkaFailureHandler {
         log.messageNackedFailStop(channel);
         CompletableFuture<Void> future = new CompletableFuture<>();
         future.completeExceptionally(reason);
+        // report failure to the connector for health check
+        source.reportFailure(reason);
         return future;
     }
 }

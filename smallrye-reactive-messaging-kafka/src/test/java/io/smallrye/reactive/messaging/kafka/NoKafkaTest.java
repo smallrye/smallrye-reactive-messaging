@@ -30,6 +30,8 @@ import org.junit.Test;
 import io.reactivex.Flowable;
 import io.reactivex.exceptions.MissingBackpressureException;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.extension.HealthCenter;
+import io.smallrye.reactive.messaging.health.HealthReport;
 
 public class NoKafkaTest {
 
@@ -60,16 +62,39 @@ public class NoKafkaTest {
         container = KafkaTestBase.baseWeld();
         KafkaTestBase.addConfig(myKafkaSinkConfigWithoutBlockLimit());
         container.addBeanClasses(MyOutgoingBean.class);
-        container.initialize();
-
-        nap();
+        WeldContainer weld = container.initialize();
 
         assertThat(expected).hasValue(0);
 
+        await().until(() -> {
+            HealthReport readiness = getHealth(weld).getReadiness();
+            return !readiness.isOk();
+        });
+
+        await().until(() -> {
+            // liveness is ok, as we don't check the connection with the broker
+            HealthReport liveness = getHealth(weld).getLiveness();
+            return liveness.isOk();
+        });
+
         KafkaTestBase.startKafkaBroker();
+
+        await().until(() -> {
+            HealthReport readiness = getHealth(weld).getReadiness();
+            return readiness.isOk();
+        });
+
+        await().until(() -> {
+            HealthReport liveness = getHealth(weld).getLiveness();
+            return liveness.isOk();
+        });
 
         await().until(() -> received.size() == 3);
 
+    }
+
+    private HealthCenter getHealth(WeldContainer container) {
+        return container.getBeanManager().createInstance().select(HealthCenter.class).get();
     }
 
     @Test
@@ -80,14 +105,31 @@ public class NoKafkaTest {
         container.addBeanClasses(MyIncomingBean.class);
         WeldContainer weld = container.initialize();
 
-        nap();
-
         MyIncomingBean bean = weld.select(MyIncomingBean.class).get();
         assertThat(bean.received()).hasSize(0);
 
+        await().until(() -> {
+            HealthReport readiness = getHealth(weld).getReadiness();
+            return !readiness.isOk();
+        });
+
+        await().until(() -> {
+            // liveness is ok, as we don't check the connection with the broker
+            HealthReport liveness = getHealth(weld).getLiveness();
+            return liveness.isOk();
+        });
+
         KafkaTestBase.startKafkaBroker();
 
-        nap();
+        await().until(() -> {
+            HealthReport readiness = getHealth(weld).getReadiness();
+            return readiness.isOk();
+        });
+
+        await().until(() -> {
+            HealthReport liveness = getHealth(weld).getLiveness();
+            return liveness.isOk();
+        });
 
         AtomicInteger counter = new AtomicInteger();
         usage.produceIntegers(5, null, () -> new ProducerRecord<>("output", "1", counter.getAndIncrement()));
@@ -103,17 +145,22 @@ public class NoKafkaTest {
         container.addBeanClasses(MyOutgoingBeanWithoutBackPressure.class);
         WeldContainer weld = this.container.initialize();
 
-        nap();
+        await().until(() -> {
+            HealthReport readiness = getHealth(weld).getReadiness();
+            return !readiness.isOk();
+        });
+
+        await().until(() -> {
+            // Failure caught
+            HealthReport liveness = getHealth(weld).getLiveness();
+            return !liveness.isOk();
+        });
 
         MyOutgoingBeanWithoutBackPressure bean = weld
                 .select(MyOutgoingBeanWithoutBackPressure.class).get();
         Throwable throwable = bean.error();
         assertThat(throwable).isNotNull();
         assertThat(throwable).isInstanceOf(MissingBackpressureException.class);
-    }
-
-    private void nap() throws InterruptedException {
-        Thread.sleep(1000); // NOSONAR
     }
 
     @ApplicationScoped

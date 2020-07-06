@@ -3,11 +3,9 @@ package io.smallrye.reactive.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,6 +24,7 @@ import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 
 public class KafkaSinkTest extends KafkaTestBase {
@@ -181,8 +180,20 @@ public class KafkaSinkTest extends KafkaTestBase {
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
+        await().until(() -> getHealth(container).getReadiness().isOk());
+
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
+
+        HealthReport liveness = getHealth(container).getLiveness();
+        HealthReport readiness = getHealth(container).getReadiness();
+
+        assertThat(liveness.isOk()).isTrue();
+        assertThat(readiness.isOk()).isTrue();
+        assertThat(liveness.getChannels()).hasSize(1);
+        assertThat(readiness.getChannels()).hasSize(1);
+        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
+        assertThat(readiness.getChannels().get(0).getChannel()).isEqualTo("output");
     }
 
     @Test
@@ -203,6 +214,9 @@ public class KafkaSinkTest extends KafkaTestBase {
                 });
 
         deploy(getKafkaSinkConfigForMessageProducingBean(topic), ProducingKafkaMessageBean.class);
+
+        await().until(() -> getHealth(container).getReadiness().isOk());
+        await().until(() -> getHealth(container).getLiveness().isOk());
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -228,23 +242,43 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("partition", 0);
         config.put("max-inflight-messages", 1);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", "my-channel");
+        config.put("failure-strategy", "ignore");
         config.put("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
         KafkaSink sink = new KafkaSink(vertx, oc);
 
+        await().until(() -> {
+            HealthReport.HealthReportBuilder builder = HealthReport.builder();
+            sink.isReady(builder);
+            return builder.build().isOk();
+        });
+
+        List<Object> acked = new CopyOnWriteArrayList<>();
+        List<Object> nacked = new CopyOnWriteArrayList<>();
         Subscriber subscriber = sink.getSink().build();
-        Flowable.range(0, 5)
+        Flowable.range(0, 6)
                 .map(i -> {
                     if (i == 3 || i == 5) {
                         return Integer.toString(i);
                     }
                     return i;
                 })
-                .map(Message::of)
+                .map(i -> Message.of(i, () -> {
+                    acked.add(i);
+                    return CompletableFuture.completedFuture(null);
+                }, t -> {
+                    nacked.add(i);
+                    return CompletableFuture.completedFuture(null);
+                }))
                 .subscribe(subscriber);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(4); // 3 and 5 are ignored.
+
+        await().until(() -> nacked.size() >= 2);
+        assertThat(acked).containsExactly(0, 1, 2, 4);
+        assertThat(nacked).contains("3", "5");
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

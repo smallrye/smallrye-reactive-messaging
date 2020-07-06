@@ -74,7 +74,7 @@ They are all prefixed with `SRMSG`, followed with the numeric code.
 
 In the following output, the code is `SRMSG00229`:
 
-[code]
+[source]
 ----
 [2020-06-15 13:35:07] [INFO   ] SRMSG00229: Channel manager initializing...
 ----

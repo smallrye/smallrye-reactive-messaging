@@ -36,6 +36,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
@@ -44,6 +46,7 @@ import io.vertx.mutiny.core.Vertx;
 @Connector(KafkaConnector.CONNECTOR_NAME)
 @ConnectorAttribute(name = "bootstrap.servers", alias = "kafka.bootstrap.servers", type = "string", defaultValue = "localhost:9092", direction = Direction.INCOMING_AND_OUTGOING, description = "A comma-separated list of host:port to use for establishing the initial connection to the Kafka cluster.")
 @ConnectorAttribute(name = "topic", type = "string", direction = Direction.INCOMING_AND_OUTGOING, description = "The consumed / populated Kafka topic. If not set, the channel name is used")
+@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "key.deserializer", type = "string", direction = Direction.INCOMING, description = "The deserializer classname used to deserialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringDeserializer")
 @ConnectorAttribute(name = "value.deserializer", type = "string", direction = Direction.INCOMING, description = "The deserializer classname used to deserialize the record's value", mandatory = true)
 @ConnectorAttribute(name = "fetch.min.bytes", type = "int", direction = Direction.INCOMING, description = "The minimum amount of data the server should return for a fetch request. The default setting of 1 byte means that fetch requests are answered as soon as a single byte of data is available or the fetch request times out waiting for data to arrive.", defaultValue = "1")
@@ -68,7 +71,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "waitForWriteCompletion", type = "boolean", direction = Direction.OUTGOING, description = "Whether the client waits for Kafka to acknowledge the written record before acknowledging the message", defaultValue = "true")
 @ConnectorAttribute(name = "max-inflight-messages", type = "int", direction = Direction.OUTGOING, description = "The maximum number of messages to be written to Kafka concurrently - The default value is the value from the `max.in.flight.requests.per.connection` Kafka property. It configures the maximum number of unacknowledged requests the client before blocking. Note that if this setting is set to be greater than 1 and there are failed sends, there is a risk of message re-ordering due to retries.", defaultValue = "5")
 @ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.")
-public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
@@ -195,5 +198,42 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 return passedCfg.getConfigSources();
             }
         };
+    }
+
+    @Override
+    public HealthReport getReadiness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        if (sources.isEmpty() && sinks.isEmpty()) {
+            return builder.add("kafka-connector", false).build();
+        }
+
+        for (KafkaSource<?, ?> source : sources) {
+            source.isReady(builder);
+        }
+
+        for (KafkaSink sink : sinks) {
+            sink.isReady(builder);
+        }
+
+        return builder.build();
+
+    }
+
+    @Override
+    public HealthReport getLiveness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        if (sources.isEmpty() && sinks.isEmpty()) {
+            return builder.add("kafka-connector", false).build();
+        }
+
+        for (KafkaSource<?, ?> source : sources) {
+            source.isAlive(builder);
+        }
+
+        for (KafkaSink sink : sinks) {
+            sink.isAlive(builder);
+        }
+
+        return builder.build();
     }
 }

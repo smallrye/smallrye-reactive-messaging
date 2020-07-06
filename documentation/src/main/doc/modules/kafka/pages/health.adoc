@@ -1,0 +1,34 @@
+[#kafka-health]
+== Health reporting
+
+The Kafka connector reports the readiness and liveness of each channel managed by the connector.
+
+NOTE: To disable health reporting, set the `health-enabled` attribute for the channel to `false`.
+
+=== Readiness
+
+On the inbound side (receiving records from Kafka), the readiness check verifies that:
+
+* the broker is available
+* the Kafka topic is created (available in the broker).
+* no failures have been caught
+
+On the outbound side (writing records to Kafka), the readiness check verifies that:
+
+* the broker is available
+* the Kafka topic is created (available in the broker).
+
+=== Liveness
+
+On the inbound side (receiving records from Kafka), the liveness check verifies that:
+
+* no failures have been caught
+* the client is connected to the broker
+
+On the outbound side (writing records to Kafka), the liveness check verifies that:
+
+* no failures have been caught
+
+Note that a message processing failures _nacks_ the message which is then handled by the failure-strategy.
+It the responsibility of the failure-strategy to report the failure and influence the outcome of the liveness checks.
+The `fail` failure strategy reports the failure and so the liveness check will report the failure.
