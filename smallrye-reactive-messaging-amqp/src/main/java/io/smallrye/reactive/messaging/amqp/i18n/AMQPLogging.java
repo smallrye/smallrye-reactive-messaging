@@ -116,4 +116,7 @@ public interface AMQPLogging extends BasicLogger {
     @Message(id = 16224, value = "The AMQP message to address `%s` has not been sent, the client is closed")
     void messageNoSend(String actualAddress);
 
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 16225, value = "Failure reported for channel `%s`, closing client")
+    void failureReported(String channel, @Cause Throwable reason);
 }

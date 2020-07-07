@@ -63,7 +63,8 @@ public class ObjectExchangeTest extends AmqpTestBase {
         AmqpConnector connector = container.getBeanManager().createInstance()
                 .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
 
-        await().until(() -> connector.isReady("from-amqp") && connector.isReady("to-amqp"));
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
 
         Generator generator = container.getBeanManager().createInstance().select(Generator.class).get();
         Consumer consumer = container.getBeanManager().createInstance().select(Consumer.class).get();

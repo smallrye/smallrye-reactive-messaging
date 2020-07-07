@@ -14,7 +14,6 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -63,9 +62,8 @@ public class AmqpLinkTest extends AmqpTestBase {
                 .write();
 
         container = weld.initialize();
-        AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
-                ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
-        await().until(() -> connector.isReady("people-in"));
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
 
         MyProducer producer = container.getBeanManager().createInstance().select(MyProducer.class).get();
         producer.run();

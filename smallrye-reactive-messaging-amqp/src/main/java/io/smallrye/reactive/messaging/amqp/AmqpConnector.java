@@ -34,6 +34,8 @@ import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.reactive.messaging.amqp.fault.*;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
@@ -68,7 +70,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "credit-retrieval-period", direction = OUTGOING, description = "The period (in milliseconds) between two attempts to retrieve the credits granted by the broker. This time is used when the sender run out of credits.", type = "int", defaultValue = "2000")
 @ConnectorAttribute(name = "use-anonymous-sender", direction = OUTGOING, description = "Whether or not the connector should use an anonymous sender.", type = "boolean", defaultValue = "true")
 
-public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     static final String CONNECTOR_NAME = "smallrye-amqp";
 
@@ -80,7 +82,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
 
-    private final Map<String, Boolean> ready = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> opened = new ConcurrentHashMap<>();
 
     void setup(ExecutionHolder executionHolder) {
         this.executionHolder = executionHolder;
@@ -91,7 +93,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver, ConnectionHolder holder,
+    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver,
+            ConnectionHolder holder,
             String address,
             AmqpFailureHandler onNack) {
         log.receiverListeningAddress(address);
@@ -116,6 +119,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
         String address = ic.getAddress().orElseGet(ic::getChannel);
+
+        opened.put(ic.getChannel(), false);
+
         boolean broadcast = ic.getBroadcast();
         boolean durable = ic.getDurable();
         boolean autoAck = ic.getAutoAcknowledgement();
@@ -131,16 +137,19 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)
                         .setLinkName(link)))
-                .onItem().invoke(r -> ready.put(ic.getChannel(), true))
+                .onItem().invoke(r -> opened.put(ic.getChannel(), true))
                 .onItem().produceMulti(r -> getStreamOfMessages(r, holder, address, onNack));
 
         Integer interval = ic.getReconnectInterval();
         Integer attempts = ic.getReconnectAttempts();
         multi = multi
                 // Retry on failure.
-                .onFailure().invoke(t -> log.retrieveMessagesRetrying(t))
+                .onFailure().invoke(log::retrieveMessagesRetrying)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
-                .onFailure().invoke(t -> log.retrieveMessagesNoMoreRetrying(t));
+                .onFailure().invoke(t -> {
+                    opened.put(ic.getChannel(), false);
+                    log.retrieveMessagesNoMoreRetrying(t);
+                });
 
         if (broadcast) {
             multi = multi.broadcast().toAllSubscribers();
@@ -155,6 +164,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
         boolean useAnonymousSender = oc.getUseAnonymousSender();
 
+        opened.put(oc.getChannel(), false);
+
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions);
         String link = oc.getLinkName().orElseGet(oc::getChannel);
@@ -164,7 +175,6 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .onItem().ifNull().switchTo(() -> {
 
                     // If we already have a sender, use it.
-
                     AmqpSender current = sender.get();
                     if (current != null && !current.connection().isDisconnected()) {
                         return Uni.createFrom().item(current);
@@ -181,12 +191,18 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                             })
                             .onItem().invoke(s -> {
                                 sender.set(s);
-                                ready.put(oc.getChannel(), true);
+                                opened.put(oc.getChannel(), true);
                             });
                 })
                 // If the downstream cancels or on failure, drop the sender.
-                .onFailure().invoke(t -> sender.set(null))
-                .on().cancellation(() -> sender.set(null));
+                .onFailure().invoke(t -> {
+                    sender.set(null);
+                    opened.put(oc.getChannel(), false);
+                })
+                .on().cancellation(() -> {
+                    sender.set(null);
+                    opened.put(oc.getChannel(), false);
+                });
 
         AmqpCreditBasedSender processor = new AmqpCreditBasedSender(
                 this,
@@ -196,6 +212,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         return ReactiveStreams.<Message<?>> builder()
                 .via(processor)
+                .onError(t -> opened.put(oc.getChannel(), false))
                 .ignore();
     }
 
@@ -218,7 +235,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         AmqpFailureHandler.Strategy actualStrategy = AmqpFailureHandler.Strategy.from(strategy);
         switch (actualStrategy) {
             case FAIL:
-                return new AmqpFailStop(config.getChannel());
+                return new AmqpFailStop(this, config.getChannel());
             case ACCEPT:
                 return new AmqpAccept(config.getChannel());
             case REJECT:
@@ -231,11 +248,31 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     }
 
-    public boolean isReady(String channel) {
-        return ready.getOrDefault(channel, false);
-    }
-
     public List<AmqpClient> getClients() {
         return clients;
+    }
+
+    @Override
+    public HealthReport getReadiness() {
+        return getHealth();
+    }
+
+    private HealthReport getHealth() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        for (Map.Entry<String, Boolean> entry : opened.entrySet()) {
+            builder.add(entry.getKey(), entry.getValue());
+        }
+        return builder.build();
+    }
+
+    @Override
+    public HealthReport getLiveness() {
+        return getHealth();
+    }
+
+    public void reportFailure(String channel, Throwable reason) {
+        log.failureReported(channel, reason);
+        opened.put(channel, false);
+        terminate(null);
     }
 }
