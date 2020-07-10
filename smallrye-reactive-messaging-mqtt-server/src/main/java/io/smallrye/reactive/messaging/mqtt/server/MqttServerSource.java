@@ -13,6 +13,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import io.reactivex.processors.BehaviorProcessor;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.vertx.mqtt.MqttServerOptions;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
@@ -110,15 +111,15 @@ class MqttServerSource {
 
         this.source = ReactiveStreams.fromPublisher(processor
                 .delaySubscription(server)
-                .doOnSubscribe(subscription -> log.newSubscriberAdded(subscription)));
+                .doOnSubscribe(log::newSubscriberAdded));
     }
 
     private Multi<MqttServer> startServer(MqttServerOptions options) {
         return mqttServer.listen()
                 .onItem().invoke(s -> log.serverListeningOn(options.getHost(), s.actualPort()))
-                .onFailure().invoke(throwable -> log.failedToStart(throwable))
+                .onFailure().invoke(log::failedToStart)
                 .toMulti()
-                .then(flow -> {
+                .stage(flow -> {
                     if (broadcast) {
                         return flow.broadcast().toAllSubscribers();
                     } else {
@@ -133,9 +134,9 @@ class MqttServerSource {
 
     synchronized void close() {
         mqttServer.close()
-                .onFailure().invoke(t -> log.exceptionWhileClosing(t))
+                .onFailure().invoke(log::exceptionWhileClosing)
                 .onItem().invoke(x -> log.closed())
-                .onFailure().recoverWithItem((Void) null)
+                .onFailure().recoverWithUni(Uni.createFrom().nullItem())
                 .await().indefinitely();
     }
 

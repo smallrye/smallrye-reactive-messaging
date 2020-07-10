@@ -43,23 +43,21 @@ public class MqttSource {
         Clients.ClientHolder holder = Clients.getHolder(vertx, host, port, server, options);
         this.source = ReactiveStreams.fromPublisher(
                 holder.connect()
-                        .onItem().produceMulti(client -> {
-                            return client.subscribe(topic, qos)
-                                    .onItem().produceMulti(x -> {
-                                        subscribed.set(true);
-                                        return holder.stream()
-                                                .transform().byFilteringItemsWith(m -> matches(topic, m))
-                                                .onItem().apply(m -> new ReceivingMqttMessage(m, onNack));
-                                    });
-                        })
-                        .then(multi -> {
+                        .onItem().transformToMulti(client -> client.subscribe(topic, qos)
+                                .onItem().transformToMulti(x -> {
+                                    subscribed.set(true);
+                                    return holder.stream()
+                                            .transform().byFilteringItemsWith(m -> matches(topic, m))
+                                            .onItem().transform(m -> new ReceivingMqttMessage(m, onNack));
+                                }))
+                        .stage(multi -> {
                             if (broadcast) {
                                 return multi.broadcast().toAllSubscribers();
                             }
                             return multi;
                         })
                         .on().cancellation(() -> subscribed.set(false))
-                        .onFailure().invoke(t -> log.unableToConnectToBroker(t)));
+                        .onFailure().invoke(log::unableToConnectToBroker));
     }
 
     private boolean matches(String topic, MqttPublishMessage m) {

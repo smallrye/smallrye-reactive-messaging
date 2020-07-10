@@ -19,6 +19,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.vertx.core.eventbus.DeliveryOptions;
 
@@ -69,7 +70,7 @@ public class EventBusSourceTest extends EventbusTestBase {
         List<EventBusMessage<Integer>> messages1 = new ArrayList<>();
         List<EventBusMessage<Integer>> messages2 = new ArrayList<>();
         Multi<EventBusMessage<Integer>> multi = Multi.createFrom().publisher(source.source().buildRs())
-                .onItem().apply(x -> (EventBusMessage<Integer>) x);
+                .onItem().transform(x -> (EventBusMessage<Integer>) x);
         multi.subscribe().with(messages1::add);
         multi.subscribe().with(messages2::add);
 
@@ -98,8 +99,9 @@ public class EventBusSourceTest extends EventbusTestBase {
                 new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         Multi<? extends EventBusMessage<?>> multi = Multi.createFrom().publisher(source.source().buildRs())
-                .onItem().apply(x -> (EventBusMessage<?>) x)
-                .onItem().produceCompletionStage(m -> m.ack().toCompletableFuture().thenApply(x -> m)).concatenate();
+                .onItem().transform(x -> (EventBusMessage<?>) x)
+                .onItem().transformToUniAndConcatenate(
+                        m -> Uni.createFrom().completionStage(m.ack().toCompletableFuture().thenApply(x -> m)));
 
         List<EventBusMessage<?>> messages = new ArrayList<>();
         multi.subscribe().with(messages::add);
@@ -122,7 +124,7 @@ public class EventBusSourceTest extends EventbusTestBase {
                 new VertxEventBusConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         Multi<? extends EventBusMessage<?>> multi = Multi.createFrom().publisher(source.source().buildRs())
-                .onItem().apply(x -> (EventBusMessage<?>) x);
+                .onItem().transform(x -> (EventBusMessage<?>) x);
 
         List<EventBusMessage<?>> messages1 = new ArrayList<>();
         multi.subscribe().with(messages1::add);

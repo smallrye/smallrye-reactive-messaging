@@ -133,12 +133,12 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         AmqpFailureHandler onNack = createFailureHandler(ic);
 
         Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
-                .onItem().produceUni(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
+                .onItem().transformToUni(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)
                         .setLinkName(link)))
                 .onItem().invoke(r -> opened.put(ic.getChannel(), true))
-                .onItem().produceMulti(r -> getStreamOfMessages(r, holder, address, onNack));
+                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, onNack));
 
         Integer interval = ic.getReconnectInterval();
         Integer attempts = ic.getReconnectAttempts();
@@ -181,7 +181,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     }
 
                     return holder.getOrEstablishConnection()
-                            .onItem().produceUni(connection -> {
+                            .onItem().transformToUni(connection -> {
                                 if (useAnonymousSender) {
                                     return connection.createAnonymousSender();
                                 } else {

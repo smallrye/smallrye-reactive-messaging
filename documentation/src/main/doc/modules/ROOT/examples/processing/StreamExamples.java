@@ -14,10 +14,10 @@ public class StreamExamples {
     public Multi<Message<String>> processMessageStream(Multi<Message<Integer>> stream) {
         return
             stream
-                .onItem().produceUni(message ->
+                .onItem().transformToUni(message ->
                 invokeService(message.getPayload())
                     .onFailure().recoverWithItem("fallback")
-                    .onItem().apply(message::withPayload)
+                    .onItem().transform(message::withPayload)
             )
                 .concatenate();
 
@@ -30,7 +30,7 @@ public class StreamExamples {
     public Multi<String> processPayloadStream(Multi<Integer> stream) {
         return
             stream
-                .onItem().produceUni(payload ->
+                .onItem().transformToUni(payload ->
                 invokeService(payload)
                     .onFailure().recoverWithItem("fallback")
             )

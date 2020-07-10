@@ -22,7 +22,7 @@ public class StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListen
         // will perform the underlying operation but simulate an error on the first attempt
         return super.onPartitionsAssigned(consumer, set)
                 .onItem()
-                .produceUni(a -> {
+                .transformToUni(a -> {
                     if (!set.isEmpty() && failOnFirstAttempt.getAndSet(false)) {
                         return Uni
                                 .createFrom()

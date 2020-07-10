@@ -40,8 +40,7 @@ class HttpSink {
 
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(m -> send(m)
-                        .onItem().produceCompletionStage(v -> m.ack())
-                        .onItem().apply(x -> m)
+                        .onItem().transformToUni(v -> Uni.createFrom().completionStage(m.ack().thenApply(x -> m)))
                         .subscribeAsCompletionStage())
                 .ignore();
     }
@@ -50,8 +49,8 @@ class HttpSink {
         Serializer<Object> serializer = Serializer.lookup(message.getPayload(), converterClass);
         HttpRequest<?> request = toHttpRequest(message);
         return serializer.convert(message.getPayload())
-                .onItem().produceUni(buffer -> invoke(request, buffer))
-                .onItem().produceCompletionStage(x -> message.ack());
+                .onItem().transformToUni(buffer -> invoke(request, buffer))
+                .onItem().transformToUni(x -> Uni.createFrom().completionStage(message.ack()));
     }
 
     @SuppressWarnings("unchecked")
@@ -97,7 +96,7 @@ class HttpSink {
     private Uni<Void> invoke(HttpRequest<?> request, Buffer buffer) {
         return request
                 .sendBuffer(buffer)
-                .onItem().apply(resp -> {
+                .onItem().transform(resp -> {
                     if (resp.statusCode() >= 200 && resp.statusCode() < 300) {
                         return null;
                     } else {

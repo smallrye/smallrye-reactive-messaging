@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ProcessingException;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -214,19 +215,19 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         List<Throwable> reasons = new CopyOnWriteArrayList<>();
         CountDownLatch done = new CountDownLatch(1);
         Multi.createFrom().range(0, 10)
-                .onItem().apply(i -> Integer.toString(i))
+                .onItem().transform(i -> Integer.toString(i))
                 .onItem()
-                .produceCompletionStage(i -> CompletableFuture.runAsync(() -> emitter.send(Message.of(i, Metadata.empty(),
-                        () -> {
-                            acked.add(i);
-                            return CompletableFuture.completedFuture(null);
-                        }, t -> {
-                            reasons.add(t);
-                            nacked.add(i);
-                            return CompletableFuture.completedFuture(null);
-                        })))
-                        .thenApply(x -> i))
-                .merge()
+                .transformToUniAndMerge(i -> Uni.createFrom()
+                        .completionStage(CompletableFuture.runAsync(() -> emitter.send(Message.of(i, Metadata.empty(),
+                                () -> {
+                                    acked.add(i);
+                                    return CompletableFuture.completedFuture(null);
+                                }, t -> {
+                                    reasons.add(t);
+                                    nacked.add(i);
+                                    return CompletableFuture.completedFuture(null);
+                                })))
+                                .thenApply(x -> i)))
                 .subscribe().with(
                         x -> {
                             // noop
