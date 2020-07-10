@@ -72,6 +72,7 @@ public class AmqpMessageTest {
 
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testBuilder() {
         AmqpMessageBuilder<String> builder = AmqpMessage.builder();

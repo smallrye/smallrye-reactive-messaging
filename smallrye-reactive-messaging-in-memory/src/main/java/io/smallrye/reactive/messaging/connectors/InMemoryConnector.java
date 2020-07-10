@@ -165,7 +165,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      * @return the source
      * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
      *         in-memory connector.
-     * @see #switchChannelToInMemory(String...)
+     * @see #switchIncomingChannelsToInMemory(String...)
      */
     public <T> InMemorySource<T> source(String channel) {
         if (channel == null) {
@@ -190,7 +190,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      * @return the sink
      * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
      *         in-memory connector.
-     * @see #switchChannelToInMemory(String...)
+     * @see #switchOutgoingChannelsToInMemory(String...)
      */
     public <T> InMemorySink<T> sink(String channel) {
         if (channel == null) {

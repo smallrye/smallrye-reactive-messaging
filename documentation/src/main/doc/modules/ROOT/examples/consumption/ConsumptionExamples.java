@@ -54,6 +54,7 @@ public class ConsumptionExamples {
         return CompletableFuture.completedFuture(null);
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     private Price handle(Price price) {
         return price;
     }

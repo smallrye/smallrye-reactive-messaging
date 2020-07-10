@@ -73,12 +73,12 @@ public class HeaderPropagationAmqpToAmqpTest extends AmqpTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return AmqpMessage.<Integer> builder()
+            OutgoingAmqpMetadata metadata = OutgoingAmqpMetadata.builder()
                     .withAddress("my-address")
-                    .withIntegerAsBody(input.getPayload())
                     .withApplicationProperties(new JsonObject().put("X-Header", "value"))
                     .withSubject("test")
                     .build();
+            return input.addMetadata(metadata);
         }
 
         @Incoming("p1")

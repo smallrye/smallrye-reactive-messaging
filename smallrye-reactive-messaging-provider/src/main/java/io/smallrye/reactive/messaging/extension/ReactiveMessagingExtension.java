@@ -60,6 +60,7 @@ public class ReactiveMessagingExtension implements Extension {
         }
     }
 
+    @SuppressWarnings("deprecation")
     <T extends io.smallrye.reactive.messaging.annotations.Emitter<?>> void processStreamLegacyEmitterInjectionPoint(
             @Observes ProcessInjectionPoint<?, T> pip) {
         Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
@@ -143,6 +144,7 @@ public class ReactiveMessagingExtension implements Extension {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private OnOverflow createOnOverflowForLegacyAnnotation(InjectionPoint point) {
         io.smallrye.reactive.messaging.annotations.OnOverflow legacy = point.getAnnotated()
                 .getAnnotation(io.smallrye.reactive.messaging.annotations.OnOverflow.class);

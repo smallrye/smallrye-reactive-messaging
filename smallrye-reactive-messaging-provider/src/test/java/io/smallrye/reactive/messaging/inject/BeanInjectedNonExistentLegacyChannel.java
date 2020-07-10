@@ -8,6 +8,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Channel;
 
+@SuppressWarnings("deprecation")
 @ApplicationScoped
 public class BeanInjectedNonExistentLegacyChannel {
 

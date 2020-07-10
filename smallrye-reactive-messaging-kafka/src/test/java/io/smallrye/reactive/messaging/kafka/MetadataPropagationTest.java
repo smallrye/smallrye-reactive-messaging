@@ -156,6 +156,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         return new MapBasedConfig(config);
     }
 
+    @SuppressWarnings("deprecation")
     @ApplicationScoped
     public static class MyAppGeneratingData {
 
@@ -177,6 +178,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @ApplicationScoped
     public static class MyAppProcessingData {
 

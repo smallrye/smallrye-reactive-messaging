@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
 import com.google.pubsub.v1.ProjectTopicName;
+import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.mutiny.Multi;
 
@@ -55,7 +56,7 @@ public class PubSubTest extends PubSubTestBase {
         await().until(() -> manager
                 .topicAdminClient(
                         new PubSubConfig(PROJECT_ID, topic, null, true, "localhost", CONTAINER.getMappedPort(PUBSUB_PORT)))
-                .listTopicSubscriptions(ProjectTopicName.of(PROJECT_ID, topic))
+                .listTopicSubscriptions((TopicName) ProjectTopicName.of(PROJECT_ID, topic))
                 .getPage()
                 .getPageElementCount() > 0);
 

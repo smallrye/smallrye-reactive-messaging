@@ -12,6 +12,7 @@ import io.smallrye.reactive.messaging.annotations.Emitter;
  *
  * @param <T> the type of payload or message
  */
+@SuppressWarnings("deprecation")
 public class LegacyEmitterImpl<T> implements Emitter<T> {
 
     private final org.eclipse.microprofile.reactive.messaging.Emitter<T> delegate;

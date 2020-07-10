@@ -87,6 +87,7 @@ public class StreamTransformerMediator extends AbstractMediator {
         };
     }
 
+    @SuppressWarnings("unchecked")
     private void processMethodConsumingAPublisherOfMessages() {
         function = publisher -> {
             Publisher<Message<?>> prependedWithAck = publisher
@@ -95,7 +96,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Class<?> parameterType = configuration.getParameterTypes()[0];
             Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
             if (converter.isPresent()) {
-                prependedWithAck = (Publisher) converter.get().fromPublisher(prependedWithAck);
+                prependedWithAck = (Publisher<Message<?>>) converter.get().fromPublisher(prependedWithAck);
             }
             Publisher<Message<?>> result = invoke(prependedWithAck);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
