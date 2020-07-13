@@ -204,16 +204,14 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         log.sendingMessageToAddress(actualAddress);
         return sender.sendWithAck(amqp)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
-                .onItemOrFailure().produceUni((success, failure) -> {
+                .onItemOrFailure().transformToUni((success, failure) -> {
                     if (failure != null) {
                         return Uni.createFrom().completionStage(msg.nack(failure));
                     } else {
                         return Uni.createFrom().completionStage(msg.ack());
                     }
                 })
-                .onItem().apply(x -> {
-                    return msg;
-                });
+                .onItem().transform(x -> msg);
     }
 
     private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,

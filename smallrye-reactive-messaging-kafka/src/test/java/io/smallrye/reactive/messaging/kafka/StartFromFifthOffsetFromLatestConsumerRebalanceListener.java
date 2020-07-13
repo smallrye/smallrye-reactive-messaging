@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -14,11 +15,11 @@ import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 @Named("my-group-starting-on-fifth-happy-path")
 public class StartFromFifthOffsetFromLatestConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
 
-    private volatile int rebalanceCount = 0;
+    private AtomicInteger rebalanceCount = new AtomicInteger();
 
     @Override
     public Uni<Void> onPartitionsAssigned(KafkaConsumer<?, ?> consumer, Set<TopicPartition> set) {
-        rebalanceCount++;
+        rebalanceCount.incrementAndGet();
         return Uni
                 .combine()
                 .all()
@@ -26,7 +27,7 @@ public class StartFromFifthOffsetFromLatestConsumerRebalanceListener implements 
                         .stream()
                         .map(topicPartition -> consumer.endOffsets(topicPartition)
                                 .onItem()
-                                .produceUni(o -> consumer.seek(topicPartition, Math.max(0L, o - 5L))))
+                                .transformToUni(o -> consumer.seek(topicPartition, Math.max(0L, o - 5L))))
                         .collect(Collectors.toList()))
                 .combinedWith(a -> null);
     }
@@ -39,6 +40,6 @@ public class StartFromFifthOffsetFromLatestConsumerRebalanceListener implements 
     }
 
     public int getRebalanceCount() {
-        return rebalanceCount;
+        return rebalanceCount.get();
     }
 }

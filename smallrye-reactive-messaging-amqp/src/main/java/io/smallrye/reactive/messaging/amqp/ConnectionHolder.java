@@ -81,8 +81,8 @@ public class ConnectionHolder {
                     }
 
                     return client.connect()
-                            .on().subscribed(s -> log.establishingConnection())
-                            .onItem().apply(conn -> {
+                            .onSubscribe().invoke(s -> log.establishingConnection())
+                            .onItem().transform(conn -> {
                                 log.connectionEstablished();
                                 holder.set(new CurrentConnection(conn, Vertx.currentContext()));
                                 conn

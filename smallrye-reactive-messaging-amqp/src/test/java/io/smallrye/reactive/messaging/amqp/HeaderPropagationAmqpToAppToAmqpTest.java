@@ -94,11 +94,11 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return AmqpMessage.<Integer> builder()
-                    .withIntegerAsBody(input.getPayload())
-                    .withApplicationProperties(new JsonObject().put("X-Header", "value"))
-                    .withSubject("test")
-                    .build();
+            return input.addMetadata(
+                    OutgoingAmqpMetadata.builder()
+                            .withApplicationProperties(new JsonObject().put("X-Header", "value"))
+                            .withSubject("test")
+                            .build());
         }
 
         @Incoming("p1")

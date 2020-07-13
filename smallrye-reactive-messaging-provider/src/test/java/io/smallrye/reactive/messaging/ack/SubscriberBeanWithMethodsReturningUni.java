@@ -35,7 +35,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
         return Uni.createFrom().item(message)
                 .emitOn(EXECUTOR)
                 .onItem().invoke((m) -> processed(MANUAL_ACKNOWLEDGMENT, message))
-                .onItem().produceCompletionStage(Message::ack);
+                .onItem().transformToUni(m -> Uni.createFrom().completionStage(m.ack()));
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT)
@@ -128,7 +128,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
         return Uni.createFrom().<Void> item(() -> null)
                 .emitOn(EXECUTOR)
                 .onItem().invoke(x -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message))
-                .onItem().produceCompletionStage(x -> message.ack());
+                .onItem().transformToUni(x -> Uni.createFrom().completionStage(message.ack()));
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE)

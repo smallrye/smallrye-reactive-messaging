@@ -23,6 +23,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     private final Context context;
     protected final AmqpFailureHandler onNack;
 
+    @Deprecated
     public static <T> AmqpMessageBuilder<T> builder() {
         return new AmqpMessageBuilder<>();
     }

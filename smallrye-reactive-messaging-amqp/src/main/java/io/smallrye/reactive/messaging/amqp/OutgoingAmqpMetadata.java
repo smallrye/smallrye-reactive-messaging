@@ -239,7 +239,9 @@ public class OutgoingAmqpMetadata {
             this.groupSequence = existing.getGroupSequence();
             this.replyToGroupId = existing.getReplyToGroupId();
 
-            this.footer.putAll(existing.getFooter().getValue());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> footer = existing.getFooter().getValue();
+            this.footer.putAll(footer);
         }
 
         public OutgoingAmqpMetadataBuilder withAddress(String address) {

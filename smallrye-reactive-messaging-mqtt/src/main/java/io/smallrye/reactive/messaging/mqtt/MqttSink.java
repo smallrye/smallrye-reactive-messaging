@@ -78,7 +78,7 @@ public class MqttSink {
                         c.disconnectAndForget();
                     }
                 })
-                .onError(t -> log.errorWhileSendingMessageToBroker(t))
+                .onError(log::errorWhileSendingMessageToBroker)
                 .ignore();
     }
 
@@ -101,7 +101,7 @@ public class MqttSink {
         }
 
         return client.publish(actualTopicToBeUsed, convert(msg.getPayload()), actualQoS, false, isRetain)
-                .onItemOrFailure().produceUni((s, f) -> {
+                .onItemOrFailure().transformToUni((s, f) -> {
                     if (f != null) {
                         return Uni.createFrom().completionStage(msg.nack(f).thenApply(x -> msg));
                     } else {

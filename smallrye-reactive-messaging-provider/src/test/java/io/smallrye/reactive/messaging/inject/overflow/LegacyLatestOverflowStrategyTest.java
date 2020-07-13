@@ -63,6 +63,7 @@ public class LegacyLatestOverflowStrategyTest extends WeldTestBaseWithoutTails {
         assertThat(bean.exception()).isNull();
     }
 
+    @SuppressWarnings("deprecation")
     @ApplicationScoped
     public static class BeanUsingLatestOverflowStrategy {
 

@@ -101,17 +101,17 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         CountDownLatch done = new CountDownLatch(1);
         Multi.createFrom().items("a", "b", "c", "d", "e", "f", "g", "h", "i", "j")
                 .onItem()
-                .produceCompletionStage(i -> CompletableFuture.runAsync(() -> emitter.send(Message.of(i, Metadata.empty(),
-                        () -> {
-                            acked.add(i);
-                            return CompletableFuture.completedFuture(null);
-                        }, t -> {
-                            reasons.add(t);
-                            nacked.add(i);
-                            return CompletableFuture.completedFuture(null);
-                        })))
-                        .thenApply(x -> i))
-                .merge()
+                .transformToUniAndMerge(i -> Uni.createFrom().completionStage(
+                        CompletableFuture.runAsync(() -> emitter.send(Message.of(i, Metadata.empty(),
+                                () -> {
+                                    acked.add(i);
+                                    return CompletableFuture.completedFuture(null);
+                                }, t -> {
+                                    reasons.add(t);
+                                    nacked.add(i);
+                                    return CompletableFuture.completedFuture(null);
+                                })))
+                                .thenApply(x -> i)))
                 .subscribe().with(
                         x -> {
                             // noop

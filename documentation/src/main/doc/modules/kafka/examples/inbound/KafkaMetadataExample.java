@@ -9,6 +9,7 @@ import java.time.Instant;
 public class KafkaMetadataExample {
 
 
+    @SuppressWarnings("unchecked")
     public void metadata() {
         Message<Double> incoming = Message.of(12.0);
         // tag::code[]

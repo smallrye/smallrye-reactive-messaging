@@ -166,10 +166,9 @@ public class KafkaSource<K, V> {
         }
 
         this.stream = multi
-                .on().subscribed(s -> {
+                .onSubscribe().invokeUni(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
-                    // The Kafka subscription must happen on the subscription.
-                    this.consumer.subscribeAndAwait(topic);
+                    return this.consumer.subscribe(topic);
                 })
                 .map(rec -> new IncomingKafkaRecord<>(consumer, rec, failureHandler))
                 .onFailure().invoke(this::reportFailure);

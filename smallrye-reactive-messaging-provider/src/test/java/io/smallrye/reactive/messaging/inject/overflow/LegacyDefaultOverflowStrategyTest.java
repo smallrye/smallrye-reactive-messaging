@@ -61,6 +61,7 @@ public class LegacyDefaultOverflowStrategyTest extends WeldTestBaseWithoutTails 
         assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
     }
 
+    @SuppressWarnings("deprecation")
     @ApplicationScoped
     public static class BeanUsingDefaultOverflow {
 

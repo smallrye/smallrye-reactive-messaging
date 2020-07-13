@@ -346,6 +346,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testSinkUsingAmqpMessage() {
         String topic = UUID.randomUUID().toString();
@@ -486,6 +487,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         });
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testSinkUsingAmqpMessageWithNonAnonymousSender() {
         String topic = UUID.randomUUID().toString();
@@ -551,6 +553,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         });
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testSinkUsingAmqpMessageAndChannelNameProperty() {
         String topic = UUID.randomUUID().toString();

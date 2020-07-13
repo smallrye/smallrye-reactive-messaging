@@ -13,6 +13,7 @@ import org.reactivestreams.Publisher;
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.annotations.Channel;
 
+@SuppressWarnings("deprecation")
 @ApplicationScoped
 public class BeanInjectedWithDifferentFlavorsOfTheSameChannelLegacy {
 

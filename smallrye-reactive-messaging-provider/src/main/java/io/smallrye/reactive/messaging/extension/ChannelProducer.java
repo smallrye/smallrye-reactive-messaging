@@ -18,7 +18,6 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
@@ -170,16 +169,6 @@ public class ChannelProducer {
     }
 
     @SuppressWarnings("rawtypes")
-    private SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(InjectionPoint injectionPoint) {
-        String name = getChannelName(injectionPoint);
-        List<SubscriberBuilder<? extends Message<?>, Void>> list = channelRegistry.getSubscribers(name);
-        if (list.isEmpty()) {
-            throw ex.illegalStateForStream(name, channelRegistry.getOutgoingNames());
-        }
-        return list.get(0);
-    }
-
-    @SuppressWarnings("rawtypes")
     private Emitter getEmitter(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
         Emitter emitter = channelRegistry.getEmitter(name);
@@ -196,6 +185,7 @@ public class ChannelProducer {
         return null;
     }
 
+    @SuppressWarnings("deprecation")
     static String getChannelName(InjectionPoint injectionPoint) {
         for (Annotation qualifier : injectionPoint.getQualifiers()) {
             if (qualifier.annotationType().equals(Channel.class)) {
@@ -209,6 +199,7 @@ public class ChannelProducer {
         throw ex.illegalStateForAnnotationNotFound("@Channel", injectionPoint);
     }
 
+    @SuppressWarnings("deprecation")
     static Channel getChannelQualifier(InjectionPoint injectionPoint) {
         for (Annotation qualifier : injectionPoint.getQualifiers()) {
             if (qualifier.annotationType().equals(Channel.class)) {

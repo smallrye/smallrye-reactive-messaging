@@ -61,6 +61,7 @@ public class LegacyEmitterBufferOverflowStrategyTest extends WeldTestBaseWithout
         assertThat(bean.exception()).isInstanceOf(IllegalStateException.class);
     }
 
+    @SuppressWarnings("deprecation")
     @ApplicationScoped
     public static class BeanUsingBufferOverflowStrategy {
 
