@@ -9,13 +9,21 @@ _(kafka.bootstrap.servers)_ | A comma-separated list of host:port to use for est
 
 Type: _string_ | false | `localhost:9092`
 
-| *topic* | The consumed / populated Kafka topic. If not set, the channel name is used
+| *topic* | The consumed / populated Kafka topic. If neither this property nor the `topics` properties are set, the channel name is used
 
 Type: _string_ | false | 
 
 | *health-enabled* | Whether health reporting is enabled (default) or disabled
 
 Type: _boolean_ | false | `true`
+
+| *topics* | A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties
+
+Type: _string_ | false | 
+
+| *pattern* | Indicate that the `topic` property is a regular expression. Must be used with the `topic` property. Cannot be used with the `topics` property
+
+Type: _boolean_ | false | `false`
 
 | *key.deserializer* | The deserializer classname used to deserialize the record's key
 

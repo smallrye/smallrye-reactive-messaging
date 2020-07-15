@@ -114,4 +114,12 @@ public class KafkaTestBase {
         return container.getBeanManager().createInstance().select(HealthCenter.class).get();
     }
 
+    public boolean isReady(WeldContainer container) {
+        return getHealth(container).getReadiness().isOk();
+    }
+
+    public boolean isLive(WeldContainer container) {
+        return getHealth(container).getLiveness().isOk();
+    }
+
 }
