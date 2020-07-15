@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,6 +20,7 @@ import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -28,6 +30,9 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.jboss.logging.Logger;
+
+import io.grpc.Context;
+import io.opentelemetry.OpenTelemetry;
 
 /**
  * @author <a href="http://escoffier.me">Clement Escoffier</a>
@@ -215,6 +220,26 @@ public class KafkaUsage {
                 });
     }
 
+    public void consumeStringsWithTracing(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            BiConsumer<String, String> consumer, Consumer<Context> tracingConsumer) {
+        AtomicLong readCounter = new AtomicLong();
+        this.consumeStrings(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion,
+                Collections.singleton(topicName),
+                (record) -> {
+                    consumer.accept(record.key(), record.value());
+                    tracingConsumer.accept(
+                            OpenTelemetry.getPropagators().getHttpTextFormat()
+                                    .extract(Context.current(), record.headers(), (headers, key) -> {
+                                        final Header header = headers.lastHeader(key);
+                                        if (header == null) {
+                                            return null;
+                                        }
+                                        return new String(header.value(), StandardCharsets.UTF_8);
+                                    }));
+                    readCounter.incrementAndGet();
+                });
+    }
+
     public void consumeDoubles(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, Double> consumer) {
         AtomicLong readCounter = new AtomicLong();
@@ -249,6 +274,23 @@ public class KafkaUsage {
                 (record) -> {
                     consumer.accept(record);
                     readCounter.incrementAndGet();
+                });
+    }
+
+    public void consumeIntegersWithTracing(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            BiConsumer<String, Integer> consumer, Consumer<Context> tracingConsumer) {
+        this.consumeIntegers(topicName, count, timeout, unit, completion,
+                (record) -> {
+                    consumer.accept(record.key(), record.value());
+                    tracingConsumer.accept(
+                            OpenTelemetry.getPropagators().getHttpTextFormat()
+                                    .extract(Context.current(), record.headers(), (headers, key) -> {
+                                        final Header header = headers.lastHeader(key);
+                                        if (header == null) {
+                                            return null;
+                                        }
+                                        return new String(header.value(), StandardCharsets.UTF_8);
+                                    }));
                 });
     }
 

@@ -80,6 +80,8 @@
 
     <jboss-log-manager.version>2.1.17.Final</jboss-log-manager.version>
 
+    <opentelemetry.version>0.6.0</opentelemetry.version>
+
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
     <smallrye-reactive-converter-api.version>1.1.0</smallrye-reactive-converter-api.version>
@@ -212,6 +214,22 @@
         <groupId>org.jboss.logmanager</groupId>
         <artifactId>jboss-logmanager</artifactId>
         <version>${jboss-log-manager.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-api</artifactId>
+        <version>${opentelemetry.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-sdk</artifactId>
+        <version>${opentelemetry.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-exporters-inmemory</artifactId>
+        <version>${opentelemetry.version}</version>
       </dependency>
 
       <!-- From this project -->

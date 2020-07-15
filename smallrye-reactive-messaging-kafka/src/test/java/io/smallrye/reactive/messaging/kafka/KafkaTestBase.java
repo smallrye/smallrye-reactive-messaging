@@ -66,7 +66,9 @@ public class KafkaTestBase {
 
     @After
     public void tearDown() {
-        vertx.close();
+        if (vertx != null) {
+            vertx.close();
+        }
     }
 
     public void restart(int i) throws IOException, InterruptedException {

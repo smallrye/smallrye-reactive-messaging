@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
@@ -14,9 +15,12 @@ import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import io.opentelemetry.trace.Span;
+import io.opentelemetry.trace.SpanContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
@@ -226,6 +230,7 @@ public class KafkaSource<K, V> {
                 })
                 .map(rec -> commitHandler
                         .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents())))
+                .onItem().invoke(this::incomingTrace)
                 .onFailure().invoke(this::reportFailure);
     }
 
@@ -262,6 +267,36 @@ public class KafkaSource<K, V> {
             failures.remove(0);
         }
         failures.add(failure);
+    }
+
+    public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {
+        if (configuration.getTracingEnabled()) {
+            TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
+
+            final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic())
+                    .setSpanKind(Span.Kind.CONSUMER);
+
+            // Handle possible parent span
+            final SpanContext parentSpan = tracingMetadata.getPreviousSpanContext();
+            if (parentSpan != null && parentSpan.isValid()) {
+                spanBuilder.setParent(parentSpan);
+            } else {
+                spanBuilder.setNoParent();
+            }
+
+            final Span span = spanBuilder.startSpan();
+
+            // Set Span attributes
+            span.setAttribute("partition", kafkaRecord.getPartition());
+            span.setAttribute("offset", kafkaRecord.getOffset());
+            span.setAttribute("messaging.system", "kafka");
+            span.setAttribute("messaging.destination", kafkaRecord.getTopic());
+            span.setAttribute("messaging.destination_kind", "topic");
+
+            kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
+
+            span.end();
+        }
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config, Vertx vertx,
