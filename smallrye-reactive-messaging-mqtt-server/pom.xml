@@ -15,7 +15,7 @@
 
   <properties>
     <!-- Test dependencies versions -->
-    <version.paho>1.2.4</version.paho>
+    <version.paho>1.2.5</version.paho>
     <version.weld.junit5>2.0.1.Final</version.weld.junit5>
   </properties>
 
