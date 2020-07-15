@@ -41,7 +41,7 @@ Type: _int_ | false | `-1`
 
 Type: _long_ | false | `2147483647`
 
-| *topic* | The consumed / populated Kafka topic. If not set, the channel name is used
+| *topic* | The consumed / populated Kafka topic. If neither this property nor the `topics` properties are set, the channel name is used
 
 Type: _string_ | false | 
 

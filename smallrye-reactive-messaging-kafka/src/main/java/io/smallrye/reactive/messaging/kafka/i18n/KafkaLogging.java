@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.i18n;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
@@ -87,8 +88,8 @@ public interface KafkaLogging extends BasicLogger {
     void noGroupId(String randomId);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 18217, value = "Unable to read a record from Kafka topic '%s'")
-    void unableToReadRecord(String topic, @Cause Throwable t);
+    @Message(id = 18217, value = "Unable to read a record from Kafka topics '%s'")
+    void unableToReadRecord(Set<String> topics, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18218, value = "An exception has been caught while closing the Kafka consumer")
@@ -131,7 +132,14 @@ public interface KafkaLogging extends BasicLogger {
     void reEnablingConsumerforGroup(String consumerGroup);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 18228, value = "A failure has been reported for Kafka topic '%s'")
-    void failureReported(String topic, @Cause Throwable t);
+    @Message(id = 18228, value = "A failure has been reported for Kafka topics '%s'")
+    void failureReported(Set<String> topics, @Cause Throwable t);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18229, value = "Consumed topics for channel '%s': %s")
+    void configuredTopics(String channel, Set<String> topics);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18230, value = "Consumed topics matching pattern for channel '%s': %s")
+    void configuredPattern(String channel, String pattern);
 }

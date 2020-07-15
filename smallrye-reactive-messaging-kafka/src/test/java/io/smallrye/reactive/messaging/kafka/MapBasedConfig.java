@@ -4,11 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
@@ -24,6 +20,15 @@ public class MapBasedConfig implements Config {
 
     public MapBasedConfig(Map<String, Object> map) {
         this.map = map;
+    }
+
+    public MapBasedConfig() {
+        this.map = new HashMap<>();
+    }
+
+    public MapBasedConfig put(String k, Object v) {
+        this.map.put(k, v);
+        return this;
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")

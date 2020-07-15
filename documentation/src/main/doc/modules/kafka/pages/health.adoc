@@ -13,6 +13,9 @@ On the inbound side (receiving records from Kafka), the readiness check verifies
 * the Kafka topic is created (available in the broker).
 * no failures have been caught
 
+If you consume multiple topics using the `topics` attribute, the readiness check verifies that all the consumed topics are available.
+If you use a pattern (using the `pattern` attribute), the readiness check verifies that at least one existing topic matches the pattern.
+
 On the outbound side (writing records to Kafka), the readiness check verifies that:
 
 * the broker is available

@@ -5,6 +5,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
@@ -13,6 +15,8 @@ import javax.enterprise.inject.literal.NamedLiteral;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
@@ -21,6 +25,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
+import io.vertx.core.AsyncResult;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
@@ -33,12 +38,25 @@ public class KafkaSource<K, V> {
     private final KafkaConnectorIncomingConfiguration configuration;
     private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
-    private final String topic;
+    private final Set<String> topics;
+    private final Pattern pattern;
 
     public KafkaSource(Vertx vertx,
             String group,
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners) {
+
+        topics = getTopics(config);
+
+        if (config.getPattern()) {
+            pattern = Pattern.compile(config.getTopic()
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid Kafka incoming configuration for channel `"
+                            + config.getChannel() + "`, `pattern` must be used with the `topic` attribute")));
+            log.configuredPattern(config.getChannel(), pattern.toString());
+        } else {
+            log.configuredTopics(config.getChannel(), topics);
+            pattern = null;
+        }
 
         Map<String, String> kafkaConfiguration = new HashMap<>();
         this.configuration = config;
@@ -60,6 +78,8 @@ public class KafkaSource<K, V> {
 
         kafkaConfiguration.remove("channel-name");
         kafkaConfiguration.remove("topic");
+        kafkaConfiguration.remove("topics");
+        kafkaConfiguration.remove("pattern");
         kafkaConfiguration.remove("connector");
         kafkaConfiguration.remove("retry");
         kafkaConfiguration.remove("retry-attempts");
@@ -139,13 +159,11 @@ public class KafkaSource<K, V> {
                 });
         this.consumer = kafkaConsumer;
 
-        topic = configuration.getTopic().orElseGet(configuration::getChannel);
-
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
 
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> {
-                    log.unableToReadRecord(topic, t);
+                    log.unableToReadRecord(topics, t);
                     reportFailure(t);
                 });
 
@@ -168,14 +186,56 @@ public class KafkaSource<K, V> {
         this.stream = multi
                 .onSubscribe().invokeUni(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
-                    return this.consumer.subscribe(topic);
+                    if (this.pattern != null) {
+                        BiConsumer<UniEmitter<?>, AsyncResult<Void>> completionHandler = (e, ar) -> {
+                            if (ar.failed()) {
+                                e.fail(ar.cause());
+                            } else {
+                                e.complete(null);
+                            }
+                        };
+
+                        return Uni.createFrom().<Void> emitter(e -> {
+                            @SuppressWarnings("unchecked")
+                            io.vertx.kafka.client.consumer.KafkaConsumer<K, V> delegate = this.consumer.getDelegate();
+                            delegate.subscribe(pattern, ar -> completionHandler.accept(e, ar));
+                        });
+                    } else {
+                        return this.consumer.subscribe(topics);
+                    }
                 })
                 .map(rec -> new IncomingKafkaRecord<>(consumer, rec, failureHandler))
                 .onFailure().invoke(this::reportFailure);
     }
 
+    private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
+        String list = config.getTopics().orElse(null);
+        String top = config.getTopic().orElse(null);
+        String channel = config.getChannel();
+        boolean isPattern = config.getPattern();
+
+        if (list != null && top != null) {
+            throw new IllegalArgumentException("The Kafka incoming configuration for channel `" + channel + "` cannot "
+                    + "use `topics` and `topic` at the same time");
+        }
+
+        if (list != null && isPattern) {
+            throw new IllegalArgumentException("The Kafka incoming configuration for channel `" + channel + "` cannot "
+                    + "use `topics` and `pattern` at the same time");
+        }
+
+        if (list != null) {
+            String[] strings = list.split(",");
+            return Arrays.stream(strings).map(String::trim).collect(Collectors.toSet());
+        } else if (top != null) {
+            return Collections.singleton(top);
+        } else {
+            return Collections.singleton(channel);
+        }
+    }
+
     public synchronized void reportFailure(Throwable failure) {
-        log.failureReported(topic, failure);
+        log.failureReported(topics, failure);
         // Don't keep all the failures, there are only there for reporting.
         if (failures.size() == 10) {
             failures.remove(0);
@@ -232,18 +292,30 @@ public class KafkaSource<K, V> {
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
         if (configuration.getHealthEnabled()) {
-            Set<String> topics;
+            Set<String> existingTopics;
             try {
-                topics = admin.listTopics()
+                existingTopics = admin.listTopics()
                         .await().atMost(Duration.ofSeconds(2));
-                if (topics.contains(topic)) {
+                if (pattern == null && existingTopics.containsAll(topics)) {
                     builder.add(configuration.getChannel(), true);
+                } else if (pattern != null) {
+                    // Check that at least one topic matches
+                    boolean ok = existingTopics.stream()
+                            .anyMatch(s -> pattern.matcher(s).matches());
+                    if (ok) {
+                        builder.add(configuration.getChannel(), ok);
+                    } else {
+                        builder.add(configuration.getChannel(), false,
+                                "Unable to find a topic matching the given pattern: " + pattern);
+                    }
                 } else {
-                    builder.add(configuration.getChannel(), false, "Unable to find topic " + topic);
+                    String missing = topics.stream().filter(s -> !existingTopics.contains(s))
+                            .collect(Collectors.joining());
+                    builder.add(configuration.getChannel(), false, "Unable to find topic(s): " + missing);
                 }
             } catch (Exception failed) {
-                builder.add(configuration.getChannel(), false, "No response from broker for topic "
-                        + topic + " : " + failed);
+                builder.add(configuration.getChannel(), false, "No response from broker for channel "
+                        + configuration.getChannel() + " : " + failed);
             }
         }
 
