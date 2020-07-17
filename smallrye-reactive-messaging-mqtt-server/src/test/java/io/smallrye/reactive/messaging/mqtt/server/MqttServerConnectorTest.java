@@ -18,6 +18,7 @@ import javax.enterprise.inject.Any;
 
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.junit5.auto.WeldJunit5AutoExtension;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,6 +61,7 @@ class MqttServerConnectorTest {
     }
 
     @RepeatedTest(10)
+    @Disabled("Fail too much on CI - must be investigated - https://github.com/smallrye/smallrye-reactive-messaging/issues/669")
     void testBroadcast(@Any MqttServerConnector connector, VertxTestContext testContext) {
         final AtomicBoolean open1 = new AtomicBoolean();
         final AtomicBoolean open2 = new AtomicBoolean();
