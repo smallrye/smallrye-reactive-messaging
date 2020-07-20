@@ -150,6 +150,7 @@ public class KafkaSource<K, V> {
                     + 11_000L; // it's possible that it might expire 10 seconds before when we need it to
 
             kafkaConsumer.partitionsAssignedHandler(set -> {
+                final long currentDemand = kafkaConsumer.demand();
                 kafkaConsumer.pause();
                 log.executingConsumerAssignedRebalanceListener(group);
                 listener.onPartitionsAssigned(kafkaConsumer, set)
@@ -161,12 +162,12 @@ public class KafkaSource<K, V> {
                                 a -> {
                                     log.executedConsumerAssignedRebalanceListener(group);
                                     commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set);
-                                    kafkaConsumer.resume();
+                                    kafkaConsumer.fetch(currentDemand);
                                 },
                                 t -> {
                                     log.reEnablingConsumerforGroup(group);
                                     commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set);
-                                    kafkaConsumer.resume();
+                                    kafkaConsumer.fetch(currentDemand);
                                 });
             });
 
