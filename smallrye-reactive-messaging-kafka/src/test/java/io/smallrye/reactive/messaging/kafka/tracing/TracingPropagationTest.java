@@ -47,6 +47,7 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
 import io.opentelemetry.trace.SpanId;
+import io.opentelemetry.trace.TraceId;
 import io.opentelemetry.trace.TracingContextUtils;
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
@@ -106,14 +107,21 @@ public class TracingPropagationTest extends KafkaTestBase {
 
         assertThat(contexts).hasSize(10);
         assertThat(contexts).doesNotContainNull().doesNotHaveDuplicates();
+
         List<SpanId> spanIds = contexts.stream()
                 .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getSpanId())
                 .collect(Collectors.toList());
         assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
 
+        List<TraceId> traceIds = contexts.stream()
+                .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getTraceId())
+                .collect(Collectors.toList());
+        assertThat(traceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             assertThat(data.getSpanId()).isIn(spanIds);
             assertThat(data.getSpanId()).isNotEqualByComparingTo(data.getParentSpanId());
+            assertThat(data.getTraceId()).isIn(traceIds);
             assertThat(data.getKind()).isEqualByComparingTo(PRODUCER);
             assertThat(data.getParentSpanId().isValid()).isFalse();
         }
@@ -143,12 +151,24 @@ public class TracingPropagationTest extends KafkaTestBase {
         });
         assertThat(values).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
+        List<TraceId> producedTraceIds = producedSpanContexts.stream()
+                .map(SpanContext::getTraceId)
+                .collect(Collectors.toList());
+        assertThat(producedTraceIds).hasSize(10);
+
         assertThat(receivedContexts).hasSize(10);
         assertThat(receivedContexts).doesNotContainNull().doesNotHaveDuplicates();
+
         List<SpanId> receivedSpanIds = receivedContexts.stream()
                 .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getSpanId())
                 .collect(Collectors.toList());
         assertThat(receivedSpanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+
+        List<TraceId> receivedTraceIds = receivedContexts.stream()
+                .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getTraceId())
+                .collect(Collectors.toList());
+        assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+        assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
 
         List<SpanId> receivedParentSpanIds = new ArrayList<>();
 
@@ -159,6 +179,7 @@ public class TracingPropagationTest extends KafkaTestBase {
             }
             assertThat(data.getSpanId()).isIn(receivedSpanIds);
             assertThat(data.getSpanId()).isNotEqualByComparingTo(data.getParentSpanId());
+            assertThat(data.getTraceId()).isIn(producedTraceIds);
             assertThat(data.getKind()).isEqualByComparingTo(PRODUCER);
             assertThat(data.getParentSpanId().isValid()).isTrue();
             receivedParentSpanIds.add(data.getParentSpanId());
@@ -184,8 +205,20 @@ public class TracingPropagationTest extends KafkaTestBase {
         await().until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
+        List<TraceId> producedTraceIds = producedSpanContexts.stream()
+                .map(SpanContext::getTraceId)
+                .collect(Collectors.toList());
+        assertThat(producedTraceIds).hasSize(10);
+
         assertThat(bean.tracing()).hasSizeGreaterThanOrEqualTo(10);
         assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
+
+        List<TraceId> receivedTraceIds = bean.tracing().stream()
+                .map(tracingMetadata -> tracingMetadata.getCurrentSpanContext().getTraceId())
+                .collect(Collectors.toList());
+        assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+        assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
+
         List<SpanId> spanIds = new ArrayList<>();
 
         for (TracingMetadata tracing : bean.tracing()) {

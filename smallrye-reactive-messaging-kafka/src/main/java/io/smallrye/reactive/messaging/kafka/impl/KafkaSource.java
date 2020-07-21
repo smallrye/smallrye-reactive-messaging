@@ -273,7 +273,7 @@ public class KafkaSource<K, V> {
         if (configuration.getTracingEnabled()) {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
-            final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic())
+            final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
                     .setSpanKind(Span.Kind.CONSUMER);
 
             // Handle possible parent span

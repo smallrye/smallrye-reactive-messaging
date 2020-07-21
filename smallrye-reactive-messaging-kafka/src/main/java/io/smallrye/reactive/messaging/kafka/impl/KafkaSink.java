@@ -24,6 +24,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.grpc.Context;
 import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
 import io.opentelemetry.trace.TracingContextUtils;
@@ -225,7 +226,7 @@ public class KafkaSink {
         if (configuration.getTracingEnabled()) {
             Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
 
-            final Span.Builder spanBuilder = TRACER.spanBuilder(topic)
+            final Span.Builder spanBuilder = TRACER.spanBuilder(topic + " send")
                     .setSpanKind(Span.Kind.PRODUCER);
 
             if (tracingMetadata.isPresent()) {
@@ -247,7 +248,7 @@ public class KafkaSink {
             }
 
             final Span span = spanBuilder.startSpan();
-            TracingContextUtils.currentContextWith(span);
+            Scope scope = TracingContextUtils.currentContextWith(span);
 
             // Set Span attributes
             span.setAttribute("partition", partition);
@@ -259,6 +260,7 @@ public class KafkaSink {
             OpenTelemetry.getPropagators().getHttpTextFormat()
                     .inject(Context.current(), headers, HeaderInjectAdapter.SETTER);
             span.end();
+            scope.close();
         }
     }
 
