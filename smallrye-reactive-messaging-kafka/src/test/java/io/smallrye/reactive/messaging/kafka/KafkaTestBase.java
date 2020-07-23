@@ -30,9 +30,9 @@ import io.vertx.mutiny.core.Vertx;
 public class KafkaTestBase {
 
     protected static KafkaCluster kafka;
-    static final String SERVERS = "localhost:9092";
+    public static final String SERVERS = "localhost:9092";
 
-    Vertx vertx;
+    public Vertx vertx;
 
     @BeforeClass
     public static void startKafkaBroker() throws IOException {
