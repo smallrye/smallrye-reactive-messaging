@@ -81,9 +81,13 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
-| *partitions* | The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targetted topic
+| *partitions* | The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic
 
 Type: _int_ | false | `1`
+
+| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled, the connector analyze the incoming records and try to create Cloud Event metadata.
+
+Type: _boolean_ | false | `true`
 
 | *consumer-rebalance-listener.name* | The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.
 
