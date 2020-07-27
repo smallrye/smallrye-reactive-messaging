@@ -3,9 +3,13 @@ package io.smallrye.reactive.messaging.metrics;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 
+import javax.enterprise.util.AnnotationLiteral;
+
 import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.eclipse.microprofile.metrics.Tag;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.junit.Test;
 
 import io.smallrye.metrics.setup.MetricCdiInjectionExtension;
@@ -31,7 +35,23 @@ public class MetricsTest extends WeldTestBase {
     }
 
     private Counter getCounter(String channelName) {
-        MetricRegistry registry = container.select(MetricRegistry.class).get();
+        MetricRegistry registry = container.select(MetricRegistry.class, RegistryTypeLiteral.BASE).get();
         return registry.counter("mp.messaging.message.count", new Tag("channel", channelName));
+    }
+
+    @SuppressWarnings("serial")
+    private static class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> implements RegistryType {
+        public static final RegistryTypeLiteral BASE = new RegistryTypeLiteral(MetricRegistry.Type.BASE);
+
+        private Type registryType;
+
+        public RegistryTypeLiteral(Type registryType) {
+            this.registryType = registryType;
+        }
+
+        @Override
+        public Type type() {
+            return registryType;
+        }
     }
 }
