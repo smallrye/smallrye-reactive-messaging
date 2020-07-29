@@ -69,6 +69,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
         config.put(prefix + "value.serializer", StringSerializer.class.getName());
         config.put(prefix + "topic", "output");
         config.put(prefix + "waitForWriteCompletion", false);
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }

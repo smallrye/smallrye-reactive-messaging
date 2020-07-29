@@ -89,12 +89,14 @@ public class DefaultConfigTest extends KafkaTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "topic", topicOut);
+        config.put(prefix + "tracing-enabled", false);
 
         prefix = "mp.messaging.incoming.source.";
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "topic", topicIn);
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "commit-strategy", "latest");
+        config.put(prefix + "tracing-enabled", false);
 
         config.put("kafka.value.serializer", StringSerializer.class.getName());
         config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());

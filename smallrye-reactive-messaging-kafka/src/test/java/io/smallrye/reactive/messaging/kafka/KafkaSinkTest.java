@@ -141,6 +141,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("bootstrap.servers", "localhost:9092");
         config.put("key.serializer", StringSerializer.class.getName());
         config.put("acks", "1");
+        config.put("tracing-enabled", false);
         return config;
     }
 
@@ -149,6 +150,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }
@@ -158,6 +160,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
+        config.put(prefix + "tracing-enabled", false);
         if (t != null) {
             config.put(prefix + "topic", t);
         }

@@ -225,6 +225,7 @@ public class NoKafkaTest {
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
         config.put(prefix + "topic", topic);
         config.put(prefix + "commit-strategy", "latest");
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }
@@ -237,6 +238,7 @@ public class NoKafkaTest {
         config.put(prefix + "max-inflight-messages", "2");
         config.put(prefix + "max.block.ms", 1000);
         config.put(prefix + "topic", topic);
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }
@@ -247,6 +249,7 @@ public class NoKafkaTest {
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", StringSerializer.class.getName());
         config.put(prefix + "topic", topic);
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }

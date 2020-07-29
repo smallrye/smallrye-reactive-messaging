@@ -92,6 +92,7 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
         config.put(prefix + "topic", "double-topic");
+        config.put(prefix + "tracing-enabled", false);
         return new MapBasedConfig(config);
     }
 
@@ -101,6 +102,7 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
         config.put(prefix + "topic", topic);
+        config.put(prefix + "tracing-enabled", false);
         return new MapBasedConfig(config);
     }
 

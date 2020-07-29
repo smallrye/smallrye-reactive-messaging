@@ -267,6 +267,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
         config.put(prefix + "enable.auto.commit", "false");
         config.put(prefix + "auto.offset.reset", "earliest");
+        config.put(prefix + "tracing-enabled", false);
         // fail is the default.
 
         return new MapBasedConfig(config);
@@ -282,6 +283,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         config.put(prefix + "enable.auto.commit", "false");
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "failure-strategy", "ignore");
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }
@@ -296,6 +298,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         config.put(prefix + "enable.auto.commit", "false");
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "failure-strategy", "dead-letter-queue");
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }
@@ -313,6 +316,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         config.put(prefix + "dead-letter-queue.topic", dq);
         config.put(prefix + "dead-letter-queue.key.serializer", IntegerSerializer.class.getName());
         config.put(prefix + "dead-letter-queue.value.serializer", IntegerSerializer.class.getName());
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }

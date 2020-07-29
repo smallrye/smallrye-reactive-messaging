@@ -114,6 +114,7 @@ public class DocumentationTest extends KafkaTestBase {
         conf.put("mp.messaging.incoming.prices.connector", "smallrye-kafka");
         conf.put("mp.messaging.incoming.prices.value.deserializer",
                 "org.apache.kafka.common.serialization.DoubleDeserializer");
+        conf.put("mp.messaging.incoming.prices.tracing-enabled", false);
         return new MapBasedConfig(conf);
     }
 
@@ -122,6 +123,7 @@ public class DocumentationTest extends KafkaTestBase {
         conf.put("mp.messaging.outgoing.prices.connector", "smallrye-kafka");
         conf.put("mp.messaging.outgoing.prices.value.serializer",
                 "org.apache.kafka.common.serialization.DoubleSerializer");
+        conf.put("mp.messaging.outgoing.prices.tracing-enabled", false);
         return new MapBasedConfig(conf);
     }
 

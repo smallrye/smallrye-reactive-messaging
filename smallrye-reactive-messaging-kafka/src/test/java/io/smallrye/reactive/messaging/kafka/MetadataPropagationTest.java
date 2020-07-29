@@ -131,6 +131,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", StringSerializer.class.getName());
         config.put(prefix + "topic", "should-not-be-used");
+        config.put(prefix + "tracing-enabled", false);
         return new MapBasedConfig(config);
     }
 
@@ -140,6 +141,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", StringSerializer.class.getName());
         config.put(prefix + "topic", topicOut);
+        config.put(prefix + "tracing-enabled", false);
 
         prefix = "mp.messaging.incoming.source.";
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
@@ -148,6 +150,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "topic", topicIn);
         config.put(prefix + "commit-strategy", "latest");
+        config.put(prefix + "tracing-enabled", false);
 
         return new MapBasedConfig(config);
     }
@@ -161,6 +164,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "topic", topic);
         config.put(prefix + "commit-strategy", "latest");
+        config.put(prefix + "tracing-enabled", false);
         return new MapBasedConfig(config);
     }
 

@@ -255,6 +255,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put("key.deserializer", StringDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
+        config.put("tracing-enabled", false);
         return config;
     }
 
@@ -269,6 +270,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put(prefix + "enable.auto.commit", "false");
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "topic", "data");
+        config.put(prefix + "tracing-enabled", false);
         if (partitions > 0) {
             config.put(prefix + "partitions", Integer.toString(partitions));
             config.put(prefix + "topic", "data-" + partitions);
@@ -289,6 +291,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         config.put(prefix + "enable.auto.commit", "false");
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "topic", "data-starting-on-fifth-" + suffix);
+        config.put(prefix + "tracing-enabled", false);
         if (shorterTimeouts) {
             config.put(prefix + "max.poll.interval.ms", "2000");
         }
