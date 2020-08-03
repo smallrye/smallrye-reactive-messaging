@@ -73,6 +73,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         return producer.send(dead)
                 .onFailure().invoke(t -> source.reportFailure((Throwable) t))
                 .onItem().ignore().andContinueWithNull()
-                .subscribeAsCompletionStage();
+                .subscribeAsCompletionStage()
+                .thenCompose(m -> record.ack());
     }
 }

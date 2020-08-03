@@ -7,21 +7,24 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
-    private final KafkaConsumer<K, T> consumer;
     private final Metadata metadata;
     private final IncomingKafkaRecordMetadata<K, T> kafkaMetadata;
+    private final KafkaCommitHandler commitHandler;
     private final KafkaFailureHandler onNack;
 
-    public IncomingKafkaRecord(KafkaConsumer<K, T> consumer, KafkaConsumerRecord<K, T> record, KafkaFailureHandler onNack) {
-        this.consumer = consumer;
+    public IncomingKafkaRecord(
+            KafkaConsumerRecord<K, T> record,
+            KafkaCommitHandler commitHandler,
+            KafkaFailureHandler onNack) {
         this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record);
         this.metadata = Metadata.of(this.kafkaMetadata);
+        this.commitHandler = commitHandler;
         this.onNack = onNack;
     }
 
@@ -71,7 +74,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     @Override
     public CompletionStage<Void> ack() {
-        return consumer.commit().subscribeAsCompletionStage();
+        return commitHandler.handle(this);
     }
 
     @Override
