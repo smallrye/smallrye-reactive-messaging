@@ -11,13 +11,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Singleton;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import com.google.api.gax.core.BackgroundResource;
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.core.NoCredentialsProvider;
@@ -41,16 +41,15 @@ import io.smallrye.mutiny.subscription.MultiEmitter;
 @Singleton
 public class PubSubManager {
 
-    private static final Map<PubSubConfig, Publisher> PUBLISHER_MAP = new ConcurrentHashMap<>();
-    private static final Map<PubSubConfig, TopicAdminClient> TOPIC_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
-    private static final Map<PubSubConfig, SubscriptionAdminClient> SUBSCRIPTION_ADMIN_CLIENT_MAP = new ConcurrentHashMap<>();
+    private final Map<PubSubConfig, Publisher> publishers = new ConcurrentHashMap<>();
+    private final Map<PubSubConfig, TopicAdminClient> topicAdminClients = new ConcurrentHashMap<>();
+    private final Map<PubSubConfig, SubscriptionAdminClient> subscriptionAdminClients = new ConcurrentHashMap<>();
 
-    private static final List<MultiEmitter<? super Message<?>>> EMITTERS = new CopyOnWriteArrayList<>();
-
-    private static final AtomicReference<ManagedChannel> CHANNEL = new AtomicReference<>();
+    private final List<MultiEmitter<? super Message<?>>> emitters = new CopyOnWriteArrayList<>();
+    private final List<ManagedChannel> channels = new CopyOnWriteArrayList<>();
 
     public Publisher publisher(final PubSubConfig config) {
-        return PUBLISHER_MAP.computeIfAbsent(config, PubSubManager::buildPublisher);
+        return publishers.computeIfAbsent(config, this::buildPublisher);
     }
 
     public void subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter) {
@@ -65,38 +64,26 @@ public class PubSubManager {
         });
         subscriber.startAsync();
 
-        EMITTERS.add(emitter);
+        emitters.add(emitter);
     }
 
     public SubscriptionAdminClient subscriptionAdminClient(final PubSubConfig config) {
-        return SUBSCRIPTION_ADMIN_CLIENT_MAP.computeIfAbsent(config, PubSubManager::buildSubscriptionAdminClient);
+        return subscriptionAdminClients.computeIfAbsent(config, this::buildSubscriptionAdminClient);
     }
 
     public TopicAdminClient topicAdminClient(final PubSubConfig config) {
-        return TOPIC_ADMIN_CLIENT_MAP.computeIfAbsent(config, PubSubManager::buildTopicAdminClient);
+        return topicAdminClients.computeIfAbsent(config, this::buildTopicAdminClient);
     }
 
     @PreDestroy
     public void destroy() {
-        TOPIC_ADMIN_CLIENT_MAP.values().forEach(topicAdminClient -> {
-            try {
-                topicAdminClient.shutdown();
-                topicAdminClient.awaitTermination(2, TimeUnit.SECONDS);
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
+        topicAdminClients.values().forEach(PubSubManager::shutdown);
+        topicAdminClients.clear();
 
-        SUBSCRIPTION_ADMIN_CLIENT_MAP.values().forEach(subscriptionAdminClient -> {
-            try {
-                subscriptionAdminClient.shutdown();
-                subscriptionAdminClient.awaitTermination(2, TimeUnit.SECONDS);
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
+        subscriptionAdminClients.values().forEach(PubSubManager::shutdown);
+        subscriptionAdminClients.clear();
 
-        PUBLISHER_MAP.values().forEach(publisher -> {
+        publishers.values().forEach(publisher -> {
             try {
                 publisher.shutdown();
                 publisher.awaitTermination(2, TimeUnit.SECONDS);
@@ -104,20 +91,23 @@ public class PubSubManager {
                 Thread.currentThread().interrupt();
             }
         });
+        publishers.clear();
 
-        EMITTERS.forEach(MultiEmitter::complete);
+        emitters.forEach(MultiEmitter::complete);
+        emitters.clear();
 
-        if (CHANNEL.get() != null) {
+        channels.forEach(channel -> {
             try {
-                CHANNEL.get().shutdown();
-                CHANNEL.get().awaitTermination(2, TimeUnit.SECONDS);
+                channel.shutdown();
+                channel.awaitTermination(2, TimeUnit.SECONDS);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-        }
+        });
+        channels.clear();
     }
 
-    private static SubscriptionAdminClient buildSubscriptionAdminClient(final PubSubConfig config) {
+    private SubscriptionAdminClient buildSubscriptionAdminClient(final PubSubConfig config) {
         final SubscriptionAdminSettings.Builder subscriptionAdminSettingsBuilder = SubscriptionAdminSettings.newBuilder();
 
         buildCredentialsProvider(config).ifPresent(subscriptionAdminSettingsBuilder::setCredentialsProvider);
@@ -130,7 +120,7 @@ public class PubSubManager {
         }
     }
 
-    private static TopicAdminClient buildTopicAdminClient(final PubSubConfig config) {
+    private TopicAdminClient buildTopicAdminClient(final PubSubConfig config) {
         final TopicAdminSettings.Builder topicAdminSettingsBuilder = TopicAdminSettings.newBuilder();
 
         buildCredentialsProvider(config).ifPresent(topicAdminSettingsBuilder::setCredentialsProvider);
@@ -143,7 +133,7 @@ public class PubSubManager {
         }
     }
 
-    private static Publisher buildPublisher(final PubSubConfig config) {
+    private Publisher buildPublisher(final PubSubConfig config) {
         final ProjectTopicName topicName = ProjectTopicName.of(config.getProjectId(), config.getTopic());
 
         try {
@@ -158,7 +148,7 @@ public class PubSubManager {
         }
     }
 
-    private static Subscriber buildSubscriber(final PubSubConfig config, final PubSubMessageReceiver messageReceiver) {
+    private Subscriber buildSubscriber(final PubSubConfig config, final PubSubMessageReceiver messageReceiver) {
         final ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(config.getProjectId(),
                 config.getSubscription());
 
@@ -170,11 +160,9 @@ public class PubSubManager {
         return subscriberBuilder.build();
     }
 
-    private static Optional<TransportChannelProvider> buildTransportChannelProvider(final PubSubConfig config) {
+    private Optional<TransportChannelProvider> buildTransportChannelProvider(final PubSubConfig config) {
         if (config.isMockPubSubTopics()) {
-            final ManagedChannel channel = buildChannel(config);
-
-            return Optional.of(FixedTransportChannelProvider.create(GrpcTransportChannel.create(channel)));
+            return Optional.of(FixedTransportChannelProvider.create(GrpcTransportChannel.create(buildChannel(config))));
         }
 
         return Optional.empty();
@@ -197,12 +185,21 @@ public class PubSubManager {
         return Optional.empty();
     }
 
-    private static synchronized ManagedChannel buildChannel(final PubSubConfig config) {
-        if (CHANNEL.get() == null) {
-            CHANNEL.set(ManagedChannelBuilder.forAddress(config.getHost(), config.getPort())
-                    .usePlaintext()
-                    .build());
-        }
-        return CHANNEL.get();
+    private ManagedChannel buildChannel(final PubSubConfig config) {
+        final ManagedChannel channel = ManagedChannelBuilder.forAddress(config.getHost(), config.getPort())
+                .usePlaintext()
+                .build();
+        channels.add(channel);
+        return channel;
     }
+
+    private static void shutdown(final BackgroundResource resource) {
+        try {
+            resource.shutdown();
+            resource.awaitTermination(2, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
 }
