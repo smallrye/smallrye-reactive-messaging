@@ -17,9 +17,11 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
@@ -38,6 +40,8 @@ public class KafkaSink {
     private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
     private final KafkaSenderProcessor processor;
+    private final boolean writeAsBinaryCloudEvent;
+    private final boolean writeCloudEvents;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
@@ -57,6 +61,8 @@ public class KafkaSink {
         retries = config.getRetries();
         key = config.getKey().orElse(null);
         topic = config.getTopic().orElseGet(config::getChannel);
+        writeCloudEvents = config.getCloudEvents();
+        writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
         int maxInflight = config.getMaxInflightMessages();
         if (maxInflight == 5) { // 5 is the Kafka default.
@@ -99,7 +105,25 @@ public class KafkaSink {
                     return Uni.createFrom().item(() -> null);
                 }
 
-                ProducerRecord<?, ?> record = getProducerRecord(message, metadata, actualTopic);
+                // TODO Check if it's cloud event
+                // If so produce the record for structured cloud event
+                // Or binary cloud event
+                // or just the default
+
+                ProducerRecord<?, ?> record;
+                //TODO How can we be sure that this is not the incoming metadata?
+                OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class).orElse(null);
+                if (writeCloudEvents && ceMetadata != null) {
+                    if (writeAsBinaryCloudEvent) {
+                        record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, metadata, ceMetadata,
+                                configuration);
+                    } else { // structured
+                        record = KafkaCloudEventHelper.createStructuredRecord(message, actualTopic, metadata, ceMetadata,
+                                configuration);
+                    }
+                } else {
+                    record = getProducerRecord(message, metadata, actualTopic);
+                }
                 log.sendingMessageToTopic(message, actualTopic);
 
                 //noinspection unchecked,rawtypes
@@ -152,7 +176,7 @@ public class KafkaSink {
         Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
 
         long actualTimestamp;
-        if ((om == null) || (om.getKey() == null)) {
+        if ((om == null) || (om.getTimestamp() == null)) {
             actualTimestamp = -1;
         } else {
             actualTimestamp = (om.getTimestamp() != null) ? om.getTimestamp().toEpochMilli() : -1;

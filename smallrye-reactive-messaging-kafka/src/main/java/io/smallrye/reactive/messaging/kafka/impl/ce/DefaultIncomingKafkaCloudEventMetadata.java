@@ -2,16 +2,17 @@ package io.smallrye.reactive.messaging.kafka.impl.ce;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Optional;
 
-import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
+import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
 
 public class DefaultIncomingKafkaCloudEventMetadata<K, T> implements IncomingKafkaCloudEventMetadata<K, T> {
 
-    private final CloudEventMetadata<T> delegate;
+    private final IncomingCloudEventMetadata<T> delegate;
 
-    public DefaultIncomingKafkaCloudEventMetadata(CloudEventMetadata<T> delegate) {
+    public DefaultIncomingKafkaCloudEventMetadata(IncomingCloudEventMetadata<T> delegate) {
         this.delegate = delegate;
     }
 
@@ -58,6 +59,11 @@ public class DefaultIncomingKafkaCloudEventMetadata<K, T> implements IncomingKaf
     @Override
     public <A> Optional<A> getExtension(String name) {
         return delegate.getExtension(name);
+    }
+
+    @Override
+    public Map<String, Object> getExtensions() {
+        return delegate.getExtensions();
     }
 
     @Override

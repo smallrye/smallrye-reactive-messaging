@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ce;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -82,21 +83,19 @@ public interface CloudEventMetadata<T> {
     <A> Optional<A> getExtension(String name);
 
     /**
+     * A CloudEvent may include any number of additional context attributes with distinct names, known as "extension
+     * attributes". This method allows retrieving these attributes.
+     *
+     * @return the map of extension attributes, potentially empty.
+     */
+    Map<String, Object> getExtensions();
+
+    /**
      * The event payload. It is the owner message payload.
      *
      * @return the payload, can be {@code null}
      */
     T getData();
-
-    /**
-     * Gets a builder to create a new {@code CloudEventMetadata}.
-     *
-     * @param <T> the type of data
-     * @return the builder
-     */
-    static <T> DefaultCloudEventMetadataBuilder<T> builder() {
-        return new DefaultCloudEventMetadataBuilder<>();
-    }
 
     String CE_ATTRIBUTE_SPEC_VERSION = "specversion";
     String CE_ATTRIBUTE_ID = "id";

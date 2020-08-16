@@ -1,18 +1,17 @@
-package io.smallrye.reactive.messaging.ce;
+package io.smallrye.reactive.messaging.ce.impl;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+
+import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 
 /**
  * Default implementation of the {@link CloudEventMetadata} interface
  *
  * @param <T> the type of data
  */
-public class DefaultCloudEventMetadata<T> implements CloudEventMetadata<T> {
+public class BaseCloudEventMetadata<T> implements CloudEventMetadata<T> {
 
     private final String id;
     private final String specVersion;
@@ -26,7 +25,7 @@ public class DefaultCloudEventMetadata<T> implements CloudEventMetadata<T> {
     private final Map<String, Object> extensions;
     private final T data;
 
-    public DefaultCloudEventMetadata(String id, String specVersion, URI source, String type,
+    public BaseCloudEventMetadata(String specVersion, String id, URI source, String type,
             String dataContentType, URI dataSchema, String subject, ZonedDateTime timestamp,
             Map<String, Object> extensions, T data) {
 
@@ -118,6 +117,14 @@ public class DefaultCloudEventMetadata<T> implements CloudEventMetadata<T> {
             default:
                 return (Optional<A>) Optional.ofNullable(extensions.get(name));
         }
+    }
+
+    @Override
+    public Map<String, Object> getExtensions() {
+        if (extensions.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return new HashMap<>(extensions);
     }
 
     @Override

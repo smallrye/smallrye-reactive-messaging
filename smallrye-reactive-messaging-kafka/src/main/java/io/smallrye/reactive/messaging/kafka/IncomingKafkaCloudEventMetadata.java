@@ -1,13 +1,13 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
+import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
 
 /**
  * Addition "extension" attribute specific to incoming Kafka record
  *
  * @param <T> the data type
  */
-public interface IncomingKafkaCloudEventMetadata<K, T> extends CloudEventMetadata<T> {
+public interface IncomingKafkaCloudEventMetadata<K, T> extends IncomingCloudEventMetadata<T> {
 
     /**
      * Extension - attribute name associated with the record's key.

@@ -10,14 +10,12 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.smallrye.reactive.messaging.ce.impl.BaseCloudEventMetadata;
-
-public class DefaultCloudEventMetadataTest {
+public class OutgoingCloudEventMetadataTest {
 
     @Test
     public void testCreation() {
-        DefaultCloudEventMetadataBuilder<Object> builder = new DefaultCloudEventMetadataBuilder<>();
-        CloudEventMetadata<Object> event = builder
+        OutgoingCloudEventMetadataBuilder<Object> builder = OutgoingCloudEventMetadata.builder();
+        OutgoingCloudEventMetadata<Object> event = builder
                 .withId("id")
                 .withSource(URI.create("test://cloud.event"))
                 .withType("type")
@@ -52,52 +50,18 @@ public class DefaultCloudEventMetadataTest {
     }
 
     @Test
-    public void testWithData() {
-        CloudEventMetadata<String> event = new DefaultCloudEventMetadataBuilder<String>()
-                .withId("id")
+    public void testRandomIdIfNotSet() {
+        OutgoingCloudEventMetadata<String> event = OutgoingCloudEventMetadata.<String> builder()
                 .withSource(URI.create("test://cloud.event"))
                 .withType("type")
-                .withData("Hello")
                 .build();
 
-        assertThat(event.getData()).isEqualTo("Hello");
-    }
-
-    @Test
-    public void testDirectCreationWithoutExtensions() {
-        CloudEventMetadata<String> event = new BaseCloudEventMetadata<>(
-                CloudEventMetadata.CE_VERSION_1_0,
-                "id",
-                URI.create("test://cloud.event"),
-                "type",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null);
-
-        assertThat(event.getSubject()).isEmpty();
-        assertThat(event.getSpecVersion()).isEqualTo(CloudEventMetadata.CE_VERSION_1_0);
-        assertThat(event.getId()).isEqualTo("id");
-        assertThat(event.getData()).isNull();
-        assertThat(event.getType()).isEqualTo("type");
-        assertThat(event.getSource()).hasHost("cloud.event").hasScheme("test");
-
-        assertThat(event.getExtension(CloudEventMetadata.CE_ATTRIBUTE_SPEC_VERSION))
-                .hasValue(CloudEventMetadata.CE_VERSION_1_0);
-        assertThat(event.getExtension(CloudEventMetadata.CE_ATTRIBUTE_ID))
-                .hasValue("id");
-        assertThat(event.getExtension(CloudEventMetadata.CE_ATTRIBUTE_TYPE))
-                .hasValue("type");
-        assertThat(event.getExtension(CloudEventMetadata.CE_ATTRIBUTE_SOURCE))
-                .hasValue(URI.create("test://cloud.event"));
-        assertThat(event.getExtensions()).isEmpty();
+        assertThat(event.getId()).isNotNull();
     }
 
     @Test
     public void testExtensionAttribute() {
-        CloudEventMetadata<Object> event = new DefaultCloudEventMetadataBuilder<>()
+        OutgoingCloudEventMetadata<Object> event = OutgoingCloudEventMetadata.builder()
                 .withId("id")
                 .withSource(URI.create("test://cloud.event"))
                 .withType("type")
@@ -129,7 +93,7 @@ public class DefaultCloudEventMetadataTest {
         attributes.put("some-int", 2);
         attributes.put("some", "entry");
 
-        CloudEventMetadata<Object> event = new DefaultCloudEventMetadataBuilder<>()
+        OutgoingCloudEventMetadata<Object> event = OutgoingCloudEventMetadata.builder()
                 .withId("id")
                 .withSource(URI.create("test://cloud.event"))
                 .withType("type")
@@ -154,7 +118,7 @@ public class DefaultCloudEventMetadataTest {
     @Test
     public void testOptionalAttribute() {
         ZonedDateTime time = ZonedDateTime.now();
-        CloudEventMetadata<Object> event = new DefaultCloudEventMetadataBuilder<>()
+        OutgoingCloudEventMetadata<Object> event = OutgoingCloudEventMetadata.builder()
                 .withId("id")
                 .withSource(URI.create("test://cloud.event"))
                 .withType("type")
@@ -178,7 +142,7 @@ public class DefaultCloudEventMetadataTest {
         assertThat(event.getExtension(CloudEventMetadata.CE_ATTRIBUTE_DATA_CONTENT_TYPE))
                 .hasValue("application/json");
 
-        event = new DefaultCloudEventMetadataBuilder<>()
+        event = OutgoingCloudEventMetadata.builder()
                 .withId("id")
                 .withSource(URI.create("test://cloud.event"))
                 .withType("type")

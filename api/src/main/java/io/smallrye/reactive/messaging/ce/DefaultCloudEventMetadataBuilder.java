@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import io.smallrye.reactive.messaging.ce.impl.BaseCloudEventMetadata;
+
 public final class DefaultCloudEventMetadataBuilder<T> {
     private String id;
     private String specVersion = CE_VERSION_1_0;
@@ -77,7 +79,7 @@ public final class DefaultCloudEventMetadataBuilder<T> {
         return this;
     }
 
-    public DefaultCloudEventMetadataBuilder<T> removeAttribute(String name) {
+    public DefaultCloudEventMetadataBuilder<T> withoutExtension(String name) {
         this.extensions.remove(
                 Objects.requireNonNull(name, "The attribute name must not be `null`"));
         return this;
@@ -88,8 +90,8 @@ public final class DefaultCloudEventMetadataBuilder<T> {
         return this;
     }
 
-    public DefaultCloudEventMetadata<T> build() {
-        return new DefaultCloudEventMetadata<>(id, specVersion, source, type, dataContentType, dataSchema, subject,
+    public BaseCloudEventMetadata<T> build() {
+        return new BaseCloudEventMetadata<>(specVersion, id, source, type, dataContentType, dataSchema, subject,
                 timestamp, extensions, data);
     }
 }

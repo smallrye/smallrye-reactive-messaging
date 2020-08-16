@@ -10,7 +10,7 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
-import io.smallrye.reactive.messaging.kafka.impl.ce.IncomingKafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
@@ -33,13 +33,13 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         boolean payloadSet = false;
         if (cloudEventEnabled) {
             // Cloud Event detection
-            IncomingKafkaCloudEventHelper.CloudEventMode mode = IncomingKafkaCloudEventHelper.getCloudEventMode(record);
+            KafkaCloudEventHelper.CloudEventMode mode = KafkaCloudEventHelper.getCloudEventMode(record);
             switch (mode) {
                 case NOT_A_CLOUD_EVENT:
                     metadata = Metadata.of(this.kafkaMetadata);
                     break;
                 case STRUCTURED:
-                    CloudEventMetadata<T> event = IncomingKafkaCloudEventHelper
+                    CloudEventMetadata<T> event = KafkaCloudEventHelper
                             .createFromStructuredCloudEvent(record);
                     metadata = Metadata.of(this.kafkaMetadata,
                             event);
@@ -48,7 +48,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
                     break;
                 case BINARY:
                     metadata = Metadata
-                            .of(this.kafkaMetadata, IncomingKafkaCloudEventHelper.createFromBinaryCloudEvent(record));
+                            .of(this.kafkaMetadata, KafkaCloudEventHelper.createFromBinaryCloudEvent(record));
                     break;
             }
         } else {
