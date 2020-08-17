@@ -41,7 +41,7 @@ public class ConnectorConfig implements Config {
     }
 
     private String channelKey(String keyName) {
-        return prefix + name + "." + keyName;
+        return name.contains(".") ? prefix + "\"" + name + "\"." + keyName : prefix + name + "." + keyName;
     }
 
     private String connectorKey(String keyName) {
