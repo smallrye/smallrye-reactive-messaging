@@ -19,6 +19,6 @@ public class SmallRyeReactiveMessagingReadinessCheck implements HealthCheck {
     @Override
     public HealthCheckResponse call() {
         HealthReport report = health.getReadiness();
-        return HealthChecks.getHealthCheck(report);
+        return HealthChecks.getHealthCheck(report, "readiness check");
     }
 }
