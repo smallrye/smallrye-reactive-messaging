@@ -98,7 +98,9 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
             if (key.startsWith(prefix)) {
                 // Extract the name
                 String name = key.substring(prefix.length());
-                if (name.contains(".")) { // We must remove the part after the first dot
+                if (name.charAt(0) == '"') { // Check if the name is enclosed by double quotes
+                    name = name.substring(1, name.lastIndexOf('"'));
+                } else if (name.contains(".")) { // We must remove the part after the first dot
                     String tmp = name;
                     name = tmp.substring(0, tmp.indexOf('.'));
                 }
