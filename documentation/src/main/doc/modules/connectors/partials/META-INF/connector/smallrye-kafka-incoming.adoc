@@ -65,6 +65,10 @@ Type: _string_ | false | `latest`
 
 Type: _string_ | false | `fail`
 
+| *commit-strategy* | Specify the commit strategy to apply when a message produced from a record is acked. Values can be `latest`, `ignore` or `throttled`. If `enable.auto.commit` is true then the default is `ignore` otherwise it is `latest`
+
+Type: _string_ | false | 
+
 | *dead-letter-queue.topic* | When the `failure-strategy` is set to `dead-letter-queue` indicates on which topic the record is sent. Defaults is `dead-letter-topic-$channel`
 
 Type: _string_ | false | 

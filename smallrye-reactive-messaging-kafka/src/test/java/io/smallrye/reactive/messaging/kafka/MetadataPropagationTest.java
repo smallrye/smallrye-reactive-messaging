@@ -141,6 +141,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
         config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
         config.put(prefix + "topic", "some-topic");
+        config.put(prefix + "commit-strategy", "latest");
 
         return new MapBasedConfig(config);
     }
@@ -153,6 +154,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "topic", "metadata-topic");
+        config.put(prefix + "commit-strategy", "latest");
         return new MapBasedConfig(config);
     }
 

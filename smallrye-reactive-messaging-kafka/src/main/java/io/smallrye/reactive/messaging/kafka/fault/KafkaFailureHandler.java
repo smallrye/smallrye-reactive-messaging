@@ -23,7 +23,7 @@ public interface KafkaFailureHandler {
             if (s.equalsIgnoreCase("dead-letter-queue")) {
                 return DEAD_LETTER_QUEUE;
             }
-            throw ex.illegalArgumentUnknownStrategy(s);
+            throw ex.illegalArgumentUnknownFailureStrategy(s);
         }
     }
 

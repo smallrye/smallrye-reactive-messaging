@@ -220,6 +220,7 @@ public class NoKafkaTest {
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
         config.put(prefix + "topic", "output");
+        config.put(prefix + "commit-strategy", "latest");
 
         return new MapBasedConfig(config);
     }

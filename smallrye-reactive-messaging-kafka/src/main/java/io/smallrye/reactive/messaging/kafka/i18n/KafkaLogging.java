@@ -142,4 +142,13 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18230, value = "Consumed topics matching pattern for channel '%s': %s")
     void configuredPattern(String channel, String pattern);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18231, value = "The amount of received messages without acking is too high for topic partition '%s', amount %d.")
+    void receivedTooManyMessagesWithoutAcking(String topicPartition, long amount);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18232, value = "Setting the max received messages without acking limit for group '%s' to %d.")
+    void settingMaxReceivedWithoutAckAllowed(String group, long amount);
+
 }
