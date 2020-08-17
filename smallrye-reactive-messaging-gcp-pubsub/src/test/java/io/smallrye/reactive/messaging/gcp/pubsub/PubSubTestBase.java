@@ -3,9 +3,10 @@ package io.smallrye.reactive.messaging.gcp.pubsub;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jboss.weld.environment.se.Weld;
-import org.junit.ClassRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -29,16 +30,45 @@ public class PubSubTestBase {
 
     static final int PUBSUB_PORT = 8085;
     static final String PROJECT_ID = "my-project-id";
+    static final String SUBSCRIPTION = "pubsub-subscription-test";
+    static final String TOPIC = "pubsub-test";
 
-    @ClassRule
-    public static final GenericContainer<?> CONTAINER = new GenericContainer<>("google/cloud-sdk:latest")
-            .withExposedPorts(PUBSUB_PORT)
-            .withCommand("/bin/sh", "-c",
-                    String.format("gcloud beta emulators pubsub start --project=%s --host-port=0.0.0.0:%d",
-                            PROJECT_ID, PUBSUB_PORT))
-            .withLogConsumer(new Slf4jLogConsumer(LOGGER)
-                    .withSeparateOutputStreams())
-            .waitingFor(new LogMessageWaitStrategy().withRegEx("(?s).*started.*$"));
+    static GenericContainer<?> PUBSUB_CONTAINER;
+    static PubSubConfig CONFIG;
+
+    static {
+        PUBSUB_CONTAINER = new GenericContainer<>("google/cloud-sdk:latest")
+                .withExposedPorts(PUBSUB_PORT)
+                .withCommand("/bin/sh", "-c",
+                        String.format("gcloud beta emulators pubsub start --project=%s --host-port=0.0.0.0:%d", PROJECT_ID,
+                                PUBSUB_PORT))
+                .withLogConsumer(new Slf4jLogConsumer(LOGGER)
+                        .withSeparateOutputStreams())
+                .waitingFor(new LogMessageWaitStrategy().withRegEx("(?s).*started.*$"));
+        PUBSUB_CONTAINER.start();
+
+        CONFIG = new PubSubConfig(PROJECT_ID, TOPIC, null, true, "localhost",
+                PUBSUB_CONTAINER.getFirstMappedPort());
+    }
+
+    protected MapBasedConfig createSourceConfig(final String topic, final String subscription, final int containerPort) {
+        final String prefix = "mp.messaging.incoming.source.";
+        final Map<String, Object> config = new HashMap<>();
+        config.put(prefix.concat("connector"), PubSubConnector.CONNECTOR_NAME);
+        config.put(prefix.concat("topic"), topic);
+
+        if (subscription != null) {
+            config.put(prefix.concat("subscription"), subscription);
+        }
+
+        // connector properties
+        config.put("gcp-pubsub-project-id", PROJECT_ID);
+        config.put("mock-pubsub-topics", true);
+        config.put("mock-pubsub-host", "localhost");
+        config.put("mock-pubsub-port", containerPort);
+
+        return new MapBasedConfig(config);
+    }
 
     static Weld baseWeld() {
         final Weld weld = new Weld();

@@ -4,17 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.lang.annotation.Annotation;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import com.google.pubsub.v1.ProjectTopicName;
@@ -25,26 +23,19 @@ import io.smallrye.mutiny.Multi;
 public class PubSubTest extends PubSubTestBase {
 
     private WeldContainer container;
-    private final String topic = "pubsub-test";
 
-    @Before
+    @BeforeEach
     public void initTest() {
         final Weld weld = baseWeld();
         weld.addBeanClass(ConsumptionBean.class);
-        String subscription = "pubsub-subscription-test";
-        addConfig(createSourceConfig(topic, subscription));
+        addConfig(createSourceConfig(TOPIC, SUBSCRIPTION, PUBSUB_CONTAINER.getFirstMappedPort()));
         container = weld.initialize();
     }
 
-    @After
-    public void clearTest() {
+    @AfterEach
+    public void afterEach() {
         clear();
-
-        if (container != null) {
-            container.shutdown();
-        }
-
-        CONTAINER.close();
+        container.shutdown();
     }
 
     @Test
@@ -54,17 +45,16 @@ public class PubSubTest extends PubSubTestBase {
         // wait until the subscription is ready
         final PubSubManager manager = container.select(PubSubManager.class).get();
         await().until(() -> manager
-                .topicAdminClient(
-                        new PubSubConfig(PROJECT_ID, topic, null, true, "localhost", CONTAINER.getMappedPort(PUBSUB_PORT)))
-                .listTopicSubscriptions((TopicName) ProjectTopicName.of(PROJECT_ID, topic))
+                .topicAdminClient(CONFIG)
+                .listTopicSubscriptions((TopicName) ProjectTopicName.of(PROJECT_ID, TOPIC))
                 .getPage()
                 .getPageElementCount() > 0);
 
-        send("Hello-0", topic);
+        send("Hello-0", TOPIC);
         await().until(() -> consumptionBean.getMessages().size() == 1);
         assertThat(consumptionBean.getMessages().get(0)).isEqualTo("Hello-0");
         for (int i = 1; i < 11; i++) {
-            send("Hello-" + i, topic);
+            send("Hello-" + i, TOPIC);
         }
         await().until(() -> consumptionBean.getMessages().size() == 11);
         assertThat(consumptionBean.getMessages()).allSatisfy(s -> assertThat(s).startsWith("Hello-"));
@@ -79,7 +69,7 @@ public class PubSubTest extends PubSubTestBase {
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(final String topic) {
-        final MapBasedConfig config = createSourceConfig(topic, null);
+        final MapBasedConfig config = createSourceConfig(topic, null, PUBSUB_CONTAINER.getFirstMappedPort());
         config.setValue("topic", topic);
         config.write();
 
@@ -100,22 +90,4 @@ public class PubSubTest extends PubSubTestBase {
         }).get();
     }
 
-    private MapBasedConfig createSourceConfig(final String topic, final String subscription) {
-        final String prefix = "mp.messaging.incoming.source.";
-        final Map<String, Object> config = new HashMap<>();
-        config.put(prefix.concat("connector"), PubSubConnector.CONNECTOR_NAME);
-        config.put(prefix.concat("topic"), topic);
-
-        if (subscription != null) {
-            config.put(prefix.concat("subscription"), subscription);
-        }
-
-        // connector properties
-        config.put("gcp-pubsub-project-id", PROJECT_ID);
-        config.put("mock-pubsub-topics", true);
-        config.put("mock-pubsub-host", "localhost");
-        config.put("mock-pubsub-port", CONTAINER.getMappedPort(PUBSUB_PORT));
-
-        return new MapBasedConfig(config);
-    }
 }

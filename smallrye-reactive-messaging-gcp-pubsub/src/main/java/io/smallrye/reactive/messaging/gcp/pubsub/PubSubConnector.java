@@ -44,7 +44,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     private String projectId;
 
     @Inject
-    @ConfigProperty(name = "mock-pubsub-topics")
+    @ConfigProperty(name = "mock-pubsub-topics", defaultValue = "false")
     private boolean mockPubSubTopics;
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
