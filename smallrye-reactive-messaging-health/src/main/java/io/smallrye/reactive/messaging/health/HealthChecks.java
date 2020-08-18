@@ -4,9 +4,9 @@ import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.HealthCheckResponseBuilder;
 
 public class HealthChecks {
-    public static HealthCheckResponse getHealthCheck(HealthReport report) {
+    public static HealthCheckResponse getHealthCheck(HealthReport report, String check) {
         HealthCheckResponseBuilder builder = HealthCheckResponse.builder()
-                .name("SmallRye Reactive Messaging")
+                .name("SmallRye Reactive Messaging - " + check)
                 .state(report.isOk());
 
         report.getChannels().forEach(ci -> {
