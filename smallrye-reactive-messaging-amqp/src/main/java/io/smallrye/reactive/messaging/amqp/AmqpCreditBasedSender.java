@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -16,6 +17,7 @@ import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.mutiny.tuples.Tuple2;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
@@ -27,7 +29,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final AmqpConnectorOutgoingConfiguration configuration;
     private final AmqpConnector connector;
 
-    private volatile AmqpSender sender;
     private final AtomicReference<Subscription> upstream = new AtomicReference<>();
     private final AtomicReference<Subscriber<? super Message<?>>> downstream = new AtomicReference<>();
     private final AtomicBoolean once = new AtomicBoolean();
@@ -60,12 +61,16 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
     }
 
-    private void getSenderAndCredits(Subscriber<? super Message<?>> subscriber) {
-        retrieveSender.subscribe()
-                .with(s -> {
-                    sender = s;
-                    holder.getContext().runOnContext(x -> setCreditsAndRequest());
-                }, subscriber::onError);
+    private Uni<AmqpSender> getSenderAndCredits() {
+        return retrieveSender
+                .onItem().invokeUni(sender -> {
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    holder.getContext().runOnContext(x -> {
+                        setCreditsAndRequest(sender);
+                        future.complete(null);
+                    });
+                    return Uni.createFrom().completionStage(future);
+                });
     }
 
     @Override
@@ -83,7 +88,13 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
     }
 
-    private long setCreditsAndRequest() {
+    /**
+     * Must be called on the context having created the AMQP connection
+     *
+     * @param sender the sender
+     * @return the remaining credits
+     */
+    private long setCreditsAndRequest(AmqpSender sender) {
         long credits = sender.remainingCredits();
         Subscription subscription = upstream.get();
         if (credits != 0L && subscription != Subscriptions.CANCELLED) {
@@ -102,27 +113,31 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         Subscriber<? super Message<?>> subscriber = this.downstream.get();
-        send(sender, message, durable, ttl, configuredAddress, useAnonymousSender, configuration)
+
+        retrieveSender
+                .onItem().transformToUni(
+                        sender -> send(sender, message, durable, ttl, configuredAddress, useAnonymousSender, configuration)
+                                .onItem().transform(m -> Tuple2.of(sender, m)))
                 .subscribe().with(
-                        res -> {
-                            subscriber.onNext(res);
+                        tuple -> {
+                            subscriber.onNext(tuple.getItem2());
                             if (requested.decrementAndGet() == 0) { // no more credit, request more
-                                onNoMoreCredit();
+                                onNoMoreCredit(tuple.getItem1());
                             }
                         },
                         subscriber::onError);
     }
 
-    private void onNoMoreCredit() {
+    private void onNoMoreCredit(AmqpSender sender) {
         log.noMoreCreditsForChannel(configuration.getChannel());
         holder.getContext().runOnContext(x -> {
             if (isCancelled()) {
                 return;
             }
-            long c = setCreditsAndRequest();
+            long c = setCreditsAndRequest(sender);
             if (c == 0L) { // still no credits, schedule a periodic retry
                 holder.getVertx().setPeriodic(configuration.getCreditRetrievalPeriod(), id -> {
-                    if (setCreditsAndRequest() != 0L || isCancelled()) {
+                    if (setCreditsAndRequest(sender) != 0L || isCancelled()) {
                         // Got our new credits or the application has been terminated,
                         // we cancel the periodic task.
                         holder.getVertx().cancelTimer(id);
@@ -159,7 +174,10 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     public void request(long l) {
         // Delay the retrieval of the sender and the request until we get a request.
         if (!once.getAndSet(true)) {
-            getSenderAndCredits(downstream.get());
+            getSenderAndCredits()
+                    .onItem().ignore().andContinueWithNull()
+                    .subscribe().with(s -> {
+                    }, f -> downstream.get().onError(f));
         }
     }
 
