@@ -25,7 +25,21 @@ public interface AmqpFailureHandler {
         /**
          * Mark the message as {@code rejected} and continue.
          */
-        REJECT;
+        REJECT,
+
+        /**
+         * Mark the message as {@code modified} and continue.
+         * This strategy increments the delivery count.
+         * The message may be re-delivered on the same node.
+         */
+        MODIFIED_FAILED,
+
+        /**
+         * Mark the message as {@code modified} and continue.
+         * This strategy increments the delivery count and mark the message as undeliverable on this node.
+         * The message cannot be re-delivered on the same node, but may be redelivered on another node.
+         */
+        MODIFIED_FAILED_UNDELIVERABLE_HERE;
 
         public static Strategy from(String s) {
             if (s == null || s.equalsIgnoreCase("fail")) {
@@ -39,6 +53,12 @@ public interface AmqpFailureHandler {
             }
             if (s.equalsIgnoreCase("reject")) {
                 return REJECT;
+            }
+            if (s.equalsIgnoreCase("modified-failed")) {
+                return MODIFIED_FAILED;
+            }
+            if (s.equalsIgnoreCase("modified-failed-undeliverable-here")) {
+                return MODIFIED_FAILED_UNDELIVERABLE_HERE;
             }
             throw ex.illegalArgumentUnknownFailureStrategy(s);
         }
