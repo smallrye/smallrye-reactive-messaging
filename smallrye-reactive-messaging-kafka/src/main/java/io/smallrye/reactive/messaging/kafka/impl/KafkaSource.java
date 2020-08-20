@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
@@ -289,9 +290,9 @@ public class KafkaSource<K, V> {
             // Set Span attributes
             span.setAttribute("partition", kafkaRecord.getPartition());
             span.setAttribute("offset", kafkaRecord.getOffset());
-            span.setAttribute("messaging.system", "kafka");
-            span.setAttribute("messaging.destination", kafkaRecord.getTopic());
-            span.setAttribute("messaging.destination_kind", "topic");
+            SemanticAttributes.MESSAGING_SYSTEM.set(span, "kafka");
+            SemanticAttributes.MESSAGING_DESTINATION.set(span, kafkaRecord.getTopic());
+            SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
 
             kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
 

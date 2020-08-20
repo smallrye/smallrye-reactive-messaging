@@ -28,6 +28,7 @@ import io.opentelemetry.context.Scope;
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
 import io.opentelemetry.trace.TracingContextUtils;
+import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
@@ -252,9 +253,9 @@ public class KafkaSink {
 
             // Set Span attributes
             span.setAttribute("partition", partition);
-            span.setAttribute("messaging.system", "kafka");
-            span.setAttribute("messaging.destination", topic);
-            span.setAttribute("messaging.destination_kind", "topic");
+            SemanticAttributes.MESSAGING_SYSTEM.set(span, "kafka");
+            SemanticAttributes.MESSAGING_DESTINATION.set(span, topic);
+            SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
 
             // Set span onto headers
             OpenTelemetry.getPropagators().getHttpTextFormat()
