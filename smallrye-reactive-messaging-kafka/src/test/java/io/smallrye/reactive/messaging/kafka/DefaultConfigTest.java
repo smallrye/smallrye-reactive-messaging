@@ -7,6 +7,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,15 +65,17 @@ public class DefaultConfigTest extends KafkaTestBase {
 
     @Test
     public void testFromKafkaToAppToKafka() {
+        String topicOut = UUID.randomUUID().toString();
+        String topicIn = UUID.randomUUID().toString();
         KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings("some-other-topic", 10, 1, TimeUnit.MINUTES, null,
+        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)));
-        deploy(getKafkaSinkConfigForMyAppProcessingData(), MyAppProcessingData.class);
+        deploy(getKafkaSinkConfigForMyAppProcessingData(topicOut, topicIn), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
         usage.produceIntegers(100, null,
-                () -> new ProducerRecord<>("some-topic", "a-key", count.getAndIncrement()));
+                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
 
         await().until(() -> messages.size() >= 10);
         assertThat(messages).allSatisfy(entry -> {
@@ -81,15 +84,15 @@ public class DefaultConfigTest extends KafkaTestBase {
         });
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData() {
+    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
         String prefix = "mp.messaging.outgoing.kafka.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "topic", "some-other-topic");
+        config.put(prefix + "topic", topicOut);
 
         prefix = "mp.messaging.incoming.source.";
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "topic", "some-topic");
+        config.put(prefix + "topic", topicIn);
         config.put(prefix + "auto.offset.reset", "earliest");
         config.put(prefix + "commit-strategy", "latest");
 
