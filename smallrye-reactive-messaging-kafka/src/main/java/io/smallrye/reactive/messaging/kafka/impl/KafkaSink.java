@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -113,11 +114,25 @@ public class KafkaSink {
                 ProducerRecord<?, ?> record;
                 //TODO How can we be sure that this is not the incoming metadata?
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class).orElse(null);
-                if (writeCloudEvents && ceMetadata != null) {
+                // We encode the outbound record as Cloud Events if:
+                // - cloud events are enabled -> writeCloudEvents
+                // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
+                // - or if the message does not contain this metadata, the type and source are configured on the channel
+                if (writeCloudEvents &&
+                        (ceMetadata != null || (configuration.getCloudEventsType().isPresent()
+                                && configuration.getCloudEventsSource().isPresent()))) {
                     if (writeAsBinaryCloudEvent) {
                         record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, metadata, ceMetadata,
                                 configuration);
                     } else { // structured
+                        // Validate the serializer
+                        if (!configuration.getValueSerializer().equalsIgnoreCase(StringSerializer.class.getName())) {
+                            log.invalidValueSerializerForStructuredCloudEvent(configuration.getValueSerializer());
+                            return Uni.createFrom().failure(
+                                    new IllegalStateException("Invalid value serializer to write a structured Cloud Event. "
+                                            + StringSerializer.class.getName() + " must be used, found: "
+                                            + configuration.getValueSerializer()));
+                        }
                         record = KafkaCloudEventHelper.createStructuredRecord(message, actualTopic, metadata, ceMetadata,
                                 configuration);
                     }

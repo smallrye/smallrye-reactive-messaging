@@ -12,13 +12,24 @@ package io.smallrye.reactive.messaging.ce;
 public interface OutgoingCloudEventMetadata<T> extends CloudEventMetadata<T> {
 
     /**
-     * Gets a builder to create a new {@code CloudEventMetadata}.
+     * Gets a builder to create a new {@code OutgoingCloudEventMetadata}.
      *
      * @param <T> the type of data
      * @return the builder
      */
     static <T> OutgoingCloudEventMetadataBuilder<T> builder() {
         return new OutgoingCloudEventMetadataBuilder<>();
+    }
+
+    /**
+     * Gets a builder to create a new {@code OutgoingCloudEventMetadata}.
+     * The values are copied from the given existing {@code OutgoingCloudEventMetadata}
+     *
+     * @param <T> the type of data
+     * @return the builder
+     */
+    static <T> OutgoingCloudEventMetadataBuilder<T> from(OutgoingCloudEventMetadata<T> existing) {
+        return new OutgoingCloudEventMetadataBuilder<>(existing);
     }
 
 }

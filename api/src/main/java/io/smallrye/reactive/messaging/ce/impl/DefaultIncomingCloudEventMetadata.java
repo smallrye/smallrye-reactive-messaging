@@ -18,6 +18,7 @@ public class DefaultIncomingCloudEventMetadata<T> extends BaseCloudEventMetadata
             String dataContentType, URI dataSchema, String subject, ZonedDateTime timestamp,
             Map<String, Object> extensions, T data) {
         super(specVersion, id, source, type, dataContentType, dataSchema, subject, timestamp, extensions, data);
+        validate();
     }
 
     public DefaultIncomingCloudEventMetadata(CloudEventMetadata<T> existing) {
@@ -26,6 +27,7 @@ public class DefaultIncomingCloudEventMetadata<T> extends BaseCloudEventMetadata
                 existing.getSubject().orElse(null),
                 existing.getTimeStamp().orElse(null),
                 existing.getExtensions(), existing.getData());
+        validate();
     }
 
 }

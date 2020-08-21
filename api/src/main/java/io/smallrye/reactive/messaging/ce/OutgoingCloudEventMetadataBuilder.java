@@ -21,6 +21,22 @@ public final class OutgoingCloudEventMetadataBuilder<T> {
         // Do nothing by default
     }
 
+    public OutgoingCloudEventMetadataBuilder(OutgoingCloudEventMetadata<T> existing) {
+        builder.withSpecVersion(existing.getSpecVersion());
+        this.id = existing.getId();
+        builder.withId(existing.getId());
+        builder.withSource(existing.getSource());
+        builder.withType(existing.getType());
+        builder.withData(existing.getData());
+
+        builder.withExtensions(existing.getExtensions());
+
+        builder.withTimestamp(existing.getTimeStamp().orElse(null));
+        builder.withSubject(existing.getSubject().orElse(null));
+        builder.withDataSchema(existing.getDataSchema().orElse(null));
+        builder.withDataContentType(existing.getDataContentType().orElse(null));
+    }
+
     public OutgoingCloudEventMetadataBuilder<T> withId(String id) {
         this.id = id;
         builder.withId(id);

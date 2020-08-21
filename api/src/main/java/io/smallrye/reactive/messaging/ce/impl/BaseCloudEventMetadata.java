@@ -13,27 +13,27 @@ import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
  */
 public class BaseCloudEventMetadata<T> implements CloudEventMetadata<T> {
 
-    private final String id;
-    private final String specVersion;
-    private final URI source;
-    private final String type;
-    private final String dataContentType;
-    private final URI dataSchema;
-    private final String subject;
-    private final ZonedDateTime timestamp;
+    protected final String id;
+    protected final String specVersion;
+    protected final URI source;
+    protected final String type;
+    protected final String dataContentType;
+    protected final URI dataSchema;
+    protected final String subject;
+    protected final ZonedDateTime timestamp;
 
-    private final Map<String, Object> extensions;
-    private final T data;
+    protected final Map<String, Object> extensions;
+    protected final T data;
 
     public BaseCloudEventMetadata(String specVersion, String id, URI source, String type,
             String dataContentType, URI dataSchema, String subject, ZonedDateTime timestamp,
             Map<String, Object> extensions, T data) {
 
         // Mandatory:
-        this.id = Objects.requireNonNull(id, "id must not be `null`");
-        this.specVersion = Objects.requireNonNull(specVersion, "specVersion must not be `null`");
-        this.source = Objects.requireNonNull(source, "source must not be `null`");
-        this.type = Objects.requireNonNull(type, "type must not be `null`");
+        this.id = id;
+        this.specVersion = specVersion;
+        this.source = source;
+        this.type = type;
 
         // Optional
         this.dataContentType = dataContentType;
@@ -50,6 +50,13 @@ public class BaseCloudEventMetadata<T> implements CloudEventMetadata<T> {
 
         // Data
         this.data = data;
+    }
+
+    public void validate() {
+        Objects.requireNonNull(id, "id must not be `null`");
+        Objects.requireNonNull(specVersion, "specVersion must not be `null`");
+        Objects.requireNonNull(source, "source must not be `null`");
+        Objects.requireNonNull(type, "type must not be `null`");
     }
 
     @Override

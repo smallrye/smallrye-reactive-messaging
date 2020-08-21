@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.impl.ce;
 
+import static io.smallrye.reactive.messaging.ce.CloudEventMetadata.*;
 import static io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata.CE_KAFKA_KEY;
 import static io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata.CE_KAFKA_TOPIC;
 
@@ -10,10 +11,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
@@ -38,6 +36,7 @@ public class KafkaCloudEventHelper {
     public static final String KAFKA_HEADER_CONTENT_TYPE = "content-type";
     public static final String CE_CONTENT_TYPE_PREFIX = "application/cloudevents";
     public static final String CE_HEADER_PREFIX = "ce_";
+    public static final String STRUCTURED_CONTENT_TYPE = CE_CONTENT_TYPE_PREFIX + "+json; charset=UTF-8";
 
     public static final String KAFKA_HEADER_FOR_SPEC_VERSION = CE_HEADER_PREFIX + CloudEventMetadata.CE_ATTRIBUTE_SPEC_VERSION;
     public static final String KAFKA_HEADER_FOR_TYPE = CE_HEADER_PREFIX + CloudEventMetadata.CE_ATTRIBUTE_TYPE;
@@ -124,6 +123,7 @@ public class KafkaCloudEventHelper {
                 .withData((T) data);
 
         BaseCloudEventMetadata<T> cloudEventMetadata = builder.build();
+        cloudEventMetadata.validate();
         return new DefaultIncomingKafkaCloudEventMetadata<>(
                 new DefaultIncomingCloudEventMetadata<>(cloudEventMetadata));
     }
@@ -200,25 +200,16 @@ public class KafkaCloudEventHelper {
             OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
             KafkaConnectorOutgoingConfiguration configuration) {
 
-        int partition = configuration.getPartition();
-        if (metadata != null && metadata.getPartition() != -1) {
-            partition = metadata.getPartition();
+        if (ceMetadata == null) {
+            ceMetadata = OutgoingCloudEventMetadata.builder().build();
         }
-
-        Object key = configuration.getKey();
-        if (metadata != null && metadata.getKey() != null) {
-            key = metadata.getKey();
-        }
-
-        long timestamp = -1;
-        if (metadata != null && metadata.getTimestamp() != null) {
-            timestamp = metadata.getTimestamp().toEpochMilli();
-        }
-
-        List<Header> headers = new ArrayList<>();
-        if (metadata != null && metadata.getHeaders() != null) {
-            metadata.getHeaders().forEach(headers::add);
-        }
+        Integer partition = getPartition(metadata, configuration);
+        Object key = getKey(metadata, ceMetadata, configuration);
+        Long timestamp = getTimestamp(metadata);
+        List<Header> headers = getHeaders(metadata);
+        Optional<String> subject = getSubject(ceMetadata, configuration);
+        Optional<String> contentType = getDataContentType(ceMetadata, configuration);
+        Optional<URI> schema = getDataSchema(ceMetadata, configuration);
 
         // Add the Cloud Event header - prefixed with ce_ (rules 3.2.3.1)
         // Mandatory headers
@@ -226,36 +217,36 @@ public class KafkaCloudEventHelper {
                 ceMetadata.getSpecVersion().getBytes(StandardCharsets.UTF_8)));
         headers.add(new RecordHeader(KAFKA_HEADER_FOR_ID, ceMetadata.getId().getBytes(StandardCharsets.UTF_8)));
 
-        String type = ceMetadata.getType();
-        if (type == null) {
-            type = configuration.getCloudEventsType().orElseThrow(
-                    () -> new IllegalArgumentException("Cannot build the (binary) Cloud Event Record - type is not set"));
-        }
+        String type = getType(ceMetadata, configuration);
         headers.add(new RecordHeader(KAFKA_HEADER_FOR_TYPE, type.getBytes(StandardCharsets.UTF_8)));
 
-        String source = ceMetadata.getSource() != null ? ceMetadata.getSource().toString() : null;
-        if (source == null) {
-            source = configuration.getCloudEventsType().orElseThrow(() -> new IllegalArgumentException(
-                    "Cannot build the (binary) Cloud Event Record - source is not set"));
-        }
+        String source = getSource(ceMetadata, configuration);
         headers.add(new RecordHeader(KAFKA_HEADER_FOR_SOURCE, source.getBytes(StandardCharsets.UTF_8)));
 
         // Optional attribute
-        ceMetadata.getSubject().ifPresent(
+        subject.ifPresent(
                 s -> headers.add(new RecordHeader(KAFKA_HEADER_FOR_SUBJECT, s.getBytes(StandardCharsets.UTF_8))));
-        ceMetadata.getDataContentType().ifPresent(
-                s -> headers.add(new RecordHeader(KAFKA_HEADER_FOR_CONTENT_TYPE, s.getBytes(StandardCharsets.UTF_8))));
-        ceMetadata.getDataSchema().ifPresent(
+        contentType.ifPresent(
+                s -> {
+                    headers.add(new RecordHeader(KAFKA_HEADER_FOR_CONTENT_TYPE, s.getBytes(StandardCharsets.UTF_8)));
+                    // Rules 3.2.1 - in binary mode, the content-type header must be mapped to the datacontenttype attribute.
+                    headers.add(new RecordHeader("content-type", s.getBytes(StandardCharsets.UTF_8)));
+                });
+        schema.ifPresent(
                 s -> headers.add(new RecordHeader(KAFKA_HEADER_FOR_SCHEMA, s.toString().getBytes(StandardCharsets.UTF_8))));
 
         if (ceMetadata.getTimeStamp().isPresent()) {
             ZonedDateTime time = ceMetadata.getTimeStamp().get();
             headers.add(new RecordHeader(KAFKA_HEADER_FOR_TIME,
                     RFC3339_DATE_FORMAT.format(time).getBytes(StandardCharsets.UTF_8)));
-        } else if (timestamp != -1) {
+        } else if (timestamp != null) {
             Instant instant = Instant.ofEpochMilli(timestamp);
             headers.add(new RecordHeader(KAFKA_HEADER_FOR_TIME,
                     RFC3339_DATE_FORMAT.format(instant).getBytes(StandardCharsets.UTF_8)));
+        } else if (configuration.getCloudEventsInsertTimestamp()) {
+            ZonedDateTime now = ZonedDateTime.now();
+            headers.add(new RecordHeader(KAFKA_HEADER_FOR_TIME,
+                    RFC3339_DATE_FORMAT.format(now).getBytes(StandardCharsets.UTF_8)));
         }
 
         // Extensions
@@ -274,10 +265,147 @@ public class KafkaCloudEventHelper {
                 headers);
     }
 
+    private static String getSource(OutgoingCloudEventMetadata<?> ceMetadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+        String source = ceMetadata.getSource() != null ? ceMetadata.getSource().toString() : null;
+        if (source == null) {
+            source = configuration.getCloudEventsSource().orElseThrow(() -> new IllegalArgumentException(
+                    "Cannot build the Cloud Event Record - source is not set"));
+        }
+        return source;
+    }
+
+    private static String getType(OutgoingCloudEventMetadata<?> ceMetadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+        String type = ceMetadata.getType();
+        if (type == null) {
+            type = configuration.getCloudEventsType().orElseThrow(
+                    () -> new IllegalArgumentException("Cannot build the Cloud Event Record - type is not set"));
+        }
+        return type;
+    }
+
+    private static Optional<String> getSubject(OutgoingCloudEventMetadata<?> ceMetadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+        if (ceMetadata.getSubject().isPresent()) {
+            return ceMetadata.getSubject();
+        }
+        return configuration.getCloudEventsSubject();
+    }
+
+    private static Optional<URI> getDataSchema(OutgoingCloudEventMetadata<?> ceMetadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+        if (ceMetadata.getDataSchema().isPresent()) {
+            return ceMetadata.getDataSchema();
+        }
+        return configuration.getCloudEventsDataSchema().map(URI::create);
+    }
+
+    private static Optional<String> getDataContentType(OutgoingCloudEventMetadata<?> ceMetadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+        if (ceMetadata.getDataContentType().isPresent()) {
+            return ceMetadata.getDataContentType();
+        }
+        return configuration.getCloudEventsDataContentType();
+    }
+
+    private static List<Header> getHeaders(OutgoingKafkaRecordMetadata<?> metadata) {
+        List<Header> headers = new ArrayList<>();
+        if (metadata != null && metadata.getHeaders() != null) {
+            metadata.getHeaders().forEach(headers::add);
+        }
+        return headers;
+    }
+
+    private static Long getTimestamp(OutgoingKafkaRecordMetadata<?> metadata) {
+        long timestamp = -1;
+        if (metadata != null && metadata.getTimestamp() != null) {
+            timestamp = metadata.getTimestamp().toEpochMilli();
+        }
+        if (timestamp <= 0) {
+            return null;
+        }
+        return timestamp;
+    }
+
+    private static Object getKey(OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+        Optional<?> key = configuration.getKey();
+        if (metadata != null && metadata.getKey() != null) {
+            return metadata.getKey();
+        } else if (ceMetadata.getExtension(CE_KAFKA_KEY).isPresent()) {
+            return ceMetadata.getExtension(CE_KAFKA_KEY).get();
+        }
+        return key.orElse(null);
+    }
+
+    private static Integer getPartition(OutgoingKafkaRecordMetadata<?> metadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+        int partition = configuration.getPartition();
+        if (metadata != null && metadata.getPartition() != -1) {
+            partition = metadata.getPartition();
+        }
+        if (partition < 0) {
+            return null;
+        }
+        return partition;
+    }
+
     public static ProducerRecord<?, ?> createStructuredRecord(Message<?> message, String topic,
             OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
             KafkaConnectorOutgoingConfiguration configuration) {
-        return null;
+
+        if (ceMetadata == null) {
+            ceMetadata = OutgoingCloudEventMetadata.builder().build();
+        }
+
+        Integer partition = getPartition(metadata, configuration);
+        Object key = getKey(metadata, ceMetadata, configuration);
+        Long timestamp = getTimestamp(metadata);
+        List<Header> headers = getHeaders(metadata);
+        String source = getSource(ceMetadata, configuration);
+        String type = getType(ceMetadata, configuration);
+        Optional<String> subject = getSubject(ceMetadata, configuration);
+        Optional<String> dataContentType = getDataContentType(ceMetadata, configuration);
+        Optional<URI> schema = getDataSchema(ceMetadata, configuration);
+
+        // if headers does not contain a "content-type" header add one
+        Optional<Header> contentType = headers.stream().filter(h -> h.key().equalsIgnoreCase(KAFKA_HEADER_CONTENT_TYPE))
+                .findFirst();
+        if (!contentType.isPresent()) {
+            headers.add(new RecordHeader(KAFKA_HEADER_CONTENT_TYPE, STRUCTURED_CONTENT_TYPE.getBytes()));
+        }
+
+        // We need to build the JSON Object representing the Cloud Event
+        JsonObject json = new JsonObject();
+        json.put(CE_ATTRIBUTE_SPEC_VERSION, ceMetadata.getSpecVersion())
+                .put(CE_ATTRIBUTE_TYPE, type)
+                .put(CE_ATTRIBUTE_SOURCE, source)
+                .put(CE_ATTRIBUTE_ID, ceMetadata.getId());
+
+        ZonedDateTime time = ceMetadata.getTimeStamp().orElse(null);
+        if (time != null) {
+            json.put(CE_ATTRIBUTE_TIME, time.toInstant());
+        } else if (configuration.getCloudEventsInsertTimestamp()) {
+            json.put(CE_ATTRIBUTE_TIME, Instant.now());
+        }
+
+        schema.ifPresent(s -> json.put(CE_ATTRIBUTE_DATA_SCHEMA, s));
+        dataContentType.ifPresent(s -> json.put(CE_ATTRIBUTE_DATA_CONTENT_TYPE, s));
+        subject.ifPresent(s -> json.put(CE_ATTRIBUTE_SUBJECT, s));
+
+        // Extensions
+        ceMetadata.getExtensions().forEach(json::put);
+
+        // Encode the payload to json
+        Object payload = message.getPayload();
+        if (payload instanceof String) {
+            json.put("data", payload);
+        } else {
+            json.put("data", JsonObject.mapFrom(payload));
+        }
+
+        return new ProducerRecord<>(topic, partition, timestamp, key, json.encode(), headers);
     }
 
     public enum CloudEventMode {
