@@ -7,6 +7,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -50,7 +51,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
     public void testFromAppToKafka() {
         KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings("some-topic", 10, 1, TimeUnit.MINUTES, null,
+        usage.consumeStrings("some-topic-testFromAppToKafka", 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)));
         deploy(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
 
@@ -63,15 +64,17 @@ public class MetadataPropagationTest extends KafkaTestBase {
 
     @Test
     public void testFromKafkaToAppToKafka() {
+        String topic = UUID.randomUUID().toString();
+        String topicIn = UUID.randomUUID().toString();
         KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings("some-other-topic", 10, 1, TimeUnit.MINUTES, null,
+        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)));
-        deploy(getKafkaSinkConfigForMyAppProcessingData(), MyAppProcessingData.class);
+        deploy(getKafkaSinkConfigForMyAppProcessingData(topic, topicIn), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
         usage.produceIntegers(100, null,
-                () -> new ProducerRecord<>("some-topic", "a-key", count.getAndIncrement()));
+                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
 
         await().until(() -> messages.size() >= 10);
         assertThat(messages).allSatisfy(entry -> {
@@ -129,18 +132,19 @@ public class MetadataPropagationTest extends KafkaTestBase {
         return new MapBasedConfig(config);
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData() {
+    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
         String prefix = "mp.messaging.outgoing.kafka.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", "some-other-topic");
+        config.put(prefix + "topic", topicOut);
 
         prefix = "mp.messaging.incoming.source.";
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
         config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
-        config.put(prefix + "topic", "some-topic");
+        config.put(prefix + "auto.offset.reset", "earliest");
+        config.put(prefix + "topic", topicIn);
         config.put(prefix + "commit-strategy", "latest");
 
         return new MapBasedConfig(config);
@@ -170,7 +174,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return KafkaMessage.of("some-topic", "my-key", input.getPayload());
+            return KafkaMessage.of("some-topic-testFromAppToKafka", "my-key", input.getPayload());
         }
 
         @Incoming("p1")

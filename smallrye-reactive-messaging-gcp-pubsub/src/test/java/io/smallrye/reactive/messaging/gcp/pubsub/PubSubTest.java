@@ -35,6 +35,11 @@ public class PubSubTest extends PubSubTestBase {
     @AfterEach
     public void afterEach() {
         clear();
+        // cleanup
+        PubSubManager manager = container.select(PubSubManager.class).get();
+        manager.topicAdminClient(CONFIG)
+                .deleteTopic(TopicName.of(PROJECT_ID, TOPIC));
+
         container.shutdown();
     }
 

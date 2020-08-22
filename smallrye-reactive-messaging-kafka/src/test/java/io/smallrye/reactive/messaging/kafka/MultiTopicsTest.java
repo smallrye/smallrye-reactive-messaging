@@ -59,7 +59,8 @@ public class MultiTopicsTest extends KafkaTestBase {
         KafkaConsumer bean = deploy(new MapBasedConfig()
                 .put("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
-                .put("mp.messaging.incoming.kafka.topics", topic1 + ", " + topic2 + ", " + topic3));
+                .put("mp.messaging.incoming.kafka.topics", topic1 + ", " + topic2 + ", " + topic3)
+                .put("mp.messaging.incoming.kafka.auto.offset.reset", "earliest"));
 
         await().until(() -> isReady(container));
         await().until(() -> isLive(container));
@@ -75,7 +76,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         new Thread(() -> usage.produceStrings(3, null,
                 () -> new ProducerRecord<>(topic3, "bonjour"))).start();
 
-        await().until(() -> bean.getMessages().size() == 9);
+        await().until(() -> bean.getMessages().size() >= 9);
 
         AtomicInteger top1 = new AtomicInteger();
         AtomicInteger top2 = new AtomicInteger();
@@ -110,7 +111,8 @@ public class MultiTopicsTest extends KafkaTestBase {
         KafkaConsumer bean = deploy(new MapBasedConfig()
                 .put("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
-                .put("mp.messaging.incoming.kafka.topics", topic1 + ", " + topic2 + ", " + topic3));
+                .put("mp.messaging.incoming.kafka.topics", topic1 + ", " + topic2 + ", " + topic3)
+                .put("mp.messaging.incoming.kafka.auto.offset.reset", "earliest"));
 
         await().until(() -> isReady(container));
         await().until(() -> isLive(container));
@@ -123,7 +125,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         new Thread(() -> usage.produceStrings(3, null,
                 () -> new ProducerRecord<>(topic3, "bonjour"))).start();
 
-        await().until(() -> bean.getMessages().size() == 6);
+        await().until(() -> bean.getMessages().size() >= 6);
 
         AtomicInteger top1 = new AtomicInteger();
         AtomicInteger top2 = new AtomicInteger();
@@ -162,7 +164,8 @@ public class MultiTopicsTest extends KafkaTestBase {
                 .put("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
                 .put("mp.messaging.incoming.kafka.topic", "greetings-.+")
-                .put("mp.messaging.incoming.kafka.pattern", true));
+                .put("mp.messaging.incoming.kafka.pattern", true)
+                .put("mp.messaging.incoming.kafka.auto.offset.reset", "earliest"));
 
         await().until(() -> isReady(container));
         await().until(() -> isLive(container));
@@ -181,7 +184,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         new Thread(() -> usage.produceStrings(3, null,
                 () -> new ProducerRecord<>("do-not-match", "Bahh!"))).start();
 
-        await().until(() -> bean.getMessages().size() == 9);
+        await().until(() -> bean.getMessages().size() >= 9);
 
         AtomicInteger top1 = new AtomicInteger();
         AtomicInteger top2 = new AtomicInteger();
@@ -213,7 +216,8 @@ public class MultiTopicsTest extends KafkaTestBase {
                 .put("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
                 .put("mp.messaging.incoming.kafka.topic", "greetings-.+")
-                .put("mp.messaging.incoming.kafka.pattern", true));
+                .put("mp.messaging.incoming.kafka.pattern", true)
+                .put("mp.messaging.incoming.kafka.auto.offset.reset", "earliest"));
 
         await().until(() -> isLive(container));
         await()
