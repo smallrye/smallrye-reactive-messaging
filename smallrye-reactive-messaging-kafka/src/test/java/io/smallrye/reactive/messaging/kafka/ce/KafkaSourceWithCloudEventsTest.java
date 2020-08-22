@@ -492,7 +492,6 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         CloudEventMetadata<JsonObject> metadata2 = message
                 .getMetadata(CloudEventMetadata.class)
                 .orElse(null);
-        assertThat(metadata).isNull();
         assertThat(metadata2).isNull();
         assertThat(message.getPayload()).isInstanceOf(String.class);
         JsonObject json = new JsonObject(message.getPayload().toString());

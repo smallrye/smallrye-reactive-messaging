@@ -43,6 +43,7 @@ public class KafkaSink {
     private final KafkaSenderProcessor processor;
     private final boolean writeAsBinaryCloudEvent;
     private final boolean writeCloudEvents;
+    private final boolean mandatoryCloudEventAttributeSet;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
@@ -75,6 +76,18 @@ public class KafkaSink {
         this.configuration = config;
 
         this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
+        this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
+                && configuration.getCloudEventsSource().isPresent();
+
+        // Validate the serializer for structured Cloud Events
+        if (configuration.getCloudEvents() &&
+                configuration.getCloudEventsMode().equalsIgnoreCase("structured") &&
+                !configuration.getValueSerializer().equalsIgnoreCase(StringSerializer.class.getName())) {
+            log.invalidValueSerializerForStructuredCloudEvent(configuration.getValueSerializer());
+            throw new IllegalStateException("Invalid value serializer to write a structured Cloud Event. "
+                    + StringSerializer.class.getName() + " must be used, found: "
+                    + configuration.getValueSerializer());
+        }
 
         processor = new KafkaSenderProcessor(inflight, waitForWriteCompletion,
                 writeMessageToKafka());
@@ -106,35 +119,22 @@ public class KafkaSink {
                     return Uni.createFrom().item(() -> null);
                 }
 
-                // TODO Check if it's cloud event
-                // If so produce the record for structured cloud event
-                // Or binary cloud event
-                // or just the default
-
                 ProducerRecord<?, ?> record;
-                //TODO How can we be sure that this is not the incoming metadata?
-                OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class).orElse(null);
+                OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
+                        .orElse(null);
                 // We encode the outbound record as Cloud Events if:
                 // - cloud events are enabled -> writeCloudEvents
                 // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
                 // - or if the message does not contain this metadata, the type and source are configured on the channel
-                if (writeCloudEvents &&
-                        (ceMetadata != null || (configuration.getCloudEventsType().isPresent()
-                                && configuration.getCloudEventsSource().isPresent()))) {
+
+                if (writeCloudEvents && (ceMetadata != null || mandatoryCloudEventAttributeSet)) {
                     if (writeAsBinaryCloudEvent) {
                         record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, metadata, ceMetadata,
                                 configuration);
-                    } else { // structured
-                        // Validate the serializer
-                        if (!configuration.getValueSerializer().equalsIgnoreCase(StringSerializer.class.getName())) {
-                            log.invalidValueSerializerForStructuredCloudEvent(configuration.getValueSerializer());
-                            return Uni.createFrom().failure(
-                                    new IllegalStateException("Invalid value serializer to write a structured Cloud Event. "
-                                            + StringSerializer.class.getName() + " must be used, found: "
-                                            + configuration.getValueSerializer()));
-                        }
-                        record = KafkaCloudEventHelper.createStructuredRecord(message, actualTopic, metadata, ceMetadata,
-                                configuration);
+                    } else {
+                        record = KafkaCloudEventHelper
+                                .createStructuredRecord(message, actualTopic, metadata, ceMetadata,
+                                        configuration);
                     }
                 } else {
                     record = getProducerRecord(message, metadata, actualTopic);

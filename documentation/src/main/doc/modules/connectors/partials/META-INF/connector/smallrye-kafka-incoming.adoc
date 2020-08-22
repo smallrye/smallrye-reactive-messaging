@@ -85,7 +85,7 @@ Type: _string_ | false |
 
 Type: _int_ | false | `1`
 
-| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled, the connector analyze the incoming records and try to create Cloud Event metadata.
+| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled, the connector analyzes the incoming records and try to create Cloud Event metadata.
 
 Type: _boolean_ | false | `true`
 

@@ -17,6 +17,50 @@ Type: _string_ | false | `localhost:9092`
 
 Type: _long_ | false | `33554432`
 
+| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled, the connector sends the outgoing messages as Cloud Event if the message to be sent includes Cloud Event Metadata.
+
+Type: _boolean_ | false | `true`
+
+| *cloud-events-data-content-type*
+
+_(cloud-events-default-data-content-type)_ | Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-data-schema*
+
+_(cloud-events-default-data-schema)_ | Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-insert-timestamp*
+
+_(cloud-events-default-timestamp)_ | Whther or not the connector should insert automatically the `time` attribute` into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+
+Type: _boolean_ | false | `true`
+
+| *cloud-events-mode* | The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record
+
+Type: _string_ | false | `binary`
+
+| *cloud-events-source*
+
+_(cloud-events-default-source)_ | Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-subject*
+
+_(cloud-events-default-subject)_ | Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-type*
+
+_(cloud-events-default-type)_ | Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself
+
+Type: _string_ | false | 
+
 | *health-enabled* | Whether health reporting is enabled (default) or disabled
 
 Type: _boolean_ | false | `true`

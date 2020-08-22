@@ -236,7 +236,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testSendingStructuredCloudEventsWithWrongSerializer() {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = newCommonConfig();
@@ -246,28 +246,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
-        KafkaSink sink = new KafkaSink(vertx, oc);
-
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .build());
-
-        await().until(() -> {
-            HealthReport.HealthReportBuilder builder = HealthReport.builder();
-            sink.isAlive(builder);
-            return builder.build().isOk();
-        });
-
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
-
-        await().until(() -> {
-            HealthReport.HealthReportBuilder builder = HealthReport.builder();
-            sink.isAlive(builder);
-            return !builder.build().isOk();
-        });
+        new KafkaSink(vertx, oc);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -515,17 +494,17 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
         usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
-            null, Collections.singletonList(topic), records::add);
+                null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-            .withSource(URI.create("test://test"))
-            .withType("type")
-            .withId("some id")
-            .withDataContentType("text/plain")
-            .build());
+                .withSource(URI.create("test://test"))
+                .withType("type")
+                .withId("some id")
+                .withDataContentType("text/plain")
+                .build());
 
         Multi.createFrom().<Message<?>> item(message)
-            .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
         await().until(() -> records.size() == 1);
 
@@ -533,14 +512,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
-            .contains(
-                new RecordHeader("ce_specversion", "1.0".getBytes()),
-                new RecordHeader("ce_type", "type".getBytes()),
-                // Rules 3.2.1
-                new RecordHeader("ce_datacontenttype", "text/plain".getBytes()),
-                new RecordHeader("content-type", "text/plain".getBytes()),
-                new RecordHeader("ce_source", "test://test".getBytes()),
-                new RecordHeader("ce_id", "some id".getBytes()));
+                .contains(
+                        new RecordHeader("ce_specversion", "1.0".getBytes()),
+                        new RecordHeader("ce_type", "type".getBytes()),
+                        // Rules 3.2.1
+                        new RecordHeader("ce_datacontenttype", "text/plain".getBytes()),
+                        new RecordHeader("content-type", "text/plain".getBytes()),
+                        new RecordHeader("ce_source", "test://test".getBytes()),
+                        new RecordHeader("ce_id", "some id".getBytes()));
         assertThat(record.value()).isEqualTo("hello");
     }
 
