@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -47,12 +48,13 @@ public class NoKafkaTest {
     }
 
     @Test
-    public void testOutgoingWithoutKafkaCluster() throws IOException, InterruptedException {
+    public void testOutgoingWithoutKafkaCluster() throws IOException {
+        String topic = UUID.randomUUID().toString();
         List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
         KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings("output", 10, 10, TimeUnit.SECONDS,
+        usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> {
                     received.add(entry(k, v));
@@ -60,7 +62,7 @@ public class NoKafkaTest {
                 });
 
         container = KafkaTestBase.baseWeld();
-        KafkaTestBase.addConfig(myKafkaSinkConfigWithoutBlockLimit());
+        KafkaTestBase.addConfig(myKafkaSinkConfigWithoutBlockLimit(topic));
         container.addBeanClasses(MyOutgoingBean.class);
         WeldContainer weld = container.initialize();
 
@@ -98,10 +100,11 @@ public class NoKafkaTest {
     }
 
     @Test
-    public void testIncomingWithoutKafkaCluster() throws IOException, InterruptedException {
+    public void testIncomingWithoutKafkaCluster() throws IOException {
+        String topic = UUID.randomUUID().toString();
         KafkaUsage usage = new KafkaUsage();
         container = KafkaTestBase.baseWeld();
-        KafkaTestBase.addConfig(myKafkaSourceConfig());
+        KafkaTestBase.addConfig(myKafkaSourceConfig(topic));
         container.addBeanClasses(MyIncomingBean.class);
         WeldContainer weld = container.initialize();
 
@@ -132,16 +135,17 @@ public class NoKafkaTest {
         });
 
         AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(5, null, () -> new ProducerRecord<>("output", "1", counter.getAndIncrement()));
+        usage.produceIntegers(5, null, () -> new ProducerRecord<>(topic, "1", counter.getAndIncrement()));
 
         await().until(() -> bean.received().size() == 5);
 
     }
 
     @Test
-    public void testOutgoingWithoutKafkaClusterWithoutBackPressure() throws InterruptedException {
+    public void testOutgoingWithoutKafkaClusterWithoutBackPressure() {
+        String topic = UUID.randomUUID().toString();
         container = KafkaTestBase.baseWeld();
-        KafkaTestBase.addConfig(myKafkaSinkConfig());
+        KafkaTestBase.addConfig(myKafkaSinkConfig(topic));
         container.addBeanClasses(MyOutgoingBeanWithoutBackPressure.class);
         WeldContainer weld = this.container.initialize();
 
@@ -214,35 +218,35 @@ public class NoKafkaTest {
         }
     }
 
-    private MapBasedConfig myKafkaSourceConfig() {
+    private MapBasedConfig myKafkaSourceConfig(String topic) {
         String prefix = "mp.messaging.incoming.temperature-values.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "topic", "output");
+        config.put(prefix + "topic", topic);
         config.put(prefix + "commit-strategy", "latest");
 
         return new MapBasedConfig(config);
     }
 
-    private MapBasedConfig myKafkaSinkConfig() {
+    private MapBasedConfig myKafkaSinkConfig(String topic) {
         String prefix = "mp.messaging.outgoing.temperature-values.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", StringSerializer.class.getName());
         config.put(prefix + "max-inflight-messages", "2");
         config.put(prefix + "max.block.ms", 1000);
-        config.put(prefix + "topic", "output");
+        config.put(prefix + "topic", topic);
 
         return new MapBasedConfig(config);
     }
 
-    private MapBasedConfig myKafkaSinkConfigWithoutBlockLimit() {
+    private MapBasedConfig myKafkaSinkConfigWithoutBlockLimit(String topic) {
         String prefix = "mp.messaging.outgoing.temperature-values.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", "output");
+        config.put(prefix + "topic", topic);
 
         return new MapBasedConfig(config);
     }

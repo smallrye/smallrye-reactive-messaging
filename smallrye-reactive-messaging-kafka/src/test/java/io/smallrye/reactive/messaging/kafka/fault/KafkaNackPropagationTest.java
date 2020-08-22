@@ -3,10 +3,7 @@ package io.smallrye.reactive.messaging.kafka.fault;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -69,12 +66,13 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
 
     @Test
     public void testNackPropagation() {
+        String topic = UUID.randomUUID().toString();
         KafkaUsage usage = new KafkaUsage();
         List<Integer> messages = new CopyOnWriteArrayList<>();
-        usage.consumeIntegers("passed-topic", 9, 1, TimeUnit.MINUTES, null,
+        usage.consumeIntegers(topic, 9, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(value));
 
-        addConfig(getPassedNackConfig());
+        addConfig(getPassedNackConfig(topic));
         container = baseWeld().addBeanClass(PassedNackBean.class).initialize();
 
         PassedNackBean bean = container.getBeanManager().createInstance().select(PassedNackBean.class).get();
@@ -97,21 +95,21 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
         return new MapBasedConfig(config);
     }
 
-    private MapBasedConfig getPassedNackConfig() {
+    private MapBasedConfig getPassedNackConfig(String topic) {
         String prefix = "mp.messaging.outgoing.kafka.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "topic", "passed-topic");
+        config.put(prefix + "topic", topic);
         return new MapBasedConfig(config);
     }
 
     @ApplicationScoped
     public static class DoubleNackBean {
-        private List<Integer> received = new ArrayList<>();
-        private AtomicInteger m1Nack = new AtomicInteger();
-        private AtomicInteger m2Nack = new AtomicInteger();
-        private AtomicReference<Throwable> nackedException = new AtomicReference<>();
+        private final List<Integer> received = new ArrayList<>();
+        private final AtomicInteger m1Nack = new AtomicInteger();
+        private final AtomicInteger m2Nack = new AtomicInteger();
+        private final AtomicReference<Throwable> nackedException = new AtomicReference<>();
 
         @Outgoing("source")
         public Flowable<Message<Integer>> producer() {

@@ -74,6 +74,10 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         return v;
     }
 
+    public static void clearCache() {
+        TOPIC_PARTITIONS_CACHE.clear();
+    }
+
     public static KafkaThrottledLatestProcessedCommit create(KafkaConsumer<?, ?> consumer,
             Map<String, String> config,
             KafkaSource<?, ?> source) {
