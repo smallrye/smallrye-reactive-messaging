@@ -81,6 +81,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Instance<AmqpClientOptions> clientOptions;
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
+    private final List<AmqpCreditBasedSender> processors = new CopyOnWriteArrayList<>();
 
     private final Map<String, Boolean> opened = new ConcurrentHashMap<>();
 
@@ -209,6 +210,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 holder,
                 oc,
                 getSender);
+        processors.add(processor);
 
         return ReactiveStreams.<Message<?>> builder()
                 .via(processor)
@@ -218,6 +220,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
+        processors.forEach(AmqpCreditBasedSender::cancel);
         clients.forEach(c -> c.close().subscribeAsCompletionStage());
         clients.clear();
     }

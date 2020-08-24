@@ -37,6 +37,7 @@ public class KafkaSink {
     private final KafkaConnectorOutgoingConfiguration configuration;
     private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
+    private final KafkaSenderProcessor processor;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
@@ -68,8 +69,10 @@ public class KafkaSink {
 
         this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
 
+        processor = new KafkaSenderProcessor(inflight, waitForWriteCompletion,
+                writeMessageToKafka());
         subscriber = ReactiveStreams.<Message<?>> builder()
-                .via(new KafkaSenderProcessor(inflight, waitForWriteCompletion, writeMessageToKafka()))
+                .via(processor)
                 .onError(f -> {
                     log.unableToDispatch(f);
                     reportFailure(f);
@@ -238,6 +241,9 @@ public class KafkaSink {
     }
 
     public void closeQuietly() {
+        if (processor != null) {
+            processor.cancel();
+        }
         CountDownLatch latch = new CountDownLatch(1);
         try {
             this.stream.close(ar -> {
