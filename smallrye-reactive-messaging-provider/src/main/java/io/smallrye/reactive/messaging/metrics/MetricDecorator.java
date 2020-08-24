@@ -8,7 +8,9 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.eclipse.microprofile.metrics.Tag;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
@@ -20,7 +22,7 @@ public class MetricDecorator implements PublisherDecorator {
     private MetricRegistry registry;
 
     @Inject
-    private void setMetricRegistry(Instance<MetricRegistry> registryInstance) {
+    private void setMetricRegistry(@RegistryType(type = Type.BASE) Instance<MetricRegistry> registryInstance) {
         if (registryInstance.isResolvable()) {
             registry = registryInstance.get();
         }
