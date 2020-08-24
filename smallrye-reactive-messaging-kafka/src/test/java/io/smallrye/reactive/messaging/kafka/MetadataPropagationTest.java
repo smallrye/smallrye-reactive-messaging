@@ -83,14 +83,16 @@ public class MetadataPropagationTest extends KafkaTestBase {
         });
     }
 
+    @SuppressWarnings("rawtypes")
     @Test
     public void testFromKafkaToAppWithMetadata() {
+        String topic = UUID.randomUUID().toString();
         KafkaUsage usage = new KafkaUsage();
-        deploy(getKafkaSinkConfigForMyAppWithKafkaMetadata(), MyAppWithKafkaMetadata.class);
+        deploy(getKafkaSinkConfigForMyAppWithKafkaMetadata(topic), MyAppWithKafkaMetadata.class);
 
         AtomicInteger value = new AtomicInteger();
         usage.produceIntegers(100, null,
-                () -> new ProducerRecord<>("metadata-topic", "a-key", value.getAndIncrement()));
+                () -> new ProducerRecord<>(topic, "a-key", value.getAndIncrement()));
 
         MyAppWithKafkaMetadata bean = container.getBeanManager().createInstance().select(MyAppWithKafkaMetadata.class).get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
@@ -103,7 +105,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
             if (object instanceof IncomingKafkaRecordMetadata) {
                 IncomingKafkaRecordMetadata incomingMetadata = (IncomingKafkaRecordMetadata) object;
                 assertThat(incomingMetadata.getKey()).isEqualTo("a-key");
-                assertThat(incomingMetadata.getTopic()).isEqualTo("metadata-topic");
+                assertThat(incomingMetadata.getTopic()).isEqualTo(topic);
                 foundMetadata.compareAndSet(false, true);
             }
         }
@@ -150,14 +152,14 @@ public class MetadataPropagationTest extends KafkaTestBase {
         return new MapBasedConfig(config);
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMyAppWithKafkaMetadata() {
+    private MapBasedConfig getKafkaSinkConfigForMyAppWithKafkaMetadata(String topic) {
         String prefix = "mp.messaging.incoming.kafka.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
         config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
         config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
         config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "topic", "metadata-topic");
+        config.put(prefix + "topic", topic);
         config.put(prefix + "commit-strategy", "latest");
         return new MapBasedConfig(config);
     }

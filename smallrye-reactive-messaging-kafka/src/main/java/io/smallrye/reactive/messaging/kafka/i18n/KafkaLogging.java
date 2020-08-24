@@ -44,8 +44,12 @@ public interface KafkaLogging extends BasicLogger {
     void messageNackedFullIgnored(@Cause Throwable t);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 18206, value = "Unable to write to Kafka")
-    void unableToWrite(@Cause Throwable t);
+    @Message(id = 18206, value = "Unable to write to Kafka from channel %s (topic: %s)")
+    void unableToWrite(String channel, String topic, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18206, value = "Unable to write to Kafka from channel %s (no topic set)")
+    void unableToWrite(String channel, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18207, value = "Unable to dispatch message to Kafka")

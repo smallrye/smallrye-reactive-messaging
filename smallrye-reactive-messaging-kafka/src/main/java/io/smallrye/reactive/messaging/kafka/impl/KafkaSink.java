@@ -43,7 +43,14 @@ public class KafkaSink {
 
         Map<String, Object> kafkaConfigurationMap = kafkaConfiguration.getMap();
         stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfigurationMap);
-        stream.exceptionHandler(log::unableToWrite);
+        stream.exceptionHandler(e -> {
+            if (config.getTopic().isPresent()) {
+                log.unableToWrite(config.getChannel(), config.getTopic().get(), e);
+            } else {
+                log.unableToWrite(config.getChannel(), e);
+            }
+
+        });
 
         partition = config.getPartition();
         retries = config.getRetries();

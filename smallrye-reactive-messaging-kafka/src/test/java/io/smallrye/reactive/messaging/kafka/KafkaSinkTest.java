@@ -57,6 +57,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("partition", 0);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
         KafkaSink sink = new KafkaSink(vertx, oc);
 
@@ -115,6 +116,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("partition", 0);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
         KafkaSink sink = new KafkaSink(vertx, oc);
 
@@ -298,6 +300,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("partition", 0);
         config.put("bootstrap.servers", SERVERS);
+        config.put("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
         KafkaSink sink = new KafkaSink(vertx, oc);
 
