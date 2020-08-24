@@ -25,19 +25,25 @@ import org.reactivestreams.Subscriber;
 import io.reactivex.Flowable;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 
 public class KafkaSinkTest extends KafkaTestBase {
 
     private WeldContainer container;
+    private KafkaSink sink;
 
     @After
     public void cleanup() {
+        if (sink != null) {
+            sink.closeQuietly();
+        }
         if (container != null) {
             container.close();
         }
         // Release the config objects
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        KafkaThrottledLatestProcessedCommit.clearCache();
     }
 
     @SuppressWarnings("unchecked")
@@ -59,7 +65,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -88,7 +94,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("partition", 0);
         config.put("bootstrap.servers", SERVERS);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -118,7 +124,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -248,7 +254,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("failure-strategy", "ignore");
         config.put("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -302,7 +308,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Subscriber subscriber = sink.getSink().build();
         Flowable.range(0, 5)
@@ -320,6 +326,8 @@ public class KafkaSinkTest extends KafkaTestBase {
         // 1, 2, 3, 4, 5 are sent at the same time.
         // As 3 fails, the stream is stopped, but, 1, 2, and 4 are already sent and potentially 6
         assertThat(expected).hasValueGreaterThanOrEqualTo(3);
+
+        sink.closeQuietly();
     }
 
     @Test
