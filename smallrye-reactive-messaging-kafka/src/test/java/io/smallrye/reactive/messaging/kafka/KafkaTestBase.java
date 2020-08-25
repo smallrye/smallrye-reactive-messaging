@@ -41,9 +41,9 @@ public class KafkaTestBase {
         File directory = Testing.Files.createTestingDirectory(System.getProperty("java.io.tmpdir"), true);
         kafka = new KafkaCluster().withPorts(2182, 9092).addBrokers(1)
                 .usingDirectory(directory)
+                .deleteDataPriorToStartup(true)
                 .deleteDataUponShutdown(false)
                 .withKafkaConfiguration(props)
-                .deleteDataPriorToStartup(true)
                 .startup();
     }
 
