@@ -155,4 +155,8 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18232, value = "Setting the max received messages without acking limit for group '%s' to %d.")
     void settingMaxReceivedWithoutAckAllowed(String group, long amount);
 
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18233, value = "Invalid value serializer to write a structured Cloud Event. Found %d, expected the org.apache.kafka.common.serialization.StringSerializer")
+    void invalidValueSerializerForStructuredCloudEvent(String serializer);
+
 }

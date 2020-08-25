@@ -81,6 +81,42 @@ The number of in-flight messages is configured using the `max-inflight-messages`
 
 The connector only handles that amount of messages concurrently, requesting a new one when one of the in-flight message has been acknowledged by the broker.
 
+=== Sending Cloud Events
+
+The Kafka connector supports https://cloudevents.io/[Cloud Events].
+The connector sends the outbound record as Cloud Events if:
+
+* the message metadata contains an `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instance,
+* the channel configuration defines the `cloud-events-type` and `cloud-events-source` attribute.
+
+You can create `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instances using:
+
+[source, java]
+----
+include::example$outbound/KafkaCloudEventProcessor.java[]
+----
+
+If the metadata does not contain an id, the connector generates one (random UUID).
+The `type` and `source` can be configured per message or at the channel level using the `cloud-events-type` and `cloud-events-source` attributes.
+Other attributes are also configurable.
+
+The metadata can be contributed by multiple methods, however, you must always retrieve the already existing metadata to avoid overriding the values:
+
+[source, java]
+----
+include::example$outbound/KafkaCloudEventMultipleProcessors.java[]
+----
+
+By default, the connector sends the Cloud Events using the _binary_ format.
+You can write _structured_ Cloud Events by setting the `cloud-events-mode` to `structured`.
+Only JSON is supported, so the created records had it's `content-type` header set to `application/cloudevents+json; charset=UTF-8`
+When using the _structured_ mode, the value serializer must be set to `org.apache.kafka.common.serialization.StringSerializer`, otherwise the connector reports the error.
+In addition, in _structured_, the connector maps the message's payload to JSON, except for `String` passed directly.
+
+The record's key can be set in the channel configuration (`key` attribute), in the `OutgoingKafkaRecordMetadata` or using the `partitionkey` Cloud Event attribute.
+
+NOTE: you can disable the Cloud Event support by setting the `cloud-events` attribute to `false`
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-kafka-outgoing.adoc[]

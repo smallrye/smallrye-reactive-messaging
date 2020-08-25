@@ -305,6 +305,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         config.put("value.serializer", IntegerSerializer.class.getName());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("partition", 0);
+        config.put("retries", 0L);
         config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
@@ -326,8 +327,6 @@ public class KafkaSinkTest extends KafkaTestBase {
         // 1, 2, 3, 4, 5 are sent at the same time.
         // As 3 fails, the stream is stopped, but, 1, 2, and 4 are already sent and potentially 6
         assertThat(expected).hasValueGreaterThanOrEqualTo(3);
-
-        sink.closeQuietly();
     }
 
     @Test

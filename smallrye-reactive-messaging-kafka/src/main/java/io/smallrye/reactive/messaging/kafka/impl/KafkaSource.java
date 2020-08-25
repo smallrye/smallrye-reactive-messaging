@@ -224,7 +224,8 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> commitHandler.received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler)))
+                .map(rec -> commitHandler
+                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents())))
                 .onFailure().invoke(this::reportFailure);
     }
 

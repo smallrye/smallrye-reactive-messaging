@@ -129,14 +129,9 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         Map<TopicPartition, Long> offsetsMapping = new HashMap<>();
 
         offsetStores
-                .entrySet()
-                .forEach(offsetStoreEntry -> {
-                    TopicPartition topicPartition = offsetStoreEntry.getKey();
-                    offsetStoreEntry
-                            .getValue()
-                            .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset()
-                            .ifPresent(offset -> offsetsMapping.put(topicPartition, offset));
-                });
+                .forEach((topicPartition, value) -> value
+                        .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset()
+                        .ifPresent(offset -> offsetsMapping.put(topicPartition, offset)));
 
         return offsetsMapping;
     }
