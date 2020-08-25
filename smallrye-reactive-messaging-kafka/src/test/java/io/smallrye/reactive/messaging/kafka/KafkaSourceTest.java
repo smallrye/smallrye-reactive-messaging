@@ -260,43 +260,39 @@ public class KafkaSourceTest extends KafkaTestBase {
     }
 
     private MapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
-        String prefix = "mp.messaging.incoming.data.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.data");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
         if (group != null) {
-            config.put(prefix + "group.id", group);
+            builder.put("group.id", group);
         }
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "enable.auto.commit", "false");
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "topic", "data");
-        config.put(prefix + "tracing-enabled", false);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("enable.auto.commit", "false");
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("topic", "data");
         if (partitions > 0) {
-            config.put(prefix + "partitions", Integer.toString(partitions));
-            config.put(prefix + "topic", "data-" + partitions);
+            builder.put("partitions", Integer.toString(partitions));
+            builder.put("topic", "data-" + partitions);
         }
         if (withConsumerRebalanceListener != null) {
-            config.put(prefix + "consumer-rebalance-listener.name", withConsumerRebalanceListener);
+            builder.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
         }
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
-        String prefix = "mp.messaging.incoming.data.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "group.id", "my-group-starting-on-fifth-" + suffix);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "enable.auto.commit", "false");
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "topic", "data-starting-on-fifth-" + suffix);
-        config.put(prefix + "tracing-enabled", false);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.data");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("group.id", "my-group-starting-on-fifth-" + suffix);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("enable.auto.commit", "false");
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("topic", "data-starting-on-fifth-" + suffix);
         if (shorterTimeouts) {
-            config.put(prefix + "max.poll.interval.ms", "2000");
+            builder.put("max.poll.interval.ms", "2000");
         }
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     @Test

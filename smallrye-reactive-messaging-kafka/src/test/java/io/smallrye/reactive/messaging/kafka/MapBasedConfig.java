@@ -78,4 +78,37 @@ public class MapBasedConfig implements Config {
             throw new UncheckedIOException(e);
         }
     }
+
+    public static class ConfigBuilder {
+        private final String prefix;
+        private final Boolean withTracing;
+        private final Map<String, Object> configValues = new HashMap<>();
+
+        public ConfigBuilder(String prefix) {
+            this(prefix, false);
+        }
+
+        public ConfigBuilder(String prefix, Boolean withTracing) {
+            this.prefix = prefix;
+            this.withTracing = withTracing;
+        }
+
+        public ConfigBuilder put(String key, Object value) {
+            configValues.put(key, value);
+            return this;
+        }
+
+        private String getFullKey(String shortKey) {
+            return prefix + "." + shortKey;
+        }
+
+        public Map<String, Object> build() {
+            Map<String, Object> config = new HashMap<>();
+            if (!withTracing && !configValues.containsKey("tracing-enabled")) {
+                config.put(getFullKey("tracing-enabled"), false);
+            }
+            configValues.forEach((key, value) -> config.put(getFullKey(key), value));
+            return config;
+        }
+    }
 }

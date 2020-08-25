@@ -85,23 +85,23 @@ public class DefaultConfigTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "topic", topicOut);
-        config.put(prefix + "tracing-enabled", false);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("topic", topicOut);
 
-        prefix = "mp.messaging.incoming.source.";
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "topic", topicIn);
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "commit-strategy", "latest");
-        config.put(prefix + "tracing-enabled", false);
+        Map<String, Object> config = builder.build();
+
+        builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.source");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("topic", topicIn);
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("commit-strategy", "latest");
+
+        config.putAll(builder.build());
 
         config.put("kafka.value.serializer", StringSerializer.class.getName());
         config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
         config.put("kafka.key.deserializer", StringDeserializer.class.getName());
-
         return new MapBasedConfig(config);
     }
 

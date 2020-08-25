@@ -2,9 +2,7 @@ package io.smallrye.reactive.messaging.kafka.documentation;
 
 import static org.awaitility.Awaitility.await;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -110,21 +108,17 @@ public class DocumentationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getConsumerConfiguration() {
-        Map<String, Object> conf = new HashMap<>();
-        conf.put("mp.messaging.incoming.prices.connector", "smallrye-kafka");
-        conf.put("mp.messaging.incoming.prices.value.deserializer",
-                "org.apache.kafka.common.serialization.DoubleDeserializer");
-        conf.put("mp.messaging.incoming.prices.tracing-enabled", false);
-        return new MapBasedConfig(conf);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.prices");
+        builder.put("connector", "smallrye-kafka");
+        builder.put("value.deserializer", "org.apache.kafka.common.serialization.DoubleDeserializer");
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getProducerConfiguration() {
-        Map<String, Object> conf = new HashMap<>();
-        conf.put("mp.messaging.outgoing.prices.connector", "smallrye-kafka");
-        conf.put("mp.messaging.outgoing.prices.value.serializer",
-                "org.apache.kafka.common.serialization.DoubleSerializer");
-        conf.put("mp.messaging.outgoing.prices.tracing-enabled", false);
-        return new MapBasedConfig(conf);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.prices");
+        builder.put("connector", "smallrye-kafka");
+        builder.put("value.serializer", "org.apache.kafka.common.serialization.DoubleSerializer");
+        return new MapBasedConfig(builder.build());
     }
 
 }

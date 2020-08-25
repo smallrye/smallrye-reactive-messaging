@@ -29,7 +29,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     public IncomingKafkaRecord(KafkaConsumerRecord<K, T> record,
             KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack,
-            boolean cloudEventEnabled) {
+            boolean cloudEventEnabled,
+            boolean tracingEnabled) {
         this.commitHandler = commitHandler;
         this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record);
 
@@ -60,19 +61,20 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             metadata = Metadata.of(this.kafkaMetadata);
         }
 
-        TracingMetadata tracingMetadata = TracingMetadata.empty();
-        if (record.headers() != null) {
-            // Read tracing headers
-            Context context = OpenTelemetry.getPropagators().getHttpTextFormat()
-                .extract(Context.current(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
-            tracingMetadata = TracingMetadata
-                .withPrevious(TracingContextUtils.getSpanWithoutDefault(context));
+        if (tracingEnabled) {
+            TracingMetadata tracingMetadata = TracingMetadata.empty();
+            if (record.headers() != null) {
+                // Read tracing headers
+                Context context = OpenTelemetry.getPropagators().getHttpTextFormat()
+                        .extract(Context.current(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
+                tracingMetadata = TracingMetadata
+                        .withPrevious(TracingContextUtils.getSpanWithoutDefault(context));
+            }
+
+            metadata = metadata.with(tracingMetadata);
         }
 
-        this.metadata = Metadata.of(this.kafkaMetadata, tracingMetadata);
-
         this.metadata = metadata;
-
         this.onNack = onNack;
         if (payload == null && !payloadSet) {
             this.payload = record.value();
@@ -135,7 +137,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         return onNack.handle(this, reason);
     }
 
-    public void injectTracingMetadata(TracingMetadata tracingMetadata) {
+    public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
         metadata = metadata.with(tracingMetadata);
     }
 }

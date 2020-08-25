@@ -146,26 +146,22 @@ public class KafkaSinkTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getKafkaSinkConfigForProducingBean() {
-        String prefix = "mp.messaging.outgoing.output.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "tracing-enabled", false);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.output");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", IntegerSerializer.class.getName());
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getKafkaSinkConfigForMessageProducingBean(String t) {
-        String prefix = "mp.messaging.outgoing.output-2.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "tracing-enabled", false);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.output-2");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", IntegerSerializer.class.getName());
         if (t != null) {
-            config.put(prefix + "topic", t);
+            builder.put("topic", t);
         }
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private void deploy(MapBasedConfig config, Class<?> clazz) {

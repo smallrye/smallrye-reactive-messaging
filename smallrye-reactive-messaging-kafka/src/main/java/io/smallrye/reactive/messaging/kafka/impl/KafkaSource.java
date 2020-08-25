@@ -208,7 +208,7 @@ public class KafkaSource<K, V> {
             }
         }
 
-        this.stream = multi
+        Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
                 .onSubscribe().invokeUni(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
                     if (this.pattern != null) {
@@ -230,9 +230,14 @@ public class KafkaSource<K, V> {
                     }
                 })
                 .map(rec -> commitHandler
-                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents())))
-                .onItem().invoke(this::incomingTrace)
-                .onFailure().invoke(this::reportFailure);
+                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
+                                config.getTracingEnabled())));
+
+        if (config.getTracingEnabled()) {
+            incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
+        }
+
+        this.stream = incomingMulti.onFailure().invoke(this::reportFailure);
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {

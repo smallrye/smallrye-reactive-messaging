@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -126,46 +125,42 @@ public class MetadataPropagationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", "should-not-be-used");
-        config.put(prefix + "tracing-enabled", false);
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", "should-not-be-used");
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", topicOut);
-        config.put(prefix + "tracing-enabled", false);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", topicOut);
 
-        prefix = "mp.messaging.incoming.source.";
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "topic", topicIn);
-        config.put(prefix + "commit-strategy", "latest");
-        config.put(prefix + "tracing-enabled", false);
+        Map<String, Object> config = builder.build();
 
+        builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.source");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("key.deserializer", StringDeserializer.class.getName());
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("topic", topicIn);
+        builder.put("commit-strategy", "latest");
+
+        config.putAll(builder.build());
         return new MapBasedConfig(config);
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppWithKafkaMetadata(String topic) {
-        String prefix = "mp.messaging.incoming.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "commit-strategy", "latest");
-        config.put(prefix + "tracing-enabled", false);
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("key.deserializer", StringDeserializer.class.getName());
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("topic", topic);
+        builder.put("commit-strategy", "latest");
+        return new MapBasedConfig(builder.build());
     }
 
     @SuppressWarnings("deprecation")

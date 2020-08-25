@@ -10,7 +10,6 @@ import static org.awaitility.Awaitility.await;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -311,42 +310,41 @@ public class TracingPropagationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "topic", "output");
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka", true);
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", IntegerSerializer.class.getName());
+        builder.put("topic", "output");
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData() {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "topic", "result-topic");
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka", true);
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", IntegerSerializer.class.getName());
+        builder.put("topic", "result-topic");
 
-        prefix = "mp.messaging.incoming.source.";
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
-        config.put(prefix + "topic", "some-topic");
-        config.put(prefix + "auto.offset.reset", "earliest");
+        Map<String, Object> config = builder.build();
 
+        builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.source", true);
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("key.deserializer", StringDeserializer.class.getName());
+        builder.put("topic", "some-topic");
+        builder.put("auto.offset.reset", "earliest");
+
+        config.putAll(builder.build());
         return new MapBasedConfig(config);
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppReceivingData(String topic) {
-        Map<String, Object> config = new HashMap<>();
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.stuff", true);
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("key.deserializer", StringDeserializer.class.getName());
+        builder.put("topic", topic);
+        builder.put("auto.offset.reset", "earliest");
 
-        String prefix = "mp.messaging.incoming.stuff.";
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "key.deserializer", StringDeserializer.class.getName());
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "auto.offset.reset", "earliest");
-
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     @ApplicationScoped
@@ -370,8 +368,8 @@ public class TracingPropagationTest extends KafkaTestBase {
 
     @ApplicationScoped
     public static class MyAppReceivingData {
-        private List<TracingMetadata> tracingMetadata = new ArrayList<>();
-        private List<Integer> results = new CopyOnWriteArrayList<>();
+        private final List<TracingMetadata> tracingMetadata = new ArrayList<>();
+        private final List<Integer> results = new CopyOnWriteArrayList<>();
 
         @Incoming("stuff")
         public CompletionStage<Void> consume(Message<Integer> input) {

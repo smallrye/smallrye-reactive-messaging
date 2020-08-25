@@ -67,7 +67,7 @@ public class KafkaTestBase {
     @After
     public void tearDown() {
         if (vertx != null) {
-            vertx.close();
+            vertx.closeAndAwait();
         }
     }
 

@@ -913,47 +913,43 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getConfigToSendStructuredCloudEvents(String topic) {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "cloud-events-mode", "structured");
-        config.put(prefix + "topic", topic);
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("cloud-events-mode", "structured");
+        builder.put("topic", topic);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getConfigToSendBinaryCloudEvents(String topic) {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", topic);
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", topic);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getConfigToSendBinaryCloudEventsWithDefault(String topic) {
-        String prefix = "mp.messaging.outgoing.source.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "cloud-events-type", "greetings");
-        config.put(prefix + "cloud-events-source", "source://me");
-        config.put(prefix + "cloud-events-subject", "test");
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.source");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", topic);
+        builder.put("cloud-events-type", "greetings");
+        builder.put("cloud-events-source", "source://me");
+        builder.put("cloud-events-subject", "test");
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getConfigToSendStructuredCloudEventsWithDefault(String topic) {
-        String prefix = "mp.messaging.outgoing.source.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "cloud-events-type", "greetings");
-        config.put(prefix + "cloud-events-source", "source://me");
-        config.put(prefix + "cloud-events-subject", "test");
-        config.put(prefix + "cloud-events-mode", "structured");
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.source");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", topic);
+        builder.put("cloud-events-type", "greetings");
+        builder.put("cloud-events-source", "source://me");
+        builder.put("cloud-events-subject", "test");
+        builder.put("cloud-events-mode", "structured");
+        return new MapBasedConfig(builder.build());
     }
 
     private Map<String, Object> newCommonConfig() {
@@ -964,6 +960,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("key.serializer", StringSerializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
+        config.put("tracing-enabled", false);
         return config;
     }
 
