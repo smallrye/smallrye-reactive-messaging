@@ -7,15 +7,20 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.grpc.Context;
+import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.trace.TracingContextUtils;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
-    private final Metadata metadata;
+    private Metadata metadata;
     private final IncomingKafkaRecordMetadata<K, T> kafkaMetadata;
     private final KafkaCommitHandler commitHandler;
     private final KafkaFailureHandler onNack;
@@ -24,7 +29,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     public IncomingKafkaRecord(KafkaConsumerRecord<K, T> record,
             KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack,
-            boolean cloudEventEnabled) {
+            boolean cloudEventEnabled,
+            boolean tracingEnabled) {
         this.commitHandler = commitHandler;
         this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record);
 
@@ -53,6 +59,19 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             }
         } else {
             metadata = Metadata.of(this.kafkaMetadata);
+        }
+
+        if (tracingEnabled) {
+            TracingMetadata tracingMetadata = TracingMetadata.empty();
+            if (record.headers() != null) {
+                // Read tracing headers
+                Context context = OpenTelemetry.getPropagators().getHttpTextFormat()
+                        .extract(Context.current(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
+                tracingMetadata = TracingMetadata
+                        .withPrevious(TracingContextUtils.getSpanWithoutDefault(context));
+            }
+
+            metadata = metadata.with(tracingMetadata);
         }
 
         this.metadata = metadata;
@@ -116,5 +135,9 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     @Override
     public CompletionStage<Void> nack(Throwable reason) {
         return onNack.handle(this, reason);
+    }
+
+    public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
+        metadata = metadata.with(tracingMetadata);
     }
 }

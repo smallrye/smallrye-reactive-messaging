@@ -87,21 +87,19 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getDoubleNackConfig() {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "topic", "double-topic");
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", IntegerSerializer.class.getName());
+        builder.put("topic", "double-topic");
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getPassedNackConfig(String topic) {
-        String prefix = "mp.messaging.outgoing.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "topic", topic);
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", IntegerSerializer.class.getName());
+        builder.put("topic", topic);
+        return new MapBasedConfig(builder.build());
     }
 
     @ApplicationScoped

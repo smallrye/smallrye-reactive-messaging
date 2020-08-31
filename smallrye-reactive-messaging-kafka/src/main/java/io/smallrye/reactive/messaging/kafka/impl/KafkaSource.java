@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
@@ -14,9 +15,13 @@ import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import io.opentelemetry.trace.Span;
+import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
@@ -203,7 +208,7 @@ public class KafkaSource<K, V> {
             }
         }
 
-        this.stream = multi
+        Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
                 .onSubscribe().invokeUni(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
                     if (this.pattern != null) {
@@ -225,8 +230,14 @@ public class KafkaSource<K, V> {
                     }
                 })
                 .map(rec -> commitHandler
-                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents())))
-                .onFailure().invoke(this::reportFailure);
+                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
+                                config.getTracingEnabled())));
+
+        if (config.getTracingEnabled()) {
+            incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
+        }
+
+        this.stream = incomingMulti.onFailure().invoke(this::reportFailure);
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
@@ -262,6 +273,36 @@ public class KafkaSource<K, V> {
             failures.remove(0);
         }
         failures.add(failure);
+    }
+
+    public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {
+        if (configuration.getTracingEnabled()) {
+            TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
+
+            final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
+                    .setSpanKind(Span.Kind.CONSUMER);
+
+            // Handle possible parent span
+            final SpanContext parentSpan = tracingMetadata.getPreviousSpanContext();
+            if (parentSpan != null && parentSpan.isValid()) {
+                spanBuilder.setParent(parentSpan);
+            } else {
+                spanBuilder.setNoParent();
+            }
+
+            final Span span = spanBuilder.startSpan();
+
+            // Set Span attributes
+            span.setAttribute("partition", kafkaRecord.getPartition());
+            span.setAttribute("offset", kafkaRecord.getOffset());
+            SemanticAttributes.MESSAGING_SYSTEM.set(span, "kafka");
+            SemanticAttributes.MESSAGING_DESTINATION.set(span, kafkaRecord.getTopic());
+            SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
+
+            kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
+
+            span.end();
+        }
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config, Vertx vertx,

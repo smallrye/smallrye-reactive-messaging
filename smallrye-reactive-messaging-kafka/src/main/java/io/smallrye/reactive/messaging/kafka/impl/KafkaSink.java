@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
@@ -10,19 +11,29 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import io.grpc.Context;
+import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.trace.Span;
+import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.trace.TracingContextUtils;
+import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
@@ -197,7 +208,8 @@ public class KafkaSink {
             actualTimestamp = (om.getTimestamp() != null) ? om.getTimestamp().toEpochMilli() : -1;
         }
 
-        Iterable<Header> kafkaHeaders = om == null || om.getHeaders() == null ? Collections.emptyList() : om.getHeaders();
+        Headers kafkaHeaders = om == null || om.getHeaders() == null ? new RecordHeaders() : om.getHeaders();
+        createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
         return new ProducerRecord<>(
                 actualTopic,
                 actualPartition == -1 ? null : actualPartition,
@@ -205,6 +217,48 @@ public class KafkaSink {
                 actualKey,
                 message.getPayload(),
                 kafkaHeaders);
+    }
+
+    private void createOutgoingTrace(Message<?> message, String topic, int partition, Headers headers) {
+        if (configuration.getTracingEnabled()) {
+            Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
+
+            final Span.Builder spanBuilder = TRACER.spanBuilder(topic + " send")
+                    .setSpanKind(Span.Kind.PRODUCER);
+
+            if (tracingMetadata.isPresent()) {
+                // Handle possible parent span
+                final SpanContext parentSpan = tracingMetadata.get().getPreviousSpanContext();
+                if (parentSpan != null && parentSpan.isValid()) {
+                    spanBuilder.setParent(parentSpan);
+                } else {
+                    spanBuilder.setNoParent();
+                }
+
+                // Handle possible adjacent spans
+                final SpanContext incomingSpan = tracingMetadata.get().getCurrentSpanContext();
+                if (incomingSpan != null && incomingSpan.isValid()) {
+                    spanBuilder.addLink(incomingSpan);
+                }
+            } else {
+                spanBuilder.setNoParent();
+            }
+
+            final Span span = spanBuilder.startSpan();
+            Scope scope = TracingContextUtils.currentContextWith(span);
+
+            // Set Span attributes
+            span.setAttribute("partition", partition);
+            SemanticAttributes.MESSAGING_SYSTEM.set(span, "kafka");
+            SemanticAttributes.MESSAGING_DESTINATION.set(span, topic);
+            SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
+
+            // Set span onto headers
+            OpenTelemetry.getPropagators().getHttpTextFormat()
+                    .inject(Context.current(), headers, HeaderInjectAdapter.SETTER);
+            span.end();
+            scope.close();
+        }
     }
 
     private JsonObject extractProducerConfiguration(KafkaConnectorOutgoingConfiguration config) {

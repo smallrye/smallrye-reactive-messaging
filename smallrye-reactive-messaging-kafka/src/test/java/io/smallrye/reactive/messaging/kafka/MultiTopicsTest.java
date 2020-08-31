@@ -60,6 +60,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                 .put("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
                 .put("mp.messaging.incoming.kafka.topics", topic1 + ", " + topic2 + ", " + topic3)
+                .put("mp.messaging.incoming.kafka.tracing-enabled", false)
                 .put("mp.messaging.incoming.kafka.auto.offset.reset", "earliest"));
 
         await().until(() -> isReady(container));
@@ -112,6 +113,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                 .put("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
                 .put("mp.messaging.incoming.kafka.topics", topic1 + ", " + topic2 + ", " + topic3)
+                .put("mp.messaging.incoming.kafka.tracing-enabled", false)
                 .put("mp.messaging.incoming.kafka.auto.offset.reset", "earliest"));
 
         await().until(() -> isReady(container));
@@ -165,6 +167,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                 .put("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
                 .put("mp.messaging.incoming.kafka.topic", "greetings-.+")
                 .put("mp.messaging.incoming.kafka.pattern", true)
+                .put("mp.messaging.incoming.kafka.tracing-enabled", false)
                 .put("mp.messaging.incoming.kafka.auto.offset.reset", "earliest"));
 
         await().until(() -> isReady(container));

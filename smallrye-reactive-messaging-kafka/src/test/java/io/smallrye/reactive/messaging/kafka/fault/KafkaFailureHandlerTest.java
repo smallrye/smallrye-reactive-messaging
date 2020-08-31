@@ -259,62 +259,58 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getFailConfig(String topic) {
-        String prefix = "mp.messaging.incoming.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "group.id", "my-group");
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "enable.auto.commit", "false");
-        config.put(prefix + "auto.offset.reset", "earliest");
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("group.id", "my-group");
+        builder.put("topic", topic);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("enable.auto.commit", "false");
+        builder.put("auto.offset.reset", "earliest");
         // fail is the default.
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getIgnoreConfig(String topic) {
-        String prefix = "mp.messaging.incoming.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "group.id", "my-group");
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "enable.auto.commit", "false");
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "failure-strategy", "ignore");
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("topic", topic);
+        builder.put("group.id", "my-group");
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("enable.auto.commit", "false");
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("failure-strategy", "ignore");
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getDeadLetterQueueConfig() {
-        String prefix = "mp.messaging.incoming.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "topic", "dead-letter-default");
-        config.put(prefix + "group.id", "my-group");
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "enable.auto.commit", "false");
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "failure-strategy", "dead-letter-queue");
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("topic", "dead-letter-default");
+        builder.put("group.id", "my-group");
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("enable.auto.commit", "false");
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("failure-strategy", "dead-letter-queue");
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig getDeadLetterQueueWithCustomConfig(String topic, String dq) {
-        String prefix = "mp.messaging.incoming.kafka.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "group.id", "my-group");
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "enable.auto.commit", "false");
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "failure-strategy", "dead-letter-queue");
-        config.put(prefix + "dead-letter-queue.topic", dq);
-        config.put(prefix + "dead-letter-queue.key.serializer", IntegerSerializer.class.getName());
-        config.put(prefix + "dead-letter-queue.value.serializer", IntegerSerializer.class.getName());
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("group.id", "my-group");
+        builder.put("topic", topic);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("enable.auto.commit", "false");
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("failure-strategy", "dead-letter-queue");
+        builder.put("dead-letter-queue.topic", dq);
+        builder.put("dead-letter-queue.key.serializer", IntegerSerializer.class.getName());
+        builder.put("dead-letter-queue.value.serializer", IntegerSerializer.class.getName());
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     @ApplicationScoped

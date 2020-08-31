@@ -89,6 +89,10 @@ Type: _long_ | false | `2147483647`
 
 Type: _string_ | false | 
 
+| *tracing-enabled* | Whether tracing is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
 | *value.serializer* | The serializer classname used to serialize the payload
 
 Type: _string_ | true | 

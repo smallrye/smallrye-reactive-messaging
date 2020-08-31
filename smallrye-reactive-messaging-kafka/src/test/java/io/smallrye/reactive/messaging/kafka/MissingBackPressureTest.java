@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.entry;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -63,14 +62,13 @@ public class MissingBackPressureTest extends KafkaTestBase {
     }
 
     public MapBasedConfig myKafkaSinkConfig() {
-        String prefix = "mp.messaging.outgoing.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", "output");
-        config.put(prefix + "waitForWriteCompletion", false);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.temperature-values");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", "output");
+        builder.put("waitForWriteCompletion", false);
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     @Test

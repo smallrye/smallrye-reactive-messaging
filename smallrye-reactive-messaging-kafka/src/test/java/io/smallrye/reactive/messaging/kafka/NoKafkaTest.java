@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -219,36 +218,33 @@ public class NoKafkaTest {
     }
 
     private MapBasedConfig myKafkaSourceConfig(String topic) {
-        String prefix = "mp.messaging.incoming.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "topic", topic);
-        config.put(prefix + "commit-strategy", "latest");
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.temperature-values");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("topic", topic);
+        builder.put("commit-strategy", "latest");
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig myKafkaSinkConfig(String topic) {
-        String prefix = "mp.messaging.outgoing.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "max-inflight-messages", "2");
-        config.put(prefix + "max.block.ms", 1000);
-        config.put(prefix + "topic", topic);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.temperature-values");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("max-inflight-messages", "2");
+        builder.put("max.block.ms", 1000);
+        builder.put("topic", topic);
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
     private MapBasedConfig myKafkaSinkConfigWithoutBlockLimit(String topic) {
-        String prefix = "mp.messaging.outgoing.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", topic);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.temperature-values");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", topic);
 
-        return new MapBasedConfig(config);
+        return new MapBasedConfig(builder.build());
     }
 
 }

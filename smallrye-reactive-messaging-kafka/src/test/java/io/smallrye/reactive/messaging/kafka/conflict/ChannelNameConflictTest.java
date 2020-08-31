@@ -35,11 +35,13 @@ public class ChannelNameConflictTest extends KafkaTestBase {
         CONFLICT.put("mp.messaging.incoming.my-topic.topic", "my-topic-1");
         CONFLICT.put("mp.messaging.incoming.my-topic.value.deserializer",
                 "org.apache.kafka.common.serialization.StringDeserializer");
+        CONFLICT.put("mp.messaging.incoming.my-topic.tracing-enabled", false);
 
         CONFLICT.put("mp.messaging.outgoing.my-topic.connector", "smallrye-kafka");
         CONFLICT.put("mp.messaging.outgoing.my-topic.topic", "my-topic-1");
         CONFLICT.put("mp.messaging.outgoing.my-topic.value.serializer",
                 "org.apache.kafka.common.serialization.StringSerializer");
+        CONFLICT.put("mp.messaging.outgoing.my-topic.tracing-enabled", false);
     }
 
     private WeldContainer container;

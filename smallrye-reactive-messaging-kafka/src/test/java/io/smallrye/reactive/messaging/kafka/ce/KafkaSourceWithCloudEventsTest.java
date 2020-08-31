@@ -753,14 +753,13 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getConfig(String topic) {
-        String prefix = "mp.messaging.incoming.data.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.deserializer", StringDeserializer.class.getName());
-        config.put(prefix + "enable.auto.commit", "false");
-        config.put(prefix + "auto.offset.reset", "earliest");
-        config.put(prefix + "topic", topic);
-        return new MapBasedConfig(config);
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.data");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("value.deserializer", StringDeserializer.class.getName());
+        builder.put("enable.auto.commit", "false");
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("topic", topic);
+        return new MapBasedConfig(builder.build());
     }
 
     private Map<String, Object> newCommonConfig() {
@@ -771,6 +770,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("key.deserializer", StringDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
+        config.put("tracing-enabled", false);
         return config;
     }
 

@@ -17,6 +17,10 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `true`
 
+| *tracing-enabled* | Whether tracing is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
 | *topics* | A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties
 
 Type: _string_ | false | 
