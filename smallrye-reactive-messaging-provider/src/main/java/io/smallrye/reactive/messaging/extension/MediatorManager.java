@@ -169,7 +169,12 @@ public class MediatorManager {
         // Before weaving hook
         Executor executor = Runnable::run;
         if (!hooks.isUnsatisfied()) {
-            executor = hooks.get().before(registars, channelRegistry);
+            Executor custom = hooks.get().before(registars, channelRegistry);
+            if (custom == null) {
+                System.out.println("Hook called by no executor");
+            } else {
+                executor = custom;
+            }
         }
 
         executor.execute(() -> {
