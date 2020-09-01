@@ -19,7 +19,7 @@ public class CleanupContextPropagation implements AssemblyHook {
         try {
             CleanupContextPropagation.class.getClassLoader().loadClass("org.eclipse.microprofile.context.ThreadContext");
             System.out.println("Context Propgation hook called and clearing context...");
-            return ThreadContext.builder().cleared(ThreadContext.ALL_REMAINING).build().currentContextExecutor();
+            return ThreadContext.builder().unchanged().propagated().cleared(ThreadContext.ALL_REMAINING).build().currentContextExecutor();
         } catch (Exception ignored) {
             // No context propagation.
             return null;
