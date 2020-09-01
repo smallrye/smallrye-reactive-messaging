@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.assembly;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -12,14 +13,16 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 @ApplicationScoped
 public class CleanupContextPropagation implements AssemblyHook {
     @Override
-    public void before(List<ChannelRegistar> registars,
+    public Executor before(List<ChannelRegistar> registars,
             ChannelRegistry registry) {
 
         try {
             CleanupContextPropagation.class.getClassLoader().loadClass("org.eclipse.microprofile.context.ThreadContext");
-            ThreadContext.builder().cleared(ThreadContext.ALL_REMAINING);
+            System.out.println("Context Propgation hook called and clearing context...");
+            return ThreadContext.builder().cleared(ThreadContext.ALL_REMAINING).build().currentContextExecutor();
         } catch (Exception ignored) {
             // No context propagation.
+            return null;
         }
     }
 }

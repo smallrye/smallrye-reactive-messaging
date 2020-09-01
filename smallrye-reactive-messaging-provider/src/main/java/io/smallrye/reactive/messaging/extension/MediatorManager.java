@@ -7,6 +7,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
@@ -166,65 +167,71 @@ public class MediatorManager {
         log.initializingMediators();
 
         // Before weaving hook
-        hooks.stream().forEach(h -> h.before(registars, channelRegistry));
+        Executor executor = Runnable::run;
+        if (!hooks.isUnsatisfied()) {
+            executor = hooks.get().before(registars, channelRegistry);
+        }
 
-        collected.mediators()
-                .forEach(configuration -> {
+        executor.execute(() -> {
+            collected.mediators()
+                    .forEach(configuration -> {
 
-                    AbstractMediator mediator = createMediator(configuration);
+                        AbstractMediator mediator = createMediator(configuration);
 
-                    log.initializingMethod(mediator.getMethodAsString());
+                        log.initializingMethod(mediator.getMethodAsString());
 
-                    mediator.setDecorators(decorators);
-                    mediator.setHealth(health);
-                    mediator.setWorkerPoolRegistry(workerPoolRegistry);
+                        mediator.setDecorators(decorators);
+                        mediator.setHealth(health);
+                        mediator.setWorkerPoolRegistry(workerPoolRegistry);
 
-                    try {
-                        Object beanInstance = beanManager.getReference(configuration.getBean(), Object.class,
-                                beanManager.createCreationalContext(configuration.getBean()));
+                        try {
+                            Object beanInstance = beanManager.getReference(configuration.getBean(), Object.class,
+                                    beanManager.createCreationalContext(configuration.getBean()));
 
-                        if (configuration.getInvokerClass() != null) {
-                            try {
-                                Constructor<? extends Invoker> constructorUsingBeanInstance = configuration.getInvokerClass()
-                                        .getConstructor(Object.class);
-                                if (constructorUsingBeanInstance != null) {
-                                    mediator.setInvoker(constructorUsingBeanInstance.newInstance(beanInstance));
-                                } else {
-                                    mediator.setInvoker(configuration.getInvokerClass().getDeclaredConstructor()
-                                            .newInstance());
+                            if (configuration.getInvokerClass() != null) {
+                                try {
+                                    Constructor<? extends Invoker> constructorUsingBeanInstance = configuration
+                                            .getInvokerClass()
+                                            .getConstructor(Object.class);
+                                    if (constructorUsingBeanInstance != null) {
+                                        mediator.setInvoker(constructorUsingBeanInstance.newInstance(beanInstance));
+                                    } else {
+                                        mediator.setInvoker(configuration.getInvokerClass().getDeclaredConstructor()
+                                                .newInstance());
+                                    }
+
+                                } catch (InstantiationException | IllegalAccessException e) {
+                                    log.unableToCreateInvoker(configuration.getInvokerClass(), e);
+                                    return;
                                 }
+                            }
 
-                            } catch (InstantiationException | IllegalAccessException e) {
-                                log.unableToCreateInvoker(configuration.getInvokerClass(), e);
-                                return;
+                            mediator.initialize(beanInstance);
+                        } catch (Throwable e) {
+                            log.unableToInitializeMediator(mediator.getMethodAsString(), e);
+                            return;
+                        }
+
+                        if (mediator.getConfiguration().shape() == Shape.PUBLISHER) {
+                            log.registeringAsPublisher(mediator.getConfiguration().methodAsString(),
+                                    mediator.getConfiguration().getOutgoing());
+                            channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
+                        }
+                        if (mediator.getConfiguration().shape() == Shape.SUBSCRIBER) {
+                            List<String> list = mediator.getConfiguration().getIncoming();
+                            log.registeringAsSubscriber(mediator.getConfiguration().methodAsString(), list);
+                            for (String l : list) {
+                                channelRegistry.register(l, mediator.getComputedSubscriber());
                             }
                         }
+                    });
 
-                        mediator.initialize(beanInstance);
-                    } catch (Throwable e) {
-                        log.unableToInitializeMediator(mediator.getMethodAsString(), e);
-                        return;
-                    }
-
-                    if (mediator.getConfiguration().shape() == Shape.PUBLISHER) {
-                        log.registeringAsPublisher(mediator.getConfiguration().methodAsString(),
-                                mediator.getConfiguration().getOutgoing());
-                        channelRegistry.register(mediator.getConfiguration().getOutgoing(), mediator.getStream());
-                    }
-                    if (mediator.getConfiguration().shape() == Shape.SUBSCRIBER) {
-                        List<String> list = mediator.getConfiguration().getIncoming();
-                        log.registeringAsSubscriber(mediator.getConfiguration().methodAsString(), list);
-                        for (String l : list) {
-                            channelRegistry.register(l, mediator.getComputedSubscriber());
-                        }
-                    }
-                });
-
-        try {
-            weaving(unmanagedSubscribers);
-        } catch (WeavingException e) {
-            throw new DeploymentException(e);
-        }
+            try {
+                weaving(unmanagedSubscribers);
+            } catch (WeavingException e) {
+                throw new DeploymentException(e);
+            }
+        });
     }
 
     @SuppressWarnings("unchecked")
