@@ -5,12 +5,7 @@ import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -47,6 +42,7 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.WeavingException;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.assembly.AssemblyHook;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 
 /**
@@ -94,6 +90,9 @@ public class MediatorManager {
 
     @Inject
     Instance<PublisherDecorator> decorators;
+
+    @Inject
+    Instance<AssemblyHook> hooks;
 
     @Inject
     HealthCenter health;
@@ -156,11 +155,19 @@ public class MediatorManager {
         if (initialized) {
             throw ex.illegalStateForMediatorManagerAlreadyInitialized();
         }
+
         log.deploymentDoneStartProcessing();
 
-        streamRegistars.stream().forEach(ChannelRegistar::initialize);
+        List<ChannelRegistar> registars = streamRegistars.stream().collect(Collectors.toList());
+        for (ChannelRegistar registar : registars) {
+            registar.initialize();
+        }
         Set<String> unmanagedSubscribers = channelRegistry.getOutgoingNames();
         log.initializingMediators();
+
+        // Before weaving hook
+        hooks.stream().forEach(h -> h.before(registars, channelRegistry));
+
         collected.mediators()
                 .forEach(configuration -> {
 

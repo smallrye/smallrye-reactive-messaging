@@ -54,6 +54,13 @@
     </dependency>
 
     <dependency>
+      <groupId>org.eclipse.microprofile.context-propagation</groupId>
+      <artifactId>microprofile-context-propagation-api</artifactId>
+      <version>1.0.2</version>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
       <groupId>io.smallrye.testing</groupId>
       <artifactId>smallrye-testing-utilities</artifactId>
       <scope>test</scope>
