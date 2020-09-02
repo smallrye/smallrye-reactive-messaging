@@ -80,7 +80,7 @@
 
     <jboss-log-manager.version>2.1.17.Final</jboss-log-manager.version>
 
-    <opentelemetry.version>0.7.1</opentelemetry.version>
+    <opentelemetry.version>0.8.0</opentelemetry.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
