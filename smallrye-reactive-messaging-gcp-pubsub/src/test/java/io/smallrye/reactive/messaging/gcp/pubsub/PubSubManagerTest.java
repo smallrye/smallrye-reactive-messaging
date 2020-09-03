@@ -24,16 +24,24 @@ public class PubSubManagerTest extends PubSubTestBase {
 
     @AfterEach
     public void afterEach() {
+        // cleanup
+        PubSubManager manager = container.select(PubSubManager.class).get();
+        deleteTopicIfExists(manager);
         clear();
         container.shutdown();
     }
 
     @Test
     public void testResourceCleanup() {
-        // create a resource
         final PubSubManager manager = container.select(PubSubManager.class).get();
-        manager.topicAdminClient(CONFIG)
-                .createTopic(TopicName.of(PROJECT_ID, TOPIC));
+
+        // create a resource
+        try {
+            manager.topicAdminClient(CONFIG)
+                    .createTopic(TopicName.of(PROJECT_ID, TOPIC));
+        } catch (io.grpc.StatusRuntimeException e) {
+            // already existing, ignore
+        }
 
         // mimic the container destroying and then recreating the resource
         manager.destroy();

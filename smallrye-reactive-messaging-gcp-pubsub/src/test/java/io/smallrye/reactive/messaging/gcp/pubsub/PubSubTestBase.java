@@ -13,6 +13,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 
+import com.google.pubsub.v1.TopicName;
+
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
@@ -51,7 +53,8 @@ public class PubSubTestBase {
                 PUBSUB_CONTAINER.getFirstMappedPort());
     }
 
-    protected MapBasedConfig createSourceConfig(final String topic, final String subscription, final int containerPort) {
+    protected MapBasedConfig createSourceConfig(final String topic, final String subscription,
+            final int containerPort) {
         final String prefix = "mp.messaging.incoming.source.";
         final Map<String, Object> config = new HashMap<>();
         config.put(prefix.concat("connector"), PubSubConnector.CONNECTOR_NAME);
@@ -105,6 +108,15 @@ public class PubSubTestBase {
             Files.deleteIfExists(out.toPath());
         } catch (final IOException e) {
             LOGGER.error("Unable to delete {}", out, e);
+        }
+    }
+
+    static void deleteTopicIfExists(PubSubManager manager) {
+        try {
+            manager.topicAdminClient(CONFIG)
+                    .deleteTopic(TopicName.of(PROJECT_ID, TOPIC));
+        } catch (com.google.api.gax.rpc.NotFoundException notFoundException) {
+            // The topic didn't exist.
         }
     }
 
