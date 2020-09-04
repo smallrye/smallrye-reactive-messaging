@@ -14,10 +14,18 @@ import org.reactivestreams.Subscription;
 
 public class SubscriberWrapper<I, T> implements Processor<T, T> {
 
+    /**
+     * The subscriber provided by the user.
+     */
     private final Subscriber<I> delegate;
     private final BiFunction<T, Throwable, CompletionStage<Void>> postAck;
-    AtomicReference<Subscriber<? super T>> subscriber = new AtomicReference<>();
-    private Function<T, I> mapper;
+
+    /**
+     * The downstream subscriber.
+     */
+    private final AtomicReference<Subscriber<? super T>> subscriber = new AtomicReference<>();
+
+    private final Function<T, I> mapper;
 
     public SubscriberWrapper(Subscriber<I> subscriber, Function<T, I> mapper,
             BiFunction<T, Throwable, CompletionStage<Void>> postAck) {
@@ -26,6 +34,11 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
         this.postAck = postAck;
     }
 
+    /**
+     * Gets call with the downstream subscriber (from reactive messaging)
+     *
+     * @param s the downstream subscriber
+     */
     @Override
     public void subscribe(Subscriber<? super T> s) {
         if (!this.subscriber.compareAndSet(null, s)) {
@@ -46,6 +59,21 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
 
     @Override
     public void onSubscribe(Subscription s) {
+        // Pass a custom subscription to the downstream
+        subscriber.get().onSubscribe(new Subscription() {
+            @Override
+            public void request(long n) {
+                // ignore requests
+            }
+
+            @Override
+            public void cancel() {
+                // cancel subscription upstream
+                s.cancel();
+            }
+        });
+
+        // Pass the subscription to the user subscriber.
         delegate.onSubscribe(s);
     }
 
