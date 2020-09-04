@@ -5,9 +5,9 @@ import java.nio.charset.StandardCharsets;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 
-import io.opentelemetry.context.propagation.HttpTextFormat;
+import io.opentelemetry.context.propagation.TextMapPropagator;
 
-public class HeaderExtractAdapter implements HttpTextFormat.Getter<Headers> {
+public class HeaderExtractAdapter implements TextMapPropagator.Getter<Headers> {
     public static final HeaderExtractAdapter GETTER = new HeaderExtractAdapter();
 
     @Override
