@@ -286,7 +286,7 @@ public class TracingPropagationTest extends KafkaTestBase {
         final Span span = KafkaConnector.TRACER.spanBuilder(topic).setSpanKind(PRODUCER).startSpan();
         final Context context = withSpan(span, Context.current());
         OpenTelemetry.getPropagators()
-                .getHttpTextFormat()
+                .getTextMapPropagator()
                 .inject(context, proposedHeaders, (headers, key, value) -> {
                     if (headers != null) {
                         headers.remove(key).add(key, value.getBytes(StandardCharsets.UTF_8));

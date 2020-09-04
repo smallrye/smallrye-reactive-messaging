@@ -228,7 +228,7 @@ public class KafkaUsage {
                 (record) -> {
                     consumer.accept(record.key(), record.value());
                     tracingConsumer.accept(
-                            OpenTelemetry.getPropagators().getHttpTextFormat()
+                            OpenTelemetry.getPropagators().getTextMapPropagator()
                                     .extract(Context.current(), record.headers(), (headers, key) -> {
                                         final Header header = headers.lastHeader(key);
                                         if (header == null) {
@@ -283,7 +283,7 @@ public class KafkaUsage {
                 (record) -> {
                     consumer.accept(record.key(), record.value());
                     tracingConsumer.accept(
-                            OpenTelemetry.getPropagators().getHttpTextFormat()
+                            OpenTelemetry.getPropagators().getTextMapPropagator()
                                     .extract(Context.current(), record.headers(), (headers, key) -> {
                                         final Header header = headers.lastHeader(key);
                                         if (header == null) {

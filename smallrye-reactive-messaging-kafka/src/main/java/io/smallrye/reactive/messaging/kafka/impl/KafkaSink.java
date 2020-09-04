@@ -254,7 +254,7 @@ public class KafkaSink {
             SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
 
             // Set span onto headers
-            OpenTelemetry.getPropagators().getHttpTextFormat()
+            OpenTelemetry.getPropagators().getTextMapPropagator()
                     .inject(Context.current(), headers, HeaderInjectAdapter.SETTER);
             span.end();
             scope.close();
