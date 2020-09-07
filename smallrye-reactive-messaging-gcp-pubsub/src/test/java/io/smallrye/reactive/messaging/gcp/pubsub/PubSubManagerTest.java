@@ -13,10 +13,13 @@ import com.google.pubsub.v1.TopicName;
 
 public class PubSubManagerTest extends PubSubTestBase {
 
+    private static final String TOPIC = "pubsub-manager-test";
+
     private WeldContainer container;
 
     @BeforeEach
     public void initTest() {
+        initConfiguration(TOPIC);
         final Weld weld = baseWeld();
         addConfig(createSourceConfig(TOPIC, SUBSCRIPTION, PUBSUB_CONTAINER.getFirstMappedPort()));
         container = weld.initialize();
@@ -26,7 +29,7 @@ public class PubSubManagerTest extends PubSubTestBase {
     public void afterEach() {
         // cleanup
         PubSubManager manager = container.select(PubSubManager.class).get();
-        deleteTopicIfExists(manager);
+        deleteTopicIfExists(manager, TOPIC);
         clear();
         container.shutdown();
     }
@@ -37,7 +40,7 @@ public class PubSubManagerTest extends PubSubTestBase {
 
         // create a resource
         try {
-            manager.topicAdminClient(CONFIG)
+            manager.topicAdminClient(config)
                     .createTopic(TopicName.of(PROJECT_ID, TOPIC));
         } catch (io.grpc.StatusRuntimeException e) {
             // already existing, ignore
@@ -47,7 +50,7 @@ public class PubSubManagerTest extends PubSubTestBase {
         manager.destroy();
 
         // verify that a new resource can be created with the same config after the resources were disposed
-        final Topic topic = manager.topicAdminClient(CONFIG)
+        final Topic topic = manager.topicAdminClient(config)
                 .getTopic(TopicName.of(PROJECT_ID, TOPIC));
 
         assertNotNull(topic);

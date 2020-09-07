@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.weld.environment.se.Weld;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -33,12 +35,13 @@ public class PubSubTestBase {
     static final int PUBSUB_PORT = 8085;
     static final String PROJECT_ID = "my-project-id";
     static final String SUBSCRIPTION = "pubsub-subscription-test";
-    static final String TOPIC = "pubsub-test";
 
     static GenericContainer<?> PUBSUB_CONTAINER;
-    static PubSubConfig CONFIG;
 
-    static {
+    protected PubSubConfig config;
+
+    @BeforeAll
+    public static void startPubSubContainer() {
         PUBSUB_CONTAINER = new GenericContainer<>("google/cloud-sdk:latest")
                 .withExposedPorts(PUBSUB_PORT)
                 .withCommand("/bin/sh", "-c",
@@ -48,8 +51,17 @@ public class PubSubTestBase {
                         .withSeparateOutputStreams())
                 .waitingFor(new LogMessageWaitStrategy().withRegEx("(?s).*started.*$"));
         PUBSUB_CONTAINER.start();
+    }
 
-        CONFIG = new PubSubConfig(PROJECT_ID, TOPIC, null, true, "localhost",
+    @AfterAll
+    public static void stopPubSubContainer() {
+        if (PUBSUB_CONTAINER != null) {
+            PUBSUB_CONTAINER.stop();
+        }
+    }
+
+    public void initConfiguration(String topic) {
+        config = new PubSubConfig(PROJECT_ID, topic, null, true, "localhost",
                 PUBSUB_CONTAINER.getFirstMappedPort());
     }
 
@@ -111,10 +123,11 @@ public class PubSubTestBase {
         }
     }
 
-    static void deleteTopicIfExists(PubSubManager manager) {
+    void deleteTopicIfExists(PubSubManager manager, String topic) {
+        System.out.println("Deleting topic " + TopicName.of(PROJECT_ID, topic));
         try {
-            manager.topicAdminClient(CONFIG)
-                    .deleteTopic(TopicName.of(PROJECT_ID, TOPIC));
+            manager.topicAdminClient(config)
+                    .deleteTopic(TopicName.of(PROJECT_ID, topic));
         } catch (com.google.api.gax.rpc.NotFoundException notFoundException) {
             // The topic didn't exist.
         }
