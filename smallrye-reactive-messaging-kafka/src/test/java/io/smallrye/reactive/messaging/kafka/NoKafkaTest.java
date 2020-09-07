@@ -30,6 +30,7 @@ import org.junit.Test;
 import io.reactivex.Flowable;
 import io.reactivex.exceptions.MissingBackpressureException;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.health.HealthReport;
 
@@ -47,18 +48,14 @@ public class NoKafkaTest {
     }
 
     @Test
-    public void testOutgoingWithoutKafkaCluster() throws IOException {
+    public void testOutgoingWithoutKafkaCluster() throws IOException, InterruptedException {
+        KafkaTestBase.stopKafkaBroker();
+
         String topic = UUID.randomUUID().toString();
         List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
         KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> {
-                    received.add(entry(k, v));
-                    expected.getAndIncrement();
-                });
 
         container = KafkaTestBase.baseWeld();
         KafkaTestBase.addConfig(myKafkaSinkConfigWithoutBlockLimit(topic));
@@ -90,8 +87,16 @@ public class NoKafkaTest {
             return liveness.isOk();
         });
 
+        usage.consumeStrings(topic, 3, 10, TimeUnit.MINUTES,
+                latch::countDown,
+                (k, v) -> {
+                    received.add(entry(k, v));
+                    expected.getAndIncrement();
+                });
+
         await().until(() -> received.size() == 3);
 
+        latch.await();
     }
 
     private HealthCenter getHealth(WeldContainer container) {
@@ -100,6 +105,8 @@ public class NoKafkaTest {
 
     @Test
     public void testIncomingWithoutKafkaCluster() throws IOException {
+        KafkaTestBase.stopKafkaBroker();
+
         String topic = UUID.randomUUID().toString();
         KafkaUsage usage = new KafkaUsage();
         container = KafkaTestBase.baseWeld();
@@ -172,14 +179,12 @@ public class NoKafkaTest {
         final AtomicInteger counter = new AtomicInteger();
 
         @Outgoing("temperature-values")
-        public Flowable<String> generate() {
-            return Flowable.generate(e -> {
-                int i = counter.getAndIncrement();
-                if (i == 3) {
-                    e.onComplete();
-                } else {
-                    e.onNext(Integer.toString(i));
-                }
+        public Multi<String> generate() {
+            return Multi.createFrom().emitter(e -> {
+                e.emit("0");
+                e.emit("1");
+                e.emit("2");
+                e.complete();
             });
         }
     }
