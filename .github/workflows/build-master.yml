@@ -35,7 +35,11 @@ jobs:
                   version: ${{ matrix.java.version }}
                   source: ${{ matrix.java.source }}
             - name: Build with Maven
-              run: mvn -B clean install --file pom.xml
+              run: |
+                  mvn -B clean install --file pom.xml \
+                    -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
+                    -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
+                    -Dmaven.wagon.http.retryHandler.count=10
 
     quality:
         needs: build
@@ -51,7 +55,12 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   SONAR_TOKEN: ${{ secrets.SONAR_LOGIN }}
               run: |
-                    mvn verify sonar:sonar -Pcoverage -Dsonar.projectKey=smallrye_smallrye-reactive-messaging -Dsonar.projectName="SmallRye Reactive Messaging" -Dsonar.organization=smallrye -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_LOGIN
+                    mvn verify sonar:sonar -Pcoverage \
+                        -Dsonar.projectKey=smallrye_smallrye-reactive-messaging \
+                        -Dsonar.projectName="SmallRye Reactive Messaging" \
+                        -Dsonar.organization=smallrye \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.login=$SONAR_LOGIN
 
     up_to_date_antora:
         runs-on: ubuntu-latest
@@ -63,4 +72,10 @@ jobs:
                   java-version: 'openjdk8'
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
-              run: mvn install -DskipTests; mvn -pl documentation scm:check-local-modification -Dincludes=src/main/doc/antora.yml
+              run: |
+                  mvn install -DskipTests \
+                     -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
+                     -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
+                     -Dmaven.wagon.http.retryHandler.count=10
+                  mvn -pl documentation scm:check-local-modification \
+                     -Dincludes=src/main/doc/antora.yml

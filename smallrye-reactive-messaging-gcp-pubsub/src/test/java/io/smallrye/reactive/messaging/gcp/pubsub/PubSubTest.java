@@ -24,8 +24,11 @@ public class PubSubTest extends PubSubTestBase {
 
     private WeldContainer container;
 
+    private static final String TOPIC = "pubsub-test";
+
     @BeforeEach
     public void initTest() {
+        initConfiguration(TOPIC);
         final Weld weld = baseWeld();
         weld.addBeanClass(ConsumptionBean.class);
         addConfig(createSourceConfig(TOPIC, SUBSCRIPTION, PUBSUB_CONTAINER.getFirstMappedPort()));
@@ -35,10 +38,8 @@ public class PubSubTest extends PubSubTestBase {
     @AfterEach
     public void afterEach() {
         clear();
-
         PubSubManager manager = container.select(PubSubManager.class).get();
-        deleteTopicIfExists(manager);
-
+        deleteTopicIfExists(manager, TOPIC);
         container.shutdown();
     }
 
@@ -49,7 +50,7 @@ public class PubSubTest extends PubSubTestBase {
         // wait until the subscription is ready
         final PubSubManager manager = container.select(PubSubManager.class).get();
         await().until(() -> manager
-                .topicAdminClient(CONFIG)
+                .topicAdminClient(config)
                 .listTopicSubscriptions((TopicName) ProjectTopicName.of(PROJECT_ID, TOPIC))
                 .getPage()
                 .getPageElementCount() > 0);
