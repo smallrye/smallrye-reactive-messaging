@@ -418,6 +418,25 @@ public interface Message<T> {
     }
 
     /**
+     * Retrieves the metadata associated with the given classname.
+     *
+     * @param className the classname of the metadata to retrieve, must not be {@code null}
+     * @return an {@link Optional} containing the associated metadata, empty if none.
+     */
+    default Optional<?> getMetadata(String className) {
+        if (className == null) {
+            throw new IllegalArgumentException("`className` must not be `null`");
+        }
+        for (Object meta : getMetadata()) {
+            System.out.println("Comparing " + meta.getClass().getName() + " and " + className);
+            if (meta.getClass().getName().equals(className)) {
+                return Optional.of(meta);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
      * @return the supplier used to retrieve the acknowledgement {@link CompletionStage}.
      */
     default Supplier<CompletionStage<Void>> getAck() {

@@ -115,9 +115,11 @@ public class MessageTest {
 
         assertThat(message.getMetadata()).hasSize(2);
         assertThat(message.getMetadata(MyMetadata.class).map(i -> i.v)).hasValue("value");
+        assertThat(message.getMetadata(MyMetadata.class.getName())).isNotEmpty();
         assertThat(message.getMetadata(CountMetadata.class).map(i -> i.count)).hasValue(23);
         assertThat(message.getMetadata(String.class)).isEmpty();
-        assertThatThrownBy(() -> message.getMetadata(null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> message.getMetadata((Class<?>) null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> message.getMetadata((String) null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     private static class MyMessage implements Message<String> {

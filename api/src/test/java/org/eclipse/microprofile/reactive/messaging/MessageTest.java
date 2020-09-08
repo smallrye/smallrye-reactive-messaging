@@ -413,9 +413,12 @@ public class MessageTest {
 
         assertThat(message.getMetadata(MyMetadata.class))
                 .hasValueSatisfying(m -> assertThat(m.getValue()).isEqualTo("bar"));
+        assertThat(message.getMetadata(MyMetadata.class.getName()))
+                .hasValueSatisfying(m -> assertThat(((MyMetadata) m).getValue()).isEqualTo("bar"));
         assertThat(message.getMetadata(AtomicInteger.class)).hasValueSatisfying(m -> assertThat(m.get()).isEqualTo(2));
         assertThat(message.getMetadata(String.class)).isEmpty();
-        assertThatThrownBy(() -> message.getMetadata(null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> message.getMetadata((Class<?>) null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> message.getMetadata((String) null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     private static class MyMetadata {
