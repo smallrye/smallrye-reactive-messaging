@@ -144,4 +144,8 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 230, value = "Unable to create the publisher or subscriber during initialization")
     void unableToCreatePublisherOrSubscriber(@Cause Throwable t);
 
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 231, value = "No metadata of type %s attached to the message")
+    void noSuchMetadata(String type);
+
 }

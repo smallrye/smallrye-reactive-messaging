@@ -221,7 +221,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.processor = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(managePreProcessingAck())
                 .flatMap(message -> {
-                    PublisherBuilder<?> pb = invoke(message.getPayload());
+                    PublisherBuilder<?> pb = invoke(message);
                     return pb.map(payload -> Message.of(payload, message.getMetadata()));
                     // TODO We can handle post-acknowledgement here.
                 })
@@ -232,7 +232,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.processor = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(managePreProcessingAck())
                 .flatMap(message -> {
-                    Publisher<?> pub = invoke(message.getPayload());
+                    Publisher<?> pub = invoke(message);
                     return ReactiveStreams.fromPublisher(pub)
                             .map(payload -> Message.of(payload, message.getMetadata()));
                     // TODO We can handle post-acknowledgement here.
@@ -246,7 +246,7 @@ public class ProcessorMediator extends AbstractMediator {
             if (configuration.isBlocking()) {
                 this.processor = ReactiveStreams.<Message<?>> builder()
                         .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                                .onItem().transformToUni(x -> invokeBlocking(message.getPayload()))
+                                .onItem().transformToUni(x -> invokeBlocking(message))
                                 .onItem().transform(x -> (Message<?>) x)
                                 .onItemOrFailure().<Message<Object>> transformToUni(this::handlePostInvocationWithMessage)
                                 .onItem().transformToMulti(this::handleSkip))
@@ -254,7 +254,7 @@ public class ProcessorMediator extends AbstractMediator {
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
                         .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                                .onItem().transform(x -> invoke(message.getPayload()))
+                                .onItem().transform(x -> invoke(message))
                                 .onItem().transform(x -> (Message<?>) x)
                                 .onItemOrFailure().<Message<Object>> transformToUni(this::handlePostInvocationWithMessage)
                                 .onItem().transformToMulti(this::handleSkip))
@@ -291,7 +291,7 @@ public class ProcessorMediator extends AbstractMediator {
             if (configuration.isBlocking()) {
                 this.processor = ReactiveStreams.<Message<?>> builder()
                         .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                                .onItem().transformToUni(x -> (Uni<?>) invokeBlocking(message.getPayload()))
+                                .onItem().transformToUni(x -> (Uni<?>) invokeBlocking(message))
                                 .onItemOrFailure()
                                 .<Message<Object>> transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
                                 .onItem().transformToMulti(this::handleSkip))
@@ -299,7 +299,7 @@ public class ProcessorMediator extends AbstractMediator {
             } else {
                 this.processor = ReactiveStreams.<Message<?>> builder()
                         .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                                .onItem().transform(input -> invoke(input.getPayload()))
+                                .onItem().transform(this::invoke)
                                 .onItemOrFailure()
                                 .<Message<Object>> transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
                                 .onItem().transformToMulti(this::handleSkip))
@@ -397,7 +397,7 @@ public class ProcessorMediator extends AbstractMediator {
                 .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
                         .onItem()
                         .transformToUni(
-                                x -> Uni.createFrom().completionStage((CompletionStage<?>) invoke(message.getPayload())))
+                                x -> Uni.createFrom().completionStage((CompletionStage<?>) invoke(message)))
                         .onItemOrFailure().transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
                         .onItem().transformToMulti(this::handleSkip))
                 .buildRs();
@@ -406,7 +406,7 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningAUniOfPayloadAndConsumingIndividualPayload() {
         this.processor = ReactiveStreams.<Message<?>> builder()
                 .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                        .onItem().transformToUni(x -> invoke(message.getPayload()))
+                        .onItem().transformToUni(x -> invoke(message))
                         .onItemOrFailure().transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
                         .onItem().transformToMulti(this::handleSkip))
                 .buildRs();

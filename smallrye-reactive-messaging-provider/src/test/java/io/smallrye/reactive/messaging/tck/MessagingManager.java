@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -66,12 +65,10 @@ public class MessagingManager implements ChannelRegistar {
         Source processor = topics.get(topic);
         Objects.requireNonNull(processor);
         Objects.requireNonNull(message);
-        System.out.println("sending a message to topic " + topic + " / " + message + " / " + message.getPayload());
         processor.send(message);
     }
 
     public Optional<Message<MockPayload>> getLast(String topic, Duration timeout) {
-        System.out.println("retrieving a message from topic " + topic);
         CompletableFuture<Message<MockPayload>> future = new CompletableFuture<>();
         Source source = topics.get(topic);
         Objects.requireNonNull(source);
@@ -119,19 +116,15 @@ public class MessagingManager implements ChannelRegistar {
         private List<Message<MockPayload>> inflights = new ArrayList<>();
         private PublishProcessor<Message<MockPayload>> processor = PublishProcessor.create();
         private Flowable<Message<MockPayload>> source = processor
-                .doOnCancel(() -> System.out.println("Cancellation caught"))
                 .doOnSubscribe((x) -> resend());
 
         private void resend() {
-            System.out.println("Resending... " + inflights.stream().map(Message::getPayload).collect(Collectors.toList()));
             new ArrayList<>(inflights).forEach(m -> sendWithAcknowledgement(m.getPayload()));
         }
 
         public void sendWithAcknowledgement(MockPayload payload) {
-            System.out.println("Sending with ACK " + payload);
             AtomicReference<Message<MockPayload>> reference = new AtomicReference<>();
             Message<MockPayload> msg = Message.of(payload, () -> {
-                System.out.println("Acknowledging " + payload);
                 inflights.remove(reference.get());
                 return CompletableFuture.completedFuture(null);
             });
@@ -141,7 +134,6 @@ public class MessagingManager implements ChannelRegistar {
 
         public void send(Message<MockPayload> msg) {
             inflights.add(msg);
-            System.out.println("Sending message " + msg + " on " + name);
             if (processor != null) {
                 processor.onNext(msg);
             }
