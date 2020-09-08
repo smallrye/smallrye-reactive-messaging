@@ -330,8 +330,8 @@ public class MediatorConfigurationSupport {
                     : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
 
             consumption = ClassUtils.isAssignable(parameterTypes[0], Message.class)
-                    ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
-                    : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
+                    ? MediatorConfiguration.Consumption.MESSAGE
+                    : MediatorConfiguration.Consumption.PAYLOAD;
 
             useBuilderTypes = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
         } else {
@@ -448,7 +448,8 @@ public class MediatorConfigurationSupport {
     }
 
     public Acknowledgment.Strategy processDefaultAcknowledgement(Shape shape,
-            MediatorConfiguration.Consumption consumption) {
+        MediatorConfiguration.Consumption consumption,
+        MediatorConfiguration.Production production) {
         if (shape == Shape.STREAM_TRANSFORMER) {
             if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
                 return Acknowledgment.Strategy.PRE_PROCESSING;
@@ -457,6 +458,10 @@ public class MediatorConfigurationSupport {
             }
         } else if (shape == Shape.PROCESSOR) {
             if (consumption == MediatorConfiguration.Consumption.PAYLOAD) {
+                if (production == MediatorConfiguration.Production.STREAM_OF_PAYLOAD
+                || production == MediatorConfiguration.Production.STREAM_OF_MESSAGE) {
+                    return Acknowledgment.Strategy.PRE_PROCESSING;
+                }
                 return Acknowledgment.Strategy.POST_PROCESSING;
             } else if (consumption == MediatorConfiguration.Consumption.MESSAGE
                     || consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {

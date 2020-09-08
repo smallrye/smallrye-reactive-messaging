@@ -137,7 +137,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             this.useBuilderTypes = validationOutput.getUseBuilderTypes();
         }
         if (this.acknowledgment == null) {
-            this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption);
+            this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption, this.production);
         }
         this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incomings, () -> {
             Merge annotation = method.getAnnotation(Merge.class);
