@@ -6,10 +6,7 @@ import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.spi.Bean;
@@ -72,6 +69,11 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private final MediatorConfigurationSupport mediatorConfigurationSupport;
 
+    /**
+     * Map parameter class name -> optional (true) / mandatory (false)
+     */
+    private final Map<String, Boolean> metadata = new LinkedHashMap<>();
+
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, msg.methodMustBeSet());
         this.returnType = method.getReturnType();
@@ -83,6 +85,17 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                 new ReturnTypeGenericTypeAssignable(method),
                 this.parameterTypes.length == 0 ? new AlwaysInvalidIndexGenericTypeAssignable()
                         : new MethodParamGenericTypeAssignable(method, 0));
+
+        // Skip first, it's the payload or message.
+        for (int i = 1; i < parameterTypes.length; i++) {
+            Type[] genericParameterTypes = method.getGenericParameterTypes();
+            if (parameterTypes[i].isAssignableFrom(Optional.class)) {
+                ParameterizedType type = (ParameterizedType) genericParameterTypes[i];
+                metadata.put(type.getActualTypeArguments()[0].getTypeName(), true);
+            } else {
+                metadata.put(parameterTypes[i].getName(), false);
+            }
+        }
     }
 
     public void compute(Incomings incomings, Outgoing outgoing, Blocking blocking) {
@@ -137,7 +150,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             this.useBuilderTypes = validationOutput.getUseBuilderTypes();
         }
         if (this.acknowledgment == null) {
-            this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption, this.production);
+            this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption,
+                    this.production);
         }
         this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incomings, () -> {
             Merge annotation = method.getAnnotation(Merge.class);
@@ -245,6 +259,11 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     @Override
     public boolean isBlockingExecutionOrdered() {
         return isOrderedExecution;
+    }
+
+    @Override
+    public Map<String, Boolean> getRequestedMetadata() {
+        return metadata;
     }
 
     @Override

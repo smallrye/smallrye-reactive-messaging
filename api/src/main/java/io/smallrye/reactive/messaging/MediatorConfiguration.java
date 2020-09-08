@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 
 import javax.enterprise.inject.spi.Bean;
 
@@ -46,6 +47,11 @@ public interface MediatorConfiguration {
     String getWorkerPoolName();
 
     boolean isBlockingExecutionOrdered();
+
+    /**
+     * @return the list of requested metadata. For each, the key is the class name and the value whether the injection is optional.
+     */
+    Map<String, Boolean> getRequestedMetadata();
 
     /**
      * Implementation of the {@link Invoker} interface that can be used to invoke the method described by this configuration
