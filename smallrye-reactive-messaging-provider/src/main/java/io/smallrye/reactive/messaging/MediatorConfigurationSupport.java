@@ -123,10 +123,7 @@ public class MediatorConfigurationSupport {
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
             // Case 3 or 4
-            // Expected parameter 1, Message or payload
-            if (parameterTypes.length != 1) {
-                throw ex.definitionOnParam("@Incoming", methodAsString, "CompletionStage");
-            }
+
             // This check must be enabled once the TCK is released.
             //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
             //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
@@ -140,10 +137,7 @@ public class MediatorConfigurationSupport {
 
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
             // Case 3 or 4 - Uni variants
-            // Expected parameter 1, Message or payload
-            if (parameterTypes.length != 1) {
-                throw ex.definitionOnParam("@Incoming", methodAsString, "Uni");
-            }
+
             // This check must be enabled once the TCK is released.
             //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
             //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
@@ -156,8 +150,7 @@ public class MediatorConfigurationSupport {
         }
 
         // Case 5 and 6, void
-        if (parameterTypes.length == 1) {
-            // TODO Revisit it with injected parameters
+        if (parameterTypes.length >= 1) {
             Class<?> param = parameterTypes[0];
             // Distinction between 5 and 6
             MediatorConfiguration.Consumption consumption = ClassUtils.isAssignable(param, Message.class)
@@ -317,10 +310,6 @@ public class MediatorConfigurationSupport {
         } else if (ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 5, 6, 7, 8
-            if (parameterTypes.length != 1) {
-                throw ex.illegalArgumentForValidateProcessor(methodAsString);
-            }
-
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
                 throw ex.definitionExpectedReturnedParam("@Outgoing", methodAsString, "Publisher");
