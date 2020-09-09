@@ -1,23 +1,25 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
-import io.smallrye.reactive.messaging.extension.HealthCenter;
-import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
-import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
+import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 
-import javax.enterprise.inject.Instance;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
-import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
-import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
+import javax.enterprise.inject.Instance;
+
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.extension.HealthCenter;
+import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
 
 public abstract class AbstractMediator {
 
@@ -61,17 +63,17 @@ public abstract class AbstractMediator {
                     extractors.add(m -> m.getMetadata(className));
                 } else {
                     extractors.add(m -> m.getMetadata(className)
-                        .orElseThrow(() -> {
-                            log.noSuchMetadata(className);
-                            NoSuchElementException exception = new NoSuchElementException(
-                                "No metadata of type " + className + " attached to the message");
-                            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.MANUAL) {
-                                // The method won't be invoked, the user cannot ack/nack
-                                // nacking automatically
-                                m.nack(exception);
-                            }
-                            return exception;
-                        }));
+                            .orElseThrow(() -> {
+                                log.noSuchMetadata(className);
+                                NoSuchElementException exception = new NoSuchElementException(
+                                        "No metadata of type " + className + " attached to the message");
+                                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.MANUAL) {
+                                    // The method won't be invoked, the user cannot ack/nack
+                                    // nacking automatically
+                                    m.nack(exception);
+                                }
+                                return exception;
+                            }));
                 }
             }
 
@@ -117,7 +119,6 @@ public abstract class AbstractMediator {
                     try {
                         return this.configuration.getMethod().invoke(bean, args);
                     } catch (Exception e) {
-                        e.printStackTrace();
                         throw ex.processingException(configuration.methodAsString(), e);
                     }
                 };
@@ -129,8 +130,7 @@ public abstract class AbstractMediator {
     protected <T> T invoke(Message<?> message) {
         try {
             Objects.requireNonNull(this.invoker, msg.invokerNotInitialized());
-            Object[] objects = invocationParameters.apply(message);
-            return (T) this.invoker.invoke(objects);
+            return (T) this.invoker.invoke(invocationParameters.apply(message));
         } catch (RuntimeException e) { // NOSONAR
             log.methodException(configuration().methodAsString(), e);
             throw e;
@@ -143,16 +143,16 @@ public abstract class AbstractMediator {
             Objects.requireNonNull(this.invoker, msg.invokerNotInitialized());
             Objects.requireNonNull(this.workerPoolRegistry, msg.workerPoolNotInitialized());
             return workerPoolRegistry.executeWork(
-                future -> {
-                    try {
-                        future.complete((T) this.invoker.invoke(invocationParameters.apply(message)));
-                    } catch (RuntimeException e) {
-                        log.methodException(configuration().methodAsString(), e);
-                        future.fail(e);
-                    }
-                },
-                configuration.getWorkerPoolName(),
-                configuration.isBlockingExecutionOrdered());
+                    future -> {
+                        try {
+                            future.complete((T) this.invoker.invoke(invocationParameters.apply(message)));
+                        } catch (RuntimeException e) {
+                            log.methodException(configuration().methodAsString(), e);
+                            future.fail(e);
+                        }
+                    },
+                    configuration.getWorkerPoolName(),
+                    configuration.isBlockingExecutionOrdered());
         } catch (RuntimeException e) {
             log.methodException(configuration().methodAsString(), e);
             throw e;
@@ -176,16 +176,16 @@ public abstract class AbstractMediator {
             Objects.requireNonNull(this.invoker, msg.invokerNotInitialized());
             Objects.requireNonNull(this.workerPoolRegistry, msg.workerPoolNotInitialized());
             return workerPoolRegistry.executeWork(
-                future -> {
-                    try {
-                        future.complete((T) this.invoker.invoke(args));
-                    } catch (RuntimeException e) {
-                        log.methodException(configuration().methodAsString(), e);
-                        future.fail(e);
-                    }
-                },
-                configuration.getWorkerPoolName(),
-                configuration.isBlockingExecutionOrdered());
+                    future -> {
+                        try {
+                            future.complete((T) this.invoker.invoke(args));
+                        } catch (RuntimeException e) {
+                            log.methodException(configuration().methodAsString(), e);
+                            future.fail(e);
+                        }
+                    },
+                    configuration.getWorkerPoolName(),
+                    configuration.isBlockingExecutionOrdered());
         } catch (RuntimeException e) {
             log.methodException(configuration().methodAsString(), e);
             throw e;
@@ -241,7 +241,7 @@ public abstract class AbstractMediator {
 
         if (configuration.getBroadcast()) {
             return BroadcastHelper
-                .broadcastPublisher(input.buildRs(), configuration.getNumberOfSubscriberBeforeConnecting());
+                    .broadcastPublisher(input.buildRs(), configuration.getNumberOfSubscriberBeforeConnecting());
         } else {
             return input;
         }

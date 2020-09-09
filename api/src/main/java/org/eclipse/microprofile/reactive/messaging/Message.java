@@ -428,7 +428,6 @@ public interface Message<T> {
             throw new IllegalArgumentException("`className` must not be `null`");
         }
         for (Object meta : getMetadata()) {
-            System.out.println("Comparing " + meta.getClass().getName() + " and " + className);
             if (meta.getClass().getName().equals(className)) {
                 return Optional.of(meta);
             }

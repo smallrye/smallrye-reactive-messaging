@@ -49,7 +49,8 @@ public interface MediatorConfiguration {
     boolean isBlockingExecutionOrdered();
 
     /**
-     * @return the list of requested metadata. For each, the key is the class name and the value whether the injection is optional.
+     * @return the list of requested metadata. For each, the key is the class name and the value whether the injection is
+     *         optional.
      */
     Map<String, Boolean> getRequestedMetadata();
 
