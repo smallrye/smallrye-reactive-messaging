@@ -156,4 +156,8 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 233, value = "Unable to extract the ingested payload type for method `%s`, the reason is: %s")
     void unableToExtractIngestedPayloadType(String method, String reason);
 
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 234, value = "Failed to emit a Message to the channel")
+    void failureEmittingMessage(@Cause Throwable t);
+
 }

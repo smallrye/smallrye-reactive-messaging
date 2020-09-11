@@ -23,6 +23,7 @@ import org.reactivestreams.Publisher;
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.helpers.TypeUtils;
 
 /**
@@ -142,6 +143,20 @@ public class ChannelProducer {
     }
 
     /**
+     * Injects an {@link MutinyEmitter} matching the channel name.
+     *
+     * @param injectionPoint the injection point
+     * @param <T> the type of the emitter
+     * @return the emitter
+     */
+    @Produces
+    @Channel("") // Stream name is ignored during type-safe resolution
+    <T> MutinyEmitter<T> produceMutinyEmitter(InjectionPoint injectionPoint) {
+        MutinyEmitter emitter = getMutinyEmitter(injectionPoint);
+        return cast(emitter);
+    }
+
+    /**
      * Injects an {@link io.smallrye.reactive.messaging.annotations.Emitter} (deprecated) matching the channel name.
      *
      * @param injectionPoint the injection point
@@ -172,6 +187,16 @@ public class ChannelProducer {
     private Emitter getEmitter(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
         Emitter emitter = channelRegistry.getEmitter(name);
+        if (emitter == null) {
+            throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
+        }
+        return emitter;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private MutinyEmitter getMutinyEmitter(InjectionPoint injectionPoint) {
+        String name = getChannelName(injectionPoint);
+        MutinyEmitter emitter = channelRegistry.getMutinyEmitter(name);
         if (emitter == null) {
             throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
         }

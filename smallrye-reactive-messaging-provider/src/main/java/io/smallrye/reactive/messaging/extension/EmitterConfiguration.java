@@ -11,6 +11,7 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
  */
 public class EmitterConfiguration {
     public String name;
+    public Boolean isMutinyEmitter;
     public OnOverflow.Strategy overflowBufferStrategy;
     public long overflowBufferSize;
     public boolean broadcast;
@@ -20,8 +21,9 @@ public class EmitterConfiguration {
         // Used for proxies.
     }
 
-    public EmitterConfiguration(String name, OnOverflow onOverflow, Broadcast broadcast) {
+    public EmitterConfiguration(String name, boolean isMutinyEmitter, OnOverflow onOverflow, Broadcast broadcast) {
         this.name = name;
+        this.isMutinyEmitter = isMutinyEmitter;
 
         if (onOverflow != null) {
             this.overflowBufferStrategy = onOverflow.value();

@@ -17,9 +17,13 @@ public interface ChannelRegistry {
 
     void register(String name, Emitter<?> emitter);
 
+    void register(String name, MutinyEmitter<?> emitter);
+
     List<PublisherBuilder<? extends Message<?>>> getPublishers(String name);
 
     Emitter<?> getEmitter(String name);
+
+    MutinyEmitter<?> getMutinyEmitter(String name);
 
     List<SubscriberBuilder<? extends Message<?>, Void>> getSubscribers(String name);
 

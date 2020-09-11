@@ -16,6 +16,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
@@ -26,6 +27,7 @@ public class ReactiveMessagingExtension implements Extension {
     private final List<MediatorBean<?>> mediatorBeans = new ArrayList<>();
     private final List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
     private final List<InjectionPoint> emitterInjectionPoints = new ArrayList<>();
+    private final List<InjectionPoint> mutinyEmitterInjectionPoints = new ArrayList<>();
     private final List<WorkerPoolBean<?>> workerPoolBeans = new ArrayList<>();
 
     @Inject
@@ -60,6 +62,13 @@ public class ReactiveMessagingExtension implements Extension {
         }
     }
 
+    <T extends MutinyEmitter<?>> void processStreamMutinyEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
+        Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
+        if (stream != null) {
+            mutinyEmitterInjectionPoints.add(pip.getInjectionPoint());
+        }
+    }
+
     @SuppressWarnings("deprecation")
     <T extends io.smallrye.reactive.messaging.annotations.Emitter<?>> void processStreamLegacyEmitterInjectionPoint(
             @Observes ProcessInjectionPoint<?, T> pip) {
@@ -84,15 +93,8 @@ public class ReactiveMessagingExtension implements Extension {
                 .get();
 
         List<EmitterConfiguration> emitters = new ArrayList<>();
-        for (InjectionPoint point : emitterInjectionPoints) {
-            String name = ChannelProducer.getChannelName(point);
-            OnOverflow onOverflow = point.getAnnotated().getAnnotation(OnOverflow.class);
-            if (onOverflow == null) {
-                onOverflow = createOnOverflowForLegacyAnnotation(point);
-            }
-            Broadcast broadcast = point.getAnnotated().getAnnotation(Broadcast.class);
-            emitters.add(new EmitterConfiguration(name, onOverflow, broadcast));
-        }
+        createEmitterConfiguration(emitterInjectionPoints, false, emitters);
+        createEmitterConfiguration(mutinyEmitterInjectionPoints, true, emitters);
 
         WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();
 
@@ -136,11 +138,36 @@ public class ReactiveMessagingExtension implements Extension {
                 // TODO validate the required type
             }
 
+            for (InjectionPoint ip : mutinyEmitterInjectionPoints) {
+                String name = ChannelProducer.getChannelName(ip);
+                MutinyEmitterImpl<?> mutinyEmitter = (MutinyEmitterImpl<?>) registry.getMutinyEmitter(name);
+                if (!mutinyEmitter.isSubscribed()) {
+                    // Subscription may happen later, just print a warning.
+                    // Attempting an emission without being subscribed would result in an error.
+                    log.noSubscriberForChannelAttachedToEmitter(name, ip.getBean().getBeanClass().getName(),
+                            ip.getMember().getName());
+                }
+                // TODO validate the required type
+            }
+
         } catch (Exception e) {
             done.addDeploymentProblem(e);
             if (health != null) {
                 health.report("deployment", e);
             }
+        }
+    }
+
+    private void createEmitterConfiguration(List<InjectionPoint> emitterInjectionPoints, boolean isMutinyEmitter,
+            List<EmitterConfiguration> emitters) {
+        for (InjectionPoint point : emitterInjectionPoints) {
+            String name = ChannelProducer.getChannelName(point);
+            OnOverflow onOverflow = point.getAnnotated().getAnnotation(OnOverflow.class);
+            if (onOverflow == null) {
+                onOverflow = createOnOverflowForLegacyAnnotation(point);
+            }
+            Broadcast broadcast = point.getAnnotated().getAnnotation(Broadcast.class);
+            emitters.add(new EmitterConfiguration(name, isMutinyEmitter, onOverflow, broadcast));
         }
     }
 
