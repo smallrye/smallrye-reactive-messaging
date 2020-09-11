@@ -12,24 +12,32 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.reactive.messaging.*;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment.Strategy;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.reactivex.subscribers.TestSubscriber;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
-import io.smallrye.reactive.messaging.extension.EmitterImpl;
+import io.smallrye.reactive.messaging.extension.MutinyEmitterImpl;
 
-public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
+public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testWithPayloads() {
@@ -45,11 +53,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public void testWithPayloadsAndAck() {
         final MyBeanEmittingPayloadsWithAck bean = installInitializeAndGet(MyBeanEmittingPayloadsWithAck.class);
         bean.run();
-        List<CompletionStage<Void>> cs = bean.getCompletionStage();
+        List<Uni<Void>> unis = bean.getUnis();
         assertThat(bean.emitter()).isNotNull();
-        assertThat(cs.get(0).toCompletableFuture().isDone()).isTrue();
-        assertThat(cs.get(1).toCompletableFuture().isDone()).isTrue();
-        assertThat(cs.get(2).toCompletableFuture().isDone()).isFalse();
+        assertThat(unis.get(0).subscribeAsCompletionStage().isDone()).isTrue();
+        assertThat(unis.get(1).subscribeAsCompletionStage().isDone()).isTrue();
+        assertThat(unis.get(2).subscribeAsCompletionStage().isDone()).isFalse();
+        bean.emitter().complete();
+
         await().until(() -> bean.list().size() == 3);
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
@@ -71,18 +81,19 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public void testWithPayloadsAndNack() {
         final MyBeanEmittingPayloadsWithNack bean = installInitializeAndGet(MyBeanEmittingPayloadsWithNack.class);
         bean.run();
-        List<CompletionStage<Void>> cs = bean.getCompletionStage();
+        List<Uni<Void>> unis = bean.getUnis();
         assertThat(bean.emitter()).isNotNull();
-        assertThat(cs.get(0).toCompletableFuture().isDone()).isTrue();
-        assertThat(cs.get(1).toCompletableFuture().isDone()).isTrue();
-        assertThat(cs.get(2).toCompletableFuture().isDone()).isTrue();
-        assertThat(cs.get(3).toCompletableFuture().isDone()).isTrue();
+        assertThat(unis.get(0).subscribeAsCompletionStage().isDone()).isTrue();
+        assertThat(unis.get(1).subscribeAsCompletionStage().isDone()).isTrue();
+        assertThat(unis.get(2).subscribeAsCompletionStage().isDone()).isTrue();
+        assertThat(unis.get(3).subscribeAsCompletionStage().isDone()).isTrue();
+        bean.emitter().complete();
         await().until(() -> bean.list().size() == 4);
         assertThat(bean.list()).containsExactly("a", "b", "c", "d");
         assertThat(bean.emitter().isCancelled()).isTrue();
         assertThat(bean.emitter().hasRequests()).isFalse();
-        assertThatThrownBy(() -> cs.get(2).toCompletableFuture().join()).isInstanceOf(CompletionException.class)
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> unis.get(2).subscribeAsCompletionStage().join()).isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -152,7 +163,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test(expected = IllegalStateException.class)
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
+        final AtomicReference<Throwable> exception = new AtomicReference<>();
+        installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo")).subscribe().with(x -> {
+        }, exception::set);
+        await().until(() -> exception.get() != null);
+        if (exception.get() instanceof IllegalStateException) {
+            throw (IllegalStateException) exception.get();
+        }
     }
 
     @Test
@@ -165,7 +182,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test
     public void testEmitterAndPublisherInjectedInTheSameClass() {
         EmitterAndPublisher bean = installInitializeAndGet(EmitterAndPublisher.class);
-        Emitter<String> emitter = bean.emitter();
+        MutinyEmitter<String> emitter = bean.emitter();
         Publisher<String> publisher = bean.publisher();
         assertThat(emitter).isNotNull();
         assertThat(publisher).isNotNull();
@@ -200,11 +217,15 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
         assertThat(list).isEmpty();
         assertThat(completed).isFalse();
-        emitter.send("a");
-        emitter.send("b");
-        emitter.send("c");
+        emitter.send("a").subscribe().with(x -> {
+        });
+        emitter.send("b").subscribe().with(x -> {
+        });
+        emitter.send("c").subscribe().with(x -> {
+        });
         assertThat(list).containsExactly("a", "b", "c");
-        emitter.send("d");
+        emitter.send("d").subscribe().with(x -> {
+        });
         emitter.complete();
         assertThat(list).containsExactly("a", "b", "c", "d");
         assertThat(completed).isTrue();
@@ -214,13 +235,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class EmitterAndPublisher {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
 
         @Inject
         @Channel("foo")
         Publisher<String> publisher;
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -233,10 +254,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingPayloads {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -245,9 +266,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a");
-            emitter.send("b");
-            emitter.send("c");
+            emitter.send("a").subscribe().with(x -> {
+            });
+            emitter.send("b").subscribe().with(x -> {
+            });
+            emitter.send("c").subscribe().with(x -> {
+            });
             emitter.complete();
         }
 
@@ -261,12 +285,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingPayloadsWithAck {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
-        private final List<CompletionStage<Void>> csList = new CopyOnWriteArrayList<>();
+        private final List<Uni<Void>> csList = new CopyOnWriteArrayList<>();
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -278,10 +302,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             csList.add(emitter.send("a"));
             csList.add(emitter.send("b"));
             csList.add(emitter.send("c"));
-            emitter.complete();
         }
 
-        List<CompletionStage<Void>> getCompletionStage() {
+        List<Uni<Void>> getUnis() {
             return csList;
         }
 
@@ -294,9 +317,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
                 return s.ack();
             } else {
                 return new CompletableFuture<>();
-
             }
-
         }
     }
 
@@ -304,12 +325,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingPayloadsWithNack {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
-        private final List<CompletionStage<Void>> csList = new CopyOnWriteArrayList<>();
+        private final List<Uni<Void>> unis = new CopyOnWriteArrayList<>();
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -318,15 +339,14 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            csList.add(emitter.send("a"));
-            csList.add(emitter.send("b"));
-            csList.add(emitter.send("c"));
-            csList.add(emitter.send("d"));
-            emitter.complete();
+            unis.add(emitter.send("a"));
+            unis.add(emitter.send("b"));
+            unis.add(emitter.send("c"));
+            unis.add(emitter.send("d"));
         }
 
-        List<CompletionStage<Void>> getCompletionStage() {
-            return csList;
+        List<Uni<Void>> getUnis() {
+            return unis;
         }
 
         @Incoming("foo")
@@ -347,10 +367,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyMessageBeanEmittingPayloadsWithAck {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -359,9 +379,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(new MyMessageBean<>("a"));
-            emitter.send(new MyMessageBean<>("b"));
-            emitter.send(new MyMessageBean<>("c"));
+            emitter.send(new MyMessageBean<>("a")).subscribe().with(x -> {
+            });
+            emitter.send(new MyMessageBean<>("b")).subscribe().with(x -> {
+            });
+            emitter.send(new MyMessageBean<>("c")).subscribe().with(x -> {
+            });
             emitter.complete();
         }
 
@@ -390,10 +413,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingMessages {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -402,9 +425,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a"));
-            emitter.send(Message.of("b"));
-            emitter.send(Message.of("c"));
+            emitter.send(Message.of("a")).subscribe().with(x -> {
+            });
+            emitter.send(Message.of("b")).subscribe().with(x -> {
+            });
+            emitter.send(Message.of("c")).subscribe().with(x -> {
+            });
 
         }
 
@@ -418,10 +444,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingMessagesUsingStream {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -430,9 +456,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a"));
-            emitter.send(Message.of("b"));
-            emitter.send(Message.of("c"));
+            emitter.send(Message.of("a")).subscribe().with(x -> {
+            });
+            emitter.send(Message.of("b")).subscribe().with(x -> {
+            });
+            emitter.send(Message.of("c")).subscribe().with(x -> {
+            });
         }
 
         @Incoming("foo")
@@ -444,9 +473,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class BeanWithMissingChannel {
         @Inject
         @Channel("missing")
-        Emitter<Message<String>> emitter;
+        MutinyEmitter<Message<String>> emitter;
 
-        public Emitter<Message<String>> emitter() {
+        public MutinyEmitter<Message<String>> emitter() {
             return emitter;
         }
     }
@@ -455,12 +484,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingNull {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
         private boolean caughtNullPayload;
         private boolean caughtNullMessage;
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -477,20 +506,25 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a");
-            emitter.send("b");
+            emitter.send("a").subscribe().with(x -> {
+            });
+            emitter.send("b").subscribe().with(x -> {
+            });
             try {
-                emitter.send((String) null);
+                emitter.send((String) null).subscribe().with(x -> {
+                });
             } catch (IllegalArgumentException e) {
                 caughtNullPayload = true;
             }
 
             try {
-                emitter.send((Message<String>) null);
+                emitter.send((Message<String>) null).subscribe().with(x -> {
+                });
             } catch (IllegalArgumentException e) {
                 caughtNullMessage = true;
             }
-            emitter.send("c");
+            emitter.send("c").subscribe().with(x -> {
+            });
             emitter.complete();
         }
 
@@ -504,11 +538,11 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingDataAfterTermination {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
         private boolean caught;
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -521,14 +555,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a");
-            emitter.send("b");
+            emitter.send("a").subscribe().with(x -> {
+            });
+            emitter.send("b").subscribe().with(x -> {
+            });
             emitter.complete();
-            try {
-                emitter.send("c");
-            } catch (final IllegalStateException e) {
-                caught = true;
-            }
+            emitter.send("c").subscribe().with(x -> {
+            }, e -> caught = true);
         }
 
         @Incoming("foo")
@@ -541,11 +574,11 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class MyBeanEmittingDataAfterTerminationWithError {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
         private boolean caught;
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -558,14 +591,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a");
-            emitter.send("b");
+            emitter.send("a").subscribe().with(x -> {
+            });
+            emitter.send("b").subscribe().with(x -> {
+            });
             emitter.error(new Exception("BOOM"));
-            try {
-                emitter.send("c");
-            } catch (final IllegalStateException e) {
-                caught = true;
-            }
+            emitter.send("c").subscribe().with(x -> {
+            }, e -> caught = true);
         }
 
         @Incoming("foo")
@@ -578,10 +610,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class EmitterConnectedToProcessor {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter;
+        MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
 
-        public Emitter<String> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
 
@@ -590,9 +622,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send("a");
-            emitter.send("b");
-            emitter.send("c");
+            emitter.send("a").subscribe().with(x -> {
+            });
+            emitter.send("b").subscribe().with(x -> {
+            });
+            emitter.send("c").subscribe().with(x -> {
+            });
             emitter.complete();
         }
 
@@ -612,11 +647,11 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class TwoEmittersConnectedToProcessor {
         @Inject
         @Channel("foo")
-        Emitter<String> emitter1;
+        MutinyEmitter<String> emitter1;
 
         @Inject
         @Channel("foo")
-        Emitter<String> emitter2;
+        MutinyEmitter<String> emitter2;
 
         private final List<String> list = new CopyOnWriteArrayList<>();
 
@@ -625,9 +660,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter1.send("a");
-            emitter2.send("b");
-            emitter1.send("c");
+            emitter1.send("a").subscribe().with(x -> {
+            });
+            emitter2.send("b").subscribe().with(x -> {
+            });
+            emitter1.send("c").subscribe().with(x -> {
+            });
             emitter1.complete();
         }
 
@@ -654,7 +692,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
             @Override
             public Strategy value() {
-                return OnOverflow.Strategy.BUFFER;
+                return Strategy.BUFFER;
             }
 
             @Override
@@ -662,8 +700,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
                 return 128;
             }
         };
-        EmitterConfiguration config = new EmitterConfiguration("my-channel", false, overflow, null);
-        EmitterImpl<String> emitter = new EmitterImpl<>(config, 128);
+        EmitterConfiguration config = new EmitterConfiguration("my-channel", true, overflow, null);
+        MutinyEmitterImpl<String> emitter = new MutinyEmitterImpl<>(config, 128);
         Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 
         TestSubscriber<Message<? extends String>> sub1 = new TestSubscriber<>();
