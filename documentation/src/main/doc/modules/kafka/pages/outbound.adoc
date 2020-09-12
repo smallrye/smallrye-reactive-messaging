@@ -52,6 +52,23 @@ By default, the written record contains:
 * no key, or the key configured using the `key` attribute or the key passed in the metadata attached to the `Message`
 * the timestamp computed for the system clock (`now`) or the timestamp passed in the metadata attached to the `Message`
 
+=== Sending key/value pairs
+
+In the Kafka world, it's often necessary to send _records_, i.e. a key/value pair.
+The connector provides the {javadoc-base}/apidocs/io/smallrye/reactive/messaging/kafka/Record.html[`io.smallrye.reactive.messaging.kafka.Record`] class that you can use to send a pair:
+
+[source, java]
+----
+include::example$outbound/KafkaRecordExample.java[tag=code]
+----
+
+When the connector receives a message with a `Record` payload, it extracts the key and value from it.
+The configured serializers for the key and the value must be compatible with the record's key and value.
+Note that the `key` and the `value` can be `null`.
+It is also possible to create a record with a `null` key AND a `null` value.
+
+If you need more control on the written records, use `OutgoingKafkaRecordMetadata`.
+
 === Outbound Metadata
 
 When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html[`OutgoingKafkaRecordMetadata`] to influence how the message is going to written to Kafka.
@@ -61,6 +78,8 @@ For example, you can configure the topic directly in the message, or add Kafka h
 ----
 include::example$outbound/KafkaOutboundMetadataExample.java[tag=code]
 ----
+
+
 
 === Acknowledgement
 
