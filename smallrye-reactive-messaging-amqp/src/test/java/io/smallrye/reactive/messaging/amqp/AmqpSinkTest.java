@@ -734,6 +734,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withReplyTo("reply-to")
                         .withReplyToGroupId("group")
                         .withPriority((short) 4)
+                        .withTtl(2000)
                         .withGroupId("group")
                         .withContentType("text/plain")
                         .withApplicationProperties(new JsonObject().put("key", "value"))
@@ -754,6 +755,7 @@ public class AmqpSinkTest extends AmqpTestBase {
             assertThat(msg.priority()).isEqualTo((short) 4);
             assertThat(msg.correlationId()).startsWith("correlation-");
             assertThat(msg.groupId()).isEqualTo("group");
+            assertThat(msg.ttl()).isEqualTo(2000);
             assertThat(msg.applicationProperties()).containsExactly(entry("key", "value"));
             assertThat(msg.getDelegate().unwrap().getMessageAnnotations().getValue())
                     .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
@@ -767,6 +769,138 @@ public class AmqpSinkTest extends AmqpTestBase {
             assertThat(metadata.getReplyToGroupId()).isEqualTo("group");
             assertThat(metadata.getReplyTo()).isEqualTo("reply-to");
             assertThat(metadata.getPriority()).isEqualTo((short) 4);
+            assertThat(metadata.getTtl()).isEqualTo(2000);
+            assertThat(metadata.getCorrelationId()).startsWith("correlation-");
+            assertThat(metadata.getGroupId()).isEqualTo("group");
+            assertThat(metadata.getProperties()).containsExactly(entry("key", "value"));
+            assertThat(metadata.getMessageAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
+            // Delivery annotations are not received.
+            assertThat(metadata.getDeliveryAnnotations()).isNull();
+            assertThat(metadata.isFirstAcquirer()).isFalse();
+            //noinspection unchecked
+            assertThat(metadata.getFooter().getValue()).isEmpty();
+            assertThat(metadata.getUserId()).isNull();
+        });
+    }
+
+    @Test
+    public void testOutgoingMetadataWithTtlSetOnConnector() {
+        String topic = UUID.randomUUID().toString();
+        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        usage.consume(topic, messages::add);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic, 3000);
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(Message::of)
+                .map(m -> m.addMetadata(OutgoingAmqpMetadata.builder()
+                        .withSubject("subject")
+                        .withMessageId("my-id")
+                        .withReplyTo("reply-to")
+                        .withReplyToGroupId("group")
+                        .withPriority((short) 4)
+                        .withGroupId("group")
+                        .withContentType("text/plain")
+                        .withApplicationProperties(new JsonObject().put("key", "value"))
+                        .withMessageAnnotations("some-annotation", "something important")
+                        .withDeliveryAnnotations("some-delivery-annotation", "another important config")
+                        .withCorrelationId("correlation-" + m.getPayload())
+                        .build()))
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        await().until(() -> messages.size() == 10);
+
+        assertThat(messages).allSatisfy(msg -> {
+            assertThat(msg.contentType()).isEqualTo("text/plain");
+            assertThat(msg.subject()).isEqualTo("subject");
+            assertThat(msg.getDelegate().unwrap().getMessageId()).isEqualTo("my-id");
+            assertThat(msg.getDelegate().unwrap().getReplyToGroupId()).isEqualTo("group");
+            assertThat(msg.replyTo()).isEqualTo("reply-to");
+            assertThat(msg.priority()).isEqualTo((short) 4);
+            assertThat(msg.correlationId()).startsWith("correlation-");
+            assertThat(msg.groupId()).isEqualTo("group");
+            assertThat(msg.ttl()).isEqualTo(3000);
+            assertThat(msg.applicationProperties()).containsExactly(entry("key", "value"));
+            assertThat(msg.getDelegate().unwrap().getMessageAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
+        });
+
+        assertThat(messages).allSatisfy(msg -> {
+            IncomingAmqpMetadata metadata = new IncomingAmqpMetadata(msg.getDelegate());
+            assertThat(metadata.getContentType()).isEqualTo("text/plain");
+            assertThat(metadata.getSubject()).isEqualTo("subject");
+            assertThat(metadata.getId()).isEqualTo("my-id");
+            assertThat(metadata.getReplyToGroupId()).isEqualTo("group");
+            assertThat(metadata.getReplyTo()).isEqualTo("reply-to");
+            assertThat(metadata.getPriority()).isEqualTo((short) 4);
+            assertThat(metadata.getTtl()).isEqualTo(3000);
+            assertThat(metadata.getCorrelationId()).startsWith("correlation-");
+            assertThat(metadata.getGroupId()).isEqualTo("group");
+            assertThat(metadata.getProperties()).containsExactly(entry("key", "value"));
+            assertThat(metadata.getMessageAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
+            // Delivery annotations are not received.
+            assertThat(metadata.getDeliveryAnnotations()).isNull();
+            assertThat(metadata.isFirstAcquirer()).isFalse();
+            //noinspection unchecked
+            assertThat(metadata.getFooter().getValue()).isEmpty();
+            assertThat(metadata.getUserId()).isNull();
+        });
+    }
+
+    @Test
+    public void testOutgoingMetadataWithTtlSetOnConnectorButOverridenInMessage() {
+        String topic = UUID.randomUUID().toString();
+        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        usage.consume(topic, messages::add);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic, 3000);
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(Message::of)
+                .map(m -> m.addMetadata(OutgoingAmqpMetadata.builder()
+                        .withSubject("subject")
+                        .withMessageId("my-id")
+                        .withReplyTo("reply-to")
+                        .withReplyToGroupId("group")
+                        .withPriority((short) 4)
+                        .withTtl(4000)
+                        .withGroupId("group")
+                        .withContentType("text/plain")
+                        .withApplicationProperties(new JsonObject().put("key", "value"))
+                        .withMessageAnnotations("some-annotation", "something important")
+                        .withDeliveryAnnotations("some-delivery-annotation", "another important config")
+                        .withCorrelationId("correlation-" + m.getPayload())
+                        .build()))
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        await().until(() -> messages.size() == 10);
+
+        assertThat(messages).allSatisfy(msg -> {
+            assertThat(msg.contentType()).isEqualTo("text/plain");
+            assertThat(msg.subject()).isEqualTo("subject");
+            assertThat(msg.getDelegate().unwrap().getMessageId()).isEqualTo("my-id");
+            assertThat(msg.getDelegate().unwrap().getReplyToGroupId()).isEqualTo("group");
+            assertThat(msg.replyTo()).isEqualTo("reply-to");
+            assertThat(msg.priority()).isEqualTo((short) 4);
+            assertThat(msg.correlationId()).startsWith("correlation-");
+            assertThat(msg.groupId()).isEqualTo("group");
+            assertThat(msg.ttl()).isEqualTo(4000);
+            assertThat(msg.applicationProperties()).containsExactly(entry("key", "value"));
+            assertThat(msg.getDelegate().unwrap().getMessageAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
+        });
+
+        assertThat(messages).allSatisfy(msg -> {
+            IncomingAmqpMetadata metadata = new IncomingAmqpMetadata(msg.getDelegate());
+            assertThat(metadata.getContentType()).isEqualTo("text/plain");
+            assertThat(metadata.getSubject()).isEqualTo("subject");
+            assertThat(metadata.getId()).isEqualTo("my-id");
+            assertThat(metadata.getReplyToGroupId()).isEqualTo("group");
+            assertThat(metadata.getReplyTo()).isEqualTo("reply-to");
+            assertThat(metadata.getPriority()).isEqualTo((short) 4);
+            assertThat(metadata.getTtl()).isEqualTo(4000);
             assertThat(metadata.getCorrelationId()).startsWith("correlation-");
             assertThat(metadata.getGroupId()).isEqualTo("group");
             assertThat(metadata.getProperties()).containsExactly(entry("key", "value"));
@@ -803,6 +937,23 @@ public class AmqpSinkTest extends AmqpTestBase {
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("address", topic);
         config.put("name", "the name");
+        config.put("host", host);
+        config.put("durable", false);
+        config.put("port", port);
+        config.put("username", username);
+        config.put("password", password);
+
+        this.provider = new AmqpConnector();
+        provider.setup(executionHolder);
+        return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+    }
+
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic, long ttl) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
+        config.put("address", topic);
+        config.put("name", "the name");
+        config.put("ttl", ttl);
         config.put("host", host);
         config.put("durable", false);
         config.put("port", port);

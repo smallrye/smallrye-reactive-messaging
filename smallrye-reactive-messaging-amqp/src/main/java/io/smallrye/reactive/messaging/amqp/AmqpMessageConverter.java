@@ -36,17 +36,18 @@ public class AmqpMessageConverter {
         org.apache.qpid.proton.message.Message output = org.apache.qpid.proton.message.Message.Factory.create();
 
         // Header
-        if (durable) {
+        if (metadata.isDurable()) {
             output.setDurable(true);
         } else {
-            output.setDurable(metadata.isDurable());
+            output.setDurable(durable);
         }
 
         output.setPriority(metadata.getPriority());
-        if (ttl > 0) {
-            output.setTtl(0);
-        } else {
+
+        if (metadata.getTtl() > 0) {
             output.setTtl(metadata.getTtl());
+        } else if (ttl > 0) {
+            output.setTtl(ttl);
         }
 
         // Annotations
