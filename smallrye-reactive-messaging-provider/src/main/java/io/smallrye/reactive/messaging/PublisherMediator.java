@@ -103,6 +103,7 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     private void setPublisher(PublisherBuilder<Message<?>> publisher) {
+        // no conversion for publisher.
         this.publisher = decorate(publisher);
     }
 

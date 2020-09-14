@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 
+import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -28,6 +29,7 @@ public abstract class AbstractMediator {
     private Invoker invoker;
     private Instance<PublisherDecorator> decorators;
     protected HealthCenter health;
+    private Instance<MessageConverter> converters;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -39,6 +41,10 @@ public abstract class AbstractMediator {
 
     public void setDecorators(Instance<PublisherDecorator> decorators) {
         this.decorators = decorators;
+    }
+
+    public void setConverters(Instance<MessageConverter> converters) {
+        this.converters = converters;
     }
 
     public void setWorkerPoolRegistry(WorkerPoolRegistry workerPoolRegistry) {
@@ -161,5 +167,34 @@ public abstract class AbstractMediator {
 
     public void setHealth(HealthCenter health) {
         this.health = health;
+    }
+
+    public PublisherBuilder<? extends Message<?>> convert(PublisherBuilder<? extends Message<?>> upstream) {
+        final Type injectedPayloadType = configuration.getIngestedPayloadType();
+        if (injectedPayloadType != null) {
+            return upstream
+                    .map(new Function<Message<?>, Message<?>>() {
+
+                        MessageConverter actual;
+
+                        @Override
+                        public Message<?> apply(Message<?> o) {
+                            if (actual != null) {
+                                return actual.convert(o, injectedPayloadType);
+                            } else {
+                                // Lookup
+                                for (MessageConverter conv : converters) {
+                                    if (conv.accept(o, injectedPayloadType)) {
+                                        actual = conv;
+                                        return actual.convert(o, injectedPayloadType);
+                                    }
+                                }
+                                // No converter found
+                                return o;
+                            }
+                        }
+                    });
+        }
+        return upstream;
     }
 }

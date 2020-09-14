@@ -36,15 +36,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.AbstractMediator;
-import io.smallrye.reactive.messaging.ChannelRegistar;
-import io.smallrye.reactive.messaging.ChannelRegistry;
-import io.smallrye.reactive.messaging.Invoker;
-import io.smallrye.reactive.messaging.MediatorConfiguration;
-import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.PublisherDecorator;
-import io.smallrye.reactive.messaging.Shape;
-import io.smallrye.reactive.messaging.WeavingException;
+import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
@@ -94,6 +86,9 @@ public class MediatorManager {
 
     @Inject
     Instance<PublisherDecorator> decorators;
+
+    @Inject
+    Instance<MessageConverter> converters;
 
     @Inject
     HealthCenter health;
@@ -163,12 +158,12 @@ public class MediatorManager {
         log.initializingMediators();
         collected.mediators()
                 .forEach(configuration -> {
-
                     AbstractMediator mediator = createMediator(configuration);
 
                     log.initializingMethod(mediator.getMethodAsString());
 
                     mediator.setDecorators(decorators);
+                    mediator.setConverters(converters);
                     mediator.setHealth(health);
                     mediator.setWorkerPoolRegistry(workerPoolRegistry);
 
