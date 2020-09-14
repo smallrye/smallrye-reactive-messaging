@@ -30,4 +30,23 @@ public interface MessageConverter {
      */
     Message<?> convert(Message<?> in, Type target);
 
+    class IdentityConverter implements MessageConverter {
+
+        public static final IdentityConverter INSTANCE = new IdentityConverter();
+
+        private IdentityConverter() {
+            // Avoid direct instantiation.
+        }
+
+        @Override
+        public boolean accept(Message<?> in, Type target) {
+            return true;
+        }
+
+        @Override
+        public Message<?> convert(Message<?> in, Type target) {
+            return in;
+        }
+    }
+
 }
