@@ -21,6 +21,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
+import io.smallrye.reactive.messaging.helpers.TypeUtils;
 
 public abstract class AbstractMediator {
 
@@ -179,9 +180,20 @@ public abstract class AbstractMediator {
 
                         @Override
                         public Message<?> apply(Message<?> o) {
+                            if (injectedPayloadType == null) {
+                                return o;
+                            } else if (o.getPayload().getClass().equals(injectedPayloadType)) {
+                                return o;
+                            }
+
                             if (actual != null) {
+                                // Use the cached converter.
                                 return actual.convert(o, injectedPayloadType);
                             } else {
+                                if (TypeUtils.isAssignable(o.getPayload().getClass(), injectedPayloadType)) {
+                                    actual = MessageConverter.IdentityConverter.INSTANCE;
+                                    return o;
+                                }
                                 // Lookup
                                 for (MessageConverter conv : converters) {
                                     if (conv.accept(o, injectedPayloadType)) {
