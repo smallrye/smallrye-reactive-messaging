@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging;
 
+import io.smallrye.common.annotation.Experimental;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import javax.enterprise.inject.spi.Prioritized;
@@ -12,6 +13,7 @@ import java.lang.reflect.Type;
  * When multiple converters are available, implementation should override the {@link #getPriority()} method.
  * The default priority is {@link #CONVERTER_DEFAULT_PRIORITY}. Converters with higher priority are executed first.
  */
+@Experimental("SmallRye only feature")
 public interface MessageConverter extends Prioritized {
 
     /**
