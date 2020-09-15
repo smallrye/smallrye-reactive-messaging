@@ -5,12 +5,17 @@ import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 
 import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.Prioritized;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -180,6 +185,7 @@ public abstract class AbstractMediator {
 
                         @Override
                         public Message<?> apply(Message<?> o) {
+                            //noinspection ConstantConditions - it can be `null`
                             if (injectedPayloadType == null) {
                                 return o;
                             } else if (o.getPayload().getClass().equals(injectedPayloadType)) {
@@ -194,9 +200,9 @@ public abstract class AbstractMediator {
                                     actual = MessageConverter.IdentityConverter.INSTANCE;
                                     return o;
                                 }
-                                // Lookup
-                                for (MessageConverter conv : converters) {
-                                    if (conv.accept(o, injectedPayloadType)) {
+                                // Lookup and cache
+                                for (MessageConverter conv : getSortedConverters()) {
+                                    if (conv.canConvert(o, injectedPayloadType)) {
                                         actual = conv;
                                         return actual.convert(o, injectedPayloadType);
                                     }
@@ -208,5 +214,29 @@ public abstract class AbstractMediator {
                     });
         }
         return upstream;
+    }
+
+    private List<MessageConverter> getSortedConverters() {
+        if (converters.isUnsatisfied()) {
+            return Collections.emptyList();
+        }
+
+        return converters.stream().sorted(new Comparator<MessageConverter>() { // NOSONAR
+            @Override
+            public int compare(MessageConverter si1, MessageConverter si2) {
+                int p1 = 0;
+                int p2 = 0;
+                if (si1 instanceof Prioritized) {
+                    p1 = ((Prioritized) si1).getPriority();
+                }
+                if (si2 instanceof Prioritized) {
+                    p2 = ((Prioritized) si2).getPriority();
+                }
+                if (si1.equals(si2)) {
+                    return 0;
+                }
+                return Integer.compare(p1, p2);
+            }
+        }).collect(Collectors.toList());
     }
 }

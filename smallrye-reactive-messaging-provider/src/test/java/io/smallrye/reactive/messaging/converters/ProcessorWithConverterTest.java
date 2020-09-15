@@ -80,7 +80,7 @@ public class ProcessorWithConverterTest extends WeldTestBaseWithoutTails {
     static class StringToPersonConverter implements MessageConverter {
 
         @Override
-        public boolean accept(Message<?> in, Type target) {
+        public boolean canConvert(Message<?> in, Type target) {
             return target == Person.class && in.getPayload().getClass() == String.class;
         }
 
