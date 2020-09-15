@@ -1,59 +1,53 @@
 package io.smallrye.reactive.messaging.converters;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DeploymentException;
-
+import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.MessageConverter;
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import javax.enterprise.context.ApplicationScoped;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-public class ErroneousConverterTest extends WeldTestBaseWithoutTails {
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class MultipleConverterTest extends WeldTestBaseWithoutTails {
 
     @Test
-    public void testConverterThrowingExceptionOnAccept() {
-        addBeanClass(Source.class, Sink.class, PayloadProcessor.class, BadConverterThrowingExceptionOnAccept.class);
-        assertThatThrownBy(this::initialize)
-                .isInstanceOf(DeploymentException.class)
-                .hasStackTraceContaining("boom");
+    public void testWithMultipleCompetingConverters() {
+        addBeanClass(Source.class, Sink.class, StringToPersonConverterWithDefaultPriority.class, StringToPersonConverterWithHighPriority.class, PayloadProcessor.class);
+        initialize();
+        Sink sink = get(Sink.class);
+        Source source = get(Source.class);
+        assertThat(sink.list()).hasSize(5);
+        assertThat(source.acks()).isEqualTo(5);
+        assertThat(source.nacks()).isEqualTo(0);
+        assertThat(sink.list().stream().map(p -> p.name).collect(Collectors.toList()))
+            .containsExactly("LUKE", "LEIA", "NEO", "MORPHEUS", "TRINITY");
     }
 
     @Test
-    public void testConverterThrowingExceptionOnConvert() {
-        addBeanClass(Source.class, Sink.class, PayloadProcessor.class, BadConverterThrowingExceptionOnConvert.class);
-        assertThatThrownBy(this::initialize)
-                .isInstanceOf(DeploymentException.class)
-                .hasStackTraceContaining("boom");
+    public void testWithMultipleCompetingConvertersReversed() {
+        addBeanClass(Source.class, Sink.class, StringToPersonConverterWithHighPriority.class, StringToPersonConverterWithDefaultPriority.class, PayloadProcessor.class);
+        initialize();
+        Sink sink = get(Sink.class);
+        Source source = get(Source.class);
+        assertThat(sink.list()).hasSize(5);
+        assertThat(source.acks()).isEqualTo(5);
+        assertThat(source.nacks()).isEqualTo(0);
+        assertThat(sink.list().stream().map(p -> p.name).collect(Collectors.toList()))
+            .containsExactly("LUKE", "LEIA", "NEO", "MORPHEUS", "TRINITY");
     }
 
     @ApplicationScoped
-    static class BadConverterThrowingExceptionOnAccept implements MessageConverter {
-
-        @Override
-        public boolean canConvert(Message<?> in, Type target) {
-            throw new IllegalArgumentException("boom");
-        }
-
-        @Override
-        public Message<?> convert(Message<?> in, Type target) {
-            return in.withPayload(new Person((String) in.getPayload())).addMetadata(new Meta());
-        }
-    }
-
-    @ApplicationScoped
-    static class BadConverterThrowingExceptionOnConvert implements MessageConverter {
+    static class StringToPersonConverterWithDefaultPriority implements MessageConverter {
 
         @Override
         public boolean canConvert(Message<?> in, Type target) {
@@ -62,15 +56,12 @@ public class ErroneousConverterTest extends WeldTestBaseWithoutTails {
 
         @Override
         public Message<?> convert(Message<?> in, Type target) {
-            if (in.getPayload().toString().startsWith("N") || in.getPayload().toString().startsWith("M")) {
-                throw new IllegalArgumentException("boom");
-            }
-            return in.withPayload(new Person((String) in.getPayload())).addMetadata(new Meta());
+            return in.withPayload(new Person((String) in.getPayload()));
         }
     }
 
     @ApplicationScoped
-    static class StringToPersonConverter implements MessageConverter {
+    static class StringToPersonConverterWithHighPriority implements MessageConverter {
 
         @Override
         public boolean canConvert(Message<?> in, Type target) {
@@ -79,7 +70,13 @@ public class ErroneousConverterTest extends WeldTestBaseWithoutTails {
 
         @Override
         public Message<?> convert(Message<?> in, Type target) {
-            return in.withPayload(new Person((String) in.getPayload())).addMetadata(new Meta());
+            String payload = (String) in.getPayload();
+            return in.withPayload(new Person(payload.toUpperCase()));
+        }
+
+        @Override
+        public int getPriority() {
+            return 200;
         }
     }
 
