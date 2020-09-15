@@ -16,6 +16,12 @@ import org.eclipse.microprofile.config.spi.ConfigSource;
  */
 public class ConnectorConfig implements Config {
 
+    /**
+     * Name of the attribute checking if the channel is enabled (default) or disabled.
+     * The value must be either `true` or `false`.
+     */
+    public static final String CHANNEL_ENABLED_PROPERTY = "enabled";
+
     private final String prefix;
     private final Config overall;
 
