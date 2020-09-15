@@ -26,6 +26,7 @@ import io.smallrye.reactive.messaging.ce.impl.DefaultIncomingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.Record;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
@@ -196,6 +197,7 @@ public class KafkaCloudEventHelper {
                 new DefaultIncomingCloudEventMetadata<>(cloudEventMetadata));
     }
 
+    @SuppressWarnings("rawtypes")
     public static ProducerRecord<?, ?> createBinaryRecord(Message<?> message, String topic,
             OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
             KafkaConnectorOutgoingConfiguration configuration) {
@@ -204,7 +206,7 @@ public class KafkaCloudEventHelper {
             ceMetadata = OutgoingCloudEventMetadata.builder().build();
         }
         Integer partition = getPartition(metadata, configuration);
-        Object key = getKey(metadata, ceMetadata, configuration);
+        Object key = getKey(message, metadata, ceMetadata, configuration);
         Long timestamp = getTimestamp(metadata);
         List<Header> headers = getHeaders(metadata);
         Optional<String> subject = getSubject(ceMetadata, configuration);
@@ -256,12 +258,16 @@ public class KafkaCloudEventHelper {
             }
         });
 
+        Object payload = message.getPayload();
+        if (payload instanceof Record) {
+            payload = ((Record) payload).value();
+        }
         return new ProducerRecord<>(
                 topic,
                 partition,
                 timestamp,
                 key,
-                message.getPayload(),
+                payload,
                 headers);
     }
 
@@ -328,15 +334,24 @@ public class KafkaCloudEventHelper {
         return timestamp;
     }
 
-    private static Object getKey(OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
+    @SuppressWarnings({ "rawtypes" })
+    private static Object getKey(Message<?> message,
+            OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
             KafkaConnectorOutgoingConfiguration configuration) {
-        Optional<?> key = configuration.getKey();
+
+        // First, the message metadata
         if (metadata != null && metadata.getKey() != null) {
             return metadata.getKey();
-        } else if (ceMetadata.getExtension(CE_KAFKA_KEY).isPresent()) {
-            return ceMetadata.getExtension(CE_KAFKA_KEY).get();
         }
-        return key.orElse(null);
+
+        // Then, check if the message payload is a record
+        if (message.getPayload() instanceof Record) {
+            return ((Record) message.getPayload()).key();
+        }
+
+        // Finally, check the Cloud Event metadata, if not there, the Kafka connector config
+        return ceMetadata.getExtension(CE_KAFKA_KEY)
+                .orElse(configuration.getKey().orElse(null));
     }
 
     private static Integer getPartition(OutgoingKafkaRecordMetadata<?> metadata,
@@ -351,6 +366,7 @@ public class KafkaCloudEventHelper {
         return partition;
     }
 
+    @SuppressWarnings("rawtypes")
     public static ProducerRecord<?, ?> createStructuredRecord(Message<?> message, String topic,
             OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
             KafkaConnectorOutgoingConfiguration configuration) {
@@ -360,7 +376,7 @@ public class KafkaCloudEventHelper {
         }
 
         Integer partition = getPartition(metadata, configuration);
-        Object key = getKey(metadata, ceMetadata, configuration);
+        Object key = getKey(message, metadata, ceMetadata, configuration);
         Long timestamp = getTimestamp(metadata);
         List<Header> headers = getHeaders(metadata);
         String source = getSource(ceMetadata, configuration);
@@ -399,6 +415,9 @@ public class KafkaCloudEventHelper {
 
         // Encode the payload to json
         Object payload = message.getPayload();
+        if (payload instanceof Record) {
+            payload = ((Record) payload).value();
+        }
         if (payload instanceof String) {
             json.put("data", payload);
         } else {

@@ -10,16 +10,22 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.enterprise.context.ApplicationScoped;
+
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
@@ -157,6 +163,18 @@ public class KafkaSinkTest extends KafkaTestBase {
         MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.output-2");
         builder.put("connector", KafkaConnector.CONNECTOR_NAME);
         builder.put("value.serializer", IntegerSerializer.class.getName());
+        if (t != null) {
+            builder.put("topic", t);
+        }
+
+        return new MapBasedConfig(builder.build());
+    }
+
+    private MapBasedConfig getKafkaSinkConfigForRecordProducingBean(String t) {
+        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.output-record");
+        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder.put("key.serializer", IntegerSerializer.class.getName());
+        builder.put("value.serializer", StringSerializer.class.getName());
         if (t != null) {
             builder.put("topic", t);
         }
@@ -351,6 +369,248 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(expected).hasValue(10);
         assertThat(keys).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+    }
+
+    // TODO key and value null, overriden by metadata
+
+    @Test
+    public void testABeanProducingRecords() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<Integer> keys = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        String topic = UUID.randomUUID().toString();
+        String clientId = UUID.randomUUID().toString();
+        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
+                new IntegerDeserializer(), new StringDeserializer(),
+                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
+                record -> {
+                    keys.add(record.key());
+                    values.add(record.value());
+                    expected.getAndIncrement();
+                });
+
+        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecord.class);
+
+        await().until(() -> getHealth(container).getReadiness().isOk());
+        await().until(() -> getHealth(container).getLiveness().isOk());
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(10);
+        assertThat(keys).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(values)
+                .containsExactly("value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8",
+                        "value-9", "value-10");
+    }
+
+    @Test
+    public void testABeanProducingRecordsWithNullKey() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<Integer> keys = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        String topic = UUID.randomUUID().toString();
+        String clientId = UUID.randomUUID().toString();
+        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
+                new IntegerDeserializer(), new StringDeserializer(),
+                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
+                record -> {
+                    keys.add(record.key());
+                    values.add(record.value());
+                    expected.getAndIncrement();
+                });
+
+        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoKey.class);
+
+        await().until(() -> getHealth(container).getReadiness().isOk());
+        await().until(() -> getHealth(container).getLiveness().isOk());
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(10);
+        assertThat(keys).containsExactly(null, null, null, null, null, null, null, null, null, null);
+        assertThat(values)
+                .containsExactly("value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8",
+                        "value-9", "value-10");
+    }
+
+    @Test
+    public void testABeanProducingRecordsNoValue() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<Integer> keys = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        String topic = UUID.randomUUID().toString();
+        String clientId = UUID.randomUUID().toString();
+        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
+                new IntegerDeserializer(), new StringDeserializer(),
+                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
+                record -> {
+                    keys.add(record.key());
+                    values.add(record.value());
+                    expected.getAndIncrement();
+                });
+
+        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValue.class);
+
+        await().until(() -> getHealth(container).getReadiness().isOk());
+        await().until(() -> getHealth(container).getLiveness().isOk());
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(10);
+        assertThat(keys).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(values)
+                .containsExactly(null, null, null, null, null, null, null, null, null, null);
+    }
+
+    @Test
+    public void testABeanProducingRecordsNoValueNoKey() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<Integer> keys = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        String topic = UUID.randomUUID().toString();
+        String clientId = UUID.randomUUID().toString();
+        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
+                new IntegerDeserializer(), new StringDeserializer(),
+                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
+                record -> {
+                    keys.add(record.key());
+                    values.add(record.value());
+                    expected.getAndIncrement();
+                });
+
+        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValueNoKey.class);
+
+        await().until(() -> getHealth(container).getReadiness().isOk());
+        await().until(() -> getHealth(container).getLiveness().isOk());
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(10);
+        assertThat(keys).containsExactly(null, null, null, null, null, null, null, null, null, null);
+        assertThat(values)
+                .containsExactly(null, null, null, null, null, null, null, null, null, null);
+    }
+
+    @Test
+    public void testABeanProducingRecordsAsMessageWithKeyOverridden() throws InterruptedException {
+        KafkaUsage usage = new KafkaUsage();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<Integer> keys = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        String topic = UUID.randomUUID().toString();
+        String clientId = UUID.randomUUID().toString();
+        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
+                new IntegerDeserializer(), new StringDeserializer(),
+                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
+                record -> {
+                    keys.add(record.key());
+                    values.add(record.value());
+                    expected.getAndIncrement();
+                });
+
+        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordInMessage.class);
+
+        await().until(() -> getHealth(container).getReadiness().isOk());
+        await().until(() -> getHealth(container).getLiveness().isOk());
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(10);
+        assertThat(keys).containsExactly(100, 1, 102, 3, 104, 5, 106, 7, 108, 9);
+        assertThat(values)
+                .containsExactly("value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8",
+                        "value-9", "value-10");
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingKafkaRecord {
+
+        @Incoming("data")
+        @Outgoing("output-record")
+        public Record<Integer, String> process(int input) {
+            return Record.of(input, "value-" + (input + 1));
+        }
+
+        @Outgoing("data")
+        public Publisher<Integer> source() {
+            return Flowable.range(0, 10);
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingKafkaRecordNoKey {
+
+        @Incoming("data")
+        @Outgoing("output-record")
+        public Record<Integer, String> process(int input) {
+            return Record.of(null, "value-" + (input + 1));
+        }
+
+        @Outgoing("data")
+        public Publisher<Integer> source() {
+            return Flowable.range(0, 10);
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingKafkaRecordNoValue {
+
+        @Incoming("data")
+        @Outgoing("output-record")
+        public Record<Integer, String> process(int input) {
+            return Record.of(input, null);
+        }
+
+        @Outgoing("data")
+        public Publisher<Integer> source() {
+            return Flowable.range(0, 10);
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingKafkaRecordNoValueNoKey {
+
+        @Incoming("data")
+        @Outgoing("output-record")
+        public Record<Integer, String> process(int input) {
+            return Record.of(null, null);
+        }
+
+        @Outgoing("data")
+        public Publisher<Integer> source() {
+            return Flowable.range(0, 10);
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingKafkaRecordInMessage {
+
+        @Incoming("data")
+        @Outgoing("output-record")
+        public Message<Record<Integer, String>> process(Message<Integer> input) {
+            int value = input.getPayload();
+            if (value % 2 != 0) {
+                return input.withPayload(Record.of(value, "value-" + (value + 1)));
+            } else {
+                OutgoingKafkaRecordMetadata<Integer> metadata = OutgoingKafkaRecordMetadata.<Integer> builder()
+                        .withKey(100 + value).build();
+                return input.withPayload(Record.of(value, "value-" + (value + 1))).addMetadata(metadata);
+            }
+        }
+
+        @Outgoing("data")
+        public Publisher<Integer> source() {
+            return Flowable.range(0, 10);
+        }
+
     }
 
 }

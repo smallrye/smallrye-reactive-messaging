@@ -32,6 +32,7 @@ import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
 import io.vertx.core.AsyncResult;
@@ -196,10 +197,12 @@ public class KafkaSink {
         return message.getMetadata(OutgoingKafkaRecordMetadata.class).map(x -> (OutgoingKafkaRecordMetadata<?>) x);
     }
 
+    @SuppressWarnings("rawtypes")
     private ProducerRecord<?, ?> getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
             String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
-        Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
+
+        Object actualKey = getKey(message, om, configuration);
 
         long actualTimestamp;
         if ((om == null) || (om.getTimestamp() == null)) {
@@ -210,13 +213,37 @@ public class KafkaSink {
 
         Headers kafkaHeaders = om == null || om.getHeaders() == null ? new RecordHeaders() : om.getHeaders();
         createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
+        Object payload = message.getPayload();
+        if (payload instanceof Record) {
+            payload = ((Record) payload).value();
+        }
+
         return new ProducerRecord<>(
                 actualTopic,
                 actualPartition == -1 ? null : actualPartition,
                 actualTimestamp == -1L ? null : actualTimestamp,
                 actualKey,
-                message.getPayload(),
+                payload,
                 kafkaHeaders);
+    }
+
+    @SuppressWarnings({ "rawtypes" })
+    private static Object getKey(Message<?> message,
+            OutgoingKafkaRecordMetadata<?> metadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+
+        // First, the message metadata
+        if (metadata != null && metadata.getKey() != null) {
+            return metadata.getKey();
+        }
+
+        // Then, check if the message payload is a record
+        if (message.getPayload() instanceof Record) {
+            return ((Record) message.getPayload()).key();
+        }
+
+        // Finally, check the configuration
+        return configuration.getKey().orElse(null);
     }
 
     private void createOutgoingTrace(Message<?> message, String topic, int partition, Headers headers) {

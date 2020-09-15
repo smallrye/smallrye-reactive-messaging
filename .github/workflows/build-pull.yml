@@ -11,8 +11,8 @@ jobs:
                 java: [
                     {'version': '8', 'source': 'releases'},
                     {'version': '11', 'source': 'releases'},
-                    {'version': '14', 'source': 'releases'},
-                    {'version': '15', 'source': 'nightly'}
+                    {'version': '14', 'source': 'releases'}
+#                    {'version': '15', 'source': 'nightly'}
                 ]
         name: Build with Java ${{ matrix.java.version }}
         steps:
