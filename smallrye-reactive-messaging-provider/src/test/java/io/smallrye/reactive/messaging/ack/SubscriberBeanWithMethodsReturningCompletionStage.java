@@ -127,7 +127,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
-    public Publisher<Message<String>> defaultToPostPocessingPayload() {
+    public Publisher<Message<String>> defaultToPostProcessingPayload() {
         return source(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 

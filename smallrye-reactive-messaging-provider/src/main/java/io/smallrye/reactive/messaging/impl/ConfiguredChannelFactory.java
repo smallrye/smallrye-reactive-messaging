@@ -75,10 +75,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 log.foundIncomingConnectors(getConnectors(beanManager, IncomingConnectorFactory.class));
                 log.foundOutgoingConnectors(getConnectors(beanManager, OutgoingConnectorFactory.class));
             }
-            //TODO Should we try to merge all the config?
-            // For now take the first one.
             this.config = config.stream().findFirst()
-                    .orElseThrow(() -> ex.illegalStateRetieveConfig());
+                    .orElseThrow(ex::illegalStateRetieveConfig);
         }
     }
 
@@ -148,8 +146,25 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
     void register(Map<String, ConnectorConfig> sourceConfiguration, Map<String, ConnectorConfig> sinkConfiguration) {
         try {
-            sourceConfiguration.forEach((name, conf) -> registry.register(name, createPublisherBuilder(name, conf)));
-            sinkConfiguration.forEach((name, conf) -> registry.register(name, createSubscriberBuilder(name, conf)));
+            for (Map.Entry<String, ConnectorConfig> entry : sourceConfiguration.entrySet()) {
+                String channel = entry.getKey();
+                ConnectorConfig config = entry.getValue();
+                if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
+                    registry.register(channel, createPublisherBuilder(channel, config));
+                } else {
+                    log.incomingChannelDisabled(channel);
+                }
+            }
+
+            for (Map.Entry<String, ConnectorConfig> entry : sinkConfiguration.entrySet()) {
+                String channel = entry.getKey();
+                ConnectorConfig config = entry.getValue();
+                if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
+                    registry.register(channel, createSubscriberBuilder(channel, config));
+                } else {
+                    log.outgoingChannelDisabled(channel);
+                }
+            }
         } catch (RuntimeException e) { // NOSONAR
             log.unableToCreatePublisherOrSubscriber(e);
             throw e;

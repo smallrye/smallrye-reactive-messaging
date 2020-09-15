@@ -144,4 +144,11 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 230, value = "Unable to create the publisher or subscriber during initialization")
     void unableToCreatePublisherOrSubscriber(@Cause Throwable t);
 
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 231, value = "Incoming channel `%s` disabled by configuration")
+    void incomingChannelDisabled(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 232, value = "Outgoing channel `%s` disabled by configuration")
+    void outgoingChannelDisabled(String channel);
 }
