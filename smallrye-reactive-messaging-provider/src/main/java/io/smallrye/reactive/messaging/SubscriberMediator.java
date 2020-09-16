@@ -84,7 +84,7 @@ public class SubscriberMediator extends AbstractMediator {
 
     @Override
     public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
-        this.source = publisher;
+        this.source = convert(publisher);
     }
 
     @SuppressWarnings({ "ReactiveStreamsSubscriberImplementation" })

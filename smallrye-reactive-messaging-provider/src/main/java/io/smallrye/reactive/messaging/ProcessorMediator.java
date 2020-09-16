@@ -35,7 +35,7 @@ public class ProcessorMediator extends AbstractMediator {
     @Override
     public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
         assert processor != null;
-        this.publisher = decorate(publisher.via(processor));
+        this.publisher = decorate(convert(publisher).via(processor));
     }
 
     @Override

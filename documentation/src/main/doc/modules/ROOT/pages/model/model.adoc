@@ -1,8 +1,7 @@
 = Development Model and Annotations
 
-Reactive Messaging relies on CDI.
-Your application is composed by _beans_.
-
+Reactive Messaging proposes a CDI-based programming model to implement event-driven applications.
+Following the CDI principles, _beans_ are forming the main building block of your application.
 Reactive Messaging provides a set of annotations and types to implement beans that generate, consume or process messages.
 
 include::overview.adoc[]
@@ -13,3 +12,4 @@ include::consuming.adoc[]
 include::processing.adoc[]
 include::processing-streams.adoc[]
 include::skipping.adoc[]
+include::converters.adoc[]

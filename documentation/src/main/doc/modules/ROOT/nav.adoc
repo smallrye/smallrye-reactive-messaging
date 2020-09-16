@@ -16,6 +16,7 @@
 ** xref:model/model.adoc#processing-payloads[Processing payloads]
 ** xref:model/model.adoc#processing-streams[Processing streams]
 ** xref:model/model.adoc#skipping[Skipping messages or payloads]
+** xref:model/model.adoc#converters[Converting messages]
 
 ** xref:acknowledgement/acknowledgement.adoc[Acknowledgement]
 ** xref:advanced/broadcast.adoc[Broadcasting]

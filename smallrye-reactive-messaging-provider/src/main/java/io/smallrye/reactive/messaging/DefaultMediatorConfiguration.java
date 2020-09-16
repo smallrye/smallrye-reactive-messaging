@@ -6,6 +6,7 @@ import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -72,6 +73,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private final MediatorConfigurationSupport mediatorConfigurationSupport;
 
+    private Type ingestedPayloadType;
+
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, msg.methodMustBeSet());
         this.returnType = method.getReturnType();
@@ -133,11 +136,12 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                 this.acknowledgment);
         this.production = validationOutput.getProduction();
         this.consumption = validationOutput.getConsumption();
-        if (validationOutput.getUseBuilderTypes() != null) {
+        if (validationOutput.getUseBuilderTypes()) {
             this.useBuilderTypes = validationOutput.getUseBuilderTypes();
         }
         if (this.acknowledgment == null) {
-            this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption);
+            this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption,
+                    this.production);
         }
         this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incomings, () -> {
             Merge annotation = method.getAnnotation(Merge.class);
@@ -151,6 +155,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         if (this.isBlocking) {
             this.mediatorConfigurationSupport.validateBlocking(validationOutput);
         }
+
+        ingestedPayloadType = validationOutput.getIngestedPayloadType();
     }
 
     @Override
@@ -181,6 +187,11 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     @Override
     public Class<?> getReturnType() {
         return returnType;
+    }
+
+    @Override
+    public Type getIngestedPayloadType() {
+        return ingestedPayloadType;
     }
 
     @Override
@@ -272,24 +283,67 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                 return Result.InvalidIndex;
             }
         }
+
+        @Override
+        public Type getType(int index) {
+            return extractGenericType(type, index);
+        }
+
+        private Type extractGenericType(Type owner, int index) {
+            if (!(owner instanceof ParameterizedType)) {
+                return null;
+            }
+            Type[] arguments = ((ParameterizedType) owner).getActualTypeArguments();
+            if (arguments.length >= index + 1) {
+                Type result = arguments[index];
+                if (result instanceof WildcardType) {
+                    return null;
+                }
+
+                return result;
+            } else {
+                return null;
+            }
+        }
+
+        @Override
+        public Type getType(int index, int subIndex) {
+            Type generic = extractGenericType(this.type, index);
+            if (generic != null) {
+                return extractGenericType(generic, subIndex);
+            } else {
+                return null;
+            }
+        }
     }
 
-    private static class ReturnTypeGenericTypeAssignable extends ReflectionGenericTypeAssignable {
+    protected static class ReturnTypeGenericTypeAssignable extends ReflectionGenericTypeAssignable {
 
         ReturnTypeGenericTypeAssignable(Method method) {
             super(method.getGenericReturnType());
         }
     }
 
-    private static class AlwaysInvalidIndexGenericTypeAssignable implements MediatorConfigurationSupport.GenericTypeAssignable {
+    protected static class AlwaysInvalidIndexGenericTypeAssignable
+            implements MediatorConfigurationSupport.GenericTypeAssignable {
 
         @Override
         public Result check(Class<?> target, int index) {
             return Result.InvalidIndex;
         }
+
+        @Override
+        public Type getType(int index) {
+            return null;
+        }
+
+        @Override
+        public Type getType(int index, int subIndex) {
+            return null;
+        }
     }
 
-    private static class MethodParamGenericTypeAssignable extends ReflectionGenericTypeAssignable {
+    protected static class MethodParamGenericTypeAssignable extends ReflectionGenericTypeAssignable {
 
         MethodParamGenericTypeAssignable(Method method, int paramIndex) {
             super(getGenericParameterType(method, paramIndex));

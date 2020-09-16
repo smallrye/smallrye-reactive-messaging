@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.List;
 
 import javax.enterprise.inject.spi.Bean;
@@ -53,6 +54,13 @@ public interface MediatorConfiguration {
      * programmatically, or have a constructor that takes a single Object parameter - the bean to operate on
      */
     Class<? extends Invoker> getInvokerClass();
+
+    /**
+     * @return the discovered ingested payload type. May be {@code null} if there is no consumption or the type cannot be
+     *         extracted.
+     *         Conversion is based on this type.
+     */
+    Type getIngestedPayloadType();
 
     enum Production {
         STREAM_OF_MESSAGE,
