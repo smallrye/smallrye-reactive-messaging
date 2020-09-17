@@ -1,15 +1,10 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.CHANNEL_NAME_ATTRIBUTE;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,8 +20,9 @@ import org.jboss.logging.Logger;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -39,7 +35,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.core.buffer.Buffer;
-import repeat.Repeat;
 
 public class AmqpSourceTest extends AmqpTestBase {
 
@@ -47,7 +42,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     private WeldContainer container;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (provider != null) {
             provider.terminate(null);
@@ -131,7 +126,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     @NotNull
     private <T, O> Subscriber<T> createSubscriber(List<Message<O>> messages, AtomicBoolean opened) {
-        //noinspection SubscriberImplementation - Seriously IntelliJ ????
+        //noinspection ReactiveStreamsSubscriberImplementation
         return new Subscriber<T>() {
             Subscription sub;
 
@@ -161,8 +156,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         };
     }
 
-    @Test
-    @Repeat(times = 10)
+    @RepeatedTest(10)
     public void testBroadcast() {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
@@ -384,7 +378,7 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .isEqualTo(list.toString());
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigByCDIMissingBean() {
         Weld weld = new Weld();
 
@@ -401,10 +395,11 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.data.client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigByCDIIncorrectBean() {
         Weld weld = new Weld();
 
@@ -422,7 +417,8 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.data.client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
     @Test
@@ -484,7 +480,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigGlobalOptionsByCDIMissingBean() {
         Weld weld = new Weld();
 
@@ -501,10 +497,11 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("amqp-client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigGlobalOptionsByCDIIncorrectBean() {
         Weld weld = new Weld();
 
@@ -522,7 +519,8 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
     @NotNull
