@@ -2,20 +2,19 @@ package io.smallrye.reactive.messaging.amqp;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.vertx.mutiny.core.Vertx;
-import repeat.RepeatRule;
 
 public class AmqpTestBase {
 
-    private static AmqpBroker broker = new AmqpBroker();
-
-    @Rule
-    public RepeatRule rule = new RepeatRule();
+    public static final AmqpBroker broker = new AmqpBroker();
 
     ExecutionHolder executionHolder;
     final static String host = "127.0.0.1";
@@ -24,7 +23,7 @@ public class AmqpTestBase {
     final static String password = "artemis";
     AmqpUsage usage;
 
-    @BeforeClass
+    @BeforeAll
     public static void startBroker() {
         broker.start();
         System.setProperty("amqp-host", host);
@@ -33,14 +32,14 @@ public class AmqpTestBase {
         System.setProperty("amqp-pwd", password);
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopBroker() {
         broker.stop();
         System.clearProperty("amqp-host");
         System.clearProperty("amqp-port");
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         executionHolder = new ExecutionHolder(Vertx.vertx());
 
@@ -49,7 +48,7 @@ public class AmqpTestBase {
         MapBasedConfig.clear();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         usage.close();
         executionHolder.terminate(null);

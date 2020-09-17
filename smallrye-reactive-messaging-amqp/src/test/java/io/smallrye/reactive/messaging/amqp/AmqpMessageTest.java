@@ -11,7 +11,7 @@ import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Footer;
 import org.apache.qpid.proton.message.Message;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.core.json.JsonObject;

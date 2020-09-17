@@ -13,11 +13,10 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.vertx.core.json.JsonObject;
@@ -27,7 +26,7 @@ public class ObjectExchangeTest extends AmqpTestBase {
     private WeldContainer container;
     private final Weld weld = new Weld();
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
@@ -59,9 +58,6 @@ public class ObjectExchangeTest extends AmqpTestBase {
                 .write();
 
         container = weld.initialize();
-
-        AmqpConnector connector = container.getBeanManager().createInstance()
-                .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
 
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));

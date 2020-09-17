@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
@@ -20,9 +19,10 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
-import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
@@ -31,7 +31,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 import io.vertx.mutiny.core.buffer.Buffer;
-import repeat.Repeat;
 
 public class AmqpSinkTest extends AmqpTestBase {
 
@@ -39,7 +38,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     private WeldContainer container;
     private AmqpConnector provider;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (provider != null) {
             provider.terminate(null);
@@ -268,8 +267,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(expected).hasValue(10);
     }
 
-    @Test
-    @Repeat(times = 3)
+    @RepeatedTest(3)
     public void testABeanProducingMessagesSentToAMQP() throws InterruptedException {
         Weld weld = new Weld();
 
@@ -397,7 +395,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> {
-                    org.apache.qpid.proton.message.Message message = org.apache.qpid.proton.message.Message.Factory.create();
+                    org.apache.qpid.proton.message.Message message = org.apache.qpid.proton.message.Message.Factory
+                            .create();
                     message.setBody(new AmqpValue(HELLO + v));
                     message.setSubject("bar");
                     message.setContentType("text/plain");
@@ -582,7 +581,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         });
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigByCDIMissingBean() {
         Weld weld = new Weld();
 
@@ -599,10 +598,10 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigByCDIIncorrectBean() {
         Weld weld = new Weld();
 
@@ -619,7 +618,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.sink.client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
     }
 
     @Test
@@ -649,8 +648,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }
 
-    @Test(expected = DeploymentException.class)
-    @Ignore("Failing on CI - need to be investigated")
+    @Test
+    @Disabled("Failing on CI - need to be investigated")
     public void testConfigGlobalOptionsByCDIMissingBean() {
         Weld weld = new Weld();
 
@@ -666,11 +665,13 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> {
+            container = weld.initialize();
+        }).isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
-    @Ignore("Failing on CI - to be investigated")
+    @Test
+    @Disabled("Failing on CI - to be investigated")
     public void testConfigGlobalOptionsByCDIIncorrectBean() {
         Weld weld = new Weld();
 
@@ -688,7 +689,9 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> {
+            container = weld.initialize();
+        }).isInstanceOf(DeploymentException.class);
     }
 
     @Test
@@ -850,7 +853,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     }
 
     @Test
-    public void testOutgoingMetadataWithTtlSetOnConnectorButOverridenInMessage() {
+    public void testOutgoingMetadataWithTtlSetOnConnectorButOverriddenInMessage() {
         String topic = UUID.randomUUID().toString();
         List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
         usage.consume(topic, messages::add);
@@ -913,23 +916,6 @@ public class AmqpSinkTest extends AmqpTestBase {
             assertThat(metadata.getFooter().getValue()).isEmpty();
             assertThat(metadata.getUserId()).isNull();
         });
-    }
-
-    @Test
-    public void testCreditBasedFlowControl() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic,
-                v -> expected.getAndIncrement());
-
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
-        //noinspection unchecked
-        Multi.createFrom().range(0, 5000)
-                .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
-
-        await().until(() -> expected.get() == 5000);
-        assertThat(expected).hasValue(5000);
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic) {

@@ -1,10 +1,12 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.common.annotation.Experimental;
-import org.eclipse.microprofile.reactive.messaging.Message;
+import java.lang.reflect.Type;
 
 import javax.enterprise.inject.spi.Prioritized;
-import java.lang.reflect.Type;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import io.smallrye.common.annotation.Experimental;
 
 /**
  * Converter transforming {@code Message<A>} into {@code Message<B>}.
@@ -28,7 +30,7 @@ public interface MessageConverter extends Prioritized {
      * When reactive messaging looks for a converter, it picks the first converter returning {@code true} for a given
      * message.
      *
-     * @param in     the input message, not {@code null}
+     * @param in the input message, not {@code null}
      * @param target the target type, generally the type ingested by a method
      * @return {@code true} if the conversion is possible, {@code false} otherwise.
      */
@@ -38,7 +40,7 @@ public interface MessageConverter extends Prioritized {
      * Converts the given message {@code in} into a {@code Message<T>}.
      * This method is only called after a successful call to {@link #canConvert(Message, Type)} with the given target type.
      *
-     * @param in     the input message
+     * @param in the input message
      * @param target the target type
      * @return the converted message.
      */
