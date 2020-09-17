@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging;
 import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -121,12 +120,7 @@ public class MediatorConfigurationSupport {
             Type payloadType;
             if (assignableToMessageCheck == GenericTypeAssignable.Result.Assignable) {
                 consumption = MediatorConfiguration.Consumption.STREAM_OF_MESSAGE;
-                Type m = returnTypeAssignable.getType(0);
-                if (m instanceof ParameterizedType) {
-                    payloadType = ((ParameterizedType) m).getActualTypeArguments()[0];
-                } else {
-                    payloadType = null;
-                }
+                payloadType = returnTypeAssignable.getType(0, 0);
             } else {
                 consumption = MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
                 payloadType = returnTypeAssignable.getType(0);
@@ -346,13 +340,7 @@ public class MediatorConfigurationSupport {
                     : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
 
             if (consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
-                Type type = returnTypeAssignable.getType(0);
-                if (type instanceof ParameterizedType) {
-                    payloadType = ((ParameterizedType) type).getActualTypeArguments()[0];
-                } else {
-                    log.unableToExtractIngestedPayloadType(methodAsString, "The Message type is not parameterized");
-                    payloadType = null;
-                }
+                payloadType = returnTypeAssignable.getType(0, 0);
             } else {
                 payloadType = returnTypeAssignable.getType(0);
             }
@@ -655,7 +643,7 @@ public class MediatorConfigurationSupport {
 
         /**
          * Gets the underlying type. For example, on a {@code Message<X>}, it returns {@code X}.
-         * 
+         *
          * @param index the index of the type
          * @return the type, {@code null} if not set or wildcard
          */
@@ -663,7 +651,7 @@ public class MediatorConfigurationSupport {
 
         /**
          * Gets the underlying sub-type. For example, on a {@code Publisher<Message<X>>}, it returns {@code X}.
-         * 
+         *
          * @param index the index of the type
          * @param subIndex the second index
          * @return the type, {@code null} if not set or wildcard
