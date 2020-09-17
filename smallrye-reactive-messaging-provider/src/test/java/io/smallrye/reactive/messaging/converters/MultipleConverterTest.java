@@ -1,14 +1,7 @@
 package io.smallrye.reactive.messaging.converters;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.MessageConverter;
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.enterprise.context.ApplicationScoped;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,13 +9,23 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import javax.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.junit.Test;
+
+import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class MultipleConverterTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testWithMultipleCompetingConverters() {
-        addBeanClass(Source.class, Sink.class, StringToPersonConverterWithDefaultPriority.class, StringToPersonConverterWithHighPriority.class, PayloadProcessor.class);
+        addBeanClass(Source.class, Sink.class, StringToPersonConverterWithDefaultPriority.class,
+                StringToPersonConverterWithHighPriority.class, PayloadProcessor.class);
         initialize();
         Sink sink = get(Sink.class);
         Source source = get(Source.class);
@@ -30,12 +33,13 @@ public class MultipleConverterTest extends WeldTestBaseWithoutTails {
         assertThat(source.acks()).isEqualTo(5);
         assertThat(source.nacks()).isEqualTo(0);
         assertThat(sink.list().stream().map(p -> p.name).collect(Collectors.toList()))
-            .containsExactly("LUKE", "LEIA", "NEO", "MORPHEUS", "TRINITY");
+                .containsExactly("LUKE", "LEIA", "NEO", "MORPHEUS", "TRINITY");
     }
 
     @Test
     public void testWithMultipleCompetingConvertersReversed() {
-        addBeanClass(Source.class, Sink.class, StringToPersonConverterWithHighPriority.class, StringToPersonConverterWithDefaultPriority.class, PayloadProcessor.class);
+        addBeanClass(Source.class, Sink.class, StringToPersonConverterWithHighPriority.class,
+                StringToPersonConverterWithDefaultPriority.class, PayloadProcessor.class);
         initialize();
         Sink sink = get(Sink.class);
         Source source = get(Source.class);
@@ -43,7 +47,7 @@ public class MultipleConverterTest extends WeldTestBaseWithoutTails {
         assertThat(source.acks()).isEqualTo(5);
         assertThat(source.nacks()).isEqualTo(0);
         assertThat(sink.list().stream().map(p -> p.name).collect(Collectors.toList()))
-            .containsExactly("LUKE", "LEIA", "NEO", "MORPHEUS", "TRINITY");
+                .containsExactly("LUKE", "LEIA", "NEO", "MORPHEUS", "TRINITY");
     }
 
     @ApplicationScoped
