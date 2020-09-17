@@ -11,7 +11,7 @@ import io.smallrye.reactive.messaging.amqp.AmqpMessage;
 @ApplicationScoped
 public class Sender {
 
-    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @Outgoing("data")
     public CompletionStage<AmqpMessage> send() {

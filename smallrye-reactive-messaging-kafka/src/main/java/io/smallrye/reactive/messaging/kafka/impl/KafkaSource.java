@@ -209,7 +209,7 @@ public class KafkaSource<K, V> {
         }
 
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
-                .onSubscribe().invokeUni(s -> {
+                .onSubscribe().call(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
                     if (this.pattern != null) {
                         BiConsumer<UniEmitter<?>, AsyncResult<Void>> completionHandler = (e, ar) -> {

@@ -16,7 +16,7 @@ public class CamelPriceProducer {
     public Multi<String> generate() {
         // Build an infinite stream of random prices
         return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
-            .on().overflow().drop()
+            .onOverflow().drop()
             .map(x -> random.nextDouble())
             .map(p -> Double.toString(p));
     }

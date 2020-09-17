@@ -200,7 +200,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     sender.set(null);
                     opened.put(oc.getChannel(), false);
                 })
-                .on().cancellation(() -> {
+                .onCancellation().invoke(() -> {
                     sender.set(null);
                     opened.put(oc.getChannel(), false);
                 });

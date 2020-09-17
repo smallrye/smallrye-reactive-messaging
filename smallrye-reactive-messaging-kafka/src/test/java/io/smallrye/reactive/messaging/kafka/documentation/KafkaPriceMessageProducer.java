@@ -20,7 +20,7 @@ public class KafkaPriceMessageProducer {
         // Build an infinite stream of random prices
         // It emits a price every 10 milliseconds
         return Multi.createFrom().ticks().every(Duration.ofMillis(10))
-                .on().overflow().drop()
+                .onOverflow().drop()
                 .map(x -> Message.of(random.nextDouble()));
     }
 

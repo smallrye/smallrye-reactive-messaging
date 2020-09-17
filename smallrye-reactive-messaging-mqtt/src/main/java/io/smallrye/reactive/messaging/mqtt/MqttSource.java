@@ -56,7 +56,7 @@ public class MqttSource {
                             }
                             return multi;
                         })
-                        .on().cancellation(() -> subscribed.set(false))
+                        .onCancellation().invoke(() -> subscribed.set(false))
                         .onFailure().invoke(log::unableToConnectToBroker));
     }
 
