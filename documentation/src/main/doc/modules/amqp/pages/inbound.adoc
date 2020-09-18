@@ -72,7 +72,7 @@ public static class Generator {
         AtomicInteger count = new AtomicInteger();
         return Multi.createFrom().ticks().every(Duration.ofMillis(1000))
                 .map(l -> new Price().setPrice(count.incrementAndGet()))
-                .on().overflow().drop();
+                .onOverflow().drop();
     }
 
 }

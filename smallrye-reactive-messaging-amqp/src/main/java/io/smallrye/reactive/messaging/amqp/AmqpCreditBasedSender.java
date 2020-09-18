@@ -63,7 +63,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
     private Uni<AmqpSender> getSenderAndCredits() {
         return retrieveSender
-                .onItem().invokeUni(sender -> {
+                .onItem().call(sender -> {
                     CompletableFuture<Void> future = new CompletableFuture<>();
                     holder.getContext().runOnContext(x -> {
                         setCreditsAndRequest(sender);

@@ -101,7 +101,7 @@ public class ConnectionSharingTest extends MqttTestBase {
         public Multi<Integer> generate() {
             return Multi.createFrom().ticks().every(Duration.ofMillis(100))
                     .map(l -> random.nextInt(100))
-                    .on().overflow().drop()
+                    .onOverflow().drop()
                     .transform().byTakingFirstItems(100);
         }
 

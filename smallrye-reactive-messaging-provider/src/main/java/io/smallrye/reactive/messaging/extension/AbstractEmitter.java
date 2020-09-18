@@ -124,7 +124,7 @@ public abstract class AbstractEmitter<T> implements EmitterBehavior {
             Multi<Message<? extends T>> stream) {
         int size = (int) defaultBufferSize;
         return stream
-                .on().overflow().buffer(size - 2)
+                .onOverflow().buffer(size - 2)
                 .onFailure().invoke(t -> synchronousFailure.set(t));
     }
 
