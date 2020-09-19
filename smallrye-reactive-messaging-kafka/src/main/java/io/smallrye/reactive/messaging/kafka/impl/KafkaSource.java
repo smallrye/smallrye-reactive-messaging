@@ -104,6 +104,7 @@ public class KafkaSource<K, V> {
         kafkaConfiguration.remove("commit-strategy");
         kafkaConfiguration.remove("consumer-rebalance-listener.name");
         kafkaConfiguration.remove("health.enabled");
+        kafkaConfiguration.remove("tracing-enabled");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         commitHandler = createCommitHandler(kafkaConsumer, kafkaConfiguration, commitStrategy);
@@ -230,15 +231,18 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> commitHandler
-                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
-                                config.getTracingEnabled())));
+                .map(rec -> {
+                    return commitHandler
+                            .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
+                                    config.getTracingEnabled()));
+                });
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
         }
 
-        this.stream = incomingMulti.onFailure().invoke(this::reportFailure);
+        this.stream = incomingMulti
+                .onFailure().invoke(this::reportFailure);
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
