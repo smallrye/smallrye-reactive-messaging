@@ -358,6 +358,13 @@ public class KafkaSource<K, V> {
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
+        if (admin != null) {
+            try {
+                this.admin.closeAndAwait();
+            } catch (Throwable e) {
+                log.exceptionOnClose(e);
+            }
+        }
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {

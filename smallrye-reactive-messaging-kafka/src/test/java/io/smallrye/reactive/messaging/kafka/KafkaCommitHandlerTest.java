@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -29,6 +30,15 @@ import io.vertx.kafka.client.consumer.OffsetAndMetadata;
 
 @SuppressWarnings("unchecked")
 public class KafkaCommitHandlerTest extends KafkaTestBase {
+
+    KafkaAdminClient admin;
+
+    @AfterEach
+    public void stopAdminClient() {
+        if (admin != null) {
+            admin.close();
+        }
+    }
 
     @Test
     public void testSourceWithAutoCommitEnabled() throws ExecutionException, TimeoutException, InterruptedException {
@@ -63,13 +73,13 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         firstMessage.get().ack().whenComplete((a, t) -> ackFuture.complete(null));
         ackFuture.get(2, TimeUnit.MINUTES);
 
-        KafkaAdminClient adminClient = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
                     TopicPartition topicPartition = new TopicPartition(topic, 0);
                     CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-                    adminClient
+                    admin
                             .listConsumerGroupOffsets("test-source-with-auto-commit-enabled",
                                     new ListConsumerGroupOffsetsOptions()
                                             .topicPartitions(Collections.singletonList(topicPartition)),
@@ -121,8 +131,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         TopicPartition topicPartition = new TopicPartition(topic, 0);
         CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-        KafkaAdminHelper.createAdminClient(ic, vertx, config)
-                .getDelegate()
+        admin = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
+        admin
                 .listConsumerGroupOffsets("test-source-with-auto-commit-disabled",
                         new ListConsumerGroupOffsetsOptions()
                                 .topicPartitions(Collections.singletonList(topicPartition)),
@@ -162,7 +172,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        KafkaAdminClient adminClient = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
@@ -172,7 +182,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
                     TopicPartition topicPartition = new TopicPartition(topic, 0);
                     CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-                    adminClient
+                    admin
                             .listConsumerGroupOffsets("test-source-with-throttled-latest-processed-commit",
                                     new ListConsumerGroupOffsetsOptions()
                                             .topicPartitions(Collections.singletonList(topicPartition)),

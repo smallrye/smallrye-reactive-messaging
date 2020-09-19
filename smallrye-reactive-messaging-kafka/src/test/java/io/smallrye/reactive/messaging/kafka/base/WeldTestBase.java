@@ -5,6 +5,7 @@ import java.util.HashMap;
 import javax.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
@@ -54,6 +55,9 @@ public class WeldTestBase {
     @AfterEach
     public void stopContainer() {
         if (container != null) {
+            // Explicitly close the connector
+            getBeanManager().createInstance()
+                    .select(KafkaConnector.class, ConnectorLiteral.of("smallrye-kafka")).get().terminate(new Object());
             container.close();
         }
         // Release the config objects

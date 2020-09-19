@@ -21,6 +21,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.jboss.weld.exceptions.UnsatisfiedResolutionException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
@@ -33,13 +34,26 @@ import io.vertx.kafka.client.common.TopicPartition;
 
 public class KafkaSourceTest extends KafkaTestBase {
 
+    KafkaSource<String, Integer> source;
+    KafkaConnector connector;
+
+    @AfterEach
+    public void closing() {
+        if (source != null) {
+            source.closeQuietly();
+        }
+        if (connector != null) {
+            connector.terminate(new Object());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testSource() {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -63,7 +77,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         createTopic(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -87,7 +101,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<KafkaRecord> messages = new ArrayList<>();
@@ -109,7 +123,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true);
-        KafkaConnector connector = new KafkaConnector();
+        connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
@@ -144,7 +158,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("broadcast", true)
                 .with("partitions", 2);
 
-        KafkaConnector connector = new KafkaConnector();
+        connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
@@ -179,7 +193,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("retry-attempts", 100)
                 .with("retry-max-wait", 30);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
         List<KafkaRecord> messages1 = new ArrayList<>();
         source.getStream().subscribe().with(messages1::add);
@@ -387,7 +401,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -453,7 +467,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("sasl.jaas.config", "") //optional configuration
                 .with("sasl.mechanism", ""); //optional configuration
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();

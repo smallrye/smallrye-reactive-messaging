@@ -85,9 +85,7 @@ public class KafkaSink {
 
         this.configuration = config;
 
-        Map<String, Object> adminConfig = new HashMap<>(kafkaConfigurationMap);
-        adminConfig.remove("group.id");
-        this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, adminConfig);
+        this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
         this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
                 && configuration.getCloudEventsSource().isPresent();
 
@@ -381,6 +379,10 @@ public class KafkaSink {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+
+        if (admin != null) {
+            admin.closeAndAwait();
         }
     }
 

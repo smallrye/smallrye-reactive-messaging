@@ -27,6 +27,7 @@ public class KafkaAdminHelper {
             adminConfiguration.remove("value.deserializer");
             adminConfiguration.remove("acks");
             adminConfiguration.remove("max.in.flight.requests.per.connection");
+            adminConfiguration.remove("group.id");
             return KafkaAdminClient.create(vertx, adminConfiguration);
         } else {
             return null;
