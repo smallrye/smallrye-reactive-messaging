@@ -26,15 +26,13 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
 
 import io.grpc.Context;
 import io.opentelemetry.OpenTelemetry;
@@ -43,33 +41,26 @@ import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.SpanId;
-import io.opentelemetry.trace.TraceId;
-import io.opentelemetry.trace.TracingContextUtils;
-import io.reactivex.Flowable;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.opentelemetry.trace.*;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.KafkaUsage;
-import io.smallrye.reactive.messaging.kafka.MapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class TracingPropagationTest extends KafkaTestBase {
 
-    private WeldContainer container;
     private InMemorySpanExporter testExporter;
     private SpanProcessor spanProcessor;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testExporter = InMemorySpanExporter.create();
         spanProcessor = SimpleSpanProcessor.newBuilder(testExporter).build();
         OpenTelemetrySdk.getTracerProvider().addSpanProcessor(spanProcessor);
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (testExporter != null) {
             testExporter.shutdown();
@@ -77,24 +68,17 @@ public class TracingPropagationTest extends KafkaTestBase {
         if (spanProcessor != null) {
             spanProcessor.shutdown();
         }
-
-        if (container != null) {
-            container.close();
-        }
-
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testFromAppToKafka() {
-        KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, Integer>> messages = new CopyOnWriteArrayList<>();
         List<Context> contexts = new CopyOnWriteArrayList<>();
         usage.consumeIntegersWithTracing("output", 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)),
                 contexts::add);
-        deploy(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
+        runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
 
         await().until(() -> messages.size() >= 10);
         List<Integer> values = new ArrayList<>();
@@ -128,13 +112,12 @@ public class TracingPropagationTest extends KafkaTestBase {
 
     @Test
     public void testFromKafkaToAppToKafka() {
-        KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, Integer>> messages = new CopyOnWriteArrayList<>();
         List<Context> receivedContexts = new CopyOnWriteArrayList<>();
         usage.consumeIntegersWithTracing("result-topic", 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)),
                 receivedContexts::add);
-        deploy(getKafkaSinkConfigForMyAppProcessingData(), MyAppProcessingData.class);
+        runApplication(getKafkaSinkConfigForMyAppProcessingData(), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
         List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
@@ -190,11 +173,10 @@ public class TracingPropagationTest extends KafkaTestBase {
 
     @Test
     public void testFromKafkaToAppWithParentSpan() {
-        KafkaUsage usage = new KafkaUsage();
-        deploy(getKafkaSinkConfigForMyAppReceivingData("parent-stuff"), MyAppReceivingData.class);
+        MyAppReceivingData bean = runApplication(getKafkaSinkConfigForMyAppReceivingData("parent-stuff"),
+                MyAppReceivingData.class);
 
         AtomicInteger count = new AtomicInteger();
-        MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
         List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
 
         usage.produceIntegers(10, null,
@@ -250,11 +232,10 @@ public class TracingPropagationTest extends KafkaTestBase {
 
     @Test
     public void testFromKafkaToAppWithNoParent() {
-        KafkaUsage usage = new KafkaUsage();
-        deploy(getKafkaSinkConfigForMyAppReceivingData("no-parent-stuff"), MyAppReceivingData.class);
+        MyAppReceivingData bean = runApplication(
+                getKafkaSinkConfigForMyAppReceivingData("no-parent-stuff"), MyAppReceivingData.class);
 
         AtomicInteger count = new AtomicInteger();
-        MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
 
         usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("no-parent-stuff", null, null, "a-key", count.getAndIncrement()));
@@ -296,37 +277,21 @@ public class TracingPropagationTest extends KafkaTestBase {
         return proposedHeaders;
     }
 
-    private <T> void deploy(MapBasedConfig config, Class<T> clazz) {
-        if (config != null) {
-            config.write();
-        } else {
-            MapBasedConfig.clear();
-        }
-
-        Weld weld = baseWeld();
-        weld.addBeanClass(clazz);
-
-        container = weld.initialize();
-    }
-
     private MapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka", true);
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
         builder.put("value.serializer", IntegerSerializer.class.getName());
         builder.put("topic", "output");
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData() {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka", true);
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
         builder.put("value.serializer", IntegerSerializer.class.getName());
         builder.put("topic", "result-topic");
 
         Map<String, Object> config = builder.build();
 
-        builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.source", true);
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        builder = MapBasedConfig.builder("mp.messaging.incoming.source", true);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("key.deserializer", StringDeserializer.class.getName());
         builder.put("topic", "some-topic");
@@ -337,22 +302,21 @@ public class TracingPropagationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppReceivingData(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.stuff", true);
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.stuff", true);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("key.deserializer", StringDeserializer.class.getName());
         builder.put("topic", topic);
         builder.put("auto.offset.reset", "earliest");
 
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     @ApplicationScoped
     public static class MyAppGeneratingData {
 
         @Outgoing("kafka")
-        public Flowable<Integer> source() {
-            return Flowable.range(0, 10);
+        public Publisher<Integer> source() {
+            return Multi.createFrom().range(0, 10);
         }
     }
 

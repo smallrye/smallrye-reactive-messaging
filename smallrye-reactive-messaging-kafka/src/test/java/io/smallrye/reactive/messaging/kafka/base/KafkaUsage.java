@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.base;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -35,7 +35,7 @@ import io.grpc.Context;
 import io.opentelemetry.OpenTelemetry;
 
 /**
- * @author <a href="http://escoffier.me">Clement Escoffier</a>
+ * Simplify the usage of a Kafka client.
  */
 public class KafkaUsage {
 
@@ -43,7 +43,7 @@ public class KafkaUsage {
     private final String brokers;
 
     public KafkaUsage() {
-        this.brokers = "localhost:9092";
+        this.brokers = KafkaTestBase.kafka.getBootstrapServers();
     }
 
     public Properties getConsumerProperties(String groupId, String clientId, OffsetResetStrategy autoOffsetReset) {
@@ -264,7 +264,7 @@ public class KafkaUsage {
                 });
     }
 
-    void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+    public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             Consumer<ConsumerRecord<String, Integer>> consumer) {
         AtomicLong readCounter = new AtomicLong();
         this.consumeIntegers(

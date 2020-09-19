@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
@@ -20,39 +21,24 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.reactivex.Flowable;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class MetadataPropagationTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @Test
     public void testFromAppToKafka() {
-        KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
         usage.consumeStrings("some-topic-testFromAppToKafka", 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)));
-        deploy(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
+        runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
 
         await().until(() -> messages.size() == 10);
         assertThat(messages).allSatisfy(entry -> {
@@ -63,13 +49,11 @@ public class MetadataPropagationTest extends KafkaTestBase {
 
     @Test
     public void testFromKafkaToAppToKafka() {
-        String topic = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
         usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)));
-        deploy(getKafkaSinkConfigForMyAppProcessingData(topic, topicIn), MyAppProcessingData.class);
+        runApplication(getKafkaSinkConfigForMyAppProcessingData(topic, topicIn), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
         usage.produceIntegers(100, null,
@@ -85,15 +69,13 @@ public class MetadataPropagationTest extends KafkaTestBase {
     @SuppressWarnings("rawtypes")
     @Test
     public void testFromKafkaToAppWithMetadata() {
-        String topic = UUID.randomUUID().toString();
-        KafkaUsage usage = new KafkaUsage();
-        deploy(getKafkaSinkConfigForMyAppWithKafkaMetadata(topic), MyAppWithKafkaMetadata.class);
+        runApplication(getKafkaSinkConfigForMyAppWithKafkaMetadata(topic), MyAppWithKafkaMetadata.class);
 
         AtomicInteger value = new AtomicInteger();
         usage.produceIntegers(100, null,
                 () -> new ProducerRecord<>(topic, "a-key", value.getAndIncrement()));
 
-        MyAppWithKafkaMetadata bean = container.getBeanManager().createInstance().select(MyAppWithKafkaMetadata.class).get();
+        MyAppWithKafkaMetadata bean = get(MyAppWithKafkaMetadata.class);
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).contains(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -111,56 +93,39 @@ public class MetadataPropagationTest extends KafkaTestBase {
         assertThat(foundMetadata.get()).isTrue();
     }
 
-    private <T> void deploy(MapBasedConfig config, Class<T> clazz) {
-        if (config != null) {
-            config.write();
-        } else {
-            MapBasedConfig.clear();
-        }
-
-        Weld weld = baseWeld();
-        weld.addBeanClass(clazz);
-
-        container = weld.initialize();
-    }
-
     private MapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", "should-not-be-used");
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", topicOut);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder();
+        builder.put("mp.messaging.outgoing.kafka.value.serializer", StringSerializer.class.getName());
+        builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
+        builder.put("mp.messaging.outgoing.kafka.bootstrap.servers", getBootstrapServers());
+        builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
 
-        Map<String, Object> config = builder.build();
+        builder.put("mp.messaging.incoming.source.value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("mp.messaging.incoming.source.key.deserializer", StringDeserializer.class.getName());
+        builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
+        builder.put("mp.messaging.incoming.source.bootstrap.servers", getBootstrapServers());
+        builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
+        builder.put("mp.messaging.incoming.source.topic", topicIn);
+        builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.source");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("key.deserializer", StringDeserializer.class.getName());
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", topicIn);
-        builder.put("commit-strategy", "latest");
-
-        config.putAll(builder.build());
-        return new MapBasedConfig(config);
+        return builder.build();
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppWithKafkaMetadata(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("key.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
         builder.put("commit-strategy", "latest");
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     @SuppressWarnings("deprecation")
@@ -168,8 +133,8 @@ public class MetadataPropagationTest extends KafkaTestBase {
     public static class MyAppGeneratingData {
 
         @Outgoing("source")
-        public Flowable<Integer> source() {
-            return Flowable.range(0, 10);
+        public Multi<Integer> source() {
+            return Multi.createFrom().range(0, 10);
         }
 
         @Incoming("source")

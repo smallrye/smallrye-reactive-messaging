@@ -8,7 +8,7 @@ import java.time.Instant;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KafkaRecordTest {
 

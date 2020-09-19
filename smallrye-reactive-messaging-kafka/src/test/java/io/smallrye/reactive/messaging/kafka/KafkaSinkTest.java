@@ -3,7 +3,10 @@ package io.smallrye.reactive.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -17,64 +20,51 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 
 public class KafkaSinkTest extends KafkaTestBase {
 
-    private WeldContainer container;
     private KafkaSink sink;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (sink != null) {
             sink.closeQuietly();
         }
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        KafkaThrottledLatestProcessedCommit.clearCache();
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void testSinkUsingInteger() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        Map<String, Object> config = getConfig();
-        config.put("topic", topic);
-        config.put("value.serializer", IntegerSerializer.class.getName());
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("partition", 0);
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", "testSinkUsingInteger");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = getBaseConfig()
+                .with("topic", topic)
+                .with("value.serializer", IntegerSerializer.class.getName())
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("partition", 0)
+                .with("channel-name", "testSinkUsingInteger");
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(vertx, oc);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
@@ -85,25 +75,22 @@ public class KafkaSinkTest extends KafkaTestBase {
     @Test
     @SuppressWarnings("unchecked")
     public void testSinkUsingIntegerAndChannelName() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        Map<String, Object> config = getConfig();
-        config.put("channel-name", topic);
-        config.put("value.serializer", IntegerSerializer.class.getName());
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("partition", 0);
-        config.put("bootstrap.servers", SERVERS);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = getBaseConfig()
+                .with("channel-name", topic)
+                .with("value.serializer", IntegerSerializer.class.getName())
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("partition", 0);
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(vertx, oc);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
@@ -114,26 +101,23 @@ public class KafkaSinkTest extends KafkaTestBase {
     @Test
     @SuppressWarnings("unchecked")
     public void testSinkUsingString() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        Map<String, Object> config = getConfig();
-        config.put("topic", topic);
-        config.put("value.serializer", StringSerializer.class.getName());
-        config.put("value.deserializer", StringDeserializer.class.getName());
-        config.put("partition", 0);
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", "testSinkUsingString");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = getBaseConfig()
+                .with("topic", topic)
+                .with("value.serializer", StringSerializer.class.getName())
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("partition", 0)
+                .with("channel-name", "testSinkUsingString");
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(vertx, oc);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<String>>) subscriber);
@@ -142,76 +126,55 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(expected).hasValue(10);
     }
 
-    private Map<String, Object> getConfig() {
-        Map<String, Object> config = new HashMap<>();
-        config.put("bootstrap.servers", "localhost:9092");
-        config.put("key.serializer", StringSerializer.class.getName());
-        config.put("acks", "1");
-        config.put("tracing-enabled", false);
-        return config;
+    private MapBasedConfig getBaseConfig() {
+        return new MapBasedConfig()
+                .with("bootstrap.servers", kafka.getBootstrapServers())
+                .with("key.serializer", StringSerializer.class.getName())
+                .with("acks", "1")
+                .with("tracing-enabled", false);
     }
 
     private MapBasedConfig getKafkaSinkConfigForProducingBean() {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.output");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-
-        return new MapBasedConfig(builder.build());
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output")
+                .put("value.serializer", IntegerSerializer.class.getName());
+        return builder.build();
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMessageProducingBean(String t) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.output-2");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        if (t != null) {
-            builder.put("topic", t);
-        }
-
-        return new MapBasedConfig(builder.build());
+    private MapBasedConfig getKafkaSinkConfigForMessageProducingBean() {
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output-2")
+                .put("value.serializer", IntegerSerializer.class.getName())
+                .put("topic", topic);
+        return builder.build();
     }
 
     private MapBasedConfig getKafkaSinkConfigForRecordProducingBean(String t) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.output-record");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output-record");
         builder.put("key.serializer", IntegerSerializer.class.getName());
         builder.put("value.serializer", StringSerializer.class.getName());
         if (t != null) {
             builder.put("topic", t);
         }
 
-        return new MapBasedConfig(builder.build());
-    }
-
-    private void deploy(MapBasedConfig config, Class<?> clazz) {
-        if (config != null) {
-            config.write();
-        } else {
-            MapBasedConfig.clear();
-        }
-
-        Weld weld = baseWeld();
-        weld.addBeanClass(clazz);
-        container = weld.initialize();
+        return builder.build();
     }
 
     @Test
     public void testABeanProducingMessagesSentToKafka() throws InterruptedException {
-        deploy(getKafkaSinkConfigForProducingBean(), ProducingBean.class);
+        runApplication(getKafkaSinkConfigForProducingBean(), ProducingBean.class);
 
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeIntegers("output", 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        await().until(() -> getHealth(container).getReadiness().isOk());
+        await().until(this::isReady);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        HealthReport readiness = getHealth(container).getReadiness();
+        HealthReport liveness = getHealth().getLiveness();
+        HealthReport readiness = getHealth().getReadiness();
 
         assertThat(liveness.isOk()).isTrue();
         assertThat(readiness.isOk()).isTrue();
@@ -223,12 +186,10 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @Test
     public void testABeanProducingKafkaMessagesSentToKafka() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         List<String> keys = new ArrayList<>();
         List<String> headers = new ArrayList<>();
-        String topic = UUID.randomUUID().toString();
         usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 record -> {
@@ -238,10 +199,10 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForMessageProducingBean(topic), ProducingKafkaMessageBean.class);
+        runApplication(getKafkaSinkConfigForMessageProducingBean(), ProducingKafkaMessageBean.class);
 
-        await().until(() -> getHealth(container).getReadiness().isOk());
-        await().until(() -> getHealth(container).getLiveness().isOk());
+        await().until(this::isReady);
+        await().until(this::isAlive);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -251,26 +212,23 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
-    public void testInvalidType() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
+    public void testInvalidPayloadType() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+        usage.consumeIntegers(topic, 4, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        Map<String, Object> config = getConfig();
-        config.put("topic", topic);
-        config.put("value.serializer", IntegerSerializer.class.getName());
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("partition", 0);
-        config.put("max-inflight-messages", 1);
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", "my-channel");
-        config.put("failure-strategy", "ignore");
-        config.put("retries", 0L); // disable retry.
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = getBaseConfig()
+                .with("topic", topic)
+                .with("value.serializer", IntegerSerializer.class.getName())
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("partition", 0)
+                .with("max-inflight-messages", 1)
+                .with("channel-name", "my-channel")
+                .with("failure-strategy", "ignore")
+                .with("retries", 0L); // disable retry.
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(vertx, oc);
 
         await().until(() -> {
@@ -282,7 +240,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         List<Object> acked = new CopyOnWriteArrayList<>();
         List<Object> nacked = new CopyOnWriteArrayList<>();
         Subscriber subscriber = sink.getSink().build();
-        Flowable.range(0, 6)
+        Multi.createFrom().range(0, 6)
                 .map(i -> {
                     if (i == 3 || i == 5) {
                         return Integer.toString(i);
@@ -309,27 +267,24 @@ public class KafkaSinkTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testInvalidTypeWithDefaultInflightMessages() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        Map<String, Object> config = getConfig();
-        config.put("topic", topic);
-        config.put("value.serializer", IntegerSerializer.class.getName());
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("partition", 0);
-        config.put("retries", 0L);
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", "testInvalidTypeWithDefaultInflightMessages");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = getBaseConfig()
+                .with("topic", topic)
+                .with("value.serializer", IntegerSerializer.class.getName())
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("partition", 0)
+                .with("retries", 0L)
+                .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(vertx, oc);
 
         Subscriber subscriber = sink.getSink().build();
-        Flowable.range(0, 5)
+        Multi.createFrom().range(0, 5)
                 .map(i -> {
                     if (i == 3 || i == 5) {
                         return Integer.toString(i);
@@ -348,12 +303,10 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @Test
     public void testABeanProducingMessagesUsingHeadersSentToKafka() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         List<String> keys = new ArrayList<>();
         List<String> headers = new ArrayList<>();
-        String topic = UUID.randomUUID().toString();
         usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 record -> {
@@ -363,7 +316,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForMessageProducingBean(topic), ProducingMessageWithHeaderBean.class);
+        runApplication(getKafkaSinkConfigForMessageProducingBean(), ProducingMessageWithHeaderBean.class);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -371,16 +324,12 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
-    // TODO key and value null, overriden by metadata
-
     @Test
     public void testABeanProducingRecords() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         List<Integer> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
-        String topic = UUID.randomUUID().toString();
         String clientId = UUID.randomUUID().toString();
         usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
                 new IntegerDeserializer(), new StringDeserializer(),
@@ -391,10 +340,10 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecord.class);
+        runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecord.class);
 
-        await().until(() -> getHealth(container).getReadiness().isOk());
-        await().until(() -> getHealth(container).getLiveness().isOk());
+        await().until(this::isReady);
+        await().until(this::isAlive);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -406,12 +355,10 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @Test
     public void testABeanProducingRecordsWithNullKey() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         List<Integer> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
-        String topic = UUID.randomUUID().toString();
         String clientId = UUID.randomUUID().toString();
         usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
                 new IntegerDeserializer(), new StringDeserializer(),
@@ -422,10 +369,10 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoKey.class);
+        runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoKey.class);
 
-        await().until(() -> getHealth(container).getReadiness().isOk());
-        await().until(() -> getHealth(container).getLiveness().isOk());
+        await().until(this::isReady);
+        await().until(this::isAlive);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -437,12 +384,10 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @Test
     public void testABeanProducingRecordsNoValue() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         List<Integer> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
-        String topic = UUID.randomUUID().toString();
         String clientId = UUID.randomUUID().toString();
         usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
                 new IntegerDeserializer(), new StringDeserializer(),
@@ -453,10 +398,10 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValue.class);
+        runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValue.class);
 
-        await().until(() -> getHealth(container).getReadiness().isOk());
-        await().until(() -> getHealth(container).getLiveness().isOk());
+        await().until(this::isReady);
+        await().until(this::isAlive);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -467,12 +412,10 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @Test
     public void testABeanProducingRecordsNoValueNoKey() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         List<Integer> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
-        String topic = UUID.randomUUID().toString();
         String clientId = UUID.randomUUID().toString();
         usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
                 new IntegerDeserializer(), new StringDeserializer(),
@@ -483,10 +426,10 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValueNoKey.class);
+        runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValueNoKey.class);
 
-        await().until(() -> getHealth(container).getReadiness().isOk());
-        await().until(() -> getHealth(container).getLiveness().isOk());
+        await().until(this::isReady);
+        await().until(this::isAlive);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -497,12 +440,10 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @Test
     public void testABeanProducingRecordsAsMessageWithKeyOverridden() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         List<Integer> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
-        String topic = UUID.randomUUID().toString();
         String clientId = UUID.randomUUID().toString();
         usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
                 new IntegerDeserializer(), new StringDeserializer(),
@@ -513,10 +454,10 @@ public class KafkaSinkTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        deploy(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordInMessage.class);
+        runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordInMessage.class);
 
-        await().until(() -> getHealth(container).getReadiness().isOk());
-        await().until(() -> getHealth(container).getLiveness().isOk());
+        await().until(this::isReady);
+        await().until(this::isAlive);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValue(10);
@@ -537,7 +478,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Flowable.range(0, 10);
+            return Multi.createFrom().range(0, 10);
         }
 
     }
@@ -553,7 +494,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Flowable.range(0, 10);
+            return Multi.createFrom().range(0, 10);
         }
 
     }
@@ -569,7 +510,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Flowable.range(0, 10);
+            return Multi.createFrom().range(0, 10);
         }
 
     }
@@ -577,6 +518,7 @@ public class KafkaSinkTest extends KafkaTestBase {
     @ApplicationScoped
     public static class BeanProducingKafkaRecordNoValueNoKey {
 
+        @SuppressWarnings("unused")
         @Incoming("data")
         @Outgoing("output-record")
         public Record<Integer, String> process(int input) {
@@ -585,7 +527,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Flowable.range(0, 10);
+            return Multi.createFrom().range(0, 10);
         }
 
     }
@@ -608,7 +550,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Flowable.range(0, 10);
+            return Multi.createFrom().range(0, 10);
         }
 
     }

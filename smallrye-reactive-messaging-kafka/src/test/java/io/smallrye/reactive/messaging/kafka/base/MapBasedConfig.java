@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.base;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -9,30 +9,43 @@ import java.util.*;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
+import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+
 /**
  * An implementation of {@link Config} based on a simple {@link Map}.
  * This class is just use to mock real configuration, so should only be used for tests.
  * <p>
  * Note that this implementation does not do any conversion, so you must pass the expected object instances.
  */
-public class MapBasedConfig implements Config {
-    private final Map<String, Object> map;
+public class MapBasedConfig extends HashMap<String, Object> implements Config, Map<String, Object> {
 
     public MapBasedConfig(Map<String, Object> map) {
-        this.map = map;
+        super(map);
     }
 
     public MapBasedConfig() {
-        this.map = new HashMap<>();
+        super();
     }
 
-    public MapBasedConfig put(String k, Object v) {
-        this.map.put(k, v);
+    public static Builder builder() {
+        return builder("");
+    }
+
+    public static Builder builder(String prefix) {
+        return builder(prefix, false);
+    }
+
+    public static Builder builder(String prefix, boolean tracing) {
+        return new MapBasedConfig.Builder(prefix, tracing);
+    }
+
+    public MapBasedConfig with(String k, Object v) {
+        super.put(k, v);
         return this;
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static void clear() {
+    public static void cleanup() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {
             out.delete();
@@ -47,13 +60,13 @@ public class MapBasedConfig implements Config {
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         @SuppressWarnings("unchecked")
-        T value = (T) map.get(propertyName);
+        T value = (T) super.get(propertyName);
         return Optional.ofNullable(value);
     }
 
     @Override
     public Iterable<String> getPropertyNames() {
-        return map.keySet();
+        return super.keySet();
     }
 
     @Override
@@ -70,7 +83,7 @@ public class MapBasedConfig implements Config {
         out.getParentFile().mkdirs();
 
         Properties properties = new Properties();
-        map.forEach((key, value) -> properties.setProperty(key, value.toString()));
+        super.forEach((key, value) -> properties.setProperty(key, value.toString()));
         try (FileOutputStream fos = new FileOutputStream(out)) {
             properties.store(fos, "file generated for testing purpose");
             fos.flush();
@@ -79,36 +92,64 @@ public class MapBasedConfig implements Config {
         }
     }
 
-    public static class ConfigBuilder {
+    public static class Builder {
         private final String prefix;
         private final Boolean withTracing;
         private final Map<String, Object> configValues = new HashMap<>();
 
-        public ConfigBuilder(String prefix) {
-            this(prefix, false);
-        }
-
-        public ConfigBuilder(String prefix, Boolean withTracing) {
+        private Builder(String prefix, Boolean withTracing) {
             this.prefix = prefix;
             this.withTracing = withTracing;
         }
 
-        public ConfigBuilder put(String key, Object value) {
+        public Builder put(String key, Object value) {
             configValues.put(key, value);
             return this;
         }
 
-        private String getFullKey(String shortKey) {
-            return prefix + "." + shortKey;
+        public Builder put(Object... keyOrValue) {
+            String k = null;
+            for (Object o : keyOrValue) {
+                if (k == null) {
+                    if (o instanceof String) {
+                        k = o.toString();
+                    } else {
+                        throw new IllegalArgumentException("Expected " + o + " to be a String");
+                    }
+                } else {
+                    put(k, o);
+                    k = null;
+                }
+            }
+            if (k != null) {
+                throw new IllegalArgumentException("Invalid number of parameters, last key " + k + " has no value");
+            }
+            return this;
         }
 
-        public Map<String, Object> build() {
-            Map<String, Object> config = new HashMap<>();
-            if (!withTracing && !configValues.containsKey("tracing-enabled")) {
-                config.put(getFullKey("tracing-enabled"), false);
+        private String getFullKey(String shortKey) {
+            if (prefix.length() > 0) {
+                return prefix + "." + shortKey;
+            } else {
+                return shortKey;
             }
-            configValues.forEach((key, value) -> config.put(getFullKey(key), value));
-            return config;
+        }
+
+        public MapBasedConfig build() {
+            Map<String, Object> inner = new HashMap<>();
+
+            if (!configValues.containsKey("connector")) {
+                inner.put(getFullKey("connector"), KafkaConnector.CONNECTOR_NAME);
+            }
+
+            if (!withTracing && !configValues.containsKey("tracing-enabled")) {
+                inner.put(getFullKey("tracing-enabled"), false);
+            }
+            if (!configValues.containsKey("bootstrap.servers")) {
+                inner.put(getFullKey("bootstrap.servers"), KafkaTestBase.kafka.getBootstrapServers());
+            }
+            configValues.forEach((key, value) -> inner.put(getFullKey(key), value));
+            return new MapBasedConfig(inner);
         }
     }
 }

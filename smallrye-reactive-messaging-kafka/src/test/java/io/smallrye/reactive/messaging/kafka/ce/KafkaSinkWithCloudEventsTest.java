@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.ce;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.net.URI;
@@ -9,8 +10,6 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.BeanManager;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
@@ -19,49 +18,32 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.vertx.core.json.JsonObject;
 
 public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEvents() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -103,15 +85,12 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithComplexPayload() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -152,15 +131,12 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithTimestampAndSubject() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -203,14 +179,12 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsMissingMandatoryAttribute() {
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -235,32 +209,27 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         });
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testSendingStructuredCloudEventsWithWrongSerializer() {
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", DoubleSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
-        new KafkaSink(vertx, oc);
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
+
+        assertThatThrownBy(() -> new KafkaSink(vertx, oc)).isInstanceOf(IllegalStateException.class);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithKey() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -299,17 +268,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithConfiguredTypeAndSource() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -344,17 +310,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithConfiguredTypeAndSourceAndNoCloudEventMetadata() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -387,15 +350,12 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithExtensions() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -436,14 +396,11 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEvents() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -479,14 +436,11 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithContentType() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -526,14 +480,11 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithKey() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -571,17 +522,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithConfiguredTypeAndSource() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("key", "my-key");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -615,17 +563,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithConfiguredTypeAndSourceButNoMetadata() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("key", "my-key");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -657,13 +602,11 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsMissingMandatoryAttribute() {
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -691,16 +634,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testWithCloudEventDisabled() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("key", "my-key");
         config.put("cloud-events", false);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -730,14 +670,11 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithExtensions() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         KafkaSink sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
@@ -776,16 +713,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingStructuredCloudEventFromBean() {
-        String topic = UUID.randomUUID().toString();
-
-        KafkaUsage usage = new KafkaUsage();
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
         usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
                 null, Collections.singletonList(topic), records::add);
-
-        deploy(getConfigToSendStructuredCloudEvents(topic));
+        addBeans(Source.class, Processing.class, Sender.class);
+        runApplication(getConfigToSendStructuredCloudEvents());
 
         await().until(() -> records.size() >= 10);
 
@@ -805,16 +739,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingBinaryCloudEventFromBean() {
-        String topic = UUID.randomUUID().toString();
-
-        KafkaUsage usage = new KafkaUsage();
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
         usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
                 null, Collections.singletonList(topic), records::add);
-
-        deploy(getConfigToSendBinaryCloudEvents(topic));
+        addBeans(Source.class, Processing.class, Sender.class);
+        runApplication(getConfigToSendBinaryCloudEvents());
 
         await().until(() -> records.size() >= 10);
 
@@ -833,16 +764,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingBinaryCloudEventFromBeanWithDefault() {
-        String topic = UUID.randomUUID().toString();
-
-        KafkaUsage usage = new KafkaUsage();
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
         usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
                 null, Collections.singletonList(topic), records::add);
 
-        deploySource(getConfigToSendBinaryCloudEventsWithDefault(topic));
+        addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
+        runApplication(getConfigToSendBinaryCloudEventsWithDefault());
 
         await().until(() -> records.size() >= 10);
 
@@ -863,16 +792,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingStructuredCloudEventFromBeanWithDefault() {
-        String topic = UUID.randomUUID().toString();
-
-        KafkaUsage usage = new KafkaUsage();
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
         usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
                 null, Collections.singletonList(topic), records::add);
 
-        deploySource(getConfigToSendStructuredCloudEventsWithDefault(topic));
+        addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
+        runApplication(getConfigToSendStructuredCloudEventsWithDefault());
 
         await().until(() -> records.size() >= 10);
 
@@ -892,92 +819,52 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         });
     }
 
-    private void deploy(MapBasedConfig config) {
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(Source.class);
-        weld.addBeanClass(Processing.class);
-        weld.addBeanClass(Sender.class);
-        weld.addBeanClass(ConsumptionConsumerRebalanceListener.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
-    }
-
-    private void deploySource(MapBasedConfig config) {
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(Source.class);
-        weld.addBeanClass(ConsumptionConsumerRebalanceListener.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
-    }
-
-    private MapBasedConfig getConfigToSendStructuredCloudEvents(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+    private MapBasedConfig getConfigToSendStructuredCloudEvents() {
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("cloud-events-mode", "structured");
         builder.put("topic", topic);
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
-    private MapBasedConfig getConfigToSendBinaryCloudEvents(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+    private MapBasedConfig getConfigToSendBinaryCloudEvents() {
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", topic);
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
-    private MapBasedConfig getConfigToSendBinaryCloudEventsWithDefault(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.source");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+    private MapBasedConfig getConfigToSendBinaryCloudEventsWithDefault() {
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.source");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", topic);
         builder.put("cloud-events-type", "greetings");
         builder.put("cloud-events-source", "source://me");
         builder.put("cloud-events-subject", "test");
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
-    private MapBasedConfig getConfigToSendStructuredCloudEventsWithDefault(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.source");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+    private MapBasedConfig getConfigToSendStructuredCloudEventsWithDefault() {
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.source");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", topic);
         builder.put("cloud-events-type", "greetings");
         builder.put("cloud-events-source", "source://me");
         builder.put("cloud-events-subject", "test");
         builder.put("cloud-events-mode", "structured");
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
-    private Map<String, Object> newCommonConfig() {
+    private MapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
-        Map<String, Object> config = new HashMap<>();
-        config.put("bootstrap.servers", "localhost:9092");
+        MapBasedConfig config = new MapBasedConfig();
+        config.put("bootstrap.servers", kafka.getBootstrapServers());
         config.put("group.id", randomId);
         config.put("key.serializer", StringSerializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
         config.put("tracing-enabled", false);
         return config;
-    }
-
-    private BeanManager getBeanManager() {
-        if (container == null) {
-            Weld weld = baseWeld();
-            addConfig(new MapBasedConfig(new HashMap<>()));
-            weld.disableDiscovery();
-            container = weld.initialize();
-        }
-        return container.getBeanManager();
-    }
-
-    private Instance<KafkaConsumerRebalanceListener> getConsumerRebalanceListeners() {
-        return getBeanManager()
-                .createInstance()
-                .select(KafkaConsumerRebalanceListener.class);
     }
 
     @ApplicationScoped

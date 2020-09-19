@@ -1,15 +1,11 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,53 +13,32 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
-import javax.enterprise.inject.spi.BeanManager;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.jboss.weld.exceptions.UnsatisfiedResolutionException;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.kafka.client.common.TopicPartition;
 
 public class KafkaSourceTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @SuppressWarnings("unchecked")
     @Test
     public void testSource() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
-        config.put("topic", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName());
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -82,17 +57,12 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSourceWithPartitions() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
-        config.put("topic", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", topic);
-        config.put("partitions", 4);
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("partitions", 4);
 
-        kafka.createTopic(topic, 3, 1);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        createTopic(topic, 3);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -114,13 +84,9 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("rawtypes")
     @Test
     public void testSourceWithChannelName() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
-        config.put("channel-name", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName());
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -140,21 +106,16 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcast() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
-        config.put("topic", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("broadcast", true);
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", topic);
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("broadcast", true);
         KafkaConnector connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
         connector.init();
         PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
-                .getPublisherBuilder(new MapBasedConfig(config));
+                .getPublisherBuilder(config);
 
         List<KafkaRecord> messages1 = new ArrayList<>();
         List<KafkaRecord> messages2 = new ArrayList<>();
@@ -177,23 +138,19 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcastWithPartitions() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        kafka.createTopic(topic, 2, 1);
-        Map<String, Object> config = newCommonConfig();
-        config.put("topic", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("broadcast", true);
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", topic);
-        config.put("partitions", 2);
+        createTopic(topic, 2);
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("broadcast", true)
+                .with("partitions", 2);
+
         KafkaConnector connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
         connector.init();
         PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
-                .getPublisherBuilder(new MapBasedConfig(config));
+                .getPublisherBuilder(config);
 
         List<KafkaRecord> messages1 = new ArrayList<>();
         List<KafkaRecord> messages2 = new ArrayList<>();
@@ -215,18 +172,13 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @SuppressWarnings({ "rawtypes" })
     @Test
-    public void testRetry() throws IOException, InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
-        config.put("topic", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("retry", true);
-        config.put("retry-attempts", 100);
-        config.put("retry-max-wait", 30);
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+    public void testRetry() {
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("retry", true)
+                .with("retry-attempts", 100)
+                .with("retry-max-wait", 30);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
         List<KafkaRecord> messages1 = new ArrayList<>();
@@ -247,21 +199,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
     }
 
-    private Map<String, Object> newCommonConfig() {
-        String randomId = UUID.randomUUID().toString();
-        Map<String, Object> config = new HashMap<>();
-        config.put("bootstrap.servers", "localhost:9092");
-        config.put("group.id", randomId);
-        config.put("key.deserializer", StringDeserializer.class.getName());
-        config.put("enable.auto.commit", "false");
-        config.put("auto.offset.reset", "earliest");
-        config.put("tracing-enabled", false);
-        return config;
-    }
-
     private MapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.data");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
         if (group != null) {
             builder.put("group.id", group);
         }
@@ -277,12 +216,11 @@ public class KafkaSourceTest extends KafkaTestBase {
             builder.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
         }
 
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     private MapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.data");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("group.id", "my-group-starting-on-fifth-" + suffix);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
@@ -292,13 +230,12 @@ public class KafkaSourceTest extends KafkaTestBase {
             builder.put("max.poll.interval.ms", "2000");
         }
 
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     @Test
     public void testABeanConsumingTheKafkaMessages() {
-        ConsumptionBean bean = deploy(myKafkaSourceConfig(0, null, "my-group"));
-        KafkaUsage usage = new KafkaUsage();
+        ConsumptionBean bean = run(myKafkaSourceConfig(0, null, "my-group"));
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
@@ -315,8 +252,8 @@ public class KafkaSourceTest extends KafkaTestBase {
             assertThat(m.getPartition()).isGreaterThan(-1);
         });
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        HealthReport readiness = getHealth(container).getReadiness();
+        HealthReport liveness = getHealth().getLiveness();
+        HealthReport readiness = getHealth().getReadiness();
         assertThat(liveness.isOk()).isTrue();
         assertThat(readiness.isOk()).isTrue();
         assertThat(liveness.getChannels()).hasSize(1);
@@ -327,9 +264,9 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
-        kafka.createTopic("data-2", 2, 1);
-        ConsumptionBean bean = deploy(myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
-        KafkaUsage usage = new KafkaUsage();
+        createTopic("data-2", 2);
+        ConsumptionBean bean = run(
+                myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
@@ -355,19 +292,14 @@ public class KafkaSourceTest extends KafkaTestBase {
         }
     }
 
-    @Test(expected = UnsatisfiedResolutionException.class)
+    @Test
     public void testABeanConsumingWithMissingRebalanceListenerConfiguredByName() throws Throwable {
-        try {
-            deploy(myKafkaSourceConfig(0, "not exists", "my-group"));
-        } catch (DeploymentException ex) {
-            throw ex.getCause();
-        }
-        fail("Should've failed to resolve 'not exists' consumer rebalance listener");
+        assertThatThrownBy(() -> run(myKafkaSourceConfig(0, "not exists", "my-group"))).isInstanceOf(DeploymentException.class)
+                .hasCauseInstanceOf(UnsatisfiedResolutionException.class);
     }
 
     @Test
     public void testABeanConsumingTheKafkaMessagesStartingOnFifthOffsetFromLatest() {
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
         new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
@@ -379,7 +311,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         /*
          * Will use StartFromFifthOffsetFromLatestConsumerRebalanceListener
          */
-        ConsumptionBeanWithoutAck bean = deployWithoutAck(
+        ConsumptionBeanWithoutAck bean = runWithoutAck(
                 myKafkaSourceConfigWithoutAck("happy-path", false));
         List<Integer> list = bean.getResults();
 
@@ -392,11 +324,11 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesStartingOnFifthOffsetFromLatestThatFailsOnTheFirstAttempt() {
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
         new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
-                () -> new ProducerRecord<>("data-starting-on-fifth-fail-on-first-attempt", counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>("data-starting-on-fifth-fail-on-first-attempt", counter.getAndIncrement())))
+                        .start();
 
         await()
                 .atMost(2, TimeUnit.MINUTES)
@@ -404,7 +336,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         /*
          * Will use StartFromFifthOffsetFromLatestConsumerRebalanceListener
          */
-        ConsumptionBeanWithoutAck bean = deployWithoutAck(
+        ConsumptionBeanWithoutAck bean = runWithoutAck(
                 myKafkaSourceConfigWithoutAck("fail-on-first-attempt", false));
         List<Integer> list = bean.getResults();
 
@@ -415,18 +347,19 @@ public class KafkaSourceTest extends KafkaTestBase {
         assertThat(list).containsExactly(6, 7, 8, 9, 10);
 
         assertThat(
-                getStartFromFifthOffsetFromLatestConsumerRebalanceListener("my-group-starting-on-fifth-fail-on-first-attempt")
-                        .getRebalanceCount()).isEqualTo(1);
+                getStartFromFifthOffsetFromLatestConsumerRebalanceListener(
+                        "my-group-starting-on-fifth-fail-on-first-attempt")
+                                .getRebalanceCount()).isEqualTo(1);
     }
 
     @Test
     public void testABeanConsumingTheKafkaMessagesStartingOnFifthOffsetFromLatestThatFailsUntilSecondRebalance() {
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
         new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
-                () -> new ProducerRecord<>("data-starting-on-fifth-fail-until-second-rebalance", counter.getAndIncrement())))
-                        .start();
+                () -> new ProducerRecord<>("data-starting-on-fifth-fail-until-second-rebalance",
+                        counter.getAndIncrement())))
+                                .start();
 
         await()
                 .atMost(2, TimeUnit.MINUTES)
@@ -434,7 +367,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         /*
          * Will use StartFromFifthOffsetFromLatestConsumerRebalanceListener
          */
-        ConsumptionBeanWithoutAck bean = deployWithoutAck(
+        ConsumptionBeanWithoutAck bean = runWithoutAck(
                 myKafkaSourceConfigWithoutAck("fail-until-second-rebalance", true));
         List<Integer> list = bean.getResults();
 
@@ -451,14 +384,9 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testInvalidIncomingType() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
-        config.put("topic", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
-        config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName());
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -486,8 +414,8 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testABeanConsumingTheKafkaMessagesWithRawMessage() {
-        ConsumptionBeanUsingRawMessage bean = deployRaw(myKafkaSourceConfig(0, null, "my-group"));
-        KafkaUsage usage = new KafkaUsage();
+        ConsumptionBeanUsingRawMessage bean = runApplication(myKafkaSourceConfig(0, null, "my-group"),
+                ConsumptionBeanUsingRawMessage.class);
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
@@ -507,8 +435,8 @@ public class KafkaSourceTest extends KafkaTestBase {
             assertThat(metadata.getOffset()).isGreaterThan(-1);
         });
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        HealthReport readiness = getHealth(container).getReadiness();
+        HealthReport liveness = getHealth().getLiveness();
+        HealthReport readiness = getHealth().getReadiness();
         assertThat(liveness.isOk()).isTrue();
         assertThat(readiness.isOk()).isTrue();
         assertThat(liveness.getChannels()).hasSize(1);
@@ -520,16 +448,11 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSourceWithEmptyOptionalConfiguration() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
-        config.put("topic", topic);
-        config.put("value.deserializer", IntegerDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
-        config.put("sasl.jaas.config", ""); //optional configuration
-        config.put("sasl.mechanism", ""); //optional configuration
-        config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("sasl.jaas.config", "") //optional configuration
+                .with("sasl.mechanism", ""); //optional configuration
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -543,22 +466,6 @@ public class KafkaSourceTest extends KafkaTestBase {
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-    }
-
-    private BeanManager getBeanManager() {
-        if (container == null) {
-            Weld weld = baseWeld();
-            addConfig(new MapBasedConfig(new HashMap<>()));
-            weld.disableDiscovery();
-            container = weld.initialize();
-        }
-        return container.getBeanManager();
-    }
-
-    private Instance<KafkaConsumerRebalanceListener> getConsumerRebalanceListeners() {
-        return getBeanManager()
-                .createInstance()
-                .select(KafkaConsumerRebalanceListener.class);
     }
 
     private ConsumptionConsumerRebalanceListener getConsumptionConsumerRebalanceListener() {
@@ -580,36 +487,19 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     }
 
-    private ConsumptionBean deploy(MapBasedConfig config) {
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(ConsumptionBean.class);
-        weld.addBeanClass(ConsumptionConsumerRebalanceListener.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
-        return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+    private ConsumptionBean run(MapBasedConfig config) {
+        addBeans(ConsumptionBean.class, ConsumptionConsumerRebalanceListener.class);
+        runApplication(config);
+        return get(ConsumptionBean.class);
     }
 
-    private ConsumptionBeanWithoutAck deployWithoutAck(MapBasedConfig config) {
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(ConsumptionBeanWithoutAck.class);
-        weld.addBeanClass(ConsumptionConsumerRebalanceListener.class);
-        weld.addBeanClass(StartFromFifthOffsetFromLatestConsumerRebalanceListener.class);
-        weld.addBeanClass(StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListener.class);
-        weld.addBeanClass(StartFromFifthOffsetFromLatestButFailUntilSecondRebalanceConsumerRebalanceListener.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
-        return container.getBeanManager().createInstance().select(ConsumptionBeanWithoutAck.class).get();
-    }
-
-    private ConsumptionBeanUsingRawMessage deployRaw(MapBasedConfig config) {
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(ConsumptionBeanUsingRawMessage.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
-        return container.getBeanManager().createInstance().select(ConsumptionBeanUsingRawMessage.class).get();
+    private ConsumptionBeanWithoutAck runWithoutAck(MapBasedConfig config) {
+        addBeans(ConsumptionBeanWithoutAck.class, ConsumptionConsumerRebalanceListener.class,
+                StartFromFifthOffsetFromLatestConsumerRebalanceListener.class,
+                StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListener.class,
+                StartFromFifthOffsetFromLatestButFailUntilSecondRebalanceConsumerRebalanceListener.class);
+        runApplication(config);
+        return get(ConsumptionBeanWithoutAck.class);
     }
 
 }
