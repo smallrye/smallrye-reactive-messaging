@@ -86,9 +86,14 @@ public class KafkaSource<K, V> {
             kafkaConfiguration.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, config.getKeyDeserializer());
         }
 
+        if (!kafkaConfiguration.containsKey(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG)) {
+            log.disableAutoCommit(config.getChannel());
+            kafkaConfiguration.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        }
+
         String commitStrategy = config
                 .getCommitStrategy()
-                .orElse(Boolean.parseBoolean(kafkaConfiguration.getOrDefault(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true"))
+                .orElse(Boolean.parseBoolean(kafkaConfiguration.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG))
                         ? KafkaCommitHandler.Strategy.IGNORE.name()
                         : KafkaCommitHandler.Strategy.LATEST.name());
 

@@ -24,7 +24,7 @@ mp.messaging.incoming.prices.broadcast=true     # <4>
 NOTE: You don't need to set the Kafka topic. By default, it uses the channel name (`prices`). You can configure the `topic` attribute to override it.
 
 Then, your application receives `Message<Double>`.
-You can consumes the payload directly:
+You can consume the payload directly:
 
 [source, java]
 ----
@@ -62,12 +62,17 @@ include::example$inbound/KafkaMetadataExample.java[tags=code]
 
 === Acknowledgement
 
+
 If a message produced from a Kafka record is _acked_, a commit strategy is applied.
 The Kafka connector supports 3 strategies:
 
-* `latest` - Will commit to the latest offset received by the Kafka consumer. This offset may be greater than the currently _acked_ message. Is the default handler when `enable.auto.commit` is `false`. This strategy does not guarantee _at-least-once delivery_.
+* `latest` - Will commit to the latest offset received by the Kafka consumer. This offset may be greater than the currently _acked_ message. This strategy does not guarantee _at-least-once delivery_.
 * `ignore` - Performs no commit. Is the default when `enable.auto.commit` is `true`. This strategy provides _at-least-once delivery_ if the channel processes the message without performing any asynchronous operations and when `enable.auto.commit` is `true`.
-* `throttled` -  Will keep track of received messages and commit to the next offset after the latest _acked_ message in sequence. Will only commit every 5 seconds. This strategy mimics the behavior of the kafka consumer when `enable.auto.commit` is `true`. If too many received messages are not _acked_ then the `KafkaSource` will be marked as unhealthy. _Too many_ is defined as a power of two value greater than or equal to `max.poll.records` times 2 (default is 1024). This strategy guarantees _at-least-once delivery_ even if the channel performs asynchronous processing.
+* `throttled` -  Will keep track of received messages and commit to the next offset after the latest _acked_ message in sequence. Will only commit every 5 seconds. If too many received messages are not _acked_ then the `KafkaSource` will be marked as unhealthy. _Too many_ is defined as a power of two value greater than or equal to `max.poll.records` times 2 (default is 1024). This strategy guarantees _at-least-once delivery_ even if the channel performs asynchronous processing.
+
+IMPORTANT: The Kafka connector disables the Kafka _auto commit_ is not explicitly enabled.
+This behavior differs from the traditional Kafka consumer.
+
 
 === Failure Management
 

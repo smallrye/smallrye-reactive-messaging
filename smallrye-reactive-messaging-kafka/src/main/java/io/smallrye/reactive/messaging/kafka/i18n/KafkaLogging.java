@@ -159,4 +159,8 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18233, value = "Invalid value serializer to write a structured Cloud Event. Found %d, expected the org.apache.kafka.common.serialization.StringSerializer")
     void invalidValueSerializerForStructuredCloudEvent(String serializer);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18234, value = "Auto-commit disabled for channel %s")
+    void disableAutoCommit(String channel);
+
 }
