@@ -46,12 +46,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.github.cbismuth</groupId>
-      <artifactId>junit-repeat-rule</artifactId>
-      <version>1.1.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
       <scope>test</scope>
