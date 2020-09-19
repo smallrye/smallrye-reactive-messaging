@@ -140,11 +140,11 @@ public interface KafkaLogging extends BasicLogger {
     void failureReported(Set<String> topics, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18229, value = "Consumed topics for channel '%s': %s")
+    @Message(id = 18229, value = "Configured topics for channel '%s': %s")
     void configuredTopics(String channel, Set<String> topics);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18230, value = "Consumed topics matching pattern for channel '%s': %s")
+    @Message(id = 18230, value = "Configured topics matching pattern for channel '%s': %s")
     void configuredPattern(String channel, String pattern);
 
     @LogMessage(level = Logger.Level.WARN)
