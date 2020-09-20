@@ -21,6 +21,8 @@
 
     <mainClass>acme.Main</mainClass>
     <mutiny.version>0.7.0</mutiny.version>
+
+    <sonar.skip>true</sonar.skip>
   </properties>
 
   <dependencies>

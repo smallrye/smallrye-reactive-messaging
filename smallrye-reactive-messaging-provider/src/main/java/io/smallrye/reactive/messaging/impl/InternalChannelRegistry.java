@@ -95,12 +95,10 @@ public class InternalChannelRegistry implements ChannelRegistry {
 
     @Override
     public synchronized Set<String> getEmitterNames() {
-        return new HashSet<String>() {
-            {
-                addAll(emitters.keySet());
-                addAll(mutinyEmitters.keySet());
-            }
-        };
+        Set<String> set = new HashSet<>();
+        set.addAll(emitters.keySet());
+        set.addAll(mutinyEmitters.keySet());
+        return set;
     }
 
 }

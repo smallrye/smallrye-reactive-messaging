@@ -11,9 +11,9 @@
   </parent>
 
   <artifactId>aws-sns-quickstart</artifactId>
-  
+
   <name>SmallRye Reactive Messaging : Quickstart :: AWS SNS</name>
-  
+
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -21,6 +21,8 @@
     <mutiny.version>0.7.0</mutiny.version>
 
     <mainClass>awssns.Main</mainClass>
+
+    <sonar.skip>true</sonar.skip>
   </properties>
 
   <dependencies>

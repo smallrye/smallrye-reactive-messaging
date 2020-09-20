@@ -11,7 +11,7 @@
 
   <artifactId>cloud-events-demo</artifactId>
 
-  <name>SmallRye Reactive Messaging : Quickstart :: Cloud Events</name>      
+  <name>SmallRye Reactive Messaging : Quickstart :: Cloud Events</name>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -20,6 +20,8 @@
     <mutiny.version>0.7.0</mutiny.version>
 
     <mainClass>io.smallrye.reactive.messaging.example.eventclouds.Main</mainClass>
+
+    <sonar.skip>true</sonar.skip>
   </properties>
 
   <dependencies>

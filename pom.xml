@@ -82,10 +82,10 @@
 
     <opentelemetry.version>0.8.0</opentelemetry.version>
 
-    <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-
     <smallrye-reactive-converter-api.version>1.2.0</smallrye-reactive-converter-api.version>
     <smallrye-vertx-mutiny-clients.version>1.2.0</smallrye-vertx-mutiny-clients.version>
+
+    <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
   </properties>
 
   <modules>
@@ -340,6 +340,35 @@
           <artifactId>maven-resources-plugin</artifactId>
           <version>3.2.0</version>
         </plugin>
+
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>prepare-agent</id>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+              <phase>generate-test-resources</phase>
+              <configuration>
+                <destFile>${project.build.directory}/jacoco.exec</destFile>
+                <propertyName>jacocoArgLine</propertyName>
+                <append>true</append>
+              </configuration>
+            </execution>
+            <execution>
+              <id>generate-report</id>
+              <goals>
+                <goal>report</goal>
+              </goals>
+              <phase>verify</phase>
+              <configuration>
+                <outputDirectory>${project.build.directory}</outputDirectory>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -419,6 +448,22 @@
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>coverage</id>
+      <properties>
+        <argLine>@{jacocoArgLine}</argLine>
+      </properties>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
           </plugin>
         </plugins>
       </build>

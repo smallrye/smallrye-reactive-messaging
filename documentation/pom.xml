@@ -12,9 +12,9 @@
 
   <artifactId>documentation</artifactId>
   <packaging>pom</packaging>
-  
-  <name>SmallRye Reactive Messaging : Documentation</name>  
-    
+
+  <name>SmallRye Reactive Messaging : Documentation</name>
+
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -22,6 +22,7 @@
     <output.antora.directory>${project.build.directory}/antora</output.antora.directory>
     <antora.file>src/main/doc/antora.yml</antora.file>
 
+    <sonar.skip>true</sonar.skip>
   </properties>
 
   <dependencies>
