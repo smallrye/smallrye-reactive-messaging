@@ -34,7 +34,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         this.commitHandler = commitHandler;
         this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record);
 
-        Metadata metadata = null;
+        Metadata metadata = Metadata.of(this.kafkaMetadata);
         T payload = null;
         boolean payloadSet = false;
         if (cloudEventEnabled) {
@@ -42,23 +42,18 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             KafkaCloudEventHelper.CloudEventMode mode = KafkaCloudEventHelper.getCloudEventMode(record);
             switch (mode) {
                 case NOT_A_CLOUD_EVENT:
-                    metadata = Metadata.of(this.kafkaMetadata);
                     break;
                 case STRUCTURED:
                     CloudEventMetadata<T> event = KafkaCloudEventHelper
                             .createFromStructuredCloudEvent(record);
-                    metadata = Metadata.of(this.kafkaMetadata,
-                            event);
+                    metadata = metadata.with(event);
                     payloadSet = true;
                     payload = event.getData();
                     break;
                 case BINARY:
-                    metadata = Metadata
-                            .of(this.kafkaMetadata, KafkaCloudEventHelper.createFromBinaryCloudEvent(record));
+                    metadata = metadata.with(KafkaCloudEventHelper.createFromBinaryCloudEvent(record));
                     break;
             }
-        } else {
-            metadata = Metadata.of(this.kafkaMetadata);
         }
 
         if (tracingEnabled) {

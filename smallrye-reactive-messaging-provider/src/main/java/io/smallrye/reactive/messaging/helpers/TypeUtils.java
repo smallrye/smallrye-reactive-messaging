@@ -182,6 +182,10 @@ public class TypeUtils {
         final Map<TypeVariable<?>, Type> toTypeVarAssigns = getTypeArguments(toParameterizedType,
                 toClass, typeVarAssigns);
 
+        if (toTypeVarAssigns == null) {
+            return false;
+        }
+
         // now to check each type argument
         for (final TypeVariable<?> var : toTypeVarAssigns.keySet()) {
             final Type toTypeArg = unrollVariableAssignments(var, toTypeVarAssigns);
@@ -195,7 +199,7 @@ public class TypeUtils {
             // the bounds of the wildcard type, or be an exact match to the
             // parameters of the target type.
             if (fromTypeArg != null
-                    && !toTypeArg.equals(fromTypeArg)
+                    && !fromTypeArg.equals(toTypeArg)
                     && !(toTypeArg instanceof WildcardType && isAssignable(fromTypeArg, toTypeArg,
                             typeVarAssigns))) {
                 return false;
@@ -582,6 +586,10 @@ public class TypeUtils {
             return null;
         }
 
+        if (cls == null) {
+            throw new IllegalArgumentException("Invalid parameterized type: " + parameterizedType);
+        }
+
         final Type ownerType = parameterizedType.getOwnerType();
         Map<TypeVariable<?>, Type> typeVarAssigns;
 
@@ -629,6 +637,11 @@ public class TypeUtils {
      */
     private static Map<TypeVariable<?>, Type> getTypeArguments(Class<?> cls, final Class<?> toClass,
             final Map<TypeVariable<?>, Type> subtypeVarAssigns) {
+
+        if (toClass == null) {
+            throw new IllegalArgumentException("`toClass` must not be `null`");
+        }
+
         // make sure they're assignable
         if (!isAssignable(cls, toClass)) {
             return null;

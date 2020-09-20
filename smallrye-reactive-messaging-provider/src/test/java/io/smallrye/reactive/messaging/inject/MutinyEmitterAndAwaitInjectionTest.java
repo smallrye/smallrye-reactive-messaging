@@ -202,11 +202,11 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         new Thread(() -> emitter.sendAndAwait("b")).start();
         new Thread(() -> emitter.sendAndAwait("c")).start();
         await().until(() -> list.size() == 3);
-        assertThat(list).containsExactly("a", "b", "c");
+        assertThat(list).containsExactlyInAnyOrder("a", "b", "c");
         new Thread(() -> emitter.sendAndAwait("d")).start();
         await().until(() -> list.size() == 4);
         emitter.complete();
-        assertThat(list).containsExactly("a", "b", "c", "d");
+        assertThat(list).containsExactlyInAnyOrder("a", "b", "c", "d");
         assertThat(completed).isTrue();
     }
 

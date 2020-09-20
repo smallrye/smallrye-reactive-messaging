@@ -72,7 +72,7 @@ public class JmsConnectorTest extends JmsTestBase {
             assertThat(metadata.getDeliveryMode()).isEqualTo(DeliveryMode.PERSISTENT);
             assertThat(metadata.getCorrelationId()).isNull();
             assertThat(metadata.getDestination()).isInstanceOf(Queue.class);
-            assertThat(metadata.getDeliveryTime()).isNotNull();
+            assertThat(metadata.getDeliveryTime()).isNotNegative();
             assertThat(metadata.getPriority()).isEqualTo(4);
             assertThat(metadata.getMessageId()).isNotNull();
             assertThat(metadata.getTimestamp()).isPositive();
