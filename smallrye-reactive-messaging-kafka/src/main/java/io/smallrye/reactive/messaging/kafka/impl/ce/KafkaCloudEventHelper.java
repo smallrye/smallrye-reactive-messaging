@@ -237,8 +237,9 @@ public class KafkaCloudEventHelper {
         schema.ifPresent(
                 s -> headers.add(new RecordHeader(KAFKA_HEADER_FOR_SCHEMA, s.toString().getBytes(StandardCharsets.UTF_8))));
 
-        if (ceMetadata.getTimeStamp().isPresent()) {
-            ZonedDateTime time = ceMetadata.getTimeStamp().get();
+        Optional<ZonedDateTime> ts = ceMetadata.getTimeStamp();
+        if (ts.isPresent()) {
+            ZonedDateTime time = ts.get();
             headers.add(new RecordHeader(KAFKA_HEADER_FOR_TIME,
                     RFC3339_DATE_FORMAT.format(time).getBytes(StandardCharsets.UTF_8)));
         } else if (timestamp != null) {
