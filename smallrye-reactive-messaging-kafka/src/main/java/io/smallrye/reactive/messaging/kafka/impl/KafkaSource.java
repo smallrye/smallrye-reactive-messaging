@@ -112,7 +112,7 @@ public class KafkaSource<K, V> {
         kafkaConfiguration.remove("tracing-enabled");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
-        commitHandler = createCommitHandler(kafkaConsumer, kafkaConfiguration, commitStrategy);
+        commitHandler = createCommitHandler(kafkaConsumer, group, config, commitStrategy);
 
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
         this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
@@ -158,6 +158,9 @@ public class KafkaSource<K, V> {
             kafkaConsumer.partitionsAssignedHandler(set -> {
                 final long currentDemand = kafkaConsumer.demand();
                 kafkaConsumer.pause();
+
+                commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set);
+
                 log.executingConsumerAssignedRebalanceListener(group);
                 listener.onPartitionsAssigned(kafkaConsumer, set)
                         .onFailure().invoke(t -> log.unableToExecuteConsumerAssignedRebalanceListener(group, t))
@@ -167,12 +170,10 @@ public class KafkaSource<K, V> {
                         .with(
                                 a -> {
                                     log.executedConsumerAssignedRebalanceListener(group);
-                                    commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set);
                                     kafkaConsumer.fetch(currentDemand);
                                 },
                                 t -> {
                                     log.reEnablingConsumerforGroup(group);
-                                    commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set);
                                     kafkaConsumer.fetch(currentDemand);
                                 });
             });
@@ -333,7 +334,8 @@ public class KafkaSource<K, V> {
     }
 
     private KafkaCommitHandler createCommitHandler(KafkaConsumer<K, V> consumer,
-            Map<String, String> config,
+            String group,
+            KafkaConnectorIncomingConfiguration config,
             String strategy) {
         KafkaCommitHandler.Strategy actualStrategy = KafkaCommitHandler.Strategy.from(strategy);
         switch (actualStrategy) {
@@ -342,7 +344,7 @@ public class KafkaSource<K, V> {
             case IGNORE:
                 return new KafkaIgnoreCommit();
             case THROTTLED:
-                return KafkaThrottledLatestProcessedCommit.create(consumer, config, this);
+                return KafkaThrottledLatestProcessedCommit.create(consumer, group, config, this);
             default:
                 throw ex.illegalArgumentInvalidCommitStrategy(strategy);
         }

@@ -77,6 +77,10 @@ Type: _string_ | false | `fail`
 
 Type: _string_ | false | 
 
+| *throttled.unprocessed-record-max-age.ms* | While using the `throttled` commit-strategy, specify the max age in milliseconds that an unprocessed message can be before the connector is marked as unhealthy.
+
+Type: _int_ | false | `60000`
+
 | *dead-letter-queue.topic* | When the `failure-strategy` is set to `dead-letter-queue` indicates on which topic the record is sent. Defaults is `dead-letter-topic-$channel`
 
 Type: _string_ | false | 
