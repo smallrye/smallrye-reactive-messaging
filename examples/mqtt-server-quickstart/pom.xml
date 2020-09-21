@@ -19,7 +19,6 @@
 
     <smallrye-reactive-streams-operators.version>1.0.7</smallrye-reactive-streams-operators.version>
     <weld-core.version>3.1.2.Final</weld-core.version>
-    <mutiny.version>0.8.0</mutiny.version>
 
     <mainClass>acme.Main</mainClass>
 
