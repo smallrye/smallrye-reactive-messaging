@@ -114,7 +114,7 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         TopicPartition recordsTopicPartition = getTopicPartition(record);
         try {
             getOffsetStore(recordsTopicPartition).received(record.getOffset());
-        } catch (TooManyMessagegsWithoutAckingException ex) {
+        } catch (TooManyMessagesWithoutAckException ex) {
             this.source.reportFailure(ex);
         }
 
@@ -180,13 +180,13 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
             this.maxReceivedWithoutAckAllowedMinusOne = maxReceivedWithoutAckAllowed - 1;
         }
 
-        void received(long offset) throws TooManyMessagegsWithoutAckingException {
+        void received(long offset) throws TooManyMessagesWithoutAckException {
             this.receivedOffsets.offer(offset);
             unProcessedTotal++;
             if (unProcessedTotal >= maxReceivedWithoutAckAllowed &&
                     (unProcessedTotal & maxReceivedWithoutAckAllowedMinusOne) == 0) {
                 log.receivedTooManyMessagesWithoutAcking(topicPartition.toString(), unProcessedTotal);
-                throw new TooManyMessagegsWithoutAckingException();
+                throw new TooManyMessagesWithoutAckException();
             }
         }
 
@@ -215,9 +215,9 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         }
     }
 
-    public static class TooManyMessagegsWithoutAckingException extends Exception {
-        public TooManyMessagegsWithoutAckingException() {
-            super("Too Many Messages without Acking");
+    public static class TooManyMessagesWithoutAckException extends Exception {
+        public TooManyMessagesWithoutAckException() {
+            super("Too Many Messages without Ack");
         }
     }
 

@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.base;
 
 import java.lang.annotation.Annotation;
 import java.util.Collections;

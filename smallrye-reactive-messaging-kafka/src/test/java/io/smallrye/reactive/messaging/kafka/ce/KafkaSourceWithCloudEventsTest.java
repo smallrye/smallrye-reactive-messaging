@@ -11,8 +11,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.BeanManager;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
@@ -20,17 +18,14 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.serialization.BufferDeserializer;
@@ -39,28 +34,14 @@ import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithStringDeserializer() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -118,14 +99,11 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithJsonObjectDeserializer() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -179,14 +157,11 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithByteArrayDeserializer() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", ByteArrayDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -236,15 +211,12 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testReceivingStructuredCloudEventsWithUnsupportedDeserializer() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         // Unsupported on purpose
         config.put("value.deserializer", BufferDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -276,14 +248,11 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testReceivingStructuredCloudEventsWithoutSource() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -317,14 +286,11 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEvents() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -385,14 +351,11 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEventsWithoutKey() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -453,14 +416,11 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithoutMatchingContentTypeIsNotReadACloudEvent() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -502,10 +462,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testWithBeanReceivingBinaryAndStructuredCloudEvents() {
-        String topic = UUID.randomUUID().toString();
-        ConsumptionBean bean = deploy(getConfig(topic));
-
-        KafkaUsage usage = new KafkaUsage();
+        ConsumptionBean bean = run(getConfig(topic));
 
         List<KafkaRecord<String, String>> list = bean.getKafkaRecords();
         assertThat(list).isEmpty();
@@ -599,15 +556,12 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEventsWithSupportDisabled() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events", false);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -646,15 +600,12 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithSupportDisabled() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
         config.put("cloud-events", false);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -696,14 +647,11 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsNoData() {
-        KafkaUsage usage = new KafkaUsage();
-        String topic = UUID.randomUUID().toString();
-        Map<String, Object> config = newCommonConfig();
+        MapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
-        config.put("bootstrap.servers", SERVERS);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(new MapBasedConfig(config));
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
@@ -742,52 +690,31 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
     }
 
-    private ConsumptionBean deploy(MapBasedConfig config) {
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(ConsumptionBean.class);
-        weld.addBeanClass(ConsumptionConsumerRebalanceListener.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
-        return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+    private ConsumptionBean run(MapBasedConfig config) {
+        addBeans(ConsumptionBean.class, ConsumptionConsumerRebalanceListener.class);
+        runApplication(config);
+        return get(ConsumptionBean.class);
     }
 
     private MapBasedConfig getConfig(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.data");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
-    private Map<String, Object> newCommonConfig() {
+    private MapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
-        Map<String, Object> config = new HashMap<>();
-        config.put("bootstrap.servers", "localhost:9092");
+        MapBasedConfig config = new MapBasedConfig();
+        config.put("bootstrap.servers", kafka.getBootstrapServers());
         config.put("group.id", randomId);
         config.put("key.deserializer", StringDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
         config.put("tracing-enabled", false);
         return config;
-    }
-
-    private BeanManager getBeanManager() {
-        if (container == null) {
-            Weld weld = baseWeld();
-            addConfig(new MapBasedConfig(new HashMap<>()));
-            weld.disableDiscovery();
-            container = weld.initialize();
-        }
-        return container.getBeanManager();
-    }
-
-    private Instance<KafkaConsumerRebalanceListener> getConsumerRebalanceListeners() {
-        return getBeanManager()
-                .createInstance()
-                .select(KafkaConsumerRebalanceListener.class);
     }
 
     @ApplicationScoped

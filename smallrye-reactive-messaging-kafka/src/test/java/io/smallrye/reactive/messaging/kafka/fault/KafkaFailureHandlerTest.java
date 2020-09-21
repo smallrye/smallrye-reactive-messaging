@@ -3,7 +3,10 @@ package io.smallrye.reactive.messaging.kafka.fault;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -17,135 +20,85 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class KafkaFailureHandlerTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @Test
     public void testFailStrategy() {
-        addConfig(getFailConfig("fail"));
-        container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
+        MyReceiverBean bean = runApplication(getFailConfig("fail"), MyReceiverBean.class);
 
-        await().until(() -> {
-            HealthReport readiness = getHealth(container).getReadiness();
-            return readiness.isOk();
-        });
+        await().until(this::isReady);
 
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("fail", counter.getAndIncrement()))).start();
 
-        MyReceiverBean bean = container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3);
 
-        await().until(() -> {
-            HealthReport liveness = getHealth(container).getLiveness();
-            return !liveness.isOk();
-        });
+        await().until(() -> !isAlive());
     }
 
     @Test
     public void testFailStrategyWithPayload() {
-        addConfig(getFailConfig("fail-payload"));
-        container = baseWeld().addBeanClass(MyReceiverBeanUsingPayload.class).initialize();
+        MyReceiverBeanUsingPayload bean = runApplication(getFailConfig("fail-payload"),
+                MyReceiverBeanUsingPayload.class);
 
-        await().until(() -> {
-            HealthReport readiness = getHealth(container).getReadiness();
-            return readiness.isOk();
-        });
+        await().until(this::isReady);
 
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("fail-payload", counter.getAndIncrement()))).start();
 
-        MyReceiverBeanUsingPayload bean = container.getBeanManager().createInstance().select(MyReceiverBeanUsingPayload.class)
-                .get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3);
 
-        await().until(() -> {
-            HealthReport liveness = getHealth(container).getLiveness();
-            return !liveness.isOk();
-        });
+        await().until(() -> !isAlive());
     }
 
     @Test
     public void testIgnoreStrategy() {
-        addConfig(getIgnoreConfig("ignore"));
-        container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
+        MyReceiverBean bean = runApplication(getIgnoreConfig("ignore"), MyReceiverBean.class);
+        await().until(this::isReady);
 
-        await().until(() -> {
-            HealthReport readiness = getHealth(container).getReadiness();
-            return readiness.isOk();
-        });
-
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("ignore", counter.getAndIncrement()))).start();
 
-        MyReceiverBean bean = container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All records should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        assertThat(liveness.isOk()).isTrue();
+        assertThat(isAlive()).isTrue();
     }
 
     @Test
     public void testIgnoreStrategyWithPayload() {
-        addConfig(getIgnoreConfig("ignore-payload"));
-        container = baseWeld().addBeanClass(MyReceiverBeanUsingPayload.class).initialize();
+        MyReceiverBean bean = runApplication(getIgnoreConfig("ignore-payload"), MyReceiverBean.class);
+        await().until(this::isReady);
 
-        await().until(() -> {
-            HealthReport readiness = getHealth(container).getReadiness();
-            return readiness.isOk();
-        });
-
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("ignore-payload", counter.getAndIncrement()))).start();
 
-        MyReceiverBeanUsingPayload bean = container.getBeanManager().createInstance().select(MyReceiverBeanUsingPayload.class)
-                .get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All records should not have been received.
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        assertThat(liveness.isOk()).isTrue();
+        assertThat(isAlive()).isTrue();
     }
 
     @Test
     public void testDeadLetterQueueStrategyWithDefaultTopic() {
-        KafkaUsage usage = new KafkaUsage();
         List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
         String randomId = UUID.randomUUID().toString();
 
@@ -153,19 +106,13 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
                 new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
                 Collections.singletonList("dead-letter-topic-kafka"), records::add);
 
-        addConfig(getDeadLetterQueueConfig());
-        container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
-
-        await().until(() -> {
-            HealthReport readiness = getHealth(container).getReadiness();
-            return readiness.isOk();
-        });
+        MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(), MyReceiverBean.class);
+        await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("dead-letter-default", counter.getAndIncrement()))).start();
 
-        MyReceiverBean bean = container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -177,13 +124,11 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
         });
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        assertThat(liveness.isOk()).isTrue();
+        assertThat(isAlive()).isTrue();
     }
 
     @Test
     public void testDeadLetterQueueStrategyWithCustomTopicAndMethodUsingPayload() {
-        KafkaUsage usage = new KafkaUsage();
         List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
         String randomId = UUID.randomUUID().toString();
 
@@ -191,20 +136,15 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
                 new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
                 Collections.singletonList("dead-letter-topic-kafka-payload"), records::add);
 
-        addConfig(getDeadLetterQueueWithCustomConfig("dq-payload", "dead-letter-topic-kafka-payload"));
-        container = baseWeld().addBeanClass(MyReceiverBeanUsingPayload.class).initialize();
-
-        await().until(() -> {
-            HealthReport readiness = getHealth(container).getReadiness();
-            return readiness.isOk();
-        });
+        MyReceiverBeanUsingPayload bean = runApplication(
+                getDeadLetterQueueWithCustomConfig("dq-payload", "dead-letter-topic-kafka-payload"),
+                MyReceiverBeanUsingPayload.class);
+        await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("dq-payload", counter.getAndIncrement()))).start();
 
-        MyReceiverBeanUsingPayload bean = container.getBeanManager().createInstance().select(MyReceiverBeanUsingPayload.class)
-                .get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -216,13 +156,11 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
         });
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        assertThat(liveness.isOk()).isTrue();
+        assertThat(isAlive()).isTrue();
     }
 
     @Test
     public void testDeadLetterQueueStrategyWithCustomConfig() {
-        KafkaUsage usage = new KafkaUsage();
         List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
         String randomId = UUID.randomUUID().toString();
 
@@ -230,19 +168,14 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
                 new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
                 Collections.singletonList("missed"), records::add);
 
-        addConfig(getDeadLetterQueueWithCustomConfig("dead-letter-custom", "missed"));
-        container = baseWeld().addBeanClass(MyReceiverBean.class).initialize();
-
-        await().until(() -> {
-            HealthReport readiness = getHealth(container).getReadiness();
-            return readiness.isOk();
-        });
+        MyReceiverBean bean = runApplication(getDeadLetterQueueWithCustomConfig("dead-letter-custom", "missed"),
+                MyReceiverBean.class);
+        await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>("dead-letter-custom", counter.getAndIncrement()))).start();
 
-        MyReceiverBean bean = container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -254,26 +187,23 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
         });
 
-        HealthReport liveness = getHealth(container).getLiveness();
-        assertThat(liveness.isOk()).isTrue();
+        assertThat(isAlive()).isTrue();
     }
 
     private MapBasedConfig getFailConfig(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("group.id", "my-group");
         builder.put("topic", topic);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
-        // fail is the default.
+        builder.put("failure-strategy", "fail");
 
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     private MapBasedConfig getIgnoreConfig(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("topic", topic);
         builder.put("group.id", "my-group");
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
@@ -281,12 +211,11 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         builder.put("auto.offset.reset", "earliest");
         builder.put("failure-strategy", "ignore");
 
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     private MapBasedConfig getDeadLetterQueueConfig() {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("topic", "dead-letter-default");
         builder.put("group.id", "my-group");
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
@@ -294,12 +223,11 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         builder.put("auto.offset.reset", "earliest");
         builder.put("failure-strategy", "dead-letter-queue");
 
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     private MapBasedConfig getDeadLetterQueueWithCustomConfig(String topic, String dq) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("group.id", "my-group");
         builder.put("topic", topic);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
@@ -310,7 +238,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         builder.put("dead-letter-queue.key.serializer", IntegerSerializer.class.getName());
         builder.put("dead-letter-queue.value.serializer", IntegerSerializer.class.getName());
 
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     @ApplicationScoped

@@ -45,7 +45,6 @@ public class KafkaSink {
 
     private final KafkaWriteStream<?, ?> stream;
     private final int partition;
-    private final String key;
     private final String topic;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
     private final long retries;
@@ -73,7 +72,6 @@ public class KafkaSink {
 
         partition = config.getPartition();
         retries = config.getRetries();
-        key = config.getKey().orElse(null);
         topic = config.getTopic().orElseGet(config::getChannel);
         writeCloudEvents = config.getCloudEvents();
         writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
@@ -316,6 +314,7 @@ public class KafkaSink {
         kafkaConfiguration.remove("partition");
         kafkaConfiguration.remove("key");
         kafkaConfiguration.remove("max-inflight-messages");
+        kafkaConfiguration.remove("tracing-enabled");
         return kafkaConfiguration;
     }
 
@@ -380,6 +379,10 @@ public class KafkaSink {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+
+        if (admin != null) {
+            admin.closeAndAwait();
         }
     }
 

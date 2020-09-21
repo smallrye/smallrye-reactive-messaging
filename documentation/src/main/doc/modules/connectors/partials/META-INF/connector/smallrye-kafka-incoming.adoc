@@ -45,6 +45,10 @@ Type: _int_ | false | `1`
 
 Type: _string_ | false | 
 
+| *enable.auto.commit* | If enabled, consumer's offset will be periodically committed in the background by the underlying Kafka client, ignoring the actual processing outcome of the records. It is recommended to NOT enable this setting and let Reactive Messaging handles the commit.
+
+Type: _boolean_ | false | `false`
+
 | *retry* | Whether or not the connection to the broker is re-attempted in case of failure
 
 Type: _boolean_ | false | `true`

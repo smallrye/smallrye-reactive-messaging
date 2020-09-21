@@ -140,11 +140,11 @@ public interface KafkaLogging extends BasicLogger {
     void failureReported(Set<String> topics, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18229, value = "Consumed topics for channel '%s': %s")
+    @Message(id = 18229, value = "Configured topics for channel '%s': %s")
     void configuredTopics(String channel, Set<String> topics);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18230, value = "Consumed topics matching pattern for channel '%s': %s")
+    @Message(id = 18230, value = "Configured topics matching pattern for channel '%s': %s")
     void configuredPattern(String channel, String pattern);
 
     @LogMessage(level = Logger.Level.WARN)
@@ -158,5 +158,9 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18233, value = "Invalid value serializer to write a structured Cloud Event. Found %d, expected the org.apache.kafka.common.serialization.StringSerializer")
     void invalidValueSerializerForStructuredCloudEvent(String serializer);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18234, value = "Auto-commit disabled for channel %s")
+    void disableAutoCommit(String channel);
 
 }

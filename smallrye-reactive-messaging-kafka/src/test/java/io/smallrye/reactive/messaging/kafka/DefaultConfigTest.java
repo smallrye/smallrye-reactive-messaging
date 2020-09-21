@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
@@ -23,55 +24,27 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 /**
  * Test that the config can be retrieved from a Map produced using the {@code default-kafka-broker} name
  */
 public class DefaultConfigTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
-    private <T> void deploy(MapBasedConfig config, Class<T> clazz) {
-        if (config != null) {
-            config.write();
-        } else {
-            MapBasedConfig.clear();
-        }
-
-        Weld weld = baseWeld();
-        weld.addBeanClass(clazz);
-
-        container = weld.initialize();
-    }
-
     @Test
     public void testFromKafkaToAppToKafka() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        KafkaUsage usage = new KafkaUsage();
         List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
         usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)));
-        deploy(getKafkaSinkConfigForMyAppProcessingData(topicOut, topicIn), MyAppProcessingData.class);
+        runApplication(getKafkaSinkConfigForMyAppProcessingData(topicOut, topicIn), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
         usage.produceIntegers(100, null,
@@ -85,24 +58,21 @@ public class DefaultConfigTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
-        builder.put("topic", topicOut);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder();
+        builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
+        builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
 
-        Map<String, Object> config = builder.build();
+        builder.put("mp.messaging.incoming.source.topic", topicIn);
+        builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
+        builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
+        builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        builder = new MapBasedConfig.ConfigBuilder("mp.messaging.incoming.source");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
-        builder.put("topic", topicIn);
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("commit-strategy", "latest");
+        builder.put("kafka.bootstrap.servers", getBootstrapServers());
+        builder.put("kafka.value.serializer", StringSerializer.class.getName());
+        builder.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("kafka.key.deserializer", StringDeserializer.class.getName());
 
-        config.putAll(builder.build());
-
-        config.put("kafka.value.serializer", StringSerializer.class.getName());
-        config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
-        config.put("kafka.key.deserializer", StringDeserializer.class.getName());
-        return new MapBasedConfig(config);
+        return builder.build();
     }
 
     @ApplicationScoped

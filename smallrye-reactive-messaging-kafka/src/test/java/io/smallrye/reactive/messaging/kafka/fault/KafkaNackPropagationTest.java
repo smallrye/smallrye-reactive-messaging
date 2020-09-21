@@ -3,7 +3,8 @@ package io.smallrye.reactive.messaging.kafka.fault;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -13,46 +14,27 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.reactivex.Flowable;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.KafkaUsage;
-import io.smallrye.reactive.messaging.kafka.MapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class KafkaNackPropagationTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @Test
     public void testDoubleNackPropagation() {
-        KafkaUsage usage = new KafkaUsage();
         List<Integer> messages = new CopyOnWriteArrayList<>();
         usage.consumeIntegers("double-topic", 9, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(value));
 
-        addConfig(getDoubleNackConfig());
-        container = baseWeld().addBeanClass(DoubleNackBean.class).initialize();
+        runApplication(getDoubleNackConfig(), DoubleNackBean.class);
 
-        DoubleNackBean bean = container.getBeanManager().createInstance().select(DoubleNackBean.class).get();
+        DoubleNackBean bean = get(DoubleNackBean.class);
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 9);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 7, 8, 9);
 
@@ -66,16 +48,13 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
 
     @Test
     public void testNackPropagation() {
-        String topic = UUID.randomUUID().toString();
-        KafkaUsage usage = new KafkaUsage();
         List<Integer> messages = new CopyOnWriteArrayList<>();
         usage.consumeIntegers(topic, 9, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(value));
 
-        addConfig(getPassedNackConfig(topic));
-        container = baseWeld().addBeanClass(PassedNackBean.class).initialize();
+        runApplication(getPassedNackConfig(topic), PassedNackBean.class);
 
-        PassedNackBean bean = container.getBeanManager().createInstance().select(PassedNackBean.class).get();
+        PassedNackBean bean = get(PassedNackBean.class);
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 9);
         assertThat(bean.list()).containsExactly(0, 1, 2, 4, 5, 6, 7, 8, 9);
 
@@ -87,19 +66,17 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getDoubleNackConfig() {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", IntegerSerializer.class.getName());
         builder.put("topic", "double-topic");
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     private MapBasedConfig getPassedNackConfig(String topic) {
-        MapBasedConfig.ConfigBuilder builder = new MapBasedConfig.ConfigBuilder("mp.messaging.outgoing.kafka");
-        builder.put("connector", KafkaConnector.CONNECTOR_NAME);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", IntegerSerializer.class.getName());
         builder.put("topic", topic);
-        return new MapBasedConfig(builder.build());
+        return builder.build();
     }
 
     @ApplicationScoped
@@ -110,8 +87,8 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
         private final AtomicReference<Throwable> nackedException = new AtomicReference<>();
 
         @Outgoing("source")
-        public Flowable<Message<Integer>> producer() {
-            return Flowable.range(0, 10)
+        public Multi<Message<Integer>> producer() {
+            return Multi.createFrom().range(0, 10)
                     .map(val -> KafkaRecord.of("1", val)
                             .withNack(cause -> {
                                 assertThat(cause).isNotNull();
@@ -165,17 +142,17 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
 
     @ApplicationScoped
     public static class PassedNackBean {
-        private List<Integer> received = new ArrayList<>();
-        private AtomicInteger m1Nack = new AtomicInteger();
-        private AtomicReference<Throwable> nackedException = new AtomicReference<>();
+        private final List<Integer> received = new ArrayList<>();
+        private final AtomicInteger nack = new AtomicInteger();
+        private final AtomicReference<Throwable> nackedException = new AtomicReference<>();
 
         @Outgoing("source")
-        public Flowable<Message<Integer>> producer() {
-            return Flowable.range(0, 10)
+        public Multi<Message<Integer>> producer() {
+            return Multi.createFrom().range(0, 10)
                     .map(val -> KafkaRecord.of("1", val)
                             .withNack(cause -> {
                                 assertThat(cause).isNotNull();
-                                m1Nack.incrementAndGet();
+                                nack.incrementAndGet();
                                 nackedException.set(cause);
                                 return CompletableFuture.completedFuture(null);
                             }));
@@ -205,7 +182,7 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
         }
 
         public int m1Nack() {
-            return m1Nack.get();
+            return nack.get();
         }
 
         public Throwable nackedException() {
