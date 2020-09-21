@@ -48,6 +48,17 @@ You need to configure the:
 
 If you want to use a custom deserializer, add it to your `CLASSPATH` and configure the associate attribute.
 
+In addition, the Kafka Connector also provides a set of _message converters_.
+So you can receive _payloads_ representing records from Kafka using:
+
+* {javadoc-base}/io/smallrye/reactive/messaging/kafka/Record.html[Record<K,V>] - a pair key/value
+* https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/consumer/KafkaConsumer.html[KafkaConsumer<K,V>] - a structure representing the record with all its metadata
+
+[source, java]
+----
+include::example$inbound/Converters.java[tags=code]
+----
+
 === Inbound Metadata
 
 Messages coming from Kafka contains an instance of {javadoc-base}/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html[IncomingKafkaRecordMetadata<K, T>] in the metadata.

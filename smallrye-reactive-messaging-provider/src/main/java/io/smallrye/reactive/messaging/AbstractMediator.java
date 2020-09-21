@@ -188,7 +188,7 @@ public abstract class AbstractMediator {
                             //noinspection ConstantConditions - it can be `null`
                             if (injectedPayloadType == null) {
                                 return o;
-                            } else if (o.getPayload().getClass().equals(injectedPayloadType)) {
+                            } else if (o.getPayload() != null && o.getPayload().getClass().equals(injectedPayloadType)) {
                                 return o;
                             }
 
@@ -196,7 +196,8 @@ public abstract class AbstractMediator {
                                 // Use the cached converter.
                                 return actual.convert(o, injectedPayloadType);
                             } else {
-                                if (TypeUtils.isAssignable(o.getPayload().getClass(), injectedPayloadType)) {
+                                if (o.getPayload() != null
+                                        && TypeUtils.isAssignable(o.getPayload().getClass(), injectedPayloadType)) {
                                     actual = MessageConverter.IdentityConverter.INSTANCE;
                                     return o;
                                 }
