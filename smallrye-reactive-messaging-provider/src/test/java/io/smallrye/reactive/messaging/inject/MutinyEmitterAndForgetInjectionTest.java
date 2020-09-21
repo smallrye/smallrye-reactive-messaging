@@ -14,7 +14,10 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.Test;
+import org.jboss.logmanager.Level;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -22,23 +25,22 @@ import org.reactivestreams.Subscription;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.testing.logging.LogCapture;
 
 public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTails {
+
+    @RegisterExtension
+    static LogCapture logCapture = LogCapture.with(r -> "io.smallrye.reactive.messaging.provider".equals(r.getLoggerName()),
+            Level.WARN);
+
+    @BeforeEach
+    void clearLogs() {
+        logCapture.records().clear();
+    }
 
     @Test
     public void testWithPayloads() {
         final MyBeanEmittingPayloads bean = installInitializeAndGet(MyBeanEmittingPayloads.class);
-        bean.run();
-        assertThat(bean.emitter()).isNotNull();
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().hasRequests()).isFalse();
-    }
-
-    @Test
-    public void testMyMessageBeanWithPayloadsAndAck() {
-        final MyMessageBeanEmittingPayloadsWithAck bean = installInitializeAndGet(
-                MyMessageBeanEmittingPayloadsWithAck.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -54,26 +56,6 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
         assertThat(bean.list()).containsExactly("A", "B", "C");
         assertThat(bean.emitter().isCancelled()).isTrue();
         assertThat(bean.emitter().hasRequests()).isFalse();
-    }
-
-    @Test
-    public void testWithMessages() {
-        final MyBeanEmittingMessages bean = installInitializeAndGet(MyBeanEmittingMessages.class);
-        bean.run();
-        assertThat(bean.emitter()).isNotNull();
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isFalse();
-        assertThat(bean.emitter().hasRequests()).isTrue();
-    }
-
-    @Test
-    public void testWithMessagesLegacy() {
-        final MyBeanEmittingMessagesUsingStream bean = installInitializeAndGet(MyBeanEmittingMessagesUsingStream.class);
-        bean.run();
-        assertThat(bean.emitter()).isNotNull();
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isFalse();
-        assertThat(bean.emitter().hasRequests()).isTrue();
     }
 
     @Test
@@ -105,14 +87,20 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.hasCaughtNullPayload()).isTrue();
-        assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
-    //TODO This doesn't trigger, which makes sense. Is it a case we need to verify, somehow?
-    //@Test(expected = IllegalStateException.class)
+    @Test
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
         installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndForget(Message.of("foo"));
+        assertThat(logCapture.records()).isNotNull()
+                .filteredOn(r -> r.getMessage().contains("SRMSG00234"))
+                .hasSize(1)
+                .hasOnlyOneElementSatisfying(r -> {
+                    assertThat(r.getMessage()).contains("Failed to emit a Message to the channel");
+                    assertThat(r.getThrown()).isExactlyInstanceOf(IllegalStateException.class);
+                    assertThat(r.getThrown().getMessage()).contains("SRMSG00027: No subscriber found for the channel missing");
+                });
     }
 
     @Test
@@ -217,104 +205,6 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
         }
     }
 
-    @ApplicationScoped
-    public static class MyMessageBeanEmittingPayloadsWithAck {
-        @Inject
-        @Channel("foo")
-        MutinyEmitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public MutinyEmitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.sendAndForget(new MyMessageBean<>("a"));
-            emitter.sendAndForget(new MyMessageBean<>("b"));
-            emitter.sendAndForget(new MyMessageBean<>("c"));
-            emitter.complete();
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
-    public static class MyMessageBean<T> implements Message<T> {
-
-        private final T payload;
-
-        MyMessageBean(T payload) {
-            this.payload = payload;
-        }
-
-        @Override
-        public T getPayload() {
-            return payload;
-        }
-
-    }
-
-    @ApplicationScoped
-    public static class MyBeanEmittingMessages {
-        @Inject
-        @Channel("foo")
-        MutinyEmitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public MutinyEmitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.sendAndForget(Message.of("a"));
-            emitter.sendAndForget(Message.of("b"));
-            emitter.sendAndForget(Message.of("c"));
-
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
-    @ApplicationScoped
-    public static class MyBeanEmittingMessagesUsingStream {
-        @Inject
-        @Channel("foo")
-        MutinyEmitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public MutinyEmitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.sendAndForget(Message.of("a"));
-            emitter.sendAndForget(Message.of("b"));
-            emitter.sendAndForget(Message.of("c"));
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
     public static class BeanWithMissingChannel {
         @Inject
         @Channel("missing")
@@ -332,7 +222,6 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
         MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
         private boolean caughtNullPayload;
-        private boolean caughtNullMessage;
 
         public MutinyEmitter<String> emitter() {
             return emitter;
@@ -340,10 +229,6 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
 
         boolean hasCaughtNullPayload() {
             return caughtNullPayload;
-        }
-
-        boolean hasCaughtNullMessage() {
-            return caughtNullMessage;
         }
 
         public List<String> list() {
@@ -357,12 +242,6 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
                 emitter.sendAndForget((String) null);
             } catch (IllegalArgumentException e) {
                 caughtNullPayload = true;
-            }
-
-            try {
-                emitter.sendAndForget((Message<String>) null);
-            } catch (IllegalArgumentException e) {
-                caughtNullMessage = true;
             }
             emitter.sendAndForget("c");
             emitter.complete();

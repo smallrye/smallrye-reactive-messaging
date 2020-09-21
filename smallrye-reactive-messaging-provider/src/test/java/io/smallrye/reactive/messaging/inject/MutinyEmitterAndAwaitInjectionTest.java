@@ -52,18 +52,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
     }
 
     @Test
-    public void testMyMessageBeanWithPayloadsAndAck() {
-        final MyMessageBeanEmittingPayloadsWithAck bean = installInitializeAndGet(
-                MyMessageBeanEmittingPayloadsWithAck.class);
-        new Thread(bean::run).start();
-        await().until(() -> bean.list().size() == 3);
-        assertThat(bean.emitter()).isNotNull();
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isTrue();
-        assertThat(bean.emitter().hasRequests()).isFalse();
-    }
-
-    @Test
     public void testWithPayloadsAndNack() {
         final MyBeanEmittingPayloadsWithNack bean = installInitializeAndGet(MyBeanEmittingPayloadsWithNack.class);
         new Thread(bean::run).start();
@@ -86,28 +74,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         assertThat(bean.list()).containsExactly("A", "B", "C");
         assertThat(bean.emitter().isCancelled()).isTrue();
         assertThat(bean.emitter().hasRequests()).isFalse();
-    }
-
-    @Test
-    public void testWithMessages() {
-        final MyBeanEmittingMessages bean = installInitializeAndGet(MyBeanEmittingMessages.class);
-        new Thread(bean::run).start();
-        assertThat(bean.emitter()).isNotNull();
-        await().until(() -> bean.list().size() == 3);
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isFalse();
-        assertThat(bean.emitter().hasRequests()).isTrue();
-    }
-
-    @Test
-    public void testWithMessagesLegacy() {
-        final MyBeanEmittingMessagesUsingStream bean = installInitializeAndGet(MyBeanEmittingMessagesUsingStream.class);
-        new Thread(bean::run).start();
-        assertThat(bean.emitter()).isNotNull();
-        await().until(() -> bean.list().size() == 3);
-        assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isFalse();
-        assertThat(bean.emitter().hasRequests()).isTrue();
     }
 
     @Test
@@ -144,7 +110,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.hasCaughtNullPayload()).isTrue();
-        assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
     @Test(expected = IllegalStateException.class)
@@ -352,104 +317,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         }
     }
 
-    @ApplicationScoped
-    public static class MyMessageBeanEmittingPayloadsWithAck {
-        @Inject
-        @Channel("foo")
-        MutinyEmitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public MutinyEmitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.sendAndAwait(new MyMessageBean<>("a"));
-            emitter.sendAndAwait(new MyMessageBean<>("b"));
-            emitter.sendAndAwait(new MyMessageBean<>("c"));
-            emitter.complete();
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
-    public static class MyMessageBean<T> implements Message<T> {
-
-        private final T payload;
-
-        MyMessageBean(T payload) {
-            this.payload = payload;
-        }
-
-        @Override
-        public T getPayload() {
-            return payload;
-        }
-
-    }
-
-    @ApplicationScoped
-    public static class MyBeanEmittingMessages {
-        @Inject
-        @Channel("foo")
-        MutinyEmitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public MutinyEmitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.sendAndAwait(Message.of("a"));
-            emitter.sendAndAwait(Message.of("b"));
-            emitter.sendAndAwait(Message.of("c"));
-
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
-    @ApplicationScoped
-    public static class MyBeanEmittingMessagesUsingStream {
-        @Inject
-        @Channel("foo")
-        MutinyEmitter<String> emitter;
-        private final List<String> list = new CopyOnWriteArrayList<>();
-
-        public MutinyEmitter<String> emitter() {
-            return emitter;
-        }
-
-        public List<String> list() {
-            return list;
-        }
-
-        public void run() {
-            emitter.sendAndAwait(Message.of("a"));
-            emitter.sendAndAwait(Message.of("b"));
-            emitter.sendAndAwait(Message.of("c"));
-        }
-
-        @Incoming("foo")
-        public void consume(final String s) {
-            list.add(s);
-        }
-    }
-
     public static class BeanWithMissingChannel {
         @Inject
         @Channel("missing")
@@ -467,7 +334,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         MutinyEmitter<String> emitter;
         private final List<String> list = new CopyOnWriteArrayList<>();
         private boolean caughtNullPayload;
-        private boolean caughtNullMessage;
 
         public MutinyEmitter<String> emitter() {
             return emitter;
@@ -475,10 +341,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
 
         boolean hasCaughtNullPayload() {
             return caughtNullPayload;
-        }
-
-        boolean hasCaughtNullMessage() {
-            return caughtNullMessage;
         }
 
         public List<String> list() {
@@ -492,12 +354,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
                 emitter.sendAndAwait((String) null);
             } catch (IllegalArgumentException e) {
                 caughtNullPayload = true;
-            }
-
-            try {
-                emitter.sendAndAwait((Message<String>) null);
-            } catch (IllegalArgumentException e) {
-                caughtNullMessage = true;
             }
             emitter.sendAndAwait("c");
             emitter.complete();

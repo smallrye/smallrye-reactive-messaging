@@ -45,32 +45,11 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
     }
 
     @Override
-    public <M extends Message<? extends T>> Uni<Void> send(M msg) {
+    public <M extends Message<? extends T>> void send(M msg) {
         if (msg == null) {
             throw ex.illegalArgumentForNullValue();
         }
-        return Uni.createFrom().emitter(e -> {
-            emit(Message.of(msg.getPayload(), msg.getMetadata(), () -> {
-                msg.ack();
-                e.complete(null);
-                return CompletableFuture.completedFuture(null);
-            },
-                    reason -> {
-                        msg.nack(reason);
-                        e.fail(reason);
-                        return CompletableFuture.completedFuture(null);
-                    }));
-        });
-    }
-
-    @Override
-    public <M extends Message<? extends T>> void sendAndAwait(M msg) {
-        send(msg).await().indefinitely();
-    }
-
-    @Override
-    public <M extends Message<? extends T>> Cancellable sendAndForget(M msg) {
-        return send(msg).subscribe().with(x -> {
+        Uni.createFrom().emitter(e -> emit(msg)).subscribe().with(x -> {
         }, ProviderLogging.log::failureEmittingMessage);
     }
 }
