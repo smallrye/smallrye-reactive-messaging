@@ -84,7 +84,6 @@ public class KafkaSink {
         int inflight = maxInflight;
 
         this.configuration = config;
-
         this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
                 && configuration.getCloudEventsSource().isPresent();
 
@@ -98,7 +97,12 @@ public class KafkaSink {
                     + configuration.getValueSerializer());
         }
 
-        this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
+        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
+            // Do not create the client if the readiness health checks are disabled
+            this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
+        } else {
+            this.admin = null;
+        }
 
         processor = new KafkaSenderProcessor(inflight, waitForWriteCompletion,
                 writeMessageToKafka());
@@ -125,10 +129,6 @@ public class KafkaSink {
                 Optional<OutgoingKafkaRecordMetadata<?>> om = getOutgoingKafkaRecordMetadata(message);
                 OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
                 String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
-                if (actualTopic == null) {
-                    log.ignoringNoTopicSet();
-                    return Uni.createFrom().item(() -> null);
-                }
 
                 ProducerRecord<?, ?> record;
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
@@ -341,7 +341,7 @@ public class KafkaSink {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (configuration.getHealthEnabled()) {
+        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
             Set<String> topics;
             try {
                 topics = admin.listTopics()

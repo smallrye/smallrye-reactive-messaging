@@ -17,6 +17,10 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `true`
 
+| *health-readiness-enabled* | Whether readiness health reporting is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
 | *tracing-enabled* | Whether tracing is enabled (default) or disabled
 
 Type: _boolean_ | false | `true`

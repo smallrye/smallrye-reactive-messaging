@@ -190,7 +190,12 @@ public class KafkaSource<K, V> {
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
 
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-        this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
+        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
+            // Do not create the client if the readiness health checks are disabled
+            this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
+        } else {
+            this.admin = null;
+        }
         this.consumer = kafkaConsumer;
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> {
@@ -388,7 +393,7 @@ public class KafkaSource<K, V> {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (configuration.getHealthEnabled()) {
+        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
             Set<String> existingTopics;
             try {
                 existingTopics = admin.listTopics()
