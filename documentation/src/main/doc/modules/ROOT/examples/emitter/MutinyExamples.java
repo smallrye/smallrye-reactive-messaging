@@ -13,19 +13,19 @@ public class MutinyExamples {
     @Channel("prices")
     MutinyEmitter<Double> emitter;
 
-    public Uni<Void> emit(double d) {
+    public Uni<Void> send(double d) {
         return emitter.send(d);
     }
     // end::uni[]
 
     // tag::uni-await[]
-    public void send(double d) {
+    public void sendAwait(double d) {
         emitter.sendAndAwait(d);
     }
     // end::uni-await[]
 
     // tag::uni-forget[]
-    public Cancellable sendAwait(double d) {
+    public Cancellable sendForget(double d) {
         return emitter.sendAndForget(d);
     }
     // end::uni-forget[]

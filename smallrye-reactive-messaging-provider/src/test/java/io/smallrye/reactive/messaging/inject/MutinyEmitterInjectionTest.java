@@ -121,6 +121,7 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         final MyBeanEmittingMessagesUsingStream bean = installInitializeAndGet(MyBeanEmittingMessagesUsingStream.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
+        await().until(() -> bean.list().size() == 3);
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isFalse();
         assertThat(bean.emitter().hasRequests()).isTrue();
@@ -379,12 +380,9 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(new MyMessageBean<>("a")).subscribe().with(x -> {
-            });
-            emitter.send(new MyMessageBean<>("b")).subscribe().with(x -> {
-            });
-            emitter.send(new MyMessageBean<>("c")).subscribe().with(x -> {
-            });
+            emitter.send(new MyMessageBean<>("a"));
+            emitter.send(new MyMessageBean<>("b"));
+            emitter.send(new MyMessageBean<>("c"));
             emitter.complete();
         }
 
@@ -425,12 +423,9 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a")).subscribe().with(x -> {
-            });
-            emitter.send(Message.of("b")).subscribe().with(x -> {
-            });
-            emitter.send(Message.of("c")).subscribe().with(x -> {
-            });
+            emitter.send(Message.of("a"));
+            emitter.send(Message.of("b"));
+            emitter.send(Message.of("c"));
 
         }
 
@@ -456,12 +451,9 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         }
 
         public void run() {
-            emitter.send(Message.of("a")).subscribe().with(x -> {
-            });
-            emitter.send(Message.of("b")).subscribe().with(x -> {
-            });
-            emitter.send(Message.of("c")).subscribe().with(x -> {
-            });
+            emitter.send(Message.of("a"));
+            emitter.send(Message.of("b"));
+            emitter.send(Message.of("c"));
         }
 
         @Incoming("foo")
@@ -518,8 +510,7 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
             }
 
             try {
-                emitter.send((Message<String>) null).subscribe().with(x -> {
-                });
+                emitter.send((Message<String>) null);
             } catch (IllegalArgumentException e) {
                 caughtNullMessage = true;
             }

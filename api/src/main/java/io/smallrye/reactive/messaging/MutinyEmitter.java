@@ -90,34 +90,9 @@ public interface MutinyEmitter<T> extends EmitterBehavior {
      *
      * @param <M> the <em>Message</em> type
      * @param msg the <em>Message</em> to send, must not be {@code null}
-     * @return the {@code Uni}, that requires subscription to send the {@link Message}.
      * @throws IllegalStateException if the channel has been cancelled or terminated or if an overflow strategy of
      *         {@link OnOverflow.Strategy#THROW_EXCEPTION THROW_EXCEPTION} or {@link OnOverflow.Strategy#BUFFER BUFFER} is
      *         configured and the emitter overflows.
      */
-    <M extends Message<? extends T>> Uni<Void> send(M msg);
-
-    /**
-     * Sends a message to the channel.
-     * Execution will block waiting for the {@code Message} to be acknowledged before returning.
-     *
-     * @param <M> the <em>Message</em> type
-     * @param msg the <em>Message</em> to send, must not be {@code null}
-     * @throws IllegalStateException if the channel has been cancelled or terminated or if an overflow strategy of
-     *         {@link OnOverflow.Strategy#THROW_EXCEPTION THROW_EXCEPTION} or {@link OnOverflow.Strategy#BUFFER BUFFER} is
-     *         configured and the emitter overflows.
-     */
-    <M extends Message<? extends T>> void sendAndAwait(M msg);
-
-    /**
-     * Sends a message to the channel without waiting for acknowledgement.
-     *
-     * @param <M> the <em>Message</em> type
-     * @param msg the <em>Message</em> to send, must not be {@code null}
-     * @return the {@code Cancellable} from the subscribed {@code Uni}.
-     * @throws IllegalStateException if the channel has been cancelled or terminated or if an overflow strategy of
-     *         {@link OnOverflow.Strategy#THROW_EXCEPTION THROW_EXCEPTION} or {@link OnOverflow.Strategy#BUFFER BUFFER} is
-     *         configured and the emitter overflows.
-     */
-    <M extends Message<? extends T>> Cancellable sendAndForget(M msg);
+    <M extends Message<? extends T>> void send(M msg);
 }
