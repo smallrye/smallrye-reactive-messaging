@@ -152,8 +152,8 @@ public interface KafkaLogging extends BasicLogger {
     void receivedTooManyMessagesWithoutAcking(String topicPartition, long amount);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18232, value = "Setting the max received messages without acking limit for group '%s' to %d.")
-    void settingMaxReceivedWithoutAckAllowed(String group, long amount);
+    @Message(id = 18232, value = "Will commit for group '%s' every %d milliseconds.")
+    void settingCommitInterval(String group, long commitInterval);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18233, value = "Invalid value serializer to write a structured Cloud Event. Found %d, expected the org.apache.kafka.common.serialization.StringSerializer")
@@ -162,5 +162,13 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18234, value = "Auto-commit disabled for channel %s")
     void disableAutoCommit(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18235, value = "Will not health check throttled commit strategy for group '%s'.")
+    void disableThrottledCommitStrategyHealthCheck(String group);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18236, value = "Will mark throttled commit strategy for group '%s' as unhealthy if records go more than %d milliseconds without being processed.")
+    void setThrottledCommitStrategyReceivedRecordMaxAge(String group, long unprocessedRecordMaxAge);
 
 }
