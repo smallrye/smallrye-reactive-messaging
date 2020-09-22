@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.i18n;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.jboss.logging.BasicLogger;
@@ -18,10 +17,6 @@ import org.jboss.logging.annotations.MessageLogger;
 public interface KafkaLogging extends BasicLogger {
 
     KafkaLogging log = Logger.getMessageLogger(KafkaLogging.class, "io.smallrye.reactive.messaging.kafka");
-
-    @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18200, value = "Merging config with %s")
-    void mergingConfigWith(Map<String, Object> defaultKafkaCfg);
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18201, value = "Dead queue letter configured with: topic: `%s`, key serializer: `%s`, value serializer: `%s`")
