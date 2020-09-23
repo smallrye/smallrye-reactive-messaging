@@ -13,14 +13,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
-import org.jboss.weld.exceptions.UnsatisfiedResolutionException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +31,6 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.kafka.client.common.TopicPartition;
 
 public class KafkaSourceTest extends KafkaTestBase {
 
@@ -302,7 +302,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         for (int i = 0; i < 2; i++) {
             TopicPartition topicPartition = consumptionConsumerRebalanceListener.getAssigned().get(i);
             assertThat(topicPartition).isNotNull();
-            assertThat(topicPartition.getTopic()).isEqualTo("data-2");
+            assertThat(topicPartition.topic()).isEqualTo("data-2");
         }
     }
 
@@ -363,7 +363,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         assertThat(
                 getStartFromFifthOffsetFromLatestConsumerRebalanceListener(
                         "my-group-starting-on-fifth-fail-on-first-attempt")
-                                .getRebalanceCount()).isEqualTo(1);
+                                .getRebalanceCount()).isEqualTo(2);
     }
 
     @Test

@@ -2,13 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.OptionalLong;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,24 +15,24 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
-import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 /**
  * Will keep track of received messages and commit to the next offset after the latest
  * ACKed message in sequence. Will commit periodically as defined by `auto.commit.interval.ms` (default: 5000)
- *
+ * <p>
  * This strategy mimics the behavior of the kafka consumer when `enable.auto.commit`
  * is `true`.
- *
+ * <p>
  * The connector will be marked as unhealthy in the presence of any received record that has gone
  * too long without being processed as defined by `throttled.unprocessed-record-max-age.ms` (default: 60000).
  * If `throttled.unprocessed-record-max-age.ms` is set to less than or equal to 0 then will not
  * perform any health check (this might lead to running out of memory).
- *
+ * <p>
  * This strategy guarantees at-least-once delivery even if the channel performs
  * asynchronous processing.
- *
+ * <p>
  * To use set `commit-strategy` to `throttled`.
  */
 public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
@@ -51,15 +45,17 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     private final KafkaSource<?, ?> source;
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
-
-    private volatile Context context;
+    private final Vertx vertx;
 
     private long timerId = -1;
 
-    private KafkaThrottledLatestProcessedCommit(KafkaConsumer<?, ?> consumer,
+    private KafkaThrottledLatestProcessedCommit(
+            Vertx vertx,
+            KafkaConsumer<?, ?> consumer,
             KafkaSource<?, ?> source,
             int unprocessedRecordMaxAge,
             int autoCommitInterval) {
+        this.vertx = vertx;
         this.consumer = consumer;
         this.source = source;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
@@ -70,7 +66,9 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         TOPIC_PARTITIONS_CACHE.clear();
     }
 
-    public static KafkaThrottledLatestProcessedCommit create(KafkaConsumer<?, ?> consumer,
+    public static KafkaThrottledLatestProcessedCommit create(
+            Vertx vertx,
+            KafkaConsumer<?, ?> consumer,
             String groupId,
             KafkaConnectorIncomingConfiguration config,
             KafkaSource<?, ?> source) {
@@ -85,7 +83,8 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         } else {
             log.setThrottledCommitStrategyReceivedRecordMaxAge(groupId, unprocessedRecordMaxAge);
         }
-        return new KafkaThrottledLatestProcessedCommit(consumer, source, unprocessedRecordMaxAge, autoCommitInterval);
+        return new KafkaThrottledLatestProcessedCommit(vertx, consumer, source, unprocessedRecordMaxAge,
+                autoCommitInterval);
 
     }
 
@@ -101,9 +100,7 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     }
 
     @Override
-    public void partitionsAssigned(Context context, Set<TopicPartition> partitions) {
-        this.context = context;
-
+    public void partitionsAssigned(Collection<TopicPartition> partitions) {
         offsetStores.clear();
 
         stopFlushAndCheckHealthTimer();
@@ -115,14 +112,13 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
 
     private void stopFlushAndCheckHealthTimer() {
         if (timerId != -1) {
-            context.owner().cancelTimer(timerId);
+            vertx.cancelTimer(timerId);
             timerId = -1;
         }
     }
 
     private void startFlushAndCheckHealthTimer() {
-        timerId = context
-                .owner()
+        timerId = vertx
                 .setTimer(autoCommitInterval, this::flushAndCheckHealth);
     }
 
@@ -148,7 +144,7 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     @Override
     public <K, V> CompletionStage<Void> handle(final IncomingKafkaRecord<K, V> record) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        context.runOnContext(v -> {
+        vertx.runOnContext(v -> {
             offsetStores
                     .get(getTopicPartition(record))
                     .processed(record.getOffset());
@@ -166,18 +162,19 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
                     .entrySet()
                     .stream()
                     .collect(Collectors.toMap(Map.Entry::getKey,
-                            e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L)));
+                            e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L))); // TODO Why +1?
             consumer.getDelegate().commit(offsets, a -> this.startFlushAndCheckHealthTimer());
         } else {
             this.startFlushAndCheckHealthTimer();
         }
 
         if (this.unprocessedRecordMaxAge > 0) {
-            offsetStores
-                    .values()
-                    .stream()
-                    .filter(OffsetStore::hasTooManyMessagesWithoutAck)
-                    .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
+            for (OffsetStore stores : offsetStores.values()) {
+                if (stores.hasTooManyMessagesWithoutAck()) {
+                    this.source.reportFailure(new TooManyMessagesWithoutAckException());
+                }
+
+            }
         }
     }
 

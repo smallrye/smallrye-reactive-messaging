@@ -213,6 +213,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .with("group.id", "test-source-with-throttled-latest-processed-commit-without-acking")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
+                .with("throttled.unprocessed-record-max-age.ms", 4000)
                 .with("max.poll.records", "16");
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
@@ -227,11 +228,11 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+        await().atMost(10, TimeUnit.SECONDS).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().atMost(2, TimeUnit.MINUTES)
+        await().atMost(10, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
                     HealthReport.HealthReportBuilder healthReportBuilder = HealthReport.builder();
                     source.isAlive(healthReportBuilder);
@@ -241,9 +242,9 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         new Thread(() -> usage.produceIntegers(30, null,
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 30);
+        await().atMost(10, TimeUnit.SECONDS).until(() -> messages.size() >= 30);
 
-        await().atMost(2, TimeUnit.MINUTES)
+        await().atMost(10, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
                     HealthReport.HealthReportBuilder healthReportBuilder = HealthReport.builder();
                     source.isAlive(healthReportBuilder);

@@ -2,12 +2,11 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 
-import java.util.Set;
+import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.mutiny.core.Context;
 
 public interface KafkaCommitHandler {
 
@@ -34,8 +33,8 @@ public interface KafkaCommitHandler {
         return record;
     }
 
-    default void partitionsAssigned(Context context, Set<TopicPartition> partitions) {
-
+    default void partitionsAssigned(Collection<TopicPartition> partitions) {
+        // Do nothing by default
     }
 
     <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record);

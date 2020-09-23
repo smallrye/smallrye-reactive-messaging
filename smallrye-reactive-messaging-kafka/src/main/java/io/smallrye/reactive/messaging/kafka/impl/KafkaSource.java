@@ -11,9 +11,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
@@ -52,7 +52,7 @@ public class KafkaSource<K, V> {
     private final Pattern pattern;
 
     public KafkaSource(Vertx vertx,
-            String group,
+            String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners) {
 
@@ -73,7 +73,7 @@ public class KafkaSource<K, V> {
 
         JsonHelper.asJsonObject(config.config())
                 .forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
-        kafkaConfiguration.put(ConsumerConfig.GROUP_ID_CONFIG, group);
+        kafkaConfiguration.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroup);
 
         String servers = config.getBootstrapServers();
         if (!kafkaConfiguration.containsKey(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
@@ -112,87 +112,18 @@ public class KafkaSource<K, V> {
         kafkaConfiguration.remove("tracing-enabled");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
-        commitHandler = createCommitHandler(kafkaConsumer, group, config, commitStrategy);
+        commitHandler = createCommitHandler(vertx, kafkaConsumer, consumerGroup, config, commitStrategy);
+        failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
 
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
         this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
 
-        Optional<KafkaConsumerRebalanceListener> rebalanceListener = config
-                .getConsumerRebalanceListenerName()
-                .map(name -> {
-                    log.loadingConsumerRebalanceListenerFromConfiguredName(name);
-                    return NamedLiteral.of(name);
-                })
-                .map(consumerRebalanceListeners::select)
-                .map(Instance::get)
-                .map(Optional::of)
-                .orElseGet(() -> {
-                    Instance<KafkaConsumerRebalanceListener> rebalanceFromGroupListeners = consumerRebalanceListeners
-                            .select(NamedLiteral.of(group));
-
-                    if (!rebalanceFromGroupListeners.isUnsatisfied()) {
-                        log.loadingConsumerRebalanceListenerFromGroupId(group);
-                        return Optional.of(rebalanceFromGroupListeners.get());
-                    }
-                    return Optional.empty();
-                });
-
-        if (rebalanceListener.isPresent()) {
-            KafkaConsumerRebalanceListener listener = rebalanceListener.get();
-            // If the re-balance assign fails we must resume the consumer in order to force a consumer group
-            // re-balance. To do so we must wait until after the poll interval time or
-            // poll interval time + session timeout if group instance id is not null.
-            // We will retry the re-balance consumer listener on failure using an exponential backoff until
-            // we can allow the kafka consumer to do it on its own. We do this because by default it would take
-            // 5 minutes for kafka to do this which is too long. With defaults consumerReEnableWaitTime would be
-            // 500000 millis. We also can't simply retry indefinitely because once the consumer has been paused
-            // for consumerReEnableWaitTime kafka will force a re-balance once resumed.
-            final long consumerReEnableWaitTime = Long.parseLong(
-                    kafkaConfiguration.getOrDefault(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "300000"))
-                    + (kafkaConfiguration.get(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG) == null ? 0L
-                            : Long.parseLong(
-                                    kafkaConfiguration.getOrDefault(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,
-                                            "10000")))
-                    + 11_000L; // it's possible that it might expire 10 seconds before when we need it to
-
-            kafkaConsumer.partitionsAssignedHandler(set -> {
-                final long currentDemand = kafkaConsumer.demand();
-                kafkaConsumer.pause();
-
-                commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set);
-
-                log.executingConsumerAssignedRebalanceListener(group);
-                listener.onPartitionsAssigned(kafkaConsumer, set)
-                        .onFailure().invoke(t -> log.unableToExecuteConsumerAssignedRebalanceListener(group, t))
-                        .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(10))
-                        .expireIn(consumerReEnableWaitTime)
-                        .subscribe()
-                        .with(
-                                a -> {
-                                    log.executedConsumerAssignedRebalanceListener(group);
-                                    kafkaConsumer.fetch(currentDemand);
-                                },
-                                t -> {
-                                    log.reEnablingConsumerforGroup(group);
-                                    kafkaConsumer.fetch(currentDemand);
-                                });
-            });
-
-            kafkaConsumer.partitionsRevokedHandler(set -> {
-                log.executingConsumerRevokedRebalanceListener(group);
-                listener.onPartitionsRevoked(kafkaConsumer, set)
-                        .subscribe()
-                        .with(
-                                a -> log.executedConsumerRevokedRebalanceListener(group),
-                                t -> log.unableToExecuteConsumerRevokedRebalanceListener(group, t));
-            });
-        } else {
-            kafkaConsumer.partitionsAssignedHandler(set -> commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set));
-        }
-
         this.consumer = kafkaConsumer;
 
-        failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
+        ConsumerRebalanceListener listener = RebalanceListeners
+                .createRebalanceListener(vertx, config, consumerGroup, consumerRebalanceListeners, consumer, commitHandler);
+
+        RebalanceListeners.inject(this.consumer, listener);
 
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> {
@@ -237,11 +168,10 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> {
-                    return commitHandler
-                            .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
-                                    config.getTracingEnabled()));
-                });
+                .map(rec -> commitHandler
+                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler,
+                                config.getCloudEvents(),
+                                config.getTracingEnabled())));
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
@@ -333,7 +263,8 @@ public class KafkaSource<K, V> {
 
     }
 
-    private KafkaCommitHandler createCommitHandler(KafkaConsumer<K, V> consumer,
+    private KafkaCommitHandler createCommitHandler(Vertx vertx,
+            KafkaConsumer<K, V> consumer,
             String group,
             KafkaConnectorIncomingConfiguration config,
             String strategy) {
@@ -344,7 +275,7 @@ public class KafkaSource<K, V> {
             case IGNORE:
                 return new KafkaIgnoreCommit();
             case THROTTLED:
-                return KafkaThrottledLatestProcessedCommit.create(consumer, group, config, this);
+                return KafkaThrottledLatestProcessedCommit.create(vertx, consumer, group, config, this);
             default:
                 throw ex.illegalArgumentInvalidCommitStrategy(strategy);
         }
