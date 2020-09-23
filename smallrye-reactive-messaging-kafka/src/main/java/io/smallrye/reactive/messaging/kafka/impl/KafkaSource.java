@@ -122,7 +122,7 @@ public class KafkaSource<K, V> {
         kafkaConfiguration.remove("consumer-rebalance-listener.name");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
-        commitHandler = createCommitHandler(kafkaConsumer, group, config, commitStrategy);
+        commitHandler = createCommitHandler(vertx, kafkaConsumer, group, config, commitStrategy);
 
         Optional<KafkaConsumerRebalanceListener> rebalanceListener = config
                 .getConsumerRebalanceListenerName()
@@ -166,7 +166,7 @@ public class KafkaSource<K, V> {
                 final long currentDemand = kafkaConsumer.demand();
                 kafkaConsumer.pause();
 
-                commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set);
+                commitHandler.partitionsAssigned(set);
 
                 log.executingConsumerAssignedRebalanceListener(group);
                 listener.onPartitionsAssigned(kafkaConsumer, set)
@@ -194,11 +194,10 @@ public class KafkaSource<K, V> {
                                 t -> log.unableToExecuteConsumerRevokedRebalanceListener(group, t));
             });
         } else {
-            kafkaConsumer.partitionsAssignedHandler(set -> commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set));
+            kafkaConsumer.partitionsAssignedHandler(commitHandler::partitionsAssigned);
         }
 
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
-
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
@@ -250,11 +249,9 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> {
-                    return commitHandler
-                            .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
-                                    config.getTracingEnabled()));
-                });
+                .map(rec -> commitHandler
+                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
+                                config.getTracingEnabled())));
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
@@ -346,7 +343,9 @@ public class KafkaSource<K, V> {
 
     }
 
-    private KafkaCommitHandler createCommitHandler(KafkaConsumer<K, V> consumer,
+    private KafkaCommitHandler createCommitHandler(
+            Vertx vertx,
+            KafkaConsumer<K, V> consumer,
             String group,
             KafkaConnectorIncomingConfiguration config,
             String strategy) {
@@ -357,7 +356,7 @@ public class KafkaSource<K, V> {
             case IGNORE:
                 return new KafkaIgnoreCommit();
             case THROTTLED:
-                return KafkaThrottledLatestProcessedCommit.create(consumer, group, config, this);
+                return KafkaThrottledLatestProcessedCommit.create(vertx, consumer, group, config, this);
             default:
                 throw ex.illegalArgumentInvalidCommitStrategy(strategy);
         }

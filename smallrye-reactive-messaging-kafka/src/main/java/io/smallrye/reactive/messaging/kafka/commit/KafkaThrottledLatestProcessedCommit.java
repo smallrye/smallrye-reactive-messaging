@@ -21,24 +21,24 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
-import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 /**
  * Will keep track of received messages and commit to the next offset after the latest
  * ACKed message in sequence. Will commit periodically as defined by `auto.commit.interval.ms` (default: 5000)
- *
+ * <p>
  * This strategy mimics the behavior of the kafka consumer when `enable.auto.commit`
  * is `true`.
- *
+ * <p>
  * The connector will be marked as unhealthy in the presence of any received record that has gone
  * too long without being processed as defined by `throttled.unprocessed-record-max-age.ms` (default: 60000).
  * If `throttled.unprocessed-record-max-age.ms` is set to less than or equal to 0 then will not
  * perform any health check (this might lead to running out of memory).
- *
+ * <p>
  * This strategy guarantees at-least-once delivery even if the channel performs
  * asynchronous processing.
- *
+ * <p>
  * To use set `commit-strategy` to `throttled`.
  */
 public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
@@ -51,12 +51,13 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     private final KafkaSource<?, ?> source;
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
-
-    private volatile Context context;
+    private final Vertx vertx;
 
     private long timerId = -1;
 
-    private KafkaThrottledLatestProcessedCommit(KafkaConsumer<?, ?> consumer,
+    private KafkaThrottledLatestProcessedCommit(
+            Vertx vertx,
+            KafkaConsumer<?, ?> consumer,
             KafkaSource<?, ?> source,
             int unprocessedRecordMaxAge,
             int autoCommitInterval) {
@@ -64,13 +65,16 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         this.source = source;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
         this.autoCommitInterval = autoCommitInterval;
+        this.vertx = vertx;
     }
 
     public static void clearCache() {
         TOPIC_PARTITIONS_CACHE.clear();
     }
 
-    public static KafkaThrottledLatestProcessedCommit create(KafkaConsumer<?, ?> consumer,
+    public static KafkaThrottledLatestProcessedCommit create(
+            Vertx vertx,
+            KafkaConsumer<?, ?> consumer,
             String groupId,
             KafkaConnectorIncomingConfiguration config,
             KafkaSource<?, ?> source) {
@@ -85,7 +89,8 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         } else {
             log.setThrottledCommitStrategyReceivedRecordMaxAge(groupId, unprocessedRecordMaxAge);
         }
-        return new KafkaThrottledLatestProcessedCommit(consumer, source, unprocessedRecordMaxAge, autoCommitInterval);
+        return new KafkaThrottledLatestProcessedCommit(vertx, consumer, source, unprocessedRecordMaxAge,
+                autoCommitInterval);
 
     }
 
@@ -101,9 +106,7 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     }
 
     @Override
-    public void partitionsAssigned(Context context, Set<TopicPartition> partitions) {
-        this.context = context;
-
+    public void partitionsAssigned(Set<TopicPartition> partitions) {
         offsetStores.clear();
 
         stopFlushAndCheckHealthTimer();
@@ -115,21 +118,23 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
 
     private void stopFlushAndCheckHealthTimer() {
         if (timerId != -1) {
-            context.owner().cancelTimer(timerId);
+            vertx.cancelTimer(timerId);
             timerId = -1;
         }
     }
 
     private void startFlushAndCheckHealthTimer() {
-        timerId = context
-                .owner()
-                .setTimer(autoCommitInterval, this::flushAndCheckHealth);
+        timerId = vertx.setTimer(autoCommitInterval, this::flushAndCheckHealth);
     }
 
     @Override
     public <K, V> IncomingKafkaRecord<K, V> received(IncomingKafkaRecord<K, V> record) {
         TopicPartition recordsTopicPartition = getTopicPartition(record);
         getOffsetStore(recordsTopicPartition).received(record.getOffset());
+
+        if (timerId < 0) {
+            startFlushAndCheckHealthTimer();
+        }
 
         return record;
     }
@@ -148,7 +153,7 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     @Override
     public <K, V> CompletionStage<Void> handle(final IncomingKafkaRecord<K, V> record) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        context.runOnContext(v -> {
+        vertx.runOnContext(v -> {
             offsetStores
                     .get(getTopicPartition(record))
                     .processed(record.getOffset());
@@ -163,8 +168,7 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
 
         if (!offsetsMapping.isEmpty()) {
             Map<TopicPartition, OffsetAndMetadata> offsets = offsetsMapping
-                    .entrySet()
-                    .stream()
+                    .entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getKey,
                             e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L)));
             consumer.getDelegate().commit(offsets, a -> this.startFlushAndCheckHealthTimer());
