@@ -2,13 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.OptionalLong;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +15,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
@@ -53,7 +48,8 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     private final int autoCommitInterval;
     private final Vertx vertx;
 
-    private long timerId = -1;
+    private Context context;
+    private volatile long timerId = -1;
 
     private KafkaThrottledLatestProcessedCommit(
             Vertx vertx,
@@ -153,7 +149,8 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     @Override
     public <K, V> CompletionStage<Void> handle(final IncomingKafkaRecord<K, V> record) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        vertx.runOnContext(v -> {
+        Context ctxt = getContext();
+        ctxt.runOnContext(v -> {
             offsetStores
                     .get(getTopicPartition(record))
                     .processed(record.getOffset());
@@ -163,26 +160,37 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
 
     }
 
+    private synchronized Context getContext() {
+        if (context == null) {
+            context = vertx.getOrCreateContext();
+        }
+        return context;
+    }
+
     private void flushAndCheckHealth(long timerId) {
-        Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
+        // The timer may be on another context, so make sure we are on the right one to access the store.
+        getContext().runOnContext(x -> {
+            Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
 
-        if (!offsetsMapping.isEmpty()) {
-            Map<TopicPartition, OffsetAndMetadata> offsets = offsetsMapping
-                    .entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey,
-                            e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L)));
-            consumer.getDelegate().commit(offsets, a -> this.startFlushAndCheckHealthTimer());
-        } else {
-            this.startFlushAndCheckHealthTimer();
-        }
+            if (!offsetsMapping.isEmpty()) {
+                Map<TopicPartition, OffsetAndMetadata> offsets = offsetsMapping
+                        .entrySet().stream()
+                        .collect(Collectors.toMap(Map.Entry::getKey,
+                                e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L)));
+                consumer.getDelegate().commit(offsets, a -> this.startFlushAndCheckHealthTimer());
+            } else {
+                this.startFlushAndCheckHealthTimer();
+            }
 
-        if (this.unprocessedRecordMaxAge > 0) {
-            offsetStores
-                    .values()
-                    .stream()
-                    .filter(OffsetStore::hasTooManyMessagesWithoutAck)
-                    .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
-        }
+            if (this.unprocessedRecordMaxAge > 0) {
+                offsetStores
+                        .values()
+                        .stream()
+                        .filter(OffsetStore::hasTooManyMessagesWithoutAck)
+                        .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
+            }
+        });
+
     }
 
     private static class OffsetReceivedAt {

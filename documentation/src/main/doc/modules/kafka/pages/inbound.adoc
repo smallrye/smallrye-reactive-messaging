@@ -77,9 +77,18 @@ include::example$inbound/KafkaMetadataExample.java[tags=code]
 If a message produced from a Kafka record is _acked_, a commit strategy is applied.
 The Kafka connector supports 3 strategies:
 
-* `latest` - Will commit to the latest offset received by the Kafka consumer. This offset may be greater than the currently _acked_ message. This strategy does not guarantee _at-least-once delivery_.
-* `ignore` - Performs no commit. Is the default when `enable.auto.commit` is `true`. This strategy provides _at-least-once delivery_ if the channel processes the message without performing any asynchronous operations and when `enable.auto.commit` is `true`.
-* `throttled` -  Will keep track of received messages and commit to the next offset after the latest _acked_ message in sequence. Will commit periodically as defined by `auto.commit.interval.ms` (default: 5000). This strategy mimics the behavior of the kafka consumer when `enable.auto.commit` is `true`. The connector will be marked as unhealthy in the presence of any received record that has gone too long without being processed as defined by `throttled.unprocessed-record-max-age.ms` (default: 60000). If `throttled.unprocessed-record-max-age.ms` is set to less than or equal to 0 then will not perform any health check (this might lead to running out of memory). This strategy guarantees _at-least-once delivery_ even if the channel performs asynchronous processing.
+* `latest` - Will commit the record offset received by the Kafka consumer (if higher than the previously committed offset).
+This strategy provides at-least-once delivery if the channel processes the message without performing  any asynchronous processing.
+This strategy should not be used on high-load as offset commit is expensive.
+* `ignore` - Performs no commit.
+Is the default when `enable.auto.commit` is `true`.
+This strategy provides _at-least-once delivery_ if the channel processes the message without performing any asynchronous operations and when `enable.auto.commit` is `true`.
+* `throttled` -  Will keep track of received messages and commit to the next offset after the latest _acked_ message in sequence.
+Will commit periodically as defined by `auto.commit.interval.ms` (default: 5000). T
+his strategy mimics the behavior of the kafka consumer when `enable.auto.commit` is `true`.
+The connector will be marked as unhealthy in the presence of any received record that has gone too long without being processed as defined by `throttled.unprocessed-record-max-age.ms` (default: 60000).
+If `throttled.unprocessed-record-max-age.ms` is set to less than or equal to 0 then will not perform any health check (this might lead to running out of memory).
+This strategy guarantees _at-least-once delivery_ even if the channel performs asynchronous processing.
 
 IMPORTANT: The Kafka connector disables the Kafka _auto commit_ is not explicitly enabled.
 This behavior differs from the traditional Kafka consumer.

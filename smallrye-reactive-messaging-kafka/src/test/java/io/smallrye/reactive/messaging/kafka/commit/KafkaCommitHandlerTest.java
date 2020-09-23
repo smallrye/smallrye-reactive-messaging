@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.commit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -12,6 +12,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -19,6 +20,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
@@ -49,6 +53,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
     public void testSourceWithAutoCommitEnabled() throws ExecutionException, TimeoutException, InterruptedException {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("group.id", "test-source-with-auto-commit-enabled")
+                .with(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
+                .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 500)
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
 
@@ -64,7 +70,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+        await().atMost(10, TimeUnit.SECONDS).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -76,7 +82,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         assertTrue(firstMessage.isPresent());
         CompletableFuture<Void> ackFuture = new CompletableFuture<>();
         firstMessage.get().ack().whenComplete((a, t) -> ackFuture.complete(null));
-        ackFuture.get(2, TimeUnit.MINUTES);
+        ackFuture.get(10, TimeUnit.SECONDS);
 
         admin = KafkaAdminHelper.createAdminClient(vertx, config).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
@@ -124,14 +130,9 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        Optional<IncomingKafkaRecord<String, Integer>> firstMessage = messages
-                .stream()
-                .map(m -> (IncomingKafkaRecord<String, Integer>) m)
-                .findFirst();
-
-        assertTrue(firstMessage.isPresent());
+        Message<?> last = messages.get(messages.size() - 1);
         CompletableFuture<Void> ackFuture = new CompletableFuture<>();
-        firstMessage.get().ack().whenComplete((a, t) -> ackFuture.complete(null));
+        last.ack().whenComplete((a, t) -> ackFuture.complete(null));
         ackFuture.get(2, TimeUnit.MINUTES);
 
         TopicPartition topicPartition = new TopicPartition(topic, 0);

@@ -352,7 +352,7 @@ public class KafkaSource<K, V> {
         KafkaCommitHandler.Strategy actualStrategy = KafkaCommitHandler.Strategy.from(strategy);
         switch (actualStrategy) {
             case LATEST:
-                return new KafkaLatestCommit(consumer);
+                return new KafkaLatestCommit(vertx, consumer);
             case IGNORE:
                 return new KafkaIgnoreCommit();
             case THROTTLED:
@@ -431,5 +431,14 @@ public class KafkaSource<K, V> {
         }
 
         // If health is disable do not add anything to the builder.
+    }
+
+    /**
+     * For testing purpose only
+     *
+     * @return get the underlying consumer.
+     */
+    public KafkaConsumer<K, V> getConsumer() {
+        return this.consumer;
     }
 }
