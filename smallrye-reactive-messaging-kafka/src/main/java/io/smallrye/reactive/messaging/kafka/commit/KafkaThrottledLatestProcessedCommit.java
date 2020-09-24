@@ -263,4 +263,9 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         }
     }
 
+    @Override
+    public void terminate() {
+        // TODO Force commit sync.
+        stopFlushAndCheckHealthTimer();
+    }
 }

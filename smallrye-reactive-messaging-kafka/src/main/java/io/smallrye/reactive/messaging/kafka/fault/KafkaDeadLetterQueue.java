@@ -76,4 +76,9 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                 .subscribeAsCompletionStage()
                 .thenCompose(m -> record.ack());
     }
+
+    @Override
+    public void terminate() {
+        producer.closeAndAwait();
+    }
 }

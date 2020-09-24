@@ -356,6 +356,8 @@ public class KafkaSource<K, V> {
 
     public void closeQuietly() {
         try {
+            this.commitHandler.terminate();
+            this.failureHandler.terminate();
             this.consumer.closeAndAwait();
         } catch (Throwable e) {
             log.exceptionOnClose(e);
