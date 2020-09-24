@@ -114,9 +114,6 @@ public class KafkaSource<K, V> {
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         commitHandler = createCommitHandler(kafkaConsumer, group, config, commitStrategy);
 
-        Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-        this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
-
         Optional<KafkaConsumerRebalanceListener> rebalanceListener = config
                 .getConsumerRebalanceListenerName()
                 .map(name -> {
@@ -190,10 +187,11 @@ public class KafkaSource<K, V> {
             kafkaConsumer.partitionsAssignedHandler(set -> commitHandler.partitionsAssigned(vertx.getOrCreateContext(), set));
         }
 
-        this.consumer = kafkaConsumer;
-
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
 
+        Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
+        this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
+        this.consumer = kafkaConsumer;
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> {
                     log.unableToReadRecord(topics, t);
