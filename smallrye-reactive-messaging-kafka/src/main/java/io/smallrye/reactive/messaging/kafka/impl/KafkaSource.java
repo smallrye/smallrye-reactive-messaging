@@ -98,18 +98,28 @@ public class KafkaSource<K, V> {
                         : KafkaCommitHandler.Strategy.LATEST.name());
 
         kafkaConfiguration.remove("channel-name");
+        kafkaConfiguration.remove("connector");
+        kafkaConfiguration.remove("health-enabled");
+        kafkaConfiguration.remove("health-readiness-enabled");
+        kafkaConfiguration.remove("tracing-enabled");
         kafkaConfiguration.remove("topic");
         kafkaConfiguration.remove("topics");
         kafkaConfiguration.remove("pattern");
         kafkaConfiguration.remove("connector");
         kafkaConfiguration.remove("retry");
         kafkaConfiguration.remove("retry-attempts");
+        kafkaConfiguration.remove("retry-max-wait");
         kafkaConfiguration.remove("broadcast");
         kafkaConfiguration.remove("partitions");
+        kafkaConfiguration.remove("failure-strategy");
         kafkaConfiguration.remove("commit-strategy");
+        kafkaConfiguration.remove("throttled.unprocessed-record-max-age.ms");
+        kafkaConfiguration.remove("dead-letter-queue.topic");
+        kafkaConfiguration.remove("dead-letter-queue.key.serializer");
+        kafkaConfiguration.remove("dead-letter-queue.value.serializer");
+        kafkaConfiguration.remove("partitions");
+        kafkaConfiguration.remove("cloud-events");
         kafkaConfiguration.remove("consumer-rebalance-listener.name");
-        kafkaConfiguration.remove("health.enabled");
-        kafkaConfiguration.remove("tracing-enabled");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         commitHandler = createCommitHandler(kafkaConsumer, group, config, commitStrategy);
@@ -192,7 +202,7 @@ public class KafkaSource<K, V> {
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration);
         } else {
             this.admin = null;
         }

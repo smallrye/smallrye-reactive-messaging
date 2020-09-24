@@ -99,7 +99,7 @@ public class KafkaSink {
 
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap);
         } else {
             this.admin = null;
         }
@@ -312,10 +312,21 @@ public class KafkaSink {
         kafkaConfiguration.remove("channel-name");
         kafkaConfiguration.remove("topic");
         kafkaConfiguration.remove("connector");
-        kafkaConfiguration.remove("partition");
-        kafkaConfiguration.remove("key");
-        kafkaConfiguration.remove("max-inflight-messages");
+        kafkaConfiguration.remove("health-enabled");
+        kafkaConfiguration.remove("health-readiness-enabled");
         kafkaConfiguration.remove("tracing-enabled");
+        kafkaConfiguration.remove("key");
+        kafkaConfiguration.remove("partition");
+        kafkaConfiguration.remove("max-inflight-messages");
+        kafkaConfiguration.remove("waitForWriteCompletion");
+        kafkaConfiguration.remove("cloud-events");
+        kafkaConfiguration.remove("cloud-events-source");
+        kafkaConfiguration.remove("cloud-events-type");
+        kafkaConfiguration.remove("cloud-events-subject");
+        kafkaConfiguration.remove("cloud-events-data-content-type");
+        kafkaConfiguration.remove("cloud-events-data-schema");
+        kafkaConfiguration.remove("cloud-events-insert-timestamp");
+        kafkaConfiguration.remove("cloud-events-mode");
         return kafkaConfiguration;
     }
 

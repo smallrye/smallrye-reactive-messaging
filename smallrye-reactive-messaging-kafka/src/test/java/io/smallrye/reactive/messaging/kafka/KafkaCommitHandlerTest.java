@@ -78,7 +78,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         firstMessage.get().ack().whenComplete((a, t) -> ackFuture.complete(null));
         ackFuture.get(2, TimeUnit.MINUTES);
 
-        admin = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(vertx, config).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
@@ -136,7 +136,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         TopicPartition topicPartition = new TopicPartition(topic, 0);
         CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-        admin = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(vertx, config).getDelegate();
         admin
                 .listConsumerGroupOffsets("test-source-with-auto-commit-disabled",
                         new ListConsumerGroupOffsetsOptions()
@@ -177,7 +177,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        admin = KafkaAdminHelper.createAdminClient(ic, vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(vertx, config).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
