@@ -20,6 +20,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
@@ -34,6 +35,15 @@ import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
+    KafkaSource<String, Integer> source;
+
+    @AfterEach
+    public void stopping() {
+        if (source != null) {
+            source.closeQuietly();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithStringDeserializer() {
@@ -42,7 +52,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -104,7 +114,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -162,7 +172,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", ByteArrayDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -217,7 +227,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", BufferDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -253,7 +263,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -291,7 +301,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -356,7 +366,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -421,7 +431,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -562,7 +572,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events", false);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -606,7 +616,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events", false);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();
@@ -652,7 +662,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = new ArrayList<>();

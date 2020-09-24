@@ -56,7 +56,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         runApplication(getKafkaSinkConfigForMyAppProcessingData(topic, topicIn), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(100, null,
+        usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
 
         await().until(() -> messages.size() >= 10);
@@ -72,7 +72,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
         runApplication(getKafkaSinkConfigForMyAppWithKafkaMetadata(topic), MyAppWithKafkaMetadata.class);
 
         AtomicInteger value = new AtomicInteger();
-        usage.produceIntegers(100, null,
+        usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>(topic, "a-key", value.getAndIncrement()));
 
         MyAppWithKafkaMetadata bean = get(MyAppWithKafkaMetadata.class);

@@ -32,9 +32,14 @@ import io.vertx.kafka.client.consumer.OffsetAndMetadata;
 public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     KafkaAdminClient admin;
+    private KafkaSource<String, Integer> source;
 
     @AfterEach
-    public void stopAdminClient() {
+    public void stopAll() {
+        if (source != null) {
+            source.closeQuietly();
+        }
+
         if (admin != null) {
             admin.close();
         }
@@ -47,7 +52,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
 
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx,
+        source = new KafkaSource<>(vertx,
                 "test-source-with-auto-commit-enabled",
                 ic,
                 getConsumerRebalanceListeners());
@@ -105,7 +110,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .with("commit-strategy", "latest");
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
+        source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
                 getConsumerRebalanceListeners());
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
@@ -157,7 +162,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .with("commit-strategy", "throttled");
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx,
+        source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic,
                 getConsumerRebalanceListeners());
 
@@ -216,7 +221,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .with("max.poll.records", "16");
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaSource<String, Integer> source = new KafkaSource<>(vertx,
+        source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit-without-acking", ic,
                 getConsumerRebalanceListeners());
 
