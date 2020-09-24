@@ -23,19 +23,19 @@ Type: _boolean_ | false | `true`
 
 | *cloud-events-data-content-type*
 
-_(cloud-events-default-data-content-type)_ | Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+_(cloud-events-default-data-content-type)_ | Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `datacontenttype` attribute itself
 
 Type: _string_ | false | 
 
 | *cloud-events-data-schema*
 
-_(cloud-events-default-data-schema)_ | Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+_(cloud-events-default-data-schema)_ | Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself
 
 Type: _string_ | false | 
 
 | *cloud-events-insert-timestamp*
 
-_(cloud-events-default-timestamp)_ | Whther or not the connector should insert automatically the `time` attribute` into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+_(cloud-events-default-timestamp)_ | Whether or not the connector should insert automatically the `time` attribute` into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself
 
 Type: _boolean_ | false | `true`
 
