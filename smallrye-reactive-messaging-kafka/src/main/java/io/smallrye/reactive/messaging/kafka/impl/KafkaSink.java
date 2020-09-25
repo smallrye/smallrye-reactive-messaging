@@ -356,7 +356,7 @@ public class KafkaSink {
             Set<String> topics;
             try {
                 topics = admin.listTopics()
-                        .await().atMost(Duration.ofSeconds(2));
+                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
                 if (topics.contains(topic)) {
                     builder.add(configuration.getChannel(), true);
                 } else {

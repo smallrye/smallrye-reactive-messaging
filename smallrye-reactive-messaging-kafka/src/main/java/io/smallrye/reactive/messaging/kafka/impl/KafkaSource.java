@@ -407,7 +407,7 @@ public class KafkaSource<K, V> {
             Set<String> existingTopics;
             try {
                 existingTopics = admin.listTopics()
-                        .await().atMost(Duration.ofSeconds(2));
+                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
                 if (pattern == null && existingTopics.containsAll(topics)) {
                     builder.add(configuration.getChannel(), true);
                 } else if (pattern != null) {
