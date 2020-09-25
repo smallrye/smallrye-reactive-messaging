@@ -28,10 +28,14 @@ public interface KafkaCommitHandler {
             }
             throw ex.illegalArgumentUnknownCommitStrategy(s);
         }
+
     }
 
     default <K, V> IncomingKafkaRecord<K, V> received(IncomingKafkaRecord<K, V> record) {
         return record;
+    }
+
+    default void terminate() {
     }
 
     default void partitionsAssigned(Context context, Set<TopicPartition> partitions) {

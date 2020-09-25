@@ -108,7 +108,7 @@ public class KafkaCloudEventHelper {
 
         String time = content.getString(CloudEventMetadata.CE_ATTRIBUTE_TIME);
         if (time != null) {
-            builder.withTimestamp(ZonedDateTime.parse(time));
+            builder.withTimestamp(ZonedDateTime.parse(time, RFC3339_DATE_FORMAT));
         }
 
         // Extensions
@@ -173,7 +173,8 @@ public class KafkaCloudEventHelper {
 
         String time = headers.remove(KAFKA_HEADER_FOR_TIME);
         if (time != null) {
-            builder.withTimestamp(ZonedDateTime.parse(time));
+            ZonedDateTime parse = ZonedDateTime.parse(time, RFC3339_DATE_FORMAT);
+            builder.withTimestamp(parse);
         }
 
         // Extensions

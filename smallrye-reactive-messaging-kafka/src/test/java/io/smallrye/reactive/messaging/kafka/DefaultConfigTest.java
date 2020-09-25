@@ -47,7 +47,7 @@ public class DefaultConfigTest extends KafkaTestBase {
         runApplication(getKafkaSinkConfigForMyAppProcessingData(topicOut, topicIn), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(100, null,
+        usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
 
         await().until(() -> messages.size() >= 10);

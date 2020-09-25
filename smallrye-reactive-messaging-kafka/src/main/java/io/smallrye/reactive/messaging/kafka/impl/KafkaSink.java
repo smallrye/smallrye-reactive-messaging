@@ -85,7 +85,6 @@ public class KafkaSink {
 
         this.configuration = config;
 
-        this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
         this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
                 && configuration.getCloudEventsSource().isPresent();
 
@@ -98,6 +97,8 @@ public class KafkaSink {
                     + StringSerializer.class.getName() + " must be used, found: "
                     + configuration.getValueSerializer());
         }
+
+        this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
 
         processor = new KafkaSenderProcessor(inflight, waitForWriteCompletion,
                 writeMessageToKafka());

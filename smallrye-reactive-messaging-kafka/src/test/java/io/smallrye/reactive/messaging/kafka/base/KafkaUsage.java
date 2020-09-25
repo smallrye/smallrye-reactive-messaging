@@ -52,7 +52,7 @@ public class KafkaUsage {
         } else {
             Properties props = new Properties();
             props.setProperty("bootstrap.servers", brokers);
-            props.setProperty("group.id", groupId);
+            props.setProperty("group.id", "usage-" + groupId);
             props.setProperty("enable.auto.commit", Boolean.FALSE.toString());
             if (autoOffsetReset != null) {
                 props.setProperty("auto.offset.reset",
@@ -60,7 +60,7 @@ public class KafkaUsage {
             }
 
             if (clientId != null) {
-                props.setProperty("client.id", clientId);
+                props.setProperty("client.id", "usage-" + clientId);
             }
 
             return props;
@@ -72,7 +72,7 @@ public class KafkaUsage {
         props.setProperty("bootstrap.servers", brokers);
         props.setProperty("acks", Integer.toString(1));
         if (clientId != null) {
-            props.setProperty("client.id", clientId);
+            props.setProperty("client.id", "usage-" + clientId);
         }
 
         return props;

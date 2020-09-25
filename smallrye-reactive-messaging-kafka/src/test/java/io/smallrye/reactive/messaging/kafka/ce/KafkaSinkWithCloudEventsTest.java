@@ -21,6 +21,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
@@ -35,6 +36,15 @@ import io.vertx.core.json.JsonObject;
 
 public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
+    KafkaSink sink;
+
+    @AfterEach
+    public void stopAll() {
+        if (sink != null) {
+            sink.closeQuietly();
+        }
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEvents() {
@@ -44,13 +54,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -91,13 +101,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Pet neo = new Pet();
@@ -137,13 +147,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         ZonedDateTime time = ZonedDateTime.now();
@@ -185,7 +195,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -230,13 +240,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -276,13 +286,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -318,13 +328,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello!");
@@ -356,13 +366,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -401,13 +411,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -441,13 +451,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -485,13 +495,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -530,13 +540,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -571,13 +581,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello!");
@@ -607,7 +617,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -641,13 +651,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("key", "my-key");
         config.put("cloud-events", false);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -675,13 +685,13 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
 
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
                 null, Collections.singletonList(topic), records::add);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
@@ -716,7 +726,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
                 null, Collections.singletonList(topic), records::add);
         addBeans(Source.class, Processing.class, Sender.class);
         runApplication(getConfigToSendStructuredCloudEvents());
@@ -742,7 +752,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
                 null, Collections.singletonList(topic), records::add);
         addBeans(Source.class, Processing.class, Sender.class);
         runApplication(getConfigToSendBinaryCloudEvents());
@@ -767,7 +777,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
                 null, Collections.singletonList(topic), records::add);
 
         addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
@@ -795,7 +805,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
         List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> true, null,
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
                 null, Collections.singletonList(topic), records::add);
 
         addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
