@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Named;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -28,9 +29,12 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.vertx.kafka.client.common.TopicPartition;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 /**
  * Kafka Source Concurrency Experiment:
@@ -53,6 +57,8 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
 
     private interface ExperimentBean {
         List<IncomingKafkaRecord<String, Integer>> getResults();
+
+        int getEventThreadCount();
     }
 
     private static void waitFor30SecondsOrAllRecordsProcessed(ExperimentBean bean) {
@@ -71,14 +77,22 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
 
         private final List<IncomingKafkaRecord<String, Integer>> list = new CopyOnWriteArrayList<>();
 
+        private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
+
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
             return list;
         }
 
+        @Override
+        public int getEventThreadCount() {
+            return threadsUsed.size();
+        }
+
         @Incoming("data")
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
             list.add(input);
+            threadsUsed.add(Thread.currentThread().getId());
             return input.ack();
         }
     }
@@ -93,14 +107,22 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
 
         private final List<IncomingKafkaRecord<String, Integer>> list = new CopyOnWriteArrayList<>();
 
+        private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
+
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
             return list;
         }
 
+        @Override
+        public int getEventThreadCount() {
+            return threadsUsed.size();
+        }
+
         @Incoming("data")
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
             list.add(input);
+            threadsUsed.add(Thread.currentThread().getId());
             waitFor30SecondsOrAllRecordsProcessed(this);
             return input.ack();
         }
@@ -119,13 +141,21 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
 
         private final Executor executor = Executors.newFixedThreadPool(8);
 
+        private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
+
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
             return list;
         }
 
+        @Override
+        public int getEventThreadCount() {
+            return threadsUsed.size();
+        }
+
         @Incoming("data")
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
+            threadsUsed.add(Thread.currentThread().getId());
             return CompletableFuture
                     .runAsync(() -> {
                         list.add(input);
@@ -148,9 +178,16 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
 
         private final Map<Integer, Executor> partitionExecutors = new ConcurrentHashMap<>();
 
+        private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
+
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
             return list;
+        }
+
+        @Override
+        public int getEventThreadCount() {
+            return threadsUsed.size();
         }
 
         private Executor getExecutor(int partition) {
@@ -165,6 +202,7 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
         @Incoming("data")
         @Acknowledgment(Acknowledgment.Strategy.NONE)
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
+            threadsUsed.add(Thread.currentThread().getId());
             CompletableFuture
                     .runAsync(() -> {
                         list.add(input);
@@ -195,7 +233,8 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
-        if (partitions > 0) {
+        builder.put("consumer-rebalance-listener.name", "ResetToZeroRebalanceListener");
+        if (partitions > 1) {
             builder.put("partitions", Integer.toString(partitions));
         }
 
@@ -219,21 +258,40 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
         T bean = run(
                 myKafkaSourceConfig(clientConsumerCount, topicName),
                 consumerBeanType);
+
+        ResetToZeroRebalanceListener listener = get(ResetToZeroRebalanceListener.class);
+
+        // we need two wait for all consumers to connect before producing
+        await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    assertEquals(clientConsumerCount, listener.getTopicPartitionsByThread().size());
+                    // if we have two client consumers then each event thread should be assigned one partition
+                    if (clientConsumerCount == 2) {
+                        listener.getTopicPartitionsByThread()
+                                .values()
+                                .forEach(topicPartitions -> assertEquals(1, topicPartitions.size()));
+                    }
+                });
+
         List<IncomingKafkaRecord<String, Integer>> list = bean.getResults();
         assertThat(list).isEmpty();
+
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(RECORD_COUNT, null,
                 () -> new ProducerRecord<>(topicName, String.valueOf(counter.get()), counter.getAndIncrement()))).start();
 
         await()
                 .atMost(25, TimeUnit.SECONDS)
-                .untilAsserted(() -> assertEquals(RECORD_COUNT, list.size()));
+                .untilAsserted(() -> assertEquals(RECORD_COUNT, list.size(), "records consumed"));
 
         Set<Integer> usedPartitions = new HashSet<>();
         list
                 .forEach(record -> {
                     assertTrue(usedPartitions.add(record.getPartition()));
                 });
+
+        assertEquals(clientConsumerCount, bean.getEventThreadCount(), "consumed in event threads");
     }
 
     /**
@@ -307,9 +365,33 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
     }
 
     private <T> T run(MapBasedConfig config, Class<T> beanType) {
-        addBeans(beanType);
+        addBeans(beanType, ResetToZeroRebalanceListener.class);
         runApplication(config);
         return get(beanType);
     }
 
+    @ApplicationScoped
+    @Named("ResetToZeroRebalanceListener")
+    public static class ResetToZeroRebalanceListener implements KafkaConsumerRebalanceListener {
+
+        private final Map<Long, Set<TopicPartition>> topicPartitionsByThread = new ConcurrentHashMap<>();
+
+        @Override
+        public Uni<Void> onPartitionsAssigned(KafkaConsumer<?, ?> consumer, Set<TopicPartition> topicPartitions) {
+            topicPartitionsByThread.put(Thread.currentThread().getId(), topicPartitions);
+            return consumer.seekToBeginning(topicPartitions);
+        }
+
+        @Override
+        public Uni<Void> onPartitionsRevoked(KafkaConsumer<?, ?> consumer, Set<TopicPartition> topicPartitions) {
+            topicPartitionsByThread.remove(Thread.currentThread().getId());
+            return Uni
+                    .createFrom()
+                    .nullItem();
+        }
+
+        public Map<Long, Set<TopicPartition>> getTopicPartitionsByThread() {
+            return topicPartitionsByThread;
+        }
+    }
 }
