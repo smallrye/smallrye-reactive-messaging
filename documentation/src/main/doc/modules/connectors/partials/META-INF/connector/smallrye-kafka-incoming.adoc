@@ -17,6 +17,14 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `true`
 
+| *health-readiness-enabled* | Whether readiness health reporting is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
+| *health-readiness-timeout* | During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.
+
+Type: _long_ | false | `2000`
+
 | *tracing-enabled* | Whether tracing is enabled (default) or disabled
 
 Type: _boolean_ | false | `true`

@@ -84,7 +84,6 @@ public class KafkaSink {
         int inflight = maxInflight;
 
         this.configuration = config;
-
         this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
                 && configuration.getCloudEventsSource().isPresent();
 
@@ -98,7 +97,12 @@ public class KafkaSink {
                     + configuration.getValueSerializer());
         }
 
-        this.admin = KafkaAdminHelper.createAdminClient(configuration, vertx, kafkaConfigurationMap);
+        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
+            // Do not create the client if the readiness health checks are disabled
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap);
+        } else {
+            this.admin = null;
+        }
 
         processor = new KafkaSenderProcessor(inflight, waitForWriteCompletion,
                 writeMessageToKafka());
@@ -125,10 +129,6 @@ public class KafkaSink {
                 Optional<OutgoingKafkaRecordMetadata<?>> om = getOutgoingKafkaRecordMetadata(message);
                 OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
                 String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
-                if (actualTopic == null) {
-                    log.ignoringNoTopicSet();
-                    return Uni.createFrom().item(() -> null);
-                }
 
                 ProducerRecord<?, ?> record;
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
@@ -312,10 +312,21 @@ public class KafkaSink {
         kafkaConfiguration.remove("channel-name");
         kafkaConfiguration.remove("topic");
         kafkaConfiguration.remove("connector");
-        kafkaConfiguration.remove("partition");
-        kafkaConfiguration.remove("key");
-        kafkaConfiguration.remove("max-inflight-messages");
+        kafkaConfiguration.remove("health-enabled");
+        kafkaConfiguration.remove("health-readiness-enabled");
         kafkaConfiguration.remove("tracing-enabled");
+        kafkaConfiguration.remove("key");
+        kafkaConfiguration.remove("partition");
+        kafkaConfiguration.remove("max-inflight-messages");
+        kafkaConfiguration.remove("waitForWriteCompletion");
+        kafkaConfiguration.remove("cloud-events");
+        kafkaConfiguration.remove("cloud-events-source");
+        kafkaConfiguration.remove("cloud-events-type");
+        kafkaConfiguration.remove("cloud-events-subject");
+        kafkaConfiguration.remove("cloud-events-data-content-type");
+        kafkaConfiguration.remove("cloud-events-data-schema");
+        kafkaConfiguration.remove("cloud-events-insert-timestamp");
+        kafkaConfiguration.remove("cloud-events-mode");
         return kafkaConfiguration;
     }
 
@@ -341,11 +352,11 @@ public class KafkaSink {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (configuration.getHealthEnabled()) {
+        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
             Set<String> topics;
             try {
                 topics = admin.listTopics()
-                        .await().atMost(Duration.ofSeconds(2));
+                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
                 if (topics.contains(topic)) {
                     builder.add(configuration.getChannel(), true);
                 } else {

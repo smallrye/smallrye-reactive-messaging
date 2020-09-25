@@ -98,18 +98,28 @@ public class KafkaSource<K, V> {
                         : KafkaCommitHandler.Strategy.LATEST.name());
 
         kafkaConfiguration.remove("channel-name");
+        kafkaConfiguration.remove("connector");
+        kafkaConfiguration.remove("health-enabled");
+        kafkaConfiguration.remove("health-readiness-enabled");
+        kafkaConfiguration.remove("tracing-enabled");
         kafkaConfiguration.remove("topic");
         kafkaConfiguration.remove("topics");
         kafkaConfiguration.remove("pattern");
         kafkaConfiguration.remove("connector");
         kafkaConfiguration.remove("retry");
         kafkaConfiguration.remove("retry-attempts");
+        kafkaConfiguration.remove("retry-max-wait");
         kafkaConfiguration.remove("broadcast");
         kafkaConfiguration.remove("partitions");
+        kafkaConfiguration.remove("failure-strategy");
         kafkaConfiguration.remove("commit-strategy");
+        kafkaConfiguration.remove("throttled.unprocessed-record-max-age.ms");
+        kafkaConfiguration.remove("dead-letter-queue.topic");
+        kafkaConfiguration.remove("dead-letter-queue.key.serializer");
+        kafkaConfiguration.remove("dead-letter-queue.value.serializer");
+        kafkaConfiguration.remove("partitions");
+        kafkaConfiguration.remove("cloud-events");
         kafkaConfiguration.remove("consumer-rebalance-listener.name");
-        kafkaConfiguration.remove("health.enabled");
-        kafkaConfiguration.remove("tracing-enabled");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
         commitHandler = createCommitHandler(kafkaConsumer, group, config, commitStrategy);
@@ -190,7 +200,12 @@ public class KafkaSource<K, V> {
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
 
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-        this.admin = KafkaAdminHelper.createAdminClient(this.configuration, vertx, adminConfiguration);
+        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
+            // Do not create the client if the readiness health checks are disabled
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration);
+        } else {
+            this.admin = null;
+        }
         this.consumer = kafkaConsumer;
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> {
@@ -388,11 +403,11 @@ public class KafkaSource<K, V> {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (configuration.getHealthEnabled()) {
+        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
             Set<String> existingTopics;
             try {
                 existingTopics = admin.listTopics()
-                        .await().atMost(Duration.ofSeconds(2));
+                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
                 if (pattern == null && existingTopics.containsAll(topics)) {
                     builder.add(configuration.getChannel(), true);
                 } else if (pattern != null) {

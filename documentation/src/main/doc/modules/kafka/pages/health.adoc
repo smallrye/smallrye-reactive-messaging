@@ -21,6 +21,13 @@ On the outbound side (writing records to Kafka), the readiness check verifies th
 * the broker is available
 * the Kafka topic is created (available in the broker).
 
+The readiness check uses a Kafka Admin Client to retrieve the existing topics.
+Retrieving the topics can be a lengthy operation.
+You can configure a timeout using the `health-readiness-timeout` attribute.
+The default timeout is set to 2 seconds.
+
+Also, you can disable the readiness check using by setting `health-readiness-enabled` to `false`.
+
 === Liveness
 
 On the inbound side (receiving records from Kafka), the liveness check verifies that:

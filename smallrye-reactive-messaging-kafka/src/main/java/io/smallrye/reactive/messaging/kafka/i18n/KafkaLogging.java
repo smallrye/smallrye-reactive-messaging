@@ -50,10 +50,6 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18207, value = "Unable to dispatch message to Kafka")
     void unableToDispatch(@Cause Throwable t);
 
-    @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 18208, value = "Ignoring message - no topic set")
-    void ignoringNoTopicSet();
-
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18209, value = "Sending message %s to Kafka topic '%s'")
     void sendingMessageToTopic(org.eclipse.microprofile.reactive.messaging.Message message, String topic);
