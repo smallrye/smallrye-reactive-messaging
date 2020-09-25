@@ -15,7 +15,6 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
-import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
@@ -36,7 +35,7 @@ import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
  * <p>
  * To use set `commit-strategy` to `throttled`.
  */
-public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
+public class KafkaThrottledLatestProcessedCommit extends ContextHolder implements KafkaCommitHandler {
 
     private static final Map<String, Map<Integer, TopicPartition>> TOPIC_PARTITIONS_CACHE = new ConcurrentHashMap<>();
 
@@ -46,9 +45,6 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
     private final KafkaSource<?, ?> source;
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
-    private final Vertx vertx;
-
-    private Context context;
     private volatile long timerId = -1;
 
     private KafkaThrottledLatestProcessedCommit(
@@ -57,11 +53,11 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
             KafkaSource<?, ?> source,
             int unprocessedRecordMaxAge,
             int autoCommitInterval) {
+        super(vertx);
         this.consumer = consumer;
         this.source = source;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
         this.autoCommitInterval = autoCommitInterval;
-        this.vertx = vertx;
     }
 
     public static void clearCache() {
@@ -101,6 +97,12 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
                 .computeIfAbsent(topicPartition, k -> new OffsetStore(k, unprocessedRecordMaxAge));
     }
 
+    /**
+     * New partitions are assigned.
+     * This method is called from a Vert.x event loop (the one used by the Kafka client)
+     *
+     * @param partitions the partitions
+     */
     @Override
     public void partitionsAssigned(Set<TopicPartition> partitions) {
         offsetStores.clear();
@@ -123,6 +125,15 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         timerId = vertx.setTimer(autoCommitInterval, this::flushAndCheckHealth);
     }
 
+    /**
+     * Received a new record from Kafka.
+     * This method is called from a Vert.x event loop.
+     *
+     * @param record the record
+     * @param <K> the key
+     * @param <V> the value
+     * @return the record
+     */
     @Override
     public <K, V> IncomingKafkaRecord<K, V> received(IncomingKafkaRecord<K, V> record) {
         TopicPartition recordsTopicPartition = getTopicPartition(record);
@@ -146,11 +157,21 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
         return offsetsMapping;
     }
 
+    /**
+     * A message has been acknowledged.
+     * This method is NOT necessarily called on an event loop.
+     * 
+     * @param record the record
+     * @param <K> the key
+     * @param <V> the value
+     * @return a completion stage indicating when the commit complete
+     */
     @Override
     public <K, V> CompletionStage<Void> handle(final IncomingKafkaRecord<K, V> record) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        Context ctxt = getContext();
-        ctxt.runOnContext(v -> {
+        // Be sure to run on the right context. The context has been store during the message reception
+        // or partition assignment.
+        runOnContext(() -> {
             offsetStores
                     .get(getTopicPartition(record))
                     .processed(record.getOffset());
@@ -160,36 +181,26 @@ public class KafkaThrottledLatestProcessedCommit implements KafkaCommitHandler {
 
     }
 
-    private synchronized Context getContext() {
-        if (context == null) {
-            context = vertx.getOrCreateContext();
-        }
-        return context;
-    }
-
     private void flushAndCheckHealth(long timerId) {
-        // The timer may be on another context, so make sure we are on the right one to access the store.
-        getContext().runOnContext(x -> {
-            Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
+        Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
 
-            if (!offsetsMapping.isEmpty()) {
-                Map<TopicPartition, OffsetAndMetadata> offsets = offsetsMapping
-                        .entrySet().stream()
-                        .collect(Collectors.toMap(Map.Entry::getKey,
-                                e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L)));
-                consumer.getDelegate().commit(offsets, a -> this.startFlushAndCheckHealthTimer());
-            } else {
-                this.startFlushAndCheckHealthTimer();
-            }
+        if (!offsetsMapping.isEmpty()) {
+            Map<TopicPartition, OffsetAndMetadata> offsets = offsetsMapping
+                    .entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey,
+                            e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L)));
+            consumer.getDelegate().commit(offsets, a -> this.startFlushAndCheckHealthTimer());
+        } else {
+            this.startFlushAndCheckHealthTimer();
+        }
 
-            if (this.unprocessedRecordMaxAge > 0) {
-                offsetStores
-                        .values()
-                        .stream()
-                        .filter(OffsetStore::hasTooManyMessagesWithoutAck)
-                        .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
-            }
-        });
+        if (this.unprocessedRecordMaxAge > 0) {
+            offsetStores
+                    .values()
+                    .stream()
+                    .filter(OffsetStore::hasTooManyMessagesWithoutAck)
+                    .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
+        }
 
     }
 
