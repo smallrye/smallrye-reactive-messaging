@@ -14,7 +14,7 @@ import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class Clients {
 
-    private static Map<String, ClientHolder> clients = new ConcurrentHashMap<>();
+    private static final Map<String, ClientHolder> clients = new ConcurrentHashMap<>();
 
     private Clients() {
         // avoid direct instantiation.
@@ -46,6 +46,7 @@ public class Clients {
      * Removed all the stored clients.
      */
     public static void clear() {
+        clients.forEach((name, holder) -> holder.close());
         clients.clear();
     }
 
@@ -67,6 +68,12 @@ public class Clients {
         public Uni<MqttClient> connect() {
             return connection
                     .map(ignored -> client);
+        }
+
+        public void close() {
+            if (client.isConnected()) {
+                client.disconnectAndAwait();
+            }
         }
 
         public Multi<MqttPublishMessage> stream() {
