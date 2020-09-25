@@ -10,13 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -109,6 +103,8 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
 
         private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
 
+        private final ExecutorService executor = Executors.newFixedThreadPool(2);
+
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
             return list;
@@ -123,8 +119,11 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
             list.add(input);
             threadsUsed.add(Thread.currentThread().getId());
-            waitFor30SecondsOrAllRecordsProcessed(this);
-            return input.ack();
+            executor.submit(() -> {
+                waitFor30SecondsOrAllRecordsProcessed(this);
+                input.ack();
+            });
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -156,12 +155,13 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
         @Incoming("data")
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
             threadsUsed.add(Thread.currentThread().getId());
-            return CompletableFuture
+            CompletableFuture
                     .runAsync(() -> {
                         list.add(input);
                         waitFor30SecondsOrAllRecordsProcessed(this);
                     },
                             executor);
+            return CompletableFuture.completedFuture(null);
         }
     }
 
