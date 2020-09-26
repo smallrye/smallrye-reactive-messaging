@@ -5,12 +5,19 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -71,7 +78,7 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
 
         private final List<IncomingKafkaRecord<String, Integer>> list = new CopyOnWriteArrayList<>();
 
-        private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
+        private final Set<Long> threadsUsed = Collections.synchronizedSet(new HashSet<>());
 
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
@@ -94,16 +101,19 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
     /**
      * Experiment bean that uses {@link Acknowledgment.Strategy.POST_PROCESSING}
      * <p>
-     * This tests an incoming channel with defaults
+     * The incoming method here returns a CompletableFuture.completedFuture(null) (fire and forget)
+     * It does all processing inside a worker thread (1 thread per partition).
+     * <p>
+     * This configuration CANNOT guarantee at-least once delivery when processing concurrently.
      */
     @ApplicationScoped
     public static class PostAckWith30SecondSleepBean implements ExperimentBean {
 
         private final List<IncomingKafkaRecord<String, Integer>> list = new CopyOnWriteArrayList<>();
 
-        private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
+        private final Set<Long> threadsUsed = Collections.synchronizedSet(new HashSet<>());
 
-        private final ExecutorService executor = Executors.newFixedThreadPool(2);
+        private final Map<Integer, ExecutorService> partitionExecutors = new ConcurrentHashMap<>();
 
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
@@ -115,32 +125,45 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
             return threadsUsed.size();
         }
 
+        private ExecutorService getExecutor(int partition) {
+            ExecutorService executor = partitionExecutors.get(partition);
+            if (executor == null) {
+                executor = Executors.newSingleThreadExecutor((r) -> new Thread(r, "worker-partition-" + partition));
+                partitionExecutors.put(partition, executor);
+            }
+            return executor;
+        }
+
         @Incoming("data")
+        @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
-            list.add(input);
             threadsUsed.add(Thread.currentThread().getId());
-            executor.submit(() -> {
+            getExecutor(input.getPartition()).submit(() -> {
+                list.add(input);
                 waitFor30SecondsOrAllRecordsProcessed(this);
-                input.ack();
+                // we don't ack the input since with POST_PROCESSING that is taken care of for us
             });
             return CompletableFuture.completedFuture(null);
         }
     }
 
     /**
-     * Experiment bean that uses {@link Acknowledgment.Strategy.POST_PROCESSING}
+     * Experiment bean that uses {@link Acknowledgment.Strategy.MANUAL}
      * <p>
-     * This tests an incoming channel with defaults
-     * This tests processing in a worker thread
+     * The incoming method here returns a CompletableFuture.completedFuture(null) (fire and forget)
+     * It does all processing inside a worker thread (1 thread per partition).
+     * <p>
+     * To guarantee at-least once delivery we must configure the connector to not use kafka's auto commit,
+     * use the throttled commit strategy and ack withing the worker thread after processing.
      */
     @ApplicationScoped
-    public static class PostAckWithWorkerThreadWith30SecondSleepBean implements ExperimentBean {
+    public static class ManualAckWith30SecondSleepBean implements ExperimentBean {
 
         private final List<IncomingKafkaRecord<String, Integer>> list = new CopyOnWriteArrayList<>();
 
-        private final Executor executor = Executors.newFixedThreadPool(8);
-
         private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
+
+        private final Map<Integer, ExecutorService> partitionExecutors = new ConcurrentHashMap<>();
 
         @Override
         public List<IncomingKafkaRecord<String, Integer>> getResults() {
@@ -152,15 +175,24 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
             return threadsUsed.size();
         }
 
+        private ExecutorService getExecutor(int partition) {
+            ExecutorService executor = partitionExecutors.get(partition);
+            if (executor == null) {
+                executor = Executors.newSingleThreadExecutor((r) -> new Thread(r, "worker-partition-" + partition));
+                partitionExecutors.put(partition, executor);
+            }
+            return executor;
+        }
+
         @Incoming("data")
+        @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
             threadsUsed.add(Thread.currentThread().getId());
-            CompletableFuture
-                    .runAsync(() -> {
-                        list.add(input);
-                        waitFor30SecondsOrAllRecordsProcessed(this);
-                    },
-                            executor);
+            getExecutor(input.getPartition()).submit(() -> {
+                list.add(input);
+                waitFor30SecondsOrAllRecordsProcessed(this);
+                input.ack(); // the spec requires us to ack the input when using MANUAL
+            });
             return CompletableFuture.completedFuture(null);
         }
     }
@@ -170,13 +202,16 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
      * <p>
      * The incoming method here returns a CompletableFuture.completedFuture(null) (fire and forget)
      * It does all processing inside a worker thread (1 thread per partition).
+     * <p>
+     * To guarantee at-least once delivery we must configure the connector to not use kafka's auto commit,
+     * use the throttled commit strategy and ack withing the worker thread after processing.
      */
     @ApplicationScoped
     public static class NoneAckWith30SecondSleepBean implements ExperimentBean {
 
         private final List<IncomingKafkaRecord<String, Integer>> list = new CopyOnWriteArrayList<>();
 
-        private final Map<Integer, Executor> partitionExecutors = new ConcurrentHashMap<>();
+        private final Map<Integer, ExecutorService> partitionExecutors = new ConcurrentHashMap<>();
 
         private final Set<Long> threadsUsed = ConcurrentHashMap.newKeySet();
 
@@ -190,8 +225,8 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
             return threadsUsed.size();
         }
 
-        private Executor getExecutor(int partition) {
-            Executor executor = partitionExecutors.get(partition);
+        private ExecutorService getExecutor(int partition) {
+            ExecutorService executor = partitionExecutors.get(partition);
             if (executor == null) {
                 executor = Executors.newSingleThreadExecutor((r) -> new Thread(r, "worker-partition-" + partition));
                 partitionExecutors.put(partition, executor);
@@ -203,13 +238,12 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
         @Acknowledgment(Acknowledgment.Strategy.NONE)
         public CompletionStage<Void> process(IncomingKafkaRecord<String, Integer> input) {
             threadsUsed.add(Thread.currentThread().getId());
-            CompletableFuture
-                    .runAsync(() -> {
+            getExecutor(input.getPartition())
+                    .submit(() -> {
                         list.add(input);
                         waitFor30SecondsOrAllRecordsProcessed(this);
-                        input.ack();
-                    },
-                            getExecutor(input.getPartition()));
+                        input.ack(); //with NONE we can ack if we want to.
+                    });
             return CompletableFuture.completedFuture(null);
         }
     }
@@ -232,6 +266,7 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
+        builder.put("commit-strategy", "throttled");
         builder.put("topic", topic);
         builder.put("consumer-rebalance-listener.name", "ResetToZeroRebalanceListener");
         if (partitions > 1) {
@@ -291,7 +326,10 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
                     assertTrue(usedPartitions.add(record.getPartition()));
                 });
 
-        assertEquals(clientConsumerCount, bean.getEventThreadCount(), "consumed in event threads");
+        await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> assertEquals(clientConsumerCount, bean.getEventThreadCount(), "consumed in event threads"));
     }
 
     /**
@@ -335,14 +373,15 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
     }
 
     /**
-     * Test incoming channel with defaults
+     * Test incoming channel with {@link Acknowledgment.Strategy.POST_PROCESSING}
      * <p>
      * consumer count: 2
      * <p>
-     * results: FAIL
+     * results: PASS
      * <p>
-     * With the default ack {@link Acknowledgment.Strategy.POST_PROCESSING} it looks
-     * like records are only delivered in series irrespective of consumer count.
+     * With the default ack {@link Acknowledgment.Strategy.POST_PROCESSING} the test will pass
+     * IF AND ONLY IF we process in a worker thread AND return CompletableFuture.completedFuture(null).
+     * But we LOSE at-least once delivery.
      */
     @Test
     void testPostAck30SecondSleep() {
@@ -350,18 +389,39 @@ class KafkaSourceConcurrencyTest extends KafkaTestBase {
     }
 
     /**
-     * Test incoming channel with defaults and processing in a worker thread
+     * Test incoming channel with {@link Acknowledgment.Strategy.MANUAL}
      * <p>
      * consumer count: 2
      * <p>
-     * results: FAIL
+     * results: PASS
      * <p>
-     * With the default ack {@link Acknowledgment.Strategy.POST_PROCESSING} it looks
-     * like records are only delivered in series irrespective of consumer count.
+     * With the default ack {@link Acknowledgment.Strategy.POST_PROCESSING} the test will pass
+     * IF AND ONLY IF we process in a worker thread AND return CompletableFuture.completedFuture(null).
+     * We WILL NOT LOSE at-least once delivery.
      */
     @Test
-    void testPostAckWorkerThread30SecondSleep() {
-        test(PostAckWithWorkerThreadWith30SecondSleepBean.class, 2);
+    void testManualAck30SecondSleep() {
+        test(ManualAckWith30SecondSleepBean.class, 2);
+    }
+
+    /**
+     * Test incoming channel with {@link Acknowledgment.Strategy.MANUAL}
+     * <p>
+     * consumer count: 2
+     * <p>
+     * results: PASS
+     * <p>
+     * With the default ack {@link Acknowledgment.Strategy.POST_PROCESSING} the test will pass
+     * IF AND ONLY IF we process in a worker thread AND return CompletableFuture.completedFuture(null).
+     * We WILL NOT LOSE at-least once delivery.
+     * <p>
+     * This result is interesting. It shows that we can design a processor that is decoupled from the consumer.
+     * We can have 1 consumer/client but still have a thread per partition that processes records in order
+     * and sequentially per partition.
+     */
+    @Test
+    void testManualAck30SecondSleepWithSingleClientConsumer() {
+        test(ManualAckWith30SecondSleepBean.class, 1);
     }
 
     private <T> T run(MapBasedConfig config, Class<T> beanType) {
