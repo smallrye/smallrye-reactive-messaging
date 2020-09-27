@@ -7,7 +7,6 @@ import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.mutiny.core.Context;
 
 public interface KafkaCommitHandler {
 
@@ -36,9 +35,10 @@ public interface KafkaCommitHandler {
     }
 
     default void terminate() {
+        // Do nothing by default.
     }
 
-    default void partitionsAssigned(Context context, Set<TopicPartition> partitions) {
+    default void partitionsAssigned(Set<TopicPartition> partitions) {
 
     }
 
