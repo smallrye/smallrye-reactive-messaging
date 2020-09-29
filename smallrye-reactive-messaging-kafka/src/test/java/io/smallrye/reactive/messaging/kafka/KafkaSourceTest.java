@@ -288,7 +288,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 () -> new ProducerRecord<>("data-2", counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
-        assertThat(list).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        assertThat(list).containsOnly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         List<KafkaRecord<String, Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
