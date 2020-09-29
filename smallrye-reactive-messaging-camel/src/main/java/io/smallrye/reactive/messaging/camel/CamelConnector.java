@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.camel;
 import static io.smallrye.reactive.messaging.camel.i18n.CamelExceptions.ex;
 import static io.smallrye.reactive.messaging.camel.i18n.CamelLogging.log;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
@@ -45,24 +44,38 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Produces
     public CamelReactiveStreamsService getCamelReactive() {
-        return reactive;
-    }
+        if (this.reactive != null) {
+            return this.reactive;
+        }
 
-    @PostConstruct
-    @Inject
-    public void init() {
-        DefaultCamelReactiveStreamsServiceFactory factory = new DefaultCamelReactiveStreamsServiceFactory();
-        ReactiveStreamsEngineConfiguration configuration = new ReactiveStreamsEngineConfiguration();
+        CamelReactiveStreamsService service = camel.hasService(CamelReactiveStreamsService.class);
+        if (service != null) {
+            log.camelReactiveStreamsServiceAlreadyDefined();
+            this.reactive = service;
+            return service;
+        } else {
+            DefaultCamelReactiveStreamsServiceFactory factory = new DefaultCamelReactiveStreamsServiceFactory();
+            ReactiveStreamsEngineConfiguration configuration = new ReactiveStreamsEngineConfiguration();
 
-        Config config = ConfigProvider.getConfig();
-        config.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-max-size",
-                Integer.class).ifPresent(configuration::setThreadPoolMaxSize);
-        config.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-min-size",
-                Integer.class).ifPresent(configuration::setThreadPoolMinSize);
-        config.getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-name",
-                String.class).ifPresent(configuration::setThreadPoolName);
-
-        this.reactive = factory.newInstance(camel, configuration);
+            Config config = ConfigProvider.getConfig();
+            config.getOptionalValue(
+                    "camel.component.reactive-streams.internal-engine-configuration.thread-pool-max-size",
+                    Integer.class).ifPresent(configuration::setThreadPoolMaxSize);
+            config.getOptionalValue(
+                    "camel.component.reactive-streams.internal-engine-configuration.thread-pool-min-size",
+                    Integer.class).ifPresent(configuration::setThreadPoolMinSize);
+            config
+                    .getOptionalValue("camel.component.reactive-streams.internal-engine-configuration.thread-pool-name",
+                            String.class)
+                    .ifPresent(configuration::setThreadPoolName);
+            this.reactive = factory.newInstance(camel, configuration);
+            try {
+                this.camel.addService(this.reactive, true, true);
+            } catch (Exception e) {
+                throw ex.unableToRegisterService(e);
+            }
+            return reactive;
+        }
     }
 
     @Override
@@ -77,10 +90,10 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
             // The endpoint is a reactive streams.
             name = name.substring(REACTIVE_STREAMS_SCHEME.length());
             log.creatingPublisherFromStream(name);
-            publisher = reactive.fromStream(name);
+            publisher = getCamelReactive().fromStream(name);
         } else {
             log.creatingPublisherFromEndpoint(name);
-            publisher = reactive.from(name);
+            publisher = getCamelReactive().from(name);
         }
 
         return ReactiveStreams.fromPublisher(publisher)
@@ -98,12 +111,12 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
             log.creatingSubscriberFromStream(name);
             subscriber = ReactiveStreams.<Message<?>> builder()
                     .map(this::createExchangeFromMessage)
-                    .to(reactive.streamSubscriber(name));
+                    .to(getCamelReactive().streamSubscriber(name));
         } else {
             log.creatingSubscriberFromEndpoint(name);
             subscriber = ReactiveStreams.<Message<?>> builder()
                     .map(this::createExchangeFromMessage)
-                    .to(reactive.subscriber(name));
+                    .to(getCamelReactive().subscriber(name));
         }
         return subscriber;
     }

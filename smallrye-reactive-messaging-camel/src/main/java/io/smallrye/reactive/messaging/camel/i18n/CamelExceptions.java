@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.camel.i18n;
 
 import org.jboss.logging.Messages;
+import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
@@ -17,5 +18,8 @@ public interface CamelExceptions {
 
     @Message(id = 17600, value = "Unknown failure strategy: %s")
     IllegalArgumentException illegalArgumentUnknownStrategy(CamelFailureHandler.Strategy strategy);
+
+    @Message(id = 17601, value = "Unable to register CamelReactiveStreamsService service")
+    IllegalStateException unableToRegisterService(@Cause Throwable cause);
 
 }
