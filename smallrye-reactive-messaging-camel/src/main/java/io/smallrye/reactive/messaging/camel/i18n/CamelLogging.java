@@ -48,4 +48,7 @@ public interface CamelLogging extends BasicLogger {
     @Message(id = 17807, value = "A message sent to channel `%s` has been nacked, fail-stop")
     void messageNackedFailStop(String channel);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 17808, value = "The Camel Reactive Stream Service is already defined, skipping configuration")
+    void camelReactiveStreamsServiceAlreadyDefined();
 }
