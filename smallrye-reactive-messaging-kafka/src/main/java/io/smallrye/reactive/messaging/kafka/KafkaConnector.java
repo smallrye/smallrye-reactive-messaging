@@ -104,6 +104,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Inject
     Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
 
+    @Inject
+    KafkaCDIEvents kafkaCDIEvents;
+
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
 
@@ -144,7 +147,8 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         });
 
         if (partitions == 1) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
+                    kafkaCDIEvents);
             sources.add(source);
 
             boolean broadcast = ic.getBroadcast();
@@ -158,7 +162,8 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         // create an instance of source per partitions.
         List<Publisher<IncomingKafkaRecord<Object, Object>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
+                    kafkaCDIEvents);
             sources.add(source);
             streams.add(source.getStream());
         }
@@ -179,7 +184,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             c = merge(config, defaultKafkaConfiguration.get());
         }
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        KafkaSink sink = new KafkaSink(vertx, oc, kafkaCDIEvents);
         sinks.add(sink);
         return sink.getSink();
     }

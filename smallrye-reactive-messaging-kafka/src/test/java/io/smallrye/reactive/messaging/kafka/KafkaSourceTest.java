@@ -54,7 +54,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -78,7 +78,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         createTopic(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -102,7 +102,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
 
         List<KafkaRecord> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -123,11 +123,16 @@ public class KafkaSourceTest extends KafkaTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true);
+
+        CountKafkaCdiEvents testEvents = new CountKafkaCdiEvents();
+
         connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
+        connector.kafkaCDIEvents = testEvents;
         connector.init();
+
         PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
                 .getPublisherBuilder(config);
 
@@ -147,6 +152,9 @@ public class KafkaSourceTest extends KafkaTestBase {
                         5, 6, 7, 8, 9);
         assertThat(messages2.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        assertThat(testEvents.firedConsumerEvents.sum()).isEqualTo(1);
+        assertThat(testEvents.firedProducerEvents.sum()).isEqualTo(0);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -162,7 +170,9 @@ public class KafkaSourceTest extends KafkaTestBase {
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
+        connector.kafkaCDIEvents = new CountKafkaCdiEvents();
         connector.init();
+
         PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
                 .getPublisherBuilder(config);
 
@@ -194,7 +204,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("retry-max-wait", 30);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
         List<KafkaRecord> messages1 = new ArrayList<>();
         source.getStream().subscribe().with(messages1::add);
 
@@ -402,7 +412,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -468,7 +478,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("sasl.mechanism", ""); //optional configuration
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
@@ -61,7 +62,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         source = new KafkaSource<>(vertx,
                 "test-source-with-auto-commit-enabled",
                 ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -117,7 +119,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -165,7 +167,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -224,7 +227,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit-without-acking", ic,
-                getConsumerRebalanceListeners());
+                getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);

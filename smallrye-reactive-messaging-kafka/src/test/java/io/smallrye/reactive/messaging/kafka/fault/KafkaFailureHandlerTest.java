@@ -11,11 +11,15 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
@@ -45,6 +49,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(bean.list()).containsExactly(0, 1, 2, 3);
 
         await().until(() -> !isAlive());
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(0);
     }
 
     @Test
@@ -63,6 +70,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(bean.list()).containsExactly(0, 1, 2, 3);
 
         await().until(() -> !isAlive());
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(0);
     }
 
     @Test
@@ -79,6 +89,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
         assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(0);
     }
 
     @Test
@@ -95,6 +108,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
         assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(0);
     }
 
     @Test
@@ -125,6 +141,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         });
 
         assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
     }
 
     @Test
@@ -157,6 +176,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         });
 
         assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
     }
 
     @Test
@@ -188,6 +210,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         });
 
         assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
     }
 
     private MapBasedConfig getFailConfig(String topic) {
@@ -245,6 +270,17 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
     public static class MyReceiverBean {
         private final List<Integer> received = new ArrayList<>();
 
+        private final LongAdder observedConsumerEvents = new LongAdder();
+        private final LongAdder observedProducerEvents = new LongAdder();
+
+        public void afterConsumerCreated(@Observes Consumer<?, ?> consumer) {
+            observedConsumerEvents.increment();
+        }
+
+        public void afterProducerCreated(@Observes Producer<?, ?> producer) {
+            observedProducerEvents.increment();
+        }
+
         @Incoming("kafka")
         public CompletionStage<Void> process(KafkaRecord<String, Integer> record) {
             Integer payload = record.getPayload();
@@ -259,11 +295,28 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             return received;
         }
 
+        public long consumers() {
+            return observedConsumerEvents.sum();
+        }
+
+        public long producers() {
+            return observedProducerEvents.sum();
+        }
     }
 
     @ApplicationScoped
     public static class MyReceiverBeanUsingPayload {
         private final List<Integer> received = new ArrayList<>();
+        private final LongAdder observedConsumerEvents = new LongAdder();
+        private final LongAdder observedProducerEvents = new LongAdder();
+
+        public void afterConsumerCreated(@Observes Consumer<?, ?> consumer) {
+            observedConsumerEvents.increment();
+        }
+
+        public void afterProducerCreated(@Observes Producer<?, ?> producer) {
+            observedProducerEvents.increment();
+        }
 
         @Incoming("kafka")
         public Uni<Void> process(int value) {
@@ -278,5 +331,12 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             return received;
         }
 
+        public long consumers() {
+            return observedConsumerEvents.sum();
+        }
+
+        public long producers() {
+            return observedProducerEvents.sum();
+        }
     }
 }

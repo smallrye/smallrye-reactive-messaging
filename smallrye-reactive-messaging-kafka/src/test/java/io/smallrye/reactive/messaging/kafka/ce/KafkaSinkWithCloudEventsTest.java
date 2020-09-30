@@ -54,7 +54,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -101,7 +101,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -147,7 +147,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -195,7 +195,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -228,7 +228,8 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
 
-        assertThatThrownBy(() -> new KafkaSink(vertx, oc)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -240,7 +241,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -286,7 +287,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -328,7 +329,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -366,7 +367,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -411,7 +412,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -451,7 +452,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -495,7 +496,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -540,7 +541,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -581,7 +582,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -617,7 +618,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -651,7 +652,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("key", "my-key");
         config.put("cloud-events", false);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();
@@ -685,7 +686,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Deserializer<String> keyDes = new StringDeserializer();
         String randomId = UUID.randomUUID().toString();

@@ -24,6 +24,7 @@ import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
@@ -54,7 +55,8 @@ public class KafkaSource<K, V> {
     public KafkaSource(Vertx vertx,
             String group,
             KafkaConnectorIncomingConfiguration config,
-            Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners) {
+            Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
+            KafkaCDIEvents kafkaCDIEvents) {
 
         topics = getTopics(config);
 
@@ -122,6 +124,10 @@ public class KafkaSource<K, V> {
         kafkaConfiguration.remove("consumer-rebalance-listener.name");
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
+
+        // fire consumer event (e.g. bind metrics)
+        kafkaCDIEvents.consumer().fire(kafkaConsumer.getDelegate().unwrap());
+
         commitHandler = createCommitHandler(vertx, kafkaConsumer, group, config, commitStrategy);
 
         Optional<KafkaConsumerRebalanceListener> rebalanceListener = config
@@ -197,7 +203,8 @@ public class KafkaSource<K, V> {
             kafkaConsumer.partitionsAssignedHandler(commitHandler::partitionsAssigned);
         }
 
-        failureHandler = createFailureHandler(config, vertx, kafkaConfiguration);
+        failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
+
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
@@ -327,7 +334,7 @@ public class KafkaSource<K, V> {
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config, Vertx vertx,
-            Map<String, String> kafkaConfiguration) {
+            Map<String, String> kafkaConfiguration, KafkaCDIEvents kafkaCDIEvents) {
         String strategy = config.getFailureStrategy();
         KafkaFailureHandler.Strategy actualStrategy = KafkaFailureHandler.Strategy.from(strategy);
         switch (actualStrategy) {
@@ -336,7 +343,7 @@ public class KafkaSource<K, V> {
             case IGNORE:
                 return new KafkaIgnoreFailure(config.getChannel());
             case DEAD_LETTER_QUEUE:
-                return KafkaDeadLetterQueue.create(vertx, kafkaConfiguration, config, this);
+                return KafkaDeadLetterQueue.create(vertx, kafkaConfiguration, config, this, kafkaCDIEvents);
             default:
                 throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }

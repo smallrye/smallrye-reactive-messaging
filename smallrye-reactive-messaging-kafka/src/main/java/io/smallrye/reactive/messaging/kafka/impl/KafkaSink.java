@@ -30,6 +30,7 @@ import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
@@ -56,7 +57,7 @@ public class KafkaSink {
     private final boolean writeCloudEvents;
     private final boolean mandatoryCloudEventAttributeSet;
 
-    public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
+    public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
 
         Map<String, Object> kafkaConfigurationMap = kafkaConfiguration.getMap();
@@ -67,8 +68,10 @@ public class KafkaSink {
             } else {
                 log.unableToWrite(config.getChannel(), e);
             }
-
         });
+
+        // fire producer event (e.g. bind metrics)
+        kafkaCDIEvents.producer().fire(stream.unwrap());
 
         partition = config.getPartition();
         retries = config.getRetries();
