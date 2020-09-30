@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
@@ -56,7 +57,8 @@ public class CommitStrategiesTest extends WeldTestBase {
     void testLatestCommitStrategy() {
         MapBasedConfig config = commonConfiguration();
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners());
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -145,7 +147,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners());
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -204,7 +207,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         config.with("consumer-rebalance-listener.name", "my-missing-name");
         assertThatThrownBy(() -> {
             new KafkaSource<>(vertx, "my-group",
-                    new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners());
+                    new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                    CountKafkaCdiEvents.noCdiEvents);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -215,7 +219,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         config.with("consumer-rebalance-listener.name", "mine");
         assertThatThrownBy(() -> {
             new KafkaSource<>(vertx, "my-group",
-                    new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners());
+                    new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                    CountKafkaCdiEvents.noCdiEvents);
         }).isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }
 
@@ -225,7 +230,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         MapBasedConfig config = commonConfiguration();
         config.with("consumer-rebalance-listener.name", "mine");
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners());
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents);
 
         injectMockConsumer(source, consumer);
 

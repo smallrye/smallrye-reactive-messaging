@@ -9,6 +9,7 @@ import java.util.concurrent.CompletionStage;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
@@ -31,7 +32,8 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     }
 
     public static KafkaFailureHandler create(Vertx vertx,
-            Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source) {
+            Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source,
+            KafkaCDIEvents kafkaCDIEvents) {
         Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
 
         String keyDeserializer = deadQueueProducerConfig.remove("key.deserializer");
@@ -48,6 +50,9 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
         KafkaProducer<Object, Object> producer = io.vertx.mutiny.kafka.client.producer.KafkaProducer
                 .create(vertx, deadQueueProducerConfig);
+
+        // fire producer event (e.g. bind metrics)
+        kafkaCDIEvents.producer().fire(producer.getDelegate().unwrap());
 
         return new KafkaDeadLetterQueue(conf.getChannel(), deadQueueTopic, producer, source);
 

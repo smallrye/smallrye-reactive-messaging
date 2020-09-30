@@ -61,7 +61,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 10)
@@ -87,7 +87,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partition", 0);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 10)
@@ -114,7 +114,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 10)
@@ -229,7 +229,8 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("failure-strategy", "ignore")
                 .with("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
+        sink = new KafkaSink(vertx, oc, testCdiEvents);
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -262,6 +263,9 @@ public class KafkaSinkTest extends KafkaTestBase {
         await().until(() -> nacked.size() >= 2);
         assertThat(acked).containsExactly(0, 1, 2, 4);
         assertThat(nacked).contains("3", "5");
+
+        assertThat(testCdiEvents.firedConsumerEvents.sum()).isEqualTo(0);
+        assertThat(testCdiEvents.firedProducerEvents.sum()).isEqualTo(1);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -281,7 +285,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(vertx, oc);
+        sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
 
         Subscriber subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 5)

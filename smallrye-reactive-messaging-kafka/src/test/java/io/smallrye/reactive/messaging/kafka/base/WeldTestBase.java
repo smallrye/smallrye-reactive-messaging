@@ -22,6 +22,7 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 
@@ -48,6 +49,7 @@ public class WeldTestBase {
         weld.addBeanClass(HealthCenter.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
+        weld.addBeanClass(KafkaCDIEvents.class);
         weld.addBeanClass(KafkaConnector.class);
         weld.disableDiscovery();
     }
