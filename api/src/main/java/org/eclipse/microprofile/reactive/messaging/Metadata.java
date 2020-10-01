@@ -86,14 +86,13 @@ public class Metadata implements Iterable<Object> {
     }
 
     private static Set<Object> addMetadataToSet(Iterable<Object> iterable) {
-        Set<Object> set = new LinkedHashSet<>();
+        Set<Object> set = new HashSet<>();
         for (Object meta : iterable) {
             if (meta == null) {
                 throw new IllegalArgumentException("One of the item is `null`");
             }
             // Ensure that the class is not used.
-            Optional<Object> contained = contains(set, meta);
-            if (contained.isPresent()) {
+            if (contains(set, meta)) {
                 throw new IllegalArgumentException("Duplicated metadata detected: " + meta.getClass().getName());
             }
             set.add(meta);
@@ -101,8 +100,26 @@ public class Metadata implements Iterable<Object> {
         return set;
     }
 
-    private static Optional<Object> contains(Set<Object> set, Object meta) {
-        return set.stream().filter(o -> o.getClass().equals(meta.getClass())).findAny();
+    private static boolean contains(Set<Object> set, Object meta) {
+        Class<?> clazz = meta.getClass();
+        for (Object o : set) {
+            if (o.getClass().equals(clazz)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void replaceOrAdd(Set<Object> set, Object meta) {
+        Class<?> clazz = meta.getClass();
+        for (Object o : set) {
+            if (o.getClass().equals(clazz)) {
+                set.remove(o);
+                set.add(meta);
+                return;
+            }
+        }
+        set.add(meta);
     }
 
     /**
@@ -117,9 +134,8 @@ public class Metadata implements Iterable<Object> {
         if (meta == null) {
             throw new IllegalArgumentException("`meta` must not be `null`");
         }
-        Set<Object> copy = new LinkedHashSet<>(backend);
-        contains(backend, meta).ifPresent(copy::remove);
-        copy.add(meta);
+        Set<Object> copy = new HashSet<>(backend);
+        replaceOrAdd(copy, meta);
         return new Metadata(copy);
     }
 

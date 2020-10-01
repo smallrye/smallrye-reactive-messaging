@@ -47,6 +47,7 @@ public class KafkaSink {
     private final KafkaWriteStream<?, ?> stream;
     private final int partition;
     private final String topic;
+    private final String key;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
     private final long retries;
     private final KafkaConnectorOutgoingConfiguration configuration;
@@ -56,6 +57,7 @@ public class KafkaSink {
     private final boolean writeAsBinaryCloudEvent;
     private final boolean writeCloudEvents;
     private final boolean mandatoryCloudEventAttributeSet;
+    private final boolean isTracingEnabled;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
@@ -76,6 +78,8 @@ public class KafkaSink {
         partition = config.getPartition();
         retries = config.getRetries();
         topic = config.getTopic().orElseGet(config::getChannel);
+        key = config.getKey().orElse(null);
+        isTracingEnabled = config.getTracingEnabled();
         writeCloudEvents = config.getCloudEvents();
         writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
@@ -136,6 +140,7 @@ public class KafkaSink {
                 ProducerRecord<?, ?> record;
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
                         .orElse(null);
+
                 // We encode the outbound record as Cloud Events if:
                 // - cloud events are enabled -> writeCloudEvents
                 // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
@@ -230,7 +235,7 @@ public class KafkaSink {
     }
 
     @SuppressWarnings({ "rawtypes" })
-    private static Object getKey(Message<?> message,
+    private Object getKey(Message<?> message,
             OutgoingKafkaRecordMetadata<?> metadata,
             KafkaConnectorOutgoingConfiguration configuration) {
 
@@ -245,11 +250,11 @@ public class KafkaSink {
         }
 
         // Finally, check the configuration
-        return configuration.getKey().orElse(null);
+        return key;
     }
 
     private void createOutgoingTrace(Message<?> message, String topic, int partition, Headers headers) {
-        if (configuration.getTracingEnabled()) {
+        if (isTracingEnabled) {
             Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
 
             final Span.Builder spanBuilder = TRACER.spanBuilder(topic + " send")

@@ -51,6 +51,11 @@ public class KafkaSource<K, V> {
     private final List<Throwable> failures = new ArrayList<>();
     private final Set<String> topics;
     private final Pattern pattern;
+    private final boolean isTracingEnabled;
+    private final boolean isHealthEnabled;
+    private final boolean isReadinessEnabled;
+    private final boolean isCloudEventEnabled;
+    private final String channel;
 
     public KafkaSource(Vertx vertx,
             String group,
@@ -72,6 +77,12 @@ public class KafkaSource<K, V> {
 
         Map<String, String> kafkaConfiguration = new HashMap<>();
         this.configuration = config;
+
+        isTracingEnabled = this.configuration.getTracingEnabled();
+        isHealthEnabled = this.configuration.getHealthEnabled();
+        isReadinessEnabled = this.configuration.getHealthReadinessEnabled();
+        isCloudEventEnabled = this.configuration.getCloudEvents();
+        channel = this.configuration.getChannel();
 
         JsonHelper.asJsonObject(config.config())
                 .forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
@@ -234,7 +245,6 @@ public class KafkaSource<K, V> {
                         .atMost(max);
             }
         }
-
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
                 .onSubscribe().call(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
@@ -256,9 +266,11 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> commitHandler
-                        .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, config.getCloudEvents(),
-                                config.getTracingEnabled())));
+                .map(rec -> {
+                    return commitHandler
+                            .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
+                                    isTracingEnabled));
+                });
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
@@ -304,7 +316,7 @@ public class KafkaSource<K, V> {
     }
 
     public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {
-        if (configuration.getTracingEnabled()) {
+        if (isTracingEnabled) {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
             final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
@@ -391,16 +403,16 @@ public class KafkaSource<K, V> {
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {
-        if (configuration.getHealthEnabled()) {
+        if (isHealthEnabled) {
             List<Throwable> actualFailures;
             synchronized (this) {
                 actualFailures = new ArrayList<>(failures);
             }
             if (!actualFailures.isEmpty()) {
-                builder.add(configuration.getChannel(), false,
+                builder.add(channel, false,
                         actualFailures.stream().map(Throwable::getMessage).collect(Collectors.joining()));
             } else {
-                builder.add(configuration.getChannel(), true);
+                builder.add(channel, true);
             }
         }
 
@@ -409,31 +421,31 @@ public class KafkaSource<K, V> {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
+        if (isHealthEnabled && isReadinessEnabled) {
             Set<String> existingTopics;
             try {
                 existingTopics = admin.listTopics()
                         .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
                 if (pattern == null && existingTopics.containsAll(topics)) {
-                    builder.add(configuration.getChannel(), true);
+                    builder.add(channel, true);
                 } else if (pattern != null) {
                     // Check that at least one topic matches
                     boolean ok = existingTopics.stream()
                             .anyMatch(s -> pattern.matcher(s).matches());
                     if (ok) {
-                        builder.add(configuration.getChannel(), ok);
+                        builder.add(channel, ok);
                     } else {
-                        builder.add(configuration.getChannel(), false,
+                        builder.add(channel, false,
                                 "Unable to find a topic matching the given pattern: " + pattern);
                     }
                 } else {
                     String missing = topics.stream().filter(s -> !existingTopics.contains(s))
                             .collect(Collectors.joining());
-                    builder.add(configuration.getChannel(), false, "Unable to find topic(s): " + missing);
+                    builder.add(channel, false, "Unable to find topic(s): " + missing);
                 }
             } catch (Exception failed) {
-                builder.add(configuration.getChannel(), false, "No response from broker for channel "
-                        + configuration.getChannel() + " : " + failed);
+                builder.add(channel, false, "No response from broker for channel "
+                        + channel + " : " + failed);
             }
         }
 
