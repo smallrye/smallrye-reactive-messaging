@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.LongAdder;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class PerformanceConsumerTest extends KafkaTestBase {
@@ -35,7 +35,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
         AtomicLong count = new AtomicLong();
         KafkaUsage usage = new KafkaUsage();
         usage.produceStrings(COUNT, latch::countDown,
-            () -> new ProducerRecord<>(topic, "key", Long.toString(count.getAndIncrement())));
+                () -> new ProducerRecord<>(topic, "key", Long.toString(count.getAndIncrement())));
 
         latch.await();
     }
@@ -74,11 +74,11 @@ public class PerformanceConsumerTest extends KafkaTestBase {
                 .with("mp.messaging.incoming.data.auto.offset.reset", "earliest")
                 .with("mp.messaging.incoming.data.value.deserializer", StringDeserializer.class.getName())
                 .with("mp.messaging.incoming.data.key.deserializer", StringDeserializer.class.getName()),
-            MyConsumerUsingPostAck.class);
+                MyConsumerUsingPostAck.class);
         long start = System.currentTimeMillis();
         await()
-            .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
-            .until(() -> application.getCount() == COUNT);
+                .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
+                .until(() -> application.getCount() == COUNT);
 
         long end = System.currentTimeMillis();
 
@@ -97,13 +97,13 @@ public class PerformanceConsumerTest extends KafkaTestBase {
                 .with("mp.messaging.incoming.data.auto.offset.reset", "earliest")
                 .with("mp.messaging.incoming.data.value.deserializer", StringDeserializer.class.getName())
                 .with("mp.messaging.incoming.data.key.deserializer", StringDeserializer.class.getName()),
-            MyConsumerUsingNoAck.class);
+                MyConsumerUsingNoAck.class);
         long start = System.currentTimeMillis();
         await()
-            .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
-            .until(() -> {
-                return application.getCount() == COUNT;
-            });
+                .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
+                .until(() -> {
+                    return application.getCount() == COUNT;
+                });
 
         long end = System.currentTimeMillis();
 
@@ -124,7 +124,6 @@ public class PerformanceConsumerTest extends KafkaTestBase {
             return count.longValue();
         }
     }
-
 
     @ApplicationScoped
     public static class MyConsumerUsingNoAck {
