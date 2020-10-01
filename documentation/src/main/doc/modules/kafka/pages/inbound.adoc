@@ -93,6 +93,10 @@ This strategy guarantees _at-least-once delivery_ even if the channel performs a
 IMPORTANT: The Kafka connector disables the Kafka _auto commit_ is not explicitly enabled.
 This behavior differs from the traditional Kafka consumer.
 
+If high-throughout is important for you, and not limited by the downstream, we recommend to either:
+
+* Use the `throttled` policy
+* or set `enable.auto.commit` to `true` and annotate the consuming method with `@Acknowledgment(Acknowledgment.Strategy.NONE)`
 
 === Failure Management
 

@@ -82,12 +82,15 @@ public abstract class AbstractMediator {
                 };
             }
         }
+        Objects.requireNonNull(this.invoker, msg.invokerNotInitialized());
+        if (this.configuration.isBlocking()) {
+            Objects.requireNonNull(this.workerPoolRegistry, msg.workerPoolNotInitialized());
+        }
     }
 
     @SuppressWarnings("unchecked")
     protected <T> T invoke(Object... args) {
         try {
-            Objects.requireNonNull(this.invoker, msg.invokerNotInitialized());
             return (T) this.invoker.invoke(args);
         } catch (RuntimeException e) { // NOSONAR
             log.methodException(configuration().methodAsString(), e);
@@ -98,8 +101,6 @@ public abstract class AbstractMediator {
     @SuppressWarnings("unchecked")
     protected <T> Uni<T> invokeBlocking(Object... args) {
         try {
-            Objects.requireNonNull(this.invoker, msg.invokerNotInitialized());
-            Objects.requireNonNull(this.workerPoolRegistry, msg.workerPoolNotInitialized());
             return workerPoolRegistry.executeWork(
                     future -> {
                         try {

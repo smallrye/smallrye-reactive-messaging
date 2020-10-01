@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -34,7 +35,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         this.commitHandler = commitHandler;
         this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record);
 
-        Metadata metadata = Metadata.of(this.kafkaMetadata);
+        ArrayList<Object> meta = new ArrayList<>();
+        meta.add(this.kafkaMetadata);
         T payload = null;
         boolean payloadSet = false;
         if (cloudEventEnabled) {
@@ -46,12 +48,12 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
                 case STRUCTURED:
                     CloudEventMetadata<T> event = KafkaCloudEventHelper
                             .createFromStructuredCloudEvent(record);
-                    metadata = metadata.with(event);
+                    meta.add(event);
                     payloadSet = true;
                     payload = event.getData();
                     break;
                 case BINARY:
-                    metadata = metadata.with(KafkaCloudEventHelper.createFromBinaryCloudEvent(record));
+                    meta.add(KafkaCloudEventHelper.createFromBinaryCloudEvent(record));
                     break;
             }
         }
@@ -66,10 +68,10 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
                         .withPrevious(TracingContextUtils.getSpanWithoutDefault(context));
             }
 
-            metadata = metadata.with(tracingMetadata);
+            meta.add(tracingMetadata);
         }
 
-        this.metadata = metadata;
+        this.metadata = Metadata.from(meta);
         this.onNack = onNack;
         if (payload == null && !payloadSet) {
             this.payload = record.value();
