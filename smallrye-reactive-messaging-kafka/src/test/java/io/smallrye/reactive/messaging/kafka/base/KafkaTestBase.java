@@ -17,12 +17,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.TestcontainersConfiguration;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.vertx.mutiny.core.Vertx;
 
 public class KafkaTestBase extends WeldTestBase {
-
     public static KafkaContainer kafka;
 
     public Vertx vertx;
@@ -33,7 +34,9 @@ public class KafkaTestBase extends WeldTestBase {
 
     @BeforeAll
     public static void startKafkaBroker() {
-        kafka = new KafkaContainer();
+        DockerImageName imageName = TestcontainersConfiguration.getInstance()
+                .getKafkaDockerImageName().withTag("5.2.1");
+        kafka = new KafkaContainer(imageName);
         kafka.start();
     }
 

@@ -11,6 +11,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.producer.KafkaProducer;
@@ -35,7 +36,6 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
             Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source,
             KafkaCDIEvents kafkaCDIEvents) {
         Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
-
         String keyDeserializer = deadQueueProducerConfig.remove("key.deserializer");
         String valueDeserializer = deadQueueProducerConfig.remove("value.deserializer");
         deadQueueProducerConfig.put("key.serializer",
@@ -43,6 +43,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         deadQueueProducerConfig.put("value.serializer",
                 conf.getDeadLetterQueueValueSerializer().orElse(getMirrorSerializer(valueDeserializer)));
 
+        ConfigurationCleaner.cleanupProducerConfiguration(deadQueueProducerConfig);
         String deadQueueTopic = conf.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + conf.getChannel());
 
         log.deadLetterConfig(deadQueueTopic,

@@ -110,29 +110,7 @@ public class KafkaSource<K, V> {
                         ? KafkaCommitHandler.Strategy.IGNORE.name()
                         : KafkaCommitHandler.Strategy.LATEST.name());
 
-        kafkaConfiguration.remove("channel-name");
-        kafkaConfiguration.remove("connector");
-        kafkaConfiguration.remove("health-enabled");
-        kafkaConfiguration.remove("health-readiness-enabled");
-        kafkaConfiguration.remove("tracing-enabled");
-        kafkaConfiguration.remove("topic");
-        kafkaConfiguration.remove("topics");
-        kafkaConfiguration.remove("pattern");
-        kafkaConfiguration.remove("connector");
-        kafkaConfiguration.remove("retry");
-        kafkaConfiguration.remove("retry-attempts");
-        kafkaConfiguration.remove("retry-max-wait");
-        kafkaConfiguration.remove("broadcast");
-        kafkaConfiguration.remove("partitions");
-        kafkaConfiguration.remove("failure-strategy");
-        kafkaConfiguration.remove("commit-strategy");
-        kafkaConfiguration.remove("throttled.unprocessed-record-max-age.ms");
-        kafkaConfiguration.remove("dead-letter-queue.topic");
-        kafkaConfiguration.remove("dead-letter-queue.key.serializer");
-        kafkaConfiguration.remove("dead-letter-queue.value.serializer");
-        kafkaConfiguration.remove("partitions");
-        kafkaConfiguration.remove("cloud-events");
-        kafkaConfiguration.remove("consumer-rebalance-listener.name");
+        ConfigurationCleaner.cleanupConsumerConfiguration(kafkaConfiguration);
 
         final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
 
@@ -197,7 +175,7 @@ public class KafkaSource<K, V> {
                                     kafkaConsumer.fetch(currentDemand);
                                 },
                                 t -> {
-                                    log.reEnablingConsumerforGroup(group);
+                                    log.reEnablingConsumerForGroup(group);
                                     kafkaConsumer.fetch(currentDemand);
                                 });
             });
