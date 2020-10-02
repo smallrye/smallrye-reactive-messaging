@@ -85,6 +85,8 @@
     <smallrye-reactive-converter-api.version>1.2.1</smallrye-reactive-converter-api.version>
     <smallrye-vertx-mutiny-clients.version>1.2.1</smallrye-vertx-mutiny-clients.version>
 
+    <testcontainers.version>1.15.0-rc2</testcontainers.version>
+
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
   </properties>
 
@@ -237,6 +239,13 @@
         <groupId>io.smallrye.reactive</groupId>
         <artifactId>smallrye-reactive-messaging-api</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${testcontainers.version}</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
