@@ -57,7 +57,6 @@ public class KafkaSinkTest extends KafkaTestBase {
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
-                .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
@@ -84,7 +83,6 @@ public class KafkaSinkTest extends KafkaTestBase {
         MapBasedConfig config = getBaseConfig()
                 .with("channel-name", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
-                .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partition", 0);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(vertx, oc, CountKafkaCdiEvents.noCdiEvents);
@@ -110,7 +108,6 @@ public class KafkaSinkTest extends KafkaTestBase {
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", StringSerializer.class.getName())
-                .with("value.deserializer", StringDeserializer.class.getName())
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
@@ -222,11 +219,9 @@ public class KafkaSinkTest extends KafkaTestBase {
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
-                .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partition", 0)
                 .with("max-inflight-messages", 1)
                 .with("channel-name", "my-channel")
-                .with("failure-strategy", "ignore")
                 .with("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
@@ -280,7 +275,6 @@ public class KafkaSinkTest extends KafkaTestBase {
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
-                .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partition", 0)
                 .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");

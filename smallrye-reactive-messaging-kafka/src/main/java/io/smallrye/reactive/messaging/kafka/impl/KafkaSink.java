@@ -317,25 +317,7 @@ public class KafkaSink {
                     .put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, config.getMaxInflightMessages());
         }
 
-        kafkaConfiguration.remove("channel-name");
-        kafkaConfiguration.remove("topic");
-        kafkaConfiguration.remove("connector");
-        kafkaConfiguration.remove("health-enabled");
-        kafkaConfiguration.remove("health-readiness-enabled");
-        kafkaConfiguration.remove("tracing-enabled");
-        kafkaConfiguration.remove("key");
-        kafkaConfiguration.remove("partition");
-        kafkaConfiguration.remove("max-inflight-messages");
-        kafkaConfiguration.remove("waitForWriteCompletion");
-        kafkaConfiguration.remove("cloud-events");
-        kafkaConfiguration.remove("cloud-events-source");
-        kafkaConfiguration.remove("cloud-events-type");
-        kafkaConfiguration.remove("cloud-events-subject");
-        kafkaConfiguration.remove("cloud-events-data-content-type");
-        kafkaConfiguration.remove("cloud-events-data-schema");
-        kafkaConfiguration.remove("cloud-events-insert-timestamp");
-        kafkaConfiguration.remove("cloud-events-mode");
-        return kafkaConfiguration;
+        return ConfigurationCleaner.cleanupProducerConfiguration(kafkaConfiguration);
     }
 
     public SubscriberBuilder<? extends Message<?>, Void> getSink() {
