@@ -208,6 +208,12 @@ public class KafkaSource<K, V> {
                     reportFailure(t);
                 });
 
+        if (commitHandler instanceof ContextHolder) {
+            // We need to capture the Vert.x context used by the Vert.x Kafka client, so we can be sure to always used
+            // the same.
+            ((ContextHolder) commitHandler).capture(consumer.getDelegate().asStream());
+        }
+
         boolean retry = config.getRetry();
         if (retry) {
             int max = config.getRetryAttempts();
@@ -223,6 +229,7 @@ public class KafkaSource<K, V> {
                         .atMost(max);
             }
         }
+
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
                 .onSubscribe().call(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
