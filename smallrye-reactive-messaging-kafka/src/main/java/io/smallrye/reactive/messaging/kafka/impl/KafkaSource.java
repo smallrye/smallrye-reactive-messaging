@@ -27,10 +27,7 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.kafka.commit.*;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
@@ -108,7 +105,7 @@ public class KafkaSource<K, V> {
                 .getCommitStrategy()
                 .orElse(Boolean.parseBoolean(kafkaConfiguration.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG))
                         ? KafkaCommitHandler.Strategy.IGNORE.name()
-                        : KafkaCommitHandler.Strategy.LATEST.name());
+                        : KafkaCommitHandler.Strategy.THROTTLED.name());
 
         ConfigurationCleaner.cleanupConsumerConfiguration(kafkaConfiguration);
 

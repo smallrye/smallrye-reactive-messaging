@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
@@ -55,7 +56,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     void testLatestCommitStrategy() {
-        MapBasedConfig config = commonConfiguration();
+        MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest");
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents);
@@ -202,6 +203,80 @@ public class CommitStrategiesTest extends WeldTestBase {
     }
 
     @Test
+    void testThrottledStrategyWithManyRecords() {
+        MapBasedConfig config = commonConfiguration()
+                .with("commit-strategy", "throttled")
+                .with("auto.offset.reset", "earliest")
+                .with("auto.commit.interval.ms", 100);
+        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream()
+                .subscribe().with(list::add);
+
+        TopicPartition p0 = new TopicPartition(TOPIC, 0);
+        TopicPartition p1 = new TopicPartition(TOPIC, 1);
+        Map<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(p0, 0L);
+        offsets.put(p1, 5L);
+        consumer.updateBeginningOffsets(offsets);
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(offsets.keySet());
+            for (int i = 0; i < 500; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i));
+            }
+        });
+
+        // Expected number of messages: 500 messages in each partition minus the [0..5) messages from p1
+        int expected = 500 * 2 - 5;
+        await().until(() -> list.size() == expected);
+        assertThat(list).hasSize(expected);
+
+        list.forEach(m -> m.ack().toCompletableFuture().join());
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(offsets.keySet());
+            assertThat(committed.get(p0)).isNotNull();
+            assertThat(committed.get(p0).offset()).isEqualTo(500);
+            assertThat(committed.get(p1)).isNotNull();
+            assertThat(committed.get(p1).offset()).isEqualTo(500);
+        });
+
+        consumer.schedulePollTask(() -> {
+            for (int i = 0; i < 1000; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 500 + i, "k", "v0-" + (500 + i)));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, 500 + i, "k", "v1-" + (500 + i)));
+            }
+        });
+
+        int expected2 = expected + 1000 * 2;
+        await().until(() -> list.size() == expected2);
+
+        list.forEach(m -> m.ack().toCompletableFuture().join());
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(offsets.keySet());
+            assertThat(committed.get(p0)).isNotNull();
+            assertThat(committed.get(p0).offset()).isEqualTo(1500);
+            assertThat(committed.get(p1)).isNotNull();
+            assertThat(committed.get(p1).offset()).isEqualTo(1500);
+        });
+
+        List<String> payloads = list.stream().map(m -> (String) m.getPayload()).collect(Collectors.toList());
+        for (int i = 0; i < 1500; i++) {
+            assertThat(payloads).contains("v0-" + i);
+        }
+        for (int i = 5; i < 1500; i++) {
+            assertThat(payloads).contains("v1-" + i);
+        }
+    }
+
+    @Test
     public void testFailureWhenNoRebalanceListenerMatchGivenName() {
         MapBasedConfig config = commonConfiguration();
         config.with("consumer-rebalance-listener.name", "my-missing-name");
@@ -308,7 +383,8 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @ApplicationScoped
     @Named("mine")
-    public static class SameNameRebalanceListener extends NamedRebalanceListener implements KafkaConsumerRebalanceListener {
+    public static class SameNameRebalanceListener extends NamedRebalanceListener
+            implements KafkaConsumerRebalanceListener {
 
     }
 
