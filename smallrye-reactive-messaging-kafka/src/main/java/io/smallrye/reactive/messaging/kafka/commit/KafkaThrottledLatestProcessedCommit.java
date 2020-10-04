@@ -106,16 +106,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     public void partitionsAssigned(Set<TopicPartition> partitions) {
         stopFlushAndCheckHealthTimer();
 
-        // Remove all handled partitions that are not in the given list of partitions
-        for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
-            if (!partitions.contains(partition)) {
-                offsetStores.remove(partition);
-            }
-        }
-
-        // We cannot commit the removed offsets as we are not assigned to this partition anymore.
-
-        if (!offsetStores.isEmpty()) {
+        if (!partitions.isEmpty() || !offsetStores.isEmpty()) {
             startFlushAndCheckHealthTimer();
         }
     }
@@ -143,7 +134,6 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
 
         if (!toCommit.isEmpty()) {
-            // Commit the offsets
             consumer.getDelegate().commit(toCommit);
         }
 
