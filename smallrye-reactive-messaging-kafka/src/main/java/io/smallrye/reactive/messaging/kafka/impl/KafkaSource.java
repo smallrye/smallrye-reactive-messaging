@@ -182,6 +182,9 @@ public class KafkaSource<K, V> {
 
             kafkaConsumer.partitionsRevokedHandler(set -> {
                 log.executingConsumerRevokedRebalanceListener(group);
+
+                commitHandler.partitionsRevoked(set);
+
                 listener.onPartitionsRevoked(kafkaConsumer, set)
                         .subscribe()
                         .with(
@@ -190,6 +193,7 @@ public class KafkaSource<K, V> {
             });
         } else {
             kafkaConsumer.partitionsAssignedHandler(commitHandler::partitionsAssigned);
+            kafkaConsumer.partitionsRevokedHandler(commitHandler::partitionsRevoked);
         }
 
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
@@ -251,11 +255,10 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> {
-                    return commitHandler
-                            .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
-                                    isTracingEnabled));
-                });
+                .map(rec -> commitHandler
+                        .received(
+                                new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
+                                        isTracingEnabled)));
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
