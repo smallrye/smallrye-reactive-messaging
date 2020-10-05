@@ -58,14 +58,26 @@ The payload is converted to the AMQP Message _body_.
 === Outbound Metadata
 
 When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/amqp/OutgoingAmqpMetadata.html[`OutgoingAmqpMetadata`] to influence how the message is going to sent to AMQP.
-For example, you can configure the address, subjects, properties:
+For example, you can configure the subjects, properties:
 
 [source, java]
 ----
 include::example$outbound/AmqpOutboundMetadataExample.java[tag=code]
 ----
 
-NOTE: To be able to override the address per message, the connector is using an _anonymous sender_.
+=== Dynamic address names
+
+Sometimes it is desirable to select the destination of a message dynamically.
+In this case, you should not configure the address inside your application configuration file, but instead, use the outbound metadata to set the address.
+
+For example, you can send to a dynamic address based on the incoming message:
+
+[source, java]
+----
+include::example$outbound/AmqpOutboundDynamicAddressExample.java[tag=code]
+----
+
+NOTE: To be able to set the address per message, the connector is using an _anonymous sender_.
 
 === Acknowledgement
 
