@@ -105,7 +105,7 @@ public @interface OnOverflow {
     /**
      * @return the size of the buffer when {@link Strategy#BUFFER} is used. If not set and if the {@link Strategy#BUFFER}
      *         strategy is used, the buffer size will be defaulted to the value of the config property
-     *         mp.messaging.emitter.defult-buffer-size.
+     *         mp.messaging.emitter.default-buffer-size.
      */
     long bufferSize() default 0;
 
