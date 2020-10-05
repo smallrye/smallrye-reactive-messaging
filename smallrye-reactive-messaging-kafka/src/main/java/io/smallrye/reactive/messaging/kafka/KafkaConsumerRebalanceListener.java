@@ -53,7 +53,11 @@ public interface KafkaConsumerRebalanceListener {
 
     /**
      * Called when the consumer is revoked topic partitions
-     * This method might be called for each consumer available to the connector
+     * This method might be called for each consumer available to the connector.
+     *
+     * If the implementation handles its own offsets and commit, it must use the `ignored` commit strategy.
+     * In this case, implementation <strong>must</strong> commits the offset of the processed records coming from the
+     * revoked partitions in this method.
      *
      * @param consumer underlying consumer
      * @param topicPartitions set of revoked topic partitions

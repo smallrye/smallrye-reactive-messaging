@@ -39,7 +39,11 @@ public interface KafkaCommitHandler {
     }
 
     default void partitionsAssigned(Set<TopicPartition> partitions) {
+        // Do nothing by default.
+    }
 
+    default void partitionsRevoked(Set<TopicPartition> partitions) {
+        // Do nothing by default.
     }
 
     <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record);

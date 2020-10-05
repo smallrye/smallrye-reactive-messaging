@@ -162,7 +162,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
-                .with("commit-strategy", "throttled");
+                .with("commit-strategy", "throttled")
+                .with("throttled.unprocessed-record-max-age.ms", 100);
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx,
@@ -217,12 +218,13 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
     }
 
     @Test
-    public void testSourceWithThrottledLatestProcessedCommitEnabledWithoutAcking() {
+    public void testSourceWithThrottledLatestProcessedCommitEnabledWithoutAck() {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("group.id", "test-source-with-throttled-latest-processed-commit-without-acking")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
-                .with("max.poll.records", "16");
+                .with("max.poll.records", "16")
+                .with("throttled.unprocessed-record-max-age.ms", 100);
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx,

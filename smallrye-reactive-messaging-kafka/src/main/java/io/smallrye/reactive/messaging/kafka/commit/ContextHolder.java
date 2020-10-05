@@ -1,5 +1,9 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
+import java.lang.reflect.Field;
+
+import io.vertx.kafka.client.consumer.KafkaReadStream;
+import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -15,24 +19,29 @@ public class ContextHolder {
         this.vertx = vertx;
     }
 
-    public Context getContext() {
-        Context ctx = this.context;
-        if (ctx == null) {
-            synchronized (this) {
-                ctx = this.context;
-                if (ctx == null) {
-                    this.context = ctx = vertx.getOrCreateContext();
-                }
+    public void capture(KafkaReadStream<?, ?> stream) {
+        if (!(stream instanceof KafkaReadStreamImpl)) {
+            throw new IllegalArgumentException("Cannot capture the context - not a KafkaReadStreamImpl");
+        } else {
+            try {
+                Field field = KafkaReadStreamImpl.class.getDeclaredField("context");
+                field.setAccessible(true);
+                context = new Context((io.vertx.core.Context) field.get(stream));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Cannot capture the context", e);
             }
         }
-        return ctx;
+    }
+
+    public Context getContext() {
+        return context;
     }
 
     public void runOnContext(Runnable runnable) {
-        if (Vertx.currentContext() == getContext()) {
+        if (Vertx.currentContext() == context) {
             runnable.run();
         } else {
-            getContext().runOnContext(x -> runnable.run());
+            context.runOnContext(x -> runnable.run());
         }
     }
 

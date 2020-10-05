@@ -3,16 +3,15 @@ package io.smallrye.reactive.messaging.kafka.commit;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.concurrent.*;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
 import io.vertx.mutiny.core.Vertx;
@@ -105,11 +104,40 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      */
     @Override
     public void partitionsAssigned(Set<TopicPartition> partitions) {
-        offsetStores.clear();
-
         stopFlushAndCheckHealthTimer();
 
-        if (!partitions.isEmpty()) {
+        if (!partitions.isEmpty() || !offsetStores.isEmpty()) {
+            startFlushAndCheckHealthTimer();
+        }
+    }
+
+    /**
+     * Revoked partitions.
+     * This method is called from a Vert.x event loop (the one used by the Kafka client)
+     *
+     * @param partitions the partitions that we will no longer receive
+     */
+    @Override
+    public void partitionsRevoked(Set<TopicPartition> partitions) {
+        stopFlushAndCheckHealthTimer();
+
+        // Remove all handled partitions that are not in the given list of partitions
+        Map<TopicPartition, OffsetAndMetadata> toCommit = new HashMap<>();
+        for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
+            if (!partitions.contains(partition)) {
+                OffsetStore store = offsetStores.remove(partition);
+                long largestOffset = store.clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
+                if (largestOffset > -1) {
+                    toCommit.put(partition, new OffsetAndMetadata(largestOffset + 1L, null));
+                }
+            }
+        }
+
+        if (!toCommit.isEmpty()) {
+            consumer.getDelegate().commit(toCommit);
+        }
+
+        if (!offsetStores.isEmpty()) {
             startFlushAndCheckHealthTimer();
         }
     }
@@ -149,10 +177,13 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private Map<TopicPartition, Long> clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping() {
         Map<TopicPartition, Long> offsetsMapping = new HashMap<>();
 
-        offsetStores
-                .forEach((topicPartition, value) -> value
-                        .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset()
-                        .ifPresent(offset -> offsetsMapping.put(topicPartition, offset)));
+        for (Map.Entry<TopicPartition, OffsetStore> entry : offsetStores.entrySet()) {
+            long offset = entry.getValue()
+                    .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
+            if (offset > -1) {
+                offsetsMapping.put(entry.getKey(), offset);
+            }
+        }
 
         return offsetsMapping;
     }
@@ -160,7 +191,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     /**
      * A message has been acknowledged.
      * This method is NOT necessarily called on an event loop.
-     * 
+     *
      * @param record the record
      * @param <K> the key
      * @param <V> the value
@@ -185,10 +216,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
 
         if (!offsetsMapping.isEmpty()) {
-            Map<TopicPartition, OffsetAndMetadata> offsets = offsetsMapping
-                    .entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey,
-                            e -> new OffsetAndMetadata().setOffset(e.getValue() + 1L)));
+            Map<TopicPartition, OffsetAndMetadata> offsets = getOffsets(offsetsMapping);
             consumer.getDelegate().commit(offsets, a -> this.startFlushAndCheckHealthTimer());
         } else {
             this.startFlushAndCheckHealthTimer();
@@ -250,7 +278,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             }
         }
 
-        OptionalLong clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset() {
+        long clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset() {
             if (!processedOffsets.isEmpty()) {
                 long largestSequentialProcessedOffset = -1;
                 while (!receivedOffsets.isEmpty()) {
@@ -262,10 +290,10 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 }
 
                 if (largestSequentialProcessedOffset > -1) {
-                    return OptionalLong.of(largestSequentialProcessedOffset);
+                    return largestSequentialProcessedOffset;
                 }
             }
-            return OptionalLong.empty();
+            return -1;
         }
 
         boolean hasTooManyMessagesWithoutAck() {
@@ -282,13 +310,54 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     public static class TooManyMessagesWithoutAckException extends Exception {
         public TooManyMessagesWithoutAckException() {
-            super("Too Many Messages without Ack");
+            super("Too Many Messages without acknowledgement");
         }
     }
 
     @Override
     public void terminate() {
-        // TODO Force commit sync.
+        commitAllAndAwait();
+        offsetStores.clear();
         stopFlushAndCheckHealthTimer();
+    }
+
+    private void commitAllAndAwait() {
+        Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
+        commitAndAwait(offsetsMapping);
+    }
+
+    private void commitAndAwait(Map<TopicPartition, Long> offsetsMapping) {
+        if (!offsetsMapping.isEmpty()) {
+
+            CompletableFuture<Void> stage = new CompletableFuture<>();
+            Map<TopicPartition, OffsetAndMetadata> offsets = getOffsets(offsetsMapping);
+            consumer.getDelegate().commit(offsets, new Handler<AsyncResult<Map<TopicPartition, OffsetAndMetadata>>>() {
+                @Override
+                public void handle(
+                        AsyncResult<Map<TopicPartition, OffsetAndMetadata>> event) {
+                    if (event.failed()) {
+                        stage.completeExceptionally(event.cause());
+                    } else {
+                        stage.complete(null);
+                    }
+                }
+            });
+
+            try {
+                stage.get(autoCommitInterval, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (ExecutionException | TimeoutException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private Map<TopicPartition, OffsetAndMetadata> getOffsets(Map<TopicPartition, Long> offsetsMapping) {
+        Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
+        for (Map.Entry<TopicPartition, Long> entry : offsetsMapping.entrySet()) {
+            map.put(entry.getKey(), new OffsetAndMetadata(entry.getValue() + 1L, null));
+        }
+        return map;
     }
 }

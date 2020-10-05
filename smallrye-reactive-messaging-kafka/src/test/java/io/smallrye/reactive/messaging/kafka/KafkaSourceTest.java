@@ -214,7 +214,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
-        restart(5);
+        restart(2);
 
         new Thread(() -> usage.produceIntegers(10, null,
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();

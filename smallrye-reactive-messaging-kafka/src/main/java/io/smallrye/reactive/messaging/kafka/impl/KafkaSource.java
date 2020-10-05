@@ -27,10 +27,7 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.kafka.commit.*;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
@@ -108,7 +105,7 @@ public class KafkaSource<K, V> {
                 .getCommitStrategy()
                 .orElse(Boolean.parseBoolean(kafkaConfiguration.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG))
                         ? KafkaCommitHandler.Strategy.IGNORE.name()
-                        : KafkaCommitHandler.Strategy.LATEST.name());
+                        : KafkaCommitHandler.Strategy.THROTTLED.name());
 
         ConfigurationCleaner.cleanupConsumerConfiguration(kafkaConfiguration);
 
@@ -182,6 +179,9 @@ public class KafkaSource<K, V> {
 
             kafkaConsumer.partitionsRevokedHandler(set -> {
                 log.executingConsumerRevokedRebalanceListener(group);
+
+                commitHandler.partitionsRevoked(set);
+
                 listener.onPartitionsRevoked(kafkaConsumer, set)
                         .subscribe()
                         .with(
@@ -190,6 +190,7 @@ public class KafkaSource<K, V> {
             });
         } else {
             kafkaConsumer.partitionsAssignedHandler(commitHandler::partitionsAssigned);
+            kafkaConsumer.partitionsRevokedHandler(commitHandler::partitionsRevoked);
         }
 
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
@@ -208,6 +209,12 @@ public class KafkaSource<K, V> {
                     reportFailure(t);
                 });
 
+        if (commitHandler instanceof ContextHolder) {
+            // We need to capture the Vert.x context used by the Vert.x Kafka client, so we can be sure to always used
+            // the same.
+            ((ContextHolder) commitHandler).capture(consumer.getDelegate().asStream());
+        }
+
         boolean retry = config.getRetry();
         if (retry) {
             int max = config.getRetryAttempts();
@@ -223,6 +230,7 @@ public class KafkaSource<K, V> {
                         .atMost(max);
             }
         }
+
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
                 .onSubscribe().call(s -> {
                     this.consumer.exceptionHandler(this::reportFailure);
@@ -244,11 +252,10 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> {
-                    return commitHandler
-                            .received(new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
-                                    isTracingEnabled));
-                });
+                .map(rec -> commitHandler
+                        .received(
+                                new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
+                                        isTracingEnabled)));
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
