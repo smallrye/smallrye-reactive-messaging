@@ -72,14 +72,24 @@ If you need more control on the written records, use `OutgoingKafkaRecordMetadat
 === Outbound Metadata
 
 When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html[`OutgoingKafkaRecordMetadata`] to influence how the message is going to written to Kafka.
-For example, you can configure the topic directly in the message, or add Kafka headers, configure the record key...
+For example, you can add Kafka headers, configure the record key...
 
 [source, java]
 ----
 include::example$outbound/KafkaOutboundMetadataExample.java[tag=code]
 ----
 
+=== Dynamic topic names
 
+Sometimes it is desirable to select the destination of a message dynamically.
+In this case, you should not configure the topic inside your application configuration file, but instead, use the outbound metadata to set the name of the topic.
+
+For example, you can route to a dynamic topic based on the incoming message:
+
+[source, java]
+----
+include::example$outbound/KafkaOutboundDynamicTopicExample.java[tag=code]
+----
 
 === Acknowledgement
 

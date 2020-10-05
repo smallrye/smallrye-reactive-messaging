@@ -3,14 +3,14 @@ package outbound;
 import io.smallrye.reactive.messaging.amqp.OutgoingAmqpMetadata;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-public class AmqpOutboundMetadataExample {
-
+public class AmqpOutboundDynamicAddressExample {
     public Message<Double> metadata(Message<Double> incoming) {
 
         // tag::code[]
+        String addressName = selectAddressFromIncommingMessage(incoming);
         OutgoingAmqpMetadata metadata = OutgoingAmqpMetadata.builder()
+            .withAddress(addressName)
             .withDurable(true)
-            .withSubject("my-subject")
             .build();
 
         // Create a new message from the `incoming` message
@@ -19,4 +19,7 @@ public class AmqpOutboundMetadataExample {
         // end::code[]
     }
 
+    private String selectAddressFromIncommingMessage(Message<Double> incoming) {
+        return "fake";
+    }
 }

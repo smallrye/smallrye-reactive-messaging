@@ -4,15 +4,13 @@ import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-public class KafkaOutboundMetadataExample {
+public class KafkaOutboundDynamicTopicExample {
 
     public Message<Double> metadata(Message<Double> incoming) {
         // tag::code[]
-        // Creates an OutgoingKafkaRecordMetadata
-        // The type parameter is the type of the record's key
+        String topicName = selectTopicFromIncommingMessage(incoming);
         OutgoingKafkaRecordMetadata<String> metadata = OutgoingKafkaRecordMetadata.<String>builder()
-            .withKey("my-key")
-            .withHeaders(new RecordHeaders().add("my-header", "value".getBytes()))
+            .withTopic(topicName)
             .build();
 
         // Create a new message from the `incoming` message
@@ -21,4 +19,7 @@ public class KafkaOutboundMetadataExample {
         // end::code[]
     }
 
+    private String selectTopicFromIncommingMessage(Message<Double> incoming) {
+        return "fake";
+    }
 }
