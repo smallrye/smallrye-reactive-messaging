@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
@@ -38,11 +39,11 @@ public interface KafkaCommitHandler {
         // Do nothing by default.
     }
 
-    default void partitionsAssigned(Set<TopicPartition> partitions) {
+    default void partitionsAssigned(Collection<TopicPartition> partitions) {
         // Do nothing by default.
     }
 
-    default void partitionsRevoked(Set<TopicPartition> partitions) {
+    default void partitionsRevoked(Collection<TopicPartition> partitions) {
         // Do nothing by default.
     }
 

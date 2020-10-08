@@ -1,15 +1,14 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
 
-import io.smallrye.mutiny.Uni;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.TopicPartition;
 
 @ApplicationScoped
 @Named("ConsumptionConsumerRebalanceListener")
@@ -18,19 +17,11 @@ public class ConsumptionConsumerRebalanceListener implements KafkaConsumerRebala
     private final Map<Integer, TopicPartition> assigned = new ConcurrentHashMap<>();
 
     @Override
-    public Uni<Void> onPartitionsAssigned(KafkaConsumer<?, ?> consumer, Set<TopicPartition> set) {
-        set.forEach(topicPartition -> this.assigned.put(topicPartition.getPartition(), topicPartition));
-        return Uni
-                .createFrom()
-                .nullItem();
+    public void onPartitionsAssigned(Consumer<?, ?> consumer,
+        Collection<TopicPartition> partitions) {
+        partitions.forEach(topicPartition -> this.assigned.put(topicPartition.partition(), topicPartition));
     }
 
-    @Override
-    public Uni<Void> onPartitionsRevoked(KafkaConsumer<?, ?> consumer, Set<TopicPartition> set) {
-        return Uni
-                .createFrom()
-                .nullItem();
-    }
 
     public Map<Integer, TopicPartition> getAssigned() {
         return assigned;

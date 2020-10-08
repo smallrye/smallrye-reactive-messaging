@@ -4,9 +4,15 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -22,39 +28,25 @@ public class KafkaRebalancedConsumerRebalanceListener implements KafkaConsumerRe
      * and seek the consumer to it.
      *
      * @param consumer        underlying consumer
-     * @param topicPartitions set of assigned topic partitions
-     * @return A {@link Uni} indicating operations complete or failure
+     * @param partitions set of assigned topic partitions
      */
-    @Override
-    public Uni<Void> onPartitionsAssigned(KafkaConsumer<?, ?> consumer, Set<TopicPartition> topicPartitions) {
+    @Override public void onPartitionsAssigned(Consumer<?, ?> consumer,
+        Collection<org.apache.kafka.common.TopicPartition> partitions) {
         long now = System.currentTimeMillis();
         long shouldStartAt = now - 600_000L; //10 minute ago
 
-        return Uni
-            .combine()
-            .all()
-            .unis(topicPartitions
-                .stream()
-                .map(topicPartition -> {
-                    LOGGER.info("Assigned " + topicPartition);
-                    return consumer.offsetsForTimes(topicPartition, shouldStartAt)
-                        .onItem()
-                        .invoke(o -> LOGGER.info("Seeking to " + o))
-                        .onItem()
-                        .transformToUni(o -> consumer
-                            .seek(topicPartition, o == null ? 0L : o.getOffset())
-                            .onItem()
-                            .invoke(v -> LOGGER.info("Seeked to " + o))
-                        );
-                })
-                .collect(Collectors.toList()))
-            .combinedWith(a -> null);
+        Map<org.apache.kafka.common.TopicPartition, Long> request = new HashMap<>();
+        for (org.apache.kafka.common.TopicPartition partition : partitions) {
+            LOGGER.info("Assigned " + partition);
+            request.put(partition, shouldStartAt);
+        }
+        Map<org.apache.kafka.common.TopicPartition, OffsetAndTimestamp> offsets = consumer
+            .offsetsForTimes(request);
+        for (Map.Entry<org.apache.kafka.common.TopicPartition, OffsetAndTimestamp> position : offsets.entrySet()) {
+            long target = position.getValue() == null ? 0L : position.getValue().offset();
+            LOGGER.info("Seeking position " + target + " for " + position.getKey());
+            consumer.seek(position.getKey(), target);
+        }
     }
 
-    @Override
-    public Uni<Void> onPartitionsRevoked(KafkaConsumer<?, ?> consumer, Set<TopicPartition> topicPartitions) {
-        return Uni
-            .createFrom()
-            .nullItem();
-    }
 }

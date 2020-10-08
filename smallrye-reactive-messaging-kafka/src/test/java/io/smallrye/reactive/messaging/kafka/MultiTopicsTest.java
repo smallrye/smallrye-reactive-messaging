@@ -4,16 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
 
+import io.smallrye.mutiny.Multi;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -29,7 +32,7 @@ import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
  */
 @SuppressWarnings("rawtypes")
 public class MultiTopicsTest extends KafkaTestBase {
-
+    
     @RepeatedTest(10)
     public void testWithThreeTopicsInConfiguration() {
         String topic1 = UUID.randomUUID().toString();
@@ -79,12 +82,9 @@ public class MultiTopicsTest extends KafkaTestBase {
             }
         });
 
-        // Unfortunately we can't be sure of the exact number, as the rebalance listener are called on the event loop
-        // and does not block the polling thread, which means that there is a chance that a commit done during
-        // a partitionRevoke is not done in time, and the consumer will still restart from the old commit.
-        assertThat(top1).hasValueGreaterThanOrEqualTo(3);
-        assertThat(top2).hasValueGreaterThanOrEqualTo(3);
-        assertThat(top3).hasValueGreaterThanOrEqualTo(3);
+        assertThat(top1).hasValue(3);
+        assertThat(top2).hasValue(3);
+        assertThat(top3).hasValue(3);
     }
 
     @RepeatedTest(10)
@@ -132,9 +132,9 @@ public class MultiTopicsTest extends KafkaTestBase {
             }
         });
 
-        assertThat(top1).hasValueGreaterThanOrEqualTo(3);
+        assertThat(top1).hasValue(3);
         assertThat(top2).hasValue(0);
-        assertThat(top3).hasValueGreaterThanOrEqualTo(3);
+        assertThat(top3).hasValue(3);
     }
 
     @Test
@@ -193,9 +193,9 @@ public class MultiTopicsTest extends KafkaTestBase {
             }
         });
 
-        assertThat(top1).hasValueGreaterThanOrEqualTo(3);
-        assertThat(top2).hasValueGreaterThanOrEqualTo(3);
-        assertThat(top3).hasValueGreaterThanOrEqualTo(3);
+        assertThat(top1).hasValue(3);
+        assertThat(top2).hasValue(3);
+        assertThat(top3).hasValue(3);
     }
 
     @Test

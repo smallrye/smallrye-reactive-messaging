@@ -37,6 +37,7 @@ import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 
 public class KafkaSource<K, V> {
     private final Multi<IncomingKafkaRecord<K, V>> stream;
@@ -55,7 +56,7 @@ public class KafkaSource<K, V> {
     private final String channel;
 
     public KafkaSource(Vertx vertx,
-            String group,
+            String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
             KafkaCDIEvents kafkaCDIEvents) {
@@ -83,7 +84,7 @@ public class KafkaSource<K, V> {
 
         JsonHelper.asJsonObject(config.config())
                 .forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
-        kafkaConfiguration.put(ConsumerConfig.GROUP_ID_CONFIG, group);
+        kafkaConfiguration.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroup);
 
         String servers = config.getBootstrapServers();
         if (!kafkaConfiguration.containsKey(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
@@ -114,85 +115,7 @@ public class KafkaSource<K, V> {
         // fire consumer event (e.g. bind metrics)
         kafkaCDIEvents.consumer().fire(kafkaConsumer.getDelegate().unwrap());
 
-        commitHandler = createCommitHandler(vertx, kafkaConsumer, group, config, commitStrategy);
-
-        Optional<KafkaConsumerRebalanceListener> rebalanceListener = config
-                .getConsumerRebalanceListenerName()
-                .map(name -> {
-                    log.loadingConsumerRebalanceListenerFromConfiguredName(name);
-                    return NamedLiteral.of(name);
-                })
-                .map(consumerRebalanceListeners::select)
-                .map(Instance::get)
-                .map(Optional::of)
-                .orElseGet(() -> {
-                    Instance<KafkaConsumerRebalanceListener> rebalanceFromGroupListeners = consumerRebalanceListeners
-                            .select(NamedLiteral.of(group));
-
-                    if (!rebalanceFromGroupListeners.isUnsatisfied()) {
-                        log.loadingConsumerRebalanceListenerFromGroupId(group);
-                        return Optional.of(rebalanceFromGroupListeners.get());
-                    }
-                    return Optional.empty();
-                });
-
-        if (rebalanceListener.isPresent()) {
-            KafkaConsumerRebalanceListener listener = rebalanceListener.get();
-            // If the re-balance assign fails we must resume the consumer in order to force a consumer group
-            // re-balance. To do so we must wait until after the poll interval time or
-            // poll interval time + session timeout if group instance id is not null.
-            // We will retry the re-balance consumer listener on failure using an exponential backoff until
-            // we can allow the kafka consumer to do it on its own. We do this because by default it would take
-            // 5 minutes for kafka to do this which is too long. With defaults consumerReEnableWaitTime would be
-            // 500000 millis. We also can't simply retry indefinitely because once the consumer has been paused
-            // for consumerReEnableWaitTime kafka will force a re-balance once resumed.
-            final long consumerReEnableWaitTime = Long.parseLong(
-                    kafkaConfiguration.getOrDefault(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "300000"))
-                    + (kafkaConfiguration.get(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG) == null ? 0L
-                            : Long.parseLong(
-                                    kafkaConfiguration.getOrDefault(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,
-                                            "10000")))
-                    + 11_000L; // it's possible that it might expire 10 seconds before when we need it to
-
-            kafkaConsumer.partitionsAssignedHandler(set -> {
-                final long currentDemand = kafkaConsumer.demand();
-                kafkaConsumer.pause();
-
-                commitHandler.partitionsAssigned(set);
-
-                log.executingConsumerAssignedRebalanceListener(group);
-                listener.onPartitionsAssigned(kafkaConsumer, set)
-                        .onFailure().invoke(t -> log.unableToExecuteConsumerAssignedRebalanceListener(group, t))
-                        .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(10))
-                        .expireIn(consumerReEnableWaitTime)
-                        .subscribe()
-                        .with(
-                                a -> {
-                                    log.executedConsumerAssignedRebalanceListener(group);
-                                    kafkaConsumer.fetch(currentDemand);
-                                },
-                                t -> {
-                                    log.reEnablingConsumerForGroup(group);
-                                    kafkaConsumer.fetch(currentDemand);
-                                });
-            });
-
-            kafkaConsumer.partitionsRevokedHandler(set -> {
-                log.executingConsumerRevokedRebalanceListener(group);
-
-                commitHandler.partitionsRevoked(set);
-
-                listener.onPartitionsRevoked(kafkaConsumer, set)
-                        .subscribe()
-                        .with(
-                                a -> log.executedConsumerRevokedRebalanceListener(group),
-                                t -> log.unableToExecuteConsumerRevokedRebalanceListener(group, t));
-            });
-        } else {
-            kafkaConsumer.partitionsAssignedHandler(commitHandler::partitionsAssigned);
-            kafkaConsumer.partitionsRevokedHandler(commitHandler::partitionsRevoked);
-        }
-
+        commitHandler = createCommitHandler(vertx, kafkaConsumer, consumerGroup, config, commitStrategy);
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
 
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
@@ -203,6 +126,10 @@ public class KafkaSource<K, V> {
             this.admin = null;
         }
         this.consumer = kafkaConsumer;
+        ConsumerRebalanceListener listener = RebalanceListeners
+            .createRebalanceListener(config, consumerGroup, consumerRebalanceListeners, consumer, commitHandler);
+        RebalanceListeners.inject(this.consumer, listener);
+
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> {
                     log.unableToReadRecord(topics, t);

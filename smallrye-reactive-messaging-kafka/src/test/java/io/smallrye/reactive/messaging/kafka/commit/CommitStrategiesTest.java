@@ -14,10 +14,7 @@ import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Named;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.MockConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -369,16 +366,17 @@ public class CommitStrategiesTest extends WeldTestBase {
     public static class NamedRebalanceListener implements KafkaConsumerRebalanceListener {
 
         @Override
-        public Uni<Void> onPartitionsAssigned(
-                KafkaConsumer<?, ?> consumer, Set<io.vertx.kafka.client.common.TopicPartition> topicPartitions) {
-            return Uni.createFrom().nullItem();
+        public void onPartitionsAssigned(Consumer<?, ?> consumer,
+            Collection<TopicPartition> partitions) {
+
         }
 
         @Override
-        public Uni<Void> onPartitionsRevoked(KafkaConsumer<?, ?> consumer,
-                Set<io.vertx.kafka.client.common.TopicPartition> topicPartitions) {
-            return Uni.createFrom().nullItem();
+        public void onPartitionsRevoked(Consumer<?, ?> consumer,
+            Collection<TopicPartition> partitions) {
+
         }
+
     }
 
     @ApplicationScoped

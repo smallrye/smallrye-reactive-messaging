@@ -38,7 +38,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     private static final Map<String, Map<Integer, TopicPartition>> TOPIC_PARTITIONS_CACHE = new ConcurrentHashMap<>();
 
-    private final Map<TopicPartition, OffsetStore> offsetStores = new HashMap<>();
+    private final Map<TopicPartition, OffsetStore> offsetStores = new ConcurrentHashMap<>();
 
     private final KafkaConsumer<?, ?> consumer;
     private final KafkaSource<?, ?> source;
@@ -98,12 +98,12 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     /**
      * New partitions are assigned.
-     * This method is called from a Vert.x event loop (the one used by the Kafka client)
+     * This method is called from the Kafka pool thread.
      *
      * @param partitions the partitions
      */
     @Override
-    public void partitionsAssigned(Set<TopicPartition> partitions) {
+    public void partitionsAssigned(Collection<TopicPartition> partitions) {
         stopFlushAndCheckHealthTimer();
 
         if (!partitions.isEmpty() || !offsetStores.isEmpty()) {
@@ -113,12 +113,12 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     /**
      * Revoked partitions.
-     * This method is called from a Vert.x event loop (the one used by the Kafka client)
+     * This method is called from the Kafka pool thread.
      *
      * @param partitions the partitions that we will no longer receive
      */
     @Override
-    public void partitionsRevoked(Set<TopicPartition> partitions) {
+    public void partitionsRevoked(Collection<TopicPartition> partitions) {
         stopFlushAndCheckHealthTimer();
 
         // Remove all handled partitions that are in the given list of revoked partitions
