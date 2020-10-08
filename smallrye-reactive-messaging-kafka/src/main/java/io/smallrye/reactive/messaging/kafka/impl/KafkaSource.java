@@ -310,7 +310,7 @@ public class KafkaSource<K, V> {
             // Handle possible parent span
             final SpanContext parentSpan = tracingMetadata.getPreviousSpanContext();
             if (parentSpan != null && parentSpan.isValid()) {
-                spanBuilder.setParent(parentSpan);
+                spanBuilder.addLink(parentSpan);
             } else {
                 spanBuilder.setNoParent();
             }
@@ -320,9 +320,9 @@ public class KafkaSource<K, V> {
             // Set Span attributes
             span.setAttribute("partition", kafkaRecord.getPartition());
             span.setAttribute("offset", kafkaRecord.getOffset());
-            SemanticAttributes.MESSAGING_SYSTEM.set(span, "kafka");
-            SemanticAttributes.MESSAGING_DESTINATION.set(span, kafkaRecord.getTopic());
-            SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
+            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
 
             kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
 
