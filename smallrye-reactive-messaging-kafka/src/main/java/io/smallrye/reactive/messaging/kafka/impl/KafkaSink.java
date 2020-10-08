@@ -262,9 +262,9 @@ public class KafkaSink {
 
             if (tracingMetadata.isPresent()) {
                 // Handle possible parent span
-                final SpanContext parentSpan = tracingMetadata.get().getPreviousSpanContext();
-                if (parentSpan != null && parentSpan.isValid()) {
-                    spanBuilder.addLink(parentSpan);
+                final Context parentSpanContext = tracingMetadata.get().getPreviousContext();
+                if (parentSpanContext != null) {
+                    spanBuilder.setParent(parentSpanContext);
                 } else {
                     spanBuilder.setNoParent();
                 }

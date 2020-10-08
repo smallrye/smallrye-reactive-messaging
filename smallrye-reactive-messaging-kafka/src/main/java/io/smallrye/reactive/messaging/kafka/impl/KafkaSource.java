@@ -15,8 +15,8 @@ import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import io.grpc.Context;
 import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
 import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -308,9 +308,9 @@ public class KafkaSource<K, V> {
                     .setSpanKind(Span.Kind.CONSUMER);
 
             // Handle possible parent span
-            final SpanContext parentSpan = tracingMetadata.getPreviousSpanContext();
-            if (parentSpan != null && parentSpan.isValid()) {
-                spanBuilder.addLink(parentSpan);
+            final Context parentSpanContext = tracingMetadata.getPreviousContext();
+            if (parentSpanContext != null) {
+                spanBuilder.setParent(parentSpanContext);
             } else {
                 spanBuilder.setNoParent();
             }

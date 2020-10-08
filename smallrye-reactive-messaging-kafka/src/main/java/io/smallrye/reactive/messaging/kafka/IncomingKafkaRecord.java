@@ -10,7 +10,6 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.grpc.Context;
 import io.opentelemetry.OpenTelemetry;
-import io.opentelemetry.trace.TracingContextUtils;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
@@ -64,8 +63,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
                 // Read tracing headers
                 Context context = OpenTelemetry.getPropagators().getTextMapPropagator()
                         .extract(Context.current(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
-                tracingMetadata = TracingMetadata
-                        .withPrevious(TracingContextUtils.getSpanWithoutDefault(context));
+                tracingMetadata = TracingMetadata.withPrevious(context);
             }
 
             meta.add(tracingMetadata);
