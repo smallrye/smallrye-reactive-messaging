@@ -15,8 +15,8 @@ import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import io.grpc.Context;
 import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
 import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -308,9 +308,9 @@ public class KafkaSource<K, V> {
                     .setSpanKind(Span.Kind.CONSUMER);
 
             // Handle possible parent span
-            final SpanContext parentSpan = tracingMetadata.getPreviousSpanContext();
-            if (parentSpan != null && parentSpan.isValid()) {
-                spanBuilder.setParent(parentSpan);
+            final Context parentSpanContext = tracingMetadata.getPreviousContext();
+            if (parentSpanContext != null) {
+                spanBuilder.setParent(parentSpanContext);
             } else {
                 spanBuilder.setNoParent();
             }
@@ -320,9 +320,9 @@ public class KafkaSource<K, V> {
             // Set Span attributes
             span.setAttribute("partition", kafkaRecord.getPartition());
             span.setAttribute("offset", kafkaRecord.getOffset());
-            SemanticAttributes.MESSAGING_SYSTEM.set(span, "kafka");
-            SemanticAttributes.MESSAGING_DESTINATION.set(span, kafkaRecord.getTopic());
-            SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
+            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
 
             kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
 

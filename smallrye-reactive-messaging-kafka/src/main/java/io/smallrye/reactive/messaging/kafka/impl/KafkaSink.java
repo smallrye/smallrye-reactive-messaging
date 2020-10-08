@@ -262,9 +262,9 @@ public class KafkaSink {
 
             if (tracingMetadata.isPresent()) {
                 // Handle possible parent span
-                final SpanContext parentSpan = tracingMetadata.get().getPreviousSpanContext();
-                if (parentSpan != null && parentSpan.isValid()) {
-                    spanBuilder.setParent(parentSpan);
+                final Context parentSpanContext = tracingMetadata.get().getPreviousContext();
+                if (parentSpanContext != null) {
+                    spanBuilder.setParent(parentSpanContext);
                 } else {
                     spanBuilder.setNoParent();
                 }
@@ -283,9 +283,9 @@ public class KafkaSink {
 
             // Set Span attributes
             span.setAttribute("partition", partition);
-            SemanticAttributes.MESSAGING_SYSTEM.set(span, "kafka");
-            SemanticAttributes.MESSAGING_DESTINATION.set(span, topic);
-            SemanticAttributes.MESSAGING_DESTINATION_KIND.set(span, "topic");
+            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, topic);
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
 
             // Set span onto headers
             OpenTelemetry.getPropagators().getTextMapPropagator()
