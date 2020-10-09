@@ -121,11 +121,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     public void partitionsRevoked(Set<TopicPartition> partitions) {
         stopFlushAndCheckHealthTimer();
 
-        // Remove all handled partitions that are not in the given list of partitions
+        // Remove all handled partitions that are in the given list of revoked partitions
         Map<TopicPartition, OffsetAndMetadata> toCommit = new HashMap<>();
-        for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
-            if (!partitions.contains(partition)) {
-                OffsetStore store = offsetStores.remove(partition);
+        for (TopicPartition partition : partitions) {
+            OffsetStore store = offsetStores.remove(partition);
+            if (store != null) {
                 long largestOffset = store.clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
                 if (largestOffset > -1) {
                     toCommit.put(partition, new OffsetAndMetadata(largestOffset + 1L, null));
