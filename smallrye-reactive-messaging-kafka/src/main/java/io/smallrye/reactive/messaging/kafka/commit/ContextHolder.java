@@ -1,11 +1,8 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
 import java.lang.reflect.Field;
-import java.time.Duration;
 import java.util.concurrent.*;
 
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.errors.WakeupException;
 
 import io.vertx.kafka.client.consumer.KafkaReadStream;
@@ -22,10 +19,9 @@ public class ContextHolder {
     private final int timeout;
     protected volatile Context context;
 
-    public ContextHolder(Vertx vertx, KafkaConnectorIncomingConfiguration configuration) {
+    public ContextHolder(Vertx vertx, int defaultTimeout) {
         this.vertx = vertx;
-        this.timeout = configuration.config().getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class)
-            .orElse(60000);
+        this.timeout = defaultTimeout;
     }
 
     public void capture(KafkaReadStream<?, ?> stream) {

@@ -1,12 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-
-import java.util.*;
-import java.util.concurrent.*;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
@@ -17,6 +10,12 @@ import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+
+import java.util.*;
+import java.util.concurrent.*;
+
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 /**
  * Will keep track of received messages and commit to the next offset after the latest
@@ -48,12 +47,13 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private volatile long timerId = -1;
 
     private KafkaThrottledLatestProcessedCommit(
-            Vertx vertx,
-            KafkaConsumer<?, ?> consumer,
-            KafkaSource<?, ?> source,
-            int unprocessedRecordMaxAge,
-            int autoCommitInterval) {
-        super(vertx);
+        Vertx vertx,
+        KafkaConsumer<?, ?> consumer,
+        KafkaSource<?, ?> source,
+        int unprocessedRecordMaxAge,
+        int autoCommitInterval,
+        int defaultTimeout) {
+        super(vertx, defaultTimeout);
         this.consumer = consumer;
         this.source = source;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
@@ -65,16 +65,19 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     }
 
     public static KafkaThrottledLatestProcessedCommit create(
-            Vertx vertx,
-            KafkaConsumer<?, ?> consumer,
-            String groupId,
-            KafkaConnectorIncomingConfiguration config,
-            KafkaSource<?, ?> source) {
+        Vertx vertx,
+        KafkaConsumer<?, ?> consumer,
+        String groupId,
+        KafkaConnectorIncomingConfiguration config,
+        KafkaSource<?, ?> source) {
 
         int unprocessedRecordMaxAge = config.getThrottledUnprocessedRecordMaxAgeMs();
         int autoCommitInterval = config.config()
-                .getOptionalValue(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, Integer.class)
-                .orElse(5000);
+            .getOptionalValue(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, Integer.class)
+            .orElse(5000);
+        int defaultTimeout = config.config()
+            .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class)
+            .orElse(60000);
         log.settingCommitInterval(groupId, autoCommitInterval);
         if (unprocessedRecordMaxAge <= 0) {
             log.disableThrottledCommitStrategyHealthCheck(groupId);
@@ -82,14 +85,14 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             log.setThrottledCommitStrategyReceivedRecordMaxAge(groupId, unprocessedRecordMaxAge);
         }
         return new KafkaThrottledLatestProcessedCommit(vertx, consumer, source, unprocessedRecordMaxAge,
-                autoCommitInterval);
+            autoCommitInterval, defaultTimeout);
 
     }
 
     private <K, V> TopicPartition getTopicPartition(IncomingKafkaRecord<K, V> record) {
         return TOPIC_PARTITIONS_CACHE
-                .computeIfAbsent(record.getTopic(), topic -> new ConcurrentHashMap<>())
-                .computeIfAbsent(record.getPartition(), partition -> new TopicPartition(record.getTopic(), partition));
+            .computeIfAbsent(record.getTopic(), topic -> new ConcurrentHashMap<>())
+            .computeIfAbsent(record.getPartition(), partition -> new TopicPartition(record.getTopic(), partition));
     }
 
     /**
@@ -97,7 +100,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * This method is called from the Kafka pool thread.
      *
      * @param partitions the list of partitions that are now assigned to the consumer
-     *        (may include partitions previously assigned to the consumer)
+     *                   (may include partitions previously assigned to the consumer)
      */
     @Override
     public void partitionsAssigned(Collection<TopicPartition> partitions) {
@@ -144,12 +147,32 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         if (!result.getItem1().isEmpty()) {
             // We are on the polling thread, we can use synchronous (blocking) commit
-            consumer.getDelegate().unwrap().commitSync(result.getItem1());
+            consumer.getDelegate().unwrap().commitSync(unwrap(result.getItem1()));
         }
 
         if (result.getItem2()) {
             runOnContext(this::startFlushAndCheckHealthTimer);
         }
+    }
+
+    /**
+     * Rebuilds the expected map from the Apache Kafka client based on the Vert.x objects.
+     *
+     * @param map the map to convert
+     * @return the converted map.
+     */
+    private static Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> unwrap(
+        Map<TopicPartition, OffsetAndMetadata> map) {
+        HashMap<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> result = new HashMap<>();
+        for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : map.entrySet()) {
+            TopicPartition tp = entry.getKey();
+            OffsetAndMetadata off = entry.getValue();
+            result.put(
+                new org.apache.kafka.common.TopicPartition(tp.getTopic(), tp.getPartition()),
+                new org.apache.kafka.clients.consumer.OffsetAndMetadata(off.getOffset(), off.getMetadata())
+            );
+        }
+        return result;
     }
 
     /**
@@ -177,8 +200,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * This method is called from a Vert.x event loop.
      *
      * @param record the record
-     * @param <K> the key
-     * @param <V> the value
+     * @param <K>    the key
+     * @param <V>    the value
      * @return the record
      */
     @Override
@@ -186,8 +209,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         TopicPartition recordsTopicPartition = getTopicPartition(record);
 
         offsetStores
-                .computeIfAbsent(recordsTopicPartition, k -> new OffsetStore(k, unprocessedRecordMaxAge))
-                .received(record.getOffset());
+            .computeIfAbsent(recordsTopicPartition, k -> new OffsetStore(k, unprocessedRecordMaxAge))
+            .received(record.getOffset());
 
         if (timerId < 0) {
             startFlushAndCheckHealthTimer();
@@ -206,7 +229,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         for (Map.Entry<TopicPartition, OffsetStore> entry : offsetStores.entrySet()) {
             long offset = entry.getValue()
-                    .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
+                .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
             if (offset > -1) {
                 offsetsMapping.put(entry.getKey(), offset);
             }
@@ -220,8 +243,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * This method is NOT necessarily called on an event loop.
      *
      * @param record the record
-     * @param <K> the key
-     * @param <V> the value
+     * @param <K>    the key
+     * @param <V>    the value
      * @return a completion stage indicating when the commit complete
      */
     @Override
@@ -231,8 +254,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         // or partition assignment.
         runOnContext(() -> {
             offsetStores
-                    .get(getTopicPartition(record))
-                    .processed(record.getOffset());
+                .get(getTopicPartition(record))
+                .processed(record.getOffset());
             future.complete(null);
         });
         return future;
@@ -256,10 +279,10 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         if (this.unprocessedRecordMaxAge > 0) {
             offsetStores
-                    .values()
-                    .stream()
-                    .filter(OffsetStore::hasTooManyMessagesWithoutAck)
-                    .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
+                .values()
+                .stream()
+                .filter(OffsetStore::hasTooManyMessagesWithoutAck)
+                .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
         }
 
     }
@@ -358,7 +381,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     private void commitAllAndAwait() {
         Map<TopicPartition, Long> offsetsMapping = runOnContextAndAwait(
-                this::clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping);
+            this::clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping);
         commitAndAwait(offsetsMapping);
     }
 
@@ -370,7 +393,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             consumer.getDelegate().commit(offsets, new Handler<AsyncResult<Map<TopicPartition, OffsetAndMetadata>>>() {
                 @Override
                 public void handle(
-                        AsyncResult<Map<TopicPartition, OffsetAndMetadata>> event) {
+                    AsyncResult<Map<TopicPartition, OffsetAndMetadata>> event) {
                     if (event.failed()) {
                         stage.completeExceptionally(event.cause());
                     } else {

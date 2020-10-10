@@ -282,7 +282,7 @@ public class KafkaSource<K, V> {
         KafkaCommitHandler.Strategy actualStrategy = KafkaCommitHandler.Strategy.from(strategy);
         switch (actualStrategy) {
             case LATEST:
-                return new KafkaLatestCommit(vertx, consumer);
+                return new KafkaLatestCommit(vertx, configuration, consumer);
             case IGNORE:
                 return new KafkaIgnoreCommit();
             case THROTTLED:
