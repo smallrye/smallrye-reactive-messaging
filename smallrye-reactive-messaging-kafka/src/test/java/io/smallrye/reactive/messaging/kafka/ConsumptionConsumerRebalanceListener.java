@@ -18,10 +18,9 @@ public class ConsumptionConsumerRebalanceListener implements KafkaConsumerRebala
 
     @Override
     public void onPartitionsAssigned(Consumer<?, ?> consumer,
-        Collection<TopicPartition> partitions) {
+            Collection<TopicPartition> partitions) {
         partitions.forEach(topicPartition -> this.assigned.put(topicPartition.partition(), topicPartition));
     }
-
 
     public Map<Integer, TopicPartition> getAssigned() {
         return assigned;

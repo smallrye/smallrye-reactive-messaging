@@ -7,6 +7,7 @@ import java.util.concurrent.*;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -38,7 +39,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     private static final Map<String, Map<Integer, TopicPartition>> TOPIC_PARTITIONS_CACHE = new ConcurrentHashMap<>();
 
-    private final Map<TopicPartition, OffsetStore> offsetStores = new ConcurrentHashMap<>();
+    private final Map<TopicPartition, OffsetStore> offsetStores = new HashMap<>();
 
     private final KafkaConsumer<?, ?> consumer;
     private final KafkaSource<?, ?> source;
@@ -91,57 +92,70 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 .computeIfAbsent(record.getPartition(), partition -> new TopicPartition(record.getTopic(), partition));
     }
 
-    private OffsetStore getOffsetStore(TopicPartition topicPartition) {
-        return offsetStores
-                .computeIfAbsent(topicPartition, k -> new OffsetStore(k, unprocessedRecordMaxAge));
-    }
-
     /**
      * New partitions are assigned.
      * This method is called from the Kafka pool thread.
      *
-     * @param partitions the partitions
+     * @param partitions the list of partitions that are now assigned to the consumer
+     *        (may include partitions previously assigned to the consumer)
      */
     @Override
     public void partitionsAssigned(Collection<TopicPartition> partitions) {
-        stopFlushAndCheckHealthTimer();
+        runOnContextAndAwait(() -> {
+            stopFlushAndCheckHealthTimer();
 
-        if (!partitions.isEmpty() || !offsetStores.isEmpty()) {
-            startFlushAndCheckHealthTimer();
-        }
+            if (!partitions.isEmpty() || !offsetStores.isEmpty()) {
+                startFlushAndCheckHealthTimer();
+            }
+
+            return null;
+        });
     }
 
     /**
      * Revoked partitions.
      * This method is called from the Kafka pool thread.
      *
-     * @param partitions the partitions that we will no longer receive
+     * @param partitions The list of partitions that were assigned to the consumer on the last rebalance
      */
     @Override
     public void partitionsRevoked(Collection<TopicPartition> partitions) {
-        stopFlushAndCheckHealthTimer();
+        runOnContextAndAwait(() -> {
+            stopFlushAndCheckHealthTimer();
+            return null;
+        });
 
-        // Remove all handled partitions that are in the given list of revoked partitions
-        Map<TopicPartition, OffsetAndMetadata> toCommit = new HashMap<>();
-        for (TopicPartition partition : partitions) {
-            OffsetStore store = offsetStores.remove(partition);
-            if (store != null) {
-                long largestOffset = store.clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
-                if (largestOffset > -1) {
-                    toCommit.put(partition, new OffsetAndMetadata(largestOffset + 1L, null));
+        // Remove all handled partitions that are not in the given list of partitions
+        Callable<Tuple2<Map<TopicPartition, OffsetAndMetadata>, Boolean>> task = () -> {
+            Map<TopicPartition, OffsetAndMetadata> toCommit = new HashMap<>();
+            for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
+                if (partitions.contains(partition)) {
+                    OffsetStore store = offsetStores.remove(partition);
+                    long largestOffset = store.clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
+                    if (largestOffset > -1) {
+                        toCommit.put(partition, new OffsetAndMetadata(largestOffset + 1L, null));
+                    }
                 }
             }
+            return Tuple2.of(toCommit, !offsetStores.isEmpty());
+        };
+
+        Tuple2<Map<TopicPartition, OffsetAndMetadata>, Boolean> result = runOnContextAndAwait(task);
+
+        if (!result.getItem1().isEmpty()) {
+            // We are on the polling thread, we can use synchronous (blocking) commit
+            consumer.getDelegate().unwrap().commitSync(result.getItem1());
         }
 
-        if (!toCommit.isEmpty()) {
-            consumer.getDelegate().commit(toCommit);
-        }
-
-        if (!offsetStores.isEmpty()) {
-            startFlushAndCheckHealthTimer();
+        if (result.getItem2()) {
+            runOnContext(this::startFlushAndCheckHealthTimer);
         }
     }
 
+    /**
+     * Cancel the existing timer.
+     * Must be called from the event loop.
+     */
     private void stopFlushAndCheckHealthTimer() {
         if (timerId != -1) {
             vertx.cancelTimer(timerId);
@@ -149,8 +163,13 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
     }
 
+    /**
+     * Schedule the next commit.
+     * Must be called form the event loop.
+     */
     private void startFlushAndCheckHealthTimer() {
         timerId = vertx.setTimer(autoCommitInterval, this::flushAndCheckHealth);
+
     }
 
     /**
@@ -165,7 +184,10 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     @Override
     public <K, V> IncomingKafkaRecord<K, V> received(IncomingKafkaRecord<K, V> record) {
         TopicPartition recordsTopicPartition = getTopicPartition(record);
-        getOffsetStore(recordsTopicPartition).received(record.getOffset());
+
+        offsetStores
+                .computeIfAbsent(recordsTopicPartition, k -> new OffsetStore(k, unprocessedRecordMaxAge))
+                .received(record.getOffset());
 
         if (timerId < 0) {
             startFlushAndCheckHealthTimer();
@@ -174,6 +196,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         return record;
     }
 
+    /**
+     * Must be called from the event loop.
+     *
+     * @return the map of partition -> offset that can be committed.
+     */
     private Map<TopicPartition, Long> clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping() {
         Map<TopicPartition, Long> offsetsMapping = new HashMap<>();
 
@@ -212,6 +239,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     }
 
+    /**
+     * Always called from the event loop.
+     *
+     * @param timerId the timer id.
+     */
     private void flushAndCheckHealth(long timerId) {
         Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
 
@@ -317,12 +349,16 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     @Override
     public void terminate() {
         commitAllAndAwait();
-        offsetStores.clear();
-        stopFlushAndCheckHealthTimer();
+        runOnContextAndAwait(() -> {
+            offsetStores.clear();
+            stopFlushAndCheckHealthTimer();
+            return null;
+        });
     }
 
     private void commitAllAndAwait() {
-        Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
+        Map<TopicPartition, Long> offsetsMapping = runOnContextAndAwait(
+                this::clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping);
         commitAndAwait(offsetsMapping);
     }
 

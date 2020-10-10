@@ -11,9 +11,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 
 import io.grpc.Context;
 import io.opentelemetry.trace.Span;
@@ -37,7 +37,6 @@ import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 
 public class KafkaSource<K, V> {
     private final Multi<IncomingKafkaRecord<K, V>> stream;
@@ -127,7 +126,7 @@ public class KafkaSource<K, V> {
         }
         this.consumer = kafkaConsumer;
         ConsumerRebalanceListener listener = RebalanceListeners
-            .createRebalanceListener(config, consumerGroup, consumerRebalanceListeners, consumer, commitHandler);
+                .createRebalanceListener(config, consumerGroup, consumerRebalanceListeners, consumer, commitHandler);
         RebalanceListeners.inject(this.consumer, listener);
 
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()

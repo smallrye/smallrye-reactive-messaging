@@ -22,7 +22,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
@@ -367,13 +366,13 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         @Override
         public void onPartitionsAssigned(Consumer<?, ?> consumer,
-            Collection<TopicPartition> partitions) {
+                Collection<TopicPartition> partitions) {
 
         }
 
         @Override
         public void onPartitionsRevoked(Consumer<?, ?> consumer,
-            Collection<TopicPartition> partitions) {
+                Collection<TopicPartition> partitions) {
 
         }
 

@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.kafka.commit;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;

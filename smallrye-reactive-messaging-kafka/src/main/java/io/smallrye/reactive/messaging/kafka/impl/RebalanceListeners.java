@@ -4,7 +4,6 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import javax.enterprise.inject.AmbiguousResolutionException;
 import javax.enterprise.inject.Instance;
@@ -19,17 +18,16 @@ import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
-import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 public class RebalanceListeners {
 
     static ConsumerRebalanceListener createRebalanceListener(
-        KafkaConnectorIncomingConfiguration config,
-        String consumerGroup,
-        Instance<KafkaConsumerRebalanceListener> instances,
-        KafkaConsumer<?, ?> consumer,
-        KafkaCommitHandler commitHandler) {
+            KafkaConnectorIncomingConfiguration config,
+            String consumerGroup,
+            Instance<KafkaConsumerRebalanceListener> instances,
+            KafkaConsumer<?, ?> consumer,
+            KafkaCommitHandler commitHandler) {
         Optional<KafkaConsumerRebalanceListener> rebalanceListener = findMatchingListener(config, consumerGroup, instances);
 
         if (rebalanceListener.isPresent()) {
