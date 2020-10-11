@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 import java.lang.reflect.Field;
 import java.util.concurrent.*;
 
-import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.errors.InterruptException;
 
 import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
@@ -57,8 +57,8 @@ public class ContextHolder {
         try {
             return task.get(timeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new WakeupException();
+            // The InterruptException reset the interruption flag.
+            throw new InterruptException(e);
         } catch (ExecutionException | TimeoutException e) {
             throw new CompletionException(e);
         }
