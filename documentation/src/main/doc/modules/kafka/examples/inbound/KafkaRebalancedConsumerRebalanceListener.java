@@ -1,21 +1,15 @@
 package inbound;
 
-import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 @Named("rebalanced-example.rebalancer")
@@ -27,10 +21,11 @@ public class KafkaRebalancedConsumerRebalanceListener implements KafkaConsumerRe
      * When receiving a list of partitions will search for the earliest offset within 10 minutes
      * and seek the consumer to it.
      *
-     * @param consumer        underlying consumer
+     * @param consumer   underlying consumer
      * @param partitions set of assigned topic partitions
      */
-    @Override public void onPartitionsAssigned(Consumer<?, ?> consumer,
+    @Override
+    public void onPartitionsAssigned(Consumer<?, ?> consumer,
         Collection<org.apache.kafka.common.TopicPartition> partitions) {
         long now = System.currentTimeMillis();
         long shouldStartAt = now - 600_000L; //10 minute ago
