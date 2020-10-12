@@ -5,7 +5,10 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
@@ -33,8 +36,10 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
      */
     private final Map<TopicPartition, Long> offsets = new HashMap<>();
 
-    public KafkaLatestCommit(Vertx vertx, io.vertx.mutiny.kafka.client.consumer.KafkaConsumer<?, ?> consumer) {
-        super(vertx);
+    public KafkaLatestCommit(Vertx vertx, KafkaConnectorIncomingConfiguration configuration,
+            io.vertx.mutiny.kafka.client.consumer.KafkaConsumer<?, ?> consumer) {
+        super(vertx, configuration.config()
+                .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class).orElse(60000));
         this.consumer = (KafkaConsumer<?, ?>) consumer.getDelegate();
     }
 

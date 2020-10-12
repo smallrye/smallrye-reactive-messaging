@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Instant;
@@ -13,14 +14,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
-import org.jboss.weld.exceptions.UnsatisfiedResolutionException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +32,6 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.kafka.client.common.TopicPartition;
 
 public class KafkaSourceTest extends KafkaTestBase {
 
@@ -310,15 +311,16 @@ public class KafkaSourceTest extends KafkaTestBase {
         ConsumptionConsumerRebalanceListener consumptionConsumerRebalanceListener = getConsumptionConsumerRebalanceListener();
         assertThat(consumptionConsumerRebalanceListener.getAssigned().size()).isEqualTo(2);
         for (int i = 0; i < 2; i++) {
-            TopicPartition topicPartition = consumptionConsumerRebalanceListener.getAssigned().get(i);
-            assertThat(topicPartition).isNotNull();
-            assertThat(topicPartition.getTopic()).isEqualTo("data-2");
+            TopicPartition partition = consumptionConsumerRebalanceListener.getAssigned().get(i);
+            assertThat(partition).isNotNull();
+            assertThat(partition.topic()).isEqualTo("data-2");
         }
     }
 
     @Test
     public void testABeanConsumingWithMissingRebalanceListenerConfiguredByName() throws Throwable {
-        assertThatThrownBy(() -> run(myKafkaSourceConfig(0, "not exists", "my-group"))).isInstanceOf(DeploymentException.class)
+        assertThatThrownBy(() -> run(myKafkaSourceConfig(0, "not exists", "my-group")))
+                .isInstanceOf(DeploymentException.class)
                 .hasCauseInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -399,10 +401,12 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .atMost(2, TimeUnit.MINUTES)
                 .until(() -> list.size() >= 5);
 
-        assertThat(list).containsExactly(6, 7, 8, 9, 10);
+        // The rebalance listener failed, no retry
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
+        // Failed, not called and there is no retry
         assertThat(getStartFromFifthOffsetFromLatestConsumerRebalanceListener(
-                "my-group-starting-on-fifth-fail-until-second-rebalance").getRebalanceCount()).isEqualTo(2);
+                "my-group-starting-on-fifth-fail-until-second-rebalance").getRebalanceCount()).isEqualTo(0);
     }
 
     @SuppressWarnings("unchecked")
