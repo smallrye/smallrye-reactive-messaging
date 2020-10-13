@@ -5,8 +5,6 @@ import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
@@ -88,27 +86,63 @@ public class ConnectorConfig implements Config {
         if (CONNECTOR_ATTRIBUTE.equalsIgnoreCase(propertyName) || "type".equalsIgnoreCase(propertyName)) {
             return Optional.of((T) connector);
         }
+
         // First check if the channel configuration contains the desired attribute.
         Optional<T> maybe = overall.getOptionalValue(channelKey(propertyName), propertyType);
         return maybe.isPresent() ? maybe
                 : overall.getOptionalValue(connectorKey(propertyName), propertyType);
     }
 
+    /**
+     * Gets the lists of config keys for the given connector.
+     * Note that the list contains property names from the config and env variables.
+     * It includes keys from the connector config and channel config.
+     * 
+     * @return the list of keys
+     */
     @Override
     public Iterable<String> getPropertyNames() {
-        // Compute the keys form the connector config
-        Set<String> strings = StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
-                .filter(s -> s.startsWith(CONNECTOR_PREFIX + connector + "."))
-                .map(s -> s.substring((CONNECTOR_PREFIX + connector + ".").length()))
-                .collect(Collectors.toSet());
+        String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
+        String prefix = this.prefix + name + ".";
+        String prefixFromEnv = toEnv(prefix);
+        String connectorPrefixFromEnv = toEnv(connectorPrefix);
 
-        StreamSupport.stream(overall.getPropertyNames().spliterator(), false)
-                .filter(s -> s.startsWith(prefix + name + "."))
-                .map(s -> s.substring((prefix + name + ".").length()))
-                .forEach(strings::add);
+        Set<String> names = new HashSet<>();
+        for (String name : overall.getPropertyNames()) {
+            if (name.startsWith(connectorPrefix)) {
+                String computed = name.substring(connectorPrefix.length());
+                if (doesNotContainEnv(names, computed)) {
+                    names.add(computed);
+                }
+            } else if (name.startsWith(connectorPrefixFromEnv)) {
+                String computed = name.substring(connectorPrefixFromEnv.length());
+                // Remove the potential existing key
+                names.removeIf(s -> toEnv(s).equalsIgnoreCase(computed));
+                names.add(computed);
+            } else if (name.startsWith(prefix)) {
+                String computed = name.substring(prefix.length());
+                if (doesNotContainEnv(names, computed)) {
+                    names.add(computed);
+                }
+            } else if (name.startsWith(prefixFromEnv)) {
+                String computed = name.substring(prefixFromEnv.length());
+                // Remove the potential existing key
+                names.removeIf(s -> toEnv(s).equalsIgnoreCase(computed));
+                names.add(computed);
+            }
+        }
 
-        strings.add(CHANNEL_NAME_ATTRIBUTE);
-        return strings;
+        names.add(CHANNEL_NAME_ATTRIBUTE);
+        return names;
+    }
+
+    private boolean doesNotContainEnv(Set<String> names, String computed) {
+        String env = toEnv(computed);
+        return !names.contains(env);
+    }
+
+    private String toEnv(String key) {
+        return key.toUpperCase().replace(".", "_").replace("-", "_");
     }
 
     @Override
