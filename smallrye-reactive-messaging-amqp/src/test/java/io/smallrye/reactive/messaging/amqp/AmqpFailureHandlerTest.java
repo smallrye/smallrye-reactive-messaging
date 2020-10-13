@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 
-public class AmqpFailureHandlerTest extends AmqpTestBase {
+public class AmqpFailureHandlerTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
 

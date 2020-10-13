@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 
-public class AmqpLinkTest extends AmqpTestBase {
+public class AmqpLinkTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
 

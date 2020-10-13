@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.vertx.core.json.JsonObject;
 
-public class ObjectExchangeTest extends AmqpTestBase {
+public class ObjectExchangeTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
     private final Weld weld = new Weld();

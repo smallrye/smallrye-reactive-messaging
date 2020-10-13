@@ -36,7 +36,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.core.buffer.Buffer;
 
-public class AmqpSourceTest extends AmqpTestBase {
+public class AmqpSourceTest extends AmqpBrokerTestBase {
 
     private AmqpConnector provider;
 
