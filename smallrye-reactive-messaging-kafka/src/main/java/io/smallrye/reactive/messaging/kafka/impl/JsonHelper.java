@@ -6,14 +6,20 @@ import org.eclipse.microprofile.config.Config;
 
 import io.vertx.core.json.JsonObject;
 
+/**
+ * Be aware that this class is kafka specific.
+ */
 public class JsonHelper {
 
     public static JsonObject asJsonObject(Config config) {
         JsonObject json = new JsonObject();
         Iterable<String> propertyNames = config.getPropertyNames();
-        for (String key : propertyNames) {
+        for (String originalKey : propertyNames) {
+            // Transform keys that may comes from environment variables.
+            // As kafka properties use `.`, transform "_" into "."
+            String key = originalKey.toLowerCase().replace("_", ".");
             try {
-                Optional<Integer> i = config.getOptionalValue(key, Integer.class);
+                Optional<Integer> i = config.getOptionalValue(originalKey, Integer.class);
                 if (i.isPresent()) {
                     json.put(key, i.get());
                     continue;
@@ -23,7 +29,7 @@ public class JsonHelper {
             }
 
             try {
-                Optional<Double> d = config.getOptionalValue(key, Double.class);
+                Optional<Double> d = config.getOptionalValue(originalKey, Double.class);
                 if (d.isPresent()) {
                     json.put(key, d.get());
                     continue;
@@ -33,7 +39,7 @@ public class JsonHelper {
             }
 
             try {
-                String value = config.getOptionalValue(key, String.class).orElse("").trim();
+                String value = config.getOptionalValue(originalKey, String.class).orElse("").trim();
                 if (value.equalsIgnoreCase("false")) {
                     json.put(key, false);
                 } else if (value.equalsIgnoreCase("true")) {
