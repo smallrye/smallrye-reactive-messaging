@@ -32,7 +32,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 import io.vertx.mutiny.core.buffer.Buffer;
 
-public class AmqpSinkTest extends AmqpTestBase {
+public class AmqpSinkTest extends AmqpBrokerTestBase {
 
     private static final String HELLO = "hello-";
     private WeldContainer container;

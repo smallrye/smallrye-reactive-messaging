@@ -21,7 +21,7 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.JsonObject;
 
-public class HeaderPropagationAmqpToAmqpTest extends AmqpTestBase {
+public class HeaderPropagationAmqpToAmqpTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
     private final Weld weld = new Weld();
