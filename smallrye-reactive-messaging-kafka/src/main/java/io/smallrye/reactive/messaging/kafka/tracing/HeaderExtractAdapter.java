@@ -7,7 +7,7 @@ import org.apache.kafka.common.header.Headers;
 
 import io.opentelemetry.context.propagation.TextMapPropagator;
 
-public class HeaderExtractAdapter implements TextMapPropagator.Getter<Headers> {
+class HeaderExtractAdapter implements TextMapPropagator.Getter<Headers> {
     public static final HeaderExtractAdapter GETTER = new HeaderExtractAdapter();
 
     @Override

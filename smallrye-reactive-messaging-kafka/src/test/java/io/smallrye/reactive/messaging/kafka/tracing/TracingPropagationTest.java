@@ -47,7 +47,6 @@ import io.opentelemetry.trace.*;
 import io.opentelemetry.trace.propagation.HttpTraceContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
@@ -274,7 +273,7 @@ public class TracingPropagationTest extends KafkaTestBase {
 
     private Iterable<Header> createTracingSpan(List<SpanContext> spanContexts, String topic) {
         RecordHeaders proposedHeaders = new RecordHeaders();
-        final Span span = KafkaConnector.TRACER.spanBuilder(topic).setSpanKind(PRODUCER).startSpan();
+        final Span span = OpenTelemetryTracerImpl.TRACER.spanBuilder(topic).setSpanKind(PRODUCER).startSpan();
         final Context context = withSpan(span, Context.current());
         OpenTelemetry.getPropagators()
                 .getTextMapPropagator()

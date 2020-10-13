@@ -1,10 +1,13 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
-import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -18,16 +21,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import io.grpc.Context;
-import io.opentelemetry.OpenTelemetry;
-import io.opentelemetry.context.Scope;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.TracingContextUtils;
-import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
@@ -35,7 +30,8 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
-import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
+import io.smallrye.reactive.messaging.kafka.tracing.OpenTelemetryTracer;
+import io.smallrye.reactive.messaging.kafka.tracing.OpenTelemetryTracerImpl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
@@ -57,7 +53,7 @@ public class KafkaSink {
     private final boolean writeAsBinaryCloudEvent;
     private final boolean writeCloudEvents;
     private final boolean mandatoryCloudEventAttributeSet;
-    private final boolean isTracingEnabled;
+    private final OpenTelemetryTracer tracer;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
@@ -79,7 +75,7 @@ public class KafkaSink {
         retries = config.getRetries();
         topic = config.getTopic().orElseGet(config::getChannel);
         key = config.getKey().orElse(null);
-        isTracingEnabled = config.getTracingEnabled();
+        tracer = config.getTracingEnabled() ? new OpenTelemetryTracerImpl() : null;
         writeCloudEvents = config.getCloudEvents();
         writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
@@ -120,6 +116,7 @@ public class KafkaSink {
                     reportFailure(f);
                 })
                 .ignore();
+
     }
 
     private synchronized void reportFailure(Throwable failure) {
@@ -219,7 +216,9 @@ public class KafkaSink {
         }
 
         Headers kafkaHeaders = om == null || om.getHeaders() == null ? new RecordHeaders() : om.getHeaders();
-        createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
+        if (tracer != null) {
+            tracer.createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
+        }
         Object payload = message.getPayload();
         if (payload instanceof Record) {
             payload = ((Record) payload).value();
@@ -251,48 +250,6 @@ public class KafkaSink {
 
         // Finally, check the configuration
         return key;
-    }
-
-    private void createOutgoingTrace(Message<?> message, String topic, int partition, Headers headers) {
-        if (isTracingEnabled) {
-            Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
-
-            final Span.Builder spanBuilder = TRACER.spanBuilder(topic + " send")
-                    .setSpanKind(Span.Kind.PRODUCER);
-
-            if (tracingMetadata.isPresent()) {
-                // Handle possible parent span
-                final Context parentSpanContext = tracingMetadata.get().getPreviousContext();
-                if (parentSpanContext != null) {
-                    spanBuilder.setParent(parentSpanContext);
-                } else {
-                    spanBuilder.setNoParent();
-                }
-
-                // Handle possible adjacent spans
-                final SpanContext incomingSpan = tracingMetadata.get().getCurrentSpanContext();
-                if (incomingSpan != null && incomingSpan.isValid()) {
-                    spanBuilder.addLink(incomingSpan);
-                }
-            } else {
-                spanBuilder.setNoParent();
-            }
-
-            final Span span = spanBuilder.startSpan();
-            Scope scope = TracingContextUtils.currentContextWith(span);
-
-            // Set Span attributes
-            span.setAttribute("partition", partition);
-            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, topic);
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
-
-            // Set span onto headers
-            OpenTelemetry.getPropagators().getTextMapPropagator()
-                    .inject(Context.current(), headers, HeaderInjectAdapter.SETTER);
-            span.end();
-            scope.close();
-        }
     }
 
     private JsonObject extractProducerConfiguration(KafkaConnectorOutgoingConfiguration config) {

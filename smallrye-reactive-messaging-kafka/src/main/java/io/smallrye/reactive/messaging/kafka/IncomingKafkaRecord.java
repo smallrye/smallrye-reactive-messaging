@@ -8,14 +8,12 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.grpc.Context;
-import io.opentelemetry.OpenTelemetry;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
-import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
+import io.smallrye.reactive.messaging.kafka.tracing.OpenTelemetryTracer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
@@ -30,7 +28,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack,
             boolean cloudEventEnabled,
-            boolean tracingEnabled) {
+            OpenTelemetryTracer tracer) {
         this.commitHandler = commitHandler;
         this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record);
 
@@ -57,15 +55,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             }
         }
 
-        if (tracingEnabled) {
-            TracingMetadata tracingMetadata = TracingMetadata.empty();
-            if (record.headers() != null) {
-                // Read tracing headers
-                Context context = OpenTelemetry.getPropagators().getTextMapPropagator()
-                        .extract(Context.current(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
-                tracingMetadata = TracingMetadata.withPrevious(context);
-            }
-
+        if (tracer != null) {
+            TracingMetadata tracingMetadata = tracer.extractTracingMetadata(kafkaMetadata, record);
             meta.add(tracingMetadata);
         }
 

@@ -6,7 +6,7 @@ import org.apache.kafka.common.header.Headers;
 
 import io.opentelemetry.context.propagation.TextMapPropagator;
 
-public class HeaderInjectAdapter implements TextMapPropagator.Setter<Headers> {
+class HeaderInjectAdapter implements TextMapPropagator.Setter<Headers> {
     public static final HeaderInjectAdapter SETTER = new HeaderInjectAdapter();
 
     @Override

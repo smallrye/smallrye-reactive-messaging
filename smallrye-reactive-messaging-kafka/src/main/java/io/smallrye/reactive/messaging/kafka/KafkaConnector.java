@@ -32,8 +32,6 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 
-import io.opentelemetry.OpenTelemetry;
-import io.opentelemetry.trace.Tracer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
@@ -95,9 +93,6 @@ import io.vertx.mutiny.core.Vertx;
 public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
-
-    public static final Tracer TRACER = OpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
-
     @Inject
     ExecutionHolder executionHolder;
 

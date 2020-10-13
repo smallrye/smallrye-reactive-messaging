@@ -1,11 +1,16 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
-import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -15,23 +20,25 @@ import javax.enterprise.inject.Instance;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 
-import io.grpc.Context;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.commit.*;
+import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
+import io.smallrye.reactive.messaging.kafka.tracing.OpenTelemetryTracer;
+import io.smallrye.reactive.messaging.kafka.tracing.OpenTelemetryTracerImpl;
 import io.vertx.core.AsyncResult;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
@@ -48,11 +55,11 @@ public class KafkaSource<K, V> {
     private final List<Throwable> failures = new ArrayList<>();
     private final Set<String> topics;
     private final Pattern pattern;
-    private final boolean isTracingEnabled;
     private final boolean isHealthEnabled;
     private final boolean isReadinessEnabled;
     private final boolean isCloudEventEnabled;
     private final String channel;
+    private OpenTelemetryTracer tracer;
 
     public KafkaSource(Vertx vertx,
             String consumerGroup,
@@ -75,7 +82,7 @@ public class KafkaSource<K, V> {
         Map<String, String> kafkaConfiguration = new HashMap<>();
         this.configuration = config;
 
-        isTracingEnabled = this.configuration.getTracingEnabled();
+        tracer = this.configuration.getTracingEnabled() ? new OpenTelemetryTracerImpl() : null;
         isHealthEnabled = this.configuration.getHealthEnabled();
         isReadinessEnabled = this.configuration.getHealthReadinessEnabled();
         isCloudEventEnabled = this.configuration.getCloudEvents();
@@ -178,13 +185,15 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> commitHandler
-                        .received(
-                                new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
-                                        isTracingEnabled)));
+                .map(rec -> {
+                    return commitHandler
+                            .received(
+                                    new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
+                                            tracer));
+                });
 
-        if (config.getTracingEnabled()) {
-            incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
+        if (tracer != null) {
+            incomingMulti = incomingMulti.onItem().invoke(tracer::createIncomingTrace);
         }
 
         this.stream = incomingMulti
@@ -224,36 +233,6 @@ public class KafkaSource<K, V> {
             failures.remove(0);
         }
         failures.add(failure);
-    }
-
-    public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {
-        if (isTracingEnabled) {
-            TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
-
-            final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
-                    .setSpanKind(Span.Kind.CONSUMER);
-
-            // Handle possible parent span
-            final Context parentSpanContext = tracingMetadata.getPreviousContext();
-            if (parentSpanContext != null) {
-                spanBuilder.setParent(parentSpanContext);
-            } else {
-                spanBuilder.setNoParent();
-            }
-
-            final Span span = spanBuilder.startSpan();
-
-            // Set Span attributes
-            span.setAttribute("partition", kafkaRecord.getPartition());
-            span.setAttribute("offset", kafkaRecord.getOffset());
-            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
-
-            kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
-
-            span.end();
-        }
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config, Vertx vertx,
