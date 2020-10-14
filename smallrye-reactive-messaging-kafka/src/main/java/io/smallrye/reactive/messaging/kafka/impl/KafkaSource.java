@@ -58,7 +58,7 @@ public class KafkaSource<K, V> {
             String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
-            KafkaCDIEvents kafkaCDIEvents) {
+            KafkaCDIEvents kafkaCDIEvents, int index) {
 
         topics = getTopics(config);
 
@@ -101,6 +101,14 @@ public class KafkaSource<K, V> {
             kafkaConfiguration.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         }
 
+        if (!kafkaConfiguration.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
+            String name = "kafka-consumer-" + config.getChannel();
+            if (index != -1) {
+                name += "-" + index;
+            }
+            kafkaConfiguration.put(ConsumerConfig.CLIENT_ID_CONFIG, name);
+        }
+
         String commitStrategy = config
                 .getCommitStrategy()
                 .orElse(Boolean.parseBoolean(kafkaConfiguration.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG))
@@ -120,7 +128,7 @@ public class KafkaSource<K, V> {
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration);
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel());
         } else {
             this.admin = null;
         }

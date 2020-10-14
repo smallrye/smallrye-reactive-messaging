@@ -106,7 +106,7 @@ public class KafkaSink {
 
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap);
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap, config.getChannel());
         } else {
             this.admin = null;
         }
@@ -315,6 +315,13 @@ public class KafkaSink {
         if (!kafkaConfiguration.containsKey(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION)) {
             kafkaConfiguration
                     .put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, config.getMaxInflightMessages());
+        }
+
+        if (!kafkaConfiguration.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {
+            String id = "kafka-producer-" + config.getChannel();
+            log.setKafkaProducerClientId(id);
+            kafkaConfiguration.put(ProducerConfig.CLIENT_ID_CONFIG, id);
+
         }
 
         return ConfigurationCleaner.cleanupProducerConfiguration(kafkaConfiguration);

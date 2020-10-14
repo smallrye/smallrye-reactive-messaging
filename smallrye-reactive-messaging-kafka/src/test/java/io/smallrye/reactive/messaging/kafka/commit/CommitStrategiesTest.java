@@ -55,7 +55,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest");
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents);
+                CountKafkaCdiEvents.noCdiEvents, -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -145,7 +145,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents);
+                CountKafkaCdiEvents.noCdiEvents, -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -206,7 +206,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents);
+                CountKafkaCdiEvents.noCdiEvents, -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -279,7 +279,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         assertThatThrownBy(() -> {
             new KafkaSource<>(vertx, "my-group",
                     new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents);
+                    CountKafkaCdiEvents.noCdiEvents, -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -291,7 +291,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         assertThatThrownBy(() -> {
             new KafkaSource<>(vertx, "my-group",
                     new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents);
+                    CountKafkaCdiEvents.noCdiEvents, -1);
         }).isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }
 
@@ -302,7 +302,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         config.with("consumer-rebalance-listener.name", "mine");
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents);
+                CountKafkaCdiEvents.noCdiEvents, -1);
 
         injectMockConsumer(source, consumer);
 

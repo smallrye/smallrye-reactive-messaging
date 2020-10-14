@@ -1,6 +1,11 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,18 +41,20 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
             Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source,
             KafkaCDIEvents kafkaCDIEvents) {
         Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
-        String keyDeserializer = deadQueueProducerConfig.remove("key.deserializer");
-        String valueDeserializer = deadQueueProducerConfig.remove("value.deserializer");
-        deadQueueProducerConfig.put("key.serializer",
+        String keyDeserializer = deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
+        String valueDeserializer = deadQueueProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
+        deadQueueProducerConfig.put(KEY_SERIALIZER_CLASS_CONFIG,
                 conf.getDeadLetterQueueKeySerializer().orElse(getMirrorSerializer(keyDeserializer)));
-        deadQueueProducerConfig.put("value.serializer",
+        deadQueueProducerConfig.put(VALUE_SERIALIZER_CLASS_CONFIG,
                 conf.getDeadLetterQueueValueSerializer().orElse(getMirrorSerializer(valueDeserializer)));
+        deadQueueProducerConfig.put(CLIENT_ID_CONFIG, "kafka-dead-letter-topic-producer-" + conf.getChannel());
 
         ConfigurationCleaner.cleanupProducerConfiguration(deadQueueProducerConfig);
         String deadQueueTopic = conf.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + conf.getChannel());
 
         log.deadLetterConfig(deadQueueTopic,
-                deadQueueProducerConfig.get("key.serializer"), deadQueueProducerConfig.get("value.serializer"));
+                deadQueueProducerConfig.get(KEY_SERIALIZER_CLASS_CONFIG),
+                deadQueueProducerConfig.get(VALUE_SERIALIZER_CLASS_CONFIG));
 
         KafkaProducer<Object, Object> producer = io.vertx.mutiny.kafka.client.producer.KafkaProducer
                 .create(vertx, deadQueueProducerConfig);

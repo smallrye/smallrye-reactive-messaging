@@ -162,4 +162,11 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18236, value = "Will mark throttled commit strategy for group '%s' as unhealthy if records go more than %d milliseconds without being processed.")
     void setThrottledCommitStrategyReceivedRecordMaxAge(String group, long unprocessedRecordMaxAge);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18237, value = "Setting client.id for Kafka producer to %s")
+    void setKafkaProducerClientId(String name);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18238, value = "Setting client.id for Kafka consumer to %s")
+    void setKafkaConsumerClientId(String name);
 }

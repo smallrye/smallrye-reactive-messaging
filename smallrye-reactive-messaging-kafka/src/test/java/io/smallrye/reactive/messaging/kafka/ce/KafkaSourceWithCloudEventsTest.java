@@ -53,7 +53,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -115,7 +115,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -173,7 +173,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -228,7 +228,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -264,7 +264,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -302,7 +302,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -367,7 +367,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -432,7 +432,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -573,7 +573,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events", false);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -617,7 +617,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("cloud-events", false);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -663,7 +663,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
