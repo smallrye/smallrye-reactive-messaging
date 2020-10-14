@@ -6,6 +6,12 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
+import javax.annotation.Priority;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.BeforeDestroyed;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.Reception;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 
@@ -13,7 +19,7 @@ import io.smallrye.mutiny.Multi;
 
 public class SpiedBeanHelper {
 
-    protected static final Executor EXECUTOR = Executors.newSingleThreadExecutor();
+    protected final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private static class Entry {
         final String value;
@@ -36,13 +42,18 @@ public class SpiedBeanHelper {
     private Map<String, List<Entry>> processed = new ConcurrentHashMap<>();
     private Map<String, List<Entry>> acknowledged = new ConcurrentHashMap<>();
 
+    public void terminate(
+            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
+        executor.shutdownNow();
+    }
+
     protected Publisher<Message<String>> source(String id) {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(id, payload);
                     nap();
-                }, EXECUTOR)));
+                }, executor)));
     }
 
     public List<String> received(String key) {

@@ -33,7 +33,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Uni<Void> subWithAck(Message<String> message) {
         return Uni.createFrom().item(message)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke((m) -> processed(MANUAL_ACKNOWLEDGMENT, message))
                 .onItem().transformToUni(m -> Uni.createFrom().completionStage(m.ack()));
     }
@@ -47,7 +47,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     public Uni<Void> subWithNoAckMessage(Message<String> message) {
         return Uni.createFrom().item(message)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke((m) -> processed(NO_ACKNOWLEDGMENT_MESSAGE, message))
                 .onItem().delayIt().by(Duration.ofMillis(10))
                 .onItem().ignore().andContinueWithNull();
@@ -75,7 +75,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     public Uni<Void> preProcessingWithMessage(Message<String> message) {
         return Uni.createFrom().<Void> item(() -> null)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke(x -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message));
     }
 
@@ -88,7 +88,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     public Uni<Void> preProcessingWithPayload(String payload) {
         return Uni.createFrom().<Void> item(() -> null)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke(x -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload));
     }
 
@@ -101,7 +101,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
     public Uni<Void> postProcessingWithMessage(Message<String> message) {
         return Uni.createFrom().<Void> item(() -> null)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke(x -> processed(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message));
     }
 
@@ -114,7 +114,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
     public Uni<Void> postProcessingWithPayload(String payload) {
         return Uni.createFrom().<Void> item(() -> null)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke(x -> processed(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload));
     }
 
@@ -126,7 +126,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Incoming(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
     public Uni<Void> defaultProcessingWithMessage(Message<String> message) {
         return Uni.createFrom().<Void> item(() -> null)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke(x -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message))
                 .onItem().transformToUni(x -> Uni.createFrom().completionStage(message.ack()));
     }
@@ -139,7 +139,7 @@ public class SubscriberBeanWithMethodsReturningUni extends SpiedBeanHelper {
     @Incoming(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
     public Uni<Void> defaultProcessingWithPayload(String payload) {
         return Uni.createFrom().<Void> item(() -> null)
-                .emitOn(EXECUTOR)
+                .emitOn(executor)
                 .onItem().invoke(x -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload));
     }
 
