@@ -42,7 +42,7 @@ public class PubSubTestBase {
 
     @BeforeAll
     public static void startPubSubContainer() {
-        PUBSUB_CONTAINER = new GenericContainer<>("google/cloud-sdk:latest")
+        PUBSUB_CONTAINER = new GenericContainer<>("google/cloud-sdk:310.0.0")
                 .withExposedPorts(PUBSUB_PORT)
                 .withCommand("/bin/sh", "-c",
                         String.format("gcloud beta emulators pubsub start --project=%s --host-port=0.0.0.0:%d", PROJECT_ID,
