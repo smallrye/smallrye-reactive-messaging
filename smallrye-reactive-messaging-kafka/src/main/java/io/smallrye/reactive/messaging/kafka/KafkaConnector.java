@@ -148,7 +148,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
         if (partitions == 1) {
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
-                    kafkaCDIEvents);
+                    kafkaCDIEvents, -1);
             sources.add(source);
 
             boolean broadcast = ic.getBroadcast();
@@ -163,7 +163,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         List<Publisher<IncomingKafkaRecord<Object, Object>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
-                    kafkaCDIEvents);
+                    kafkaCDIEvents, i);
             sources.add(source);
             streams.add(source.getStream());
         }

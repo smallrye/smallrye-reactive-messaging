@@ -63,7 +63,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 "test-source-with-auto-commit-enabled",
                 ic,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents);
+                CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -86,7 +86,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         firstMessage.get().ack().whenComplete((a, t) -> ackFuture.complete(null));
         ackFuture.get(10, TimeUnit.SECONDS);
 
-        admin = KafkaAdminHelper.createAdminClient(vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(vertx, config, topic).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
@@ -119,7 +119,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -139,7 +139,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         TopicPartition topicPartition = new TopicPartition(topic, 0);
         CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-        admin = KafkaAdminHelper.createAdminClient(vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(vertx, config, topic).getDelegate();
         admin
                 .listConsumerGroupOffsets("test-source-with-auto-commit-disabled",
                         new ListConsumerGroupOffsetsOptions()
@@ -169,7 +169,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents);
+                CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -182,7 +182,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        admin = KafkaAdminHelper.createAdminClient(vertx, config).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(vertx, config, topic).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
@@ -230,7 +230,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit-without-acking", ic,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents);
+                CountKafkaCdiEvents.noCdiEvents, -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
