@@ -119,7 +119,7 @@ The Kafka connector supports 3 strategies:
 The offset of the record that has not been processed correctly is not committed.
 * `ignore` - the failure is logged, but the processing continue.
 The offset of the record that has not been processed correctly is committed.
-* `dead-letter-queue` - the offset of the record that has not been processed correctly is committed, but the record is written to a (Kafka) _dead letter topic_.
+* `dead-letter-queue` - the offset of the record that has not been processed correctly is committed, but the record is written to a (Kafka) _dead letter queue_ topic.
 
 The strategy is selected using the `failure-strategy` attribute.
 
@@ -129,8 +129,13 @@ In the case of `dead-letter-queue`, you can configure the following attributes:
 * `dead-letter-queue.key.serializer`: the serializer used to write the record key on the dead letter queue. By default, it deduces the serializer from the key deserializer.
 * `dead-letter-queue.value.serializer`: the serializer used to write the record value on the dead letter queue. By default, it deduces the serializer from the value deserializer.
 
-The record written on the dead letter queue contains the `dead-letter-reason` header with the nack reason (message from the exception passed to the `nack` method).
-It may also contain the `dead-letter-cause` with the message from the cause, if any.
+The record written on the dead letter queue contains a set of additional headers about the original record:
+
+* `dead-letter-reason` - the reason of the failure
+* `dead-letter-cause` - the cause of the failure if any
+* `dead-letter-topic` - the original topic of the record
+* `dead-letter-partition` - the original partition of the record (integer mapped to String)
+* `dead-letter-offset` - the original offset of the record (long mapped to String)
 
 === Receiving Cloud Events
 

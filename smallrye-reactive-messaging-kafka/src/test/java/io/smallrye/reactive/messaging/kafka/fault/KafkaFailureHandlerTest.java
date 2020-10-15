@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
+import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -136,8 +137,11 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(records).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo("dead-letter-topic-kafka");
             assertThat(r.value()).isIn(3, 6, 9);
-            assertThat(new String(r.headers().lastHeader("dead-letter-reason").value())).startsWith("nack 3 -");
-            assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dead-letter-default");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
         });
 
         assertThat(isAlive()).isTrue();
@@ -171,8 +175,11 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(records).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo("dead-letter-topic-kafka-payload");
             assertThat(r.value()).isIn(3, 6, 9);
-            assertThat(new String(r.headers().lastHeader("dead-letter-reason").value())).startsWith("nack 3 -");
-            assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dq-payload");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
         });
 
         assertThat(isAlive()).isTrue();
@@ -205,8 +212,11 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(records).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo("missed");
             assertThat(r.value()).isIn(3, 6, 9);
-            assertThat(new String(r.headers().lastHeader("dead-letter-reason").value())).startsWith("nack 3 -");
-            assertThat(r.headers().lastHeader("dead-letter-cause")).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dead-letter-custom");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
         });
 
         assertThat(isAlive()).isTrue();
