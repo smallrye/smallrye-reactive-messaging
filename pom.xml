@@ -72,7 +72,7 @@
     <smallrye-config.version>1.9.1</smallrye-config.version>
     <smallrye-metrics.version>2.4.4</smallrye-metrics.version>
     <smallrye-common.version>1.4.0</smallrye-common.version>
-    <smallrye-health.version>2.2.3</smallrye-health.version>
+    <smallrye-health.version>2.2.5</smallrye-health.version>
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
 
     <mutiny.version>0.9.0</mutiny.version>
