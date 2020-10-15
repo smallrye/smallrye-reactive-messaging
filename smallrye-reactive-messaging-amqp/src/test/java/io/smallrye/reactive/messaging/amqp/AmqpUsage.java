@@ -69,7 +69,7 @@ public class AmqpUsage {
                             msg = new AmqpMessage(new AmqpMessageImpl(m));
                         } else {
                             AmqpMessageBuilder builder = io.vertx.mutiny.amqp.AmqpMessage.create()
-                                    .durable(true)
+                                    .durable(false)
                                     .ttl(10000);
                             if (payload instanceof Integer) {
                                 builder.withIntegerAsBody((Integer) payload);

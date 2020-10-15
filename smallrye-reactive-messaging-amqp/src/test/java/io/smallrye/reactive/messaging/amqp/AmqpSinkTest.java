@@ -21,7 +21,6 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
@@ -267,7 +266,7 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
         assertThat(expected).hasValue(10);
     }
 
-    @RepeatedTest(3)
+    @Test
     public void testABeanProducingMessagesSentToAMQP() throws InterruptedException {
         Weld weld = new Weld();
 
@@ -744,6 +743,7 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
                         .withMessageAnnotations("some-annotation", "something important")
                         .withDeliveryAnnotations("some-delivery-annotation", "another important config")
                         .withCorrelationId("correlation-" + m.getPayload())
+                        .withFooter("my-trailer", "hello-footer")
                         .build()))
                 .subscribe((Subscriber<? super Message<Integer>>) sink.build());
 
@@ -782,7 +782,7 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
             assertThat(metadata.getDeliveryAnnotations()).isNull();
             assertThat(metadata.isFirstAcquirer()).isFalse();
             //noinspection unchecked
-            assertThat(metadata.getFooter().getValue()).isEmpty();
+            assertThat(metadata.getFooter().getValue()).containsExactly(entry("my-trailer", "hello-footer"));
             assertThat(metadata.getUserId()).isNull();
         });
     }
@@ -805,7 +805,6 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
                         .withPriority((short) 4)
                         .withGroupId("group")
                         .withContentType("text/plain")
-                        .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withMessageAnnotations("some-annotation", "something important")
                         .withDeliveryAnnotations("some-delivery-annotation", "another important config")
                         .withCorrelationId("correlation-" + m.getPayload())
@@ -824,7 +823,7 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
             assertThat(msg.correlationId()).startsWith("correlation-");
             assertThat(msg.groupId()).isEqualTo("group");
             assertThat(msg.ttl()).isEqualTo(3000);
-            assertThat(msg.applicationProperties()).containsExactly(entry("key", "value"));
+            assertThat(msg.applicationProperties()).isNull();
             assertThat(msg.getDelegate().unwrap().getMessageAnnotations().getValue())
                     .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
         });
@@ -840,14 +839,13 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
             assertThat(metadata.getTtl()).isEqualTo(3000);
             assertThat(metadata.getCorrelationId()).startsWith("correlation-");
             assertThat(metadata.getGroupId()).isEqualTo("group");
-            assertThat(metadata.getProperties()).containsExactly(entry("key", "value"));
+            assertThat(metadata.getProperties()).isNull();
             assertThat(metadata.getMessageAnnotations().getValue())
                     .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
             // Delivery annotations are not received.
             assertThat(metadata.getDeliveryAnnotations()).isNull();
             assertThat(metadata.isFirstAcquirer()).isFalse();
-            //noinspection unchecked
-            assertThat(metadata.getFooter().getValue()).isEmpty();
+            assertThat(metadata.getFooter()).isNull();
             assertThat(metadata.getUserId()).isNull();
         });
     }
@@ -912,8 +910,7 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
             // Delivery annotations are not received.
             assertThat(metadata.getDeliveryAnnotations()).isNull();
             assertThat(metadata.isFirstAcquirer()).isFalse();
-            //noinspection unchecked
-            assertThat(metadata.getFooter().getValue()).isEmpty();
+            assertThat(metadata.getFooter()).isNull();
             assertThat(metadata.getUserId()).isNull();
         });
     }
