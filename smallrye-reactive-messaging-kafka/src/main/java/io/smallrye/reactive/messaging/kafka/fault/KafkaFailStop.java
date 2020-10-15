@@ -26,7 +26,7 @@ public class KafkaFailStop implements KafkaFailureHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
         future.completeExceptionally(reason);
         // report failure to the connector for health check
-        source.reportFailure(reason);
+        source.reportFailure(reason, true);
         return future;
     }
 }

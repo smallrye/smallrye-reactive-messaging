@@ -282,7 +282,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                     .values()
                     .stream()
                     .filter(OffsetStore::hasTooManyMessagesWithoutAck)
-                    .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException()));
+                    .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException(), true));
         }
 
     }

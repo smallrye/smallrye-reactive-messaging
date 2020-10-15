@@ -132,7 +132,7 @@ public class KafkaSource<K, V> {
         Multi<KafkaConsumerRecord<K, V>> multi = consumer.toMulti()
                 .onFailure().invoke(t -> {
                     log.unableToReadRecord(topics, t);
-                    reportFailure(t);
+                    reportFailure(t, false);
                 });
 
         if (commitHandler instanceof ContextHolder) {
@@ -159,7 +159,7 @@ public class KafkaSource<K, V> {
 
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
                 .onSubscribe().call(s -> {
-                    this.consumer.exceptionHandler(this::reportFailure);
+                    this.consumer.exceptionHandler(t -> reportFailure(t, false));
                     if (this.pattern != null) {
                         BiConsumer<UniEmitter<?>, AsyncResult<Void>> completionHandler = (e, ar) -> {
                             if (ar.failed()) {
@@ -188,7 +188,7 @@ public class KafkaSource<K, V> {
         }
 
         this.stream = incomingMulti
-                .onFailure().invoke(this::reportFailure);
+                .onFailure().invoke(t -> reportFailure(t, false));
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
@@ -217,13 +217,17 @@ public class KafkaSource<K, V> {
         }
     }
 
-    public synchronized void reportFailure(Throwable failure) {
+    public synchronized void reportFailure(Throwable failure, boolean fatal) {
         log.failureReported(topics, failure);
         // Don't keep all the failures, there are only there for reporting.
         if (failures.size() == 10) {
             failures.remove(0);
         }
         failures.add(failure);
+
+        if (fatal) {
+            consumer.closeAndForget();
+        }
     }
 
     public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {

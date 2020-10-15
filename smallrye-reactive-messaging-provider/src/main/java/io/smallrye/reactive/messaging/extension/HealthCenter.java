@@ -41,6 +41,10 @@ public class HealthCenter {
         failures.add(new ReportedFailure(source, cause));
     }
 
+    public void reportApplicationFailure(String method, Throwable cause) {
+        failures.add(new ReportedFailure("application-" + method, cause));
+    }
+
     public static class ReportedFailure {
         final String source;
         final Throwable failure;
