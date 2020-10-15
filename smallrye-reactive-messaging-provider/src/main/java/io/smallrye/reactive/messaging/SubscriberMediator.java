@@ -135,7 +135,7 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItem().transformToUni(msg -> invokeBlocking(msg.getPayload()))
                             .onItemOrFailure().transformToUni(handleInvocationResult(m))
                             .subscribeAsCompletionStage())
-                    .onError(failure -> health.report(configuration.getIncoming().toString(), failure))
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         } else {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
@@ -143,7 +143,7 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItem().transform(msg -> invoke(msg.getPayload()))
                             .onItemOrFailure().transformToUni(handleInvocationResult(m))
                             .subscribeAsCompletionStage())
-                    .onError(failure -> health.report(configuration.getIncoming().toString(), failure))
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         }
     }
@@ -184,7 +184,7 @@ public class SubscriberMediator extends AbstractMediator {
                         })
                         .onItemOrFailure().transformToUni(handleInvocationResult(message))
                         .subscribeAsCompletionStage())
-                .onError(failure -> health.report(configuration.getIncoming().toString(), failure))
+                .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                 .ignore();
     }
 
@@ -202,7 +202,7 @@ public class SubscriberMediator extends AbstractMediator {
                         })
                         .onItemOrFailure().transformToUni(handleInvocationResult(message))
                         .subscribeAsCompletionStage())
-                .onError(failure -> health.report(configuration.getIncoming().toString(), failure))
+                .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                 .ignore();
     }
 
@@ -242,7 +242,7 @@ public class SubscriberMediator extends AbstractMediator {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(wrapper)
-                    .onError(failure -> health.report(configuration.getIncoming().toString(), failure))
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         } else {
             Subscriber<Message<?>> sub;
@@ -255,7 +255,7 @@ public class SubscriberMediator extends AbstractMediator {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(new SubscriberWrapper<>(casted, Function.identity(), null))
-                    .onError(failure -> health.report(configuration.getIncoming().toString(), failure))
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         }
     }
