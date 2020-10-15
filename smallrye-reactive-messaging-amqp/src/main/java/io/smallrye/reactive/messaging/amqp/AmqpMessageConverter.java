@@ -11,6 +11,9 @@ import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Data;
+import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
+import org.apache.qpid.proton.amqp.messaging.Footer;
+import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.vertx.amqp.impl.AmqpMessageImpl;
@@ -51,8 +54,14 @@ public class AmqpMessageConverter {
         }
 
         // Annotations
-        output.setDeliveryAnnotations(metadata.getDeliveryAnnotations());
-        output.setMessageAnnotations(metadata.getMessageAnnotations());
+        DeliveryAnnotations deliveryAnnotations = metadata.getDeliveryAnnotations();
+        MessageAnnotations messageAnnotations = metadata.getMessageAnnotations();
+        if (!deliveryAnnotations.getValue().isEmpty()) {
+            output.setDeliveryAnnotations(deliveryAnnotations);
+        }
+        if (!messageAnnotations.getValue().isEmpty()) {
+            output.setMessageAnnotations(messageAnnotations);
+        }
 
         // Properties
         output.setMessageId(metadata.getMessageId());
@@ -69,7 +78,9 @@ public class AmqpMessageConverter {
         output.setGroupSequence(metadata.getGroupSequence());
         output.setReplyToGroupId(metadata.getReplyToGroupId());
 
-        output.setApplicationProperties(new ApplicationProperties(metadata.getProperties().getMap()));
+        if (!metadata.getProperties().isEmpty()) {
+            output.setApplicationProperties(new ApplicationProperties(metadata.getProperties().getMap()));
+        }
 
         // Application data section:
         if (payload instanceof String || isPrimitive(payload.getClass()) || payload instanceof UUID) {
@@ -116,7 +127,10 @@ public class AmqpMessageConverter {
         }
 
         // Footer
-        output.setFooter(metadata.getFooter());
+        Footer footer = metadata.getFooter();
+        if (!footer.getValue().isEmpty()) {
+            output.setFooter(footer);
+        }
 
         return new AmqpMessage(new AmqpMessageImpl(output));
     }
