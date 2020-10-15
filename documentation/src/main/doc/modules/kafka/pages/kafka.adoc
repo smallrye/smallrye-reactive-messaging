@@ -25,6 +25,8 @@ include::outbound.adoc[]
 include::default-configuration.adoc[]
 include::avro-configuration.adoc[]
 include::health.adoc[]
+include::consumer-rebalance-listener.adoc[]
+
 
 
 

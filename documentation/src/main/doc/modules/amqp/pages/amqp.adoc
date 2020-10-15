@@ -16,6 +16,7 @@ include::inbound.adoc[]
 include::outbound.adoc[]
 include::client-customization.adoc[]
 include::health.adoc[]
+include::rabbitmq.adoc[]
 
 
 
