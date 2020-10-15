@@ -16,15 +16,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.TestcontainersConfiguration;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.strimzi.StrimziKafkaContainer;
 import io.vertx.mutiny.core.Vertx;
 
 public class KafkaTestBase extends WeldTestBase {
-    public static KafkaContainer kafka;
+    public static final int KAFKA_PORT = 9092;
+    public static StrimziKafkaContainer kafka;
 
     public Vertx vertx;
     public KafkaUsage usage;
@@ -34,9 +33,7 @@ public class KafkaTestBase extends WeldTestBase {
 
     @BeforeAll
     public static void startKafkaBroker() {
-        DockerImageName imageName = TestcontainersConfiguration.getInstance()
-                .getKafkaDockerImageName().withTag("5.2.1");
-        kafka = new KafkaContainer(imageName);
+        kafka = new StrimziKafkaContainer();
         kafka.start();
     }
 
@@ -121,7 +118,7 @@ public class KafkaTestBase extends WeldTestBase {
     }
 
     public int getKafkaPort() {
-        return kafka.getMappedPort(KafkaContainer.KAFKA_PORT);
+        return kafka.getMappedPort(KAFKA_PORT);
     }
 
     private void sleep(Duration duration) {
@@ -137,10 +134,10 @@ public class KafkaTestBase extends WeldTestBase {
     }
 
     /**
-     * Specialization of {@link KafkaContainer} but exposing the Kafka port to a specific host port.
+     * Specialization of {@link StrimziKafkaContainer} but exposing the Kafka port to a specific host port.
      * Useful when you need to restart Kafka on the same port.
      */
-    public static class FixedKafkaContainer extends KafkaContainer {
+    public static class FixedKafkaContainer extends StrimziKafkaContainer {
         public FixedKafkaContainer(int port) {
             super();
             super.addFixedExposedPort(port, KAFKA_PORT);
