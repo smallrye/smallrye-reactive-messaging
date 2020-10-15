@@ -25,6 +25,12 @@ import io.vertx.mutiny.kafka.client.producer.KafkaProducerRecord;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
+    public static final String DEAD_LETTER_REASON = "dead-letter-reason";
+    public static final String DEAD_LETTER_CAUSE = "dead-letter-cause";
+    public static final String DEAD_LETTER_TOPIC = "dead-letter-topic";
+    public static final String DEAD_LETTER_OFFSET = "dead-letter-offset";
+    public static final String DEAD_LETTER_PARTITION = "dead-letter-partition";
+
     private final String channel;
     private final KafkaProducer producer;
     private final String topic;
@@ -78,10 +84,13 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     public <K, V> CompletionStage<Void> handle(
             IncomingKafkaRecord<K, V> record, Throwable reason) {
         KafkaProducerRecord<K, V> dead = KafkaProducerRecord.create(topic, record.getKey(), record.getPayload());
-        dead.addHeader("dead-letter-reason", reason.getMessage());
+        dead.addHeader(DEAD_LETTER_REASON, reason.getMessage());
         if (reason.getCause() != null) {
-            dead.addHeader("dead-letter-cause", reason.getCause().getMessage());
+            dead.addHeader(DEAD_LETTER_CAUSE, reason.getCause().getMessage());
         }
+        dead.addHeader(DEAD_LETTER_TOPIC, record.getTopic());
+        dead.addHeader(DEAD_LETTER_PARTITION, Integer.toString(record.getPartition()));
+        dead.addHeader(DEAD_LETTER_OFFSET, Long.toString(record.getOffset()));
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
                 .onFailure().invoke(t -> source.reportFailure((Throwable) t, true))
