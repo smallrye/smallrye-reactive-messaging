@@ -97,11 +97,11 @@ public interface AMQPLogging extends BasicLogger {
     void nackedFailMessage(String channel);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 16220, value = "A message sent to channel `%s` has been nacked, ignoring the failure and marking the AMQP the message as rejected")
+    @Message(id = 16220, value = "A message sent to channel `%s` has been nacked, ignoring the failure and marking the AMQP message as rejected")
     void nackedIgnoreMessage(String channel);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 16221, value = "A message sent to channel `%s` has been nacked, ignoring the failure and marking the AMQP the message as released")
+    @Message(id = 16221, value = "A message sent to channel `%s` has been nacked, ignoring the failure and marking the AMQP message as released")
     void nackedReleaseMessage(String channel);
 
     @LogMessage(level = Logger.Level.DEBUG)
