@@ -171,6 +171,6 @@ public interface KafkaLogging extends BasicLogger {
     void setKafkaConsumerClientId(String name);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 18239, value = "Acked record %d on group %s was ignored because the topic partition %s was revoked for this instance. Record will likely be processed again.")
-    void messageAckedForRevokedTopicPartition(String groupId, String topicPartition, long offset);
+    @Message(id = 18239, value = "Acked record %d on group '%s' was ignored because the topic partition '%s' was revoked for this instance. Record will likely be processed again.")
+    void messageAckedForRevokedTopicPartition(long offset, String groupId, String topicPartition);
 }
