@@ -41,6 +41,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     private final Map<TopicPartition, OffsetStore> offsetStores = new HashMap<>();
 
+    private final String groupId;
     private final KafkaConsumer<?, ?> consumer;
     private final KafkaSource<?, ?> source;
     private final int unprocessedRecordMaxAge;
@@ -48,6 +49,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private volatile long timerId = -1;
 
     private KafkaThrottledLatestProcessedCommit(
+            String groupId,
             Vertx vertx,
             KafkaConsumer<?, ?> consumer,
             KafkaSource<?, ?> source,
@@ -55,6 +57,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             int autoCommitInterval,
             int defaultTimeout) {
         super(vertx, defaultTimeout);
+        this.groupId = groupId;
         this.consumer = consumer;
         this.source = source;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
@@ -85,7 +88,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         } else {
             log.setThrottledCommitStrategyReceivedRecordMaxAge(groupId, unprocessedRecordMaxAge);
         }
-        return new KafkaThrottledLatestProcessedCommit(vertx, consumer, source, unprocessedRecordMaxAge,
+        return new KafkaThrottledLatestProcessedCommit(groupId, vertx, consumer, source, unprocessedRecordMaxAge,
                 autoCommitInterval, defaultTimeout);
 
     }
@@ -253,9 +256,20 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         // Be sure to run on the right context. The context has been store during the message reception
         // or partition assignment.
         runOnContext(() -> {
-            offsetStores
-                    .get(getTopicPartition(record))
-                    .processed(record.getOffset());
+            TopicPartition topicPartition = getTopicPartition(record);
+            OffsetStore store = offsetStores
+                    .get(topicPartition);
+
+            /*
+             * If there is no store for the record that means the topic partitions was revoked
+             * for this instance but the record was ACKed after the fact. In this case not much to
+             * do but ignore the message. There likely will be a duplicate consumption.
+             */
+            if (store != null) {
+                store.processed(record.getOffset());
+            } else {
+                log.messageAckedForRevokedTopicPartition(groupId, topicPartition.toString(), record.getOffset());
+            }
             future.complete(null);
         });
         return future;
