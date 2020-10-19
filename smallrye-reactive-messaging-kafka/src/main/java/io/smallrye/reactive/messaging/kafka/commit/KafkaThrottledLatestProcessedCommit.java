@@ -268,7 +268,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             if (store != null) {
                 store.processed(record.getOffset());
             } else {
-                log.messageAckedForRevokedTopicPartition(groupId, topicPartition.toString(), record.getOffset());
+                log.messageAckedForRevokedTopicPartition(record.getOffset(), groupId, topicPartition.toString());
             }
             future.complete(null);
         });
