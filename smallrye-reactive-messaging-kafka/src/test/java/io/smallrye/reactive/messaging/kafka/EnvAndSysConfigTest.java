@@ -1,7 +1,15 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import java.util.List;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+
+import javax.enterprise.context.ApplicationScoped;
+
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -9,14 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.junitpioneer.jupiter.SetSystemProperty;
 
-import javax.enterprise.context.ApplicationScoped;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class EnvAndSysConfigTest extends KafkaTestBase {
 
@@ -28,9 +30,9 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_VALUE_DESERIALIZER", value = "org.apache.kafka.common.serialization.StringDeserializer")
     public void testConsumerConfigurationComingForEnv() throws InterruptedException {
         KafkaConsumer bean = runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
-            .put(
-                "auto.offset.reset", "earliest")
-            .build(), KafkaConsumer.class);
+                .put(
+                        "auto.offset.reset", "earliest")
+                .build(), KafkaConsumer.class);
 
         verify(bean, TOPIC_1);
     }
@@ -40,20 +42,19 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @SetSystemProperty(key = "mp.messaging.incoming.kafka.value.deserializer", value = "org.apache.kafka.common.serialization.StringDeserializer")
     public void testConsumerConfigurationComingForSys() throws InterruptedException {
         KafkaConsumer bean = runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
-            .put(
-                "auto.offset.reset", "earliest")
-            .build(), KafkaConsumer.class);
+                .put(
+                        "auto.offset.reset", "earliest")
+                .build(), KafkaConsumer.class);
 
         verify(bean, TOPIC_2);
     }
-
 
     private void verify(KafkaConsumer bean, String topic) throws InterruptedException {
         await().until(this::isReady);
         await().until(this::isAlive);
 
         CountDownLatch latch = new CountDownLatch(1);
-        usage.produceStrings(1, latch::countDown, () -> new ProducerRecord<>(topic,"key", "hello"));
+        usage.produceStrings(1, latch::countDown, () -> new ProducerRecord<>(topic, "key", "hello"));
 
         latch.await();
 
@@ -62,7 +63,6 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
             assertThat(bean.getMessages().get(0).getPayload()).isEqualTo("hello");
         });
     }
-
 
     @ApplicationScoped
     public static class KafkaConsumer {
