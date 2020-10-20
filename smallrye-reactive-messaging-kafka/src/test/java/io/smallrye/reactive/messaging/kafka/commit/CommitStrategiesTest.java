@@ -52,7 +52,8 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     void testLatestCommitStrategy() {
-        MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest");
+        MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
+                UUID.randomUUID().toString());
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, -1);
@@ -201,6 +202,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     @Test
     void testThrottledStrategyWithManyRecords() {
         MapBasedConfig config = commonConfiguration()
+                .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
                 .with("auto.commit.interval.ms", 100);
@@ -275,7 +277,9 @@ public class CommitStrategiesTest extends WeldTestBase {
     @Test
     public void testFailureWhenNoRebalanceListenerMatchGivenName() {
         MapBasedConfig config = commonConfiguration();
-        config.with("consumer-rebalance-listener.name", "my-missing-name");
+        config
+                .with("client.id", UUID.randomUUID().toString())
+                .with("consumer-rebalance-listener.name", "my-missing-name");
         assertThatThrownBy(() -> {
             new KafkaSource<>(vertx, "my-group",
                     new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
@@ -287,19 +291,21 @@ public class CommitStrategiesTest extends WeldTestBase {
     public void testFailureWhenMultipleRebalanceListenerMatchGivenName() {
         MapBasedConfig config = commonConfiguration();
         addBeans(NamedRebalanceListener.class, SameNameRebalanceListener.class);
-        config.with("consumer-rebalance-listener.name", "mine");
-        assertThatThrownBy(() -> {
-            new KafkaSource<>(vertx, "my-group",
-                    new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents, -1);
-        }).isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
+        config
+                .with("consumer-rebalance-listener.name", "mine")
+                .with("client.id", UUID.randomUUID().toString());
+        assertThatThrownBy(() -> new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents, -1)).isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }
 
     @Test
     public void testWithRebalanceListenerMatchGivenName() {
         addBeans(NamedRebalanceListener.class);
         MapBasedConfig config = commonConfiguration();
-        config.with("consumer-rebalance-listener.name", "mine");
+        config
+                .with("consumer-rebalance-listener.name", "mine")
+                .with("client.id", UUID.randomUUID().toString());
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, -1);

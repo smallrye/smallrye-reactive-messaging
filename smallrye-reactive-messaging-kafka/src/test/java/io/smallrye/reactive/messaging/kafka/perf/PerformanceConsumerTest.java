@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka.consumer;
+package io.smallrye.reactive.messaging.kafka.perf;
 
 import static org.awaitility.Awaitility.await;
 
