@@ -13,6 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Function;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -141,6 +142,46 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dead-letter-default");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
+        });
+
+        assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
+    }
+
+    @Test
+    public void testDeadLetterQueueStrategyWithMessageLessThrowable() {
+        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
+        String randomId = UUID.randomUUID().toString();
+
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
+                new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
+                Collections.singletonList("dead-letter-topic-kafka-payload-message-less"), records::add);
+
+        MyReceiverBean bean = runApplication(
+                getDeadLetterQueueWithCustomConfig("dq-payload-message-less", "dead-letter-topic-kafka-payload-message-less"),
+                MyReceiverBean.class);
+        bean.setToThrowable(p -> new IllegalArgumentException());
+        await().until(this::isReady);
+
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>("dq-payload-message-less", counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
+        assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.size() == 3);
+        assertThat(records).allSatisfy(r -> {
+            assertThat(r.topic()).isEqualTo("dead-letter-topic-kafka-payload-message-less");
+            assertThat(r.value()).isIn(3, 6, 9);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value()))
+                    .isEqualTo(new IllegalArgumentException().toString());
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dq-payload-message-less");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
         });
 
@@ -283,6 +324,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         private final LongAdder observedConsumerEvents = new LongAdder();
         private final LongAdder observedProducerEvents = new LongAdder();
 
+        private volatile Function<Integer, Throwable> toThrowable = payload -> new IllegalArgumentException(
+                "nack 3 - " + payload);
+
         public void afterConsumerCreated(@Observes Consumer<?, ?> consumer) {
             observedConsumerEvents.increment();
         }
@@ -291,12 +335,16 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
             observedProducerEvents.increment();
         }
 
+        public void setToThrowable(Function<Integer, Throwable> toThrowable) {
+            this.toThrowable = toThrowable;
+        }
+
         @Incoming("kafka")
         public CompletionStage<Void> process(KafkaRecord<String, Integer> record) {
             Integer payload = record.getPayload();
             received.add(payload);
             if (payload != 0 && payload % 3 == 0) {
-                return record.nack(new IllegalArgumentException("nack 3 - " + payload));
+                return record.nack(toThrowable.apply(payload));
             }
             return record.ack();
         }
