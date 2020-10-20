@@ -80,13 +80,21 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         }
     }
 
+    private String getThrowableMessage(Throwable throwable) {
+        String text = throwable.getMessage();
+        if (text == null) {
+            text = throwable.toString();
+        }
+        return text;
+    }
+
     @Override
     public <K, V> CompletionStage<Void> handle(
             IncomingKafkaRecord<K, V> record, Throwable reason) {
         KafkaProducerRecord<K, V> dead = KafkaProducerRecord.create(topic, record.getKey(), record.getPayload());
-        dead.addHeader(DEAD_LETTER_REASON, reason.getMessage());
+        dead.addHeader(DEAD_LETTER_REASON, getThrowableMessage(reason));
         if (reason.getCause() != null) {
-            dead.addHeader(DEAD_LETTER_CAUSE, reason.getCause().getMessage());
+            dead.addHeader(DEAD_LETTER_CAUSE, getThrowableMessage(reason.getCause()));
         }
         dead.addHeader(DEAD_LETTER_TOPIC, record.getTopic());
         dead.addHeader(DEAD_LETTER_PARTITION, Integer.toString(record.getPartition()));
