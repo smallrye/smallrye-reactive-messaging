@@ -155,7 +155,7 @@
             </goals>
             <configuration>
               <outputDirectory>src/main/doc/modules/connectors/partials</outputDirectory>
-              <includes>**/*.adoc</includes>
+              <includes>**/connector/*.adoc</includes>
             </configuration>
           </execution>
         </executions>
