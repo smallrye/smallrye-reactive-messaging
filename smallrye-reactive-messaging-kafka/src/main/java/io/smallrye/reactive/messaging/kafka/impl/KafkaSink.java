@@ -83,13 +83,6 @@ public class KafkaSink {
         writeCloudEvents = config.getCloudEvents();
         writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
-        int maxInflight = config.getMaxInflightMessages();
-        if (maxInflight == 5) { // 5 is the Kafka default.
-            maxInflight = config.config().getOptionalValue(ProducerConfig.MAX_BLOCK_MS_CONFIG, Integer.class)
-                    .orElse(5);
-        }
-        int inflight = maxInflight;
-
         this.configuration = config;
         this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
                 && configuration.getCloudEventsSource().isPresent();
@@ -111,7 +104,11 @@ public class KafkaSink {
             this.admin = null;
         }
 
-        processor = new KafkaSenderProcessor(inflight, waitForWriteCompletion,
+        long requests = config.getMaxInflightMessages();
+        if (requests <= 0) {
+            requests = Long.MAX_VALUE;
+        }
+        processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
                 writeMessageToKafka());
         subscriber = ReactiveStreams.<Message<?>> builder()
                 .via(processor)
@@ -309,12 +306,6 @@ public class KafkaSink {
         if (!kafkaConfiguration.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
             log.keyDeserializerOmitted();
             kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, config.getKeySerializer());
-        }
-
-        // Max inflight
-        if (!kafkaConfiguration.containsKey(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION)) {
-            kafkaConfiguration
-                    .put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, config.getMaxInflightMessages());
         }
 
         if (!kafkaConfiguration.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {

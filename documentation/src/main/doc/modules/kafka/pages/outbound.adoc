@@ -105,10 +105,16 @@ If a record cannot be written, the message is `nacked`.
 
 === Back-pressure and inflight records
 
-The Kafka outbound connector handles back-pressure using the number of in-flight messages waiting for being acknowledged by the Kafka broker.
-The number of in-flight messages is configured using the `max-inflight-messages`  attribute and default to 5 (which is the Kafka default).
+The Kafka outbound connector handles back-pressure monitoring the number of in-flight messages waiting to be written to the Kafka broker.
+The number of in-flight messages is configured using the `max-inflight-messages` attribute and defaults to 1024.
 
-The connector only handles that amount of messages concurrently, requesting a new one when one of the in-flight message has been acknowledged by the broker.
+The connector only sends that amount of messages concurrently.
+No other messages will be sent until at least one in-flight message gets acknowledged by the broker.
+Then, the connector writes a new message to Kafka when one of the broker's in-flight messages get acknowledged.
+Be sure to configure Kafka's `batch.size` and `linger.ms` accordingly.
+
+You can also remove the limit of inflight messages by setting `max-inflight-messages` to `0`.
+However, note that the Kafka Producer may block if the number of requests reaches `max.in.flight.requests.per.connection`.
 
 === Sending Cloud Events
 

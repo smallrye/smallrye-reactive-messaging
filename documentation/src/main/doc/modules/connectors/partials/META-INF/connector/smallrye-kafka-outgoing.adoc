@@ -81,9 +81,9 @@ Type: _string_ | false |
 
 Type: _string_ | false | `org.apache.kafka.common.serialization.StringSerializer`
 
-| *max-inflight-messages* | The maximum number of messages to be written to Kafka concurrently - The default value is the value from the `max.in.flight.requests.per.connection` Kafka property. It configures the maximum number of unacknowledged requests the client before blocking. Note that if this setting is set to be greater than 1 and there are failed sends, there is a risk of message re-ordering due to retries.
+| *max-inflight-messages* | The maximum number of messages to be written to Kafka concurrently. It limits the number of messages waiting to be written and acknowledged by the broker. You can set this attribute to `0` remove the limit
 
-Type: _int_ | false | `5`
+Type: _long_ | false | `1024`
 
 | *partition* | The target partition id. -1 to let the client determine the partition
 

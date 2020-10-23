@@ -160,6 +160,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
     @Test
     public void testSourceWithThrottledLatestProcessedCommitEnabled() {
         MapBasedConfig config = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
@@ -220,6 +221,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
     @Test
     public void testSourceWithThrottledLatestProcessedCommitEnabledWithoutAck() {
         MapBasedConfig config = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit-without-acking")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")

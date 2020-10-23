@@ -22,7 +22,7 @@ class KafkaSenderProcessor
     private final AtomicReference<Subscription> subscription = new AtomicReference<>();
     private final AtomicReference<Subscriber<? super Message<?>>> downstream = new AtomicReference<>();
 
-    public KafkaSenderProcessor(int inflights, boolean waitForCompletion, Function<Message<?>, Uni<Void>> send) {
+    public KafkaSenderProcessor(long inflights, boolean waitForCompletion, Function<Message<?>, Uni<Void>> send) {
         this.inflights = inflights;
         this.waitForCompletion = waitForCompletion;
         this.send = send;
@@ -92,7 +92,7 @@ class KafkaSenderProcessor
             down.onNext(message);
         }
         Subscription up = this.subscription.get();
-        if (up != null) {
+        if (up != null && inflights != Long.MAX_VALUE) {
             up.request(1);
         }
     }
