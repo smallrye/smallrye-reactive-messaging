@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 echo "Cleaning"
-mvn clean -pl documentation
+mvn -B clean -pl documentation
 
 export VERSION=""
 
 echo "Building the doc from project root"
 
-mvn javadoc:aggregate -DskipTests
+mvn -B javadoc:aggregate -DskipTests
 
 echo "Cloning repo"
 cd documentation || exit
-mvn verify
-mvn scm:check-local-modification -Dincludes=src/main/doc/antora.yml
+mvn -B verify
+mvn -B scm:check-local-modification -Dincludes=src/main/doc/antora.yml
 VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 antora generate target/antora/antora-playbook.yml --clean
 

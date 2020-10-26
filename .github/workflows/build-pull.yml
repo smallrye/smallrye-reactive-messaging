@@ -48,9 +48,9 @@ jobs:
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
               run: |
-                mvn install -DskipTests \
+                mvn -B install -DskipTests \
                    -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
                    -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
                    -Dmaven.wagon.http.retryHandler.count=10
-                mvn -pl documentation scm:check-local-modification \
+                mvn -B -pl documentation scm:check-local-modification \
                     -Dincludes=src/main/doc/antora.yml
