@@ -55,7 +55,7 @@ public class DropOverflowStrategyTest extends WeldTestBaseWithoutTails {
         BeanUsingDropOverflowStrategy bean = installInitializeAndGet(BeanUsingDropOverflowStrategy.class);
         bean.emitALotOfItems();
 
-        await().until(bean::isDone);
+        await().until(bean::isAllDone);
         assertThat(bean.output()).contains("1", "2", "3", "4", "5").doesNotContain("999");
         assertThat(bean.failure()).isNull();
         assertThat(bean.exception()).isNull();
@@ -69,15 +69,15 @@ public class DropOverflowStrategyTest extends WeldTestBaseWithoutTails {
         @OnOverflow(value = OnOverflow.Strategy.DROP)
         Emitter<String> emitter;
 
-        private List<String> output = new CopyOnWriteArrayList<>();
+        private final List<String> output = new CopyOnWriteArrayList<>();
 
         private volatile Throwable downstreamFailure;
         private volatile boolean done;
+        private volatile boolean consumptionCompleted;
+
         private Exception callerException;
 
-        public boolean isDone() {
-            return done;
-        }
+        private final Scheduler scheduler = Schedulers.from(executor);
 
         public List<String> output() {
             return output;
@@ -96,9 +96,10 @@ public class DropOverflowStrategyTest extends WeldTestBaseWithoutTails {
                 emitter.send("1");
                 emitter.send("2");
                 emitter.send("3");
-                emitter.complete();
             } catch (Exception e) {
                 callerException = e;
+            } finally {
+                emitter.complete();
             }
         }
 
@@ -111,6 +112,7 @@ public class DropOverflowStrategyTest extends WeldTestBaseWithoutTails {
                 } catch (Exception e) {
                     callerException = e;
                 } finally {
+                    emitter.complete();
                     done = true;
                 }
             }).start();
@@ -119,18 +121,22 @@ public class DropOverflowStrategyTest extends WeldTestBaseWithoutTails {
         @Incoming("hello")
         @Outgoing("out")
         public Flowable<String> consume(Flowable<String> values) {
-            Scheduler scheduler = Schedulers.from(executor);
             return values
                     .observeOn(scheduler)
                     .delay(1, TimeUnit.MILLISECONDS, scheduler)
                     .doOnError(err -> {
                         downstreamFailure = err;
-                    });
+                    })
+                    .doOnComplete(() -> consumptionCompleted = true);
         }
 
         @Incoming("out")
         public void out(String s) {
             output.add(s);
+        }
+
+        public boolean isAllDone() {
+            return done && consumptionCompleted;
         }
 
     }
