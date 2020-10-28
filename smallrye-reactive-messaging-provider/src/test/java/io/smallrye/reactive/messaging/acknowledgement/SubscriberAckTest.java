@@ -97,6 +97,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         List<Throwable> reasons = run(acked, nacked, emitter);
 
         await().until(() -> consumer.list().size() == 8);
+        await().until(() -> nacked.size() == 2);
+        await().until(() -> reasons.size() == 2);
         assertThat(acked).hasSize(8);
         assertThat(nacked).hasSize(2);
         assertThat(reasons).hasSize(2);
