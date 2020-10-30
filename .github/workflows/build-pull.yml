@@ -18,12 +18,10 @@ jobs:
         steps:
             - uses: actions/cache@v2
               with:
-                  path: |
-                    ~/.m2/repository
-                    !~/.m2/repository/**/*-SNAPSHOT/*
-                  key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+                  path: ~/.m2/repository
+                  key: maven-${{ hashFiles('**/pom.xml') }}
                   restore-keys: |
-                    ${{ runner.os }}-maven-
+                    maven-
             - uses: actions/checkout@v2
             - uses: AdoptOpenJDK/install-jdk@v1
               with:
@@ -31,16 +29,13 @@ jobs:
                   source: ${{ matrix.java.source }}
             - name: Build with Maven
               run: |
-                mvn -B clean install --file pom.xml \
-                  -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
-                  -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
-                  -Dmaven.wagon.http.retryHandler.count=10
+                mvn -B clean verify --file pom.xml
 
 
     up_to_date_antora:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v1
+            - uses: actions/checkout@v2
             - name: Install JDK 1.8
               uses: joschi/setup-jdk@v1.0.0
               with:
@@ -48,9 +43,6 @@ jobs:
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
               run: |
-                mvn -B install -DskipTests \
-                   -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
-                   -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
-                   -Dmaven.wagon.http.retryHandler.count=10
+                mvn -B install -DskipTests
                 mvn -B -pl documentation scm:check-local-modification \
                     -Dincludes=src/main/doc/antora.yml
