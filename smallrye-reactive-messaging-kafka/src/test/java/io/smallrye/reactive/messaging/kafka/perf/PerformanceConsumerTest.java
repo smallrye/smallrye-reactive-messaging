@@ -110,6 +110,56 @@ public class PerformanceConsumerTest extends KafkaTestBase {
         System.out.println("No Ack - Estimate: " + (end - start) + " ms");
     }
 
+    @Test
+    public void testWithAutoCommitWithPostAck() {
+        MyConsumerUsingPostAck application = runApplication(new MapBasedConfig()
+                .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.topic", topic)
+                .with("mp.messaging.incoming.data.enable.auto.commit", true)
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.cloud-events", false)
+                .with("mp.messaging.incoming.data.bootstrap.servers", getBootstrapServers())
+                .with("mp.messaging.incoming.data.auto.offset.reset", "earliest")
+                .with("mp.messaging.incoming.data.value.deserializer", StringDeserializer.class.getName())
+                .with("mp.messaging.incoming.data.key.deserializer", StringDeserializer.class.getName()),
+                MyConsumerUsingPostAck.class);
+        long start = System.currentTimeMillis();
+        await()
+                .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
+                .until(() -> {
+                    return application.getCount() == COUNT;
+                });
+
+        long end = System.currentTimeMillis();
+
+        System.out.println("Ignore with Ack - Estimate: " + (end - start) + " ms");
+    }
+
+    @Test
+    public void foo() {
+        MyConsumerUsingPostAck application = runApplication(new MapBasedConfig()
+                .with("mp.messaging.incoming.data.bootstrap.servers", getBootstrapServers())
+                .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.topic", topic)
+                .with("mp.messaging.incoming.data.pattern", true)
+                .with("mp.messaging.incoming.data.value.deserializer", StringDeserializer.class.getName())
+                .with("mp.messaging.incoming.data.auto.offset.reset", "earliest")
+                .with("mp.messaging.incoming.data.auto.commit.interval.ms", 1000)
+                .with("mp.messaging.incoming.data.metadata.max.age.ms", 30000)
+                .with("mp.messaging.incoming.data.enable.auto.commit", true),
+                MyConsumerUsingPostAck.class);
+        long start = System.currentTimeMillis();
+        await()
+                .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
+                .until(() -> {
+                    return application.getCount() == COUNT;
+                });
+
+        long end = System.currentTimeMillis();
+
+        System.out.println("Ignore with Ack - Estimate: " + (end - start) + " ms");
+    }
+
     @ApplicationScoped
     public static class MyConsumerUsingPostAck {
 

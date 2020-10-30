@@ -294,10 +294,13 @@ public class KafkaSource<K, V> {
         KafkaCommitHandler.Strategy actualStrategy = KafkaCommitHandler.Strategy.from(strategy);
         switch (actualStrategy) {
             case LATEST:
+                log.commitStrategyForChannel("latest", config.getChannel());
                 return new KafkaLatestCommit(vertx, configuration, consumer);
             case IGNORE:
+                log.commitStrategyForChannel("ignore", config.getChannel());
                 return new KafkaIgnoreCommit();
             case THROTTLED:
+                log.commitStrategyForChannel("throttled", config.getChannel());
                 return KafkaThrottledLatestProcessedCommit.create(vertx, consumer, group, config, this);
             default:
                 throw ex.illegalArgumentInvalidCommitStrategy(strategy);
