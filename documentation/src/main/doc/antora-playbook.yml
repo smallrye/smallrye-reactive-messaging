@@ -4,11 +4,12 @@ site:
     start_page: smallrye-reactive-messaging::index.adoc
 
 content:
+    edit_url: ~
     sources:
         - url: ../
           start_path: documentation/target/antora
           branches: HEAD
-          edit_url: ~
+
 
 ui:
     bundle:
