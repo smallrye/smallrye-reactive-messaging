@@ -55,14 +55,14 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>(topic, "hello", counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -79,7 +79,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         createTopic(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -103,7 +103,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         List<KafkaRecord> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -205,7 +205,8 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("retry-max-wait", 30);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents,
+                getDeserializationFailureHandlers(), -1);
         List<KafkaRecord> messages1 = new ArrayList<>();
         source.getStream().subscribe().with(messages1::add);
 
@@ -416,7 +417,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -482,7 +483,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("sasl.mechanism", ""); //optional configuration
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);

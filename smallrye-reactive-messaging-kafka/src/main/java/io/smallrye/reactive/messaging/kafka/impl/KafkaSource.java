@@ -11,9 +11,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.common.serialization.Deserializer;
 
 import io.grpc.Context;
 import io.opentelemetry.trace.Span;
@@ -23,15 +25,9 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.*;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
+import io.smallrye.reactive.messaging.kafka.fault.*;
 import io.vertx.core.AsyncResult;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
@@ -54,11 +50,14 @@ public class KafkaSource<K, V> {
     private final boolean isCloudEventEnabled;
     private final String channel;
 
+    @SuppressWarnings("rawtypes")
     public KafkaSource(Vertx vertx,
             String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
-            KafkaCDIEvents kafkaCDIEvents, int index) {
+            KafkaCDIEvents kafkaCDIEvents,
+            Instance<DeserializationFailureHandler> deserializationFailureHandlers,
+            int index) {
 
         topics = getTopics(config);
 
@@ -117,7 +116,19 @@ public class KafkaSource<K, V> {
 
         ConfigurationCleaner.cleanupConsumerConfiguration(kafkaConfiguration);
 
-        final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
+        Deserializer<K> keyDeserializer = new DeserializerWrapper<>(
+                kafkaConfiguration.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG), true,
+                getDeserializationHandler(true, deserializationFailureHandlers),
+                this);
+        String className = kafkaConfiguration.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG);
+        if (className == null) {
+            throw ex.missingValueDeserializer(config.getChannel(), config.getChannel());
+        }
+        Deserializer<V> valueDeserializer = new DeserializerWrapper<>(
+                className, false, getDeserializationHandler(false, deserializationFailureHandlers),
+                this);
+        final KafkaConsumer<K, V> kafkaConsumer = createKafkaConsumer(vertx,
+                ConfigurationCleaner.asKafkaConfiguration(kafkaConfiguration), keyDeserializer, valueDeserializer);
 
         // fire consumer event (e.g. bind metrics)
         kafkaCDIEvents.consumer().fire(kafkaConsumer.getDelegate().unwrap());
@@ -197,6 +208,40 @@ public class KafkaSource<K, V> {
 
         this.stream = incomingMulti
                 .onFailure().invoke(t -> reportFailure(t, false));
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private <T> DeserializationFailureHandler<T> getDeserializationHandler(boolean isKey,
+            Instance<DeserializationFailureHandler> deserializationFailureHandlers) {
+        String name = isKey ? configuration.getKeyDeserializationFailureHandler().orElse(null)
+                : configuration.getValueDeserializationFailureHandler().orElse(null);
+
+        if (name == null) {
+            return null;
+        }
+
+        Instance<DeserializationFailureHandler> matching = deserializationFailureHandlers
+                .select(NamedLiteral.of(name));
+        if (matching.isUnsatisfied()) {
+            throw ex.unableToFindDeserializationFailureHandler(name, configuration.getChannel());
+        } else if (matching.stream().count() > 1) {
+            throw ex.unableToFindDeserializationFailureHandler(name, configuration.getChannel(),
+                    (int) matching.stream().count());
+        } else if (matching.stream().count() == 1) {
+            return (DeserializationFailureHandler<T>) matching.get();
+        } else {
+            return null;
+        }
+
+    }
+
+    private KafkaConsumer<K, V> createKafkaConsumer(Vertx vertx, Map<String, Object> kafkaConfiguration,
+            Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+        org.apache.kafka.clients.consumer.KafkaConsumer<K, V> underlyingKafkaConsumer = new org.apache.kafka.clients.consumer.KafkaConsumer<>(
+                kafkaConfiguration, keyDeserializer, valueDeserializer);
+        io.vertx.kafka.client.consumer.KafkaConsumer<K, V> bare = io.vertx.kafka.client.consumer.KafkaConsumer.create(
+                vertx.getDelegate(), underlyingKafkaConsumer);
+        return KafkaConsumer.newInstance(bare);
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {

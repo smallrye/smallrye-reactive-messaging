@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -90,6 +91,10 @@ public class ConfigurationCleaner {
         for (String key : CONSUMER) {
             conf.remove(key);
         }
+    }
+
+    public static Map<String, Object> asKafkaConfiguration(Map<String, String> conf) {
+        return new HashMap<>(conf);
     }
 
 }

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
+import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.strimzi.StrimziKafkaContainer;
 import io.vertx.mutiny.core.Vertx;
@@ -131,6 +132,11 @@ public class KafkaTestBase extends WeldTestBase {
 
     public Instance<KafkaConsumerRebalanceListener> getConsumerRebalanceListeners() {
         return getBeanManager().createInstance().select(KafkaConsumerRebalanceListener.class);
+    }
+
+    @SuppressWarnings("rawtypes")
+    public Instance<DeserializationFailureHandler> getDeserializationFailureHandlers() {
+        return getBeanManager().createInstance().select(DeserializationFailureHandler.class);
     }
 
     /**

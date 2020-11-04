@@ -63,7 +63,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 "test-source-with-auto-commit-enabled",
                 ic,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -119,7 +119,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents,
+                getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -170,7 +171,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -232,7 +234,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit-without-acking", ic,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                getDeserializationFailureHandlers(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);

@@ -177,4 +177,9 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18240, value = "'%s' commit strategy used for channel '%s'")
     void commitStrategyForChannel(String strategy, String channel);
+
+    @LogMessage(level = Logger.Level.FATAL)
+    @Message(id = 18241, value = "The deserialization failure handler `%s` throws an exception")
+    void deserializationFailureHandlerFailure(String instance, @Cause Throwable t);
+
 }
