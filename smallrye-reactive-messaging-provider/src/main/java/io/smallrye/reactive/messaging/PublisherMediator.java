@@ -49,9 +49,12 @@ public class PublisherMediator extends AbstractMediator {
     @Override
     protected <T> Uni<T> invokeBlocking(Object... args) {
         return super.<T> invokeBlocking(args)
-                .onItem()
-                .ifNull()
-                .failWith(ex.nullPointerOnInvokeBlocking(this.configuration.methodAsString()));
+                .onItem().invoke(item -> {
+                    // The item must not be null.
+                    if (item == null) {
+                        throw ex.nullPointerOnInvokeBlocking(this.configuration.methodAsString());
+                    }
+                });
     }
 
     @Override
@@ -103,6 +106,7 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     private void setPublisher(PublisherBuilder<Message<?>> publisher) {
+        // no conversion for publisher.
         this.publisher = decorate(publisher);
     }
 

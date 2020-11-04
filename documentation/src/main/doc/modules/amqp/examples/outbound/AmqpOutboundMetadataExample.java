@@ -9,7 +9,6 @@ public class AmqpOutboundMetadataExample {
 
         // tag::code[]
         OutgoingAmqpMetadata metadata = OutgoingAmqpMetadata.builder()
-            .withAddress("customized-address")
             .withDurable(true)
             .withSubject("my-subject")
             .build();

@@ -134,3 +134,5 @@ local.properties
 
 # Netbeans
 **/nb*.xml
+
+**/.cache/formatter-maven-cache.properties

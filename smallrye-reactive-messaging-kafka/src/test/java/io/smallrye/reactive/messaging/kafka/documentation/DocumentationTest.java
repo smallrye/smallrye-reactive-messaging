@@ -2,24 +2,16 @@ package io.smallrye.reactive.messaging.kafka.documentation;
 
 import static org.awaitility.Awaitility.await;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.kafka.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.KafkaUsage;
-import io.smallrye.reactive.messaging.kafka.MapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 /**
  * Checks the the snippet providing in the documentation are actually working.
@@ -27,29 +19,12 @@ import io.smallrye.reactive.messaging.kafka.MapBasedConfig;
  */
 public class DocumentationTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void closing() {
-        container.shutdown();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @Test
-    public void testKafkaPriceConsumer() throws InterruptedException {
-        MapBasedConfig config = getConsumerConfiguration();
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(KafkaPriceConsumer.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
+    public void testKafkaPriceConsumer() {
+        KafkaPriceConsumer consumer = runApplication(getConsumerConfiguration(), KafkaPriceConsumer.class);
 
-        KafkaPriceConsumer consumer = container.select(KafkaPriceConsumer.class).get();
+        await().until(this::isReady);
 
-        // TODO we need some readiness support in the connector
-        Thread.sleep(1000);
-
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger count = new AtomicInteger();
         usage.produceDoubles(50, null, () -> new ProducerRecord<>("prices", count.incrementAndGet() * 1.0));
 
@@ -58,19 +33,10 @@ public class DocumentationTest extends KafkaTestBase {
 
     @Test
     public void testMessageKafkaPriceConsumer() throws InterruptedException {
-        MapBasedConfig config = getConsumerConfiguration();
-        Weld weld = baseWeld();
-        addConfig(config);
-        weld.addBeanClass(KafkaPriceMessageConsumer.class);
-        weld.disableDiscovery();
-        container = weld.initialize();
+        KafkaPriceMessageConsumer consumer = runApplication(getConsumerConfiguration(), KafkaPriceMessageConsumer.class);
 
-        KafkaPriceMessageConsumer consumer = container.select(KafkaPriceMessageConsumer.class).get();
+        await().until(this::isReady);
 
-        // TODO we need some readiness support in the connector
-        Thread.sleep(1000);
-
-        KafkaUsage usage = new KafkaUsage();
         AtomicInteger count = new AtomicInteger();
         usage.produceDoubles(50, null, () -> new ProducerRecord<>("prices", count.incrementAndGet() * 1.0));
 
@@ -79,12 +45,10 @@ public class DocumentationTest extends KafkaTestBase {
 
     @Test
     public void testKafkaPriceProducer() {
-        KafkaUsage usage = new KafkaUsage();
         List<Double> list = new CopyOnWriteArrayList<>();
         usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
 
         MapBasedConfig config = getProducerConfiguration();
-        Weld weld = baseWeld();
         addConfig(config);
         weld.addBeanClass(KafkaPriceProducer.class);
         weld.disableDiscovery();
@@ -95,12 +59,10 @@ public class DocumentationTest extends KafkaTestBase {
 
     @Test
     public void testKafkaPriceMessageProducer() {
-        KafkaUsage usage = new KafkaUsage();
         List<Double> list = new CopyOnWriteArrayList<>();
         usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
 
         MapBasedConfig config = getProducerConfiguration();
-        Weld weld = baseWeld();
         addConfig(config);
         weld.addBeanClass(KafkaPriceMessageProducer.class);
         weld.disableDiscovery();
@@ -110,19 +72,17 @@ public class DocumentationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getConsumerConfiguration() {
-        Map<String, Object> conf = new HashMap<>();
-        conf.put("mp.messaging.incoming.prices.connector", "smallrye-kafka");
-        conf.put("mp.messaging.incoming.prices.value.deserializer",
-                "org.apache.kafka.common.serialization.DoubleDeserializer");
-        return new MapBasedConfig(conf);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.prices");
+        builder.put("connector", "smallrye-kafka");
+        builder.put("value.deserializer", "org.apache.kafka.common.serialization.DoubleDeserializer");
+        return builder.build();
     }
 
     private MapBasedConfig getProducerConfiguration() {
-        Map<String, Object> conf = new HashMap<>();
-        conf.put("mp.messaging.outgoing.prices.connector", "smallrye-kafka");
-        conf.put("mp.messaging.outgoing.prices.value.serializer",
-                "org.apache.kafka.common.serialization.DoubleSerializer");
-        return new MapBasedConfig(conf);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.prices");
+        builder.put("connector", "smallrye-kafka");
+        builder.put("value.serializer", "org.apache.kafka.common.serialization.DoubleSerializer");
+        return builder.build();
     }
 
 }

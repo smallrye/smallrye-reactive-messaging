@@ -15,6 +15,9 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
@@ -22,6 +25,7 @@ import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
+import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
@@ -41,6 +45,7 @@ public class WeldTestBaseWithoutTails {
     protected SeContainer container;
 
     @BeforeClass
+    @BeforeAll
     public static void disableLogging() {
         System.setProperty("java.util.logging.config.file", "logging.properties");
     }
@@ -93,6 +98,7 @@ public class WeldTestBaseWithoutTails {
     }
 
     @Before
+    @BeforeEach
     public void setUp() {
         initializer = SeContainerInitializer.newInstance();
 
@@ -105,6 +111,7 @@ public class WeldTestBaseWithoutTails {
                 ConfiguredChannelFactory.class,
                 LegacyConfiguredChannelFactory.class,
                 MetricDecorator.class,
+                HealthCenter.class,
                 // Messaging provider
                 MyDummyConnector.class,
 
@@ -122,6 +129,7 @@ public class WeldTestBaseWithoutTails {
     }
 
     @After
+    @AfterEach
     public void tearDown() {
         if (container != null) {
             container.close();

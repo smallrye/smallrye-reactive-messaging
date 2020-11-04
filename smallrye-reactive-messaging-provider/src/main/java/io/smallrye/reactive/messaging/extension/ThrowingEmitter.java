@@ -40,7 +40,8 @@ class ThrowingEmitter<T> implements MultiEmitter<T> {
             };
 
             // Create the Multi and attach the request callback
-            return Multi.createFrom().emitter(consumer, backPressureStrategy).on().request(throwingEmitter::request);
+            return Multi.createFrom().emitter(consumer, backPressureStrategy)
+                    .onRequest().invoke(throwingEmitter::request);
         });
     }
 

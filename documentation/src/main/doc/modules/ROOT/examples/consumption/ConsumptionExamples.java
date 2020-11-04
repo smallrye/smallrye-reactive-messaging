@@ -46,7 +46,7 @@ public class ConsumptionExamples {
     public Uni<Void> consumeMessageUni(Message<Price> message) {
         return Uni.createFrom().item(message)
             .onItem().invoke(m -> handle(m.getPayload()))
-            .onItem().produceCompletionStage(x -> message.ack());
+            .onItem().transformToUni(x -> Uni.createFrom().completionStage(message.ack()));
     }
     //end::message-uni[]
 
@@ -54,6 +54,7 @@ public class ConsumptionExamples {
         return CompletableFuture.completedFuture(null);
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     private Price handle(Price price) {
         return price;
     }

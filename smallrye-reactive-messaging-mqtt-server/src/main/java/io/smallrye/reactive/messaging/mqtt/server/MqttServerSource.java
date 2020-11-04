@@ -12,7 +12,10 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import io.reactivex.processors.BehaviorProcessor;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.vertx.mqtt.MqttServerOptions;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.mqtt.MqttServer;
 
@@ -70,17 +73,22 @@ class MqttServerSource {
                     v -> log.pingReceived(endpoint.clientIdentifier()));
 
             endpoint.publishHandler(message -> {
+                final Context ctx = vertx.getOrCreateContext();
                 log.receivedMessageFromClient(message.payload(), message.qosLevel(), endpoint.clientIdentifier());
 
                 processor.onNext(new MqttMessage(message, endpoint.clientIdentifier(), () -> {
-                    if (message.qosLevel() == AT_LEAST_ONCE) {
-                        log.sendToClient("PUBACK", endpoint.clientIdentifier(), message.messageId());
-                        endpoint.publishAcknowledge(message.messageId());
-                    } else if (message.qosLevel() == EXACTLY_ONCE) {
-                        log.sendToClient("PUBREC", endpoint.clientIdentifier(), message.messageId());
-                        endpoint.publishReceived(message.messageId());
-                    }
-                    return CompletableFuture.completedFuture(null);
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    ctx.runOnContext(x -> {
+                        if (message.qosLevel() == AT_LEAST_ONCE) {
+                            log.sendToClient("PUBACK", endpoint.clientIdentifier(), message.messageId());
+                            endpoint.publishAcknowledge(message.messageId());
+                        } else if (message.qosLevel() == EXACTLY_ONCE) {
+                            log.sendToClient("PUBREC", endpoint.clientIdentifier(), message.messageId());
+                            endpoint.publishReceived(message.messageId());
+                        }
+                        future.complete(null);
+                    });
+                    return future;
                 }));
             });
 
@@ -99,19 +107,25 @@ class MqttServerSource {
             endpoint.accept(false);
         });
 
+        Multi<MqttServer> server = startServer(options).cache();
+
         this.source = ReactiveStreams.fromPublisher(processor
-                .delaySubscription(mqttServer.listen()
-                        .onItem().invoke(ignored -> log.serverListeningOn(options.getHost(), mqttServer.actualPort()))
-                        .onFailure().invoke(throwable -> log.failedToStart(throwable))
-                        .toMulti()
-                        .then(flow -> {
-                            if (broadcast) {
-                                return flow.broadcast().toAllSubscribers();
-                            } else {
-                                return flow;
-                            }
-                        }))
-                .doOnSubscribe(subscription -> log.newSubscriberAdded(subscription)));
+                .delaySubscription(server)
+                .doOnSubscribe(log::newSubscriberAdded));
+    }
+
+    private Multi<MqttServer> startServer(MqttServerOptions options) {
+        return mqttServer.listen()
+                .onItem().invoke(s -> log.serverListeningOn(options.getHost(), s.actualPort()))
+                .onFailure().invoke(log::failedToStart)
+                .toMulti()
+                .stage(flow -> {
+                    if (broadcast) {
+                        return flow.broadcast().toAllSubscribers();
+                    } else {
+                        return flow;
+                    }
+                });
     }
 
     synchronized PublisherBuilder<MqttMessage> source() {
@@ -120,9 +134,9 @@ class MqttServerSource {
 
     synchronized void close() {
         mqttServer.close()
-                .onFailure().invoke(t -> log.exceptionWhileClosing(t))
+                .onFailure().invoke(log::exceptionWhileClosing)
                 .onItem().invoke(x -> log.closed())
-                .onFailure().recoverWithItem((Void) null)
+                .onFailure().recoverWithUni(Uni.createFrom().nullItem())
                 .await().indefinitely();
     }
 

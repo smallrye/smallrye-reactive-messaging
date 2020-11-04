@@ -8,6 +8,10 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 public interface KafkaRecord<K, T> extends Message<T> {
 
+    static <K, T> OutgoingKafkaRecord<K, T> from(Message<T> message) {
+        return OutgoingKafkaRecord.from(message);
+    }
+
     /**
      * Creates a new outgoing Kafka record.
      *
@@ -19,7 +23,7 @@ public interface KafkaRecord<K, T> extends Message<T> {
      */
     static <K, T> OutgoingKafkaRecord<K, T> of(K key, T value) {
         return new OutgoingKafkaRecord<>(null, key, value, null, -1,
-                new RecordHeaders(), null);
+                new RecordHeaders(), null, null, null);
     }
 
     /**
@@ -33,7 +37,7 @@ public interface KafkaRecord<K, T> extends Message<T> {
      * @return the new outgoing Kafka record
      */
     static <K, T> OutgoingKafkaRecord<K, T> of(String topic, K key, T value) {
-        return new OutgoingKafkaRecord<>(topic, key, value, null, -1, new RecordHeaders(), null);
+        return new OutgoingKafkaRecord<>(topic, key, value, null, -1, new RecordHeaders(), null, null, null);
     }
 
     /**
@@ -49,7 +53,7 @@ public interface KafkaRecord<K, T> extends Message<T> {
      * @return the new outgoing Kafka record
      */
     static <K, T> OutgoingKafkaRecord<K, T> of(String topic, K key, T value, Instant timestamp, int partition) {
-        return new OutgoingKafkaRecord<>(topic, key, value, timestamp, partition, new RecordHeaders(), null);
+        return new OutgoingKafkaRecord<>(topic, key, value, timestamp, partition, new RecordHeaders(), null, null, null);
     }
 
     K getKey();

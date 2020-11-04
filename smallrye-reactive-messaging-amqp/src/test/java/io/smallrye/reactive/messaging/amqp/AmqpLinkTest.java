@@ -14,19 +14,18 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 
-public class AmqpLinkTest extends AmqpTestBase {
+public class AmqpLinkTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.shutdown();
@@ -49,7 +48,7 @@ public class AmqpLinkTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.people-out.link-name", "people")
                 .put("mp.messaging.outgoing.people-out.host", host)
                 .put("mp.messaging.outgoing.people-out.port", port)
-                .put("mp.messaging.outgoing.people-out.durable", true)
+                .put("mp.messaging.outgoing.people-out.durable", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
 
@@ -63,9 +62,8 @@ public class AmqpLinkTest extends AmqpTestBase {
                 .write();
 
         container = weld.initialize();
-        AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
-                ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
-        await().until(() -> connector.isReady("people-in"));
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
 
         MyProducer producer = container.getBeanManager().createInstance().select(MyProducer.class).get();
         producer.run();
@@ -94,7 +92,7 @@ public class AmqpLinkTest extends AmqpTestBase {
     @ApplicationScoped
     public static class MyConsumer {
 
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incoming("people-in")
         public void getPeople(String s) {

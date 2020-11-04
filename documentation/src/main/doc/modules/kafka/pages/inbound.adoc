@@ -19,12 +19,12 @@ mp.messaging.incoming.prices.broadcast=true     # <4>
 1. Configure the broker location. You can configure it globally or per channel
 2. Configure the connector to manage the `prices` channel
 3. Sets the (Kafka) deserializer to read the record's value
-4. Make sure that we can receive from more that one consumer (see `KafkaPriceConsumer` and `KafkaPriceMessageConsumer` below) 
+4. Make sure that we can receive from more that one consumer (see `KafkaPriceConsumer` and `KafkaPriceMessageConsumer` below)
 
 NOTE: You don't need to set the Kafka topic. By default, it uses the channel name (`prices`). You can configure the `topic` attribute to override it.
 
 Then, your application receives `Message<Double>`.
-You can consumes the payload directly:
+You can consume the payload directly:
 
 [source, java]
 ----
@@ -48,6 +48,17 @@ You need to configure the:
 
 If you want to use a custom deserializer, add it to your `CLASSPATH` and configure the associate attribute.
 
+In addition, the Kafka Connector also provides a set of _message converters_.
+So you can receive _payloads_ representing records from Kafka using:
+
+* {javadoc-base}/io/smallrye/reactive/messaging/kafka/Record.html[Record<K,V>] - a pair key/value
+* https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/consumer/KafkaConsumer.html[KafkaConsumer<K,V>] - a structure representing the record with all its metadata
+
+[source, java]
+----
+include::example$inbound/Converters.java[tags=code]
+----
+
 === Inbound Metadata
 
 Messages coming from Kafka contains an instance of {javadoc-base}/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html[IncomingKafkaRecordMetadata<K, T>] in the metadata.
@@ -57,15 +68,47 @@ It provides the key, topic, partitions, headers and so on:
 
 [source, java]
 ----
-include::example$inbound/KafkaMetadataExample.java[]
+include::example$inbound/KafkaMetadataExample.java[tags=code]
 ----
 
 === Acknowledgement
 
-Acknowledging a message coming from Kafka commit the offset.
-Refer to the Kafka documentation for details.
+When a message produced from a Kafka record is acknowledged, the connector invokes a _commit strategy_.
+These strategies decide when the consumer offset for a specific topic/partition is committed.
+Committing an offset indicates that all previous records have been processed.
+It is also the position where the application would restart the processing after a crash recovery or a restart.
 
-IMPORTANT: To let the connector handles the offset commit, you must set the `enable.auto.commit` attribute to `false`.
+Committing every offset has performance penalties as Kafka offset management can be slow.
+However, not committing the offset often enough may lead to message duplication if the application crashes between two commits.
+
+The Kafka connector supports three strategies:
+
+* `throttled` keeps track of received messages and commit to the next offset after the latest _acked_ message in sequence.
+This strategy guarantees _at-least-once delivery_ even if the channel performs asynchronous processing.
+The connector tracks the received records and periodically (period specified by `auto.commit.interval.ms` (default: 5000)) commits the highest consecutive offset.
+The connector will be marked as unhealthy if a message associated with a record is not acknowledged in `throttled.unprocessed-record-max-age.ms` (default: 60000).
+Indeed, this strategy cannot commit the offset as soon as a single record processing fails (see failure-strategy to configure what happens on failing processing).
+If `throttled.unprocessed-record-max-age.ms` is set to less than or equal to 0, it does not perform any health check verification. Such a setting might lead to running out of memory if there are poison pill messages.
+This strategy is the default if `enable.auto.commit` is not explicitly set to `true`.
+
+* `latest` commits the record offset received by the Kafka consumer as soon as the associated message is acknowledged (if the offset is higher than the previously committed offset).
+This strategy provides _at-least-once_ delivery if the channel processes the message without performing any asynchronous processing.
+This strategy should not be used on high-load as offset commit is expensive.
+However, it reduces the risk of duplicates.
+
+* `ignore` performs no commit.
+This strategy is the default strategy when the consumer is explicitly configured with `enable.auto.commit` to `true`.
+It delegates the offset commit to the Kafka client.
+This strategy provides _at-least-once delivery_ if the channel processes the message without performing any asynchronous operations and when `enable.auto.commit` is set to `true`.
+However, if the processing failed between two commits, messages received after the commit and before the failure will be re-processed.
+
+IMPORTANT: The Kafka connector disables the Kafka _auto commit_ is not explicitly enabled.
+This behavior differs from the traditional Kafka consumer.
+
+If high-throughout is important for you, and not limited by the downstream, we recommend to either:
+
+* Use the `throttled` policy
+* or set `enable.auto.commit` to `true` and annotate the consuming method with `@Acknowledgment(Acknowledgment.Strategy.NONE)`
 
 === Failure Management
 
@@ -76,7 +119,7 @@ The Kafka connector supports 3 strategies:
 The offset of the record that has not been processed correctly is not committed.
 * `ignore` - the failure is logged, but the processing continue.
 The offset of the record that has not been processed correctly is committed.
-* `dead-letter-queue` - the offset of the record that has not been processed correctly is committed, but the record is written to a (Kafka) _dead letter topic_.
+* `dead-letter-queue` - the offset of the record that has not been processed correctly is committed, but the record is written to a (Kafka) _dead letter queue_ topic.
 
 The strategy is selected using the `failure-strategy` attribute.
 
@@ -86,8 +129,55 @@ In the case of `dead-letter-queue`, you can configure the following attributes:
 * `dead-letter-queue.key.serializer`: the serializer used to write the record key on the dead letter queue. By default, it deduces the serializer from the key deserializer.
 * `dead-letter-queue.value.serializer`: the serializer used to write the record value on the dead letter queue. By default, it deduces the serializer from the value deserializer.
 
-The record written on the dead letter queue contains the `dead-letter-reason` header with the nack reason (message from the exception passed to the `nack` method).
-It may also contain the `dead-letter-cause` with the message from the cause, if any.
+The record written on the dead letter queue contains a set of additional headers about the original record:
+
+* `dead-letter-reason` - the reason of the failure
+* `dead-letter-cause` - the cause of the failure if any
+* `dead-letter-topic` - the original topic of the record
+* `dead-letter-partition` - the original partition of the record (integer mapped to String)
+* `dead-letter-offset` - the original offset of the record (long mapped to String)
+
+=== Receiving Cloud Events
+
+The Kafka connector supports https://cloudevents.io/[Cloud Events].
+When the connector detects a _structured_ or _binary_ Cloud Events, it adds a  {javadoc-base}/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html[IncomingKafkaRecordMetadata<K, T>] in the metadata of the Message.
+`IncomingKafkaCloudEventMetadata` contains the various (mandatory and optional) Cloud Event attributes.
+
+If the connector cannot extract the Cloud Event metadata, it sends the Message without the metadata.
+
+==== Binary Cloud Events
+
+For `binary` Cloud Events, **all** mandatory Cloud Event attributes must be set in the record header, prefixed by `ce_` (as mandated by the https://github.com/cloudevents/spec/blob/master/kafka-protocol-binding.md[protocol binding]).
+The connector considers headers starting with the `ce_` prefix but not listed in the specification as extensions.
+You can access them using the `getExtension` method from `IncomingKafkaCloudEventMetadata`.
+You can retrieve them as `String`.
+
+The `datacontenttype` attribute is mapped to the `content-type` header of the record.
+The `partitionkey` attribute is mapped to the record's key, if any.
+
+Note that all headers are read as UTF-8.
+
+With binary Cloud Events, the record's key and value can use any deserializer.
+
+==== Structured Cloud Events
+
+For `structured` Cloud Events, the event is encoded in the record's value.
+Only JSON is supported, so your event must be encoded as JSON in the record's value.
+
+Structured Cloud Event must set the `content-type` header of the record to `application/cloudevents` or prefix the value with `application/cloudevents` such as: `application/cloudevents+json; charset=UTF-8`.
+
+To receive structured Cloud Events, your value deserializer must be:
+
+* `org.apache.kafka.common.serialization.StringDeserializer`
+* `org.apache.kafka.common.serialization.ByteArrayDeserializer`
+* `io.vertx.kafka.client.serialization.JsonObjectDeserializer`
+
+As mentioned previously, the value must be a valid JSON object containing at least all the mandatory Cloud Events attributes.
+
+If the record is a structured Cloud Event, the created Message's payload is the Cloud Event `data`.
+
+The `partitionkey` attribute is mapped to the record's key if any.
+
 
 === Configuration Reference
 

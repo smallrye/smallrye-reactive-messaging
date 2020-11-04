@@ -32,7 +32,7 @@ public class HeaderPropagationTest extends HttpTestBase {
 
         awaitForRequest(10);
         verify(10, postRequestedFor(urlEqualTo("/items")));
-        assertThat(requests()).allSatisfy(req -> {
+        assertThat(requests()).hasSize(10).allSatisfy(req -> {
             assertThat(req.getBodyAsString()).isNotNull();
             assertThat(req.getAbsoluteUrl()).isEqualTo("http://localhost:8089/items");
             assertThat(req.getHeader("X-header")).isEqualTo("value");

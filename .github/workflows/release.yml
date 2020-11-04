@@ -11,12 +11,10 @@ jobs:
                   ref: 'master'
             - uses: actions/cache@v2
               with:
-                  path: |
-                    ~/.m2/repository
-                    !~/.m2/repository/**/*-SNAPSHOT/*
-                  key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+                  path: ~/.m2/repository
+                  key: maven-${{ hashFiles('**/pom.xml') }}
                   restore-keys: |
-                    ${{ runner.os }}-maven-
+                    maven-
             - uses: actions/checkout@v2
             - uses: AdoptOpenJDK/install-jdk@v1
               with:

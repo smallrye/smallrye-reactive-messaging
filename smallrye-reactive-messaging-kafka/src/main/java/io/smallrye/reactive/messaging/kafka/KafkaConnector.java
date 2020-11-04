@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
@@ -31,10 +32,15 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 
+import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.trace.Tracer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.health.HealthReporter;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
@@ -42,21 +48,33 @@ import io.vertx.mutiny.core.Vertx;
 @ApplicationScoped
 @Connector(KafkaConnector.CONNECTOR_NAME)
 @ConnectorAttribute(name = "bootstrap.servers", alias = "kafka.bootstrap.servers", type = "string", defaultValue = "localhost:9092", direction = Direction.INCOMING_AND_OUTGOING, description = "A comma-separated list of host:port to use for establishing the initial connection to the Kafka cluster.")
-@ConnectorAttribute(name = "topic", type = "string", direction = Direction.INCOMING_AND_OUTGOING, description = "The consumed / populated Kafka topic. If not set, the channel name is used")
+@ConnectorAttribute(name = "topic", type = "string", direction = Direction.INCOMING_AND_OUTGOING, description = "The consumed / populated Kafka topic. If neither this property nor the `topics` properties are set, the channel name is used")
+@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-readiness-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether readiness health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-readiness-timeout", type = "long", direction = Direction.INCOMING_AND_OUTGOING, description = "During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.", defaultValue = "2000")
+@ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "topics", type = "string", direction = Direction.INCOMING, description = "A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties")
+@ConnectorAttribute(name = "pattern", type = "boolean", direction = Direction.INCOMING, description = "Indicate that the `topic` property is a regular expression. Must be used with the `topic` property. Cannot be used with the `topics` property", defaultValue = "false")
 @ConnectorAttribute(name = "key.deserializer", type = "string", direction = Direction.INCOMING, description = "The deserializer classname used to deserialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringDeserializer")
 @ConnectorAttribute(name = "value.deserializer", type = "string", direction = Direction.INCOMING, description = "The deserializer classname used to deserialize the record's value", mandatory = true)
 @ConnectorAttribute(name = "fetch.min.bytes", type = "int", direction = Direction.INCOMING, description = "The minimum amount of data the server should return for a fetch request. The default setting of 1 byte means that fetch requests are answered as soon as a single byte of data is available or the fetch request times out waiting for data to arrive.", defaultValue = "1")
 @ConnectorAttribute(name = "group.id", type = "string", direction = Direction.INCOMING, description = "A unique string that identifies the consumer group the application belongs to. If not set, a unique, generated id is used")
+@ConnectorAttribute(name = "enable.auto.commit", type = "boolean", direction = Direction.INCOMING, description = "If enabled, consumer's offset will be periodically committed in the background by the underlying Kafka client, ignoring the actual processing outcome of the records. It is recommended to NOT enable this setting and let Reactive Messaging handles the commit.", defaultValue = "false")
 @ConnectorAttribute(name = "retry", type = "boolean", direction = Direction.INCOMING, description = "Whether or not the connection to the broker is re-attempted in case of failure", defaultValue = "true")
 @ConnectorAttribute(name = "retry-attempts", type = "int", direction = Direction.INCOMING, description = "The maximum number of reconnection before failing. -1 means infinite retry", defaultValue = "-1")
 @ConnectorAttribute(name = "retry-max-wait", type = "int", direction = Direction.INCOMING, description = "The max delay (in seconds) between 2 reconnects", defaultValue = "30")
 @ConnectorAttribute(name = "broadcast", type = "boolean", direction = Direction.INCOMING, description = "Whether the Kafka records should be dispatched to multiple consumer", defaultValue = "false")
 @ConnectorAttribute(name = "auto.offset.reset", type = "string", direction = Direction.INCOMING, description = "What to do when there is no initial offset in Kafka.Accepted values are earliest, latest and none", defaultValue = "latest")
-@ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a record is nacked. Values can be `fail` (default), `ignore`, or `dead-letter-queue`", defaultValue = "fail")
+@ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a record is acknowledged negatively (nack). Values can be `fail` (default), `ignore`, or `dead-letter-queue`", defaultValue = "fail")
+@ConnectorAttribute(name = "commit-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the commit strategy to apply when a message produced from a record is acknowledged. Values can be `latest`, `ignore` or `throttled`. If `enable.auto.commit` is true then the default is `ignore` otherwise it is `throttled`")
+@ConnectorAttribute(name = "throttled.unprocessed-record-max-age.ms", type = "int", direction = Direction.INCOMING, description = "While using the `throttled` commit-strategy, specify the max age in milliseconds that an unprocessed message can be before the connector is marked as unhealthy.", defaultValue = "60000")
 @ConnectorAttribute(name = "dead-letter-queue.topic", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates on which topic the record is sent. Defaults is `dead-letter-topic-$channel`")
 @ConnectorAttribute(name = "dead-letter-queue.key.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the key serializer to use. If not set the serializer associated to the key deserializer is used")
 @ConnectorAttribute(name = "dead-letter-queue.value.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the value serializer to use. If not set the serializer associated to the value deserializer is used")
-@ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targetted topic", defaultValue = "1")
+@ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic", defaultValue = "1")
+@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.INCOMING, description = "Enables (default) or disables the Cloud Event support. If enabled, the connector analyzes the incoming records and try to create Cloud Event metadata.", defaultValue = "true")
+@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.")
+
 @ConnectorAttribute(name = "key.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringSerializer")
 @ConnectorAttribute(name = "value.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the payload", mandatory = true)
 @ConnectorAttribute(name = "acks", type = "string", direction = Direction.OUTGOING, description = "The number of acknowledgments the producer requires the leader to have received before considering a request complete. This controls the durability of records that are sent. Accepted values are: 0, 1, all", defaultValue = "1")
@@ -65,17 +83,29 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "key", type = "string", direction = Direction.OUTGOING, description = "A key to used when writing the record")
 @ConnectorAttribute(name = "partition", type = "int", direction = Direction.OUTGOING, description = "The target partition id. -1 to let the client determine the partition", defaultValue = "-1")
 @ConnectorAttribute(name = "waitForWriteCompletion", type = "boolean", direction = Direction.OUTGOING, description = "Whether the client waits for Kafka to acknowledge the written record before acknowledging the message", defaultValue = "true")
-@ConnectorAttribute(name = "max-inflight-messages", type = "int", direction = Direction.OUTGOING, description = "The maximum number of messages to be written to Kafka concurrently - The default value is the value from the `max.in.flight.requests.per.connection` Kafka property. It configures the maximum number of unacknowledged requests the client before blocking. Note that if this setting is set to be greater than 1 and there are failed sends, there is a risk of message re-ordering due to retries.", defaultValue = "5")
-@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.")
-public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+@ConnectorAttribute(name = "max-inflight-messages", type = "long", direction = Direction.OUTGOING, description = "The maximum number of messages to be written to Kafka concurrently. It limits the number of messages waiting to be written and acknowledged by the broker. You can set this attribute to `0` remove the limit", defaultValue = "1024")
+@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled, the connector sends the outgoing messages as Cloud Event if the message to be sent includes Cloud Event Metadata.", defaultValue = "true")
+@ConnectorAttribute(name = "cloud-events-source", type = "string", direction = Direction.OUTGOING, description = "Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself", alias = "cloud-events-default-source")
+@ConnectorAttribute(name = "cloud-events-type", type = "string", direction = Direction.OUTGOING, description = "Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself", alias = "cloud-events-default-type")
+@ConnectorAttribute(name = "cloud-events-subject", type = "string", direction = Direction.OUTGOING, description = "Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself", alias = "cloud-events-default-subject")
+@ConnectorAttribute(name = "cloud-events-data-content-type", type = "string", direction = Direction.OUTGOING, description = "Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `datacontenttype` attribute itself", alias = "cloud-events-default-data-content-type")
+@ConnectorAttribute(name = "cloud-events-data-schema", type = "string", direction = Direction.OUTGOING, description = "Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself", alias = "cloud-events-default-data-schema")
+@ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = Direction.OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute` into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
+@ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
+public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
+
+    public static final Tracer TRACER = OpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
 
     @Inject
     ExecutionHolder executionHolder;
 
     @Inject
     Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
+
+    @Inject
+    KafkaCDIEvents kafkaCDIEvents;
 
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
@@ -90,6 +120,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         sources.forEach(KafkaSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
+        KafkaThrottledLatestProcessedCommit.clearCache();
     }
 
     @PostConstruct
@@ -109,8 +140,15 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             throw new IllegalArgumentException("`partitions` must be greater than 0");
         }
 
+        String group = ic.getGroupId().orElseGet(() -> {
+            String s = UUID.randomUUID().toString();
+            log.noGroupId(s);
+            return s;
+        });
+
         if (partitions == 1) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic, consumerRebalanceListeners);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
+                    kafkaCDIEvents, -1);
             sources.add(source);
 
             boolean broadcast = ic.getBroadcast();
@@ -124,7 +162,8 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         // create an instance of source per partitions.
         List<Publisher<IncomingKafkaRecord<Object, Object>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, ic, consumerRebalanceListeners);
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
+                    kafkaCDIEvents, i);
             sources.add(source);
             streams.add(source.getStream());
         }
@@ -145,14 +184,12 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             c = merge(config, defaultKafkaConfiguration.get());
         }
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
-        KafkaSink sink = new KafkaSink(vertx, oc);
+        KafkaSink sink = new KafkaSink(vertx, oc, kafkaCDIEvents);
         sinks.add(sink);
         return sink.getSink();
     }
 
     private Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
-        log.mergingConfigWith(defaultKafkaCfg);
-
         return new Config() {
             @SuppressWarnings("unchecked")
             @Override
@@ -188,5 +225,42 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 return passedCfg.getConfigSources();
             }
         };
+    }
+
+    @Override
+    public HealthReport getReadiness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        if (sources.isEmpty() && sinks.isEmpty()) {
+            return builder.add("kafka-connector", false).build();
+        }
+
+        for (KafkaSource<?, ?> source : sources) {
+            source.isReady(builder);
+        }
+
+        for (KafkaSink sink : sinks) {
+            sink.isReady(builder);
+        }
+
+        return builder.build();
+
+    }
+
+    @Override
+    public HealthReport getLiveness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        if (sources.isEmpty() && sinks.isEmpty()) {
+            return builder.add("kafka-connector", false).build();
+        }
+
+        for (KafkaSource<?, ?> source : sources) {
+            source.isAlive(builder);
+        }
+
+        for (KafkaSink sink : sinks) {
+            sink.isAlive(builder);
+        }
+
+        return builder.build();
     }
 }

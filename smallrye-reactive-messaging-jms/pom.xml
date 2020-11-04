@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>2.2.0-SNAPSHOT</version>
+    <version>2.5.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-jms</artifactId>
@@ -13,7 +13,7 @@
   <name>SmallRye Reactive Messaging : Connector :: JMS</name>  
 
   <properties>
-    <artemis.version>2.12.0</artemis.version>
+    <artemis.version>2.15.0</artemis.version>
   </properties>
 
   <dependencies>
@@ -84,7 +84,7 @@
     <dependency>
       <groupId>org.eclipse</groupId>
       <artifactId>yasson</artifactId>
-      <version>1.0.7</version>
+      <version>1.0.8</version>
       <scope>test</scope>
     </dependency>
 

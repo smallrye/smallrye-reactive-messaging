@@ -128,3 +128,31 @@ include::example$emitter/EmitterExamples.java[tag=broadcast]
 ----
 
 For more details see xref:advanced/broadcast.adoc[@Broadcast] documentation.
+
+[#emitter-mutiny]
+== Mutiny Emitter
+
+If you prefer to utilize `Uni` in all your code,
+there is now a `MutinyEmitter` that will return `Uni<Void>` instead of `void`.
+
+[source, java, indent=0]
+----
+include::example$emitter/MutinyExamples.java[tag=uni]
+----
+
+There's also the ability to block on sending the event to the emitter.
+It will only return from the method when the event is acknowledged,
+or nacked, by the receiver:
+
+[source, java, indent=0]
+----
+include::example$emitter/MutinyExamples.java[tag=uni-await]
+----
+
+And if you don't need to worry about the success or failure of sending an event,
+you can `sendAndForget`:
+
+[source, java, indent=0]
+----
+include::example$emitter/MutinyExamples.java[tag=uni-forget]
+----

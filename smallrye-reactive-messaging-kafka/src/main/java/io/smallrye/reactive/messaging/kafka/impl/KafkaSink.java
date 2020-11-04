@@ -1,65 +1,130 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
+import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
+import io.grpc.Context;
+import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.trace.Span;
+import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.trace.TracingContextUtils;
+import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
 public class KafkaSink {
 
     private final KafkaWriteStream<?, ?> stream;
     private final int partition;
-    private final String key;
     private final String topic;
-    private final KafkaConnectorOutgoingConfiguration config;
+    private final String key;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
+    private final long retries;
+    private final KafkaConnectorOutgoingConfiguration configuration;
+    private final KafkaAdminClient admin;
+    private final List<Throwable> failures = new ArrayList<>();
+    private final KafkaSenderProcessor processor;
+    private final boolean writeAsBinaryCloudEvent;
+    private final boolean writeCloudEvents;
+    private final boolean mandatoryCloudEventAttributeSet;
+    private final boolean isTracingEnabled;
 
-    public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config) {
+    public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
-        this.config = config;
 
-        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfiguration.getMap());
-        stream.exceptionHandler(log::unableToWrite);
+        Map<String, Object> kafkaConfigurationMap = kafkaConfiguration.getMap();
+        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfigurationMap);
+        stream.exceptionHandler(e -> {
+            if (config.getTopic().isPresent()) {
+                log.unableToWrite(config.getChannel(), config.getTopic().get(), e);
+            } else {
+                log.unableToWrite(config.getChannel(), e);
+            }
+        });
+
+        // fire producer event (e.g. bind metrics)
+        kafkaCDIEvents.producer().fire(stream.unwrap());
 
         partition = config.getPartition();
-        key = config.getKey().orElse(null);
+        retries = config.getRetries();
         topic = config.getTopic().orElseGet(config::getChannel);
+        key = config.getKey().orElse(null);
+        isTracingEnabled = config.getTracingEnabled();
+        writeCloudEvents = config.getCloudEvents();
+        writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
-        int maxInflight = config.getMaxInflightMessages();
-        if (maxInflight == 5) { // 5 is the Kafka default.
-            maxInflight = config.config().getOptionalValue(ProducerConfig.MAX_BLOCK_MS_CONFIG, Integer.class)
-                    .orElse(5);
+        this.configuration = config;
+        this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
+                && configuration.getCloudEventsSource().isPresent();
+
+        // Validate the serializer for structured Cloud Events
+        if (configuration.getCloudEvents() &&
+                configuration.getCloudEventsMode().equalsIgnoreCase("structured") &&
+                !configuration.getValueSerializer().equalsIgnoreCase(StringSerializer.class.getName())) {
+            log.invalidValueSerializerForStructuredCloudEvent(configuration.getValueSerializer());
+            throw new IllegalStateException("Invalid value serializer to write a structured Cloud Event. "
+                    + StringSerializer.class.getName() + " must be used, found: "
+                    + configuration.getValueSerializer());
         }
-        int inflight = maxInflight;
+
+        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
+            // Do not create the client if the readiness health checks are disabled
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap, config.getChannel());
+        } else {
+            this.admin = null;
+        }
+
+        long requests = config.getMaxInflightMessages();
+        if (requests <= 0) {
+            requests = Long.MAX_VALUE;
+        }
+        processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
+                writeMessageToKafka());
         subscriber = ReactiveStreams.<Message<?>> builder()
-                .via(new KafkaSenderProcessor(inflight, waitForWriteCompletion, writeMessageToKafka()))
-                .onError(log::unableToDispatch)
+                .via(processor)
+                .onError(f -> {
+                    log.unableToDispatch(f);
+                    reportFailure(f);
+                })
                 .ignore();
+    }
+
+    private synchronized void reportFailure(Throwable failure) {
+        // Don't keep all the failures, there are only there for reporting.
+        if (failures.size() == 10) {
+            failures.remove(0);
+        }
+        failures.add(failure);
     }
 
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
@@ -68,22 +133,42 @@ public class KafkaSink {
                 Optional<OutgoingKafkaRecordMetadata<?>> om = getOutgoingKafkaRecordMetadata(message);
                 OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
                 String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
-                if (actualTopic == null) {
-                    log.ignoringNoTopicSet();
-                    return Uni.createFrom().item(() -> null);
-                }
 
-                ProducerRecord<?, ?> record = getProducerRecord(message, metadata, actualTopic);
+                ProducerRecord<?, ?> record;
+                OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
+                        .orElse(null);
+
+                // We encode the outbound record as Cloud Events if:
+                // - cloud events are enabled -> writeCloudEvents
+                // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
+                // - or if the message does not contain this metadata, the type and source are configured on the channel
+
+                if (writeCloudEvents && (ceMetadata != null || mandatoryCloudEventAttributeSet)) {
+                    if (writeAsBinaryCloudEvent) {
+                        record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, metadata, ceMetadata,
+                                configuration);
+                    } else {
+                        record = KafkaCloudEventHelper
+                                .createStructuredRecord(message, actualTopic, metadata, ceMetadata,
+                                        configuration);
+                    }
+                } else {
+                    record = getProducerRecord(message, metadata, actualTopic);
+                }
                 log.sendingMessageToTopic(message, actualTopic);
 
                 //noinspection unchecked,rawtypes
-                return Uni.createFrom()
-                        .<Void> emitter(
-                                e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)))
-                        .onFailure().retry()
-                        .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(config.getRetries())
+                Uni<Void> uni = Uni.createFrom()
+                        .emitter(
+                                e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
+
+                if (this.retries > 0) {
+                    uni = uni.onFailure().retry()
+                            .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
+                }
+                return uni
                         .onFailure().recoverWithUni(t -> {
-                            // Even with the retry we still fail, nack the message.
+                            // Log and nack the messages on failure.
                             log.nackingMessage(message, actualTopic, t);
                             return Uni.createFrom().completionStage(message.nack(t));
                         });
@@ -116,26 +201,95 @@ public class KafkaSink {
         return message.getMetadata(OutgoingKafkaRecordMetadata.class).map(x -> (OutgoingKafkaRecordMetadata<?>) x);
     }
 
+    @SuppressWarnings("rawtypes")
     private ProducerRecord<?, ?> getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
             String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
-        Object actualKey = om == null || om.getKey() == null ? key : om.getKey();
+
+        Object actualKey = getKey(message, om, configuration);
 
         long actualTimestamp;
-        if ((om == null) || (om.getKey() == null)) {
+        if ((om == null) || (om.getTimestamp() == null)) {
             actualTimestamp = -1;
         } else {
             actualTimestamp = (om.getTimestamp() != null) ? om.getTimestamp().toEpochMilli() : -1;
         }
 
-        Iterable<Header> kafkaHeaders = om == null || om.getHeaders() == null ? Collections.emptyList() : om.getHeaders();
+        Headers kafkaHeaders = om == null || om.getHeaders() == null ? new RecordHeaders() : om.getHeaders();
+        createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
+        Object payload = message.getPayload();
+        if (payload instanceof Record) {
+            payload = ((Record) payload).value();
+        }
+
         return new ProducerRecord<>(
                 actualTopic,
                 actualPartition == -1 ? null : actualPartition,
                 actualTimestamp == -1L ? null : actualTimestamp,
                 actualKey,
-                message.getPayload(),
+                payload,
                 kafkaHeaders);
+    }
+
+    @SuppressWarnings({ "rawtypes" })
+    private Object getKey(Message<?> message,
+            OutgoingKafkaRecordMetadata<?> metadata,
+            KafkaConnectorOutgoingConfiguration configuration) {
+
+        // First, the message metadata
+        if (metadata != null && metadata.getKey() != null) {
+            return metadata.getKey();
+        }
+
+        // Then, check if the message payload is a record
+        if (message.getPayload() instanceof Record) {
+            return ((Record) message.getPayload()).key();
+        }
+
+        // Finally, check the configuration
+        return key;
+    }
+
+    private void createOutgoingTrace(Message<?> message, String topic, int partition, Headers headers) {
+        if (isTracingEnabled) {
+            Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
+
+            final Span.Builder spanBuilder = TRACER.spanBuilder(topic + " send")
+                    .setSpanKind(Span.Kind.PRODUCER);
+
+            if (tracingMetadata.isPresent()) {
+                // Handle possible parent span
+                final Context parentSpanContext = tracingMetadata.get().getPreviousContext();
+                if (parentSpanContext != null) {
+                    spanBuilder.setParent(parentSpanContext);
+                } else {
+                    spanBuilder.setNoParent();
+                }
+
+                // Handle possible adjacent spans
+                final SpanContext incomingSpan = tracingMetadata.get().getCurrentSpanContext();
+                if (incomingSpan != null && incomingSpan.isValid()) {
+                    spanBuilder.addLink(incomingSpan);
+                }
+            } else {
+                spanBuilder.setNoParent();
+            }
+
+            final Span span = spanBuilder.startSpan();
+            Scope scope = TracingContextUtils.currentContextWith(span);
+
+            // Set Span attributes
+            span.setAttribute("partition", partition);
+            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, topic);
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
+
+            // Set span onto headers
+            OpenTelemetry.getPropagators().getTextMapPropagator()
+                    .inject(Context.current(), headers, HeaderInjectAdapter.SETTER);
+            span.end();
+            scope.close();
+        }
     }
 
     private JsonObject extractProducerConfiguration(KafkaConnectorOutgoingConfiguration config) {
@@ -154,25 +308,61 @@ public class KafkaSink {
             kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, config.getKeySerializer());
         }
 
-        // Max inflight
-        if (!kafkaConfiguration.containsKey(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION)) {
-            kafkaConfiguration.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, config.getMaxInflightMessages());
+        if (!kafkaConfiguration.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {
+            String id = "kafka-producer-" + config.getChannel();
+            log.setKafkaProducerClientId(id);
+            kafkaConfiguration.put(ProducerConfig.CLIENT_ID_CONFIG, id);
+
         }
 
-        kafkaConfiguration.remove("channel-name");
-        kafkaConfiguration.remove("topic");
-        kafkaConfiguration.remove("connector");
-        kafkaConfiguration.remove("partition");
-        kafkaConfiguration.remove("key");
-        kafkaConfiguration.remove("max-inflight-messages");
-        return kafkaConfiguration;
+        return ConfigurationCleaner.cleanupProducerConfiguration(kafkaConfiguration);
     }
 
     public SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return subscriber;
     }
 
+    public void isAlive(HealthReport.HealthReportBuilder builder) {
+        if (configuration.getHealthEnabled()) {
+            List<Throwable> actualFailures;
+            synchronized (this) {
+                actualFailures = new ArrayList<>(failures);
+            }
+            if (!actualFailures.isEmpty()) {
+                builder.add(configuration.getChannel(), false,
+                        actualFailures.stream().map(Throwable::getMessage).collect(Collectors.joining()));
+            } else {
+                builder.add(configuration.getChannel(), true);
+            }
+        }
+        // If health is disable do not add anything to the builder.
+    }
+
+    public void isReady(HealthReport.HealthReportBuilder builder) {
+        // This method must not be called from the event loop.
+        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
+            Set<String> topics;
+            try {
+                topics = admin.listTopics()
+                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
+                if (topics.contains(topic)) {
+                    builder.add(configuration.getChannel(), true);
+                } else {
+                    builder.add(configuration.getChannel(), false, "Unable to find topic " + topic);
+                }
+            } catch (Exception failed) {
+                builder.add(configuration.getChannel(), false, "No response from broker for topic "
+                        + topic + " : " + failed);
+            }
+        }
+
+        // If health is disable do not add anything to the builder.
+    }
+
     public void closeQuietly() {
+        if (processor != null) {
+            processor.cancel();
+        }
         CountDownLatch latch = new CountDownLatch(1);
         try {
             this.stream.close(ar -> {
@@ -190,106 +380,10 @@ public class KafkaSink {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
 
-    private static class KafkaSenderProcessor
-            implements Processor<Message<?>, Message<?>>, Subscription {
-
-        private final long inflights;
-        private final boolean waitForCompletion;
-        private final Function<Message<?>, Uni<Void>> send;
-        private final AtomicReference<Subscription> subscription = new AtomicReference<>();
-        private final AtomicReference<Subscriber<? super Message<?>>> downstream = new AtomicReference<>();
-
-        public KafkaSenderProcessor(int inflights, boolean waitForCompletion, Function<Message<?>, Uni<Void>> send) {
-            this.inflights = inflights;
-            this.waitForCompletion = waitForCompletion;
-            this.send = send;
-        }
-
-        @Override
-        public void subscribe(
-                Subscriber<? super Message<?>> subscriber) {
-            if (!downstream.compareAndSet(null, subscriber)) {
-                Subscriptions.fail(subscriber, ex.illegalStateOnlyOneSubscriber());
-            } else {
-                if (subscription.get() != null) {
-                    subscriber.onSubscribe(this);
-                }
-            }
-        }
-
-        @Override
-        public void onSubscribe(Subscription subscription) {
-            if (this.subscription.compareAndSet(null, subscription)) {
-                Subscriber<? super Message<?>> subscriber = downstream.get();
-                if (subscriber != null) {
-                    subscriber.onSubscribe(this);
-                }
-            } else {
-                Subscriber<? super Message<?>> subscriber = downstream.get();
-                if (subscriber != null) {
-                    subscriber.onSubscribe(Subscriptions.CANCELLED);
-                }
-            }
-        }
-
-        @Override
-        public void onNext(Message<?> message) {
-            if (waitForCompletion) {
-                send.apply(message)
-                        .subscribe().with(
-                                x -> requestNext(message),
-                                this::onError);
-            } else {
-                send.apply(message)
-                        .subscribe().with(x -> {
-                        }, this::onError);
-                requestNext(message);
-            }
-        }
-
-        @Override
-        public void request(long l) {
-            if (l != Long.MAX_VALUE) {
-                throw ex.illegalStateConsumeWithoutBackPressure();
-            }
-            subscription.get().request(inflights);
-        }
-
-        @Override
-        public void cancel() {
-            Subscription s = KafkaSenderProcessor.this.subscription.getAndSet(Subscriptions.CANCELLED);
-            if (s != null) {
-                s.cancel();
-            }
-        }
-
-        private void requestNext(Message<?> message) {
-            Subscriber<? super Message<?>> down = downstream.get();
-            if (down != null) {
-                down.onNext(message);
-            }
-            Subscription up = this.subscription.get();
-            if (up != null) {
-                up.request(1);
-            }
-        }
-
-        @Override
-        public void onError(Throwable throwable) {
-            Subscriber<? super Message<?>> subscriber = downstream.getAndSet(null);
-            if (subscriber != null) {
-                subscriber.onError(throwable);
-            }
-        }
-
-        @Override
-        public void onComplete() {
-            Subscriber<? super Message<?>> subscriber = downstream.getAndSet(null);
-            if (subscriber != null) {
-                subscriber.onComplete();
-            }
+        if (admin != null) {
+            admin.closeAndAwait();
         }
     }
+
 }

@@ -39,12 +39,12 @@ public class MetadataTest {
 
         AtomicBoolean m2 = new AtomicBoolean(true);
         Metadata h3 = Metadata.of(m, m2);
-        assertThat(h3).hasSize(2).containsExactly(m, m2);
+        assertThat(h3).hasSize(2).containsExactlyInAnyOrder(m, m2);
 
         MessageTest.MyMetadata<Double> m3 = new MessageTest.MyMetadata<>(23.3);
         assertThatThrownBy(() -> Metadata.of(m, m2, m3)).isInstanceOf(IllegalArgumentException.class);
         Metadata h4 = Metadata.of(m).with(m2).with(m3);
-        assertThat(h4).hasSize(2).containsExactly(m2, m3);
+        assertThat(h4).hasSize(2).containsExactlyInAnyOrder(m2, m3);
     }
 
     @Test
@@ -74,15 +74,15 @@ public class MetadataTest {
     public void testWithout() {
         MessageTest.MyMetadata<String> myMetadata = new MessageTest.MyMetadata<>("hello");
         Metadata metadata = Metadata.empty().with(myMetadata);
-        assertThat(metadata).hasSize(1).containsExactly(myMetadata);
+        assertThat(metadata).hasSize(1).containsExactlyInAnyOrder(myMetadata);
         Metadata without = metadata.without(MessageTest.MyMetadata.class);
         assertThat(metadata).isNotSameAs(without);
         assertThat(without).isEmpty();
 
         Metadata metadata2 = metadata.with("world").without(String.class);
-        assertThat(metadata2).hasSize(1).containsExactly(myMetadata);
+        assertThat(metadata2).hasSize(1).containsExactlyInAnyOrder(myMetadata);
         Metadata metadata3 = metadata.with("world").without(MessageTest.MyMetadata.class);
-        assertThat(metadata3).hasSize(1).containsExactly("world");
+        assertThat(metadata3).hasSize(1).containsExactlyInAnyOrder("world");
     }
 
     @Test
@@ -109,8 +109,8 @@ public class MetadataTest {
 
         Metadata metadata = Metadata.empty().with(v);
         Metadata copy = Metadata.from(metadata).with(s).with(2);
-        assertThat(copy).hasSize(2).containsExactly(s, 2);
-        assertThat(metadata).hasSize(1).containsExactly(1);
+        assertThat(copy).hasSize(2).containsExactlyInAnyOrder(s, 2);
+        assertThat(metadata).hasSize(1).containsExactlyInAnyOrder(1);
     }
 
     private static class Person {

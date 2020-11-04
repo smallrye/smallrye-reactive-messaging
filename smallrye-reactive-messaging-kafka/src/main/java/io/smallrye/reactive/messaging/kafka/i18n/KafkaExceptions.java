@@ -17,7 +17,7 @@ public interface KafkaExceptions {
     IllegalArgumentException illegalArgumentNoMetadata(Class c);
 
     @Message(id = 18001, value = "Unknown failure strategy: %s")
-    IllegalArgumentException illegalArgumentUnknownStrategy(String strategy);
+    IllegalArgumentException illegalArgumentUnknownFailureStrategy(String strategy);
 
     @Message(id = 18002, value = "Expecting downstream to consume without back-pressure")
     IllegalStateException illegalStateConsumeWithoutBackPressure();
@@ -26,5 +26,12 @@ public interface KafkaExceptions {
     IllegalStateException illegalStateOnlyOneSubscriber();
 
     @Message(id = 18004, value = "Invalid failure strategy: %s")
-    IllegalArgumentException illegalArgumentInvalidStrategy(String strategy);
+    IllegalArgumentException illegalArgumentInvalidFailureStrategy(String strategy);
+
+    @Message(id = 18005, value = "Unknown commit strategy: %s")
+    IllegalArgumentException illegalArgumentUnknownCommitStrategy(String strategy);
+
+    @Message(id = 18006, value = "Invalid commit strategy: %s")
+    IllegalArgumentException illegalArgumentInvalidCommitStrategy(String strategy);
+
 }

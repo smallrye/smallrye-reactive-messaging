@@ -141,7 +141,7 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                 // First wait until the verticle is deployed.
                 Multi.createFrom().completionStage(future)
                         // Then poll items
-                        .onItem().produceMulti(x -> Uni.createFrom().item(() -> {
+                        .onItem().transformToMultiAndConcatenate(x -> Uni.createFrom().item(() -> {
                             // We get a request, block until we get a msg and emit it.
                             try {
                                 log.polling();
@@ -151,9 +151,8 @@ public class SnsConnector implements IncomingConnectorFactory, OutgoingConnector
                                 return null; // Signal the end of stream
                             }
                         })
-                                .subscribeOn(executor)
-                                .repeat().until(Objects::isNull))
-                        .concatenate();
+                                .runSubscriptionOn(executor)
+                                .repeat().until(Objects::isNull));
 
         if (broadcast) {
             multi = multi.broadcast().toAllSubscribers();

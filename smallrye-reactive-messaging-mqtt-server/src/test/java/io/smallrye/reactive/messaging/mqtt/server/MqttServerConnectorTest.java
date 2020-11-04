@@ -18,6 +18,8 @@ import javax.enterprise.inject.Any;
 
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.junit5.auto.WeldJunit5AutoExtension;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.reactivestreams.Publisher;
@@ -58,7 +60,8 @@ class MqttServerConnectorTest {
         }), testContext);
     }
 
-    @Test
+    @RepeatedTest(10)
+    @Disabled("Fail too much on CI - must be investigated - https://github.com/smallrye/smallrye-reactive-messaging/issues/669")
     void testBroadcast(@Any MqttServerConnector connector, VertxTestContext testContext) {
         final AtomicBoolean open1 = new AtomicBoolean();
         final AtomicBoolean open2 = new AtomicBoolean();
@@ -83,13 +86,13 @@ class MqttServerConnectorTest {
 
         final Publisher<MqttMessage> publisher = builder.buildRs();
         publisher.subscribe(createSubscriber(testContext, open1, testMessages));
-        publisher.subscribe(createSubscriber(testContext, open2, testMessages));
+        await().until(open1::get);
 
-        TestUtils.sendMqttMessages(testMessages, CompletableFuture.supplyAsync(() -> {
-            await().until(open1::get);
-            await().until(open2::get);
-            await().until(() -> connector.port() != 0);
-            return connector.port();
-        }), testContext);
+        await().until(() -> connector.port() != 0);
+
+        publisher.subscribe(createSubscriber(testContext, open2, testMessages));
+        await().until(open2::get);
+
+        TestUtils.sendMqttMessages(testMessages, CompletableFuture.supplyAsync(connector::port), testContext);
     }
 }

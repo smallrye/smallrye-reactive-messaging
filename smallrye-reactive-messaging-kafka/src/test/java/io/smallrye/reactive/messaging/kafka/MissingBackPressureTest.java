@@ -5,8 +5,8 @@ import static org.assertj.core.api.Assertions.entry;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -20,63 +20,43 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import io.reactivex.Flowable;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class MissingBackPressureTest extends KafkaTestBase {
 
-    private WeldContainer container;
-
-    @After
-    public void stop() {
-        if (container != null) {
-            container.shutdown();
-        }
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
     @Test
     public void testWithInterval() throws InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeStrings("output", 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        Weld weld = baseWeld();
-        addConfig(myKafkaSinkConfig());
-        weld.addBeanClass(MyOutgoingBean.class);
-        container = weld.initialize();
+        runApplication(myKafkaSinkConfig(), MyOutgoingBean.class);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
         assertThat(expected).hasValueGreaterThanOrEqualTo(10);
     }
 
     public MapBasedConfig myKafkaSinkConfig() {
-        String prefix = "mp.messaging.outgoing.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", "output");
-        config.put(prefix + "waitForWriteCompletion", false);
+        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.temperature-values");
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.put("topic", "output");
+        builder.put("waitForWriteCompletion", false);
 
-        return new MapBasedConfig(config);
+        return builder.build();
     }
 
     @Test
     public void testWithEmitter() throws InterruptedException {
         List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
         usage.consumeStrings("output", 10, 10, TimeUnit.SECONDS,
@@ -86,12 +66,9 @@ public class MissingBackPressureTest extends KafkaTestBase {
                     expected.getAndIncrement();
                 });
 
-        Weld weld = baseWeld();
-        addConfig(myKafkaSinkConfig());
-        weld.addBeanClass(MyEmitterBean.class);
-        container = weld.initialize();
+        runApplication(myKafkaSinkConfig(), MyEmitterBean.class);
 
-        MyEmitterBean bean = container.select(MyEmitterBean.class).get();
+        MyEmitterBean bean = get(MyEmitterBean.class);
         bean.run();
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -116,9 +93,9 @@ public class MissingBackPressureTest extends KafkaTestBase {
         private final Random random = new Random();
 
         @Outgoing("temperature-values")
-        public Flowable<KafkaRecord<String, String>> generate() {
+        public Multi<KafkaRecord<String, String>> generate() {
 
-            return Flowable.interval(10, TimeUnit.MILLISECONDS)
+            return Multi.createFrom().ticks().every(Duration.ofMillis(10))
                     .map(tick -> {
                         double temperature = BigDecimal.valueOf(random.nextGaussian() * 15)
                                 .setScale(1, RoundingMode.HALF_UP)

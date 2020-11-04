@@ -1,7 +1,9 @@
 package io.smallrye.reactive.messaging;
 
 import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -114,11 +116,22 @@ public class MediatorConfigurationSupport {
                 throw ex.definitionSubscriberTypeParam("@Incoming", methodAsString);
             }
             // Need to distinguish 1 or 2
-            MediatorConfiguration.Consumption consumption = assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
-                    ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
-                    : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
+            MediatorConfiguration.Consumption consumption;
+            Type payloadType;
+            if (assignableToMessageCheck == GenericTypeAssignable.Result.Assignable) {
+                consumption = MediatorConfiguration.Consumption.STREAM_OF_MESSAGE;
+                payloadType = returnTypeAssignable.getType(0, 0);
+            } else {
+                consumption = MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
+                payloadType = returnTypeAssignable.getType(0);
+            }
 
-            return new ValidationOutput(production, consumption);
+            boolean builder = ClassUtils.isAssignable(returnType, SubscriberBuilder.class);
+            if (payloadType == null) {
+                log.unableToExtractIngestedPayloadType(methodAsString,
+                        "Cannot extract the type from the method signature");
+            }
+            return new ValidationOutput(production, consumption, builder, payloadType);
         }
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
@@ -132,10 +145,18 @@ public class MediatorConfigurationSupport {
             //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
             //            }
 
-            return new ValidationOutput(production,
-                    // Distinction between 3 and 4
-                    ClassUtils.isAssignable(parameterTypes[0], Message.class) ? MediatorConfiguration.Consumption.MESSAGE
-                            : MediatorConfiguration.Consumption.PAYLOAD);
+            MediatorConfiguration.Consumption consumption;
+            Type payloadType;
+            // Distinction between 3 and 4
+            if (ClassUtils.isAssignable(parameterTypes[0], Message.class)) {
+                consumption = MediatorConfiguration.Consumption.MESSAGE;
+                payloadType = firstMethodParamTypeAssignable.getType(0);
+            } else {
+                consumption = MediatorConfiguration.Consumption.PAYLOAD;
+                payloadType = parameterTypes[0];
+            }
+
+            return new ValidationOutput(production, consumption, payloadType);
         }
 
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
@@ -149,10 +170,23 @@ public class MediatorConfigurationSupport {
             //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
             //            }
 
-            return new ValidationOutput(production,
-                    // Distinction between 3 and 4
-                    ClassUtils.isAssignable(parameterTypes[0], Message.class) ? MediatorConfiguration.Consumption.MESSAGE
-                            : MediatorConfiguration.Consumption.PAYLOAD);
+            MediatorConfiguration.Consumption consumption;
+            Type payloadType;
+            // Distinction between 3 and 4
+            if (ClassUtils.isAssignable(parameterTypes[0], Message.class)) {
+                consumption = MediatorConfiguration.Consumption.MESSAGE;
+                payloadType = firstMethodParamTypeAssignable.getType(0);
+            } else {
+                consumption = MediatorConfiguration.Consumption.PAYLOAD;
+                payloadType = parameterTypes[0];
+            }
+
+            if (payloadType == null) {
+                log.unableToExtractIngestedPayloadType(methodAsString,
+                        "Cannot extract the type from the method signature");
+            }
+
+            return new ValidationOutput(production, consumption, payloadType);
         }
 
         // Case 5 and 6, void
@@ -176,7 +210,7 @@ public class MediatorConfigurationSupport {
             //                                + returnType);
             //            }
 
-            return new ValidationOutput(production, consumption);
+            return new ValidationOutput(production, consumption, param);
         }
 
         throw ex.definitionUnsupportedSignature("@Incoming", methodAsString);
@@ -214,7 +248,7 @@ public class MediatorConfigurationSupport {
                     assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                             ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
                             : MediatorConfiguration.Production.STREAM_OF_PAYLOAD,
-                    consumption);
+                    consumption, null);
         }
 
         if (ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
@@ -228,12 +262,12 @@ public class MediatorConfigurationSupport {
                     assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                             ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
                             : MediatorConfiguration.Production.STREAM_OF_PAYLOAD,
-                    consumption, true);
+                    consumption, true, null);
         }
 
         if (ClassUtils.isAssignable(returnType, Message.class)) {
             // Case 6
-            return new ValidationOutput(MediatorConfiguration.Production.INDIVIDUAL_MESSAGE, consumption);
+            return new ValidationOutput(MediatorConfiguration.Production.INDIVIDUAL_MESSAGE, consumption, null);
         }
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
@@ -247,7 +281,7 @@ public class MediatorConfigurationSupport {
                     assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                             ? MediatorConfiguration.Production.COMPLETION_STAGE_OF_MESSAGE
                             : MediatorConfiguration.Production.COMPLETION_STAGE_OF_PAYLOAD,
-                    consumption);
+                    consumption, null);
         }
 
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
@@ -261,11 +295,11 @@ public class MediatorConfigurationSupport {
                     assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                             ? MediatorConfiguration.Production.UNI_OF_MESSAGE
                             : MediatorConfiguration.Production.UNI_OF_PAYLOAD,
-                    consumption);
+                    consumption, null);
         }
 
         // Case 5
-        return new ValidationOutput(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD, consumption);
+        return new ValidationOutput(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD, consumption, null);
     }
 
     private ValidationOutput validateProcessor(Acknowledgment.Strategy acknowledgment) {
@@ -287,7 +321,8 @@ public class MediatorConfigurationSupport {
 
         MediatorConfiguration.Production production;
         MediatorConfiguration.Consumption consumption;
-        Boolean useBuilderTypes = null;
+        boolean useBuilderTypes = false;
+        Type payloadType;
 
         if (ClassUtils.isAssignable(returnType, Processor.class)
                 || ClassUtils.isAssignable(returnType, ProcessorBuilder.class)) {
@@ -303,6 +338,12 @@ public class MediatorConfigurationSupport {
             consumption = firstGenericParamOfReturn == GenericTypeAssignable.Result.Assignable
                     ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
                     : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
+
+            if (consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
+                payloadType = returnTypeAssignable.getType(0, 0);
+            } else {
+                payloadType = returnTypeAssignable.getType(0);
+            }
 
             GenericTypeAssignable.Result secondGenericParamOfReturn = returnTypeAssignable.check(Message.class, 1);
             if (secondGenericParamOfReturn == GenericTypeAssignable.Result.NotGeneric) {
@@ -330,8 +371,11 @@ public class MediatorConfigurationSupport {
                     : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
 
             consumption = ClassUtils.isAssignable(parameterTypes[0], Message.class)
-                    ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
-                    : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
+                    ? MediatorConfiguration.Consumption.MESSAGE
+                    : MediatorConfiguration.Consumption.PAYLOAD;
+
+            payloadType = extractIngestedTypeFromFirstParameter(consumption, firstMethodParamTypeAssignable.getType(0),
+                    parameterTypes[0]);
 
             useBuilderTypes = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
         } else {
@@ -351,6 +395,9 @@ public class MediatorConfigurationSupport {
                         : MediatorConfiguration.Production.COMPLETION_STAGE_OF_PAYLOAD;
                 consumption = ClassUtils.isAssignable(param, Message.class) ? MediatorConfiguration.Consumption.MESSAGE
                         : MediatorConfiguration.Consumption.PAYLOAD;
+
+                payloadType = extractIngestedTypeFromFirstParameter(consumption,
+                        firstMethodParamTypeAssignable.getType(0), param);
             } else if (ClassUtils.isAssignable(returnType, Uni.class)) {
                 // Case 11 or 12 - Uni variant
                 GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
@@ -363,6 +410,9 @@ public class MediatorConfigurationSupport {
                         : MediatorConfiguration.Production.UNI_OF_PAYLOAD;
                 consumption = ClassUtils.isAssignable(param, Message.class) ? MediatorConfiguration.Consumption.MESSAGE
                         : MediatorConfiguration.Consumption.PAYLOAD;
+
+                payloadType = extractIngestedTypeFromFirstParameter(consumption,
+                        firstMethodParamTypeAssignable.getType(0), param);
             } else {
                 // Case 9 or 10
                 production = ClassUtils.isAssignable(returnType, Message.class)
@@ -370,6 +420,9 @@ public class MediatorConfigurationSupport {
                         : MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD;
                 consumption = ClassUtils.isAssignable(param, Message.class) ? MediatorConfiguration.Consumption.MESSAGE
                         : MediatorConfiguration.Consumption.PAYLOAD;
+
+                payloadType = extractIngestedTypeFromFirstParameter(consumption,
+                        firstMethodParamTypeAssignable.getType(0), param);
             }
         }
 
@@ -378,7 +431,19 @@ public class MediatorConfigurationSupport {
             throw ex.illegalStateForValidateProcessor(methodAsString);
         }
 
-        return new ValidationOutput(production, consumption, useBuilderTypes);
+        return new ValidationOutput(production, consumption, useBuilderTypes, payloadType);
+    }
+
+    private Type extractIngestedTypeFromFirstParameter(MediatorConfiguration.Consumption consumption,
+            Type genericTypeOfFirstParam, Class<?> parameterType) {
+        Type payloadType;
+        if (consumption == MediatorConfiguration.Consumption.MESSAGE
+                || consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
+            payloadType = genericTypeOfFirstParam;
+        } else {
+            payloadType = parameterType;
+        }
+        return payloadType;
     }
 
     private ValidationOutput validateStreamTransformer(Acknowledgment.Strategy acknowledgment) {
@@ -395,6 +460,7 @@ public class MediatorConfigurationSupport {
         MediatorConfiguration.Production production;
         MediatorConfiguration.Consumption consumption;
         boolean useBuilderTypes;
+        Type payloadType;
 
         // The mediator produces and consumes a stream
         GenericTypeAssignable.Result returnTypeGenericCheck = returnTypeAssignable.check(Message.class, 0);
@@ -432,6 +498,12 @@ public class MediatorConfigurationSupport {
             throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
         }
 
+        if (consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
+            payloadType = firstMethodParamTypeAssignable.getType(0, 0);
+        } else {
+            payloadType = firstMethodParamTypeAssignable.getType(0);
+        }
+
         if (useBuilderTypes) {
             //TODO Test validation.
 
@@ -444,19 +516,29 @@ public class MediatorConfigurationSupport {
 
         // TODO Ensure that the parameter is also a publisher builder.
 
-        return new ValidationOutput(production, consumption, useBuilderTypes);
+        if (payloadType == null) {
+            log.unableToExtractIngestedPayloadType(methodAsString, "Cannot extract the type from the method signature");
+        }
+
+        return new ValidationOutput(production, consumption, useBuilderTypes, payloadType);
     }
 
     public Acknowledgment.Strategy processDefaultAcknowledgement(Shape shape,
-            MediatorConfiguration.Consumption consumption) {
+            MediatorConfiguration.Consumption consumption, MediatorConfiguration.Production production) {
         if (shape == Shape.STREAM_TRANSFORMER) {
-            if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
+            if (production == MediatorConfiguration.Production.STREAM_OF_PAYLOAD) {
+                return Acknowledgment.Strategy.PRE_PROCESSING;
+            } else if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
                 return Acknowledgment.Strategy.PRE_PROCESSING;
             } else {
                 return Acknowledgment.Strategy.MANUAL;
             }
         } else if (shape == Shape.PROCESSOR) {
             if (consumption == MediatorConfiguration.Consumption.PAYLOAD) {
+                if (production == MediatorConfiguration.Production.STREAM_OF_PAYLOAD
+                        || production == MediatorConfiguration.Production.STREAM_OF_MESSAGE) {
+                    return Acknowledgment.Strategy.PRE_PROCESSING;
+                }
                 return Acknowledgment.Strategy.POST_PROCESSING;
             } else if (consumption == MediatorConfiguration.Consumption.MESSAGE
                     || consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
@@ -521,19 +603,21 @@ public class MediatorConfigurationSupport {
     public static class ValidationOutput {
         private final MediatorConfiguration.Production production;
         private final MediatorConfiguration.Consumption consumption;
-        private final Boolean useBuilderTypes;
+        private final boolean useBuilderTypes;
+        private final Type ingestedPayloadType;
 
         public ValidationOutput(MediatorConfiguration.Production production,
-                MediatorConfiguration.Consumption consumption) {
-            this(production, consumption, null);
+                MediatorConfiguration.Consumption consumption, Type ingestedPayloadType) {
+            this(production, consumption, false, ingestedPayloadType);
         }
 
         public ValidationOutput(MediatorConfiguration.Production production,
                 MediatorConfiguration.Consumption consumption,
-                Boolean useBuilderTypes) {
+                boolean useBuilderTypes, Type ingestedPayloadType) {
             this.production = production;
             this.consumption = consumption;
             this.useBuilderTypes = useBuilderTypes;
+            this.ingestedPayloadType = ingestedPayloadType;
         }
 
         public MediatorConfiguration.Production getProduction() {
@@ -544,14 +628,35 @@ public class MediatorConfigurationSupport {
             return consumption;
         }
 
-        public Boolean getUseBuilderTypes() {
+        public boolean getUseBuilderTypes() {
             return useBuilderTypes;
+        }
+
+        public Type getIngestedPayloadType() {
+            return ingestedPayloadType;
         }
     }
 
     public interface GenericTypeAssignable {
 
         Result check(Class<?> target, int index);
+
+        /**
+         * Gets the underlying type. For example, on a {@code Message<X>}, it returns {@code X}.
+         *
+         * @param index the index of the type
+         * @return the type, {@code null} if not set or wildcard
+         */
+        Type getType(int index);
+
+        /**
+         * Gets the underlying sub-type. For example, on a {@code Publisher<Message<X>>}, it returns {@code X}.
+         *
+         * @param index the index of the type
+         * @param subIndex the second index
+         * @return the type, {@code null} if not set or wildcard
+         */
+        Type getType(int index, int subIndex);
 
         enum Result {
             NotGeneric,

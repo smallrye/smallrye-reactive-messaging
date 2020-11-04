@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>2.2.0-SNAPSHOT</version>
+    <version>2.5.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-amqp</artifactId>
@@ -28,14 +29,21 @@
       <artifactId>vertx-amqp-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers</artifactId>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>artemis-server</artifactId>
+      <version>${artemis.version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.johnzon</groupId>
+          <artifactId>johnzon-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.github.cbismuth</groupId>
-      <artifactId>junit-repeat-rule</artifactId>
-      <version>1.1.2</version>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>artemis-amqp-protocol</artifactId>
+      <version>${artemis.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -50,13 +58,24 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>        
+        <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
           <annotationProcessors>

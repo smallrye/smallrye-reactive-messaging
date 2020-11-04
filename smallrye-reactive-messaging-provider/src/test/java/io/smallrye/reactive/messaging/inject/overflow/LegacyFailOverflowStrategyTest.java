@@ -62,6 +62,7 @@ public class LegacyFailOverflowStrategyTest extends WeldTestBaseWithoutTails {
         assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
     }
 
+    @SuppressWarnings("deprecation")
     @ApplicationScoped
     public static class BeanWithFailOverflowStrategy {
 
@@ -70,7 +71,7 @@ public class LegacyFailOverflowStrategyTest extends WeldTestBaseWithoutTails {
         @OnOverflow(value = OnOverflow.Strategy.FAIL)
         Emitter<String> emitter;
 
-        private List<String> output = new CopyOnWriteArrayList<>();
+        private final List<String> output = new CopyOnWriteArrayList<>();
 
         private volatile Throwable downstreamFailure;
         private Exception callerException;
@@ -117,9 +118,7 @@ public class LegacyFailOverflowStrategyTest extends WeldTestBaseWithoutTails {
             return values
                     .observeOn(scheduler)
                     .delay(1, TimeUnit.MILLISECONDS, scheduler)
-                    .doOnError(err -> {
-                        downstreamFailure = err;
-                    });
+                    .doOnError(err -> downstreamFailure = err);
         }
 
         @Incoming("out")

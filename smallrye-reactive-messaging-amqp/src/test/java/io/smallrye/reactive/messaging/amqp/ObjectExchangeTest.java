@@ -13,21 +13,20 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.vertx.core.json.JsonObject;
 
-public class ObjectExchangeTest extends AmqpTestBase {
+public class ObjectExchangeTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
     private final Weld weld = new Weld();
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
@@ -44,7 +43,7 @@ public class ObjectExchangeTest extends AmqpTestBase {
         new MapBasedConfig()
                 .put("mp.messaging.outgoing.to-amqp.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.to-amqp.address", "prices")
-                .put("mp.messaging.outgoing.to-amqp.durable", true)
+                .put("mp.messaging.outgoing.to-amqp.durable", false)
                 .put("mp.messaging.outgoing.to-amqp.host", host)
                 .put("mp.messaging.outgoing.to-amqp.port", port)
 
@@ -60,10 +59,8 @@ public class ObjectExchangeTest extends AmqpTestBase {
 
         container = weld.initialize();
 
-        AmqpConnector connector = container.getBeanManager().createInstance()
-                .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
-
-        await().until(() -> connector.isReady("from-amqp") && connector.isReady("to-amqp"));
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
 
         Generator generator = container.getBeanManager().createInstance().select(Generator.class).get();
         Consumer consumer = container.getBeanManager().createInstance().select(Consumer.class).get();

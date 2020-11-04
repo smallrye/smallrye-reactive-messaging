@@ -4,13 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
-import java.io.IOException;
-import java.util.HashMap;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -19,117 +19,117 @@ import javax.enterprise.context.ApplicationScoped;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import io.reactivex.Flowable;
-import io.reactivex.exceptions.MissingBackpressureException;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.subscription.BackPressureFailure;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
-public class NoKafkaTest {
+public class NoKafkaTest extends KafkaTestBase {
 
-    private Weld container;
+    private static int port;
 
-    @After
-    public void tearDown() {
-        if (container != null) {
-            container.shutdown();
+    /**
+     * Prepare the tests:
+     * - get the Kafka port - so we know it's free, and store it
+     * - stop Kafka
+     */
+    @BeforeEach
+    public void prepare() {
+        if (kafka.isRunning()) {
+            port = getKafkaPort();
+            stopKafkaBroker();
         }
-        KafkaTestBase.stopKafkaBroker();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
-    public void testOutgoingWithoutKafkaCluster() throws IOException, InterruptedException {
+    public void testOutgoingWithoutKafkaCluster() throws InterruptedException {
         List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
-        KafkaUsage usage = new KafkaUsage();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings("output", 10, 10, TimeUnit.SECONDS,
+
+        runApplication(myKafkaSinkConfigWithoutBlockLimit(topic), MyOutgoingBean.class);
+
+        assertThat(expected).hasValue(0);
+
+        await().until(() -> {
+            HealthReport readiness = getHealth().getReadiness();
+            return !readiness.isOk();
+        });
+
+        await().until(() -> {
+            // liveness is ok, as we don't check the connection with the broker
+            HealthReport liveness = getHealth().getLiveness();
+            return liveness.isOk();
+        });
+
+        startKafkaBroker(port);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        usage.consumeStrings(topic, 3, 1, TimeUnit.MINUTES,
                 latch::countDown,
                 (k, v) -> {
                     received.add(entry(k, v));
                     expected.getAndIncrement();
                 });
 
-        container = KafkaTestBase.baseWeld();
-        KafkaTestBase.addConfig(myKafkaSinkConfigWithoutBlockLimit());
-        container.addBeanClasses(MyOutgoingBean.class);
-        container.initialize();
-
-        nap();
-
-        assertThat(expected).hasValue(0);
-
-        KafkaTestBase.startKafkaBroker();
-
         await().until(() -> received.size() == 3);
 
+        latch.await();
     }
 
     @Test
-    public void testIncomingWithoutKafkaCluster() throws IOException, InterruptedException {
-        KafkaUsage usage = new KafkaUsage();
-        container = KafkaTestBase.baseWeld();
-        KafkaTestBase.addConfig(myKafkaSourceConfig());
-        container.addBeanClasses(MyIncomingBean.class);
-        WeldContainer weld = container.initialize();
-
-        nap();
-
-        MyIncomingBean bean = weld.select(MyIncomingBean.class).get();
+    public void testIncomingWithoutKafkaCluster() {
+        MyIncomingBean bean = runApplication(myKafkaSourceConfig(), MyIncomingBean.class);
         assertThat(bean.received()).hasSize(0);
 
-        KafkaTestBase.startKafkaBroker();
+        await().until(() -> !isReady());
+        await().until(this::isAlive);
 
-        nap();
+        startKafkaBroker(port);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
 
         AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(5, null, () -> new ProducerRecord<>("output", "1", counter.getAndIncrement()));
+        usage.produceIntegers(5, null, () -> new ProducerRecord<>(topic, "1", counter.getAndIncrement()));
 
-        await().until(() -> bean.received().size() == 5);
+        // Wait a bit longer as we may not have a leader for the topic yet.
+        await()
+                .atMost(1, TimeUnit.MINUTES)
+                .until(() -> bean.received().size() == 5);
 
     }
 
     @Test
-    public void testOutgoingWithoutKafkaClusterWithoutBackPressure() throws InterruptedException {
-        container = KafkaTestBase.baseWeld();
-        KafkaTestBase.addConfig(myKafkaSinkConfig());
-        container.addBeanClasses(MyOutgoingBeanWithoutBackPressure.class);
-        WeldContainer weld = this.container.initialize();
-
-        nap();
-
-        MyOutgoingBeanWithoutBackPressure bean = weld
-                .select(MyOutgoingBeanWithoutBackPressure.class).get();
-        Throwable throwable = bean.error();
-        assertThat(throwable).isNotNull();
-        assertThat(throwable).isInstanceOf(MissingBackpressureException.class);
-    }
-
-    private void nap() throws InterruptedException {
-        Thread.sleep(1000); // NOSONAR
+    public void testOutgoingWithoutKafkaClusterWithoutBackPressure() {
+        MyOutgoingBeanWithoutBackPressure bean = runApplication(myKafkaSinkConfig(topic),
+                MyOutgoingBeanWithoutBackPressure.class);
+        await().until(() -> !isReady());
+        // Depending if the subscription has been achieve we may have caught a failure or not.
+        Throwable throwable = bean.failure();
+        if (throwable != null) {
+            assertThat(throwable).isInstanceOf(BackPressureFailure.class);
+        }
     }
 
     @ApplicationScoped
     public static class MyOutgoingBean {
 
-        final AtomicInteger counter = new AtomicInteger();
-
         @Outgoing("temperature-values")
-        public Flowable<String> generate() {
-            return Flowable.generate(e -> {
-                int i = counter.getAndIncrement();
-                if (i == 3) {
-                    e.onComplete();
-                } else {
-                    e.onNext(Integer.toString(i));
-                }
+        public Multi<String> generate() {
+            return Multi.createFrom().emitter(e -> {
+                e.emit("0");
+                e.emit("1");
+                e.emit("2");
+                e.complete();
             });
         }
     }
@@ -152,51 +152,52 @@ public class NoKafkaTest {
     @ApplicationScoped
     public static class MyOutgoingBeanWithoutBackPressure {
 
-        private final AtomicReference<Throwable> error = new AtomicReference<>();
+        private final AtomicReference<Throwable> failure = new AtomicReference<>();
+        private final AtomicBoolean subscribed = new AtomicBoolean();
 
-        public Throwable error() {
-            return error.get();
+        public Throwable failure() {
+            return failure.get();
+        }
+
+        public boolean subscribed() {
+            return subscribed.get();
         }
 
         @Outgoing("temperature-values")
-        public Flowable<String> generate() {
-            return Flowable.interval(200, TimeUnit.MILLISECONDS)
+        public Multi<String> generate() {
+            return Multi.createFrom().ticks().every(Duration.ofMillis(200))
                     // No overflow management - we want it to fail.
+                    .onSubscribe().invoke(() -> subscribed.set(true))
                     .map(l -> Long.toString(l))
-                    .doOnError(error::set);
+                    .onFailure().invoke(failure::set);
         }
     }
 
     private MapBasedConfig myKafkaSourceConfig() {
-        String prefix = "mp.messaging.incoming.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.deserializer", IntegerDeserializer.class.getName());
-        config.put(prefix + "topic", "output");
-
-        return new MapBasedConfig(config);
+        return MapBasedConfig.builder("mp.messaging.incoming.temperature-values")
+                .put(
+                        "value.deserializer", IntegerDeserializer.class.getName(),
+                        "topic", topic,
+                        "auto.offset.reset", "earliest")
+                .build();
     }
 
-    private MapBasedConfig myKafkaSinkConfig() {
-        String prefix = "mp.messaging.outgoing.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "max-inflight-messages", "2");
-        config.put(prefix + "max.block.ms", 1000);
-        config.put(prefix + "topic", "output");
-
-        return new MapBasedConfig(config);
+    private MapBasedConfig myKafkaSinkConfig(String topic) {
+        return MapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
+                .put(
+                        "value.serializer", StringSerializer.class.getName(),
+                        "max-inflight-messages", "2",
+                        "max.block.ms", 1000,
+                        "topic", topic)
+                .build();
     }
 
-    private MapBasedConfig myKafkaSinkConfigWithoutBlockLimit() {
-        String prefix = "mp.messaging.outgoing.temperature-values.";
-        Map<String, Object> config = new HashMap<>();
-        config.put(prefix + "connector", KafkaConnector.CONNECTOR_NAME);
-        config.put(prefix + "value.serializer", StringSerializer.class.getName());
-        config.put(prefix + "topic", "output");
-
-        return new MapBasedConfig(config);
+    private MapBasedConfig myKafkaSinkConfigWithoutBlockLimit(String topic) {
+        return MapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
+                .put(
+                        "value.serializer", StringSerializer.class.getName(),
+                        "topic", topic)
+                .build();
     }
 
 }

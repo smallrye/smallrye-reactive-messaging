@@ -16,6 +16,7 @@
 ** xref:model/model.adoc#processing-payloads[Processing payloads]
 ** xref:model/model.adoc#processing-streams[Processing streams]
 ** xref:model/model.adoc#skipping[Skipping messages or payloads]
+** xref:model/model.adoc#converters[Converting messages]
 
 ** xref:acknowledgement/acknowledgement.adoc[Acknowledgement]
 ** xref:advanced/broadcast.adoc[Broadcasting]
@@ -30,12 +31,16 @@
 *** xref:kafka:kafka.adoc#kafka-installation[Using the connector]
 *** xref:kafka:kafka.adoc#kafka-inbound[Receiving Kafka Records]
 *** xref:kafka:kafka.adoc#kafka-outbound[Writing Kafka Records]
+*** xref:kafka:kafka.adoc#kafka-health[Health Check]
+*** xref:kafka:kafka.adoc#kafka-avro-configuration[Using Avro]
 
 ** xref:amqp:amqp.adoc[AMQP]
 *** xref:amqp:amqp.adoc#amqp-installation[Using the connector]
 *** xref:amqp:amqp.adoc#amqp-inbound[Receiving AMQP Messages]
 *** xref:amqp:amqp.adoc#amqp-outbound[Sending AMQP Messages]
 *** xref:amqp:amqp.adoc#amqp-customization[Configuring the client]
+*** xref:amqp:amqp.adoc#amqp-health[Health Check]
+*** xref:amqp:amqp.adoc#amqp-rabbitmq[Connecting with RabbitMQ]
 
 ** xref:camel:camel.adoc[Apache Camel]
 *** xref:camel:camel.adoc#camel-installation[Using the connector]

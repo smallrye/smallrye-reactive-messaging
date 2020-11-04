@@ -662,7 +662,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
                 return 128;
             }
         };
-        EmitterConfiguration config = new EmitterConfiguration("my-channel", overflow, null);
+        EmitterConfiguration config = new EmitterConfiguration("my-channel", false, overflow, null);
         EmitterImpl<String> emitter = new EmitterImpl<>(config, 128);
         Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 

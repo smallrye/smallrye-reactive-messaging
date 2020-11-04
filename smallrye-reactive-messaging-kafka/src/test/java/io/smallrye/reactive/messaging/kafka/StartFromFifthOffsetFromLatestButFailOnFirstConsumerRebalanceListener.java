@@ -1,14 +1,14 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.util.Set;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
 
-import io.smallrye.mutiny.Uni;
+import org.apache.kafka.clients.consumer.Consumer;
+
 import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 @ApplicationScoped
 @Named("my-group-starting-on-fifth-fail-on-first-attempt")
@@ -18,20 +18,11 @@ public class StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListen
     private final AtomicBoolean failOnFirstAttempt = new AtomicBoolean(true);
 
     @Override
-    public Uni<Void> onPartitionsAssigned(KafkaConsumer<?, ?> consumer, Set<TopicPartition> set) {
-        // will perform the underlying operation but simulate an error on the first attempt
-        return super.onPartitionsAssigned(consumer, set)
-                .onItem()
-                .produceUni(a -> {
-                    if (!set.isEmpty() && failOnFirstAttempt.getAndSet(false)) {
-                        return Uni
-                                .createFrom()
-                                .failure(new Exception("testing failure"));
-                    } else {
-                        return Uni
-                                .createFrom()
-                                .item(a);
-                    }
-                });
+    public void onPartitionsAssigned(Consumer<?, ?> consumer,
+            Collection<org.apache.kafka.common.TopicPartition> partitions) {
+        super.onPartitionsAssigned(consumer, partitions);
+        if (!partitions.isEmpty() && failOnFirstAttempt.getAndSet(false)) {
+            throw new IllegalArgumentException("testing failure");
+        }
     }
 }

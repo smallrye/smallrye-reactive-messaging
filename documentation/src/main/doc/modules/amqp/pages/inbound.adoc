@@ -72,7 +72,7 @@ public static class Generator {
         AtomicInteger count = new AtomicInteger();
         return Multi.createFrom().ticks().every(Duration.ofMillis(1000))
                 .map(l -> new Price().setPrice(count.incrementAndGet()))
-                .on().overflow().drop();
+                .onOverflow().drop();
     }
 
 }
@@ -112,18 +112,24 @@ When a Reactive Messaging `Message` associated with an AMQP Message is acknowled
 
 === Failure Management
 
-If a message produced from an AMQP message  is _nacked_, a failure strategy is applied.
-The AMQP connector supports 4 strategies:
+If a message produced from an AMQP message is _nacked_, a failure strategy is applied.
+The AMQP connector supports six strategies:
 
-* `fail` - fail the application, no more AMQP messages will be processed (default).
-The AMQP message is mark as rejected.
-* `accept` - the failure is logged, but the processing continue.
-The AMQP message is mark as accepted.
-This strategy ignores the failure.
-* `release` - the failure is logged, but the processing continue.
-The AMQP message is mark as released.
-* `reject` - the failure is logged, but the processing continue.
-The AMQP message is mark as rejected.
+* `fail` - fail the application; no more AMQP messages will be processed (default).
+The AMQP message is marked as rejected.
+* `accept` - this strategy marks the AMQP message as _accepted_. The processing continues ignoring the failure.
+Refer to the http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-accepted[accepted delivery state documentation].
+* `release` - this strategy marks the AMQP message as _released_. The processing continues with the next message. The broker can redeliver the message.
+Refer to the http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-released[released delivery state documentation].
+* `reject` - this strategy marks the AMQP message as rejected. The processing continues with the next message.
+Refer to the http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-rejected[rejected delivery state documentation].
+* `modified-failed` - this strategy marks the AMQP
+message as _modified_ and indicates that it failed (with the `delivery-failed` attribute). The processing continues with the next message, but the broker may attempt to redeliver the message.
+Refer to the http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-modified[modified delivery state documentation]
+* `modified-failed-undeliverable-here` - this strategy marks the AMQP message as _modified_ and indicates that it failed (with the `delivery-failed` attribute). It also indicates that the application cannot process the message, meaning that the broker will not attempt to redeliver the message to this node. The processing continues with the next message.
+Refer to the http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-modified[modified delivery state documentation]
+
+
 
 === Configuration Reference
 

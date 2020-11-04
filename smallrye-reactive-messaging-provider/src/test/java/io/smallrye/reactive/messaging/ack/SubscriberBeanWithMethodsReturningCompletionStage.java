@@ -31,7 +31,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     @Incoming(MANUAL_ACKNOWLEDGMENT)
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public CompletionStage<Void> subWithAck(Message<String> message) {
-        return CompletableFuture.runAsync(() -> processed(MANUAL_ACKNOWLEDGMENT, message), EXECUTOR)
+        return CompletableFuture.runAsync(() -> processed(MANUAL_ACKNOWLEDGMENT, message), executor)
                 .thenCompose(x -> message.ack());
     }
 
@@ -67,7 +67,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     @Incoming(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     public CompletionStage<Void> preProcessingWithMessage(Message<String> message) {
-        return CompletableFuture.runAsync(() -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), EXECUTOR);
+        return CompletableFuture.runAsync(() -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), executor);
     }
 
     @Outgoing(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
@@ -78,7 +78,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     @Incoming(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     public CompletionStage<Void> preProcessingWithPayload(String payload) {
-        return CompletableFuture.runAsync(() -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), EXECUTOR);
+        return CompletableFuture.runAsync(() -> processed(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), executor);
     }
 
     @Outgoing(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
@@ -89,7 +89,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     @Incoming(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
     @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
     public CompletionStage<Void> postProcessingWithMessage(Message<String> message) {
-        return CompletableFuture.runAsync(() -> processed(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), EXECUTOR);
+        return CompletableFuture.runAsync(() -> processed(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), executor);
     }
 
     @Outgoing(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
@@ -100,7 +100,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     @Incoming(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
     @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
     public CompletionStage<Void> postProcessingWithPayload(String payload) {
-        return CompletableFuture.runAsync(() -> processed(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), EXECUTOR);
+        return CompletableFuture.runAsync(() -> processed(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), executor);
     }
 
     @Outgoing(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
@@ -111,7 +111,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     @Incoming(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
     public CompletionStage<Void> defaultProcessingWithMessage(Message<String> message) {
         return CompletableFuture.runAsync(
-                () -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), EXECUTOR)
+                () -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE, message), executor)
                 .thenCompose(x -> message.ack());
     }
 
@@ -123,11 +123,11 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     @Incoming(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
     public CompletionStage<Void> defaultProcessingWithPayload(String payload) {
         return CompletableFuture
-                .runAsync(() -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), EXECUTOR);
+                .runAsync(() -> processed(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD, payload), executor);
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
-    public Publisher<Message<String>> defaultToPostPocessingPayload() {
+    public Publisher<Message<String>> defaultToPostProcessingPayload() {
         return source(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 

@@ -29,10 +29,7 @@ import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
 import com.google.cloud.pubsub.v1.TopicAdminClient;
 import com.google.protobuf.ByteString;
-import com.google.pubsub.v1.ProjectSubscriptionName;
-import com.google.pubsub.v1.ProjectTopicName;
-import com.google.pubsub.v1.PubsubMessage;
-import com.google.pubsub.v1.PushConfig;
+import com.google.pubsub.v1.*;
 
 import io.smallrye.mutiny.Multi;
 
@@ -47,7 +44,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     private String projectId;
 
     @Inject
-    @ConfigProperty(name = "mock-pubsub-topics")
+    @ConfigProperty(name = "mock-pubsub-topics", defaultValue = "false")
     private boolean mockPubSubTopics;
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -109,7 +106,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     private void createTopic(final PubSubConfig config) {
         final TopicAdminClient topicAdminClient = pubSubManager.topicAdminClient(config);
 
-        final ProjectTopicName topicName = ProjectTopicName.of(config.getProjectId(), config.getTopic());
+        final TopicName topicName = TopicName.of(config.getProjectId(), config.getTopic());
 
         try {
             topicAdminClient.getTopic(topicName);
@@ -134,7 +131,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
             final PushConfig pushConfig = PushConfig.newBuilder()
                     .build();
 
-            final ProjectTopicName topicName = ProjectTopicName.of(config.getProjectId(), config.getTopic());
+            final TopicName topicName = TopicName.of(config.getProjectId(), config.getTopic());
 
             subscriptionAdminClient.createSubscription(subscriptionName, topicName, pushConfig, 0);
         }

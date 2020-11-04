@@ -1,44 +1,34 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
 
-import io.smallrye.mutiny.Uni;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.TopicPartition;
 
 @ApplicationScoped
 @Named("my-group-starting-on-fifth-happy-path")
 public class StartFromFifthOffsetFromLatestConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
 
-    private volatile int rebalanceCount = 0;
+    private final AtomicInteger rebalanceCount = new AtomicInteger();
 
     @Override
-    public Uni<Void> onPartitionsAssigned(KafkaConsumer<?, ?> consumer, Set<TopicPartition> set) {
-        rebalanceCount++;
-        return Uni
-                .combine()
-                .all()
-                .unis(set
-                        .stream()
-                        .map(topicPartition -> consumer.endOffsets(topicPartition)
-                                .onItem()
-                                .produceUni(o -> consumer.seek(topicPartition, Math.max(0L, o - 5L))))
-                        .collect(Collectors.toList()))
-                .combinedWith(a -> null);
-    }
-
-    @Override
-    public Uni<Void> onPartitionsRevoked(KafkaConsumer<?, ?> consumer, Set<TopicPartition> topicPartitions) {
-        return Uni
-                .createFrom()
-                .nullItem();
+    public void onPartitionsAssigned(Consumer<?, ?> consumer,
+            Collection<TopicPartition> partitions) {
+        if (!partitions.isEmpty()) {
+            rebalanceCount.incrementAndGet();
+            Map<TopicPartition, Long> offsets = consumer.endOffsets(partitions);
+            for (Map.Entry<TopicPartition, Long> position : offsets.entrySet()) {
+                consumer.seek(position.getKey(), Math.max(0L, position.getValue() - 5L));
+            }
+        }
     }
 
     public int getRebalanceCount() {
-        return rebalanceCount;
+        return rebalanceCount.get();
     }
 }

@@ -28,6 +28,5 @@ mp.messaging.outgoing.[channel-name].connector=smallrye-amqp
 [IMPORTANT]
 .RabbitMQ
 ====
-This connector is for AMQP 1.0. RabbitMQ implements AMQP 0.9.1.
-To use this connector with RabbitMQ, you need to enable and configure the https://github.com/rabbitmq/rabbitmq-amqp1.0/blob/v3.7.x/README.md[AMQP 1.0 plugin].
+To use RabbitMQ, refer to <<amqp-rabbitmq>>.
 ====

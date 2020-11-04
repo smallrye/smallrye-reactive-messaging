@@ -81,15 +81,20 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     public boolean isReady() {
-        boolean ready = true;
-        for (MqttSource source : sources) {
-            ready = ready && source.isSubscribed();
-        }
+        boolean ready = isSourceReady();
 
         for (MqttSink sink : sinks) {
             ready = ready && sink.isReady();
         }
 
+        return ready;
+    }
+
+    public boolean isSourceReady() {
+        boolean ready = true;
+        for (MqttSource source : sources) {
+            ready = ready && source.isSubscribed();
+        }
         return ready;
     }
 

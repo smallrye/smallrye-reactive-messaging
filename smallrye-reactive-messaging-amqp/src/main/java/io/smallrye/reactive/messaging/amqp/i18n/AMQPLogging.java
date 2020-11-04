@@ -85,7 +85,7 @@ public interface AMQPLogging extends BasicLogger {
     void unableToRecoverFromConnectionDisruption(@Cause Throwable t);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 16217, value = "A message sent to channel `%s` has been nacked, ignoring the failure and mark the message as accepted")
+    @Message(id = 16217, value = "A message sent to channel `%s` has been nacked, ignoring the failure and marking the AMQP message as accepted")
     void nackedAcceptMessage(String channel);
 
     @LogMessage(level = Logger.Level.DEBUG)
@@ -93,15 +93,15 @@ public interface AMQPLogging extends BasicLogger {
     void fullIgnoredFailure(@Cause Throwable t);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 16219, value = "A message sent to channel `%s` has been nacked, rejecting the message and fail-stop")
+    @Message(id = 16219, value = "A message sent to channel `%s` has been nacked, rejecting the AMQP message and fail-stop")
     void nackedFailMessage(String channel);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 16220, value = "A message sent to channel `%s` has been nacked, ignoring the failure and mark the message as rejected")
+    @Message(id = 16220, value = "A message sent to channel `%s` has been nacked, ignoring the failure and marking the AMQP message as rejected")
     void nackedIgnoreMessage(String channel);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 16221, value = "A message sent to channel `%s` has been nacked, ignoring the failure and mark the message as released")
+    @Message(id = 16221, value = "A message sent to channel `%s` has been nacked, ignoring the failure and marking the AMQP message as released")
     void nackedReleaseMessage(String channel);
 
     @LogMessage(level = Logger.Level.DEBUG)
@@ -116,4 +116,15 @@ public interface AMQPLogging extends BasicLogger {
     @Message(id = 16224, value = "The AMQP message to address `%s` has not been sent, the client is closed")
     void messageNoSend(String actualAddress);
 
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 16225, value = "Failure reported for channel `%s`, closing client")
+    void failureReported(String channel, @Cause Throwable reason);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 16226, value = "A message sent to channel `%s` has been nacked, ignoring the message and marking the AMQP message as modified with `delivery-failed`")
+    void nackedModifiedFailedMessage(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 16227, value = "A message sent to channel `%s` has been nacked, ignoring the message and marking the AMQP message as modified with `delivery-failed` and `undeliverable-here`")
+    void nackedModifiedFailedMessageAndUndeliverableHere(String channel);
 }

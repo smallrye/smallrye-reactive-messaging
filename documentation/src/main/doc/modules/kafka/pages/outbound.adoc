@@ -52,14 +52,43 @@ By default, the written record contains:
 * no key, or the key configured using the `key` attribute or the key passed in the metadata attached to the `Message`
 * the timestamp computed for the system clock (`now`) or the timestamp passed in the metadata attached to the `Message`
 
+=== Sending key/value pairs
+
+In the Kafka world, it's often necessary to send _records_, i.e. a key/value pair.
+The connector provides the {javadoc-base}/apidocs/io/smallrye/reactive/messaging/kafka/Record.html[`io.smallrye.reactive.messaging.kafka.Record`] class that you can use to send a pair:
+
+[source, java]
+----
+include::example$outbound/KafkaRecordExample.java[tag=code]
+----
+
+When the connector receives a message with a `Record` payload, it extracts the key and value from it.
+The configured serializers for the key and the value must be compatible with the record's key and value.
+Note that the `key` and the `value` can be `null`.
+It is also possible to create a record with a `null` key AND a `null` value.
+
+If you need more control on the written records, use `OutgoingKafkaRecordMetadata`.
+
 === Outbound Metadata
 
 When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html[`OutgoingKafkaRecordMetadata`] to influence how the message is going to written to Kafka.
-For example, you can configure the topic directly in the message, or add Kafka headers, configure the record key...
+For example, you can add Kafka headers, configure the record key...
 
 [source, java]
 ----
 include::example$outbound/KafkaOutboundMetadataExample.java[tag=code]
+----
+
+=== Dynamic topic names
+
+Sometimes it is desirable to select the destination of a message dynamically.
+In this case, you should not configure the topic inside your application configuration file, but instead, use the outbound metadata to set the name of the topic.
+
+For example, you can route to a dynamic topic based on the incoming message:
+
+[source, java]
+----
+include::example$outbound/KafkaOutboundDynamicTopicExample.java[tag=code]
 ----
 
 === Acknowledgement
@@ -76,10 +105,52 @@ If a record cannot be written, the message is `nacked`.
 
 === Back-pressure and inflight records
 
-The Kafka outbound connector handles back-pressure using the number of in-flight messages waiting for being acknowledged by the Kafka broker.
-The number of in-flight messages is configured using the `max-inflight-messages`  attribute and default to 5 (which is the Kafka default).
+The Kafka outbound connector handles back-pressure monitoring the number of in-flight messages waiting to be written to the Kafka broker.
+The number of in-flight messages is configured using the `max-inflight-messages` attribute and defaults to 1024.
 
-The connector only handles that amount of messages concurrently, requesting a new one when one of the in-flight message has been acknowledged by the broker.
+The connector only sends that amount of messages concurrently.
+No other messages will be sent until at least one in-flight message gets acknowledged by the broker.
+Then, the connector writes a new message to Kafka when one of the broker's in-flight messages get acknowledged.
+Be sure to configure Kafka's `batch.size` and `linger.ms` accordingly.
+
+You can also remove the limit of inflight messages by setting `max-inflight-messages` to `0`.
+However, note that the Kafka Producer may block if the number of requests reaches `max.in.flight.requests.per.connection`.
+
+=== Sending Cloud Events
+
+The Kafka connector supports https://cloudevents.io/[Cloud Events].
+The connector sends the outbound record as Cloud Events if:
+
+* the message metadata contains an `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instance,
+* the channel configuration defines the `cloud-events-type` and `cloud-events-source` attribute.
+
+You can create `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instances using:
+
+[source, java]
+----
+include::example$outbound/KafkaCloudEventProcessor.java[]
+----
+
+If the metadata does not contain an id, the connector generates one (random UUID).
+The `type` and `source` can be configured per message or at the channel level using the `cloud-events-type` and `cloud-events-source` attributes.
+Other attributes are also configurable.
+
+The metadata can be contributed by multiple methods, however, you must always retrieve the already existing metadata to avoid overriding the values:
+
+[source, java]
+----
+include::example$outbound/KafkaCloudEventMultipleProcessors.java[]
+----
+
+By default, the connector sends the Cloud Events using the _binary_ format.
+You can write _structured_ Cloud Events by setting the `cloud-events-mode` to `structured`.
+Only JSON is supported, so the created records had it's `content-type` header set to `application/cloudevents+json; charset=UTF-8`
+When using the _structured_ mode, the value serializer must be set to `org.apache.kafka.common.serialization.StringSerializer`, otherwise the connector reports the error.
+In addition, in _structured_, the connector maps the message's payload to JSON, except for `String` passed directly.
+
+The record's key can be set in the channel configuration (`key` attribute), in the `OutgoingKafkaRecordMetadata` or using the `partitionkey` Cloud Event attribute.
+
+NOTE: you can disable the Cloud Event support by setting the `cloud-events` attribute to `false`
 
 === Configuration Reference
 

@@ -18,12 +18,12 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.helpers.TypeUtils;
 
 /**
@@ -143,6 +143,20 @@ public class ChannelProducer {
     }
 
     /**
+     * Injects an {@link MutinyEmitter} matching the channel name.
+     *
+     * @param injectionPoint the injection point
+     * @param <T> the type of the emitter
+     * @return the emitter
+     */
+    @Produces
+    @Channel("") // Stream name is ignored during type-safe resolution
+    <T> MutinyEmitter<T> produceMutinyEmitter(InjectionPoint injectionPoint) {
+        MutinyEmitter emitter = getMutinyEmitter(injectionPoint);
+        return cast(emitter);
+    }
+
+    /**
      * Injects an {@link io.smallrye.reactive.messaging.annotations.Emitter} (deprecated) matching the channel name.
      *
      * @param injectionPoint the injection point
@@ -170,19 +184,19 @@ public class ChannelProducer {
     }
 
     @SuppressWarnings("rawtypes")
-    private SubscriberBuilder<? extends Message, Void> getSubscriberBuilder(InjectionPoint injectionPoint) {
-        String name = getChannelName(injectionPoint);
-        List<SubscriberBuilder<? extends Message<?>, Void>> list = channelRegistry.getSubscribers(name);
-        if (list.isEmpty()) {
-            throw ex.illegalStateForStream(name, channelRegistry.getOutgoingNames());
-        }
-        return list.get(0);
-    }
-
-    @SuppressWarnings("rawtypes")
     private Emitter getEmitter(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
         Emitter emitter = channelRegistry.getEmitter(name);
+        if (emitter == null) {
+            throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
+        }
+        return emitter;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private MutinyEmitter getMutinyEmitter(InjectionPoint injectionPoint) {
+        String name = getChannelName(injectionPoint);
+        MutinyEmitter emitter = channelRegistry.getMutinyEmitter(name);
         if (emitter == null) {
             throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
         }
@@ -196,6 +210,7 @@ public class ChannelProducer {
         return null;
     }
 
+    @SuppressWarnings("deprecation")
     static String getChannelName(InjectionPoint injectionPoint) {
         for (Annotation qualifier : injectionPoint.getQualifiers()) {
             if (qualifier.annotationType().equals(Channel.class)) {
@@ -209,6 +224,7 @@ public class ChannelProducer {
         throw ex.illegalStateForAnnotationNotFound("@Channel", injectionPoint);
     }
 
+    @SuppressWarnings("deprecation")
     static Channel getChannelQualifier(InjectionPoint injectionPoint) {
         for (Annotation qualifier : injectionPoint.getQualifiers()) {
             if (qualifier.annotationType().equals(Channel.class)) {

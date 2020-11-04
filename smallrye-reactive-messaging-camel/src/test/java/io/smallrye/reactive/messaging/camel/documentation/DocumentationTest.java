@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
@@ -24,6 +25,7 @@ public class DocumentationTest extends CamelTestBase {
     private final Path prices = new File("target/prices").toPath();
 
     @After
+    @Before
     public void deleteDirectory() {
         File file = orders.toFile();
         File[] files = file.listFiles();

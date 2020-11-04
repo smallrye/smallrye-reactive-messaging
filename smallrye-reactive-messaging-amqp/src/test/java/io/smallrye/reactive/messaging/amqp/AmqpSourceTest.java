@@ -1,15 +1,10 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.CHANNEL_NAME_ATTRIBUTE;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,17 +16,18 @@ import org.apache.qpid.proton.amqp.messaging.Data;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.jboss.logging.Logger;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
-import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.LoggerFactory;
 
+import io.smallrye.common.constraint.NotNull;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
@@ -39,15 +35,14 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.core.buffer.Buffer;
-import repeat.Repeat;
 
-public class AmqpSourceTest extends AmqpTestBase {
+public class AmqpSourceTest extends AmqpBrokerTestBase {
 
     private AmqpConnector provider;
 
     private WeldContainer container;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (provider != null) {
             provider.terminate(null);
@@ -82,7 +77,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.buildRs().subscribe(createSubscriber(messages, opened));
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceTenIntegers(topic,
@@ -113,7 +109,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.buildRs().subscribe(createSubscriber(messages, opened));
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceTenIntegers(topic,
@@ -129,7 +126,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     @NotNull
     private <T, O> Subscriber<T> createSubscriber(List<Message<O>> messages, AtomicBoolean opened) {
-        //noinspection SubscriberImplementation - Seriously IntelliJ ????
+        //noinspection ReactiveStreamsSubscriberImplementation
         return new Subscriber<T>() {
             Subscription sub;
 
@@ -149,7 +146,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
             @Override
             public void onError(Throwable t) {
-                LoggerFactory.getLogger("SUBSCRIBER").error("Error caught in stream", t);
+                Logger.getLogger("SUBSCRIBER").error("Error caught in stream", t);
             }
 
             @Override
@@ -159,8 +156,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         };
     }
 
-    @Test
-    @Repeat(times = 10)
+    @RepeatedTest(10)
     public void testBroadcast() {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
@@ -170,8 +166,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("name", "the name for broadcast");
         config.put("port", port);
         config.put("broadcast", true);
-        config.put("username", "artemis");
-        config.put("password", new String("simetraehcapa".getBytes()));
+        config.put("username", username);
+        config.put("password", password);
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
@@ -184,6 +180,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         AtomicBoolean o2 = new AtomicBoolean();
         rs.subscribe(createSubscriber(messages1, o1));
         rs.subscribe(createSubscriber(messages2, o2));
+
+        await().until(() -> isAmqpConnectorReady(provider));
 
         await()
                 .pollDelay(5, TimeUnit.SECONDS)
@@ -218,6 +216,10 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .write();
 
         ConsumptionBean bean = deploy();
+
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
+
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
 
@@ -251,7 +253,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         usage.produce(topic, 1, () -> AmqpMessage.create().withBufferAsBody(Buffer.buffer("foo".getBytes())).build());
 
@@ -275,7 +278,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         JsonObject json = new JsonObject();
         String id = UUID.randomUUID().toString();
@@ -303,7 +307,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         JsonArray list = new JsonArray();
         String id = UUID.randomUUID().toString();
@@ -331,7 +336,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         List<String> list = new ArrayList<>();
         list.add("tag");
@@ -358,7 +364,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         builder.to(createSubscriber(messages, opened)).run();
         await().until(opened::get);
 
-        await().until(() -> provider.isReady(config.get(CHANNEL_NAME_ATTRIBUTE).toString()));
+        await().until(() -> isAmqpConnectorReady(provider));
+        await().until(() -> isAmqpConnectorAlive(provider));
 
         List<String> list = new ArrayList<>();
         list.add("hello");
@@ -371,7 +378,7 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .isEqualTo(list.toString());
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigByCDIMissingBean() {
         Weld weld = new Weld();
 
@@ -388,10 +395,11 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.data.client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigByCDIIncorrectBean() {
         Weld weld = new Weld();
 
@@ -409,7 +417,8 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.data.client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
     @Test
@@ -471,7 +480,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigGlobalOptionsByCDIMissingBean() {
         Weld weld = new Weld();
 
@@ -488,10 +497,11 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("amqp-client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testConfigGlobalOptionsByCDIIncorrectBean() {
         Weld weld = new Weld();
 
@@ -509,7 +519,8 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        container = weld.initialize();
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(DeploymentException.class);
     }
 
     @NotNull
@@ -520,8 +531,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
-        config.put("username", "artemis");
-        config.put("password", new String("simetraehcapa".getBytes()));
+        config.put("username", username);
+        config.put("password", password);
         return config;
     }
 
@@ -532,8 +543,8 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("host", host);
         config.put("port", port);
         config.put("name", "some name");
-        config.put("username", "artemis");
-        config.put("password", new String("simetraehcapa".getBytes()));
+        config.put("username", username);
+        config.put("password", password);
         return config;
     }
 

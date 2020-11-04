@@ -118,10 +118,10 @@ public interface ProviderLogging extends BasicLogger {
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 224, value = "Analyzing mediator bean: %s")
-    void analyzingMediatorBean(Bean bean);
+    void analyzingMediatorBean(Bean<?> bean);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 225, value = "No subscriber for channel %s  attached to the emitter %s.%s")
+    @Message(id = 225, value = "No subscriber for channel %s attached to the emitter %s.%s")
     void noSubscriberForChannelAttachedToEmitter(String name, String beanClassName, String memberName);
 
     @LogMessage(level = Logger.Level.INFO)
@@ -143,5 +143,21 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 230, value = "Unable to create the publisher or subscriber during initialization")
     void unableToCreatePublisherOrSubscriber(@Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 231, value = "Incoming channel `%s` disabled by configuration")
+    void incomingChannelDisabled(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 232, value = "Outgoing channel `%s` disabled by configuration")
+    void outgoingChannelDisabled(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 233, value = "Unable to extract the ingested payload type for method `%s`, the reason is: %s")
+    void unableToExtractIngestedPayloadType(String method, String reason);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 234, value = "Failed to emit a Message to the channel")
+    void failureEmittingMessage(@Cause Throwable t);
 
 }

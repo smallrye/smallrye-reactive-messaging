@@ -36,15 +36,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.AbstractMediator;
-import io.smallrye.reactive.messaging.ChannelRegistar;
-import io.smallrye.reactive.messaging.ChannelRegistry;
-import io.smallrye.reactive.messaging.Invoker;
-import io.smallrye.reactive.messaging.MediatorConfiguration;
-import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.PublisherDecorator;
-import io.smallrye.reactive.messaging.Shape;
-import io.smallrye.reactive.messaging.WeavingException;
+import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
@@ -94,6 +86,12 @@ public class MediatorManager {
 
     @Inject
     Instance<PublisherDecorator> decorators;
+
+    @Inject
+    Instance<MessageConverter> converters;
+
+    @Inject
+    HealthCenter health;
 
     private volatile boolean initialized;
 
@@ -160,12 +158,13 @@ public class MediatorManager {
         log.initializingMediators();
         collected.mediators()
                 .forEach(configuration -> {
-
                     AbstractMediator mediator = createMediator(configuration);
 
                     log.initializingMethod(mediator.getMethodAsString());
 
                     mediator.setDecorators(decorators);
+                    mediator.setConverters(converters);
+                    mediator.setHealth(health);
                     mediator.setWorkerPoolRegistry(workerPoolRegistry);
 
                     try {
@@ -298,7 +297,7 @@ public class MediatorManager {
         // We also need to connect mediator and emitter to un-managed subscribers
         for (String name : unmanagedSubscribers) {
             List<AbstractMediator> list = lookupForMediatorsWithMatchingDownstream(name);
-            EmitterImpl emitter = (EmitterImpl) channelRegistry.getEmitter(name);
+            AbstractEmitter emitter = (AbstractEmitter) channelRegistry.getEmitter(name);
             List<SubscriberBuilder<? extends Message<?>, Void>> subscribers = channelRegistry.getSubscribers(name);
             for (AbstractMediator mediator : list) {
                 if (subscribers.size() == 1) {
@@ -393,9 +392,18 @@ public class MediatorManager {
     }
 
     public void initializeEmitter(EmitterConfiguration emitterConfiguration, long defaultBufferSize) {
-        EmitterImpl<?> emitter = new EmitterImpl<>(emitterConfiguration, defaultBufferSize);
-        Publisher<? extends Message<?>> publisher = emitter.getPublisher();
+        Publisher<? extends Message<?>> publisher;
+
+        if (emitterConfiguration.isMutinyEmitter) {
+            MutinyEmitterImpl<?> mutinyEmitter = new MutinyEmitterImpl<>(emitterConfiguration, defaultBufferSize);
+            publisher = mutinyEmitter.getPublisher();
+            channelRegistry.register(emitterConfiguration.name, mutinyEmitter);
+        } else {
+            EmitterImpl<?> emitter = new EmitterImpl<>(emitterConfiguration, defaultBufferSize);
+            publisher = emitter.getPublisher();
+            channelRegistry.register(emitterConfiguration.name, emitter);
+        }
+
         channelRegistry.register(emitterConfiguration.name, ReactiveStreams.fromPublisher(publisher));
-        channelRegistry.register(emitterConfiguration.name, emitter);
     }
 }

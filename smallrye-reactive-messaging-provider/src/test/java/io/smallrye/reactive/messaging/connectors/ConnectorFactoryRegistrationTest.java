@@ -27,7 +27,7 @@ public class ConnectorFactoryRegistrationTest extends WeldTestBase {
 
         initialize();
 
-        assertThat(registry(container).getPublishers("dummy-source")).isNotEmpty();
+        assertThat(registry(container).getPublishers("dummy.source")).isNotEmpty();
         assertThat(registry(container).getSubscribers("dummy-sink")).isNotEmpty();
 
         MyDummyConnector bean = container.select(MyDummyConnector.class, ConnectorLiteral.of("dummy")).get();

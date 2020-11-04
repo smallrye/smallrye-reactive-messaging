@@ -11,7 +11,7 @@ import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Footer;
 import org.apache.qpid.proton.message.Message;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.core.json.JsonObject;
@@ -30,6 +30,8 @@ public class AmqpMessageTest {
         ApplicationProperties apps = new ApplicationProperties(props);
         message.setApplicationProperties(apps);
         message.setContentType("text/plain");
+        message.setContentEncoding("encoding");
+        message.setUserId("user".getBytes());
         message.setCorrelationId("1234");
         message.setDeliveryCount(2);
         message.setExpiryTime(10000);
@@ -40,6 +42,8 @@ public class AmqpMessageTest {
         message.setSubject("subject");
         message.setUserId("username".getBytes());
         message.setPriority((short) 2);
+        message.setReplyTo("rep");
+        message.setReplyToGroupId("rep-id");
         message.setBody(new AmqpValue("hello"));
         message.setMessageId("4321");
 
@@ -47,6 +51,11 @@ public class AmqpMessageTest {
         assertThat(msg.getAddress()).isEqualTo("address");
         assertThat(msg.getApplicationProperties()).contains(entry("hello", "world"), entry("some", "content"));
         assertThat(msg.getContentType()).isEqualTo("text/plain");
+        assertThat(msg.getContentEncoding()).isEqualTo("encoding");
+        assertThat(msg.unwrap().getUserId()).isNotNull();
+        assertThat(msg.unwrap().isFirstAcquirer()).isFalse();
+        assertThat(msg.unwrap().getReplyTo()).isEqualTo("rep");
+        assertThat(msg.unwrap().getReplyToGroupId()).isEqualTo("rep-id");
         assertThat(msg.getCreationTime()).isNotZero();
         assertThat(msg.getDeliveryCount()).isEqualTo(2);
         assertThat(msg.getExpiryTime()).isEqualTo(10000);
@@ -57,13 +66,13 @@ public class AmqpMessageTest {
         assertThat(((AmqpValue) msg.getBody()).getValue()).isEqualTo("hello");
         assertThat(msg.getCorrelationId()).isEqualTo("1234");
         assertThat(msg.getMessageId()).isEqualTo("4321");
-        assertThat(msg.getHeader()).isNotNull();
         assertThat(msg.isDurable()).isTrue();
         assertThat(msg.getError().name()).isEqualTo("OK");
         assertThat(msg.getGroupSequence()).isZero();
 
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testBuilder() {
         AmqpMessageBuilder<String> builder = AmqpMessage.builder();
@@ -99,7 +108,6 @@ public class AmqpMessageTest {
         assertThat(((AmqpValue) msg.getBody()).getValue()).isEqualTo("hello");
         assertThat(msg.getCorrelationId()).isEqualTo("1234");
         assertThat(msg.getMessageId()).isEqualTo("4321");
-        assertThat(msg.getHeader()).isNotNull();
         assertThat(msg.isDurable()).isTrue();
         assertThat(msg.getError().name()).isEqualTo("OK");
         assertThat(msg.getGroupSequence()).isZero();

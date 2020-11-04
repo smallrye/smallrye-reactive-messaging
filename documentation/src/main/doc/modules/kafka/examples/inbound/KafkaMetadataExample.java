@@ -5,30 +5,31 @@ import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import java.time.Instant;
-import java.util.Optional;
 
 public class KafkaMetadataExample {
 
 
+    @SuppressWarnings("unchecked")
     public void metadata() {
         Message<Double> incoming = Message.of(12.0);
         // tag::code[]
-        Optional<IncomingKafkaRecordMetadata<String, Double>> metadata = incoming.getMetadata(IncomingKafkaRecordMetadata.class);
-        metadata.ifPresent(meta -> {
+        IncomingKafkaRecordMetadata<String, Double> metadata = incoming.getMetadata(IncomingKafkaRecordMetadata.class)
+            .orElse(null);
+        if (metadata != null) {
             // The topic
-            String topic = meta.getTopic();
+            String topic = metadata.getTopic();
 
             // The key
-            String key = meta.getKey();
+            String key = metadata.getKey();
 
             // The timestamp
-            Instant timestamp = meta.getTimestamp();
+            Instant timestamp = metadata.getTimestamp();
 
             // The underlying record
-            KafkaConsumerRecord<String, Double> record = meta.getRecord();
+            KafkaConsumerRecord<String, Double> record = metadata.getRecord();
 
             // ...
-        });
+        }
         // end::code[]
     }
 

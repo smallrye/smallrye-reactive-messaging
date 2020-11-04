@@ -23,10 +23,14 @@ public interface KafkaFailureHandler {
             if (s.equalsIgnoreCase("dead-letter-queue")) {
                 return DEAD_LETTER_QUEUE;
             }
-            throw ex.illegalArgumentUnknownStrategy(s);
+            throw ex.illegalArgumentUnknownFailureStrategy(s);
         }
     }
 
     <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason);
+
+    default void terminate() {
+        // do nothing by default
+    }
 
 }

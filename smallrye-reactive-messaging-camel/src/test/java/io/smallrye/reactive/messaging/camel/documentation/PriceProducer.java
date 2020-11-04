@@ -18,7 +18,8 @@ public class PriceProducer {
     public Multi<String> generate() {
         // Build an infinite stream of random prices
         return Multi.createFrom().ticks().every(Duration.ofMillis(100))
-                .on().overflow().drop()
+                .onOverflow().drop()
+                .onSubscribe().invoke(s -> s.request(Long.MAX_VALUE))
                 .map(x -> random.nextDouble())
                 .map(p -> Double.toString(p));
     }

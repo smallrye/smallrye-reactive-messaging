@@ -12,6 +12,7 @@ import io.smallrye.mutiny.Multi;
 @ApplicationScoped
 public class SourceOnly {
 
+    @SuppressWarnings("unchecked")
     @Outgoing("count")
     public Publisher<Message<String>> source() {
         return Multi.createFrom().range(1, 11)

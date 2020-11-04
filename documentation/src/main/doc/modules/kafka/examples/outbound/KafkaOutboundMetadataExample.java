@@ -12,7 +12,6 @@ public class KafkaOutboundMetadataExample {
         // The type parameter is the type of the record's key
         OutgoingKafkaRecordMetadata<String> metadata = OutgoingKafkaRecordMetadata.<String>builder()
             .withKey("my-key")
-            .withTopic("my-custom-topic")
             .withHeaders(new RecordHeaders().add("my-header", "value".getBytes()))
             .build();
 

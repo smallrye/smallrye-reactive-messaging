@@ -17,6 +17,62 @@ Type: _string_ | false | `localhost:9092`
 
 Type: _long_ | false | `33554432`
 
+| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled, the connector sends the outgoing messages as Cloud Event if the message to be sent includes Cloud Event Metadata.
+
+Type: _boolean_ | false | `true`
+
+| *cloud-events-data-content-type*
+
+_(cloud-events-default-data-content-type)_ | Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `datacontenttype` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-data-schema*
+
+_(cloud-events-default-data-schema)_ | Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-insert-timestamp*
+
+_(cloud-events-default-timestamp)_ | Whether or not the connector should insert automatically the `time` attribute` into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself
+
+Type: _boolean_ | false | `true`
+
+| *cloud-events-mode* | The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record
+
+Type: _string_ | false | `binary`
+
+| *cloud-events-source*
+
+_(cloud-events-default-source)_ | Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-subject*
+
+_(cloud-events-default-subject)_ | Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+
+Type: _string_ | false | 
+
+| *cloud-events-type*
+
+_(cloud-events-default-type)_ | Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself
+
+Type: _string_ | false | 
+
+| *health-enabled* | Whether health reporting is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
+| *health-readiness-enabled* | Whether readiness health reporting is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
+| *health-readiness-timeout* | During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.
+
+Type: _long_ | false | `2000`
+
 | *key* | A key to used when writing the record
 
 Type: _string_ | false | 
@@ -25,9 +81,9 @@ Type: _string_ | false |
 
 Type: _string_ | false | `org.apache.kafka.common.serialization.StringSerializer`
 
-| *max-inflight-messages* | The maximum number of messages to be written to Kafka concurrently - The default value is the value from the `max.in.flight.requests.per.connection` Kafka property. It configures the maximum number of unacknowledged requests the client before blocking. Note that if this setting is set to be greater than 1 and there are failed sends, there is a risk of message re-ordering due to retries.
+| *max-inflight-messages* | The maximum number of messages to be written to Kafka concurrently. It limits the number of messages waiting to be written and acknowledged by the broker. You can set this attribute to `0` remove the limit
 
-Type: _int_ | false | `5`
+Type: _long_ | false | `1024`
 
 | *partition* | The target partition id. -1 to let the client determine the partition
 
@@ -37,9 +93,13 @@ Type: _int_ | false | `-1`
 
 Type: _long_ | false | `2147483647`
 
-| *topic* | The consumed / populated Kafka topic. If not set, the channel name is used
+| *topic* | The consumed / populated Kafka topic. If neither this property nor the `topics` properties are set, the channel name is used
 
 Type: _string_ | false | 
+
+| *tracing-enabled* | Whether tracing is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
 
 | *value.serializer* | The serializer classname used to serialize the payload
 

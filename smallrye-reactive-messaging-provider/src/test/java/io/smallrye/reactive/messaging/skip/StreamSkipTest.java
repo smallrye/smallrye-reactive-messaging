@@ -104,7 +104,7 @@ public class StreamSkipTest extends WeldTestBaseWithoutTails {
         public Multi<String> processPayloadStream(Multi<String> stream) {
             return stream
                     .transform().byFilteringItemsWith(s -> !s.equalsIgnoreCase("skip"))
-                    .onItem().apply(String::toUpperCase);
+                    .onItem().transform(String::toUpperCase);
         }
 
         @Incoming("in")
@@ -112,7 +112,7 @@ public class StreamSkipTest extends WeldTestBaseWithoutTails {
         public Multi<Message<String>> processMessageStream(Multi<Message<String>> stream) {
             return stream
                     .transform().byFilteringItemsWith(m -> !m.getPayload().equalsIgnoreCase("skip"))
-                    .onItem().apply(m -> m.withPayload(m.getPayload().toUpperCase()));
+                    .onItem().transform(m -> m.withPayload(m.getPayload().toUpperCase()));
         }
     }
 }

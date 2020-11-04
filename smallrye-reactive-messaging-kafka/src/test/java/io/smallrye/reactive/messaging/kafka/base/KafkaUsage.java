@@ -1,5 +1,6 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.base;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,6 +20,7 @@ import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -29,8 +31,11 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.jboss.logging.Logger;
 
+import io.grpc.Context;
+import io.opentelemetry.OpenTelemetry;
+
 /**
- * @author <a href="http://escoffier.me">Clement Escoffier</a>
+ * Simplify the usage of a Kafka client.
  */
 public class KafkaUsage {
 
@@ -38,7 +43,7 @@ public class KafkaUsage {
     private final String brokers;
 
     public KafkaUsage() {
-        this.brokers = "localhost:9092";
+        this.brokers = KafkaTestBase.kafka.getBootstrapServers();
     }
 
     public Properties getConsumerProperties(String groupId, String clientId, OffsetResetStrategy autoOffsetReset) {
@@ -47,7 +52,7 @@ public class KafkaUsage {
         } else {
             Properties props = new Properties();
             props.setProperty("bootstrap.servers", brokers);
-            props.setProperty("group.id", groupId);
+            props.setProperty("group.id", "usage-" + groupId);
             props.setProperty("enable.auto.commit", Boolean.FALSE.toString());
             if (autoOffsetReset != null) {
                 props.setProperty("auto.offset.reset",
@@ -55,7 +60,7 @@ public class KafkaUsage {
             }
 
             if (clientId != null) {
-                props.setProperty("client.id", clientId);
+                props.setProperty("client.id", "usage-" + clientId);
             }
 
             return props;
@@ -67,7 +72,7 @@ public class KafkaUsage {
         props.setProperty("bootstrap.servers", brokers);
         props.setProperty("acks", Integer.toString(1));
         if (clientId != null) {
-            props.setProperty("client.id", clientId);
+            props.setProperty("client.id", "usage-" + clientId);
         }
 
         return props;
@@ -215,6 +220,26 @@ public class KafkaUsage {
                 });
     }
 
+    public void consumeStringsWithTracing(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            BiConsumer<String, String> consumer, Consumer<Context> tracingConsumer) {
+        AtomicLong readCounter = new AtomicLong();
+        this.consumeStrings(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion,
+                Collections.singleton(topicName),
+                (record) -> {
+                    consumer.accept(record.key(), record.value());
+                    tracingConsumer.accept(
+                            OpenTelemetry.getPropagators().getTextMapPropagator()
+                                    .extract(Context.current(), record.headers(), (headers, key) -> {
+                                        final Header header = headers.lastHeader(key);
+                                        if (header == null) {
+                                            return null;
+                                        }
+                                        return new String(header.value(), StandardCharsets.UTF_8);
+                                    }));
+                    readCounter.incrementAndGet();
+                });
+    }
+
     public void consumeDoubles(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, Double> consumer) {
         AtomicLong readCounter = new AtomicLong();
@@ -226,7 +251,7 @@ public class KafkaUsage {
                 });
     }
 
-    void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+    public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, Integer> consumer) {
         AtomicLong readCounter = new AtomicLong();
         this.consumeIntegers(
@@ -239,7 +264,7 @@ public class KafkaUsage {
                 });
     }
 
-    void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+    public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             Consumer<ConsumerRecord<String, Integer>> consumer) {
         AtomicLong readCounter = new AtomicLong();
         this.consumeIntegers(
@@ -249,6 +274,23 @@ public class KafkaUsage {
                 (record) -> {
                     consumer.accept(record);
                     readCounter.incrementAndGet();
+                });
+    }
+
+    public void consumeIntegersWithTracing(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            BiConsumer<String, Integer> consumer, Consumer<Context> tracingConsumer) {
+        this.consumeIntegers(topicName, count, timeout, unit, completion,
+                (record) -> {
+                    consumer.accept(record.key(), record.value());
+                    tracingConsumer.accept(
+                            OpenTelemetry.getPropagators().getTextMapPropagator()
+                                    .extract(Context.current(), record.headers(), (headers, key) -> {
+                                        final Header header = headers.lastHeader(key);
+                                        if (header == null) {
+                                            return null;
+                                        }
+                                        return new String(header.value(), StandardCharsets.UTF_8);
+                                    }));
                 });
     }
 

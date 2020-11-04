@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ProcessingException;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -96,6 +97,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         List<Throwable> reasons = run(acked, nacked, emitter);
 
         await().until(() -> consumer.list().size() == 8);
+        await().until(() -> nacked.size() == 2);
+        await().until(() -> reasons.size() == 2);
         assertThat(acked).hasSize(8);
         assertThat(nacked).hasSize(2);
         assertThat(reasons).hasSize(2);
@@ -138,8 +141,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         assertThat(acked).hasSize(8);
         assertThat(nacked).hasSize(2);
         assertThat(throwables).hasSize(2)
-                .anySatisfy(t -> assertThat(t).isInstanceOf(CompletionException.class)
-                        .hasCauseInstanceOf(IllegalArgumentException.class).hasMessageContaining("2"))
+                .anySatisfy(t -> assertThat(t).isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("2"))
                 .anySatisfy(t -> assertThat(t)
                         .isInstanceOf(ProcessingException.class)
                         .hasCauseInstanceOf(InvocationTargetException.class).hasStackTraceContaining("8"));
@@ -182,8 +185,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         assertThat(acked).hasSize(8);
         assertThat(nacked).hasSize(2);
         assertThat(throwables).hasSize(2)
-                .anySatisfy(t -> assertThat(t).isInstanceOf(CompletionException.class)
-                        .hasCauseInstanceOf(IllegalArgumentException.class).hasMessageContaining("2"))
+                .anySatisfy(t -> assertThat(t).isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("2"))
                 .anySatisfy(t -> assertThat(t)
                         .isInstanceOf(ProcessingException.class)
                         .hasCauseInstanceOf(InvocationTargetException.class).hasStackTraceContaining("8"));
@@ -214,19 +217,19 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         List<Throwable> reasons = new CopyOnWriteArrayList<>();
         CountDownLatch done = new CountDownLatch(1);
         Multi.createFrom().range(0, 10)
-                .onItem().apply(i -> Integer.toString(i))
+                .onItem().transform(i -> Integer.toString(i))
                 .onItem()
-                .produceCompletionStage(i -> CompletableFuture.runAsync(() -> emitter.send(Message.of(i, Metadata.empty(),
-                        () -> {
-                            acked.add(i);
-                            return CompletableFuture.completedFuture(null);
-                        }, t -> {
-                            reasons.add(t);
-                            nacked.add(i);
-                            return CompletableFuture.completedFuture(null);
-                        })))
-                        .thenApply(x -> i))
-                .merge()
+                .transformToUniAndMerge(i -> Uni.createFrom()
+                        .completionStage(CompletableFuture.runAsync(() -> emitter.send(Message.of(i, Metadata.empty(),
+                                () -> {
+                                    acked.add(i);
+                                    return CompletableFuture.completedFuture(null);
+                                }, t -> {
+                                    reasons.add(t);
+                                    nacked.add(i);
+                                    return CompletableFuture.completedFuture(null);
+                                })))
+                                .thenApply(x -> i)))
                 .subscribe().with(
                         x -> {
                             // noop

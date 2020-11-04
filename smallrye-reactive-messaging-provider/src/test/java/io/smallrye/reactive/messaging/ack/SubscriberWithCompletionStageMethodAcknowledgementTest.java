@@ -17,56 +17,52 @@ public class SubscriberWithCompletionStageMethodAcknowledgementTest extends Ackn
     private final Class<SubscriberBeanWithMethodsReturningCompletionStage> beanClass = SubscriberBeanWithMethodsReturningCompletionStage.class;
 
     @Test
-    public void testManual() {
+    public void test() {
         SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+        testManual(bean);
+        testNoAcknowledgementMessage(bean);
+        testNoAcknowledgementPayload(bean);
+        testPreProcessingAcknowledgementMessage(bean);
+        testPreProcessingAcknowledgementPayload(bean);
+        testPostProcessingAcknowledgementMessage(bean);
+        testPostProcessingAcknowledgementPayload(bean);
+        testDefaultProcessingAcknowledgementMessage(bean);
+        testDefaultProcessingAcknowledgementPayload(bean);
+    }
+
+    public void testManual(SpiedBeanHelper bean) {
         assertAcknowledgment(bean, MANUAL_ACKNOWLEDGMENT);
     }
 
-    @Test
-    public void testNoAcknowledgementMessage() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testNoAcknowledgementMessage(SpiedBeanHelper bean) {
         assertNoAcknowledgment(bean, NO_ACKNOWLEDGMENT_MESSAGE);
     }
 
-    @Test
-    public void testNoAcknowledgementPayload() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testNoAcknowledgementPayload(SpiedBeanHelper bean) {
         assertNoAcknowledgment(bean, NO_ACKNOWLEDGMENT_PAYLOAD);
     }
 
-    @Test
-    public void testPreProcessingAcknowledgementMessage() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testPreProcessingAcknowledgementMessage(SpiedBeanHelper bean) {
         assertPreAcknowledgment(bean, PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
     }
 
-    @Test
-    public void testPreProcessingAcknowledgementPayload() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testPreProcessingAcknowledgementPayload(SpiedBeanHelper bean) {
         assertPreAcknowledgment(bean, PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 
-    @Test
-    public void testPostProcessingAcknowledgementMessage() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testPostProcessingAcknowledgementMessage(SpiedBeanHelper bean) {
         assertPostAcknowledgment(bean, POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
     }
 
-    @Test
-    public void testPostProcessingAcknowledgementPayload() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testPostProcessingAcknowledgementPayload(SpiedBeanHelper bean) {
         assertPostAcknowledgment(bean, POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 
-    @Test
-    public void testDefaultProcessingAcknowledgementMessage() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testDefaultProcessingAcknowledgementMessage(SpiedBeanHelper bean) {
         assertPostAcknowledgment(bean, DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
     }
 
-    @Test
-    public void testDefaultProcessingAcknowledgementPayload() {
-        SubscriberBeanWithMethodsReturningCompletionStage bean = installInitializeAndGet(beanClass);
+    public void testDefaultProcessingAcknowledgementPayload(SpiedBeanHelper bean) {
         assertPostAcknowledgment(bean, DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 

@@ -84,10 +84,10 @@ public class SubscriberMediator extends AbstractMediator {
 
     @Override
     public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
-        this.source = publisher;
+        this.source = convert(publisher);
     }
 
-    @SuppressWarnings({ "SubscriberImplementation" })
+    @SuppressWarnings({ "ReactiveStreamsSubscriberImplementation" })
     @Override
     public void run() {
         assert this.source != null;
@@ -132,21 +132,23 @@ public class SubscriberMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
-                            .onItem().produceUni(msg -> invokeBlocking(msg.getPayload()))
-                            .onItemOrFailure().produceUni(handleInvocationResult(m))
+                            .onItem().transformToUni(msg -> invokeBlocking(msg.getPayload()))
+                            .onItemOrFailure().transformToUni(handleInvocationResult(m))
                             .subscribeAsCompletionStage())
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         } else {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
-                            .onItem().apply(msg -> invoke(msg.getPayload()))
-                            .onItemOrFailure().produceUni(handleInvocationResult(m))
+                            .onItem().transform(msg -> invoke(msg.getPayload()))
+                            .onItemOrFailure().transformToUni(handleInvocationResult(m))
                             .subscribeAsCompletionStage())
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         }
     }
 
-    private BiFunction<Object, Throwable, Uni<? extends Message<? extends Object>>> handleInvocationResult(
+    private BiFunction<Object, Throwable, Uni<? extends Message<?>>> handleInvocationResult(
             Message<?> m) {
         return (success, failure) -> {
             if (failure != null) {
@@ -171,17 +173,18 @@ public class SubscriberMediator extends AbstractMediator {
         boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
         this.subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                        .onItem().produceCompletionStage(m -> {
+                        .onItem().transformToUni(m -> {
                             CompletionStage<?> stage;
                             if (invokeWithPayload) {
                                 stage = invoke(message.getPayload());
                             } else {
                                 stage = invoke(message);
                             }
-                            return stage.thenApply(x -> message);
+                            return Uni.createFrom().completionStage(stage.thenApply(x -> message));
                         })
-                        .onItemOrFailure().produceUni(handleInvocationResult(message))
+                        .onItemOrFailure().transformToUni(handleInvocationResult(message))
                         .subscribeAsCompletionStage())
+                .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                 .ignore();
     }
 
@@ -190,15 +193,16 @@ public class SubscriberMediator extends AbstractMediator {
 
         this.subscriber = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                        .onItem().produceUni(x -> {
+                        .onItem().transformToUni(x -> {
                             if (invokeWithPayload) {
                                 return invoke(message.getPayload());
                             } else {
                                 return invoke(message);
                             }
                         })
-                        .onItemOrFailure().produceUni(handleInvocationResult(message))
+                        .onItemOrFailure().transformToUni(handleInvocationResult(message))
                         .subscribeAsCompletionStage())
+                .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                 .ignore();
     }
 
@@ -238,6 +242,7 @@ public class SubscriberMediator extends AbstractMediator {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(wrapper)
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         } else {
             Subscriber<Message<?>> sub;
@@ -250,6 +255,7 @@ public class SubscriberMediator extends AbstractMediator {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(new SubscriberWrapper<>(casted, Function.identity(), null))
+                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
                     .ignore();
         }
     }

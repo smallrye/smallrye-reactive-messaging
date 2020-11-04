@@ -12,6 +12,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.MutinyEmitter;
 
 @ApplicationScoped
 public class InternalChannelRegistry implements ChannelRegistry {
@@ -19,6 +20,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     private final Map<String, List<PublisherBuilder<? extends Message<?>>>> publishers = new HashMap<>();
     private final Map<String, List<SubscriberBuilder<? extends Message<?>, Void>>> subscribers = new HashMap<>();
     private final Map<String, Emitter<?>> emitters = new HashMap<>();
+    private final Map<String, MutinyEmitter<?>> mutinyEmitters = new HashMap<>();
 
     @Override
     public synchronized PublisherBuilder<? extends Message<?>> register(String name,
@@ -46,6 +48,13 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
+    public synchronized void register(String name, MutinyEmitter<?> emitter) {
+        Objects.requireNonNull(name, msg.nameMustBeSet());
+        Objects.requireNonNull(emitter, msg.emitterMustBeSet());
+        mutinyEmitters.put(name, emitter);
+    }
+
+    @Override
     public synchronized List<PublisherBuilder<? extends Message<?>>> getPublishers(String name) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         return publishers.getOrDefault(name, Collections.emptyList());
@@ -55,6 +64,12 @@ public class InternalChannelRegistry implements ChannelRegistry {
     public synchronized Emitter<?> getEmitter(String name) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         return emitters.get(name);
+    }
+
+    @Override
+    public synchronized MutinyEmitter<?> getMutinyEmitter(String name) {
+        Objects.requireNonNull(name, msg.nameMustBeSet());
+        return mutinyEmitters.get(name);
     }
 
     @Override
@@ -80,7 +95,10 @@ public class InternalChannelRegistry implements ChannelRegistry {
 
     @Override
     public synchronized Set<String> getEmitterNames() {
-        return new HashSet<>(emitters.keySet());
+        Set<String> set = new HashSet<>();
+        set.addAll(emitters.keySet());
+        set.addAll(mutinyEmitters.keySet());
+        return set;
     }
 
 }

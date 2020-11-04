@@ -23,6 +23,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     private final Context context;
     protected final AmqpFailureHandler onNack;
 
+    @Deprecated
     public static <T> AmqpMessageBuilder<T> builder() {
         return new AmqpMessageBuilder<>();
     }
@@ -34,56 +35,8 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack) {
         this.message = msg;
         this.context = context;
-        IncomingAmqpMetadata.IncomingAmqpMetadataBuilder builder = new IncomingAmqpMetadata.IncomingAmqpMetadataBuilder();
-        if (msg.address() != null) {
-            builder.withAddress(msg.address());
-        }
-        if (msg.applicationProperties() != null) {
-            builder.withProperties(msg.applicationProperties());
-        }
-        if (msg.contentType() != null) {
-            builder.withContentType(msg.contentType());
-        }
-        if (msg.contentEncoding() != null) {
-            builder.withContentEncoding(msg.contentEncoding());
-        }
-        if (msg.correlationId() != null) {
-            builder.withCorrelationId(msg.correlationId());
-        }
-        if (msg.creationTime() > 0) {
-            builder.withCreationTime(msg.creationTime());
-        }
-        if (msg.deliveryCount() >= 0) {
-            builder.withDeliveryCount(msg.deliveryCount());
-        }
-        if (msg.expiryTime() >= 0) {
-            builder.withExpirationTime(msg.expiryTime());
-        }
-        if (msg.groupId() != null) {
-            builder.withGroupId(msg.groupId());
-        }
-        if (msg.groupSequence() >= 0) {
-            builder.withGroupSequence(msg.groupSequence());
-        }
-        if (msg.id() != null) {
-            builder.withId(msg.id());
-        }
-        builder.withDurable(msg.isDurable());
-        builder.withFirstAcquirer(msg.isFirstAcquirer());
-        if (msg.priority() >= 0) {
-            builder.withPriority(msg.priority());
-        }
-        if (msg.subject() != null) {
-            builder.withSubject(msg.subject());
-        }
-        if (msg.ttl() >= 0) {
-            builder.withTtl(msg.ttl());
-        }
-        if (message.unwrap().getHeader() != null) {
-            builder.withHeader(message.unwrap().getHeader());
-        }
-        this.amqpMetadata = builder.build();
-        this.metadata = Metadata.of(builder.build());
+        this.amqpMetadata = new IncomingAmqpMetadata(this.message);
+        this.metadata = Metadata.of(amqpMetadata);
         this.onNack = onNack;
     }
 
@@ -206,10 +159,6 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
 
     public String getSubject() {
         return amqpMetadata.getSubject();
-    }
-
-    public Header getHeader() {
-        return amqpMetadata.getHeader();
     }
 
     public JsonObject getApplicationProperties() {

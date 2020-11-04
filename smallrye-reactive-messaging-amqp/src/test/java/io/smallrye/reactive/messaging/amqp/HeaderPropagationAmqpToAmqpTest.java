@@ -14,19 +14,19 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.vertx.core.json.JsonObject;
 
-public class HeaderPropagationAmqpToAmqpTest extends AmqpTestBase {
+public class HeaderPropagationAmqpToAmqpTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
     private final Weld weld = new Weld();
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
@@ -44,7 +44,7 @@ public class HeaderPropagationAmqpToAmqpTest extends AmqpTestBase {
         new MapBasedConfig()
                 .put("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.amqp.address", "should-not-be-used")
-                .put("mp.messaging.outgoing.amqp.durable", true)
+                .put("mp.messaging.outgoing.amqp.durable", false)
                 .put("mp.messaging.outgoing.amqp.host", host)
                 .put("mp.messaging.outgoing.amqp.port", port)
                 .put("amqp-username", username)
@@ -73,12 +73,12 @@ public class HeaderPropagationAmqpToAmqpTest extends AmqpTestBase {
         @Incoming("source")
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return AmqpMessage.<Integer> builder()
+            OutgoingAmqpMetadata metadata = OutgoingAmqpMetadata.builder()
                     .withAddress("my-address")
-                    .withIntegerAsBody(input.getPayload())
                     .withApplicationProperties(new JsonObject().put("X-Header", "value"))
                     .withSubject("test")
                     .build();
+            return input.addMetadata(metadata);
         }
 
         @Incoming("p1")

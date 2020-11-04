@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -16,7 +17,8 @@ import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
-import io.vertx.amqp.impl.AmqpMessageBuilderImpl;
+import io.smallrye.mutiny.tuples.Tuple2;
+import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
 public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>, Subscription {
@@ -27,7 +29,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final AmqpConnectorOutgoingConfiguration configuration;
     private final AmqpConnector connector;
 
-    private volatile AmqpSender sender;
     private final AtomicReference<Subscription> upstream = new AtomicReference<>();
     private final AtomicReference<Subscriber<? super Message<?>>> downstream = new AtomicReference<>();
     private final AtomicBoolean once = new AtomicBoolean();
@@ -60,12 +61,16 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
     }
 
-    private void getSenderAndCredits(Subscriber<? super Message<?>> subscriber) {
-        retrieveSender.subscribe()
-                .with(s -> {
-                    sender = s;
-                    holder.getContext().runOnContext(x -> setCreditsAndRequest());
-                }, subscriber::onError);
+    private Uni<AmqpSender> getSenderAndCredits() {
+        return retrieveSender
+                .onItem().call(sender -> {
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    holder.getContext().runOnContext(x -> {
+                        setCreditsAndRequest(sender);
+                        future.complete(null);
+                    });
+                    return Uni.createFrom().completionStage(future);
+                });
     }
 
     @Override
@@ -83,7 +88,13 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
     }
 
-    private long setCreditsAndRequest() {
+    /**
+     * Must be called on the context having created the AMQP connection
+     *
+     * @param sender the sender
+     * @return the remaining credits
+     */
+    private long setCreditsAndRequest(AmqpSender sender) {
         long credits = sender.remainingCredits();
         Subscription subscription = upstream.get();
         if (credits != 0L && subscription != Subscriptions.CANCELLED) {
@@ -102,27 +113,31 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         Subscriber<? super Message<?>> subscriber = this.downstream.get();
-        send(sender, message, durable, ttl, configuredAddress, useAnonymousSender, configuration)
+
+        retrieveSender
+                .onItem().transformToUni(
+                        sender -> send(sender, message, durable, ttl, configuredAddress, useAnonymousSender, configuration)
+                                .onItem().transform(m -> Tuple2.of(sender, m)))
                 .subscribe().with(
-                        res -> {
-                            subscriber.onNext(res);
+                        tuple -> {
+                            subscriber.onNext(tuple.getItem2());
                             if (requested.decrementAndGet() == 0) { // no more credit, request more
-                                onNoMoreCredit();
+                                onNoMoreCredit(tuple.getItem1());
                             }
                         },
                         subscriber::onError);
     }
 
-    private void onNoMoreCredit() {
+    private void onNoMoreCredit(AmqpSender sender) {
         log.noMoreCreditsForChannel(configuration.getChannel());
         holder.getContext().runOnContext(x -> {
             if (isCancelled()) {
                 return;
             }
-            long c = setCreditsAndRequest();
+            long c = setCreditsAndRequest(sender);
             if (c == 0L) { // still no credits, schedule a periodic retry
                 holder.getVertx().setPeriodic(configuration.getCreditRetrievalPeriod(), id -> {
-                    if (setCreditsAndRequest() != 0L || isCancelled()) {
+                    if (setCreditsAndRequest(sender) != 0L || isCancelled()) {
                         // Got our new credits or the application has been terminated,
                         // we cancel the periodic task.
                         holder.getVertx().cancelTimer(id);
@@ -159,7 +174,10 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     public void request(long l) {
         // Delay the retrieval of the sender and the request until we get a request.
         if (!once.getAndSet(true)) {
-            getSenderAndCredits(downstream.get());
+            getSenderAndCredits()
+                    .onItem().ignore().andContinueWithNull()
+                    .subscribe().with(s -> {
+                    }, f -> downstream.get().onError(f));
         }
     }
 
@@ -176,12 +194,17 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         int retryAttempts = configuration.getReconnectAttempts();
         int retryInterval = configuration.getReconnectInterval();
         io.vertx.mutiny.amqp.AmqpMessage amqp;
+
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
         } else if (msg.getPayload() instanceof io.vertx.mutiny.amqp.AmqpMessage) {
             amqp = (io.vertx.mutiny.amqp.AmqpMessage) msg.getPayload();
         } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
             amqp = new io.vertx.mutiny.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());
+        } else if (msg.getPayload() instanceof org.apache.qpid.proton.message.Message) {
+            org.apache.qpid.proton.message.Message message = (org.apache.qpid.proton.message.Message) msg.getPayload();
+            AmqpMessageImpl vertxMessage = new AmqpMessageImpl(message);
+            amqp = new io.vertx.mutiny.amqp.AmqpMessage(vertxMessage);
         } else {
             amqp = AmqpMessageConverter.convertToAmqpMessage(msg, durable, ttl);
         }
@@ -193,21 +216,20 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         if (!actualAddress.equals(amqp.address())) {
-            amqp = new io.vertx.mutiny.amqp.AmqpMessage(
-                    new AmqpMessageBuilderImpl(amqp.getDelegate()).address(actualAddress).build());
+            amqp.getDelegate().unwrap().setAddress(actualAddress);
         }
 
         log.sendingMessageToAddress(actualAddress);
         return sender.sendWithAck(amqp)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
-                .onItemOrFailure().produceUni((success, failure) -> {
+                .onItemOrFailure().transformToUni((success, failure) -> {
                     if (failure != null) {
                         return Uni.createFrom().completionStage(msg.nack(failure));
                     } else {
                         return Uni.createFrom().completionStage(msg.ack());
                     }
                 })
-                .onItem().apply(x -> msg);
+                .onItem().transform(x -> msg);
     }
 
     private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,
@@ -220,7 +242,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                 log.unableToUseAddress(address, configuredAddress);
                 return configuredAddress;
             }
-
         }
 
         return message.getMetadata(OutgoingAmqpMetadata.class)
