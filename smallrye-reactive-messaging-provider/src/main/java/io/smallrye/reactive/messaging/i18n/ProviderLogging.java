@@ -121,7 +121,7 @@ public interface ProviderLogging extends BasicLogger {
     void analyzingMediatorBean(Bean<?> bean);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 225, value = "No subscriber for channel %s  attached to the emitter %s.%s")
+    @Message(id = 225, value = "No subscriber for channel %s attached to the emitter %s.%s")
     void noSubscriberForChannelAttachedToEmitter(String name, String beanClassName, String memberName);
 
     @LogMessage(level = Logger.Level.INFO)
