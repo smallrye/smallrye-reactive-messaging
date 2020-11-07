@@ -125,7 +125,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     private MapBasedConfig getBaseConfig() {
         return new MapBasedConfig()
-                .with("bootstrap.servers", kafka.getBootstrapServers())
+                .with("bootstrap.servers", getBootstrapServers())
                 .with("key.serializer", StringSerializer.class.getName())
                 .with("acks", "1")
                 .with("tracing-enabled", false);

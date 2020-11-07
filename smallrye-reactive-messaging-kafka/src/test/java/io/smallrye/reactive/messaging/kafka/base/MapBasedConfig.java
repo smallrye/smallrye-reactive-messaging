@@ -44,6 +44,11 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
         return this;
     }
 
+    public MapBasedConfig without(String s) {
+        super.remove(s);
+        return this;
+    }
+
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void cleanup() {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
@@ -90,6 +95,10 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public MapBasedConfig copy() {
+        return new MapBasedConfig(new HashMap<>(this));
     }
 
     public static class Builder {
@@ -146,7 +155,7 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
                 inner.put(getFullKey("tracing-enabled"), false);
             }
             if (!configValues.containsKey("bootstrap.servers")) {
-                inner.put(getFullKey("bootstrap.servers"), KafkaTestBase.kafka.getBootstrapServers());
+                inner.put(getFullKey("bootstrap.servers"), KafkaTestBase.getBootstrapServers());
             }
             configValues.forEach((key, value) -> inner.put(getFullKey(key), value));
             return new MapBasedConfig(inner);

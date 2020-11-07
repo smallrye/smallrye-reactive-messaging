@@ -21,34 +21,44 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureFailure;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
+import io.strimzi.StrimziKafkaContainer;
 
 public class NoKafkaTest extends KafkaTestBase {
 
     private static int port;
+    private static String servers;
 
-    /**
-     * Prepare the tests:
-     * - get the Kafka port - so we know it's free, and store it
-     * - stop Kafka
-     */
-    @BeforeEach
-    public void prepare() {
-        if (kafka.isRunning()) {
-            port = getKafkaPort();
-            stopKafkaBroker();
+    private GenericContainer<?> kafka;
+
+    @BeforeAll
+    public static void getFreePort() {
+        StrimziKafkaContainer kafka = new StrimziKafkaContainer();
+        kafka.start();
+        await().until(kafka::isRunning);
+        servers = kafka.getBootstrapServers();
+        port = kafka.getMappedPort(KAFKA_PORT);
+        kafka.close();
+        await().until(() -> !kafka.isRunning());
+    }
+
+    @AfterEach
+    public void close() {
+        if (kafka != null) {
+            kafka.close();
         }
     }
 
     @Test
     public void testOutgoingWithoutKafkaCluster() throws InterruptedException {
+        usage.setBootstrapServers(servers);
         List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
@@ -68,7 +78,7 @@ public class NoKafkaTest extends KafkaTestBase {
             return liveness.isOk();
         });
 
-        startKafkaBroker(port);
+        kafka = startKafkaBroker(port);
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -87,13 +97,14 @@ public class NoKafkaTest extends KafkaTestBase {
 
     @Test
     public void testIncomingWithoutKafkaCluster() {
+        usage.setBootstrapServers(servers);
         MyIncomingBean bean = runApplication(myKafkaSourceConfig(), MyIncomingBean.class);
         assertThat(bean.received()).hasSize(0);
 
         await().until(() -> !isReady());
         await().until(this::isAlive);
 
-        startKafkaBroker(port);
+        kafka = startKafkaBroker(port);
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -159,10 +170,6 @@ public class NoKafkaTest extends KafkaTestBase {
             return failure.get();
         }
 
-        public boolean subscribed() {
-            return subscribed.get();
-        }
-
         @Outgoing("temperature-values")
         public Multi<String> generate() {
             return Multi.createFrom().ticks().every(Duration.ofMillis(200))
@@ -178,6 +185,7 @@ public class NoKafkaTest extends KafkaTestBase {
                 .put(
                         "value.deserializer", IntegerDeserializer.class.getName(),
                         "topic", topic,
+                        "bootstrap.servers", servers,
                         "auto.offset.reset", "earliest")
                 .build();
     }
@@ -188,7 +196,8 @@ public class NoKafkaTest extends KafkaTestBase {
                         "value.serializer", StringSerializer.class.getName(),
                         "max-inflight-messages", "2",
                         "max.block.ms", 1000,
-                        "topic", topic)
+                        "topic", topic,
+                        "bootstrap.servers", servers)
                 .build();
     }
 
@@ -196,7 +205,8 @@ public class NoKafkaTest extends KafkaTestBase {
         return MapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
                 .put(
                         "value.serializer", StringSerializer.class.getName(),
-                        "topic", topic)
+                        "topic", topic,
+                        "bootstrap.servers", servers)
                 .build();
     }
 

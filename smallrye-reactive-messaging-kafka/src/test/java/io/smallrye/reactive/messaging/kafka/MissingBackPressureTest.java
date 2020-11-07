@@ -35,7 +35,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
     public void testWithInterval() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings("output", 10, 10, TimeUnit.SECONDS,
+        usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
@@ -48,7 +48,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
     public MapBasedConfig myKafkaSinkConfig() {
         MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.temperature-values");
         builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", "output");
+        builder.put("topic", topic);
         builder.put("waitForWriteCompletion", false);
 
         return builder.build();
@@ -59,7 +59,7 @@ public class MissingBackPressureTest extends KafkaTestBase {
         List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings("output", 10, 10, TimeUnit.SECONDS,
+        usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> {
                     received.add(entry(k, v));
