@@ -15,14 +15,14 @@ public class KafkaAdminHelper {
     }
 
     public static KafkaAdminClient createAdminClient(Vertx vertx,
-            Map<String, Object> kafkaConfigurationMap, String channel) {
+            Map<String, Object> kafkaConfigurationMap, String channel, boolean incoming) {
         Map<String, String> copy = new HashMap<>();
         for (Map.Entry<String, Object> entry : kafkaConfigurationMap.entrySet()) {
             if (AdminClientConfig.configNames().contains(entry.getKey())) {
                 copy.put(entry.getKey(), entry.getValue().toString());
             }
         }
-        copy.put(AdminClientConfig.CLIENT_ID_CONFIG, "kafka-admin-" + channel);
+        copy.put(AdminClientConfig.CLIENT_ID_CONFIG, "kafka-admin-" + (incoming ? "incoming-" : "outgoing-") + channel);
         return KafkaAdminClient.create(vertx, copy);
     }
 }

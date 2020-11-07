@@ -139,7 +139,7 @@ public class KafkaSource<K, V> {
         Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel());
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel(), true);
         } else {
             this.admin = null;
         }

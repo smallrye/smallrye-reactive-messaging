@@ -99,7 +99,7 @@ public class KafkaSink {
 
         if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
             // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap, config.getChannel());
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap, config.getChannel(), false);
         } else {
             this.admin = null;
         }
