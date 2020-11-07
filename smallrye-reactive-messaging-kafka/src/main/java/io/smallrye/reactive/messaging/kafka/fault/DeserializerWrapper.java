@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.fault;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
@@ -34,6 +35,11 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
      * absent otherwise.
      */
     public static final String DESERIALIZATION_FAILURE_IS_KEY = "deserialization-failure-key";
+
+    /**
+     * Header name for the topic of the incoming message when a deserialization failure happen.
+     */
+    public static final String DESERIALIZATION_FAILURE_TOPIC = "deserialization-failure-topic";
 
     /**
      * Header name passing the data that was not able to be deserialized.
@@ -75,7 +81,7 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
         } catch (Exception e) {
             // The deserializer cannot be configured - fails and marks the application as unhealthy
             source.reportFailure(e, true);
-            throw e;
+            throw new KafkaException(e);
         }
     }
 
@@ -103,7 +109,7 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
             return this.delegate.deserialize(topic, headers, data);
         } catch (Exception e) {
             return tryToRecover(topic,
-                    addFailureDetailsToHeaders(headers, data, e),
+                    addFailureDetailsToHeaders(topic, headers, data, e),
                     data, e);
         }
     }
@@ -139,12 +145,13 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
         }
     }
 
-    private Headers addFailureDetailsToHeaders(Headers headers, byte[] data, Exception e) {
+    private Headers addFailureDetailsToHeaders(String topic, Headers headers, byte[] data, Exception e) {
         String message = e.getMessage();
         String cause = e.getCause() != null ? e.getCause().getMessage() : null;
 
         headers.add(DESERIALIZATION_FAILURE_DESERIALIZER, delegate.getClass().getName()
                 .getBytes(StandardCharsets.UTF_8));
+        headers.add(DESERIALIZATION_FAILURE_TOPIC, topic.getBytes(StandardCharsets.UTF_8));
 
         if (this.handleKeys) {
             headers.add(DESERIALIZATION_FAILURE_IS_KEY, TRUE_VALUE);

@@ -56,6 +56,8 @@ public class ConfigurationCleaner {
             "dead-letter-queue.value.serializer",
             "partitions",
             "consumer-rebalance-listener.name",
+            "key-deserialization-failure-handler",
+            "value-deserialization-failure-handler",
 
             // Remove most common attributes, may have been configured from the default config
             "key.serializer",

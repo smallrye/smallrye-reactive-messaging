@@ -74,7 +74,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "dead-letter-queue.value.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the value serializer to use. If not set the serializer associated to the value deserializer is used")
 @ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic", defaultValue = "1")
 @ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.INCOMING, description = "Enables (default) or disables the Cloud Event support. If enabled, the connector analyzes the incoming records and try to create Cloud Event metadata.", defaultValue = "true")
-@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is be applied to the consumer.")
+@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
 @ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
 
@@ -108,7 +108,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
 
     @Inject
-    Instance<DeserializationFailureHandler> deserializationFailureHandlers;
+    Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
 
     @Inject
     KafkaCDIEvents kafkaCDIEvents;

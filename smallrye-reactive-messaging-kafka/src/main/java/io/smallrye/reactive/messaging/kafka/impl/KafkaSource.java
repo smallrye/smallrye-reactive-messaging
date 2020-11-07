@@ -56,7 +56,7 @@ public class KafkaSource<K, V> {
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
             KafkaCDIEvents kafkaCDIEvents,
-            Instance<DeserializationFailureHandler> deserializationFailureHandlers,
+            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             int index) {
 
         topics = getTopics(config);
@@ -127,6 +127,11 @@ public class KafkaSource<K, V> {
         Deserializer<V> valueDeserializer = new DeserializerWrapper<>(
                 className, false, getDeserializationHandler(false, deserializationFailureHandlers),
                 this);
+
+        // Configure the underlying deserializers
+        keyDeserializer.configure(kafkaConfiguration, true);
+        valueDeserializer.configure(kafkaConfiguration, false);
+
         final KafkaConsumer<K, V> kafkaConsumer = createKafkaConsumer(vertx,
                 ConfigurationCleaner.asKafkaConfiguration(kafkaConfiguration), keyDeserializer, valueDeserializer);
 
@@ -212,7 +217,7 @@ public class KafkaSource<K, V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private <T> DeserializationFailureHandler<T> getDeserializationHandler(boolean isKey,
-            Instance<DeserializationFailureHandler> deserializationFailureHandlers) {
+            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers) {
         String name = isKey ? configuration.getKeyDeserializationFailureHandler().orElse(null)
                 : configuration.getValueDeserializationFailureHandler().orElse(null);
 
@@ -220,7 +225,7 @@ public class KafkaSource<K, V> {
             return null;
         }
 
-        Instance<DeserializationFailureHandler> matching = deserializationFailureHandlers
+        Instance<DeserializationFailureHandler<?>> matching = deserializationFailureHandlers
                 .select(NamedLiteral.of(name));
         if (matching.isUnsatisfied()) {
             throw ex.unableToFindDeserializationFailureHandler(name, configuration.getChannel());
@@ -279,7 +284,9 @@ public class KafkaSource<K, V> {
         failures.add(failure);
 
         if (fatal) {
-            consumer.closeAndForget();
+            if (consumer != null) {
+                consumer.closeAndForget();
+            }
         }
     }
 
