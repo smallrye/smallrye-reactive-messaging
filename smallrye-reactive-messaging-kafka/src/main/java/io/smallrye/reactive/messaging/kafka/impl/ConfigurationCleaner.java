@@ -24,7 +24,7 @@ public class ConfigurationCleaner {
     private static final List<String> PRODUCER = Arrays.asList(
             "key",
             "partition",
-            "waitForWriteCompletion",
+            "waitforwritecompletion", // lower case on purpose
             "max-inflight-messages",
             "cloud-events-source",
             "cloud-events-type",

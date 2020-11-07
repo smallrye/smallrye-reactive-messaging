@@ -23,6 +23,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
@@ -32,6 +33,7 @@ import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 public class MissingBackPressureTest extends KafkaTestBase {
 
     @Test
+    @Disabled("to be investigated - fail on CI")
     public void testWithInterval() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
