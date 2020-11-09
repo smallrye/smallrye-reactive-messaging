@@ -76,7 +76,7 @@
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
 
     <mutiny.version>0.10.1</mutiny.version>
-    <artemis.version>2.15.0</artemis.version>
+    <artemis.version>2.16.0</artemis.version>
 
     <jboss-log-manager.version>2.1.17.Final</jboss-log-manager.version>
 
@@ -85,7 +85,7 @@
     <smallrye-reactive-converter-api.version>1.2.2</smallrye-reactive-converter-api.version>
     <smallrye-vertx-mutiny-clients.version>1.2.2</smallrye-vertx-mutiny-clients.version>
 
-    <testcontainers.version>1.15.0-rc2</testcontainers.version>
+    <testcontainers.version>1.15.0</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>1.10.19</mockito.version>
