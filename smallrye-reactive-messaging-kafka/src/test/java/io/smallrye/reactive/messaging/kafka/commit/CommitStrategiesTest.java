@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
+import static io.smallrye.reactive.messaging.kafka.base.MockKafkaUtils.injectMockConsumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -12,6 +12,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.spi.DeploymentException;
+import javax.enterprise.util.TypeLiteral;
 import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.*;
@@ -23,14 +24,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 public class CommitStrategiesTest extends WeldTestBase {
 
@@ -56,7 +56,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 UUID.randomUUID().toString());
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -146,7 +146,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -208,7 +208,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -283,7 +283,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         assertThatThrownBy(() -> {
             new KafkaSource<>(vertx, "my-group",
                     new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents, -1);
+                    CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -296,7 +296,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         assertThatThrownBy(() -> new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1)).isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
+                        .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }
 
     @Test
@@ -308,7 +309,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         injectMockConsumer(source, consumer);
 
@@ -347,23 +348,15 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("value.deserializer", StringDeserializer.class.getName());
     }
 
-    @SuppressWarnings("rawtypes")
-    private void injectMockConsumer(KafkaSource<String, String> source, MockConsumer<String, String> consumer) {
-        try {
-            KafkaConsumer<String, String> cons = source.getConsumer();
-            KafkaReadStream stream = cons.getDelegate().asStream();
-            Field field = stream.getClass().getDeclaredField("consumer");
-            field.setAccessible(true);
-            field.set(stream, consumer);
-            // Close the initial consumer.
-            cons.closeAndAwait();
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to inject mock consumer", e);
-        }
-    }
-
     public Instance<KafkaConsumerRebalanceListener> getConsumerRebalanceListeners() {
         return getBeanManager().createInstance().select(KafkaConsumerRebalanceListener.class);
+    }
+
+    @SuppressWarnings("rawtypes")
+    public Instance<DeserializationFailureHandler<?>> getDeserializationFailureHandlers() {
+        return getBeanManager().createInstance().select(
+                new TypeLiteral<DeserializationFailureHandler<?>>() {
+                });
     }
 
     @ApplicationScoped

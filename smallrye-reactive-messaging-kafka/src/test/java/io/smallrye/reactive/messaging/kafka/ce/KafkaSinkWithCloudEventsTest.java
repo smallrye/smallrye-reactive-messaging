@@ -869,7 +869,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     private MapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
         MapBasedConfig config = new MapBasedConfig();
-        config.put("bootstrap.servers", kafka.getBootstrapServers());
+        config.put("bootstrap.servers", getBootstrapServers());
         config.put("group.id", randomId);
         config.put("key.serializer", StringSerializer.class.getName());
         config.put("enable.auto.commit", "false");

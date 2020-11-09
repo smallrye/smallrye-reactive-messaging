@@ -29,14 +29,14 @@ public class ChannelNameConflictTest extends KafkaTestBase {
 
     static {
         CONFLICT.put("mp.messaging.incoming.my-topic.connector", "smallrye-kafka");
-        CONFLICT.put("mp.messaging.incoming.my-topic.bootstrap.servers", kafka.getBootstrapServers());
+        CONFLICT.put("mp.messaging.incoming.my-topic.bootstrap.servers", getBootstrapServers());
         CONFLICT.put("mp.messaging.incoming.my-topic.topic", "my-topic-1");
         CONFLICT.put("mp.messaging.incoming.my-topic.value.deserializer",
                 "org.apache.kafka.common.serialization.StringDeserializer");
         CONFLICT.put("mp.messaging.incoming.my-topic.tracing-enabled", false);
 
         CONFLICT.put("mp.messaging.outgoing.my-topic.connector", "smallrye-kafka");
-        CONFLICT.put("mp.messaging.outgoing.my-topic.bootstrap.servers", kafka.getBootstrapServers());
+        CONFLICT.put("mp.messaging.outgoing.my-topic.bootstrap.servers", getBootstrapServers());
         CONFLICT.put("mp.messaging.outgoing.my-topic.topic", "my-topic-1");
         CONFLICT.put("mp.messaging.outgoing.my-topic.value.serializer",
                 "org.apache.kafka.common.serialization.StringSerializer");

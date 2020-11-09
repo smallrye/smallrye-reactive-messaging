@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class ConfigurationCleaner {
     private static final List<String> PRODUCER = Arrays.asList(
             "key",
             "partition",
-            "waitForWriteCompletion",
+            "waitforwritecompletion", // lower case on purpose
             "max-inflight-messages",
             "cloud-events-source",
             "cloud-events-type",
@@ -55,6 +56,8 @@ public class ConfigurationCleaner {
             "dead-letter-queue.value.serializer",
             "partitions",
             "consumer-rebalance-listener.name",
+            "key-deserialization-failure-handler",
+            "value-deserialization-failure-handler",
 
             // Remove most common attributes, may have been configured from the default config
             "key.serializer",
@@ -90,6 +93,10 @@ public class ConfigurationCleaner {
         for (String key : CONSUMER) {
             conf.remove(key);
         }
+    }
+
+    public static Map<String, Object> asKafkaConfiguration(Map<String, String> conf) {
+        return new HashMap<>(conf);
     }
 
 }

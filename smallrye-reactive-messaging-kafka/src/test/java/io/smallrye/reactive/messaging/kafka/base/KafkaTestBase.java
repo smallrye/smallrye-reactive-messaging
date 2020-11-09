@@ -3,51 +3,31 @@ package io.smallrye.reactive.messaging.kafka.base;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 import static org.awaitility.Awaitility.await;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.UUID;
 
-import javax.enterprise.inject.Instance;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.strimzi.StrimziKafkaContainer;
 import io.vertx.mutiny.core.Vertx;
 
+@ExtendWith(KafkaBrokerExtension.class)
 public class KafkaTestBase extends WeldTestBase {
     public static final int KAFKA_PORT = 9092;
-    public static StrimziKafkaContainer kafka;
 
     public Vertx vertx;
     public KafkaUsage usage;
 
     // A random topic.
     public String topic;
-
-    @BeforeAll
-    public static void startKafkaBroker() {
-        kafka = new StrimziKafkaContainer();
-        kafka.start();
-    }
-
-    @AfterAll
-    public static void stopKafkaBroker() {
-        if (kafka != null) {
-            try {
-                kafka.stop();
-            } catch (Exception e) {
-                // Ignore it.
-            }
-            await().until(() -> !kafka.isRunning());
-        }
-    }
 
     @BeforeEach
     public void createVertxAndInitUsage() {
@@ -76,8 +56,8 @@ public class KafkaTestBase extends WeldTestBase {
                 "channel-name", topic).build();
     }
 
-    public String getBootstrapServers() {
-        return kafka.getBootstrapServers();
+    public static String getBootstrapServers() {
+        return KafkaBrokerExtension.getBootstrapServers();
     }
 
     public void createTopic(String topic, int partition) {
@@ -92,33 +72,28 @@ public class KafkaTestBase extends WeldTestBase {
      * Test Containers makes this unnecessarily complicated, but well, let's go for a hack.
      * See https://github.com/testcontainers/testcontainers-java/issues/256.
      *
+     * @param kafka the broker that will be closed
      * @param gracePeriodInSecond number of seconds to wait before restarting
+     * @return the new broker
      */
-    public void restart(int gracePeriodInSecond) {
-        int port = getKafkaPort();
+    public FixedKafkaContainer restart(StrimziKafkaContainer kafka, int gracePeriodInSecond) {
+        int port = kafka.getMappedPort(KAFKA_PORT);
         try {
-            kafka.stop();
+            kafka.close();
         } catch (Exception e) {
             // Ignore me.
         }
         await().until(() -> !kafka.isRunning());
         sleep(Duration.ofSeconds(gracePeriodInSecond));
 
-        startKafkaBroker(port);
+        return startKafkaBroker(port);
     }
 
-    public static void startKafkaBroker(int port) {
-        if (kafka != null && kafka.isRunning()) {
-            kafka.stop();
-            await().until(() -> !kafka.isRunning());
-        }
-        kafka = new FixedKafkaContainer(port);
+    public static FixedKafkaContainer startKafkaBroker(int port) {
+        FixedKafkaContainer kafka = new FixedKafkaContainer(port);
         kafka.start();
-        await().until(() -> kafka.isRunning());
-    }
-
-    public int getKafkaPort() {
-        return kafka.getMappedPort(KAFKA_PORT);
+        await().until(kafka::isRunning);
+        return kafka;
     }
 
     private void sleep(Duration duration) {
@@ -127,10 +102,6 @@ public class KafkaTestBase extends WeldTestBase {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    public Instance<KafkaConsumerRebalanceListener> getConsumerRebalanceListeners() {
-        return getBeanManager().createInstance().select(KafkaConsumerRebalanceListener.class);
     }
 
     /**
@@ -143,6 +114,10 @@ public class KafkaTestBase extends WeldTestBase {
             super.addFixedExposedPort(port, KAFKA_PORT);
         }
 
+    }
+
+    public static String getHeader(Headers headers, String key) {
+        return new String(headers.lastHeader(key).value(), StandardCharsets.UTF_8);
     }
 
 }

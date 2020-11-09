@@ -40,10 +40,10 @@ import io.opentelemetry.OpenTelemetry;
 public class KafkaUsage {
 
     private final static Logger LOGGER = Logger.getLogger(KafkaUsage.class);
-    private final String brokers;
+    private String brokers;
 
     public KafkaUsage() {
-        this.brokers = KafkaTestBase.kafka.getBootstrapServers();
+        this.brokers = KafkaTestBase.getBootstrapServers();
     }
 
     public Properties getConsumerProperties(String groupId, String clientId, OffsetResetStrategy autoOffsetReset) {
@@ -220,26 +220,6 @@ public class KafkaUsage {
                 });
     }
 
-    public void consumeStringsWithTracing(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
-            BiConsumer<String, String> consumer, Consumer<Context> tracingConsumer) {
-        AtomicLong readCounter = new AtomicLong();
-        this.consumeStrings(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion,
-                Collections.singleton(topicName),
-                (record) -> {
-                    consumer.accept(record.key(), record.value());
-                    tracingConsumer.accept(
-                            OpenTelemetry.getPropagators().getTextMapPropagator()
-                                    .extract(Context.current(), record.headers(), (headers, key) -> {
-                                        final Header header = headers.lastHeader(key);
-                                        if (header == null) {
-                                            return null;
-                                        }
-                                        return new String(header.value(), StandardCharsets.UTF_8);
-                                    }));
-                    readCounter.incrementAndGet();
-                });
-    }
-
     public void consumeDoubles(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, Double> consumer) {
         AtomicLong readCounter = new AtomicLong();
@@ -309,4 +289,7 @@ public class KafkaUsage {
         };
     }
 
+    public void setBootstrapServers(String bootstrapServers) {
+        this.brokers = bootstrapServers;
+    }
 }

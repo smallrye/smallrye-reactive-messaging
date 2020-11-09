@@ -5,40 +5,47 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.literal.NamedLiteral;
 import javax.enterprise.util.TypeLiteral;
 
-public class UnsatisfiedInstance<T> implements Instance<T> {
+public class SingletonInstance<T> implements Instance<T> {
 
-    private static final UnsatisfiedInstance<?> INSTANCE = new UnsatisfiedInstance<>();
+    private final T instance;
+    private final String name;
 
-    @SuppressWarnings("unchecked")
-    public static <T> Instance<T> instance() {
-        return (Instance<T>) INSTANCE;
-    }
-
-    private UnsatisfiedInstance() {
-        // avoid direct instantiation
+    public SingletonInstance(String name, T instance) {
+        this.name = name;
+        this.instance = instance;
     }
 
     @Override
     public Instance<T> select(Annotation... qualifiers) {
-        return instance();
+        if (qualifiers.length == 0) {
+            return this;
+        }
+        if (qualifiers.length == 1 && qualifiers[0] instanceof NamedLiteral) {
+            if (((NamedLiteral) qualifiers[0]).value().equalsIgnoreCase(name)) {
+                return this;
+            }
+        }
+        return UnsatisfiedInstance.instance();
+
     }
 
     @Override
     public <U extends T> Instance<U> select(Class<U> subtype, Annotation... qualifiers) {
-        return instance();
+        throw new UnsupportedOperationException("Not supported");
     }
 
     @Override
     public <U extends T> Instance<U> select(TypeLiteral<U> subtype,
             Annotation... qualifiers) {
-        return instance();
+        throw new UnsupportedOperationException("Not supported");
     }
 
     @Override
     public boolean isUnsatisfied() {
-        return true;
+        return false;
     }
 
     @Override
@@ -53,11 +60,11 @@ public class UnsatisfiedInstance<T> implements Instance<T> {
 
     @Override
     public Iterator<T> iterator() {
-        return Collections.emptyIterator();
+        return Collections.singleton(instance).iterator();
     }
 
     @Override
     public T get() {
-        throw new UnsupportedOperationException();
+        return instance;
     }
 }

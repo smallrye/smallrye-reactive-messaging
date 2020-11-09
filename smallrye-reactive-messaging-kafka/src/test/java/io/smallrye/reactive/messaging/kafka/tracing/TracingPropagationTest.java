@@ -85,7 +85,7 @@ public class TracingPropagationTest extends KafkaTestBase {
     public void testFromAppToKafka() {
         List<Map.Entry<String, Integer>> messages = new CopyOnWriteArrayList<>();
         List<Context> contexts = new CopyOnWriteArrayList<>();
-        usage.consumeIntegersWithTracing("output", 10, 1, TimeUnit.MINUTES, null,
+        usage.consumeIntegersWithTracing(topic, 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)),
                 contexts::add);
         runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
@@ -290,7 +290,7 @@ public class TracingPropagationTest extends KafkaTestBase {
     private MapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
         MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
         builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("topic", "output");
+        builder.put("topic", topic);
         return builder.build();
     }
 
