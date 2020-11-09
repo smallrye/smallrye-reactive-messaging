@@ -40,7 +40,7 @@ jobs:
             - uses: AdoptOpenJDK/install-jdk@v1
               with:
                 version: 11
-                source: 'release'
+                source: 'releases'
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
               run: |

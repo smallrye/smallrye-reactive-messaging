@@ -50,7 +50,7 @@ jobs:
             - uses: AdoptOpenJDK/install-jdk@v1
               with:
                 version: 11
-                source: 'release'
+                source: 'releases'
             - name: Coverage and Sonar
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
