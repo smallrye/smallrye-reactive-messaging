@@ -205,7 +205,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
                                     byte[] data,
                                     Exception exception, Headers headers) {
                                 assertThat(exception).isNotNull();
-                                assertThat(topic).isEqualTo(topic);
+                                assertThat(KeyDeserializerConfigurationTest.this.topic).isEqualTo(topic);
                                 assertThat(deserializer).isEqualTo(JsonObjectDeserializer.class.getName());
                                 assertThat(data).isNotEmpty();
                                 assertThat(isKey).isTrue();
