@@ -50,7 +50,7 @@ jobs:
             - uses: AdoptOpenJDK/install-jdk@v1
               with:
                 version: 11
-                source: 11
+                source: 'release'
             - name: Coverage and Sonar
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
             - uses: AdoptOpenJDK/install-jdk@v1
               with:
                   version: 11
-                  source: 11
+                  source: 'release'
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
               run: |
