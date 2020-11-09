@@ -37,9 +37,11 @@ jobs:
         steps:
             - uses: actions/checkout@v2
             - name: Install JDK 1.8
-              uses: joschi/setup-jdk@v1.0.0
+            - uses: actions/checkout@v2
+            - uses: AdoptOpenJDK/install-jdk@v1
               with:
-                  java-version: 'openjdk8'
+                version: 11
+                source: 11
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
               run: |
