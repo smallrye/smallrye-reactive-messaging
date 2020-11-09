@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2.5">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#converters">Converting messages</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-avro-configuration">Using Avro</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt-server/mqtt-server.html">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../http/http.html">HTTP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-outbound">Sending HTTP request</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html">Vert.x Event Bus</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-inbound">Event Bus Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-outbound">Sending Event Bus Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2.5</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2.5</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">SmallRye Reactive Messaging</a></li>
+    <li><a href="../model/model.html">Development Model</a></li>
+    <li><a href="acknowledgement.html">Acknowledgement</a></li>
+  </ul>
+</nav>
+</div>
+<article class="doc">
+<div class="sect1">
+<h2 id="_acknowledgement"><a class="anchor" href="#_acknowledgement"></a>Acknowledgement</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Acknowledgment is an essential concept in messaging.
+A message is acknowledged when its processing or reception has been successful.
+It allows the broker to move to the next message.</p>
+</div>
+<div class="paragraph">
+<p>How acknowledgment is used, and the exact behavior in terms of retry and resilience depends on the broker.
+For example, for Kafka, it would commit the offset.
+For AMQP, it would inform the broker that the message has been <em>accepted</em>.</p>
+</div>
+<div class="paragraph">
+<p>Reactive Messaging supports acknowledgement.
+The default acknowledgment depends on the method signature.
+Also, the acknowledgment policy can be configured using the <code>@Acknowledgement</code> annotation.</p>
+</div>
+<div class="sect2">
+<h3 id="_chain_of_acknowledgment"><a class="anchor" href="#_chain_of_acknowledgment"></a>Chain of acknowledgment</h3>
+<div class="paragraph">
+<p>If we reuse this example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("source")
+public Multi&lt;String&gt; generate() {
+    return Multi.createFrom().items("Hello", "from", "reactive", "messaging");
+}
+
+@Incoming("source")
+@Outgoing("sink")
+public String process(String in) {
+    return in.toUpperCase();
+}
+
+@Incoming("sink")
+public void consume(String processed) {
+    System.out.println(processed);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The framework automatically acknowledges the message received from the <code>sink</code> channel when the <code>consume</code> method returns.
+As a consequence, the message received by the <code>process</code> method is acknowledged, and so on.
+In other words, it creates a chain of acknowledgement - from the outbound channel to the inbound channel.</p>
+</div>
+<div class="paragraph">
+<p>When using connectors to receive and consume messages, the outbound connector acknowledges the messages when they are dispatched successfully to the broker.
+The acknowledgment chain would, as a result, acknowledges the inbound connector, which would be able to send an acknowledgment to the broker.</p>
+</div>
+<div class="paragraph">
+<p>This chain of acknowledgment is automatically implemented when processing payloads.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_acknowledgment_when_using_messages"><a class="anchor" href="#_acknowledgment_when_using_messages"></a>Acknowledgment when using Messages</h3>
+<div class="paragraph">
+<p>When using <code>Messages</code>, the user controls the acknowledgment, and so the chain is not formed automatically.
+It gives you more flexibility about when and how the incoming messages are acknowledged.</p>
+</div>
+<div class="paragraph">
+<p>If you create a <code>Message</code> using the <code>with</code> method, is copy the acknowledgment function from the incoming message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Message&lt;Integer&gt; process(Message&lt;Integer&gt; in) {
+    // The acknowledgement is forwarded, when the consumer
+    // acknowledges the message, `in` will be acknowledged
+    return in.withPayload(in.getPayload() + 1);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To have more control over the acknowledgment, you can create a brand new <code>Message</code> and pass the acknowledgment function:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">Message&lt;String&gt; message = Message.of("hello", () -&gt; {
+    // called when the consumer acknowledges the message
+
+    // return a CompletionStage completed when the
+    // acknowledgment of the created message is
+    // completed.
+    // For immediate ack use:
+    return CompletableFuture.completedFuture(null);
+
+});</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>However, you may need to create the acknowledgment chain, to acknowledge the incoming message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Message&lt;Integer&gt; processAndProduceNewMessage(Message&lt;Integer&gt; in) {
+    // The acknowledgement is forwarded, when the consumer
+    // acknowledges the message, `in` will be acknowledged
+    return Message.of(in.getPayload() + 1,
+        () -&gt; {
+            // Called when the consumer acknowledges the message
+            // ...
+            // Don't forget to acknowledge the incoming message:
+            return in.ack();
+        });
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To trigger the acknowledgment of the incoming message, use the <code>ack()</code> method.
+It returns a <code>CompletionStage</code>, receiving <code>null</code> as value when the acknowledgment has completed.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_acknowledgment_when_using_streams"><a class="anchor" href="#_acknowledgment_when_using_streams"></a>Acknowledgment when using streams</h3>
+<div class="paragraph">
+<p>When transforming streams of <code>Message</code>, the acknowledgment is delegated to the user.
+It means that it&#8217;s up to the user to acknowledged the incoming messages:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Publisher&lt;Message&lt;String&gt;&gt; transform(Multi&lt;Message&lt;String&gt;&gt; stream) {
+    return stream
+        .map(message -&gt;
+            message.withPayload(message.getPayload().toUpperCase())
+        );
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the previous example, we only generate a single message per incoming message so that we can use the <code>with</code> method.
+It becomes more sophisticated when grouping incoming messages or when each incoming message produces multiple messages.</p>
+</div>
+<div class="paragraph">
+<p>In the case of a stream of payloads, the default strategy acknowledges the incoming messages before being processed by the method (regardless of the outcome).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Publisher&lt;String&gt; transformPayload(Multi&lt;String&gt; stream) {
+    return stream
+        // The incoming messages are already acknowledged
+        .map(String::toUpperCase);
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_controlling_acknowledgement"><a class="anchor" href="#_controlling_acknowledgement"></a>Controlling acknowledgement</h3>
+<div class="paragraph">
+<p>The <a href="https://smallrye.io/smallrye-reactive-messaging/2.5.0/apidocs/org/eclipse/microprofile/reactive/messaging/acknowledgment.html"><code>Acknowledgment</code></a> annotation lets you customize the default strategy presented in the previous sections.
+The <code>@Acknowledgement</code> annotation takes a <em>strategy</em> as parameter.
+Reactive Messaging proposed 4 strategies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>POST_PROCESSING</code> - the acknowledgement of the incoming message is executed once the produced message is acknowledged.</p>
+</li>
+<li>
+<p><code>PRE_PROCESSING</code> - the acknowledgement of the incoming message is executed before the message is processed by the method.</p>
+</li>
+<li>
+<p><code>MANUAL</code> - the acknowledgement is doe by the user.</p>
+</li>
+<li>
+<p><code>NONE</code> - No acknowledgment is performed, neither manually or automatically.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>It is recommended to use <code>POST_PROCESSING</code> as it guarantees that the full processing has completed before acknowledging the incoming message.
+However, sometimes it&#8217;s not possible, and this strategy is not available if you manipulate streams of <code>Messages</code> or payloads.</p>
+</div>
+<div class="paragraph">
+<p>The <code>PRE_PROCESSING</code> strategy can be useful to acknowledge a message early in the process:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+@Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
+public String process(String input) {
+    // The message wrapping the payload is already acknowledged
+    // The default would have waited the produced message to be
+    // acknowledged
+    return input.toUpperCase();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It cuts the acknowledgment chain, meaning that the rest of the processing is not linked to the incoming message anymore.
+This strategy is the default strategy when manipulating streams of payloads.</p>
+</div>
+<div class="paragraph">
+<p>Refer to the <a href="../signatures/signatures.html" class="page">signature list</a> to determine which strategies are available for a specific method signature and what&#8217;s the default strategy.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_negative_acknowledgement"><a class="anchor" href="#_negative_acknowledgement"></a>Negative acknowledgement</h3>
+<div class="paragraph">
+<p>Messages can also be <em>nacked</em>, which indicates that the message was not processed correctly.
+The <code>Message.nack</code> method indicates failing processing (and supply the reason), and, as for successful acknowledgment, the <em>nack</em> is propagated through the chain of messages.</p>
+</div>
+<div class="paragraph">
+<p>If the message has been produced by a connector, this connector implements specific behavior when receiving a <em>nack</em>.
+It can fail (default), or ignore the failing, or implement a dead-letter queue mechanism.
+Refer to the connector documentation for further details about the available strategies.</p>
+</div>
+<div class="paragraph">
+<p>If the message is sent by an emitter using the <code>send(P)</code> method, the returned <code>CompletionStage</code> is completed <em>exceptionally</em> with the <em>nack</em> reason.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Inject @Channel("data") Emitter&lt;String&gt; emitter;
+
+public void emitPayload() {
+    CompletionStage&lt;Void&gt; completionStage = emitter.send("hello");
+    completionStage.whenComplete((acked, nacked) -&gt; {
+        if (nacked != null) {
+            // the processing has failed
+        }
+    });
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Negative acknowledgment can be manual or automatic.
+If your method handles instances of <code>Message</code> and the acknowledgment strategy is <code>MANUAL</code>, you can nack a message explicitly.
+You must indicate the reason (an exception) when calling the <code>nack</code> method.
+As for successful acknowledgment, the <code>nack</code> returns a <code>CompletionStage</code> completed when the <code>nack</code> has been processed.</p>
+</div>
+<div class="paragraph">
+<p>If your method uses the <code>POST_PROCESSING</code> acknowledgment strategy, and the method fails (either by throwing an exception or by producing a failure), the message is automatically nacked with the caught exception:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("data")
+@Outgoing("out")
+public String process(String s) {
+    if (s.equalsIgnoreCase("b")) {
+        // Throwing an exception triggers a nack
+        throw new IllegalArgumentException("b");
+    }
+
+    if (s.equalsIgnoreCase("e")) {
+        // Returning null would skip the message (it will be acked)
+        return null;
+    }
+
+    return s.toUpperCase();
+}
+
+@Incoming("data")
+@Outgoing("out")
+public Uni&lt;String&gt; processAsync(String s) {
+    if (s.equalsIgnoreCase("a")) {
+        // Returning a failing Uni triggers a nack
+        return Uni.createFrom().failure(new Exception("a"));
+    }
+
+    if (s.equalsIgnoreCase("b")) {
+        // Throwing an exception triggers a nack
+        throw new IllegalArgumentException("b");
+    }
+
+    if (s.equalsIgnoreCase("e")) {
+        // Returning null would skip the message (it will be acked not nacked)
+        return Uni.createFrom().nullItem();
+    }
+
+    if (s.equalsIgnoreCase("f")) {
+        // returning `null` is invalid for method returning Unis, the message is nacked
+        return null;
+    }
+
+    return Uni.createFrom().item(s.toUpperCase());
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
