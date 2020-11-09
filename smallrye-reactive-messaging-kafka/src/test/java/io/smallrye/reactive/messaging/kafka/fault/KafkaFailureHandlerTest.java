@@ -4,10 +4,7 @@ import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -18,11 +15,10 @@ import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -230,6 +226,45 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
     }
 
     @Test
+    public void testDeadLetterQueueStrategyWithInterceptor() {
+        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
+        String randomId = UUID.randomUUID().toString();
+
+        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
+                new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
+                Collections.singletonList("dead-letter-topic-kafka-itcp"), records::add);
+
+        MyReceiverBeanUsingPayload bean = runApplication(
+                getDeadLetterQueueWithCustomConfig("dq-itcp", "dead-letter-topic-kafka-itcp")
+                        .with("mp.messaging.incoming.kafka.interceptor.classes", IdentityInterceptor.class.getName()),
+                MyReceiverBeanUsingPayload.class);
+        await().until(this::isReady);
+
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>("dq-itcp", counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
+        assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.size() == 3);
+        assertThat(records).allSatisfy(r -> {
+            assertThat(r.topic()).isEqualTo("dead-letter-topic-kafka-itcp");
+            assertThat(r.value()).isIn(3, 6, 9);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dq-itcp");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
+        });
+
+        assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
+    }
+
+    @Test
     public void testDeadLetterQueueStrategyWithCustomConfig() {
         List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
         String randomId = UUID.randomUUID().toString();
@@ -395,6 +430,30 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
         public long producers() {
             return observedProducerEvents.sum();
+        }
+    }
+
+    public static class IdentityInterceptor<K, V> implements ConsumerInterceptor<K, V> {
+        @Override
+        public ConsumerRecords<K, V> onConsume(
+                ConsumerRecords<K, V> records) {
+            return records;
+        }
+
+        @Override
+        public void onCommit(
+                Map<TopicPartition, OffsetAndMetadata> offsets) {
+
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public void configure(Map<String, ?> configs) {
+
         }
     }
 }

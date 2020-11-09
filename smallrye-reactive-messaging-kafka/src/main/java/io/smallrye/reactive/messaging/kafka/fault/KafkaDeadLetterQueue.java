@@ -2,8 +2,7 @@ package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
@@ -49,6 +48,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
         String keyDeserializer = deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
         String valueDeserializer = deadQueueProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
+
+        // We need to remove consumer interceptor
+        deadQueueProducerConfig.remove(INTERCEPTOR_CLASSES_CONFIG);
+
         deadQueueProducerConfig.put(KEY_SERIALIZER_CLASS_CONFIG,
                 conf.getDeadLetterQueueKeySerializer().orElse(getMirrorSerializer(keyDeserializer)));
         deadQueueProducerConfig.put(VALUE_SERIALIZER_CLASS_CONFIG,
