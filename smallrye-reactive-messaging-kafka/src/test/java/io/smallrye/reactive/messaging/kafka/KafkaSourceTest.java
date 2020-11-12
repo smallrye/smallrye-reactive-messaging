@@ -7,25 +7,33 @@ import static org.awaitility.Awaitility.await;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.literal.NamedLiteral;
+import javax.inject.Inject;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
@@ -300,6 +308,22 @@ public class KafkaSourceTest extends KafkaTestBase {
     }
 
     @Test
+    public void testABeanConsumingTheKafkaMessagesMultiThread() {
+        MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, "my-group")
+                .with("mp.messaging.incoming.data.topic", topic), MultiThreadConsumer.class);
+        List<Integer> list = bean.getItems();
+        assertThat(list).isEmpty();
+        bean.run();
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(100, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 100);
+
+        System.out.println(bean.getThreads());
+    }
+
+    @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
         createTopic("data-2", 2);
         ConsumptionBean bean = run(
@@ -540,6 +564,46 @@ public class KafkaSourceTest extends KafkaTestBase {
                 StartFromFifthOffsetFromLatestButFailUntilSecondRebalanceConsumerRebalanceListener.class);
         runApplication(config);
         return get(ConsumptionBeanWithoutAck.class);
+    }
+
+    @ApplicationScoped
+    public static class MultiThreadConsumer {
+
+        private final List<Integer> items = new CopyOnWriteArrayList<>();
+        private final List<String> threads = new CopyOnWriteArrayList<>();
+        private final Random random = new Random();
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+
+        @Inject
+        @Channel("data")
+        Multi<Integer> messages;
+
+        public void run() {
+            messages
+                    .emitOn(executor)
+                    .onItem().transform(s -> {
+                        try {
+                            Thread.sleep(random.nextInt(100));
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        System.out.println("Consuming " + s + " on " + Thread.currentThread().getName());
+
+                        return s * -1;
+                    })
+                    .subscribe().with(it -> {
+                        items.add(it);
+                        threads.add(Thread.currentThread().getName());
+                    });
+        }
+
+        public List<Integer> getItems() {
+            return items;
+        }
+
+        public List<String> getThreads() {
+            return threads;
+        }
     }
 
 }

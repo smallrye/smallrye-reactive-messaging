@@ -139,8 +139,12 @@ public interface KafkaLogging extends BasicLogger {
     void configuredPattern(String channel, String pattern);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 18231, value = "The amount of received messages without acking is too high for topic partition '%s', amount %d.")
-    void receivedTooManyMessagesWithoutAcking(String topicPartition, long amount);
+    @Message(id = 18231, value = "The amount of received messages without acking is too high for topic partition '%s', "
+            + "amount %d. The last committed offset was %d. It means that the Kafka connector received Kafka Records that "
+            + "have neither be acked nor nacked in a timely fashion. The connector accumulates records in memory, but that "
+            + "buffer reached its maximum capacity or the deadline for ack/nack expired. The connector cannot commit as "
+            + "a record processing has not completed.")
+    void receivedTooManyMessagesWithoutAcking(String topicPartition, long amount, long lastCommittedOffset);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18232, value = "Will commit for group '%s' every %d milliseconds.")

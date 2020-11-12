@@ -13,6 +13,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
 import io.vertx.mutiny.core.Vertx;
@@ -292,11 +293,16 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
 
         if (this.unprocessedRecordMaxAge > 0) {
-            offsetStores
-                    .values()
-                    .stream()
-                    .filter(OffsetStore::hasTooManyMessagesWithoutAck)
-                    .forEach(o -> this.source.reportFailure(new TooManyMessagesWithoutAckException(), true));
+            for (OffsetStore store : offsetStores.values()) {
+                if (store.hasTooManyMessagesWithoutAck()) {
+                    long lastOffset = store.getLastCommittedOffset();
+                    String topic = store.topicPartition.getTopic();
+                    int partition = store.topicPartition.getPartition();
+                    TooManyMessagesWithoutAckException exception = new TooManyMessagesWithoutAckException(topic, partition,
+                            lastOffset);
+                    this.source.reportFailure(exception, true);
+                }
+            }
         }
 
     }
@@ -330,10 +336,15 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         private final Set<Long> processedOffsets = new HashSet<>();
         private final int unprocessedRecordMaxAge;
         private long unProcessedTotal = 0L;
+        private long lastCommitted = -1;
 
         OffsetStore(TopicPartition topicPartition, int unprocessedRecordMaxAge) {
             this.topicPartition = topicPartition;
             this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
+        }
+
+        long getLastCommittedOffset() {
+            return lastCommitted;
         }
 
         void received(long offset) {
@@ -355,10 +366,14 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                         break;
                     }
                     unProcessedTotal--;
-                    largestSequentialProcessedOffset = receivedOffsets.poll().getOffset();
+                    OffsetReceivedAt poll = receivedOffsets.poll();
+                    if (poll != null) {
+                        largestSequentialProcessedOffset = poll.getOffset();
+                    }
                 }
 
                 if (largestSequentialProcessedOffset > -1) {
+                    lastCommitted = largestSequentialProcessedOffset;
                     return largestSequentialProcessedOffset;
                 }
             }
@@ -369,17 +384,20 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             if (receivedOffsets.isEmpty()) {
                 return false;
             }
-            if (System.currentTimeMillis() - receivedOffsets.peek().getReceivedAt() > unprocessedRecordMaxAge) {
-                log.receivedTooManyMessagesWithoutAcking(topicPartition.toString(), unProcessedTotal);
+            OffsetReceivedAt peek = receivedOffsets.peek();
+            long time = peek == null ? 0 : (System.currentTimeMillis() - peek.getReceivedAt());
+            if (time > unprocessedRecordMaxAge) {
+                log.receivedTooManyMessagesWithoutAcking(topicPartition.toString(), unProcessedTotal, lastCommitted);
                 return true;
             }
             return false;
         }
     }
 
-    public static class TooManyMessagesWithoutAckException extends Exception {
-        public TooManyMessagesWithoutAckException() {
-            super("Too Many Messages without acknowledgement");
+    public static class TooManyMessagesWithoutAckException extends NoStackTraceThrowable {
+        public TooManyMessagesWithoutAckException(String topic, int partition, long lastOffset) {
+            super("Too Many Messages without acknowledgement in topic " + topic + " (partition:" + partition
+                    + "), last committed offset is " + lastOffset);
         }
     }
 

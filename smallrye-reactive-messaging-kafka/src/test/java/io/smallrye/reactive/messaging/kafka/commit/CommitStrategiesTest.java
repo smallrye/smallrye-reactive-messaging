@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -23,10 +24,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -275,6 +274,73 @@ public class CommitStrategiesTest extends WeldTestBase {
     }
 
     @Test
+    void testThrottledStrategyWithTooManyUnackedMessages() throws Exception {
+        MapBasedConfig config = commonConfiguration()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("commit-strategy", "throttled")
+                .with("auto.offset.reset", "earliest")
+                .with("health-enabled", true)
+                .with("throttled.unprocessed-record-max-age.ms", 1000)
+                .with("auto.commit.interval.ms", 100);
+        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream()
+                .subscribe().with(list::add);
+
+        TopicPartition p0 = new TopicPartition(TOPIC, 0);
+        TopicPartition p1 = new TopicPartition(TOPIC, 1);
+        Map<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(p0, 0L);
+        offsets.put(p1, 5L);
+        consumer.updateBeginningOffsets(offsets);
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(offsets.keySet());
+            for (int i = 0; i < 500; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i));
+            }
+        });
+
+        // Expected number of messages: 500 messages in each partition minus the [0..5) messages from p1
+        int expected = 500 * 2 - 5;
+        await().until(() -> list.size() == expected);
+        assertThat(list).hasSize(expected);
+
+        // Only ack the one from partition 0, and the 3 first items from partition 1.
+        int count = 0;
+        for (Message<?> message : list) {
+            IncomingKafkaRecordMetadata<?, ?> metadata = message
+                    .getMetadata(IncomingKafkaRecordMetadata.class).orElseThrow(() -> new Exception("metadata expected"));
+            if (metadata.getPartition() == 0) {
+                message.ack().toCompletableFuture().join();
+            } else {
+                if (count < 5) {
+                    message.ack().toCompletableFuture().join();
+                    count = count + 1;
+                }
+            }
+        }
+
+        AtomicReference<HealthReport> report = new AtomicReference<>();
+        await().until(() -> {
+            HealthReport.HealthReportBuilder builder = HealthReport.builder();
+            source.isAlive(builder);
+            HealthReport r = builder.build();
+            report.set(r);
+            return !r.isOk();
+        });
+
+        HealthReport r = report.get();
+        String message = r.getChannels().get(0).getMessage();
+        assertThat(message).contains("my-topic", "partition:1", "9");
+    }
+
+    @Test
     public void testFailureWhenNoRebalanceListenerMatchGivenName() {
         MapBasedConfig config = commonConfiguration();
         config
@@ -352,7 +418,6 @@ public class CommitStrategiesTest extends WeldTestBase {
         return getBeanManager().createInstance().select(KafkaConsumerRebalanceListener.class);
     }
 
-    @SuppressWarnings("rawtypes")
     public Instance<DeserializationFailureHandler<?>> getDeserializationFailureHandlers() {
         return getBeanManager().createInstance().select(
                 new TypeLiteral<DeserializationFailureHandler<?>>() {
