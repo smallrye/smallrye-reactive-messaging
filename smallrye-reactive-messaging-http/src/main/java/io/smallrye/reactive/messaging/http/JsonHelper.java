@@ -27,6 +27,14 @@ public class JsonHelper {
             }
 
             try {
+                boolean b = config.getValue(key, Boolean.class);
+                json.put(key, b);
+                continue;
+            } catch (ClassCastException | IllegalArgumentException e) {
+                // Ignore me
+            }
+
+            try {
                 String value = config.getValue(key, String.class);
                 if (value.trim().equalsIgnoreCase("false")) {
                     json.put(key, false);

@@ -39,6 +39,16 @@ public class JsonHelper {
             }
 
             try {
+                Optional<Boolean> b = config.getOptionalValue(originalKey, Boolean.class);
+                if (b.isPresent()) {
+                    json.put(key, b.get());
+                    continue;
+                }
+            } catch (ClassCastException | IllegalArgumentException e) {
+                // Ignore me
+            }
+
+            try {
                 String value = config.getOptionalValue(originalKey, String.class).orElse("").trim();
                 if (value.equalsIgnoreCase("false")) {
                     json.put(key, false);
