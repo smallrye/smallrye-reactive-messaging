@@ -18,6 +18,7 @@ public class JsonHelper {
             // Transform keys that may comes from environment variables.
             // As kafka properties use `.`, transform "_" into "."
             String key = originalKey.toLowerCase().replace("_", ".");
+
             try {
                 Optional<Integer> i = config.getOptionalValue(originalKey, Integer.class);
                 if (i.isPresent()) {
@@ -47,9 +48,19 @@ public class JsonHelper {
                 } else {
                     json.put(key, value);
                 }
+                continue;
             } catch (ClassCastException e) {
+                // Ignore me
+            }
+
+            // We need to do boolean last, as it would return `false` for any non parsable object.
+            try {
+                Optional<Boolean> d = config.getOptionalValue(originalKey, Boolean.class);
+                d.ifPresent(v -> json.put(key, v));
+            } catch (ClassCastException | IllegalArgumentException e) {
                 // Ignore the entry
             }
+
         }
         return json;
     }
