@@ -18,6 +18,8 @@ class JsonHelperTest {
                 .put("double", 23.4)
                 .put("trueasstring", "true")
                 .put("falseasstring", "false")
+                .put("boolean.t", true)
+                .put("boolean.f", false)
                 .put("FOO_BAR", "value")
                 .build();
 
@@ -29,6 +31,9 @@ class JsonHelperTest {
         assertThat(object.getBoolean("falseasstring")).isFalse();
         assertThat(object.getString("foo.bar")).isEqualTo("value");
         assertThat(object.getString("bootstrap.servers")).isEqualTo("not-important");
+
+        assertThat(object.getBoolean("boolean.t")).isTrue();
+        assertThat(object.getBoolean("boolean.f")).isFalse();
 
     }
 

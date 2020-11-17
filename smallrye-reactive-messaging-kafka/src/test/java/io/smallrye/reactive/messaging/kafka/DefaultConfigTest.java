@@ -110,7 +110,8 @@ public class DefaultConfigTest extends KafkaTestBase {
                         final String value = config.getOptionalValue(name, String.class).orElse("");
                         properties.put(key, value);
                     });
-
+            // Here to verify that passing a boolean does not trigger an error.
+            properties.put("some-boolean", true);
             return properties;
         }
     }
