@@ -149,7 +149,7 @@ To achieve this, create a CDI bean implementing the {javadoc-base}/io/smallrye/r
 ----
 @ApplicationScoped
 @Named("failure-fallback") // Set the name of the failure handler
-public static class MyDeserializationFailureHandler
+public class MyDeserializationFailureHandler
     implements DeserializationFailureHandler<JsonObject> { // Specify the expected type
 
     @Override
