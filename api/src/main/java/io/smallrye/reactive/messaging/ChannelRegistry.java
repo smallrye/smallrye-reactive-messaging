@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -10,7 +11,12 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 public interface ChannelRegistry {
 
-    PublisherBuilder<? extends Message<?>> register(String name, PublisherBuilder<? extends Message<?>> stream);
+    default PublisherBuilder<? extends Message<?>> register(String name, PublisherBuilder<? extends Message<?>> stream) {
+        return register(name, stream, false);
+    }
+
+    PublisherBuilder<? extends Message<?>> register(String name, PublisherBuilder<? extends Message<?>> stream,
+            boolean broadcast);
 
     SubscriberBuilder<? extends Message<?>, Void> register(String name,
             SubscriberBuilder<? extends Message<?>, Void> subscriber);
@@ -32,4 +38,6 @@ public interface ChannelRegistry {
     Set<String> getOutgoingNames();
 
     Set<String> getEmitterNames();
+
+    Map<String, Boolean> getIncomingChannels();
 }

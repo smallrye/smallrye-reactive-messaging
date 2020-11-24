@@ -52,7 +52,7 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 207, value = "Cancel subscriptions")
     void cancelSubscriptions();
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 208, value = "Deployment done... start processing")
     void deploymentDoneStartProcessing();
 
@@ -124,11 +124,11 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 225, value = "No subscriber for channel %s attached to the emitter %s.%s")
     void noSubscriberForChannelAttachedToEmitter(String name, String beanClassName, String memberName);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 226, value = "Found incoming connectors: %s")
     void foundIncomingConnectors(List<String> connectors);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 227, value = "Found outgoing connectors: %s")
     void foundOutgoingConnectors(List<String> connectors);
 
@@ -136,7 +136,7 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 228, value = "No MicroProfile Config found, skipping")
     void skippingMPConfig();
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 229, value = "Channel manager initializing...")
     void channelManagerInitializing();
 
@@ -144,11 +144,11 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 230, value = "Unable to create the publisher or subscriber during initialization")
     void unableToCreatePublisherOrSubscriber(@Cause Throwable t);
 
-    @LogMessage(level = Logger.Level.WARN)
+    @LogMessage(level = Logger.Level.INFO)
     @Message(id = 231, value = "Incoming channel `%s` disabled by configuration")
     void incomingChannelDisabled(String channel);
 
-    @LogMessage(level = Logger.Level.WARN)
+    @LogMessage(level = Logger.Level.INFO)
     @Message(id = 232, value = "Outgoing channel `%s` disabled by configuration")
     void outgoingChannelDisabled(String channel);
 

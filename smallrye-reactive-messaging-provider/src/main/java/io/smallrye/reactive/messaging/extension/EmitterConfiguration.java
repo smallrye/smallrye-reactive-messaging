@@ -37,7 +37,6 @@ public class EmitterConfiguration {
             this.broadcast = Boolean.TRUE;
             this.numberOfSubscriberBeforeConnecting = broadcast.value();
         } else {
-            this.broadcast = Boolean.FALSE;
             this.numberOfSubscriberBeforeConnecting = -1;
         }
     }

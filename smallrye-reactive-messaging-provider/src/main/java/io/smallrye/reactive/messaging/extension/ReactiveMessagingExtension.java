@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.extension;
 
-import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 
 import java.lang.annotation.Annotation;
@@ -15,12 +14,16 @@ import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.wiring.Graph;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class ReactiveMessagingExtension implements Extension {
 
@@ -89,73 +92,58 @@ public class ReactiveMessagingExtension implements Extension {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     void afterDeploymentValidation(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
         Instance<Object> instance = beanManager.createInstance();
-        ChannelRegistry registry = instance.select(ChannelRegistry.class)
-                .get();
-
-        List<EmitterConfiguration> emitters = new ArrayList<>();
-        createEmitterConfiguration(emitterInjectionPoints, false, emitters);
-        createEmitterConfiguration(mutinyEmitterInjectionPoints, true, emitters);
-
+        ChannelRegistry registry = instance.select(ChannelRegistry.class).get();
+        MediatorManager mediatorManager = instance.select(MediatorManager.class).get();
         WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();
+        Wiring wiring = instance.select(Wiring.class).get();
+        Instance<ChannelRegistar> registars = instance.select(ChannelRegistar.class);
 
-        for (WorkerPoolBean workerPoolBean : workerPoolBeans) {
-            workerPoolRegistry.analyzeWorker(workerPoolBean.annotatedType);
+        List<EmitterConfiguration> emitters = createEmitterConfigurations();
+        List<ChannelConfiguration> channels = createChannelConfigurations();
+
+        // Initialize registars (connectors)
+        for (ChannelRegistar registar : registars) {
+            registar.initialize();
         }
-
-        MediatorManager mediatorManager = instance.select(MediatorManager.class)
-                .get();
-        mediatorManager.initializeEmitters(emitters);
 
         for (MediatorBean mediatorBean : mediatorBeans) {
             log.analyzingMediatorBean(mediatorBean.bean);
             mediatorManager.analyze(mediatorBean.annotatedType, mediatorBean.bean);
         }
         mediatorBeans.clear();
+        List<MediatorConfiguration> configurations = mediatorManager.getConfigurations();
 
-        try {
-            mediatorManager.initializeAndRun();
-
-            // NOTE: We do not validate @Channel annotations added by portable extensions
-            Set<String> names = registry.getIncomingNames();
-            for (InjectionPoint ip : streamInjectionPoints) {
-                String name = ChannelProducer.getChannelName(ip);
-                if (!names.contains(name)) {
-                    done.addDeploymentProblem(ex.deploymentNoChannel(name, ip));
-                }
-                // TODO validate the required type
-            }
-            streamInjectionPoints.clear();
-
-            for (InjectionPoint ip : emitterInjectionPoints) {
-                String name = ChannelProducer.getChannelName(ip);
-                EmitterImpl<?> emitter = (EmitterImpl<?>) registry.getEmitter(name);
-                if (!emitter.isSubscribed()) {
-                    // Subscription may happen later, just print a warning.
-                    // Attempting an emission without being subscribed would result in an error.
-                    log.noSubscriberForChannelAttachedToEmitter(name, ip.getBean().getBeanClass().getName(),
-                            ip.getMember().getName());
-                }
-                // TODO validate the required type
-            }
-
-            for (InjectionPoint ip : mutinyEmitterInjectionPoints) {
-                String name = ChannelProducer.getChannelName(ip);
-                MutinyEmitterImpl<?> mutinyEmitter = (MutinyEmitterImpl<?>) registry.getMutinyEmitter(name);
-                if (!mutinyEmitter.isSubscribed()) {
-                    // Subscription may happen later, just print a warning.
-                    // Attempting an emission without being subscribed would result in an error.
-                    log.noSubscriberForChannelAttachedToEmitter(name, ip.getBean().getBeanClass().getName(),
-                            ip.getMember().getName());
-                }
-                // TODO validate the required type
-            }
-
-        } catch (Exception e) {
-            done.addDeploymentProblem(e);
-            if (health != null) {
-                health.report("deployment", e);
-            }
+        for (WorkerPoolBean workerPoolBean : workerPoolBeans) {
+            workerPoolRegistry.analyzeWorker(workerPoolBean.annotatedType);
         }
+
+        wiring.prepare(registry, emitters, channels, configurations);
+        Graph graph = wiring.resolve();
+
+        if (graph.hasWiringErrors()) {
+            DeploymentException composite = new DeploymentException("Wiring error(s) detected in application.");
+            for (Exception error : graph.getWiringErrors()) {
+                composite.addSuppressed(error);
+            }
+            throw composite;
+        }
+        graph.materialize(registry);
+    }
+
+    private List<ChannelConfiguration> createChannelConfigurations() {
+        List<ChannelConfiguration> channels = new ArrayList<>();
+        for (InjectionPoint ip : streamInjectionPoints) {
+            String name = ChannelProducer.getChannelName(ip);
+            channels.add(new ChannelConfiguration(name));
+        }
+        return channels;
+    }
+
+    private List<EmitterConfiguration> createEmitterConfigurations() {
+        List<EmitterConfiguration> emitters = new ArrayList<>();
+        createEmitterConfiguration(emitterInjectionPoints, false, emitters);
+        createEmitterConfiguration(mutinyEmitterInjectionPoints, true, emitters);
+        return emitters;
     }
 
     private void createEmitterConfiguration(List<InjectionPoint> emitterInjectionPoints, boolean isMutinyEmitter,
