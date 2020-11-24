@@ -319,8 +319,6 @@ public class KafkaSourceTest extends KafkaTestBase {
                 () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 100);
-
-        System.out.println(bean.getThreads());
     }
 
     @Test
@@ -587,8 +585,6 @@ public class KafkaSourceTest extends KafkaTestBase {
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
-                        System.out.println("Consuming " + s + " on " + Thread.currentThread().getName());
-
                         return s * -1;
                     })
                     .subscribe().with(it -> {
