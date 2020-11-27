@@ -297,7 +297,6 @@ public class MediatorManager {
         // We also need to connect mediator and emitter to un-managed subscribers
         for (String name : unmanagedSubscribers) {
             List<AbstractMediator> list = lookupForMediatorsWithMatchingDownstream(name);
-            AbstractEmitter emitter = (AbstractEmitter) channelRegistry.getEmitter(name);
             List<SubscriberBuilder<? extends Message<?>, Void>> subscribers = channelRegistry.getSubscribers(name);
             for (AbstractMediator mediator : list) {
                 if (subscribers.size() == 1) {
@@ -312,16 +311,22 @@ public class MediatorManager {
                 }
             }
 
-            if (list.isEmpty() && emitter != null) {
-                if (subscribers.size() == 1) {
-                    log.connectingEmitterToSink(name);
-                    ReactiveStreams.fromPublisher(emitter.getPublisher()).to(subscribers.get(0)).run();
-                } else if (subscribers.size() > 2) {
-                    log.numberOfSubscribersConsumingStream(subscribers.size(), name);
-                    subscribers.forEach(s -> {
+            if (list.isEmpty()) {
+                AbstractEmitter emitter = (AbstractEmitter) channelRegistry.getEmitter(name);
+                if (emitter == null) {
+                    emitter = (AbstractEmitter) channelRegistry.getMutinyEmitter(name);
+                }
+                if (emitter != null) {
+                    if (subscribers.size() == 1) {
                         log.connectingEmitterToSink(name);
-                        ReactiveStreams.fromPublisher(emitter.getPublisher()).to(s).run();
-                    });
+                        ReactiveStreams.fromPublisher(emitter.getPublisher()).to(subscribers.get(0)).run();
+                    } else if (subscribers.size() > 2) {
+                        log.numberOfSubscribersConsumingStream(subscribers.size(), name);
+                        for (SubscriberBuilder<? extends Message<?>, Void> subscriber : subscribers) {
+                            log.connectingEmitterToSink(name);
+                            ReactiveStreams.fromPublisher(emitter.getPublisher()).to(subscriber).run();
+                        }
+                    }
                 }
             }
         }
@@ -393,7 +398,6 @@ public class MediatorManager {
 
     public void initializeEmitter(EmitterConfiguration emitterConfiguration, long defaultBufferSize) {
         Publisher<? extends Message<?>> publisher;
-
         if (emitterConfiguration.isMutinyEmitter) {
             MutinyEmitterImpl<?> mutinyEmitter = new MutinyEmitterImpl<>(emitterConfiguration, defaultBufferSize);
             publisher = mutinyEmitter.getPublisher();
@@ -403,7 +407,6 @@ public class MediatorManager {
             publisher = emitter.getPublisher();
             channelRegistry.register(emitterConfiguration.name, emitter);
         }
-
         channelRegistry.register(emitterConfiguration.name, ReactiveStreams.fromPublisher(publisher));
     }
 }
