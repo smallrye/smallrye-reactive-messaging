@@ -18,6 +18,8 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
+import io.vertx.mutiny.kafka.client.producer.KafkaHeader;
 import io.vertx.mutiny.kafka.client.producer.KafkaProducer;
 import io.vertx.mutiny.kafka.client.producer.KafkaProducerRecord;
 
@@ -102,6 +104,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         dead.addHeader(DEAD_LETTER_TOPIC, record.getTopic());
         dead.addHeader(DEAD_LETTER_PARTITION, Integer.toString(record.getPartition()));
         dead.addHeader(DEAD_LETTER_OFFSET, Long.toString(record.getOffset()));
+        record.getHeaders().forEach(header -> dead.addHeader(KafkaHeader.header(header.key(), Buffer.buffer(header.value()))));
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
                 .onFailure().invoke(t -> source.reportFailure((Throwable) t, true))
