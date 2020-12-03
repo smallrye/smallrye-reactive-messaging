@@ -75,58 +75,6 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
     }
 
     @Test(expected = DeploymentException.class)
-    public void testThatWeCanConsumeMessagesFromAMethodReturningACompletionStage() {
-        addBeanClass(BeanConsumingMessagesAndReturningACompletionStageOfVoid.class);
-        initialize();
-    }
-
-    @ApplicationScoped
-    public static class BeanConsumingMessagesAndReturningACompletionStageOfVoid {
-        private List<String> list = new CopyOnWriteArrayList<>();
-        private ExecutorService executor = Executors.newSingleThreadExecutor();
-
-        @Blocking
-        @Incoming("count")
-        public CompletionStage<Void> consume(Message<String> message) {
-            return CompletableFuture.supplyAsync(() -> {
-                list.add(message.getPayload());
-                return null;
-            }, executor);
-        }
-
-        @PreDestroy
-        public void cleanup() {
-            executor.shutdown();
-        }
-    }
-
-    @Test(expected = DeploymentException.class)
-    public void testThatWeCanConsumePayloadsFromAMethodReturningACompletionStage() {
-        addBeanClass(BeanConsumingPayloadsAndReturningACompletionStageOfVoid.class);
-        initialize();
-    }
-
-    @ApplicationScoped
-    public static class BeanConsumingPayloadsAndReturningACompletionStageOfVoid {
-        private List<String> list = new CopyOnWriteArrayList<>();
-        private ExecutorService executor = Executors.newSingleThreadExecutor();
-
-        @Blocking
-        @Incoming("count")
-        public CompletionStage<Void> consume(String payload) {
-            return CompletableFuture.supplyAsync(() -> {
-                list.add(payload);
-                return null;
-            }, executor);
-        }
-
-        @PreDestroy
-        public void cleanup() {
-            executor.shutdown();
-        }
-    }
-
-    @Test(expected = DeploymentException.class)
     public void testThatWeCanConsumeMessagesFromAMethodReturningACompletionStageOfSomething() {
         addBeanClass(BeanConsumingMessagesAndReturningACompletionStageOfSomething.class);
         initialize();
@@ -175,46 +123,6 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         @PreDestroy
         public void cleanup() {
             executor.shutdown();
-        }
-    }
-
-    @Test(expected = DeploymentException.class)
-    public void testThatWeCanConsumeMessagesFromAMethodReturningUni() {
-        addBeanClass(BeanConsumingMessagesAndReturningUniOfVoid.class);
-        initialize();
-    }
-
-    @ApplicationScoped
-    public static class BeanConsumingMessagesAndReturningUniOfVoid {
-        private List<String> list = new CopyOnWriteArrayList<>();
-
-        @Blocking
-        @Incoming("count")
-        public Uni<Void> consume(Message<String> message) {
-            return Uni.createFrom().item(() -> {
-                list.add(message.getPayload());
-                return null;
-            });
-        }
-    }
-
-    @Test(expected = DeploymentException.class)
-    public void testThatWeCanConsumePayloadsFromAMethodReturningUni() {
-        addBeanClass(BeanConsumingPayloadsAndReturningUniOfVoid.class);
-        initialize();
-    }
-
-    @ApplicationScoped
-    public static class BeanConsumingPayloadsAndReturningUniOfVoid {
-        private List<String> list = new CopyOnWriteArrayList<>();
-
-        @Blocking
-        @Incoming("count")
-        public Uni<Void> consume(String payload) {
-            return Uni.createFrom().item(() -> {
-                list.add(payload);
-                return null;
-            });
         }
     }
 

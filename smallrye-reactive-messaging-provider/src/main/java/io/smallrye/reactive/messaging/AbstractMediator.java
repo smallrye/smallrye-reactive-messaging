@@ -104,7 +104,12 @@ public abstract class AbstractMediator {
             return workerPoolRegistry.executeWork(
                     future -> {
                         try {
-                            future.complete((T) this.invoker.invoke(args));
+                            Object result = this.invoker.invoke(args);
+                            if (result instanceof CompletionStage) {
+                                ((CompletionStage<?>) result).thenAccept(x -> future.complete((T) x));
+                            } else {
+                                future.complete((T) result);
+                            }
                         } catch (RuntimeException e) {
                             log.methodException(configuration().methodAsString(), e);
                             future.fail(e);
