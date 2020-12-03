@@ -592,11 +592,17 @@ public class MediatorConfigurationSupport {
         }
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
-            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
+            Type returnTypeParameter = returnTypeAssignable.getType(0);
+            if (returnTypeParameter != null && !returnTypeParameter.getTypeName().equals(Void.class.getName())) {
+                throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
+            }
         }
 
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
-            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
+            Type returnTypeParameter = returnTypeAssignable.getType(0);
+            if (returnTypeParameter != null && !returnTypeParameter.getTypeName().equals(Void.class.getName())) {
+                throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
+            }
         }
     }
 

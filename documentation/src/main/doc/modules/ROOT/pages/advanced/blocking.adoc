@@ -48,3 +48,18 @@ Specifying the concurrency for the above worker pool requires the following conf
 smallrye.messaging.worker.my-custom-pool.max-concurrency=3
 ----
 
+=== CompletionStage and Uni
+
+A method annotated with `@Incoming` and `@Blocking` supports return types
+of `Uni<Void>` and `CompletionStage<Void>`.
+The use is similar to the above examples:
+
+[source, java]
+----
+@Incoming("X")
+@Blocking
+public Uni<Void> process(String s) {
+  // Process payload
+  return Uni.createFrom().voidItem();
+}
+----
