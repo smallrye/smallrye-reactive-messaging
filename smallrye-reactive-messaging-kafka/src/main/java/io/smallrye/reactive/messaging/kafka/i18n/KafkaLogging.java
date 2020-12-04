@@ -130,6 +130,10 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18228, value = "A failure has been reported for Kafka topics '%s'")
     void failureReported(Set<String> topics, @Cause Throwable t);
 
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18242, value = "A failure has been reported during a rebalance - the operation will be retried: '%s'")
+    void failureReportedDuringRebalance(Set<String> topics, @Cause Throwable t);
+
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18229, value = "Configured topics for channel '%s': %s")
     void configuredTopics(String channel, Set<String> topics);
