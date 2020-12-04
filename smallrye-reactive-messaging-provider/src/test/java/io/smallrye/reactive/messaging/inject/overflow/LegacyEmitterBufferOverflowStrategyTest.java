@@ -70,7 +70,7 @@ public class LegacyEmitterBufferOverflowStrategyTest extends WeldTestBaseWithout
         @OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 300)
         Emitter<String> emitter;
 
-        private List<String> output = new CopyOnWriteArrayList<>();
+        private final List<String> output = new CopyOnWriteArrayList<>();
 
         private volatile Throwable downstreamFailure;
         private Exception callerException;

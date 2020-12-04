@@ -91,16 +91,11 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
 
     @Test
     public void testWithMissingChannel() {
-        // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndForget(Message.of("foo"));
-        assertThat(logCapture.records()).isNotNull()
-                .filteredOn(r -> r.getMessage().contains("SRMSG00234"))
-                .hasSize(1)
-                .hasOnlyOneElementSatisfying(r -> {
-                    assertThat(r.getMessage()).contains("Failed to emit a Message to the channel");
-                    assertThat(r.getThrown()).isExactlyInstanceOf(IllegalStateException.class);
-                    assertThat(r.getThrown().getMessage()).contains("SRMSG00027: No subscriber found for the channel missing");
-                });
+        try {
+            installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndForget(Message.of("foo"));
+        } catch (IllegalStateException e) {
+            assertThat(e).hasMessageContaining("SRMSG00019");
+        }
     }
 
     @Test
@@ -239,7 +234,7 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
             emitter.sendAndForget("a");
             emitter.sendAndForget("b");
             try {
-                emitter.sendAndForget((String) null);
+                emitter.sendAndForget(null);
             } catch (IllegalArgumentException e) {
                 caughtNullPayload = true;
             }

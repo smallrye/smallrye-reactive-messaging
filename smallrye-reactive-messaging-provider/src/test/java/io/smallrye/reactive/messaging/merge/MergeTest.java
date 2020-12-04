@@ -21,7 +21,10 @@ public class MergeTest extends WeldTestBaseWithoutTails {
     public void testRegularMerge() {
         initialize();
         BeanUsingMerge merge = container.getBeanManager().createInstance().select(BeanUsingMerge.class).get();
-        await().until(() -> merge.list().size() == 7);
+        await().until(() -> {
+            System.out.println(merge.list());
+            return merge.list().size() == 7;
+        });
         assertThat(merge.list()).contains("a", "b", "c", "D", "E", "F", "G");
     }
 
