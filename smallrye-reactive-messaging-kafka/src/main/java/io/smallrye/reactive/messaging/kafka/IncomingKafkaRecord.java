@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.header.Headers;
@@ -120,6 +121,11 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     @Override
     public Supplier<CompletionStage<Void>> getAck() {
         return this::ack;
+    }
+
+    @Override
+    public Function<Throwable, CompletionStage<Void>> getNack() {
+        return this::nack;
     }
 
     @Override
