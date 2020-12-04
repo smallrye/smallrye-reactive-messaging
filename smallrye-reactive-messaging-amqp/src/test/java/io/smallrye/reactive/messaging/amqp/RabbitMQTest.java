@@ -15,7 +15,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
 
 public class RabbitMQTest extends RabbitMQBrokerTestBase {
 
@@ -75,7 +74,6 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
         weld.addBeanClass(ConsumptionBean.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
         ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

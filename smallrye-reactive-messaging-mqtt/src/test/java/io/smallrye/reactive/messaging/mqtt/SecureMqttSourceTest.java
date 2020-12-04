@@ -16,8 +16,6 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.smallrye.reactive.messaging.extension.MediatorManager;
-
 public class SecureMqttSourceTest extends SecureMqttTestBase {
 
     private WeldContainer container;
@@ -62,7 +60,6 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
     @Test
     public void testABeanConsumingTheMQTTMessagesWithAuthentication() {
         ConsumptionBean bean = deploy();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();

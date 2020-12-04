@@ -24,6 +24,7 @@ import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class WeldTestBase {
 
@@ -72,6 +73,7 @@ public class WeldTestBase {
                 LegacyConfiguredChannelFactory.class,
                 MetricDecorator.class,
                 HealthCenter.class,
+                Wiring.class,
 
                 // In memory connector
                 InMemoryConnector.class,
