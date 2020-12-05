@@ -114,6 +114,7 @@ public class WeldTestBase {
     }
 
     public boolean isReady() {
+        getHealth().getReadiness().getChannels().forEach(ci -> System.out.println(ci.getChannel() + " / " + ci.getMessage()));
         return getHealth().getReadiness().isOk();
     }
 

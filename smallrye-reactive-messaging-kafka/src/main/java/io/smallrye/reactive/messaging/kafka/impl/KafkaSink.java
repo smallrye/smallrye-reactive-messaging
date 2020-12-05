@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.*;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -127,6 +128,21 @@ public class KafkaSink {
         failures.add(failure);
     }
 
+    /**
+     * List exception for which we should not retry - they are fatal.
+     * The list comes from https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/Callback.html.
+     *
+     * Also included: SerializationException (as the chances to serialize the payload correctly one retry are almost 0).
+     *
+     */
+    private static final Set<Class<? extends Throwable>> NOT_RECOVERABLE = new HashSet<>(Arrays.asList(
+            InvalidTopicException.class,
+            OffsetMetadataTooLarge.class,
+            RecordBatchTooLargeException.class,
+            RecordTooLargeException.class,
+            UnknownServerException.class,
+            SerializationException.class));
+
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
         return message -> {
             try {
@@ -163,7 +179,7 @@ public class KafkaSink {
                                 e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
 
                 if (this.retries > 0) {
-                    uni = uni.onFailure().retry()
+                    uni = uni.onFailure(this::isRecoverable).retry()
                             .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
                 }
                 return uni
@@ -177,6 +193,10 @@ public class KafkaSink {
                 return Uni.createFrom().failure(e);
             }
         };
+    }
+
+    private boolean isRecoverable(Throwable f) {
+        return !NOT_RECOVERABLE.contains(f.getClass());
     }
 
     private void handleWriteResult(AsyncResult<?> ar, Message<?> message, ProducerRecord<?, ?> record,
@@ -206,7 +226,7 @@ public class KafkaSink {
             String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
 
-        Object actualKey = getKey(message, om, configuration);
+        Object actualKey = getKey(message, om);
 
         long actualTimestamp;
         if ((om == null) || (om.getTimestamp() == null)) {
@@ -233,8 +253,7 @@ public class KafkaSink {
 
     @SuppressWarnings({ "rawtypes" })
     private Object getKey(Message<?> message,
-            OutgoingKafkaRecordMetadata<?> metadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            OutgoingKafkaRecordMetadata<?> metadata) {
 
         // First, the message metadata
         if (metadata != null && metadata.getKey() != null) {
