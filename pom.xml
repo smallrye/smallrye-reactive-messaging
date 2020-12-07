@@ -65,7 +65,7 @@
 
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
-    <microprofile-config.version>1.4</microprofile-config.version>
+    <microprofile-config.version>2.0</microprofile-config.version>
     <microprofile-metrics-api.version>2.3.2</microprofile-metrics-api.version>
     <microprofile-health-api.version>2.2</microprofile-health-api.version>
 
