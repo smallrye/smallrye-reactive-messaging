@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.wiring;
 
 import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -454,6 +455,81 @@ class WiringTest {
 
         assertThat(graph.getInbound()).hasSize(1).allSatisfy(pc -> assertThat(pc.outgoing()).contains("a"));
         assertThat(graph.getOutbound()).hasSize(1).allSatisfy(pc -> assertThat(pc.incomings()).containsExactly("a"));
+    }
+
+    /**
+     * A processor consuming "a" and producing "b" and another processor consuming "b" and producing "a"
+     */
+    @Test
+    public void testDirectCycle() {
+        ChannelRegistry registry = mock(ChannelRegistry.class);
+        Bean bean = mock(Bean.class);
+        when(bean.getBeanClass()).thenReturn(WiringTest.class);
+
+        DefaultMediatorConfiguration processor1 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor1.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        DefaultMediatorConfiguration processor2 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor2.compute(Collections.singletonList(IncomingLiteral.of("b")), OutgoingLiteral.of("a"), null);
+
+        Wiring wiring = new Wiring();
+        wiring.prepare(registry,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Arrays.asList(processor1, processor2));
+        assertThatThrownBy(wiring::resolve).isInstanceOf(CycleException.class);
+    }
+
+    /**
+     * A processor consuming "a" and producing "b" and another processor consuming "b" and producing "c" and a third
+     * processor consuming "c" and producing "a".
+     */
+    @Test
+    public void testCycleWithAComponentInBetween() {
+        ChannelRegistry registry = mock(ChannelRegistry.class);
+        Bean bean = mock(Bean.class);
+        when(bean.getBeanClass()).thenReturn(WiringTest.class);
+
+        DefaultMediatorConfiguration processor1 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor1.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        DefaultMediatorConfiguration processor2 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor2.compute(Collections.singletonList(IncomingLiteral.of("b")), OutgoingLiteral.of("c"), null);
+        DefaultMediatorConfiguration processor3 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor3.compute(Collections.singletonList(IncomingLiteral.of("c")), OutgoingLiteral.of("a"), null);
+
+        Wiring wiring = new Wiring();
+        wiring.prepare(registry,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Arrays.asList(processor1, processor2, processor3));
+        assertThatThrownBy(wiring::resolve).isInstanceOf(CycleException.class);
+    }
+
+    /**
+     * A connector producing "x".
+     * A processor consuming "a and x" and producing "b" and another processor consuming "b" and producing "c" and a third
+     * processor consuming "c" and producing "a".
+     */
+    @Test
+    public void testCycleInDownstreams() {
+        ChannelRegistry registry = mock(ChannelRegistry.class);
+        when(registry.getIncomingChannels()).thenReturn(Collections.singletonMap("x", false));
+        Bean bean = mock(Bean.class);
+        when(bean.getBeanClass()).thenReturn(WiringTest.class);
+
+        DefaultMediatorConfiguration processor1 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor1.compute(Arrays.asList(IncomingLiteral.of("x"), IncomingLiteral.of("a")),
+                OutgoingLiteral.of("b"), null);
+        DefaultMediatorConfiguration processor2 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor2.compute(Collections.singletonList(IncomingLiteral.of("b")), OutgoingLiteral.of("c"), null);
+        DefaultMediatorConfiguration processor3 = new DefaultMediatorConfiguration(getMethod("process"), bean);
+        processor3.compute(Collections.singletonList(IncomingLiteral.of("c")), OutgoingLiteral.of("a"), null);
+
+        Wiring wiring = new Wiring();
+        wiring.prepare(registry,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Arrays.asList(processor1, processor2, processor3));
+        assertThatThrownBy(wiring::resolve).isInstanceOf(CycleException.class);
     }
 
     private Method getMethod(String name) {

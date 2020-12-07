@@ -30,6 +30,9 @@ public class Graph {
         if (strict && !isClosed) {
             errors.add(new OpenGraphException(this.resolved, unresolved));
         }
+
+        detectCycles();
+
         if (!strict && !isClosed) {
             StringBuffer message = new StringBuffer(
                     "Some components are not connected to either downstream consumers or upstream producers:\n");
@@ -168,6 +171,26 @@ public class Graph {
                 ProviderLogging.log.connectorWithoutDownstream(component);
             }
         }
+
         return true;
+    }
+
+    private void detectCycles() throws CycleException {
+        for (Wiring.Component component : resolved) {
+            Set<Wiring.Component> traces = new HashSet<>();
+            detectCycles(traces, component);
+        }
+    }
+
+    private void detectCycles(Set<Wiring.Component> traces, Wiring.Component component) throws CycleException {
+        traces.add(component);
+        for (Wiring.Component downstream : component.downstreams()) {
+            if (traces.contains(downstream)) {
+                throw new CycleException(component, downstream);
+            } else {
+                traces.add(downstream);
+                detectCycles(traces, downstream);
+            }
+        }
     }
 }
