@@ -20,6 +20,7 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.*;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 
 @ApplicationScoped
 public class Wiring {
@@ -39,6 +40,8 @@ public class Wiring {
     MediatorManager manager;
 
     private final List<Component> components;
+
+    private Graph graph;
 
     public Wiring() {
         components = new ArrayList<>();
@@ -77,6 +80,8 @@ public class Wiring {
     }
 
     public Graph resolve() {
+        ProviderLogging.log.startGraphResolution(components.size());
+        long begin = System.nanoTime();
         Set<Component> resolved = new LinkedHashSet<>();
         Set<ConsumingComponent> unresolved = new LinkedHashSet<>();
 
@@ -143,8 +148,15 @@ public class Wiring {
             resolved.addAll(newlyResolved);
         }
 
-        return new Graph(resolved, unresolved);
+        graph = new Graph(resolved, unresolved);
+        long duration = System.nanoTime() - begin;
+        ProviderLogging.log.completedGraphResolution(duration);
+        return graph;
 
+    }
+
+    public Graph getGraph() {
+        return graph;
     }
 
     private void bind(ConsumingComponent consumer, Component provider) {
@@ -163,7 +175,7 @@ public class Wiring {
         return matches;
     }
 
-    interface Component {
+    public interface Component {
 
         void validate() throws WiringException;
 
@@ -283,7 +295,7 @@ public class Wiring {
         @Override
         public void validate() throws WiringException {
             if (!broadcast && downstreams().size() > 1) {
-                throw new TooManyDownstreams(this);
+                throw new TooManyDownstreamCandidatesException(this);
             }
         }
     }
@@ -344,7 +356,7 @@ public class Wiring {
         @Override
         public void validate() throws WiringException {
             if (upstreams().size() > 1) {
-                throw new TooManyUpstreams(this);
+                throw new TooManyUpstreamCandidatesException(this);
             }
         }
     }
@@ -397,7 +409,7 @@ public class Wiring {
         @Override
         public void validate() throws WiringException {
             if (upstreams().size() > 1) {
-                throw new TooManyUpstreams(this);
+                throw new TooManyUpstreamCandidatesException(this);
             }
         }
     }
@@ -482,12 +494,12 @@ public class Wiring {
         @Override
         public void validate() throws WiringException {
             if (!configuration.broadcast && downstreams().size() > 1) {
-                throw new TooManyDownstreams(this);
+                throw new TooManyDownstreamCandidatesException(this);
             }
 
             if (broadcast()
                     && getRequiredNumberOfSubscribers() != 0 && getRequiredNumberOfSubscribers() != downstreams.size()) {
-                throw new UnsatisfiedBroadcast(this);
+                throw new UnsatisfiedBroadcastException(this);
             }
         }
     }
@@ -560,11 +572,11 @@ public class Wiring {
         @Override
         public void validate() throws WiringException {
             if (!broadcast() && downstreams().size() > 1) {
-                throw new TooManyDownstreams(this);
+                throw new TooManyDownstreamCandidatesException(this);
             }
             if (broadcast()
                     && getRequiredNumberOfSubscribers() != 0 && getRequiredNumberOfSubscribers() != downstreams.size()) {
-                throw new UnsatisfiedBroadcast(this);
+                throw new UnsatisfiedBroadcastException(this);
             }
         }
     }
@@ -666,12 +678,12 @@ public class Wiring {
                         .filter(c -> incoming.equals(c.outgoing().orElse(null)))
                         .collect(Collectors.toList());
                 if (components.size() > 1 && !merge()) {
-                    throw new TooManyUpstreams(this, incoming, components);
+                    throw new TooManyUpstreamCandidatesException(this, incoming, components);
                 }
             }
 
             if (!merge() && upstreams.size() != incomings().size()) {
-                throw new TooManyUpstreams(this);
+                throw new TooManyUpstreamCandidatesException(this);
             }
         }
     }
@@ -790,21 +802,21 @@ public class Wiring {
                         .filter(c -> incoming.equals(c.outgoing().orElse(null)))
                         .collect(Collectors.toList());
                 if (components.size() > 1 && !merge()) {
-                    throw new TooManyUpstreams(this, incoming, components);
+                    throw new TooManyUpstreamCandidatesException(this, incoming, components);
                 }
             }
 
             if (!merge() && upstreams.size() != incomings().size()) {
-                throw new TooManyUpstreams(this);
+                throw new TooManyUpstreamCandidatesException(this);
             }
 
             if (!broadcast() && downstreams().size() > 1) {
-                throw new TooManyDownstreams(this);
+                throw new TooManyDownstreamCandidatesException(this);
             }
 
             if (broadcast()
                     && getRequiredNumberOfSubscribers() != 0 && getRequiredNumberOfSubscribers() != downstreams.size()) {
-                throw new UnsatisfiedBroadcast(this);
+                throw new UnsatisfiedBroadcastException(this);
             }
         }
     }

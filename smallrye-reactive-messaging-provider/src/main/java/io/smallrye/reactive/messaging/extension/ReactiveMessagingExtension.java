@@ -14,16 +14,11 @@ import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
-import io.smallrye.reactive.messaging.ChannelRegistar;
-import io.smallrye.reactive.messaging.ChannelRegistry;
-import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
-import io.smallrye.reactive.messaging.wiring.Graph;
-import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class ReactiveMessagingExtension implements Extension {
 
@@ -92,42 +87,29 @@ public class ReactiveMessagingExtension implements Extension {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     void afterDeploymentValidation(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
         Instance<Object> instance = beanManager.createInstance();
-        ChannelRegistry registry = instance.select(ChannelRegistry.class).get();
         MediatorManager mediatorManager = instance.select(MediatorManager.class).get();
         WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();
-        Wiring wiring = instance.select(Wiring.class).get();
-        Instance<ChannelRegistar> registars = instance.select(ChannelRegistar.class);
 
         List<EmitterConfiguration> emitters = createEmitterConfigurations();
-        List<ChannelConfiguration> channels = createChannelConfigurations();
+        for (EmitterConfiguration emitter : emitters) {
+            mediatorManager.addEmitter(emitter);
+        }
 
-        // Initialize registars (connectors)
-        for (ChannelRegistar registar : registars) {
-            registar.initialize();
+        List<ChannelConfiguration> channels = createChannelConfigurations();
+        for (ChannelConfiguration channel : channels) {
+            mediatorManager.addChannel(channel);
         }
 
         for (MediatorBean mediatorBean : mediatorBeans) {
             log.analyzingMediatorBean(mediatorBean.bean);
             mediatorManager.analyze(mediatorBean.annotatedType, mediatorBean.bean);
         }
-        mediatorBeans.clear();
-        List<MediatorConfiguration> configurations = mediatorManager.getConfigurations();
 
         for (WorkerPoolBean workerPoolBean : workerPoolBeans) {
             workerPoolRegistry.analyzeWorker(workerPoolBean.annotatedType);
         }
 
-        wiring.prepare(registry, emitters, channels, configurations);
-        Graph graph = wiring.resolve();
-
-        if (graph.hasWiringErrors()) {
-            DeploymentException composite = new DeploymentException("Wiring error(s) detected in application.");
-            for (Exception error : graph.getWiringErrors()) {
-                composite.addSuppressed(error);
-            }
-            throw composite;
-        }
-        graph.materialize(registry);
+        mediatorManager.start();
     }
 
     private List<ChannelConfiguration> createChannelConfigurations() {

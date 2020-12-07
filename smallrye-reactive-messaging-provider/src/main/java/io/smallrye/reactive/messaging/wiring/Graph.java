@@ -1,20 +1,15 @@
 package io.smallrye.reactive.messaging.wiring;
 
 import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
+import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.jboss.logging.Logger;
-
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 
 public class Graph {
-
-    private static final Logger LOGGER = Logger.getLogger("Reactive Messaging Graph");
 
     private final Set<Wiring.Component> resolved;
     private final Set<Wiring.ConsumingComponent> unresolved;
@@ -29,8 +24,11 @@ public class Graph {
         this.isClosed = computeClosure();
 
         boolean strict = Boolean.parseBoolean(System.getProperty(STRICT_MODE_PROPERTY, "false"));
+        if (strict) {
+            log.strictModeEnabled();
+        }
         if (strict && !isClosed) {
-            errors.add(new NotClosedGraph(this.resolved, unresolved));
+            errors.add(new OpenGraphException(this.resolved, unresolved));
         }
         if (!strict && !isClosed) {
             StringBuffer message = new StringBuffer(
@@ -49,7 +47,7 @@ public class Graph {
                                     .append(c.upstreams()).append("\n");
                         }
                     });
-            LOGGER.warn(message);
+            ProviderLogging.log.reportWiringFailures(message.toString());
         }
 
         this.inbound = this.resolved.stream()
@@ -63,20 +61,22 @@ public class Graph {
                 .collect(Collectors.toSet());
 
         // Validate
-        this.resolved.forEach(c -> {
+        for (Wiring.Component component : this.resolved) {
             try {
-                c.validate();
+                component.validate();
             } catch (WiringException e) {
                 errors.add(e);
             }
-        });
+        }
     }
 
     public List<Exception> getWiringErrors() {
-        return errors;
+        return Collections.unmodifiableList(errors);
     }
 
     public void materialize(ChannelRegistry registry) {
+        log.startMaterialization();
+        long begin = System.nanoTime();
         Set<Wiring.Component> materialized = new HashSet<>();
         List<Wiring.Component> current = new ArrayList<>(inbound);
         while (!current.isEmpty()) {
@@ -91,6 +91,8 @@ public class Graph {
             current.removeAll(materialized);
             current.addAll(downstreams);
         }
+        long duration = System.nanoTime() - begin;
+        log.materializationCompleted(duration);
     }
 
     private boolean allUpstreamsMaterialized(Wiring.Component cmp, Set<Wiring.Component> materialized) {
@@ -143,7 +145,7 @@ public class Graph {
     }
 
     public Set<Wiring.ConsumingComponent> getUnresolvedComponents() {
-        return unresolved;
+        return Collections.unmodifiableSet(unresolved);
     }
 
     public boolean hasWiringErrors() {
@@ -163,7 +165,7 @@ public class Graph {
             if (!(component instanceof Wiring.InboundConnectorComponent) && !component.isDownstreamResolved()) {
                 return false;
             } else if (component instanceof Wiring.InboundConnectorComponent && !component.isDownstreamResolved()) {
-                LOGGER.warn("The connector " + component + " has no downstreams");
+                ProviderLogging.log.connectorWithoutDownstream(component);
             }
         }
         return true;
