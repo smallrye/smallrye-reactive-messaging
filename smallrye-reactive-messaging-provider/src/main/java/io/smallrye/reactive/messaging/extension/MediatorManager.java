@@ -63,7 +63,23 @@ public class MediatorManager {
 
         methods.stream()
                 .filter(this::hasMediatorAnnotations)
-                .forEach(method -> collected.add(method.getJavaMember(), bean));
+                .forEach(method -> {
+                    if (shouldCollectMethod(method, collected)) {
+                        collected.add(method.getJavaMember(), bean);
+                    }
+                });
+    }
+
+    /**
+     * Checks if the given method is not an overloaded version of another method already included.
+     */
+    private <T> boolean shouldCollectMethod(AnnotatedMethod<? super T> method, CollectedMediatorMetadata collected) {
+        // TODO Not very happy with this - it eliminates methods based on name and not full signature.
+        Optional<MediatorConfiguration> existing = collected.mediators().stream()
+                .filter(mc -> mc.getMethod().getDeclaringClass() == method.getJavaMember().getDeclaringClass()
+                        && mc.getMethod().getName().equals(method.getJavaMember().getName()))
+                .findAny();
+        return !existing.isPresent();
     }
 
     private <T> boolean hasMediatorAnnotations(AnnotatedMethod<? super T> method) {
