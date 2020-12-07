@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.wiring;
 
-public class UnsatisfiedBroadcast extends WiringException {
+public class UnsatisfiedBroadcastException extends WiringException {
     private final Wiring.PublishingComponent component;
 
-    public UnsatisfiedBroadcast(Wiring.PublishingComponent pc) {
+    public UnsatisfiedBroadcastException(Wiring.PublishingComponent pc) {
         this.component = pc;
     }
 

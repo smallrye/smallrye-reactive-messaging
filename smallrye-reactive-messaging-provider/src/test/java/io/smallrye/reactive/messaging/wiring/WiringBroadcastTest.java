@@ -115,7 +115,7 @@ public class WiringBroadcastTest {
         assertThat(graph.isClosed()).isTrue();
         assertThat(graph.hasWiringErrors()).isTrue();
         assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e)
-                .isInstanceOf(UnsatisfiedBroadcast.class)
+                .isInstanceOf(UnsatisfiedBroadcastException.class)
                 .hasMessageContaining("1", "2"));
     }
 
@@ -146,7 +146,8 @@ public class WiringBroadcastTest {
         assertThat(graph.getResolvedComponents()).hasSize(4);
         assertThat(graph.isClosed()).isTrue();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcast.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcastException.class));
     }
 
     @Test
@@ -169,7 +170,7 @@ public class WiringBroadcastTest {
 
         assertThat(graph.hasWiringErrors()).isTrue();
         assertThat(graph.getWiringErrors()).hasSize(1)
-                .allSatisfy(t -> assertThat(t).isInstanceOf(TooManyDownstreams.class)
+                .allSatisfy(t -> assertThat(t).isInstanceOf(TooManyDownstreamCandidatesException.class)
                         .hasMessageContaining("channel:'a'")
                         .hasMessageContaining("@Broadcast"));
 
@@ -272,7 +273,8 @@ public class WiringBroadcastTest {
         assertThat(graph.getResolvedComponents()).hasSize(5);
         assertThat(graph.isClosed()).isTrue();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcast.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcastException.class));
     }
 
     /**
@@ -303,7 +305,8 @@ public class WiringBroadcastTest {
         assertThat(graph.getResolvedComponents()).hasSize(4);
         assertThat(graph.isClosed()).isTrue();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcast.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcastException.class));
     }
 
     /**
@@ -332,7 +335,8 @@ public class WiringBroadcastTest {
         assertThat(graph.isClosed()).isTrue();
 
         assertThat(graph.getWiringErrors()).hasSize(1)
-                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyDownstreams.class).hasMessageContaining("@Broadcast"));
+                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyDownstreamCandidatesException.class)
+                        .hasMessageContaining("@Broadcast"));
 
         assertThat(graph.getInbound()).hasSize(1).allSatisfy(pc -> assertThat(pc.outgoing()).contains("a"));
         assertThat(graph.getOutbound()).hasSize(2);
@@ -437,7 +441,8 @@ public class WiringBroadcastTest {
         assertThat(graph.getResolvedComponents()).hasSize(5);
         assertThat(graph.isClosed()).isTrue();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcast.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcastException.class));
     }
 
     /**
@@ -469,7 +474,8 @@ public class WiringBroadcastTest {
         assertThat(graph.getResolvedComponents()).hasSize(4);
         assertThat(graph.isClosed()).isTrue();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcast.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(UnsatisfiedBroadcastException.class));
     }
 
     /**
@@ -498,7 +504,8 @@ public class WiringBroadcastTest {
         assertThat(graph.isClosed()).isTrue();
 
         assertThat(graph.getWiringErrors()).hasSize(1)
-                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyDownstreams.class).hasMessageContaining("@Broadcast"));
+                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyDownstreamCandidatesException.class)
+                        .hasMessageContaining("@Broadcast"));
 
         assertThat(graph.getInbound()).hasSize(1).allSatisfy(pc -> assertThat(pc.outgoing()).contains("a"));
         assertThat(graph.getOutbound()).hasSize(2);
@@ -561,7 +568,7 @@ public class WiringBroadcastTest {
 
         assertThat(graph.hasWiringErrors()).isTrue();
         assertThat(graph.getWiringErrors()).hasSize(1)
-                .allSatisfy(t -> assertThat(t).isInstanceOf(TooManyDownstreams.class)
+                .allSatisfy(t -> assertThat(t).isInstanceOf(TooManyDownstreamCandidatesException.class)
                         .hasMessageContaining("channel:'a'")
                         .hasMessageContaining("mp.messaging.incoming.a.broadcast=true"));
 

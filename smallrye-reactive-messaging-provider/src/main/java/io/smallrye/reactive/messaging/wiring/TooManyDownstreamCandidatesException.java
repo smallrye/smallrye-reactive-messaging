@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.wiring;
 
-public class TooManyDownstreams extends WiringException {
+public class TooManyDownstreamCandidatesException extends WiringException {
     private final Wiring.PublishingComponent component;
 
-    public TooManyDownstreams(Wiring.PublishingComponent pc) {
+    public TooManyDownstreamCandidatesException(Wiring.PublishingComponent pc) {
         this.component = pc;
     }
 

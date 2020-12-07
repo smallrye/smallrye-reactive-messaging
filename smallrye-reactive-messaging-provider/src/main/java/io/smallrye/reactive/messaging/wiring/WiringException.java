@@ -1,4 +1,6 @@
 package io.smallrye.reactive.messaging.wiring;
 
-public class WiringException extends Exception {
+import javax.enterprise.inject.UnsatisfiedResolutionException;
+
+public class WiringException extends UnsatisfiedResolutionException {
 }

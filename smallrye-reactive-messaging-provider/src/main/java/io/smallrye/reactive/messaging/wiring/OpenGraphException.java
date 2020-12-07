@@ -2,11 +2,11 @@ package io.smallrye.reactive.messaging.wiring;
 
 import java.util.Set;
 
-public class NotClosedGraph extends Exception {
+public class OpenGraphException extends WiringException {
     private final Set<Wiring.Component> resolved;
     private final Set<Wiring.ConsumingComponent> unresolved;
 
-    public NotClosedGraph(Set<Wiring.Component> components,
+    public OpenGraphException(Set<Wiring.Component> components,
             Set<Wiring.ConsumingComponent> unresolved) {
         this.resolved = components;
         this.unresolved = unresolved;

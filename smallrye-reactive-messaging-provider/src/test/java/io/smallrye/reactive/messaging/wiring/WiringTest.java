@@ -215,7 +215,7 @@ class WiringTest {
         assertThat(graph.isClosed()).isFalse();
         assertThat(graph.hasWiringErrors()).isTrue();
         assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> {
-            assertThat(e).isInstanceOf(NotClosedGraph.class);
+            assertThat(e).isInstanceOf(OpenGraphException.class);
             assertThat(e).hasMessageContaining("b");
         });
 

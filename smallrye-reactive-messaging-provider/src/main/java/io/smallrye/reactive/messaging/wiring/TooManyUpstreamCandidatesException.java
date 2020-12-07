@@ -2,16 +2,16 @@ package io.smallrye.reactive.messaging.wiring;
 
 import java.util.List;
 
-public class TooManyUpstreams extends WiringException {
+public class TooManyUpstreamCandidatesException extends WiringException {
     private final Wiring.ConsumingComponent component;
     private final String incoming;
     private final List<Wiring.Component> upstreams;
 
-    public TooManyUpstreams(Wiring.ConsumingComponent cc) {
+    public TooManyUpstreamCandidatesException(Wiring.ConsumingComponent cc) {
         this(cc, null, null);
     }
 
-    public TooManyUpstreams(Wiring.ConsumingComponent cc, String incoming, List<Wiring.Component> upstreams) {
+    public TooManyUpstreamCandidatesException(Wiring.ConsumingComponent cc, String incoming, List<Wiring.Component> upstreams) {
         this.component = cc;
         this.incoming = incoming;
         this.upstreams = upstreams;

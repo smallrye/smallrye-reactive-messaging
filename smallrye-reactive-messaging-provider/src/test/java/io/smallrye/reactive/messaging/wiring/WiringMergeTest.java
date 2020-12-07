@@ -62,7 +62,8 @@ public class WiringMergeTest {
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreams.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreamCandidatesException.class));
     }
 
     @Test
@@ -82,7 +83,8 @@ public class WiringMergeTest {
                 Collections.singletonList(subscriber));
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreams.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreamCandidatesException.class));
     }
 
     @Test
@@ -100,7 +102,8 @@ public class WiringMergeTest {
                 Collections.emptyList());
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
-        assertThat(graph.getWiringErrors()).hasSize(1).allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreams.class));
+        assertThat(graph.getWiringErrors()).hasSize(1)
+                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreamCandidatesException.class));
     }
 
     private Method getMethod(String name) {
