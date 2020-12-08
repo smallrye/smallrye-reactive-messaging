@@ -26,7 +26,7 @@ public class SmallRyeReactiveMessagingLivenessCheckTest {
         SmallRyeReactiveMessagingLivenessCheck check = container.getBeanManager().createInstance()
                 .select(SmallRyeReactiveMessagingLivenessCheck.class, Liveness.Literal.INSTANCE).get();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.UP);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
         assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK]"));
 
         MyReporterA a = container.getBeanManager().createInstance()
@@ -37,11 +37,11 @@ public class SmallRyeReactiveMessagingLivenessCheckTest {
 
         a.toggle();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.UP);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
 
         b.toggle();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.DOWN);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
         assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[KO]"));
     }
 
@@ -53,7 +53,7 @@ public class SmallRyeReactiveMessagingLivenessCheckTest {
         SmallRyeReactiveMessagingLivenessCheck check = container.getBeanManager().createInstance()
                 .select(SmallRyeReactiveMessagingLivenessCheck.class, Liveness.Literal.INSTANCE).get();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.UP);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
         assertThat(check.call().getData()).isEmpty();
     }
 

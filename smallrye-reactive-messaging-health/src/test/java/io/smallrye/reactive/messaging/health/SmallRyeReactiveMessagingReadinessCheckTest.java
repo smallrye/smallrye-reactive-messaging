@@ -26,7 +26,7 @@ public class SmallRyeReactiveMessagingReadinessCheckTest {
         SmallRyeReactiveMessagingReadinessCheck check = container.getBeanManager().createInstance()
                 .select(SmallRyeReactiveMessagingReadinessCheck.class, Readiness.Literal.INSTANCE).get();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.UP);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
         assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK] - test"));
 
         MyReporterA a = container.getBeanManager().createInstance()
@@ -37,16 +37,16 @@ public class SmallRyeReactiveMessagingReadinessCheckTest {
 
         a.toggle();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.DOWN);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
 
         b.toggle();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.DOWN);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
         assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[KO] - test"));
 
         a.toggle();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.UP);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
         assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK] - test"));
     }
 
@@ -58,7 +58,7 @@ public class SmallRyeReactiveMessagingReadinessCheckTest {
         SmallRyeReactiveMessagingReadinessCheck check = container.getBeanManager().createInstance()
                 .select(SmallRyeReactiveMessagingReadinessCheck.class, Readiness.Literal.INSTANCE).get();
 
-        assertThat(check.call().getState()).isEqualTo(HealthCheckResponse.State.UP);
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
         assertThat(check.call().getData()).isEmpty();
     }
 
