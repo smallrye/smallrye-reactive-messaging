@@ -123,6 +123,7 @@
 
     <module>smallrye-connector-attribute-processor</module>
 
+    <module>test-common</module>
     <module>tck</module>
     <module>documentation</module>
   </modules>
