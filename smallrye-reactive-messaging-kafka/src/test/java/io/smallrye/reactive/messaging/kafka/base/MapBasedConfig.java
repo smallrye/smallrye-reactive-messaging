@@ -7,7 +7,9 @@ import java.io.UncheckedIOException;
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 
@@ -63,6 +65,11 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
     }
 
     @Override
+    public ConfigValue getConfigValue(String propertyName) {
+        throw new UnsupportedOperationException("don't call this method");
+    }
+
+    @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         @SuppressWarnings("unchecked")
         T value = (T) super.get(propertyName);
@@ -77,6 +84,16 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
     @Override
     public Iterable<ConfigSource> getConfigSources() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+        return Optional.empty();
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> type) {
+        throw new UnsupportedOperationException("don't call this method");
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")

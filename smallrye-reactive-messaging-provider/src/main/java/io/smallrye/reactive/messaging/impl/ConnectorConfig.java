@@ -7,7 +7,9 @@ import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.*
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 
 /**
  * Implementation of config used to configured the different messaging provider / connector.
@@ -77,6 +79,16 @@ public class ConnectorConfig implements Config {
         }
     }
 
+    @Override
+    public ConfigValue getConfigValue(String s) {
+        ConfigValue value = overall.getConfigValue(channelKey(s));
+        if (value.getRawValue() == null) {
+            // Not found.
+            return overall.getConfigValue(connectorKey(s));
+        }
+        return value;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
@@ -97,7 +109,7 @@ public class ConnectorConfig implements Config {
      * Gets the lists of config keys for the given connector.
      * Note that the list contains property names from the config and env variables.
      * It includes keys from the connector config and channel config.
-     * 
+     *
      * @return the list of keys
      */
     @Override
@@ -148,5 +160,15 @@ public class ConnectorConfig implements Config {
     @Override
     public Iterable<ConfigSource> getConfigSources() {
         return overall.getConfigSources();
+    }
+
+    @Override
+    public <T> Optional<Converter<T>> getConverter(Class<T> aClass) {
+        return overall.getConverter(aClass);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> aClass) {
+        return overall.unwrap(aClass);
     }
 }

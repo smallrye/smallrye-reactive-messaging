@@ -12,7 +12,9 @@ import java.util.Optional;
 import java.util.Properties;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 
 /**
  * An implementation of {@link Config} based on a simple {@link Map}.
@@ -41,6 +43,11 @@ public class MapBasedConfig implements Config {
     }
 
     @Override
+    public ConfigValue getConfigValue(String propertyName) {
+        throw new UnsupportedOperationException("don't call this method");
+    }
+
+    @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         @SuppressWarnings("unchecked")
         T value = (T) map.get(propertyName);
@@ -55,6 +62,16 @@ public class MapBasedConfig implements Config {
     @Override
     public Iterable<ConfigSource> getConfigSources() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+        return Optional.empty();
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> type) {
+        throw new UnsupportedOperationException("don't call this method");
     }
 
     void write() {

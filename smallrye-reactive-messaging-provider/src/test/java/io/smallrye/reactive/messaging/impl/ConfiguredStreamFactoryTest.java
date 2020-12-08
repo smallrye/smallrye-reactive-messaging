@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 import org.junit.Test;
 
 public class ConfiguredStreamFactoryTest {
@@ -136,6 +138,11 @@ public class ConfiguredStreamFactoryTest {
             return getOptionalValue(s, aClass).orElseThrow(() -> new NoSuchElementException("Key not found: " + s));
         }
 
+        @Override
+        public ConfigValue getConfigValue(String propertyName) {
+            return null;
+        }
+
         @SuppressWarnings("unchecked")
         @Override
         public <T> Optional<T> getOptionalValue(String s, Class<T> aClass) {
@@ -150,6 +157,16 @@ public class ConfiguredStreamFactoryTest {
         @Override
         public Iterable<ConfigSource> getConfigSources() {
             return Collections.emptyList();
+        }
+
+        @Override
+        public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+            return Optional.empty();
+        }
+
+        @Override
+        public <T> T unwrap(Class<T> type) {
+            return null;
         }
     }
 

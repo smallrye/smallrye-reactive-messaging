@@ -22,7 +22,9 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -207,6 +209,11 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 return t;
             }
 
+            @Override
+            public ConfigValue getConfigValue(String propertyName) {
+                throw new UnsupportedOperationException("don't call this method");
+            }
+
             @SuppressWarnings("unchecked")
             @Override
             public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
@@ -229,6 +236,16 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @Override
             public Iterable<ConfigSource> getConfigSources() {
                 return passedCfg.getConfigSources();
+            }
+
+            @Override
+            public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+                return Optional.empty();
+            }
+
+            @Override
+            public <T> T unwrap(Class<T> type) {
+                throw new UnsupportedOperationException("don't call this method");
             }
         };
     }

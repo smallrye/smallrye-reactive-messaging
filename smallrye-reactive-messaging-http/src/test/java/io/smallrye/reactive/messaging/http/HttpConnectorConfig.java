@@ -12,7 +12,9 @@ import java.util.Optional;
 import java.util.Properties;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 
 public class HttpConnectorConfig implements Config {
     private final Map<String, Object> map;
@@ -39,6 +41,11 @@ public class HttpConnectorConfig implements Config {
                 .orElseThrow(() -> new NoSuchElementException("Configuration not found"));
     }
 
+    @Override
+    public ConfigValue getConfigValue(String propertyName) {
+        throw new UnsupportedOperationException("don't call this method");
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
@@ -54,6 +61,16 @@ public class HttpConnectorConfig implements Config {
     @Override
     public Iterable<ConfigSource> getConfigSources() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+        return Optional.empty();
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> type) {
+        throw new UnsupportedOperationException("don't call this method");
     }
 
     public HttpConnectorConfig converter(String className) {

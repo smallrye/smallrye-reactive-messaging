@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,16 @@ public class ConnectorConfigTest {
             @Override
             public Map<String, String> getProperties() {
                 return cfg;
+            }
+
+            @Override
+            public Set<String> getPropertyNames() {
+                return cfg.keySet();
+            }
+
+            @Override
+            public int getOrdinal() {
+                return 200;
             }
 
             @Override
