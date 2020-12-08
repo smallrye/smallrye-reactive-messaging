@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class FailureHandlerTest extends MqttTestBase {
 

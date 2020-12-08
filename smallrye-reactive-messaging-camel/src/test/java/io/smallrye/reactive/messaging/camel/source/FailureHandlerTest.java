@@ -22,8 +22,8 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.CamelMessage;
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
-import io.smallrye.reactive.messaging.camel.MapBasedConfig;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class FailureHandlerTest extends CamelTestBase {
 

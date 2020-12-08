@@ -20,6 +20,7 @@ import org.reactivestreams.Subscriber;
 
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class AwsSnsTest extends AwsSnsTestBase {
 

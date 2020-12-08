@@ -20,6 +20,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class MultipleTopicsConsumptionTest extends MqttTestBase {
 

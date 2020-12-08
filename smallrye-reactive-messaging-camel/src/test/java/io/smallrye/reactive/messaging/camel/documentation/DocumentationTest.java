@@ -16,7 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
-import io.smallrye.reactive.messaging.camel.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class DocumentationTest extends CamelTestBase {
