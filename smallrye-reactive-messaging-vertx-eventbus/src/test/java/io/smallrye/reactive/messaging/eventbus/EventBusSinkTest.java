@@ -28,6 +28,7 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.eventbus.codec.Person;
 import io.smallrye.reactive.messaging.eventbus.codec.PersonCodec;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @RunWith(Parameterized.class)
 public class EventBusSinkTest extends EventbusTestBase {

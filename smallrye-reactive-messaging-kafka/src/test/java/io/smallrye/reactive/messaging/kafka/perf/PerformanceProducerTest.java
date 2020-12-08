@@ -22,8 +22,8 @@ import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class PerformanceProducerTest extends KafkaTestBase {
 
@@ -39,7 +39,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        MapBasedConfig config = MapBasedConfig.builder("mp.messaging.outgoing.kafka")
+        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
                 .put("connector", KafkaConnector.CONNECTOR_NAME)
                 .put("topic", topic)
                 .put("value.serializer", IntegerSerializer.class.getName())
@@ -74,7 +74,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        MapBasedConfig config = MapBasedConfig.builder("mp.messaging.outgoing.kafka")
+        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
                 .put("connector", KafkaConnector.CONNECTOR_NAME)
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
@@ -109,7 +109,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        MapBasedConfig config = MapBasedConfig.builder("mp.messaging.outgoing.kafka")
+        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
                 .put("connector", KafkaConnector.CONNECTOR_NAME)
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
@@ -145,7 +145,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        MapBasedConfig config = MapBasedConfig.builder("mp.messaging.outgoing.kafka")
+        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
                 .put("connector", KafkaConnector.CONNECTOR_NAME)
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
@@ -182,7 +182,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        MapBasedConfig config = MapBasedConfig.builder("mp.messaging.outgoing.kafka")
+        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
                 .put("connector", KafkaConnector.CONNECTOR_NAME)
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)

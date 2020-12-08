@@ -10,7 +10,7 @@
 
   <artifactId>smallrye-reactive-messaging-jms</artifactId>
 
-  <name>SmallRye Reactive Messaging : Connector :: JMS</name>  
+  <name>SmallRye Reactive Messaging : Connector :: JMS</name>
 
   <properties>
     <artemis.version>2.16.0</artemis.version>
@@ -95,6 +95,12 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
+      <artifactId>test-common</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -112,7 +118,7 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>        
+        <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
           <annotationProcessors>

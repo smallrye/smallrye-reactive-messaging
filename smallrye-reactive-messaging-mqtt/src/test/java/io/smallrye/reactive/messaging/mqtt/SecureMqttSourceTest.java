@@ -16,6 +16,9 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+
+
 public class SecureMqttSourceTest extends SecureMqttTestBase {
 
     private WeldContainer container;

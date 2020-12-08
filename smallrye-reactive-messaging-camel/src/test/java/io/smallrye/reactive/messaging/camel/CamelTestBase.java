@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class CamelTestBase {
 

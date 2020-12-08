@@ -19,14 +19,14 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.tuples.Tuple3;
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 class CustomConverterTest extends KafkaTestBase {
 
     @Test
     public void testBeanUsingCustomConverter() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);

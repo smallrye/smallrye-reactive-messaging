@@ -19,6 +19,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+
 public class InMemoryConnectorTest extends WeldTestBase {
 
     @Before

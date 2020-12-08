@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.Vertx;
 
 public class AmqpCreditTest extends AmqpTestBase {

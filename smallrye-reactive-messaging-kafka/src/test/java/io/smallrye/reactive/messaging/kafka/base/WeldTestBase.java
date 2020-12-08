@@ -71,7 +71,7 @@ public class WeldTestBase {
 
     public BeanManager getBeanManager() {
         if (container == null) {
-            runApplication(new MapBasedConfig(new HashMap<>()));
+            runApplication(new KafkaMapBasedConfig(new HashMap<>()));
         }
         return container.getBeanManager();
     }
@@ -84,27 +84,27 @@ public class WeldTestBase {
         return getBeanManager().createInstance().select(clazz).get();
     }
 
-    public <T> T runApplication(MapBasedConfig config, Class<T> clazz) {
+    public <T> T runApplication(KafkaMapBasedConfig config, Class<T> clazz) {
         weld.addBeanClass(clazz);
         runApplication(config);
         return get(clazz);
     }
 
-    public void runApplication(MapBasedConfig config) {
+    public void runApplication(KafkaMapBasedConfig config) {
         if (config != null) {
             config.write();
         } else {
-            MapBasedConfig.cleanup();
+            KafkaMapBasedConfig.clear();
         }
 
         container = weld.initialize();
     }
 
-    public static void addConfig(MapBasedConfig config) {
+    public static void addConfig(KafkaMapBasedConfig config) {
         if (config != null) {
             config.write();
         } else {
-            MapBasedConfig.cleanup();
+            KafkaMapBasedConfig.clear();
         }
     }
 

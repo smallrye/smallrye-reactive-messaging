@@ -24,6 +24,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class DynamicMqttTopicSourceTest extends MqttTestBase {
 

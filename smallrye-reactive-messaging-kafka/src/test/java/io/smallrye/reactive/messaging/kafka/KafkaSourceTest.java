@@ -36,8 +36,8 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.strimzi.StrimziKafkaContainer;
@@ -60,7 +60,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSource() {
-        MapBasedConfig config = newCommonConfigForSource()
+        KafkaMapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -81,7 +81,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSourceWithPartitions() {
-        MapBasedConfig config = newCommonConfigForSource()
+        KafkaMapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
@@ -108,7 +108,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("rawtypes")
     @Test
     public void testSourceWithChannelName() {
-        MapBasedConfig config = newCommonConfigForSource()
+        KafkaMapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -130,7 +130,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcast() {
-        MapBasedConfig config = newCommonConfigForSource()
+        KafkaMapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true);
 
@@ -171,7 +171,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @Test
     public void testBroadcastWithPartitions() {
         createTopic(topic, 2);
-        MapBasedConfig config = newCommonConfigForSource()
+        KafkaMapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true)
                 .with("partitions", 2);
@@ -211,7 +211,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         try (StrimziKafkaContainer kafka = new StrimziKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
-            MapBasedConfig config = newCommonConfigForSource()
+            KafkaMapBasedConfig config = newCommonConfigForSource()
                     .with("bootstrap.servers", kafka.getBootstrapServers())
                     .with("value.deserializer", IntegerDeserializer.class.getName())
                     .with("retry", true)
@@ -244,8 +244,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         }
     }
 
-    private MapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+    private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         if (group != null) {
             builder.put("group.id", group);
         }
@@ -264,8 +264,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+    private KafkaMapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("group.id", "my-group-starting-on-fifth-" + suffix);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
@@ -446,7 +446,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testInvalidIncomingType() {
-        MapBasedConfig config = newCommonConfigForSource()
+        KafkaMapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -510,7 +510,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSourceWithEmptyOptionalConfiguration() {
-        MapBasedConfig config = newCommonConfigForSource()
+        KafkaMapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("sasl.jaas.config", "") //optional configuration
                 .with("sasl.mechanism", ""); //optional configuration
@@ -549,13 +549,13 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     }
 
-    private ConsumptionBean run(MapBasedConfig config) {
+    private ConsumptionBean run(KafkaMapBasedConfig config) {
         addBeans(ConsumptionBean.class, ConsumptionConsumerRebalanceListener.class);
         runApplication(config);
         return get(ConsumptionBean.class);
     }
 
-    private ConsumptionBeanWithoutAck runWithoutAck(MapBasedConfig config) {
+    private ConsumptionBeanWithoutAck runWithoutAck(KafkaMapBasedConfig config) {
         addBeans(ConsumptionBeanWithoutAck.class, ConsumptionConsumerRebalanceListener.class,
                 StartFromFifthOffsetFromLatestConsumerRebalanceListener.class,
                 StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListener.class,

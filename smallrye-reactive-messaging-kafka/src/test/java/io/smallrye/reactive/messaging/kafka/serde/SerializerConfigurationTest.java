@@ -40,7 +40,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testThatWhenNotSetKeySerializerIsString() {
-        MapBasedConfig config = commonConsumerConfiguration();
+        KafkaMapBasedConfig config = commonConsumerConfiguration();
         sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
 
         List<Tuple2<String, String>> list = new ArrayList<>();
@@ -72,7 +72,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeySerializationFailure() {
-        MapBasedConfig config = commonConsumerConfiguration()
+        KafkaMapBasedConfig config = commonConsumerConfiguration()
                 .with("value.serializer", JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
@@ -90,7 +90,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testValueSerializationFailure() {
-        MapBasedConfig config = commonConsumerConfiguration()
+        KafkaMapBasedConfig config = commonConsumerConfiguration()
                 .with("value.serializer", JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
@@ -108,7 +108,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testFailureWhenValueSerializerIsNotSet() {
-        MapBasedConfig config = commonConsumerConfiguration()
+        KafkaMapBasedConfig config = commonConsumerConfiguration()
                 .without("value.serializer");
 
         assertThatThrownBy(() -> {
@@ -120,7 +120,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testFailureWhenSerializerFailsDuringConfiguration() {
-        MapBasedConfig config = commonConsumerConfiguration()
+        KafkaMapBasedConfig config = commonConsumerConfiguration()
                 .with("value.serializer", BrokenSerializerFailingDuringConfig.class.getName());
 
         assertThatThrownBy(() -> {
@@ -132,8 +132,8 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     }
 
-    private MapBasedConfig commonConsumerConfiguration() {
-        return new MapBasedConfig()
+    private KafkaMapBasedConfig commonConsumerConfiguration() {
+        return new KafkaMapBasedConfig()
                 .with("bootstrap.servers", getBootstrapServers())
                 .with("channel-name", "channel")
                 .with("topic", topic)

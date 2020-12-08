@@ -43,9 +43,9 @@ public class KafkaTestBase extends WeldTestBase {
         }
     }
 
-    public MapBasedConfig newCommonConfigForSource() {
+    public KafkaMapBasedConfig newCommonConfigForSource() {
         String randomId = UUID.randomUUID().toString();
-        return MapBasedConfig.builder().put(
+        return KafkaMapBasedConfig.builder().put(
                 "bootstrap.servers", getBootstrapServers(),
                 "group.id", randomId,
                 "key.deserializer", StringDeserializer.class.getName(),

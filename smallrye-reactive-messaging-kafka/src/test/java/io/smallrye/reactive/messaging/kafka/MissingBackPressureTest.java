@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class MissingBackPressureTest extends KafkaTestBase {
 
@@ -47,8 +47,8 @@ public class MissingBackPressureTest extends KafkaTestBase {
         assertThat(expected).hasValueGreaterThanOrEqualTo(10);
     }
 
-    public MapBasedConfig myKafkaSinkConfig() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.temperature-values");
+    public KafkaMapBasedConfig myKafkaSinkConfig() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.temperature-values");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", topic);
         builder.put("waitForWriteCompletion", false);

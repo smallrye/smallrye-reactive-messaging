@@ -15,14 +15,14 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 class ConsumerRecordConverterTest extends KafkaTestBase {
 
     @Test
     public void testBeanUsingConverter() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
@@ -47,7 +47,7 @@ class ConsumerRecordConverterTest extends KafkaTestBase {
 
     @Test
     public void testBeanUsingConverterWithNullKeyAndValue() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);

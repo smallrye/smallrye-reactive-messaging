@@ -33,6 +33,7 @@ import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.wiring.Wiring;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class WeldTestBaseWithoutTails {
 

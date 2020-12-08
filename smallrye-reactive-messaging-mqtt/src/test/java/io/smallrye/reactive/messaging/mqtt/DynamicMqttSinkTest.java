@@ -16,6 +16,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+
 public class DynamicMqttSinkTest extends MqttTestBase {
 
     private WeldContainer container;

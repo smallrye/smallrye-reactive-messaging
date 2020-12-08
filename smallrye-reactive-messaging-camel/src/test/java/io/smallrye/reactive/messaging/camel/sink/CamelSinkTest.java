@@ -18,7 +18,7 @@ import org.junit.Test;
 
 import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
-import io.smallrye.reactive.messaging.camel.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class CamelSinkTest extends CamelTestBase {
 

@@ -9,9 +9,9 @@
   </parent>
 
   <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
-    
+
   <name>SmallRye Reactive Messaging : Connector :: In-memory</name>
-    
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -21,6 +21,12 @@
     <dependency>
       <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>test-common</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -48,7 +54,7 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>        
+          <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
             <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
             <annotationProcessors>

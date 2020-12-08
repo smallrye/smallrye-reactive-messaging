@@ -46,6 +46,12 @@
       <artifactId>smallrye-config</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>test-common</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>io.smallrye</groupId>

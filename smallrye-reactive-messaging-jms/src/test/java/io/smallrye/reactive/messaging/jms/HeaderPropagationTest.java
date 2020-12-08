@@ -35,7 +35,7 @@ import org.junit.Test;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
-import io.smallrye.reactive.messaging.jms.support.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class HeaderPropagationTest extends JmsTestBase {
 

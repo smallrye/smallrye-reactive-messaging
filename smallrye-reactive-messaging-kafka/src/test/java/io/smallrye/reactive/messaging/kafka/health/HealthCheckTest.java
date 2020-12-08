@@ -22,14 +22,14 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class HealthCheckTest extends KafkaTestBase {
 
     @Test
     public void testHealthOfApplicationWithoutOutgoingTopic() {
-        MapBasedConfig config = getKafkaSinkConfigForProducingBean();
+        KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean();
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
@@ -53,8 +53,8 @@ public class HealthCheckTest extends KafkaTestBase {
         assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
     }
 
-    private MapBasedConfig getKafkaSinkConfigForProducingBean() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output")
+    private KafkaMapBasedConfig getKafkaSinkConfigForProducingBean() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output")
                 .put("value.serializer", IntegerSerializer.class.getName())
                 // Disabling readiness
                 .put("health-readiness-enabled", false);
