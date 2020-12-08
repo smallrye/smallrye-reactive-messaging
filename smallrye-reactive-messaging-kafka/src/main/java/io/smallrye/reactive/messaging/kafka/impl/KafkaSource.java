@@ -15,6 +15,7 @@ import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.common.errors.RebalanceInProgressException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import io.grpc.Context;
@@ -50,7 +51,6 @@ public class KafkaSource<K, V> {
     private final boolean isCloudEventEnabled;
     private final String channel;
 
-    @SuppressWarnings("rawtypes")
     public KafkaSource(Vertx vertx,
             String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
@@ -276,6 +276,12 @@ public class KafkaSource<K, V> {
     }
 
     public synchronized void reportFailure(Throwable failure, boolean fatal) {
+        if (failure instanceof RebalanceInProgressException) {
+            // Just log the failure - it will be retried
+            log.failureReportedDuringRebalance(topics, failure);
+            return;
+        }
+
         log.failureReported(topics, failure);
         // Don't keep all the failures, there are only there for reporting.
         if (failures.size() == 10) {
