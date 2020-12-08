@@ -47,6 +47,11 @@
       <artifactId>smallrye-reactive-messaging-gcp-pubsub</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.perfmark</groupId>
+      <artifactId>perfmark-api</artifactId>
+      <version>0.23.0</version>
+    </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
