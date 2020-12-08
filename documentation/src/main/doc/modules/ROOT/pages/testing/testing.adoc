@@ -43,3 +43,6 @@ While these system properties are already set, you can retrieve them and pass th
 ----
 include::example$testing/MyTestSetup.java[tags=code]
 ----
+
+NOTE: The in-memory connector support the `broadcast` attribute.
+So if your connector is configured with `broadcast: true`, the connector broadcasts the messages to all the channel consumers.
