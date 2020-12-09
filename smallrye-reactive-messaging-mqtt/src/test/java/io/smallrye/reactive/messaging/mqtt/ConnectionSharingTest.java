@@ -23,7 +23,6 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
 
 public class ConnectionSharingTest extends MqttTestBase {
 
@@ -45,8 +44,6 @@ public class ConnectionSharingTest extends MqttTestBase {
         container = weld.initialize();
 
         App bean = container.getBeanManager().createInstance().select(App.class).get();
-
-        await().until(() -> this.container.select(MediatorManager.class).get().isInitialized());
 
         await()
                 .until(() -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());

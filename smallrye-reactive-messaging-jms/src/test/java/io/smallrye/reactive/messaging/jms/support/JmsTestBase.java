@@ -18,6 +18,7 @@ import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class JmsTestBase {
 
@@ -79,6 +80,7 @@ public class JmsTestBase {
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addBeanClass(HealthCenter.class);
+        weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(JmsConnector.class);
         weld.disableDiscovery();

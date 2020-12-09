@@ -32,6 +32,7 @@ import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class WeldTestBaseWithoutTails {
 
@@ -103,6 +104,7 @@ public class WeldTestBaseWithoutTails {
         initializer = SeContainerInitializer.newInstance();
 
         initializer.addBeanClasses(MediatorFactory.class,
+                Wiring.class,
                 ExecutionHolder.class,
                 MediatorManager.class,
                 WorkerPoolRegistry.class,

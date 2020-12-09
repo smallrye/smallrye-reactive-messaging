@@ -23,7 +23,6 @@ import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.CamelMessage;
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
 import io.smallrye.reactive.messaging.camel.MapBasedConfig;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
 
 public class FailureHandlerTest extends CamelTestBase {
 
@@ -41,7 +40,6 @@ public class FailureHandlerTest extends CamelTestBase {
         weld.addBeanClass(MyReceiverBean.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         return container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
     }
 
@@ -108,7 +106,7 @@ public class FailureHandlerTest extends CamelTestBase {
 
     @ApplicationScoped
     public static class MyReceiverBean {
-        private List<String> received = new CopyOnWriteArrayList<>();
+        private final List<String> received = new CopyOnWriteArrayList<>();
 
         private static final List<String> SKIPPED = Arrays.asList("3", "6", "9");
 

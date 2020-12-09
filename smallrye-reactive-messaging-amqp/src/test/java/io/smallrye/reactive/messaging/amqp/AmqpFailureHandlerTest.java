@@ -21,7 +21,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
 
 public class AmqpFailureHandlerTest extends AmqpBrokerTestBase {
 
@@ -41,7 +40,6 @@ public class AmqpFailureHandlerTest extends AmqpBrokerTestBase {
         weld.addBeanClass(MyReceiverBean.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         return container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
     }
 
@@ -50,7 +48,6 @@ public class AmqpFailureHandlerTest extends AmqpBrokerTestBase {
         weld.addBeanClass(MyReceiverBeanRecovering.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         return container.getBeanManager().createInstance().select(MyReceiverBeanRecovering.class).get();
     }
 

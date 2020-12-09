@@ -20,6 +20,7 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.vertx.mutiny.core.Vertx;
 import repeat.RepeatRule;
 
@@ -75,6 +76,7 @@ public class MqttTestBase {
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addBeanClass(ExecutionHolder.class);
+        weld.addBeanClass(Wiring.class);
         weld.addPackages(EmitterImpl.class.getPackage());
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(MqttConnector.class);

@@ -20,7 +20,7 @@ import io.smallrye.mutiny.subscription.MultiEmitter;
 class ThrowingEmitter<T> implements MultiEmitter<T> {
 
     private MultiEmitter<? super T> delegate;
-    private AtomicLong requested;
+    private final AtomicLong requested;
 
     public static <T> Multi<T> create(Consumer<MultiEmitter<? super T>> deferred, long bufferSize) {
         // ThrowingEmitter works by wrapping around a delegate emitter and tracking the requests from downstream so that it can throw an exception from emit() if there aren't sufficient requests

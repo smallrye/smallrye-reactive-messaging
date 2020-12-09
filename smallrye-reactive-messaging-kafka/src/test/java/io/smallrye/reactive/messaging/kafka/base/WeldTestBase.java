@@ -25,6 +25,7 @@ import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class WeldTestBase {
 
@@ -47,6 +48,7 @@ public class WeldTestBase {
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addBeanClass(HealthCenter.class);
+        weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
         weld.addBeanClass(KafkaCDIEvents.class);

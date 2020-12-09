@@ -144,7 +144,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
                 }));
     }
 
-    @Incoming(NO_ACKNOWLEDGMENT_CS)
+    @Incoming(NO_ACKNOWLEDGMENT_UNI)
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT_UNI)
     public Uni<String> processorWithNoAckUni(String input) {

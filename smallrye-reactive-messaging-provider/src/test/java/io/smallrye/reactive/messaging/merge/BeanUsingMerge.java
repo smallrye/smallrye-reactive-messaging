@@ -15,7 +15,7 @@ import io.smallrye.reactive.messaging.annotations.Merge;
 @ApplicationScoped
 public class BeanUsingMerge {
 
-    private List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
 
     @Outgoing("X")
     public Flowable<String> x() {
@@ -29,8 +29,8 @@ public class BeanUsingMerge {
         return Flowable.fromArray("d", "e", "f");
     }
 
-    @Outgoing("X")
     @Incoming("Z2")
+    @Outgoing("X")
     public Flowable<String> y(Flowable<String> z) {
         return z.map(String::toUpperCase);
     }
@@ -41,8 +41,8 @@ public class BeanUsingMerge {
         list.add(payload);
     }
 
-    @Outgoing("Z2")
     @Incoming("Z1")
+    @Outgoing("Z2")
     public Flowable<String> z2(Flowable<String> z) {
         return z
                 .zipWith(Flowable.interval(5, TimeUnit.MILLISECONDS), (a, b) -> a)

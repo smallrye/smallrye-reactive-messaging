@@ -30,7 +30,6 @@ import org.reactivestreams.Subscription;
 import io.smallrye.common.constraint.NotNull;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
@@ -235,7 +234,6 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
         weld.addBeanClass(ConsumptionBean.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
     }
 
@@ -439,7 +437,6 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
                 .write();
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
         assertThat(list).isEmpty();
 
@@ -468,7 +465,6 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
                 .write();
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
         assertThat(list).isEmpty();
 

@@ -172,15 +172,17 @@ public class ChannelProducer {
         return cast(emitter);
     }
 
-    @SuppressWarnings("rawtypes")
-    private Publisher<? extends Message> getPublisher(InjectionPoint injectionPoint) {
+    private Publisher<? extends Message<?>> getPublisher(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
-        if (list.isEmpty()) {
-            throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
-        }
-        // TODO Manage merge.
-        return list.get(0).buildRs();
+
+        return Multi.createFrom().deferred(() -> {
+            List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
+            if (list.isEmpty()) {
+                throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
+            }
+            // TODO Manage merge.
+            return Multi.createFrom().publisher(list.get(0).buildRs());
+        });
     }
 
     @SuppressWarnings("rawtypes")
