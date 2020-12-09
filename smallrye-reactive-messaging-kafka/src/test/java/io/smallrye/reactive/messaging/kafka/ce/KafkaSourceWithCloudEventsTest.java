@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.json.JsonObject;
@@ -48,7 +48,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithStringDeserializer() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -110,7 +110,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithJsonObjectDeserializer() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -168,7 +168,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithByteArrayDeserializer() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", ByteArrayDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -222,7 +222,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testReceivingStructuredCloudEventsWithUnsupportedDeserializer() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         // Unsupported on purpose
         config.put("value.deserializer", BufferDeserializer.class.getName());
@@ -259,7 +259,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testReceivingStructuredCloudEventsWithoutSource() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -297,7 +297,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEvents() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -362,7 +362,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEventsWithoutKey() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -427,7 +427,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithoutMatchingContentTypeIsNotReadACloudEvent() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -567,7 +567,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEventsWithSupportDisabled() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -611,7 +611,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithSupportDisabled() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -658,7 +658,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsNoData() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
@@ -701,14 +701,14 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
 
     }
 
-    private ConsumptionBean run(MapBasedConfig config) {
+    private ConsumptionBean run(KafkaMapBasedConfig config) {
         addBeans(ConsumptionBean.class, ConsumptionConsumerRebalanceListener.class);
         runApplication(config);
         return get(ConsumptionBean.class);
     }
 
-    private MapBasedConfig getConfig(String topic) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+    private KafkaMapBasedConfig getConfig(String topic) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
@@ -716,9 +716,9 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig newCommonConfig() {
+    private KafkaMapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
-        MapBasedConfig config = new MapBasedConfig();
+        KafkaMapBasedConfig config = new KafkaMapBasedConfig();
         config.put("bootstrap.servers", getBootstrapServers());
         config.put("group.id", randomId);
         config.put("key.deserializer", StringDeserializer.class.getName());

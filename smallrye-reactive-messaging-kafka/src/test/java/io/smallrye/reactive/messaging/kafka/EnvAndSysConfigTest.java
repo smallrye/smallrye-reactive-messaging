@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.junitpioneer.jupiter.SetSystemProperty;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class EnvAndSysConfigTest extends KafkaTestBase {
 
@@ -29,7 +29,7 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_TOPIC", value = TOPIC_1)
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_VALUE_DESERIALIZER", value = "org.apache.kafka.common.serialization.StringDeserializer")
     public void testConsumerConfigurationComingForEnv() throws InterruptedException {
-        KafkaConsumer bean = runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "auto.offset.reset", "earliest")
                 .build(), KafkaConsumer.class);
@@ -41,7 +41,7 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @SetSystemProperty(key = "mp.messaging.incoming.kafka.topic", value = TOPIC_2)
     @SetSystemProperty(key = "mp.messaging.incoming.kafka.value.deserializer", value = "org.apache.kafka.common.serialization.StringDeserializer")
     public void testConsumerConfigurationComingForSys() throws InterruptedException {
-        KafkaConsumer bean = runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "auto.offset.reset", "earliest")
                 .build(), KafkaConsumer.class);

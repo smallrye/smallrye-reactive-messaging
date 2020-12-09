@@ -29,8 +29,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.vertx.core.json.JsonObject;
 
@@ -48,7 +48,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEvents() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -95,7 +95,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithComplexPayload() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -141,7 +141,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithTimestampAndSubject() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -189,7 +189,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsMissingMandatoryAttribute() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -221,7 +221,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingStructuredCloudEventsWithWrongSerializer() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", DoubleSerializer.class.getName());
         config.put("channel-name", topic);
@@ -235,7 +235,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithKey() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -279,7 +279,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithConfiguredTypeAndSource() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -321,7 +321,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithConfiguredTypeAndSourceAndNoCloudEventMetadata() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -361,7 +361,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingStructuredCloudEventsWithExtensions() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -407,7 +407,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEvents() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -447,7 +447,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithContentType() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -491,7 +491,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithKey() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -533,7 +533,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithConfiguredTypeAndSource() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -574,7 +574,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithConfiguredTypeAndSourceButNoMetadata() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -613,7 +613,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsMissingMandatoryAttribute() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -645,7 +645,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testWithCloudEventDisabled() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -681,7 +681,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
     public void testSendingBinaryCloudEventsWithExtensions() {
-        MapBasedConfig config = newCommonConfig();
+        KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
@@ -830,23 +830,23 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         });
     }
 
-    private MapBasedConfig getConfigToSendStructuredCloudEvents() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
+    private KafkaMapBasedConfig getConfigToSendStructuredCloudEvents() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("cloud-events-mode", "structured");
         builder.put("topic", topic);
         return builder.build();
     }
 
-    private MapBasedConfig getConfigToSendBinaryCloudEvents() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
+    private KafkaMapBasedConfig getConfigToSendBinaryCloudEvents() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", topic);
         return builder.build();
     }
 
-    private MapBasedConfig getConfigToSendBinaryCloudEventsWithDefault() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.source");
+    private KafkaMapBasedConfig getConfigToSendBinaryCloudEventsWithDefault() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.source");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", topic);
         builder.put("cloud-events-type", "greetings");
@@ -855,8 +855,8 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig getConfigToSendStructuredCloudEventsWithDefault() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.source");
+    private KafkaMapBasedConfig getConfigToSendStructuredCloudEventsWithDefault() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.source");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", topic);
         builder.put("cloud-events-type", "greetings");
@@ -866,9 +866,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig newCommonConfig() {
+    private KafkaMapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
-        MapBasedConfig config = new MapBasedConfig();
+        KafkaMapBasedConfig config = new KafkaMapBasedConfig();
         config.put("bootstrap.servers", getBootstrapServers());
         config.put("group.id", randomId);
         config.put("key.serializer", StringSerializer.class.getName());

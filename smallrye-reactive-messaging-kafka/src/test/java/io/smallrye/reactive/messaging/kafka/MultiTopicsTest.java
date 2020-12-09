@@ -21,8 +21,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 /**
  * Test the Incoming connector when multiple topics are used either using a pattern or a list of topics.
@@ -36,7 +36,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         String topic2 = UUID.randomUUID().toString();
         String topic3 = UUID.randomUUID().toString();
 
-        KafkaConsumer bean = runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "value.deserializer", StringDeserializer.class.getName(),
                         "topics", topic1 + ", " + topic2 + ", " + topic3,
@@ -90,7 +90,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         String topic2 = UUID.randomUUID().toString();
         String topic3 = UUID.randomUUID().toString();
 
-        KafkaConsumer bean = runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "value.deserializer", StringDeserializer.class.getName(),
                         "topics", topic1 + ", " + topic2 + ", " + topic3,
@@ -144,7 +144,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         createTopic(topic2, 1);
         createTopic(topic3, 1);
 
-        KafkaConsumer bean = runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "value.deserializer", StringDeserializer.class.getName(),
                         "topic", "greetings-.+",
@@ -197,7 +197,7 @@ public class MultiTopicsTest extends KafkaTestBase {
 
     @Test
     public void testNonReadinessWithPatternIfTopicsAreNotCreated() {
-        runApplication(MapBasedConfig.builder("mp.messaging.incoming.kafka")
+        runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "value.deserializer", StringDeserializer.class.getName(),
                         "topic", "greetings-.+",
@@ -215,7 +215,7 @@ public class MultiTopicsTest extends KafkaTestBase {
     @Test
     public void testInvalidConfigurations() {
         // Pattern and no topic
-        assertThatThrownBy(() -> runApplication(new MapBasedConfig()
+        assertThatThrownBy(() -> runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
                 .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
@@ -224,7 +224,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                         .hasCauseInstanceOf(IllegalArgumentException.class);
 
         // topics and no topic
-        assertThatThrownBy(() -> runApplication(new MapBasedConfig()
+        assertThatThrownBy(() -> runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
                 .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
@@ -234,7 +234,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                         .hasCauseInstanceOf(IllegalArgumentException.class);
 
         // topics and pattern
-        assertThatThrownBy(() -> runApplication(new MapBasedConfig()
+        assertThatThrownBy(() -> runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
                 .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())

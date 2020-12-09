@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class KafkaFailureHandlerTest extends KafkaTestBase {
 
@@ -301,8 +301,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         assertThat(bean.producers()).isEqualTo(1);
     }
 
-    private MapBasedConfig getFailConfig(String topic) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
+    private KafkaMapBasedConfig getFailConfig(String topic) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("group.id", "my-group");
         builder.put("topic", topic);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
@@ -313,8 +313,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig getIgnoreConfig(String topic) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
+    private KafkaMapBasedConfig getIgnoreConfig(String topic) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("topic", topic);
         builder.put("group.id", "my-group");
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
@@ -325,8 +325,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig getDeadLetterQueueConfig() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
+    private KafkaMapBasedConfig getDeadLetterQueueConfig() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("topic", "dead-letter-default");
         builder.put("group.id", "my-group");
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
@@ -337,8 +337,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig getDeadLetterQueueWithCustomConfig(String topic, String dq) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
+    private KafkaMapBasedConfig getDeadLetterQueueWithCustomConfig(String topic, String dq) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("group.id", "my-group");
         builder.put("topic", topic);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());

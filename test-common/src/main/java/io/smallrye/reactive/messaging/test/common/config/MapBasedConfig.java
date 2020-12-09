@@ -21,7 +21,10 @@ import org.eclipse.microprofile.config.spi.ConfigSource;
  * Note that this implementation does not do any conversion, so you must pass the expected object instances.
  */
 public class MapBasedConfig implements Config {
-    private final Map<String, Object> map;
+
+    protected static final String TEST_MP_CFG_PROPERTIES = "target/test-classes/META-INF/microprofile-config.properties";
+
+    protected final Map<String, Object> map;
 
     public MapBasedConfig(Map<String, Object> map) {
         this.map = map;
@@ -33,7 +36,7 @@ public class MapBasedConfig implements Config {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void clear() {
-        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
+        File out = new File(TEST_MP_CFG_PROPERTIES);
         if (out.isFile()) {
             out.delete();
         }
@@ -82,7 +85,7 @@ public class MapBasedConfig implements Config {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public void write() {
-        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
+        File out = new File(TEST_MP_CFG_PROPERTIES);
         if (out.isFile()) {
             out.delete();
         }
@@ -102,5 +105,4 @@ public class MapBasedConfig implements Config {
         map.put(key, value);
         return this;
     }
-
 }

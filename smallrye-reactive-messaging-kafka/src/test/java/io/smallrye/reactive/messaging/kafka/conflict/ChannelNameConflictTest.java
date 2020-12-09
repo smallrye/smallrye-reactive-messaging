@@ -17,8 +17,8 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 /**
  * Reproducer for https://github.com/smallrye/smallrye-reactive-messaging/issues/373.
@@ -45,7 +45,7 @@ public class ChannelNameConflictTest extends KafkaTestBase {
 
     @Test
     public void testWhenBothIncomingAndOutgoingUseTheSameName() {
-        new MapBasedConfig(CONFLICT).write();
+        new KafkaMapBasedConfig(CONFLICT).write();
         weld.addBeanClass(Bean.class);
         assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
     }

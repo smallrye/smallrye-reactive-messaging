@@ -18,9 +18,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class PerformanceConsumerTest extends KafkaTestBase {
 
@@ -42,7 +42,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
 
     @Test
     public void testWithPostAck() {
-        MyConsumerUsingPostAck application = runApplication(new MapBasedConfig()
+        MyConsumerUsingPostAck application = runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.topic", topic)
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
@@ -64,7 +64,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
 
     @Test
     public void testWithPostAckThrottled() {
-        MyConsumerUsingPostAck application = runApplication(new MapBasedConfig()
+        MyConsumerUsingPostAck application = runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.topic", topic)
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
@@ -87,7 +87,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
 
     @Test
     public void testWithNoAck() {
-        MyConsumerUsingNoAck application = runApplication(new MapBasedConfig()
+        MyConsumerUsingNoAck application = runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.topic", topic)
                 .with("mp.messaging.incoming.data.enable.auto.commit", true)
@@ -112,7 +112,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
 
     @Test
     public void testWithAutoCommitWithPostAck() {
-        MyConsumerUsingPostAck application = runApplication(new MapBasedConfig()
+        MyConsumerUsingPostAck application = runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.topic", topic)
                 .with("mp.messaging.incoming.data.enable.auto.commit", true)
@@ -137,7 +137,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
 
     @Test
     public void foo() {
-        MyConsumerUsingPostAck application = runApplication(new MapBasedConfig()
+        MyConsumerUsingPostAck application = runApplication(new KafkaMapBasedConfig()
                 .with("mp.messaging.incoming.data.bootstrap.servers", getBootstrapServers())
                 .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.topic", topic)

@@ -4,14 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.vertx.core.json.JsonObject;
 
 class JsonHelperTest {
 
     @Test
     public void test() {
-        MapBasedConfig config = MapBasedConfig.builder()
+        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder()
                 .put("bootstrap.servers", "not-important")
                 .put("key", "value")
                 .put("int", 10)

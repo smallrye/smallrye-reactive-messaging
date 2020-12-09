@@ -27,8 +27,8 @@ import org.testcontainers.containers.GenericContainer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureFailure;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.strimzi.StrimziKafkaContainer;
 
 public class NoKafkaTest extends KafkaTestBase {
@@ -180,8 +180,8 @@ public class NoKafkaTest extends KafkaTestBase {
         }
     }
 
-    private MapBasedConfig myKafkaSourceConfig() {
-        return MapBasedConfig.builder("mp.messaging.incoming.temperature-values")
+    private KafkaMapBasedConfig myKafkaSourceConfig() {
+        return KafkaMapBasedConfig.builder("mp.messaging.incoming.temperature-values")
                 .put(
                         "value.deserializer", IntegerDeserializer.class.getName(),
                         "topic", topic,
@@ -190,8 +190,8 @@ public class NoKafkaTest extends KafkaTestBase {
                 .build();
     }
 
-    private MapBasedConfig myKafkaSinkConfig(String topic) {
-        return MapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
+    private KafkaMapBasedConfig myKafkaSinkConfig(String topic) {
+        return KafkaMapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
                 .put(
                         "value.serializer", StringSerializer.class.getName(),
                         "max-inflight-messages", "2",
@@ -201,8 +201,8 @@ public class NoKafkaTest extends KafkaTestBase {
                 .build();
     }
 
-    private MapBasedConfig myKafkaSinkConfigWithoutBlockLimit(String topic) {
-        return MapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
+    private KafkaMapBasedConfig myKafkaSinkConfigWithoutBlockLimit(String topic) {
+        return KafkaMapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
                 .put(
                         "value.serializer", StringSerializer.class.getName(),
                         "topic", topic,

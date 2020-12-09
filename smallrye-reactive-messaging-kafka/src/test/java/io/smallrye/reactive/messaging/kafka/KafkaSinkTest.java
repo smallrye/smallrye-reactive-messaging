@@ -30,8 +30,8 @@ import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 
 public class KafkaSinkTest extends KafkaTestBase {
@@ -54,7 +54,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        MapBasedConfig config = getBaseConfig()
+        KafkaMapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0)
@@ -80,7 +80,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        MapBasedConfig config = getBaseConfig()
+        KafkaMapBasedConfig config = getBaseConfig()
                 .with("channel-name", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0);
@@ -105,7 +105,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        MapBasedConfig config = getBaseConfig()
+        KafkaMapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", StringSerializer.class.getName())
                 .with("partition", 0)
@@ -123,29 +123,29 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(expected).hasValue(10);
     }
 
-    private MapBasedConfig getBaseConfig() {
-        return new MapBasedConfig()
+    private KafkaMapBasedConfig getBaseConfig() {
+        return new KafkaMapBasedConfig()
                 .with("bootstrap.servers", getBootstrapServers())
                 .with("key.serializer", StringSerializer.class.getName())
                 .with("acks", "1")
                 .with("tracing-enabled", false);
     }
 
-    private MapBasedConfig getKafkaSinkConfigForProducingBean() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output")
+    private KafkaMapBasedConfig getKafkaSinkConfigForProducingBean() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output")
                 .put("value.serializer", IntegerSerializer.class.getName());
         return builder.build();
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMessageProducingBean() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output-2")
+    private KafkaMapBasedConfig getKafkaSinkConfigForMessageProducingBean() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output-2")
                 .put("value.serializer", IntegerSerializer.class.getName())
                 .put("topic", topic);
         return builder.build();
     }
 
-    private MapBasedConfig getKafkaSinkConfigForRecordProducingBean(String t) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output-record");
+    private KafkaMapBasedConfig getKafkaSinkConfigForRecordProducingBean(String t) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output-record");
         builder.put("key.serializer", IntegerSerializer.class.getName());
         builder.put("value.serializer", StringSerializer.class.getName());
         if (t != null) {
@@ -216,7 +216,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        MapBasedConfig config = getBaseConfig()
+        KafkaMapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0)
@@ -272,7 +272,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
-        MapBasedConfig config = getBaseConfig()
+        KafkaMapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0)

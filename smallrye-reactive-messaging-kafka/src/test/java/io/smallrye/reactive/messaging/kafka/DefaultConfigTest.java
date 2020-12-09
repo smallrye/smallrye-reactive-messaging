@@ -29,8 +29,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 /**
  * Test that the config can be retrieved from a Map produced using the {@code default-kafka-broker} name
@@ -57,8 +57,8 @@ public class DefaultConfigTest extends KafkaTestBase {
         });
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder();
+    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
         builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
         builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
 
