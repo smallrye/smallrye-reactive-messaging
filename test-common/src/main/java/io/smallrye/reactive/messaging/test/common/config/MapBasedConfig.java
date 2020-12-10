@@ -7,7 +7,10 @@ import java.io.UncheckedIOException;
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 
 /**
  * An implementation of {@link Config} based on a simple {@link Map}.
@@ -64,6 +67,36 @@ public class MapBasedConfig extends LinkedHashMap<String, Object> implements Con
     }
 
     @Override
+    public ConfigValue getConfigValue(String propertyName) {
+        return new ConfigValue() {
+            @Override
+            public String getName() {
+                return propertyName;
+            }
+
+            @Override
+            public String getValue() {
+                return MapBasedConfig.this.getOptionalValue(propertyName, String.class).orElse(null);
+            }
+
+            @Override
+            public String getRawValue() {
+                return MapBasedConfig.this.getOptionalValue(propertyName, String.class).orElse(null);
+            }
+
+            @Override
+            public String getSourceName() {
+                return MapBasedConfig.class.getName();
+            }
+
+            @Override
+            public int getSourceOrdinal() {
+                return ConfigSource.DEFAULT_ORDINAL;
+            }
+        };
+    }
+
+    @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         @SuppressWarnings("unchecked")
         T value = (T) super.get(propertyName);
@@ -80,24 +113,15 @@ public class MapBasedConfig extends LinkedHashMap<String, Object> implements Con
         return Collections.emptyList();
     }
 
-    /*
-     * MP Config 2.0 methods coming soon
-     *
-     * @Override
-     * public ConfigValue getConfigValue(String propertyName) {
-     * throw new UnsupportedOperationException("don't call this method");
-     * }
-     *
-     * @Override
-     * public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
-     * return Optional.empty();
-     * }
-     *
-     * @Override
-     * public <T> T unwrap(Class<T> type) {
-     * throw new UnsupportedOperationException("don't call this method");
-     * }
-     */
+    @Override
+    public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+        return ConfigProvider.getConfig().getConverter(forType);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> type) {
+        return ConfigProvider.getConfig().unwrap(type);
+    }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public void write() {
