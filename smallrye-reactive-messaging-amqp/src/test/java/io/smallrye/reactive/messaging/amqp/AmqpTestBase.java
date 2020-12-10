@@ -18,13 +18,13 @@ public class AmqpTestBase {
         executionHolder = new ExecutionHolder(Vertx.vertx());
 
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 
     @AfterEach
     public void tearDown() {
         executionHolder.terminate(null);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 }

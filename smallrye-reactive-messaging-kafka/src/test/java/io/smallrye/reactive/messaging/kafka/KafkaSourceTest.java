@@ -40,6 +40,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.strimzi.StrimziKafkaContainer;
 
 public class KafkaSourceTest extends KafkaTestBase {
@@ -60,7 +61,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSource() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -81,7 +82,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSourceWithPartitions() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
@@ -108,7 +109,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("rawtypes")
     @Test
     public void testSourceWithChannelName() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -130,7 +131,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcast() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true);
 
@@ -171,7 +172,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @Test
     public void testBroadcastWithPartitions() {
         createTopic(topic, 2);
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true)
                 .with("partitions", 2);
@@ -211,7 +212,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         try (StrimziKafkaContainer kafka = new StrimziKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
-            KafkaMapBasedConfig config = newCommonConfigForSource()
+            MapBasedConfig config = newCommonConfigForSource()
                     .with("bootstrap.servers", kafka.getBootstrapServers())
                     .with("value.deserializer", IntegerDeserializer.class.getName())
                     .with("retry", true)
@@ -446,7 +447,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testInvalidIncomingType() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -510,7 +511,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testSourceWithEmptyOptionalConfiguration() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("sasl.jaas.config", "") //optional configuration
                 .with("sasl.mechanism", ""); //optional configuration

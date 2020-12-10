@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.Record;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
 import io.vertx.kafka.client.serialization.JsonObjectSerializer;
@@ -33,7 +33,7 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testWhenBothValueAndKeyFailureHandlerAreSetToTheSameHandler() {
-        KafkaMapBasedConfig config = new KafkaMapBasedConfig()
+        MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
                 .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.kafka.topic", topic)

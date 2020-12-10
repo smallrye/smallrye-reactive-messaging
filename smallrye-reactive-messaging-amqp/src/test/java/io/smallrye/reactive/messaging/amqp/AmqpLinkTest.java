@@ -32,7 +32,7 @@ public class AmqpLinkTest extends AmqpBrokerTestBase {
             container.shutdown();
         }
 
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 

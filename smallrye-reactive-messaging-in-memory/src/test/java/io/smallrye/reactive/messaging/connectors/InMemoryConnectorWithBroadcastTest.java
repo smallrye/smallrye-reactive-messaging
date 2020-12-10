@@ -30,6 +30,8 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
         conf.put("mp.messaging.incoming.foo.broadcast", true);
         conf.put("mp.messaging.outgoing.bar.connector", InMemoryConnector.CONNECTOR);
         conf.put("mp.messaging.outgoing.bar.data", "not read");
+        conf.put("mp.messaging.outgoing.bar-2.connector", InMemoryConnector.CONNECTOR);
+        conf.put("mp.messaging.outgoing.bar-2.data", "not read");
         installConfig(new MapBasedConfig(conf));
     }
 
@@ -47,9 +49,11 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
                 .select(InMemoryConnector.class, ConnectorLiteral.of(InMemoryConnector.CONNECTOR)).get();
         assertThat(bean).isNotNull();
         InMemorySink<String> bar = bean.sink("bar");
+        InMemorySink<String> bar2 = bean.sink("bar-2");
         InMemorySource<String> foo = bean.source("foo");
         foo.send("hello");
-        assertThat(bar.received()).hasSize(2).extracting(Message::getPayload).contains("HELLO", "hello");
+        assertThat(bar.received()).hasSize(1).extracting(Message::getPayload).contains("HELLO");
+        assertThat(bar2.received()).hasSize(1).extracting(Message::getPayload).contains("hello");
     }
 
     @Test
@@ -63,6 +67,7 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
         assertThat(bean).isNotNull();
         InMemorySource<Message<String>> foo = bean.source("foo");
         InMemorySink<String> bar = bean.sink("bar");
+        InMemorySink<String> bar2 = bean.sink("bar-2");
 
         Message<String> msg = Message.of("hello", () -> {
             acked.set(true);
@@ -71,7 +76,8 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
             return future;
         });
         foo.send(msg);
-        assertThat(bar.received()).hasSize(2).extracting(Message::getPayload).contains("HELLO", "hello");
+        assertThat(bar.received()).hasSize(1).extracting(Message::getPayload).contains("HELLO");
+        assertThat(bar2.received()).hasSize(1).extracting(Message::getPayload).contains("hello");
         assertThat(acked).isTrue();
     }
 
@@ -85,19 +91,20 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
         assertThat(bean).isNotNull();
         InMemorySource<String> foo = bean.source("foo");
         InMemorySink<String> bar = bean.sink("bar");
+        InMemorySink<String> bar2 = bean.sink("bar-2");
         foo.send("1");
         foo.send("2");
         foo.send("3");
-        assertThat(bar.received()).hasSize(6).extracting(Message::getPayload).contains("1", "2", "3");
+        assertThat(bar.received()).hasSize(3).extracting(Message::getPayload).contains("1", "2", "3");
         bar.clear();
         foo.send("4");
         foo.send("5");
         foo.send("6");
         foo.complete();
 
-        assertThat(bar.received()).hasSize(6).extracting(Message::getPayload).contains("4", "5", "6");
-        assertThat(bar.hasCompleted()).isTrue();
-        assertThat(bar.hasFailed()).isFalse();
+        assertThat(bar2.received()).hasSize(6).extracting(Message::getPayload).contains("4", "5", "6");
+        assertThat(bar2.hasCompleted()).isTrue();
+        assertThat(bar2.hasFailed()).isFalse();
     }
 
     @Test
@@ -110,20 +117,26 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
         assertThat(bean).isNotNull();
         InMemorySource<String> foo = bean.source("foo");
         InMemorySink<String> bar = bean.sink("bar");
+        InMemorySink<String> bar2 = bean.sink("bar-2");
         foo.send("1");
         foo.send("2");
         foo.send("3");
-        assertThat(bar.received()).hasSize(6).extracting(Message::getPayload).contains("1", "2", "3");
+        assertThat(bar.received()).hasSize(3).extracting(Message::getPayload).contains("1", "2", "3");
+        assertThat(bar2.received()).hasSize(3).extracting(Message::getPayload).contains("1", "2", "3");
         foo.fail(new Exception("boom"));
 
         assertThat(bar.hasCompleted()).isFalse();
         assertThat(bar.hasFailed()).isTrue();
         assertThat(bar.getFailure()).hasMessageContaining("boom");
 
-        bar.clear();
-        assertThat(bar.hasCompleted()).isFalse();
-        assertThat(bar.hasFailed()).isFalse();
-        assertThat(bar.getFailure()).isNull();
+        assertThat(bar2.hasCompleted()).isFalse();
+        assertThat(bar2.hasFailed()).isTrue();
+        assertThat(bar2.getFailure()).hasMessageContaining("boom");
+
+        bar2.clear();
+        assertThat(bar2.hasCompleted()).isFalse();
+        assertThat(bar2.hasFailed()).isFalse();
+        assertThat(bar2.getFailure()).isNull();
 
     }
 
@@ -142,7 +155,7 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
     public static class MySecondBeanReceivingString {
 
         @Incoming("foo")
-        @Outgoing("bar")
+        @Outgoing("bar-2")
         public String process(String s) {
             return s;
         }
@@ -164,7 +177,7 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
     public static class MySecondBeanReceivingMessage {
 
         @Incoming("foo")
-        @Outgoing("bar")
+        @Outgoing("bar-2")
         public Message<String> process(Message<String> s) {
             return s.withPayload(s.getPayload());
         }

@@ -15,14 +15,14 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class KafkaNackOnUnrecoverableFailureTest extends KafkaTestBase {
 
     @Test
     public void testNoRetryOnUnrecoverableExceptions() {
-        MyEmitter application = runApplication(MapBasedConfig.builder()
+        MyEmitter application = runApplication(KafkaMapBasedConfig.builder()
                 .put("mp.messaging.outgoing.out.connector", "smallrye-kafka")
                 .put("mp.messaging.outgoing.out.bootstrap.servers", getBootstrapServers())
                 .put("mp.messaging.outgoing.out.topic", topic)
@@ -38,7 +38,7 @@ public class KafkaNackOnUnrecoverableFailureTest extends KafkaTestBase {
 
     @Test
     public void testNoRetryOnSerializationFailure() {
-        MyEmitter application = runApplication(MapBasedConfig.builder()
+        MyEmitter application = runApplication(KafkaMapBasedConfig.builder()
                 .put("mp.messaging.outgoing.out.connector", "smallrye-kafka")
                 .put("mp.messaging.outgoing.out.bootstrap.servers", getBootstrapServers())
                 .put("mp.messaging.outgoing.out.topic", topic)

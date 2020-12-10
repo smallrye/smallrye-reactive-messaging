@@ -13,7 +13,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
  * <p>
  * Note that this implementation does not do any conversion, so you must pass the expected object instances.
  */
-public class KafkaMapBasedConfig extends MapBasedConfig implements Config {
+public class KafkaMapBasedConfig extends MapBasedConfig {
 
     public KafkaMapBasedConfig(Map<String, Object> map) {
         super(map);
@@ -33,28 +33,6 @@ public class KafkaMapBasedConfig extends MapBasedConfig implements Config {
 
     public static Builder builder(String prefix, boolean tracing) {
         return new KafkaMapBasedConfig.Builder(prefix, tracing);
-    }
-
-    public KafkaMapBasedConfig with(String k, Object v) {
-        return put(k, v);
-    }
-
-    public KafkaMapBasedConfig without(String s) {
-        map.remove(s);
-        return this;
-    }
-
-    public KafkaMapBasedConfig copy() {
-        return new KafkaMapBasedConfig(new HashMap<>(map));
-    }
-
-    public KafkaMapBasedConfig put(String key, Object value) {
-        super.put(key, value);
-        return this;
-    }
-
-    public Map<String, Object> getMap() {
-        return map;
     }
 
     public static class Builder {

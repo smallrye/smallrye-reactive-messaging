@@ -29,7 +29,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
             container.shutdown();
         }
 
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 

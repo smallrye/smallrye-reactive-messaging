@@ -24,11 +24,11 @@ import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.kafka.admin.KafkaAdminClient;
 import io.vertx.kafka.admin.ListConsumerGroupOffsetsOptions;
 import io.vertx.kafka.client.common.TopicPartition;
@@ -53,7 +53,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     public void testSourceWithAutoCommitEnabled() throws ExecutionException, TimeoutException, InterruptedException {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("group.id", "test-source-with-auto-commit-enabled")
                 .with(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
                 .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 500)
@@ -87,7 +87,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         firstMessage.get().ack().whenComplete((a, t) -> ackFuture.complete(null));
         ackFuture.get(10, TimeUnit.SECONDS);
 
-        KafkaMapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
+        MapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
         admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
@@ -114,7 +114,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     public void testSourceWithAutoCommitDisabled() throws ExecutionException, InterruptedException, TimeoutException {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("group.id", "test-source-with-auto-commit-disabled")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "latest");
@@ -142,7 +142,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         TopicPartition topicPartition = new TopicPartition(topic, 0);
         CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-        KafkaMapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
+        MapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
         admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
         admin
                 .listConsumerGroupOffsets("test-source-with-auto-commit-disabled",
@@ -163,7 +163,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     public void testSourceWithThrottledLatestProcessedCommitEnabled() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
@@ -188,7 +188,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        KafkaMapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
+        MapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
         admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
@@ -226,7 +226,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     public void testSourceWithThrottledLatestProcessedCommitEnabledWithoutAck() {
-        KafkaMapBasedConfig config = newCommonConfigForSource()
+        MapBasedConfig config = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit-without-acking")
                 .with("value.deserializer", IntegerDeserializer.class.getName())

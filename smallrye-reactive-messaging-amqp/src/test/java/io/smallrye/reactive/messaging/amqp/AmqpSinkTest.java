@@ -48,7 +48,7 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
             container.shutdown();
         }
 
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 

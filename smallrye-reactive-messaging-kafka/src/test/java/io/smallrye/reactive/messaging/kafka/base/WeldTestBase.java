@@ -25,6 +25,7 @@ import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class WeldTestBase {
@@ -84,17 +85,17 @@ public class WeldTestBase {
         return getBeanManager().createInstance().select(clazz).get();
     }
 
-    public <T> T runApplication(KafkaMapBasedConfig config, Class<T> clazz) {
+    public <T> T runApplication(MapBasedConfig config, Class<T> clazz) {
         weld.addBeanClass(clazz);
         runApplication(config);
         return get(clazz);
     }
 
-    public void runApplication(KafkaMapBasedConfig config) {
+    public void runApplication(MapBasedConfig config) {
         if (config != null) {
             config.write();
         } else {
-            KafkaMapBasedConfig.clear();
+            MapBasedConfig.cleanup();
         }
 
         container = weld.initialize();
@@ -104,7 +105,7 @@ public class WeldTestBase {
         if (config != null) {
             config.write();
         } else {
-            KafkaMapBasedConfig.clear();
+            KafkaMapBasedConfig.cleanup();
         }
     }
 

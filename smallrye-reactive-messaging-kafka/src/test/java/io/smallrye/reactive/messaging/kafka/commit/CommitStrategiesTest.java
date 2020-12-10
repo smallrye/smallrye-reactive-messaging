@@ -26,9 +26,9 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
 public class CommitStrategiesTest extends WeldTestBase {
@@ -51,7 +51,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     void testLatestCommitStrategy() {
-        KafkaMapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
+        MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
                 UUID.randomUUID().toString());
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
@@ -140,7 +140,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     void testThrottledStrategy() {
-        KafkaMapBasedConfig config = commonConfiguration()
+        MapBasedConfig config = commonConfiguration()
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
         KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
@@ -200,7 +200,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     void testThrottledStrategyWithManyRecords() {
-        KafkaMapBasedConfig config = commonConfiguration()
+        MapBasedConfig config = commonConfiguration()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
@@ -275,7 +275,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     void testThrottledStrategyWithTooManyUnackedMessages() throws Exception {
-        KafkaMapBasedConfig config = commonConfiguration()
+        MapBasedConfig config = commonConfiguration()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
@@ -342,7 +342,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     public void testFailureWhenNoRebalanceListenerMatchGivenName() {
-        KafkaMapBasedConfig config = commonConfiguration();
+        MapBasedConfig config = commonConfiguration();
         config
                 .with("client.id", UUID.randomUUID().toString())
                 .with("consumer-rebalance-listener.name", "my-missing-name");
@@ -355,7 +355,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     public void testFailureWhenMultipleRebalanceListenerMatchGivenName() {
-        KafkaMapBasedConfig config = commonConfiguration();
+        MapBasedConfig config = commonConfiguration();
         addBeans(NamedRebalanceListener.class, SameNameRebalanceListener.class);
         config
                 .with("consumer-rebalance-listener.name", "mine")
@@ -369,7 +369,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     @Test
     public void testWithRebalanceListenerMatchGivenName() {
         addBeans(NamedRebalanceListener.class);
-        KafkaMapBasedConfig config = commonConfiguration();
+        MapBasedConfig config = commonConfiguration();
         config
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
@@ -406,8 +406,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         assertThat(list).hasSize(2);
     }
 
-    private KafkaMapBasedConfig commonConfiguration() {
-        return new KafkaMapBasedConfig()
+    private MapBasedConfig commonConfiguration() {
+        return new MapBasedConfig()
                 .with("channel-name", "channel")
                 .with("topic", TOPIC)
                 .with("health-enabled", false)

@@ -46,7 +46,7 @@ public class AmqpBrokerTestBase {
 
         usage = new AmqpUsage(executionHolder.vertx(), host, port, username, password);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 
     @AfterEach
@@ -54,7 +54,7 @@ public class AmqpBrokerTestBase {
         usage.close();
         executionHolder.terminate(null);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 
     public boolean isAmqpConnectorReady(WeldContainer container) {

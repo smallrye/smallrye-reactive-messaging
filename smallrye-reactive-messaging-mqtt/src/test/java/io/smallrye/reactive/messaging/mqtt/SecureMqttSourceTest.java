@@ -18,7 +18,6 @@ import org.junit.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-
 public class SecureMqttSourceTest extends SecureMqttTestBase {
 
     private WeldContainer container;
@@ -47,6 +46,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
         await().until(source::isSubscribed);
+        pause();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
                 counter::getAndIncrement)).start();
@@ -63,7 +63,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
     @Test
     public void testABeanConsumingTheMQTTMessagesWithAuthentication() {
         ConsumptionBean bean = deploy();
-
+        pause();
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
 
@@ -73,6 +73,15 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    }
+
+    void pause() {
+        // TODO To be removed - there is a race between the subscription and the consumption.
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private ConsumptionBean deploy() {

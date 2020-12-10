@@ -21,8 +21,8 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
-import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.vertx.mutiny.core.Vertx;
 
 public class AwsSnsTestBase {
@@ -85,7 +85,7 @@ public class AwsSnsTestBase {
         if (config != null) {
             config.write();
         } else {
-            MapBasedConfig.clear();
+            MapBasedConfig.cleanup();
         }
     }
 

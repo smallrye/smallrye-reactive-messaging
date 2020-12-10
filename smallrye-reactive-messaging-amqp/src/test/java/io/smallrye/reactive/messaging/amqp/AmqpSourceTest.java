@@ -30,7 +30,6 @@ import org.reactivestreams.Subscription;
 import io.smallrye.common.constraint.NotNull;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -53,7 +52,7 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
             container.shutdown();
         }
 
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
 
         System.clearProperty("mp-config");
@@ -201,7 +200,7 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
                 .collect(Collectors.toList()))
                         .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
@@ -386,13 +385,13 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
         weld.addBeanClass(ExecutionHolder.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.incoming.data.address", "data")
-                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.data.host", host)
-                .put("mp.messaging.incoming.data.port", port)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("mp.messaging.incoming.data.client-options-name", "myclientoptions")
+                .with("mp.messaging.incoming.data.address", "data")
+                .with("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.host", host)
+                .with("mp.messaging.incoming.data.port", port)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
+                .with("mp.messaging.incoming.data.client-options-name", "myclientoptions")
                 .write();
 
         assertThatThrownBy(() -> container = weld.initialize())
@@ -408,13 +407,13 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
         weld.addBeanClass(ExecutionHolder.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.incoming.data.address", "data")
-                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.data.host", host)
-                .put("mp.messaging.incoming.data.port", port)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("mp.messaging.incoming.data.client-options-name", "dummyoptionsnonexistent")
+                .with("mp.messaging.incoming.data.address", "data")
+                .with("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.host", host)
+                .with("mp.messaging.incoming.data.port", port)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
+                .with("mp.messaging.incoming.data.client-options-name", "dummyoptionsnonexistent")
                 .write();
 
         assertThatThrownBy(() -> container = weld.initialize())
@@ -429,16 +428,18 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
         weld.addBeanClass(ConsumptionBean.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.incoming.data.address", "data")
-                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.data.host", host)
-                .put("mp.messaging.incoming.data.port", port)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("mp.messaging.incoming.data.client-options-name", "myclientoptions")
+                .with("mp.messaging.incoming.data.address", "data")
+                .with("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.host", host)
+                .with("mp.messaging.incoming.data.port", port)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
+                .with("mp.messaging.incoming.data.client-options-name", "myclientoptions")
                 .write();
 
         container = weld.initialize();
+        await().until(() -> isAmqpConnectorAlive(container));
+        await().until(() -> isAmqpConnectorReady(container));
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
         assertThat(list).isEmpty();
 
@@ -453,25 +454,28 @@ public class AmqpSourceTest extends AmqpBrokerTestBase {
     public void testConfigGlobalOptionsByCDICorrect() {
         Weld weld = new Weld();
 
+        String address = UUID.randomUUID().toString();
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.incoming.data.address", "data")
-                .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.data.host", host)
-                .put("mp.messaging.incoming.data.port", port)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("amqp-client-options-name", "myclientoptions")
+                .with("mp.messaging.incoming.data.address", address)
+                .with("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.host", host)
+                .with("mp.messaging.incoming.data.port", port)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
+                .with("amqp-client-options-name", "myclientoptions")
                 .write();
 
         container = weld.initialize();
+        await().until(() -> isAmqpConnectorAlive(container));
+        await().until(() -> isAmqpConnectorReady(container));
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
         assertThat(list).isEmpty();
 
         AtomicInteger counter = new AtomicInteger();
-        usage.produceTenIntegers("data", counter::getAndIncrement);
+        usage.produceTenIntegers(address, counter::getAndIncrement);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);

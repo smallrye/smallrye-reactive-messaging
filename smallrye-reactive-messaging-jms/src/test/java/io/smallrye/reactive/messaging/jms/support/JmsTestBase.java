@@ -18,8 +18,8 @@ import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
-import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class JmsTestBase {
 
@@ -92,7 +92,7 @@ public class JmsTestBase {
         if (config != null) {
             config.write();
         } else {
-            MapBasedConfig.clear();
+            MapBasedConfig.cleanup();
         }
     }
 

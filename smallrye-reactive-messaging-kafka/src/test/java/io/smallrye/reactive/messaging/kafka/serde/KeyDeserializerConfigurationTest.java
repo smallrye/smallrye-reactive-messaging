@@ -29,6 +29,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.*;
 import io.smallrye.reactive.messaging.kafka.fault.DeserializerWrapper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
 import io.vertx.kafka.client.serialization.JsonObjectSerializer;
@@ -47,7 +48,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testThatWhenKeyDeserializerIsNotSetStringIsUsed() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration();
+        MapBasedConfig config = commonConsumerConfiguration();
         source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -73,7 +74,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeyDeserializationFailureWhenNoDeserializerSet() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration();
+        MapBasedConfig config = commonConsumerConfiguration();
         source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -111,7 +112,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeyDeserializationFailureWithDeserializerSet() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration()
+        MapBasedConfig config = commonConsumerConfiguration()
                 .with("key.deserializer", JsonObjectDeserializer.class.getName());
         source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
@@ -151,7 +152,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testThatUnderlyingDeserializerReceiveTheConfiguration() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration()
+        MapBasedConfig config = commonConsumerConfiguration()
                 .with("key.deserializer", ConstantDeserializer.class.getName())
                 .with("deserializer.value", "constant");
         source = new KafkaSource<>(vertx, "my-group",
@@ -191,7 +192,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeyDeserializationFailureWithMatchingHandler() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration()
+        MapBasedConfig config = commonConsumerConfiguration()
                 .with("key.deserializer", JsonObjectDeserializer.class.getName())
                 .with("key-deserialization-failure-handler", "my-deserialization-handler");
 
@@ -260,7 +261,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeyDeserializationFailureWithMatchingHandlerReturningNull() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration()
+        MapBasedConfig config = commonConsumerConfiguration()
                 .with("key.deserializer", JsonObjectDeserializer.class.getName())
                 .with("key-deserialization-failure-handler", "my-deserialization-handler");
 
@@ -311,7 +312,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeyDeserializationFailureWithNoMatchingHandler() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration()
+        MapBasedConfig config = commonConsumerConfiguration()
                 .with("key.deserializer", JsonObjectDeserializer.class.getName())
                 .with("key-deserialization-failure-handler", "my-deserialization-handler");
 
@@ -334,7 +335,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeyDeserializationFailureWithMultipleMatchingHandler() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration()
+        MapBasedConfig config = commonConsumerConfiguration()
                 .with("key.deserializer", JsonObjectDeserializer.class.getName())
                 .with("key-deserialization-failure-handler", "my-deserialization-handler");
 
@@ -367,7 +368,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     @Test
     public void testKeyDeserializerFailsDuringConfig() {
-        KafkaMapBasedConfig config = commonConsumerConfiguration()
+        MapBasedConfig config = commonConsumerConfiguration()
                 .with("key.deserializer", BrokenDeserializerFailingDuringConfig.class.getName());
 
         assertThatThrownBy(() -> source = new KafkaSource<>(vertx, "my-group",
@@ -377,8 +378,8 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     }
 
-    private KafkaMapBasedConfig commonConsumerConfiguration() {
-        return new KafkaMapBasedConfig()
+    private MapBasedConfig commonConsumerConfiguration() {
+        return new MapBasedConfig()
                 .with("bootstrap.servers", getBootstrapServers())
                 .with("channel-name", "channel")
                 .with("topic", topic)
