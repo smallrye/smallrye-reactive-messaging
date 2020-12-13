@@ -138,7 +138,7 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Emitter<T> produceEmitter(InjectionPoint injectionPoint) {
-        Emitter emitter = getEmitter(injectionPoint);
+        Emitter<?> emitter = getEmitter(injectionPoint);
         return cast(emitter);
     }
 
@@ -152,7 +152,7 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> MutinyEmitter<T> produceMutinyEmitter(InjectionPoint injectionPoint) {
-        MutinyEmitter emitter = getMutinyEmitter(injectionPoint);
+        MutinyEmitter<?> emitter = getMutinyEmitter(injectionPoint);
         return cast(emitter);
     }
 
@@ -168,7 +168,7 @@ public class ChannelProducer {
     @io.smallrye.reactive.messaging.annotations.Channel("") // Stream name is ignored during type-safe resolution
     <T> io.smallrye.reactive.messaging.annotations.Emitter<T> produceEmitterLegacy(
             InjectionPoint injectionPoint) {
-        LegacyEmitterImpl emitter = new LegacyEmitterImpl(getEmitter(injectionPoint));
+        LegacyEmitterImpl<?> emitter = new LegacyEmitterImpl<>(getEmitter(injectionPoint));
         return cast(emitter);
     }
 
@@ -185,20 +185,18 @@ public class ChannelProducer {
         });
     }
 
-    @SuppressWarnings("rawtypes")
-    private Emitter getEmitter(InjectionPoint injectionPoint) {
+    private Emitter<?> getEmitter(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        Emitter emitter = channelRegistry.getEmitter(name);
+        Emitter<?> emitter = channelRegistry.getEmitter(name);
         if (emitter == null) {
             throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
         }
         return emitter;
     }
 
-    @SuppressWarnings("rawtypes")
-    private MutinyEmitter getMutinyEmitter(InjectionPoint injectionPoint) {
+    private MutinyEmitter<?> getMutinyEmitter(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        MutinyEmitter emitter = channelRegistry.getMutinyEmitter(name);
+        MutinyEmitter<?> emitter = channelRegistry.getMutinyEmitter(name);
         if (emitter == null) {
             throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
         }

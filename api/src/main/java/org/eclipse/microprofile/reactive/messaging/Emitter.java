@@ -20,8 +20,6 @@ package org.eclipse.microprofile.reactive.messaging;
 
 import java.util.concurrent.CompletionStage;
 
-import io.smallrye.reactive.messaging.EmitterBehavior;
-
 /**
  * Interface used to feed a channel from an <em>imperative</em> piece of code.
  * <p>
@@ -47,7 +45,7 @@ import io.smallrye.reactive.messaging.EmitterBehavior;
  *
  * @param <T> type of payload
  */
-public interface Emitter<T> extends EmitterBehavior {
+public interface Emitter<T> {
 
     /**
      * Sends a payload to the channel.
@@ -75,5 +73,29 @@ public interface Emitter<T> extends EmitterBehavior {
      *         configured and the emitter overflows.
      */
     <M extends Message<? extends T>> void send(M msg);
+
+    /**
+     * Sends the completion event to the channel indicating that no other events will be sent afterward.
+     */
+    void complete();
+
+    /**
+     * Sends a failure event to the channel. No more events will be sent afterward.
+     *
+     * @param e the exception, must not be {@code null}
+     */
+    void error(Exception e);
+
+    /**
+     * @return {@code true} if the emitter has been terminated or the subscription cancelled.
+     */
+    boolean isCancelled();
+
+    /**
+     * @return {@code true} if one or more subscribers request messages from the corresponding channel where the emitter
+     *         connects to,
+     *         return {@code false} otherwise.
+     */
+    boolean hasRequests();
 
 }
