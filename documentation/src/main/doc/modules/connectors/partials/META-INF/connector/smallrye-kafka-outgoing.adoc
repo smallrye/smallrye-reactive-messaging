@@ -17,7 +17,7 @@ Type: _string_ | false | `localhost:9092`
 
 Type: _long_ | false | `33554432`
 
-| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled, the connector sends the outgoing messages as Cloud Event if the message to be sent includes Cloud Event Metadata.
+| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.
 
 Type: _boolean_ | false | `true`
 
