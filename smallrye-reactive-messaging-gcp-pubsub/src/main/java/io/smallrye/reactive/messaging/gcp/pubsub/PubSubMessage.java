@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubMessages.msg;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -42,6 +43,11 @@ public class PubSubMessage implements Message<String> {
             ackReplyConsumer.ack();
         }
         return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return this::ack;
     }
 
     @Override

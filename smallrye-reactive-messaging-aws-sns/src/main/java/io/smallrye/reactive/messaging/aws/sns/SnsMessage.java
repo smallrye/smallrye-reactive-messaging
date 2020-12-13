@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.aws.sns.i18n.SnsMessages.msg;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -51,6 +52,11 @@ public class SnsMessage implements Message<String> {
     public CompletionStage<Void> ack() {
         //Acknowledgment is handled automatically by AWS SDK.
         return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return this::ack;
     }
 
     @Override

@@ -50,6 +50,11 @@ public class HttpMessage<T> implements Message<T> {
         this.ack = ack;
     }
 
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return ack;
+    }
+
     public static <T> HttpMessageBuilder<T> builder() {
         return new HttpMessageBuilder<>();
     }

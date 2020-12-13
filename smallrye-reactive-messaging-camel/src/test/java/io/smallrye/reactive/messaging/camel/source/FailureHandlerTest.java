@@ -90,17 +90,17 @@ public class FailureHandlerTest extends CamelTestBase {
 
     private void getFailConfig() {
         new MapBasedConfig()
-                .put("mp.messaging.incoming.camel.endpoint-uri", "seda:fail")
-                .put("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.camel.endpoint-uri", "seda:fail")
+                .with("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
                 // fail is the default.
                 .write();
     }
 
     private void getIgnoreConfig() {
         new MapBasedConfig()
-                .put("mp.messaging.incoming.camel.endpoint-uri", "seda:ignore")
-                .put("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.camel.failure-strategy", "ignore")
+                .with("mp.messaging.incoming.camel.endpoint-uri", "seda:ignore")
+                .with("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.camel.failure-strategy", "ignore")
                 .write();
     }
 

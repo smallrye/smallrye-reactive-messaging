@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.camel;
 
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import org.apache.camel.Exchange;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -39,5 +40,10 @@ public class CamelMessage<T> implements Message<T> {
     @Override
     public CompletionStage<Void> nack(Throwable reason) {
         return onNack.handle(this, reason);
+    }
+
+    @Override
+    public Function<Throwable, CompletionStage<Void>> getNack() {
+        return this::nack;
     }
 }

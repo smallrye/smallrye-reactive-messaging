@@ -23,8 +23,6 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class ProcessorWithConverterTest extends WeldTestBaseWithoutTails {
 
-    // TODO Converter throwin exception during accept / during conversion
-
     @Test
     public void testConversionWhenReceivingPayload() {
         addBeanClass(Source.class, Sink.class, StringToPersonConverter.class, PayloadProcessor.class);
@@ -49,7 +47,10 @@ public class ProcessorWithConverterTest extends WeldTestBaseWithoutTails {
         addBeanClass(Source.class, Sink.class, StringToPersonConverter.class, MessageProcessor.class);
         initialize();
         Sink sink = get(Sink.class);
+        Source source = get(Source.class);
         assertThat(sink.list()).hasSize(5);
+        assertThat(source.acks()).isEqualTo(5);
+        assertThat(source.nacks()).isEqualTo(0);
     }
 
     @Test
