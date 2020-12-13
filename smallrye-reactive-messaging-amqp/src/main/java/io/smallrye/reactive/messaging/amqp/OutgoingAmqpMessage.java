@@ -2,6 +2,8 @@ package io.smallrye.reactive.messaging.amqp;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
@@ -82,6 +84,16 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
     @Override
     public CompletionStage<Void> nack(Throwable reason) {
         return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return this::ack;
+    }
+
+    @Override
+    public Function<Throwable, CompletionStage<Void>> getNack() {
+        return this::nack;
     }
 
     @Override

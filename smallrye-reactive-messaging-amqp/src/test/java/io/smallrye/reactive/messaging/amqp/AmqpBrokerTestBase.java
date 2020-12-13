@@ -1,7 +1,8 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import javax.enterprise.inject.se.SeContainer;
+
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -57,7 +58,7 @@ public class AmqpBrokerTestBase {
         MapBasedConfig.cleanup();
     }
 
-    public boolean isAmqpConnectorReady(WeldContainer container) {
+    public boolean isAmqpConnectorReady(SeContainer container) {
         HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
         return health.getReadiness().isOk();
     }
@@ -66,7 +67,7 @@ public class AmqpBrokerTestBase {
         return connector.getReadiness().isOk();
     }
 
-    public boolean isAmqpConnectorAlive(WeldContainer container) {
+    public boolean isAmqpConnectorAlive(SeContainer container) {
         HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
         return health.getLiveness().isOk();
     }
