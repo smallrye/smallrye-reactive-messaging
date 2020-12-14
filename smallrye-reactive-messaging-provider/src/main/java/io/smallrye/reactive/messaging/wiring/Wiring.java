@@ -203,10 +203,6 @@ public class Wiring {
             throw new UnsupportedOperationException("Downstream connection not expected for " + this);
         }
 
-        default void connectUpstream(Component upstream) {
-            throw new UnsupportedOperationException("Upstream connection not expected for " + this);
-        }
-
         void materialize(ChannelRegistry registry);
     }
 
@@ -223,6 +219,11 @@ public class Wiring {
         default boolean isDownstreamResolved() {
             return !downstreams().isEmpty();
         }
+
+        @Override
+        default void connectDownstream(Component downstream) {
+            downstreams().add(downstream);
+        }
     }
 
     interface ConsumingComponent extends Component {
@@ -232,11 +233,28 @@ public class Wiring {
             return !upstreams().isEmpty();
         }
 
-        boolean merge();
+        default void connectUpstream(Component upstream) {
+            upstreams().add(upstream);
+        }
 
+        boolean merge();
     }
 
-    static class InboundConnectorComponent implements PublishingComponent {
+    interface NoUpstreamComponent extends Component {
+        @Override
+        default boolean isUpstreamResolved() {
+            return true;
+        }
+    }
+
+    interface NoDownstreamComponent extends Component {
+        @Override
+        default boolean isDownstreamResolved() {
+            return true;
+        }
+    }
+
+    static class InboundConnectorComponent implements PublishingComponent, NoUpstreamComponent {
 
         private final String name;
         private final boolean broadcast;
@@ -253,28 +271,13 @@ public class Wiring {
         }
 
         @Override
-        public boolean isUpstreamResolved() {
-            return true;
-        }
-
-        @Override
         public Set<Component> downstreams() {
             return downstreams;
         }
 
         @Override
-        public void connectDownstream(Component component) {
-            downstreams.add(component);
-        }
-
-        @Override
         public void materialize(ChannelRegistry registry) {
             // We are already registered and created.
-        }
-
-        @Override
-        public Set<Component> upstreams() {
-            return Collections.emptySet();
         }
 
         @Override
@@ -300,19 +303,13 @@ public class Wiring {
         }
     }
 
-    static class OutgoingConnectorComponent implements ConsumingComponent {
+    static class OutgoingConnectorComponent implements ConsumingComponent, NoDownstreamComponent {
 
         private final String name;
         private final Set<Component> upstreams = new LinkedHashSet<>();
 
         public OutgoingConnectorComponent(String name) {
             this.name = name;
-        }
-
-        @Override
-        public boolean isDownstreamResolved() {
-            // No downstream
-            return true;
         }
 
         @Override
@@ -327,7 +324,6 @@ public class Wiring {
 
         @Override
         public void connectUpstream(Component upstream) {
-            upstream.connectDownstream(this);
             upstreams.add(upstream);
         }
 
@@ -361,19 +357,13 @@ public class Wiring {
         }
     }
 
-    static class InjectedChannelComponent implements ConsumingComponent {
+    static class InjectedChannelComponent implements ConsumingComponent, NoDownstreamComponent {
 
         private final String name;
         private final Set<Component> upstreams = new LinkedHashSet<>();
 
         public InjectedChannelComponent(ChannelConfiguration configuration) {
             this.name = configuration.channelName;
-        }
-
-        @Override
-        public boolean isDownstreamResolved() {
-            // No downstream.
-            return true;
         }
 
         @Override
@@ -384,11 +374,6 @@ public class Wiring {
         @Override
         public boolean merge() {
             return false; // TODO We may want to add this feature.
-        }
-
-        @Override
-        public void connectUpstream(Component upstream) {
-            upstreams.add(upstream);
         }
 
         @Override
@@ -414,7 +399,7 @@ public class Wiring {
         }
     }
 
-    static class EmitterComponent implements PublishingComponent {
+    static class EmitterComponent implements PublishingComponent, NoUpstreamComponent {
 
         private final EmitterConfiguration configuration;
         private final Set<Component> downstreams = new LinkedHashSet<>();
@@ -438,16 +423,6 @@ public class Wiring {
         }
 
         @Override
-        public boolean isUpstreamResolved() {
-            return true;
-        }
-
-        @Override
-        public void connectDownstream(Component component) {
-            downstreams.add(component);
-        }
-
-        @Override
         public boolean broadcast() {
             return configuration.broadcast;
         }
@@ -455,11 +430,6 @@ public class Wiring {
         @Override
         public int getRequiredNumberOfSubscribers() {
             return configuration.numberOfSubscriberBeforeConnecting;
-        }
-
-        @Override
-        public Set<Component> upstreams() {
-            return Collections.emptySet();
         }
 
         @Override
@@ -514,7 +484,7 @@ public class Wiring {
         }
     }
 
-    static class PublisherMediatorComponent extends MediatorComponent implements PublishingComponent {
+    static class PublisherMediatorComponent extends MediatorComponent implements PublishingComponent, NoUpstreamComponent {
 
         private final Set<Component> downstreams = new LinkedHashSet<>();
 
@@ -528,18 +498,8 @@ public class Wiring {
         }
 
         @Override
-        public boolean isUpstreamResolved() {
-            return true;
-        }
-
-        @Override
         public Set<Component> downstreams() {
             return downstreams;
-        }
-
-        @Override
-        public void connectDownstream(Component component) {
-            downstreams.add(component);
         }
 
         @Override
@@ -556,11 +516,6 @@ public class Wiring {
         @Override
         public int getRequiredNumberOfSubscribers() {
             return configuration.getNumberOfSubscriberBeforeConnecting();
-        }
-
-        @Override
-        public Set<Component> upstreams() {
-            return Collections.emptySet();
         }
 
         @Override
@@ -581,7 +536,7 @@ public class Wiring {
         }
     }
 
-    static class SubscriberMediatorComponent extends MediatorComponent implements ConsumingComponent {
+    static class SubscriberMediatorComponent extends MediatorComponent implements ConsumingComponent, NoDownstreamComponent {
 
         private final Set<Component> upstreams = new LinkedHashSet<>();
 
@@ -595,12 +550,6 @@ public class Wiring {
         }
 
         @Override
-        public boolean isDownstreamResolved() {
-            // No downstream
-            return true;
-        }
-
-        @Override
         public List<String> incomings() {
             return configuration.getIncoming();
         }
@@ -608,11 +557,6 @@ public class Wiring {
         @Override
         public boolean merge() {
             return configuration.getMerge() != null;
-        }
-
-        @Override
-        public void connectUpstream(Component upstream) {
-            upstreams.add(upstream);
         }
 
         @Override
@@ -714,11 +658,6 @@ public class Wiring {
         }
 
         @Override
-        public void connectUpstream(Component upstream) {
-            upstreams.add(upstream);
-        }
-
-        @Override
         public Optional<String> outgoing() {
             return Optional.of(configuration.getOutgoing());
         }
@@ -726,11 +665,6 @@ public class Wiring {
         @Override
         public Set<Component> downstreams() {
             return downstreams;
-        }
-
-        @Override
-        public void connectDownstream(Component component) {
-            downstreams.add(component);
         }
 
         @Override
