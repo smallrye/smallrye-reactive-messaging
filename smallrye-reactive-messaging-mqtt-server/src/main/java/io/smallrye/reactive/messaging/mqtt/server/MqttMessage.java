@@ -31,6 +31,11 @@ public class MqttMessage implements Message<byte[]> {
         return ack.get();
     }
 
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return this::ack;
+    }
+
     public int getMessageId() {
         return message.messageId();
     }

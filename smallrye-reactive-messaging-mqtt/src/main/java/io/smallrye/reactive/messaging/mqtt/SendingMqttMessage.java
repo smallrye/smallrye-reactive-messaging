@@ -34,6 +34,11 @@ public final class SendingMqttMessage<T> implements MqttMessage<T> {
         return CompletableFuture.completedFuture(null);
     }
 
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return this::ack;
+    }
+
     public T getPayload() {
         return payload;
     }
