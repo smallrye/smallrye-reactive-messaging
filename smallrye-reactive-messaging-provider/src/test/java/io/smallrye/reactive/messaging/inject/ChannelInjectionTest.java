@@ -88,7 +88,7 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
     @Test
     public void testNonExistentChannel() {
         addBeanClass(SourceBean.class);
-        BeanInjectedNonExistentChannel bean = installInitializeAndGet(BeanInjectedNonExistentChannel.class);
+        BeanInjectedNonExistentChannel bean = installInitializeAndGet(BeanInjectedNonExistentChannel.class, false);
         try {
             bean.getChannel().collectItems().first().await().indefinitely();
         } catch (IllegalStateException e) {

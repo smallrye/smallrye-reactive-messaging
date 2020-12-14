@@ -3,11 +3,12 @@ package io.smallrye.reactive.messaging.inject.overflow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -18,9 +19,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.reactivex.Flowable;
-import io.reactivex.Scheduler;
-import io.reactivex.schedulers.Schedulers;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Channel;
 import io.smallrye.reactive.messaging.annotations.Emitter;
@@ -55,9 +54,8 @@ public class LegacyEmitterBufferOverflowStrategyTest extends WeldTestBaseWithout
         BeanUsingBufferOverflowStrategy bean = installInitializeAndGet(BeanUsingBufferOverflowStrategy.class);
         bean.emitALotOfItems();
 
-        await().until(() -> bean.exception() != null);
+        await().until(bean::isComplete);
         assertThat(bean.output()).doesNotContain("999");
-        assertThat(bean.failure()).isNull();
         assertThat(bean.exception()).isInstanceOf(IllegalStateException.class);
     }
 
@@ -72,19 +70,19 @@ public class LegacyEmitterBufferOverflowStrategyTest extends WeldTestBaseWithout
 
         private final List<String> output = new CopyOnWriteArrayList<>();
 
-        private volatile Throwable downstreamFailure;
         private Exception callerException;
+        private final AtomicBoolean completed = new AtomicBoolean();
 
         public List<String> output() {
             return output;
         }
 
-        public Throwable failure() {
-            return downstreamFailure;
-        }
-
         public Exception exception() {
             return callerException;
+        }
+
+        public boolean isComplete() {
+            return completed.get();
         }
 
         public void emitThree() {
@@ -107,18 +105,21 @@ public class LegacyEmitterBufferOverflowStrategyTest extends WeldTestBaseWithout
                     }
                 } catch (Exception e) {
                     callerException = e;
+                } finally {
+                    completed.set(true);
                 }
             }).start();
         }
 
         @Incoming("hello")
         @Outgoing("out")
-        public Flowable<String> consume(Flowable<String> values) {
-            Scheduler scheduler = Schedulers.from(executor);
-            return values
-                    .observeOn(scheduler)
-                    .delay(1, TimeUnit.MILLISECONDS, scheduler)
-                    .doOnError(err -> downstreamFailure = err);
+        public Uni<String> consume(String value) {
+            if (completed.get()) {
+                return Uni.createFrom().nullItem();
+            } else {
+                return Uni.createFrom().item(value)
+                        .onItem().delayIt().by(Duration.ofMillis(2));
+            }
         }
 
         @Incoming("out")

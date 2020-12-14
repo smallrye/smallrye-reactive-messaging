@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -32,7 +34,6 @@ import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class WeldTestBaseWithoutTails {
@@ -63,15 +64,6 @@ public class WeldTestBaseWithoutTails {
         File out = new File("target/test-classes/META-INF/microprofile-config.properties");
         if (out.isFile()) {
             out.delete();
-        }
-    }
-
-    public static void installConfig(MapBasedConfig config) {
-        releaseConfig();
-        if (config != null) {
-            config.write();
-        } else {
-            clearConfigFile();
         }
     }
 
@@ -159,9 +151,23 @@ public class WeldTestBaseWithoutTails {
     }
 
     protected <T> T installInitializeAndGet(Class<T> beanClass) {
+        return installInitializeAndGet(beanClass, true);
+    }
+
+    protected <T> T installInitializeAndGet(Class<T> beanClass, boolean assertNoWiringErrors) {
         initializer.addBeanClasses(beanClass);
         initialize();
+
+        if (assertNoWiringErrors) {
+            assertNoWiringErrors();
+        }
+
         return get(beanClass);
+    }
+
+    private void assertNoWiringErrors() {
+        Wiring wiring = get(Wiring.class);
+        assertThat(wiring.getGraph().hasWiringErrors()).isFalse();
     }
 
     protected <T> T get(Class<T> c) {
