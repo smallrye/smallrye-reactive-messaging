@@ -347,7 +347,7 @@ They can also be consumed by your application or sent to a message broker.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>In Reactive Messaging, <code>Message</code> are represented by the <a href="https://smallrye.io/smallrye-reactive-messaging/2.6.0/apidocs/org/eclipse/microprofile/reactive/messaging/Message.html"><code>Message</code></a> class.
+<p>In Reactive Messaging, <code>Message</code> are represented by the <a href="https://smallrye.io/smallrye-reactive-messaging/2.6.1/apidocs/org/eclipse/microprofile/reactive/messaging/Message.html"><code>Message</code></a> class.
 Each <code>Message&lt;T&gt;</code> contains a <em>payload</em> of type <code>&lt;T&gt;</code>. This payload can be retrieved using <code>message.getPayload()</code>:</p>
 </div>
 <div class="listingblock">
@@ -359,7 +359,7 @@ Optional&lt;MyMetadata&gt; metadata = message.getMetadata(MyMetadata.class);</co
 <div class="paragraph">
 <p>As you can see in the previous snippet, <code>Messages</code> can also have <em>metadata</em>.
 <em>Metadata</em> is a way to extend messages with additional data.
-It can be metadata related to the message broker (<a href="https://smallrye.io/smallrye-reactive-messaging/2.6.0/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/KafkaMessageMetadata.html"><code>KafkaMessageMetadata</code></a> for instance), or contain operational data (such as tracing metadata), or business-related data.</p>
+It can be metadata related to the message broker (<a href="https://smallrye.io/smallrye-reactive-messaging/2.6.1/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/KafkaMessageMetadata.html"><code>KafkaMessageMetadata</code></a> for instance), or contain operational data (such as tracing metadata), or business-related data.</p>
 </div>
 <div class="admonitionblock note">
 <table>
