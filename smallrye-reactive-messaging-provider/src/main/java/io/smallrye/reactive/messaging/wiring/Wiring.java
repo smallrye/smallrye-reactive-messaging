@@ -341,8 +341,13 @@ public class Wiring {
         @Override
         public void materialize(ChannelRegistry registry) {
             List<PublisherBuilder<? extends Message<?>>> publishers = registry.getPublishers(name);
-            Multi<? extends Message<?>> merged = Multi.createBy().merging()
-                    .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+            Multi<? extends Message<?>> merged;
+            if (publishers.size() == 1) {
+                merged = Multi.createFrom().publisher(publishers.get(0).buildRs());
+            } else {
+                merged = Multi.createBy().merging()
+                        .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+            }
             // TODO Improve this.
             SubscriberBuilder<? extends Message<?>, Void> connector = registry.getSubscribers(name).get(0);
             Subscriber subscriber = connector.build();
@@ -571,7 +576,10 @@ public class Wiring {
             for (String channel : configuration.getIncoming()) {
                 publishers.addAll(registry.getPublishers(channel));
             }
-            if (concat) {
+
+            if (publishers.size() == 1) {
+                aggregates = Multi.createFrom().publisher(publishers.get(0).buildRs());
+            } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
                         .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
             } else if (one) {
@@ -713,7 +721,9 @@ public class Wiring {
             for (String channel : configuration.getIncoming()) {
                 publishers.addAll(registry.getPublishers(channel));
             }
-            if (concat) {
+            if (publishers.size() == 1) {
+                aggregates = Multi.createFrom().publisher(publishers.get(0).buildRs());
+            } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
                         .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
             } else if (one) {
