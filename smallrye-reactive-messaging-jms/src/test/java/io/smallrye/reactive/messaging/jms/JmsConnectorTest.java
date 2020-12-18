@@ -65,8 +65,8 @@ public class JmsConnectorTest extends JmsTestBase {
 
         MessageConsumerBean bean = container.select(MessageConsumerBean.class).get();
         await()
-            .atMost(Duration.ofSeconds(30))
-            .until(() -> bean.list().size() > 3);
+                .atMost(Duration.ofSeconds(30))
+                .until(() -> bean.list().size() >= 1);
 
         List<IncomingJmsMessage<Integer>> messages = bean.messages();
         messages.forEach(msg -> {
