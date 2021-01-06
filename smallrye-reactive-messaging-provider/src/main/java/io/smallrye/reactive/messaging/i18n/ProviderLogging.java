@@ -25,8 +25,8 @@ public interface ProviderLogging extends BasicLogger {
     void methodException(String methodAsString, @Cause Throwable cause);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 201, value = "Error caught during the stream processing")
-    void streamProcessingException(@Cause Throwable cause);
+    @Message(id = 201, value = "Error caught while processing a message")
+    void messageProcessingException(@Cause Throwable cause);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 202, value = "Created new Vertx instance")
