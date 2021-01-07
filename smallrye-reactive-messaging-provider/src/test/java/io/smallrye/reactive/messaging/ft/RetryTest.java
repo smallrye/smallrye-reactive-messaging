@@ -405,5 +405,4 @@ public class RetryTest extends WeldTestBaseWithoutTails {
             return list;
         }
     }
-
 }
