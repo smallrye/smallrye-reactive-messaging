@@ -152,7 +152,6 @@ public class SubscriberMediator extends AbstractMediator {
             Message<?> m) {
         return (success, failure) -> {
             if (failure != null) {
-                System.out.println("Got failure " + failure);
                 if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                     return Uni.createFrom().completionStage(m.nack(failure).thenApply(x -> m));
                 } else {

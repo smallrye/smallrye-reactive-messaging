@@ -74,6 +74,7 @@
     <smallrye-common.version>1.5.0</smallrye-common.version>
     <smallrye-health.version>2.2.5</smallrye-health.version>
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
+    <smallrye-fault-tolerance.version>4.3.2</smallrye-fault-tolerance.version>
 
     <mutiny.version>0.12.5</mutiny.version>
     <artemis.version>2.16.0</artemis.version>
@@ -91,6 +92,7 @@
     <mockito.version>1.10.19</mockito.version>
     <junit-pioneer.version>1.1.0</junit-pioneer.version>
     <junit-platform-commons.version>1.7.0</junit-platform-commons.version>
+
   </properties>
 
   <modules>
@@ -182,6 +184,12 @@
         <groupId>io.smallrye.testing</groupId>
         <artifactId>smallrye-testing-utilities</artifactId>
         <version>${smallrye-testing.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-fault-tolerance</artifactId>
+        <version>${smallrye-fault-tolerance.version}</version>
         <scope>test</scope>
       </dependency>
 
