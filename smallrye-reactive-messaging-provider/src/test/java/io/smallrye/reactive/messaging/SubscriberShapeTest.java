@@ -68,7 +68,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
             fail("Expected failure - method validation should have failed");
         } catch (DeploymentException e) {
             // Check we have the right cause
-            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
+            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("CompletionStage");
         }
     }
 
@@ -92,7 +92,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
             fail("Expected failure - method validation should have failed");
         } catch (DeploymentException e) {
             // Check we have the right cause
-            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
+            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("CompletionStage");
         }
     }
 

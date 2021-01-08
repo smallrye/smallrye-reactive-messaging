@@ -11,8 +11,8 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 
 @ApplicationScoped
 public class IncomingDefaultBlockingBean {
-    private List<String> list = new CopyOnWriteArrayList<>();
-    private List<String> threads = new CopyOnWriteArrayList<>();
+    private final List<String> list = new CopyOnWriteArrayList<>();
+    private final List<String> threads = new CopyOnWriteArrayList<>();
 
     @Incoming("in")
     @Blocking
