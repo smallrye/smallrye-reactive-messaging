@@ -18,9 +18,10 @@ import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
 import org.apache.kafka.common.serialization.Deserializer;
 
-import io.grpc.Context;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.attributes.SemanticAttributes;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.attributes.SemanticAttributes;
+import io.opentelemetry.context.Context;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
@@ -300,7 +301,7 @@ public class KafkaSource<K, V> {
         if (isTracingEnabled) {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
-            final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
+            final SpanBuilder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
                     .setSpanKind(Span.Kind.CONSUMER);
 
             // Handle possible parent span

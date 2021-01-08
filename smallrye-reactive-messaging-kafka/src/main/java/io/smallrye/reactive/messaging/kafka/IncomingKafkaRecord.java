@@ -9,8 +9,8 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.grpc.Context;
-import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.context.Context;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
@@ -62,7 +62,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             TracingMetadata tracingMetadata = TracingMetadata.empty();
             if (record.headers() != null) {
                 // Read tracing headers
-                Context context = OpenTelemetry.getPropagators().getTextMapPropagator()
+                Context context = GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
                         .extract(Context.current(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
                 tracingMetadata = TracingMetadata.withPrevious(context);
             }
