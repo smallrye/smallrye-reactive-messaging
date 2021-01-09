@@ -3,11 +3,16 @@ package io.smallrye.reactive.messaging.blocking;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,15 +21,8 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingCompletionStageMessageBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingCompletionStagePayloadBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingCustomBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingCustomTwoBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingCustomUnorderedBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingDefaultBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingDefaultUnorderedBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingUniMessageBlockingBean;
-import io.smallrye.reactive.messaging.blocking.beans.IncomingUniPayloadBlockingBean;
+import io.smallrye.reactive.messaging.annotations.Blocking;
+import io.smallrye.reactive.messaging.blocking.beans.*;
 
 class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
@@ -44,7 +42,8 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
         addBeanClass(IncomingDefaultBlockingBean.class);
         initialize();
 
-        IncomingDefaultBlockingBean bean = container.getBeanManager().createInstance().select(IncomingDefaultBlockingBean.class)
+        IncomingDefaultBlockingBean bean = container.getBeanManager().createInstance()
+                .select(IncomingDefaultBlockingBean.class)
                 .get();
 
         await().until(() -> bean.list().size() == 6);
@@ -82,7 +81,8 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
         addBeanClass(IncomingCustomBlockingBean.class);
         initialize();
 
-        IncomingCustomBlockingBean bean = container.getBeanManager().createInstance().select(IncomingCustomBlockingBean.class)
+        IncomingCustomBlockingBean bean = container.getBeanManager().createInstance()
+                .select(IncomingCustomBlockingBean.class)
                 .get();
 
         await().until(() -> bean.list().size() == 6);
@@ -221,6 +221,19 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
         }
     }
 
+    @Test
+    public void testBlockingWhenReturningCompletionStage() {
+        addBeanClass(ProduceIn.class, BlockingSubscriberOfMessage.class);
+        initialize();
+        BlockingSubscriberOfMessage sub = get(BlockingSubscriberOfMessage.class);
+        await().until(() -> sub.get().size() == 6);
+        assertThat(sub.get()).hasSize(6)
+                .allSatisfy((k, v) -> {
+                    assertThat(k).isIn("a", "b", "c", "d", "e", "f");
+                    assertThat(v).contains("worker");
+                });
+    }
+
     @ApplicationScoped
     public static class ProduceIn {
         @Outgoing("in")
@@ -229,4 +242,20 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
         }
     }
 
+    @ApplicationScoped
+    public static class BlockingSubscriberOfMessage {
+
+        Map<String, String> payloads = new LinkedHashMap<>();
+
+        @Incoming("in")
+        @Blocking
+        public CompletionStage<Void> process(Message<String> event) {
+            payloads.put(event.getPayload(), Thread.currentThread().getName());
+            return event.ack();
+        }
+
+        public Map<String, String> get() {
+            return payloads;
+        }
+    }
 }
