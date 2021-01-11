@@ -6,6 +6,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -22,6 +23,7 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.helpers.TypeUtils;
@@ -47,13 +49,8 @@ public class ChannelProducer {
     @Typed(Flowable.class)
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Flowable<T> produceFlowable(InjectionPoint injectionPoint) {
-        Type first = getFirstParameter(injectionPoint.getType());
-        if (TypeUtils.isAssignable(first, Message.class)) {
-            return cast(Flowable.fromPublisher(getPublisher(injectionPoint)));
-        } else {
-            return cast(Flowable.fromPublisher(getPublisher(injectionPoint))
-                    .map(Message::getPayload));
-        }
+        Multi<?> multi = produceMulti(injectionPoint);
+        return cast(Flowable.fromPublisher(multi));
     }
 
     /**
@@ -71,7 +68,10 @@ public class ChannelProducer {
         if (TypeUtils.isAssignable(first, Message.class)) {
             return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)));
         } else {
-            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)).map(Message::getPayload));
+            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint))
+                    .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
+                    .onItem().transform(Message::getPayload)
+                    .broadcast().toAllSubscribers());
         }
     }
 
@@ -103,13 +103,8 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> PublisherBuilder<T> producePublisherBuilder(InjectionPoint injectionPoint) {
-        Type first = getFirstParameter(injectionPoint.getType());
-        if (TypeUtils.isAssignable(first, Message.class)) {
-            return cast(ReactiveStreams.fromPublisher(getPublisher(injectionPoint)));
-        } else {
-            return cast(ReactiveStreams.fromPublisher(getPublisher(injectionPoint))
-                    .map(Message::getPayload));
-        }
+        Multi<Object> multi = produceMulti(injectionPoint);
+        return cast(ReactiveStreams.fromPublisher(multi));
     }
 
     /**
@@ -172,16 +167,19 @@ public class ChannelProducer {
         return cast(emitter);
     }
 
-    private Publisher<? extends Message<?>> getPublisher(InjectionPoint injectionPoint) {
+    private Multi<? extends Message<?>> getPublisher(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
 
         return Multi.createFrom().deferred(() -> {
             List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
             if (list.isEmpty()) {
                 throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
+            } else if (list.size() == 1) {
+                return Multi.createFrom().publisher(list.get(0).buildRs());
+            } else {
+                return Multi.createBy().merging()
+                        .streams(list.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
             }
-            // TODO Manage merge.
-            return Multi.createFrom().publisher(list.get(0).buildRs());
         });
     }
 

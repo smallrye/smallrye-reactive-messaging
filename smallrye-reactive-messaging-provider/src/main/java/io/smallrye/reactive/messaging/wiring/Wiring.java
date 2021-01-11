@@ -378,7 +378,7 @@ public class Wiring {
 
         @Override
         public boolean merge() {
-            return false; // TODO We may want to add this feature.
+            return true;
         }
 
         @Override
@@ -398,9 +398,7 @@ public class Wiring {
 
         @Override
         public void validate() throws WiringException {
-            if (upstreams().size() > 1) {
-                throw new TooManyUpstreamCandidatesException(this);
-            }
+
         }
     }
 
