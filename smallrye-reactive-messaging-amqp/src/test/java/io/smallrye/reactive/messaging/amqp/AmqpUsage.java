@@ -129,7 +129,7 @@ public class AmqpUsage {
     }
 
     public void close() {
-        client.close().await().indefinitely();
+        client.closeAndAwait();
     }
 
     void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {

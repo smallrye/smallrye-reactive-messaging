@@ -28,8 +28,6 @@ import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 @SuppressWarnings("unchecked")
 public class SerializerConfigurationTest extends KafkaTestBase {
 
-    // TODO Test when failure handler are set to both key and value
-
     private KafkaSink sink;
 
     @AfterEach
@@ -76,7 +74,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.serializer", JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerializer.class.getName())
-                .with("retries", 0L);
+                .with("retries", 0);
         sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         AtomicBoolean nacked = new AtomicBoolean();
@@ -94,7 +92,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.serializer", JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerializer.class.getName())
-                .with("retries", 0L);
+                .with("retries", 0);
         sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         AtomicBoolean nacked = new AtomicBoolean();

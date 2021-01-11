@@ -29,8 +29,6 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.helpers.Validation;
-import io.vertx.core.Handler;
-import io.vertx.mutiny.core.Promise;
 import io.vertx.mutiny.core.WorkerExecutor;
 
 @ApplicationScoped
@@ -56,13 +54,13 @@ public class WorkerPoolRegistry {
         }
     }
 
-    public <T> Uni<T> executeWork(Handler<Promise<T>> blockingCodeHandler, String workerName, boolean ordered) {
-        Objects.requireNonNull(blockingCodeHandler, msg.actionNotProvided());
+    public <T> Uni<T> executeWork(Uni<T> uni, String workerName, boolean ordered) {
+        Objects.requireNonNull(uni, msg.actionNotProvided());
 
         if (workerName == null) {
-            return executionHolder.vertx().executeBlocking(blockingCodeHandler, ordered);
+            return executionHolder.vertx().executeBlocking(uni, ordered);
         } else {
-            return getWorker(workerName).executeBlocking(blockingCodeHandler, ordered);
+            return getWorker(workerName).executeBlocking(uni, ordered);
         }
     }
 

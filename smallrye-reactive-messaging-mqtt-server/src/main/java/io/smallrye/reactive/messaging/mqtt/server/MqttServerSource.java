@@ -67,10 +67,10 @@ class MqttServerSource {
                     error -> log.errorWithClient(endpoint.clientIdentifier(), error));
 
             endpoint.disconnectHandler(
-                    v -> log.clientDisconnected(endpoint.clientIdentifier()));
+                    () -> log.clientDisconnected(endpoint.clientIdentifier()));
 
             endpoint.pingHandler(
-                    v -> log.pingReceived(endpoint.clientIdentifier()));
+                    () -> log.pingReceived(endpoint.clientIdentifier()));
 
             endpoint.publishHandler(message -> {
                 final Context ctx = vertx.getOrCreateContext();
@@ -78,7 +78,7 @@ class MqttServerSource {
 
                 processor.onNext(new MqttMessage(message, endpoint.clientIdentifier(), () -> {
                     CompletableFuture<Void> future = new CompletableFuture<>();
-                    ctx.runOnContext(x -> {
+                    ctx.runOnContext(() -> {
                         if (message.qosLevel() == AT_LEAST_ONCE) {
                             log.sendToClient("PUBACK", endpoint.clientIdentifier(), message.messageId());
                             endpoint.publishAcknowledge(message.messageId());

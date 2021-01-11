@@ -65,7 +65,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         return retrieveSender
                 .onItem().call(sender -> {
                     CompletableFuture<Void> future = new CompletableFuture<>();
-                    holder.getContext().runOnContext(x -> {
+                    holder.getContext().runOnContext(() -> {
                         setCreditsAndRequest(sender);
                         future.complete(null);
                     });
@@ -130,7 +130,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
     private void onNoMoreCredit(AmqpSender sender) {
         log.noMoreCreditsForChannel(configuration.getChannel());
-        holder.getContext().runOnContext(x -> {
+        holder.getContext().runOnContext(() -> {
             if (isCancelled()) {
                 return;
             }

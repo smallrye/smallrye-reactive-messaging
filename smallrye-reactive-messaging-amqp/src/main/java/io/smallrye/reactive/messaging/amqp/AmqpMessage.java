@@ -51,7 +51,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         // This context is passed when this instance of message is created.
         // It's more a Vert.x AMQP client issue which should ensure calling `accepted` on the right context.
         CompletableFuture<Void> future = new CompletableFuture<>();
-        this.context.runOnContext(x -> {
+        this.context.runOnContext(() -> {
             this.message.accepted();
             future.complete(null);
         });

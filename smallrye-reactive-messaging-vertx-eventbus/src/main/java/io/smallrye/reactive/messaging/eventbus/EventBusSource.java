@@ -37,7 +37,7 @@ class EventBusSource {
     private Message<?> adapt(io.vertx.mutiny.core.eventbus.Message<?> msg) {
         if (this.ack) {
             return new EventBusMessage<>(msg, () -> {
-                msg.replyAndForget("OK");
+                msg.reply("OK");
                 return CompletableFuture.completedFuture(null);
             });
         } else {

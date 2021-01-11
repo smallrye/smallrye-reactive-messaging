@@ -173,7 +173,7 @@ public class EventBusSinkTest extends EventbusTestBase {
             last.set(m);
             if (m.body() < 8) {
                 integers.add(m.body());
-                m.replyAndForget("foo");
+                m.reply("foo");
             }
         });
 
@@ -189,10 +189,10 @@ public class EventBusSinkTest extends EventbusTestBase {
                 .subscribe((Subscriber<Message<?>>) subscriber.build());
 
         await().until(() -> integers.size() == 8 && last.get().body() == 8);
-        last.get().replyAndForget("bar");
+        last.get().reply("bar");
         await().until(() -> last.get().body() == 9);
         assertThat(last.get().body()).isEqualTo(9);
-        last.get().replyAndForget("baz");
+        last.get().reply("baz");
     }
 
     @Test
