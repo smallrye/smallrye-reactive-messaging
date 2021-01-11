@@ -221,7 +221,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         processors.forEach(AmqpCreditBasedSender::cancel);
-        clients.forEach(c -> c.close().subscribeAsCompletionStage());
+        clients.forEach(AmqpClient::closeAndForget);
         clients.clear();
     }
 

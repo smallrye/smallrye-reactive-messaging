@@ -5,7 +5,6 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -50,7 +49,7 @@ public class KafkaSink {
     private final String topic;
     private final String key;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
-    private final long retries;
+    private final int retries;
     private final KafkaConnectorOutgoingConfiguration configuration;
     private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
@@ -131,9 +130,8 @@ public class KafkaSink {
     /**
      * List exception for which we should not retry - they are fatal.
      * The list comes from https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/Callback.html.
-     *
+     * <p>
      * Also included: SerializationException (as the chances to serialize the payload correctly one retry are almost 0).
-     *
      */
     private static final Set<Class<? extends Throwable>> NOT_RECOVERABLE = new HashSet<>(Arrays.asList(
             InvalidTopicException.class,
@@ -382,26 +380,16 @@ public class KafkaSink {
         if (processor != null) {
             processor.cancel();
         }
-        CountDownLatch latch = new CountDownLatch(1);
+
         try {
-            this.stream.close(ar -> {
-                if (ar.failed()) {
-                    log.errorWhileClosingWriteStream(ar.cause());
-                }
-                latch.countDown();
-            });
+            this.stream.close(10000).toCompletionStage().toCompletableFuture().join();
         } catch (Throwable e) {
             log.errorWhileClosingWriteStream(e);
-            latch.countDown();
-        }
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
 
         if (admin != null) {
-            admin.closeAndAwait();
+            // TODO should be closeAndAwait but because of https://github.com/vert-x3/vertx-kafka-client/issues/192, we discard the result.
+            admin.closeAndForget();
         }
     }
 

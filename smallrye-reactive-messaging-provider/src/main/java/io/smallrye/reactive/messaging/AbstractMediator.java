@@ -102,19 +102,19 @@ public abstract class AbstractMediator {
     protected <T> Uni<T> invokeBlocking(Object... args) {
         try {
             return workerPoolRegistry.executeWork(
-                    future -> {
+                    Uni.createFrom().emitter(emitter -> {
                         try {
                             Object result = this.invoker.invoke(args);
                             if (result instanceof CompletionStage) {
-                                ((CompletionStage<?>) result).thenAccept(x -> future.complete((T) x));
+                                ((CompletionStage<?>) result).thenAccept(x -> emitter.complete((T) x));
                             } else {
-                                future.complete((T) result);
+                                emitter.complete((T) result);
                             }
                         } catch (RuntimeException e) {
                             log.methodException(configuration().methodAsString(), e);
-                            future.fail(e);
+                            emitter.fail(e);
                         }
-                    },
+                    }),
                     configuration.getWorkerPoolName(),
                     configuration.isBlockingExecutionOrdered());
         } catch (RuntimeException e) {

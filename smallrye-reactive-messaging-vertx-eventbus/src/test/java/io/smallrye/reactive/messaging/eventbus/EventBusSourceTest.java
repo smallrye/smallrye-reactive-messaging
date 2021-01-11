@@ -129,7 +129,7 @@ public class EventBusSourceTest extends EventbusTestBase {
         List<EventBusMessage<?>> messages1 = new ArrayList<>();
         multi.subscribe().with(messages1::add);
 
-        vertx.eventBus().sendAndForget(topic, 1, new DeliveryOptions()
+        vertx.eventBus().send(topic, 1, new DeliveryOptions()
                 .addHeader("X-key", "value"));
 
         await().until(() -> messages1.size() == 1);

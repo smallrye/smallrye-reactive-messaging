@@ -197,6 +197,11 @@ public class NoKafkaTest extends KafkaTestBase {
                         "max-inflight-messages", "2",
                         "max.block.ms", 1000,
                         "topic", topic,
+
+                        // Speed up kafka admin failure
+                        "default.api.timeout.ms", 250,
+                        "request.timeout.ms", 200,
+
                         "bootstrap.servers", servers)
                 .build();
     }

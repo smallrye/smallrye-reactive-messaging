@@ -61,7 +61,7 @@ public class Clients {
             this.connection = client.connect(port, host, server).memoize().indefinitely();
             messages = BroadcastProcessor.create();
             client.publishHandler(messages::onNext);
-            client.closeHandler(v -> messages.onComplete());
+            client.closeHandler(messages::onComplete);
             client.exceptionHandler(messages::onError);
         }
 
