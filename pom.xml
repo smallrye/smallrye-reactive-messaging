@@ -244,6 +244,7 @@
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-sdk-testing</artifactId>
         <version>${opentelemetry.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <!-- From this project -->
