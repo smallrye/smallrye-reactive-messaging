@@ -5,6 +5,7 @@ on:
     push:
         branches:
             - master
+            - vertx-4
         paths-ignore:
             - '.github/**'
 
