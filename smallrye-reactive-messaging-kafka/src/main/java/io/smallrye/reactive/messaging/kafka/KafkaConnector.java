@@ -98,7 +98,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
-    public static final Tracer TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
+    public static Tracer TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
 
     @Inject
     ExecutionHolder executionHolder;

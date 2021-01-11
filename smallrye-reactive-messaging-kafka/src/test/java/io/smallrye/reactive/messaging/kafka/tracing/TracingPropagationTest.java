@@ -69,8 +69,12 @@ public class TracingPropagationTest extends KafkaTestBase {
     @BeforeEach
     public void setup() {
         testExporter = InMemorySpanExporter.create();
-        spanProcessor = SimpleSpanProcessor.builder(testExporter).build();
+        spanProcessor = SimpleSpanProcessor.builder(testExporter).setExportOnlySampled(false).build();
         OpenTelemetrySdk.getGlobalTracerManagement().addSpanProcessor(spanProcessor);
+
+        // Without this, TRACER can be set to a tracer prior to the above configuration being active.
+        // Resulting in no traces being captured
+        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
     }
 
     @AfterEach
@@ -171,6 +175,8 @@ public class TracingPropagationTest extends KafkaTestBase {
 
         List<String> receivedParentSpanIds = new ArrayList<>();
 
+        await().atMost(Duration.ofMinutes(5)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
+
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             if (data.getKind().equals(Span.Kind.CONSUMER)) {
                 // Need to skip the spans created during @Incoming processing
@@ -180,7 +186,6 @@ public class TracingPropagationTest extends KafkaTestBase {
             assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
             assertThat(data.getTraceId()).isIn(producedTraceIds);
             assertThat(data.getKind()).isEqualByComparingTo(Span.Kind.PRODUCER);
-            System.out.println("Parent Span ID: " + data.getParentSpanId());
             receivedParentSpanIds.add(data.getParentSpanId());
         }
 
