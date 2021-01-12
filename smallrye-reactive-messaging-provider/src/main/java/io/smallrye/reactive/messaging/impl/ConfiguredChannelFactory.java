@@ -76,7 +76,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 log.foundOutgoingConnectors(getConnectors(beanManager, OutgoingConnectorFactory.class));
             }
             this.config = config.stream().findFirst()
-                    .orElseThrow(ex::illegalStateRetieveConfig);
+                    .orElseThrow(ex::illegalStateRetrieveConfig);
         }
     }
 

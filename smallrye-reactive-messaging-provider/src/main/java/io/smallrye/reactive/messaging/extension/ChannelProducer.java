@@ -19,7 +19,6 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
@@ -27,6 +26,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.helpers.TypeUtils;
+import io.smallrye.reactive.messaging.i18n.ProviderExceptions;
 
 /**
  * This component computes the <em>right</em> object to be injected into injection point using {@link Channel} and the
@@ -133,6 +133,7 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Emitter<T> produceEmitter(InjectionPoint injectionPoint) {
+        verify(injectionPoint);
         Emitter<?> emitter = getEmitter(injectionPoint);
         return cast(emitter);
     }
@@ -147,6 +148,7 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> MutinyEmitter<T> produceMutinyEmitter(InjectionPoint injectionPoint) {
+        verify(injectionPoint);
         MutinyEmitter<?> emitter = getMutinyEmitter(injectionPoint);
         return cast(emitter);
     }
@@ -187,7 +189,7 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
         Emitter<?> emitter = channelRegistry.getEmitter(name);
         if (emitter == null) {
-            throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
+            throw ex.incomingNotFoundForEmitter(name);
         }
         return emitter;
     }
@@ -196,9 +198,24 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
         MutinyEmitter<?> emitter = channelRegistry.getMutinyEmitter(name);
         if (emitter == null) {
-            throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
+            throw ex.incomingNotFoundForEmitter(name);
         }
         return emitter;
+    }
+
+    private void verify(InjectionPoint injectionPoint) {
+        Type type = injectionPoint.getType();
+        if (type instanceof ParameterizedType && ((ParameterizedType) type).getActualTypeArguments().length > 0) {
+            Type[] arguments = ((ParameterizedType) type).getActualTypeArguments();
+
+            if ((arguments[0] instanceof Class && arguments[0].equals(Message.class)) ||
+                    (arguments[0] instanceof ParameterizedType
+                            && ((ParameterizedType) arguments[0]).getRawType().equals(Message.class))) {
+                throw ProviderExceptions.ex.invalidEmitterOfMessage(injectionPoint);
+            }
+        } else {
+            throw ProviderExceptions.ex.invalidRawEmitter(injectionPoint);
+        }
     }
 
     private Type getFirstParameter(Type type) {
@@ -219,7 +236,7 @@ public class ChannelProducer {
                 return ((io.smallrye.reactive.messaging.annotations.Channel) qualifier).value();
             }
         }
-        throw ex.illegalStateForAnnotationNotFound("@Channel", injectionPoint);
+        throw ex.emitterWithoutChannelAnnotation(injectionPoint);
     }
 
     @SuppressWarnings("deprecation")

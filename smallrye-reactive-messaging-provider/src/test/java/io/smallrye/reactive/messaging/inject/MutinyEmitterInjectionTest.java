@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.spi.DefinitionException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -37,6 +38,7 @@ import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
 import io.smallrye.reactive.messaging.extension.MutinyEmitterImpl;
 
+@SuppressWarnings("ConstantConditions")
 public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @Test
@@ -161,15 +163,15 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = DefinitionException.class)
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
         final AtomicReference<Throwable> exception = new AtomicReference<>();
         installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo")).subscribe().with(x -> {
         }, exception::set);
         await().until(() -> exception.get() != null);
-        if (exception.get() instanceof IllegalStateException) {
-            throw (IllegalStateException) exception.get();
+        if (exception.get() instanceof DefinitionException) {
+            throw (DefinitionException) exception.get();
         }
     }
 
@@ -180,6 +182,7 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).containsExactly("A", "B", "C");
     }
 
+    @SuppressWarnings("ReactiveStreamsSubscriberImplementation")
     @Test
     public void testEmitterAndPublisherInjectedInTheSameClass() {
         EmitterAndPublisher bean = installInitializeAndGet(EmitterAndPublisher.class);
@@ -189,7 +192,6 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(publisher).isNotNull();
         List<String> list = new ArrayList<>();
         AtomicBoolean completed = new AtomicBoolean();
-        //noinspection SubscriberImplementation
         publisher.subscribe(new Subscriber<String>() {
             private Subscription subscription;
 
