@@ -10,6 +10,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import org.eclipse.microprofile.faulttolerance.Asynchronous;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -43,10 +44,34 @@ public class RetryTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testRetryOnPayloadProcessorCS() {
+        addBeanClass(MessageGenerator.class, FailingProcessorOfPayloadCS.class);
+        initialize();
+        FailingProcessorOfPayloadCS processor = get(FailingProcessorOfPayloadCS.class);
+        await().until(() -> processor.list().size() == 10);
+        assertThat(processor.list()).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        MessageGenerator generator = get(MessageGenerator.class);
+        assertThat(generator.acks()).isEqualTo(10);
+        assertThat(generator.nacks()).isEqualTo(0);
+    }
+
+    @Test
     public void testRetryOnMessageProcessor() {
         addBeanClass(MessageGenerator.class, FailingProcessorOfMessage.class);
         initialize();
         FailingProcessorOfMessage processor = get(FailingProcessorOfMessage.class);
+        await().until(() -> processor.list().size() == 10);
+        assertThat(processor.list()).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        MessageGenerator generator = get(MessageGenerator.class);
+        assertThat(generator.acks()).isEqualTo(10);
+        assertThat(generator.nacks()).isEqualTo(0);
+    }
+
+    @Test
+    public void testRetryOnMessageProcessorCS() {
+        addBeanClass(MessageGenerator.class, FailingProcessorOfMessageCS.class);
+        initialize();
+        FailingProcessorOfMessageCS processor = get(FailingProcessorOfMessageCS.class);
         await().until(() -> processor.list().size() == 10);
         assertThat(processor.list()).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         MessageGenerator generator = get(MessageGenerator.class);
@@ -67,10 +92,34 @@ public class RetryTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testRetryOnPayloadSubscriberCS() {
+        addBeanClass(MessageGenerator.class, FailingSubscriberOfPayloadCS.class);
+        initialize();
+        FailingSubscriberOfPayloadCS subscriber = get(FailingSubscriberOfPayloadCS.class);
+        await().until(() -> subscriber.list().size() == 10);
+        assertThat(subscriber.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        MessageGenerator generator = get(MessageGenerator.class);
+        assertThat(generator.acks()).isEqualTo(10);
+        assertThat(generator.nacks()).isEqualTo(0);
+    }
+
+    @Test
     public void testRetryOnMessageSubscriber() {
         addBeanClass(MessageGenerator.class, FailingSubscriberOfMessage.class);
         initialize();
         FailingSubscriberOfMessage subscriber = get(FailingSubscriberOfMessage.class);
+        await().until(() -> subscriber.list().size() == 10);
+        assertThat(subscriber.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        MessageGenerator generator = get(MessageGenerator.class);
+        assertThat(generator.acks()).isEqualTo(10);
+        assertThat(generator.nacks()).isEqualTo(0);
+    }
+
+    @Test
+    public void testRetryOnMessageSubscriberCS() {
+        addBeanClass(MessageGenerator.class, FailingSubscriberOfMessageCS.class);
+        initialize();
+        FailingSubscriberOfMessageCS subscriber = get(FailingSubscriberOfMessageCS.class);
         await().until(() -> subscriber.list().size() == 10);
         assertThat(subscriber.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         MessageGenerator generator = get(MessageGenerator.class);
@@ -231,6 +280,116 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         @Incoming("retry-sink")
         public void consume(int l) {
             list.add(l);
+        }
+
+        public List<Integer> list() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class FailingProcessorOfPayloadCS {
+
+        int attempt = 0;
+        List<Integer> list = new ArrayList<>();
+
+        @Incoming("numbers")
+        @Outgoing("retry-sink")
+        @Retry // 3 is the default
+        @Asynchronous
+        public CompletionStage<Integer> process(int i) {
+
+            return CompletableFuture.supplyAsync(() -> {
+                if (attempt < 3 && i == 3) {
+                    attempt++;
+                    throw new ArithmeticException("boom");
+                }
+                return i + 1;
+            });
+        }
+
+        @Incoming("retry-sink")
+        public void consume(int l) {
+            list.add(l);
+        }
+
+        public List<Integer> list() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class FailingProcessorOfMessageCS {
+
+        int attempt = 0;
+        List<Integer> list = new ArrayList<>();
+
+        @Incoming("numbers")
+        @Outgoing("retry-sink")
+        @Retry // 3 is the default
+        @Asynchronous
+        public CompletionStage<Message<Integer>> process(Message<Integer> i) {
+            return CompletableFuture.supplyAsync(() -> {
+                if (attempt < 3 && i.getPayload() == 3) {
+                    attempt++;
+                    throw new ArithmeticException("boom");
+                }
+                return i.withPayload(i.getPayload() + 1);
+            });
+        }
+
+        @Incoming("retry-sink")
+        public void consume(int l) {
+            list.add(l);
+        }
+
+        public List<Integer> list() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class FailingSubscriberOfPayloadCS {
+
+        int attempt = 0;
+        List<Integer> list = new ArrayList<>();
+
+        @Incoming("numbers")
+        @Retry // 3 is the default
+        @Asynchronous
+        public CompletionStage<Void> consume(int i) {
+            return CompletableFuture.runAsync(() -> {
+                if (attempt < 3 && i == 3) {
+                    attempt++;
+                    throw new ArithmeticException("boom");
+                }
+                list.add(i);
+            });
+        }
+
+        public List<Integer> list() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class FailingSubscriberOfMessageCS {
+
+        int attempt = 0;
+        List<Integer> list = new ArrayList<>();
+
+        @Incoming("numbers")
+        @Retry // 3 is the default
+        @Asynchronous
+        public CompletionStage<Void> consume(Message<Integer> i) {
+            return CompletableFuture.runAsync(() -> {
+                if (attempt < 3 && i.getPayload() == 3) {
+                    attempt++;
+                    throw new ArithmeticException("boom");
+                }
+                list.add(i.getPayload());
+
+            }).thenCompose(x -> i.ack());
         }
 
         public List<Integer> list() {
