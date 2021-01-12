@@ -1,8 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
-import static io.opentelemetry.trace.Span.Kind.CONSUMER;
-import static io.opentelemetry.trace.Span.Kind.PRODUCER;
-import static io.opentelemetry.trace.TracingContextUtils.withSpan;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
@@ -29,22 +26,25 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
-import io.grpc.Context;
-import io.opentelemetry.OpenTelemetry;
-import io.opentelemetry.context.propagation.DefaultContextPropagators;
-import io.opentelemetry.exporters.inmemory.InMemorySpanExporter;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
-import io.opentelemetry.trace.*;
-import io.opentelemetry.trace.propagation.HttpTraceContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
@@ -59,15 +59,22 @@ public class TracingPropagationTest extends KafkaTestBase {
     @BeforeAll
     static void setupOpenTelemetry() {
         // We need to set a propagator
-        OpenTelemetry.setPropagators(
-                DefaultContextPropagators.builder().addTextMapPropagator(HttpTraceContext.getInstance()).build());
+        OpenTelemetry otelInstance = OpenTelemetrySdk.builder().setPropagators(
+                ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
+                .build();
+
+        GlobalOpenTelemetry.set(otelInstance);
     }
 
     @BeforeEach
     public void setup() {
         testExporter = InMemorySpanExporter.create();
-        spanProcessor = SimpleSpanProcessor.newBuilder(testExporter).build();
-        OpenTelemetrySdk.getTracerManagement().addSpanProcessor(spanProcessor);
+        spanProcessor = SimpleSpanProcessor.builder(testExporter).setExportOnlySampled(false).build();
+        OpenTelemetrySdk.getGlobalTracerManagement().addSpanProcessor(spanProcessor);
+
+        // Without this, TRACER can be set to a tracer prior to the above configuration being active.
+        // Resulting in no traces being captured
+        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
     }
 
     @AfterEach
@@ -78,6 +85,11 @@ public class TracingPropagationTest extends KafkaTestBase {
         if (spanProcessor != null) {
             spanProcessor.shutdown();
         }
+    }
+
+    @AfterAll
+    static void shutdown() {
+        OpenTelemetrySdk.getGlobalTracerManagement().shutdown();
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -102,12 +114,12 @@ public class TracingPropagationTest extends KafkaTestBase {
         assertThat(contexts).doesNotContainNull().doesNotHaveDuplicates();
 
         List<String> spanIds = contexts.stream()
-                .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getSpanIdAsHexString())
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getSpanIdAsHexString())
                 .collect(Collectors.toList());
         assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
 
         List<String> traceIds = contexts.stream()
-                .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getTraceIdAsHexString())
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getTraceIdAsHexString())
                 .collect(Collectors.toList());
         assertThat(traceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
 
@@ -115,7 +127,7 @@ public class TracingPropagationTest extends KafkaTestBase {
             assertThat(data.getSpanId()).isIn(spanIds);
             assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
             assertThat(data.getTraceId()).isIn(traceIds);
-            assertThat(data.getKind()).isEqualByComparingTo(PRODUCER);
+            assertThat(data.getKind()).isEqualByComparingTo(Span.Kind.PRODUCER);
         }
     }
 
@@ -131,8 +143,8 @@ public class TracingPropagationTest extends KafkaTestBase {
         AtomicInteger count = new AtomicInteger();
         List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
         usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("some-topic", null, null, "a-key", count.getAndIncrement(),
-                        createTracingSpan(producedSpanContexts, "some-topic")));
+                () -> new ProducerRecord<>("parent-topic", null, null, "a-key", count.getAndIncrement(),
+                        createTracingSpan(producedSpanContexts, "parent-topic")));
 
         await().atMost(Duration.ofMinutes(5)).until(() -> messages.size() >= 10);
         List<Integer> values = new ArrayList<>();
@@ -151,27 +163,29 @@ public class TracingPropagationTest extends KafkaTestBase {
         assertThat(receivedContexts).doesNotContainNull().doesNotHaveDuplicates();
 
         List<String> receivedSpanIds = receivedContexts.stream()
-                .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getSpanIdAsHexString())
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getSpanIdAsHexString())
                 .collect(Collectors.toList());
         assertThat(receivedSpanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
 
         List<String> receivedTraceIds = receivedContexts.stream()
-                .map(context -> TracingContextUtils.getSpanWithoutDefault(context).getContext().getTraceIdAsHexString())
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getTraceIdAsHexString())
                 .collect(Collectors.toList());
         assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
         assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
 
         List<String> receivedParentSpanIds = new ArrayList<>();
 
+        await().atMost(Duration.ofMinutes(5)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
+
         for (SpanData data : testExporter.getFinishedSpanItems()) {
-            if (data.getKind().equals(CONSUMER)) {
+            if (data.getKind().equals(Span.Kind.CONSUMER)) {
                 // Need to skip the spans created during @Incoming processing
                 continue;
             }
             assertThat(data.getSpanId()).isIn(receivedSpanIds);
             assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
             assertThat(data.getTraceId()).isIn(producedTraceIds);
-            assertThat(data.getKind()).isEqualByComparingTo(PRODUCER);
+            assertThat(data.getKind()).isEqualByComparingTo(Span.Kind.PRODUCER);
             receivedParentSpanIds.add(data.getParentSpanId());
         }
 
@@ -214,19 +228,19 @@ public class TracingPropagationTest extends KafkaTestBase {
             spanIds.add(tracing.getCurrentSpanContext().getSpanIdAsHexString());
 
             assertThat(tracing.getPreviousContext()).isNotNull();
-            Span previousSpan = TracingContextUtils.getSpanWithoutDefault(tracing.getPreviousContext());
+            Span previousSpan = Span.fromContextOrNull(tracing.getPreviousContext());
             assertThat(previousSpan).isNotNull();
-            assertThat(previousSpan.getContext().getTraceIdAsHexString())
+            assertThat(previousSpan.getSpanContext().getTraceIdAsHexString())
                     .isEqualTo(tracing.getCurrentSpanContext().getTraceIdAsHexString());
-            assertThat(previousSpan.getContext().getSpanIdAsHexString())
+            assertThat(previousSpan.getSpanContext().getSpanIdAsHexString())
                     .isNotEqualTo(tracing.getCurrentSpanContext().getSpanIdAsHexString());
         }
 
         assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSizeGreaterThanOrEqualTo(10);
 
         List<String> parentIds = bean.tracing().stream()
-                .map(tracingMetadata -> TracingContextUtils.getSpanWithoutDefault(tracingMetadata.getPreviousContext())
-                        .getContext().getSpanIdAsHexString())
+                .map(tracingMetadata -> Span.fromContextOrNull(tracingMetadata.getPreviousContext())
+                        .getSpanContext().getSpanIdAsHexString())
                 .collect(Collectors.toList());
 
         assertThat(producedSpanContexts.stream()
@@ -235,7 +249,7 @@ public class TracingPropagationTest extends KafkaTestBase {
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             assertThat(data.getSpanId()).isIn(spanIds);
             assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
-            assertThat(data.getKind()).isEqualByComparingTo(CONSUMER);
+            assertThat(data.getKind()).isEqualByComparingTo(Span.Kind.CONSUMER);
             assertThat(data.getParentSpanId()).isNotNull();
             assertThat(data.getParentSpanId()).isIn(parentIds);
         }
@@ -260,7 +274,7 @@ public class TracingPropagationTest extends KafkaTestBase {
 
         for (TracingMetadata tracing : bean.tracing()) {
             spanIds.add(tracing.getCurrentSpanContext().getSpanIdAsHexString());
-            assertThat(TracingContextUtils.getSpanWithoutDefault(tracing.getPreviousContext())).isNull();
+            assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNull();
         }
 
         assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSizeGreaterThanOrEqualTo(10);
@@ -268,22 +282,22 @@ public class TracingPropagationTest extends KafkaTestBase {
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             assertThat(data.getSpanId()).isIn(spanIds);
             assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
-            assertThat(data.getKind()).isEqualByComparingTo(CONSUMER);
+            assertThat(data.getKind()).isEqualByComparingTo(Span.Kind.CONSUMER);
         }
     }
 
     private Iterable<Header> createTracingSpan(List<SpanContext> spanContexts, String topic) {
         RecordHeaders proposedHeaders = new RecordHeaders();
-        final Span span = KafkaConnector.TRACER.spanBuilder(topic).setSpanKind(PRODUCER).startSpan();
-        final Context context = withSpan(span, Context.current());
-        OpenTelemetry.getPropagators()
+        final Span span = KafkaConnector.TRACER.spanBuilder(topic).setSpanKind(Span.Kind.PRODUCER).startSpan();
+        final Context context = span.storeInContext(Context.current());
+        GlobalOpenTelemetry.getPropagators()
                 .getTextMapPropagator()
                 .inject(context, proposedHeaders, (headers, key, value) -> {
                     if (headers != null) {
                         headers.remove(key).add(key, value.getBytes(StandardCharsets.UTF_8));
                     }
                 });
-        spanContexts.add(span.getContext());
+        spanContexts.add(span.getSpanContext());
         return proposedHeaders;
     }
 
@@ -304,7 +318,7 @@ public class TracingPropagationTest extends KafkaTestBase {
         builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.source", true);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("key.deserializer", StringDeserializer.class.getName());
-        builder.put("topic", "some-topic");
+        builder.put("topic", "parent-topic");
         builder.put("auto.offset.reset", "earliest");
 
         config.putAll(builder.build().getMap());

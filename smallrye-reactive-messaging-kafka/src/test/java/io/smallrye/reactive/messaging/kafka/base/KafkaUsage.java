@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,7 +19,6 @@ import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -31,8 +29,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.jboss.logging.Logger;
 
-import io.grpc.Context;
-import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.context.Context;
+import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
 
 /**
  * Simplify the usage of a Kafka client.
@@ -263,14 +262,8 @@ public class KafkaUsage {
                 (record) -> {
                     consumer.accept(record.key(), record.value());
                     tracingConsumer.accept(
-                            OpenTelemetry.getPropagators().getTextMapPropagator()
-                                    .extract(Context.current(), record.headers(), (headers, key) -> {
-                                        final Header header = headers.lastHeader(key);
-                                        if (header == null) {
-                                            return null;
-                                        }
-                                        return new String(header.value(), StandardCharsets.UTF_8);
-                                    }));
+                            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
+                                    .extract(Context.current(), record.headers(), new HeaderExtractAdapter()));
                 });
     }
 
