@@ -19,13 +19,13 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import io.grpc.Context;
-import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.attributes.SemanticAttributes;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.TracingContextUtils;
-import io.opentelemetry.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
@@ -273,7 +273,7 @@ public class KafkaSink {
         if (isTracingEnabled) {
             Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
 
-            final Span.Builder spanBuilder = TRACER.spanBuilder(topic + " send")
+            final SpanBuilder spanBuilder = TRACER.spanBuilder(topic + " send")
                     .setSpanKind(Span.Kind.PRODUCER);
 
             if (tracingMetadata.isPresent()) {
@@ -295,7 +295,7 @@ public class KafkaSink {
             }
 
             final Span span = spanBuilder.startSpan();
-            Scope scope = TracingContextUtils.currentContextWith(span);
+            Scope scope = span.makeCurrent();
 
             // Set Span attributes
             span.setAttribute("partition", partition);
@@ -304,7 +304,7 @@ public class KafkaSink {
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
 
             // Set span onto headers
-            OpenTelemetry.getPropagators().getTextMapPropagator()
+            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
                     .inject(Context.current(), headers, HeaderInjectAdapter.SETTER);
             span.end();
             scope.close();
