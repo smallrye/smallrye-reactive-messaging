@@ -18,8 +18,8 @@ public class ProducingBeanUsingOutboundMetadata {
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Message<Integer> process(Message<Integer> input) {
         OutgoingAmqpMetadata metadata = OutgoingAmqpMetadata.builder()
-                .withSubject("subject")
-                .withAddress("sink")
+                .withSubject("metadata-subject")
+                .withAddress("metadata-address")
                 .build();
 
         return Message.of(input.getPayload() + 1, input::ack).addMetadata(metadata);
