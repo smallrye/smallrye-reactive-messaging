@@ -1,27 +1,30 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.awaitility.Awaitility.await;
-import static org.hamcrest.core.Is.is;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.Symbol;
+import org.apache.qpid.proton.amqp.messaging.Accepted;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
+import org.apache.qpid.proton.amqp.messaging.Data;
+import org.apache.qpid.proton.amqp.messaging.Section;
+import org.apache.qpid.proton.amqp.transport.Target;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
@@ -29,14 +32,16 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 import io.vertx.mutiny.core.buffer.Buffer;
 
-public class AmqpSinkTest extends AmqpBrokerTestBase {
+public class AmqpSinkTest extends AmqpTestBase {
 
+    private static final String FOO = "foo";
+    private static final String ID = "id";
     private static final String HELLO = "hello-";
     private WeldContainer container;
     private AmqpConnector provider;
+    private MockServer server;
 
     @AfterEach
     public void cleanup() {
@@ -48,62 +53,140 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
             container.shutdown();
         }
 
+        if (server != null) {
+            server.close();
+        }
+
         MapBasedConfig.cleanup();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
     @Test
-    public void testSinkUsingInteger() {
+    @Timeout(30)
+    public void testSinkUsingIntegerUsingDefaultAnonymousSender() throws Exception {
+        int msgCount = 10;
         String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic,
-                v -> expected.getAndIncrement());
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic, server.actualPort());
+        //noinspection unchecked
+        Multi.createFrom().range(0, msgCount)
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        List<Object> payloadsReceived = new ArrayList<>(msgCount);
+        messagesReceived.forEach(msg -> {
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            payloadsReceived.add(((AmqpValue) body).getValue());
+        });
+
+        assertThat(payloadsReceived).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        // Should have used an anonymous sender link, verify null target address
+        assertThat(attachAddress.get()).isNull();
+    }
+
+    @Test
+    @Timeout(30)
+    public void testSinkUsingIntegerUsingNonAnonymousSender() throws Exception {
+        int msgCount = 10;
+        String topic = UUID.randomUUID().toString();
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic, server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) sink.build());
 
-        await().until(() -> expected.get() == 10);
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        List<Object> payloadsReceived = new ArrayList<>(msgCount);
+        messagesReceived.forEach(msg -> {
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            payloadsReceived.add(((AmqpValue) body).getValue());
+        });
+
+        assertThat(payloadsReceived).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        // Should have used a fixed-address sender link, vertify target address
+        assertThat(attachAddress.get()).isEqualTo(topic);
     }
 
     @Test
-    public void testSinkUsingIntegerUsingNonAnonymousSender() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic,
-                v -> expected.getAndIncrement());
+    @Timeout(30)
+    public void testSinkUsingString() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic);
-        //noinspection unchecked
-        Multi.createFrom().range(0, 10)
-                .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        await().until(() -> expected.get() == 10);
-        assertThat(expected).hasValue(10);
-    }
-
-    @Test
-    public void testSinkUsingString() {
-        String topic = UUID.randomUUID().toString();
-
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
-
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings(topic,
-                v -> expected.getAndIncrement());
-
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(UUID.randomUUID().toString(),
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<String>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        List<Object> payloadsReceived = new ArrayList<>(msgCount);
+        messagesReceived.forEach(msg -> {
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            payloadsReceived.add(((AmqpValue) body).getValue());
+        });
+
+        assertThat(payloadsReceived).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+    }
+
+    private MockServer setupMockServerForTypeTest(List<org.apache.qpid.proton.message.Message> messages, CountDownLatch latch)
+            throws Exception {
+        return setupMockServerForTypeTest(messages, latch, new AtomicReference<String>());
+    }
+
+    private MockServer setupMockServerForTypeTest(List<org.apache.qpid.proton.message.Message> messages, CountDownLatch latch,
+            AtomicReference<String> attachAddress) throws Exception {
+        return new MockServer(executionHolder.vertx().getDelegate(), serverConnection -> {
+            serverConnection.openHandler(serverSender -> {
+                serverConnection.closeHandler(x -> serverConnection.close());
+                serverConnection.open();
+            });
+
+            serverConnection.sessionOpenHandler(serverSession -> {
+                serverSession.closeHandler(x -> serverSession.close());
+                serverSession.open();
+            });
+
+            serverConnection.receiverOpenHandler(serverReceiver -> {
+                Target remoteTarget = serverReceiver.getRemoteTarget();
+                attachAddress.set(remoteTarget.getAddress());
+                serverReceiver.setTarget(remoteTarget.copy());
+
+                serverReceiver.handler((delivery, message) -> {
+                    delivery.disposition(Accepted.getInstance(), true);
+                    messages.add(message);
+
+                    latch.countDown();
+                });
+
+                serverReceiver.open();
+            });
+        });
     }
 
     static class Person {
@@ -119,246 +202,406 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
     }
 
     @Test
-    public void testSinkUsingObject() {
-        String topic = UUID.randomUUID().toString();
+    @Timeout(30)
+    public void testSinkUsingObject() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    Person p = v.bodyAsBinary().toJsonObject().mapTo(Person.class);
-                    assertThat(p.getName()).startsWith("bob-");
-                });
-
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> {
                     Person p = new Person();
-                    p.setName("bob-" + i);
+                    p.setName(HELLO + i);
                     return p;
                 })
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Person>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("application/json");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            Binary bin = ((Data) body).getValue();
+            byte[] bytes = Binary.copy(bin).getArray();
+            Person p = Buffer.buffer(bytes).toJsonObject().mapTo(Person.class);
+
+            assertThat(p.getName()).isEqualTo(HELLO + count.get());
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
     @Test
-    public void testSinkUsingJsonObject() {
-        String topic = UUID.randomUUID().toString();
+    @Timeout(30)
+    public void testSinkUsingJsonObject() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    assertThat(v.bodyAsJsonObject().getString("id")).startsWith("bob-");
-                    assertThat(v.contentType()).isEqualTo("application/json");
-                });
-
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(i -> new JsonObject().put("id", "bob-" + i))
+                .map(i -> new JsonObject().put(ID, HELLO + i))
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<?>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("application/json");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            Binary bin = ((Data) body).getValue();
+            byte[] bytes = Binary.copy(bin).getArray();
+            JsonObject json = Buffer.buffer(bytes).toJsonObject();
+
+            assertThat(json.getString(ID)).isEqualTo(HELLO + count.get());
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
     @Test
-    public void testSinkUsingJsoArray() {
-        String topic = UUID.randomUUID().toString();
+    @Timeout(30)
+    public void testSinkUsingJsonArray() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    assertThat(v.bodyAsJsonArray().getString(0)).startsWith("bob-");
-                    assertThat(v.bodyAsJsonArray().getString(1)).isEqualTo("foo");
-                    assertThat(v.contentType()).isEqualTo("application/json");
-                });
-
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(i -> new JsonArray().add("bob-" + i).add("foo"))
+                .map(i -> new JsonArray().add(HELLO + i).add(FOO))
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<?>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("application/json");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            Binary bin = ((Data) body).getValue();
+            byte[] bytes = Binary.copy(bin).getArray();
+            JsonArray json = Buffer.buffer(bytes).toJsonArray();
+
+            assertThat(json.getString(0)).isEqualTo(HELLO + count.get());
+            assertThat(json.getString(1)).isEqualTo(FOO);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
     @Test
-    public void testSinkUsingBuffer() {
-        String topic = UUID.randomUUID().toString();
+    @Timeout(30)
+    public void testSinkUsingList() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    assertThat(v.bodyAsJsonObject().getString("id")).startsWith("bob-");
-                    assertThat(v.contentType()).isEqualTo("application/octet-stream");
-                });
-
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(i -> new JsonObject().put("id", "bob-" + i).toBuffer())
+                .map(i -> {
+                    List<String> res = new ArrayList<>();
+                    res.add(HELLO + i);
+                    res.add(FOO);
+                    return res;
+                })
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<?>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isNull();
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            assertThat(((AmqpValue) body).getValue()).isInstanceOf(List.class);
+            List<?> list = (List<?>) ((AmqpValue) body).getValue();
+
+            assertThat(list.get(0)).isEqualTo(HELLO + count.get());
+            assertThat(list.get(1)).isEqualTo(FOO);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
     @Test
-    public void testSinkUsingByteArray() {
-        String topic = UUID.randomUUID().toString();
+    @Timeout(30)
+    public void testSinkUsingVertxBuffer() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    assertThat(v.bodyAsJsonObject().getString("id")).startsWith("bob-");
-                    assertThat(v.contentType()).isEqualTo("application/octet-stream");
-                });
-
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(i -> new JsonObject().put("id", "bob-" + i).toBuffer().getBytes())
+                .map(i -> new JsonObject().put(ID, HELLO + i).toBuffer())
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<?>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("application/octet-stream");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            byte[] receievedBytes = Binary.copy(((Data) body).getValue()).getArray();
+
+            byte[] expectedBytes = new JsonObject().put(ID, HELLO + count.get()).toBuffer().getBytes();
+            assertThat(receievedBytes).isEqualTo(expectedBytes);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
     @Test
-    public void testSinkUsingMutinyBuffer() {
-        String topic = UUID.randomUUID().toString();
+    @Timeout(30)
+    public void testSinkUsingMutinyBuffer() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    assertThat(v.bodyAsJsonObject().getString("id")).startsWith("bob-");
-                    assertThat(v.contentType()).isEqualTo("application/octet-stream");
-                });
-
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(i -> new Buffer(new JsonObject().put("id", "bob-" + i).toBuffer()))
+                .map(i -> new Buffer(new JsonObject().put(ID, HELLO + i).toBuffer()))
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<?>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("application/octet-stream");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            byte[] receievedBytes = Binary.copy(((Data) body).getValue()).getArray();
+
+            byte[] expectedBytes = new JsonObject().put(ID, HELLO + count.get()).toBuffer().getBytes();
+            assertThat(receievedBytes).isEqualTo(expectedBytes);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
     @Test
-    public void testABeanProducingMessagesSentToAMQP() throws InterruptedException {
+    @Timeout(30)
+    public void testSinkUsingByteArray() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(i -> new JsonObject().put(ID, HELLO + i).toBuffer().getBytes())
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<?>>) sink.build());
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("application/octet-stream");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            byte[] receievedBytes = Binary.copy(((Data) body).getValue()).getArray();
+
+            byte[] expectedBytes = new JsonObject().put(ID, HELLO + count.get()).toBuffer().getBytes();
+            assertThat(receievedBytes).isEqualTo(expectedBytes);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testABeanProducingMessagesSentToAMQP() throws Exception {
+        int msgCount = 10;
+        String address = "sink";
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
+
         Weld weld = new Weld();
-
-        CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers("sink",
-                v -> latch.countDown());
-
         weld.addBeanClass(ProducingBean.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
+                .put("mp.messaging.outgoing.sink.address", address)
                 .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("mp.messaging.outgoing.sink.durable", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
+                .put("mp.messaging.outgoing.sink.host", "localhost")
+                .put("mp.messaging.outgoing.sink.port", server.actualPort())
                 .write();
 
         container = weld.initialize();
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        List<Object> payloadsReceived = new ArrayList<>(msgCount);
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo(address);
+            assertThat(msg.getSubject()).isNull();
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            payloadsReceived.add(((AmqpValue) body).getValue());
+        });
+
+        assertThat(payloadsReceived).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        // Should have used an anonymous sender link, verify null target address
+        assertThat(attachAddress.get()).isNull();
     }
 
     @Test
-    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadata() throws InterruptedException {
+    @Timeout(30)
+    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadata() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
+
         Weld weld = new Weld();
-
-        CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers("sink",
-                v -> latch.countDown());
-
         weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
 
         new MapBasedConfig()
                 .put("mp.messaging.outgoing.sink.address", "not-used")
                 .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("mp.messaging.outgoing.sink.durable", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
+                .put("mp.messaging.outgoing.sink.host", "localhost")
+                .put("mp.messaging.outgoing.sink.port", server.actualPort())
                 .write();
 
         container = weld.initialize();
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        List<Object> payloadsReceived = new ArrayList<>(msgCount);
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo("metadata-address"); // Set in ProducingBeanUsingOutboundMetadata
+            assertThat(msg.getSubject()).isEqualTo("metadata-subject");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            payloadsReceived.add(((AmqpValue) body).getValue());
+        });
+
+        assertThat(payloadsReceived).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        // Should have used an anonymous sender link, verify null target address
+        assertThat(attachAddress.get()).isNull();
     }
 
     @Test
-    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadataUsingNonAnonymousSender()
-            throws InterruptedException {
+    @Timeout(30)
+    public void testABeanProducingMessagesSentToAMQPWithOutboundMetadataUsingNonAnonymousSender() throws Exception {
+        int msgCount = 10;
+        String address = "sink-foo";
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
+
         Weld weld = new Weld();
-
-        CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers("sink-foo",
-                v -> latch.countDown());
-
         weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink-foo")
+                .put("mp.messaging.outgoing.sink.address", address)
                 .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("mp.messaging.outgoing.sink.durable", false)
+                .put("mp.messaging.outgoing.sink.host", "localhost")
+                .put("mp.messaging.outgoing.sink.port", server.actualPort())
                 .put("mp.messaging.outgoing.sink.use-anonymous-sender", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
                 .write();
 
         container = weld.initialize();
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        List<Object> payloadsReceived = new ArrayList<>(msgCount);
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo(address); // Matches the one from the config, not metadata, due to not using an anonymous sender
+            assertThat(msg.getSubject()).isEqualTo("metadata-subject");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            payloadsReceived.add(((AmqpValue) body).getValue());
+        });
+
+        assertThat(payloadsReceived).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        // Should have used an fixed-address sender link, verify target address
+        assertThat(attachAddress.get()).isEqualTo(address);
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testSinkUsingAmqpMessage() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
+    @Timeout(30)
+    @SuppressWarnings("deprecation")
+    public void testSinkUsingAmqpMessage() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v, null, null));
-                });
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -366,141 +609,41 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
                         .withBody(HELLO + v)
                         .withSubject("foo")
                         .build())
-                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
+                .subscribe((Subscriber<? super Message<?>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
-        messages.forEach(m -> {
-            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("foo");
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isNull();
+            assertThat(msg.getSubject()).isEqualTo("foo");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            Object payload = ((AmqpValue) body).getValue();
+
+            assertThat(HELLO + count).isEqualTo(payload);
+
+            count.incrementAndGet();
         });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
     @Test
-    public void testSinkUsingProtonMessage() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
-
-        List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v, null, null));
-                });
-
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
-
-        //noinspection unchecked
-        Multi.createFrom().range(0, 10)
-                .map(v -> {
-                    org.apache.qpid.proton.message.Message message = org.apache.qpid.proton.message.Message.Factory
-                            .create();
-                    message.setBody(new AmqpValue(HELLO + v));
-                    message.setSubject("bar");
-                    message.setContentType("text/plain");
-                    return Message.of(message);
-                })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
-
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
-
-        messages.forEach(m -> {
-            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("bar");
-            assertThat(m.getContentType()).isEqualTo("text/plain");
-        });
-    }
-
-    @Test
-    public void testSinkUsingMutinyMessage() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
-
-        List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v, null, null));
-                });
-
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
-
-        //noinspection unchecked
-        Multi.createFrom().range(0, 10)
-                .map(v -> {
-                    AmqpMessageBuilder builder = AmqpMessageBuilder.create();
-                    builder.subject("baz")
-                            .withBody(HELLO + v)
-                            .contentType("text/plain");
-                    return Message.of(builder.build());
-                })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
-
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
-
-        messages.forEach(m -> {
-            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("baz");
-            assertThat(m.getContentType()).isEqualTo("text/plain");
-        });
-    }
-
-    @Test
-    public void testSinkUsingBareVertxMessage() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
-
-        List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v, null, null));
-                });
-
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
-
-        //noinspection unchecked
-        Multi.createFrom().range(0, 10)
-                .map(v -> {
-                    io.vertx.amqp.AmqpMessageBuilder builder = io.vertx.amqp.AmqpMessageBuilder.create();
-                    builder.subject("baz")
-                            .withBody(HELLO + v)
-                            .contentType("text/plain");
-                    return Message.of(builder.build());
-                })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
-
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
-
-        messages.forEach(m -> {
-            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("baz");
-            assertThat(m.getContentType()).isEqualTo("text/plain");
-        });
-    }
-
+    @Timeout(30)
     @SuppressWarnings("deprecation")
-    @Test
-    public void testSinkUsingAmqpMessageWithNonAnonymousSender() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
+    public void testSinkUsingAmqpMessageWithNonAnonymousSender() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
-        List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    v.getDelegate().accepted();
-                    messages.add(new AmqpMessage<>(v, null, null));
-                });
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic);
+        String address = UUID.randomUUID().toString();
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(address,
+                server.actualPort());
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -511,223 +654,254 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
                         .build())
                 .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
-        messages.forEach(m -> {
-            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("foo");
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isNull();
+            assertThat(msg.getSubject()).isEqualTo("foo");
+            assertThat(msg.getAddress()).isEqualTo(address); // Matches the one from the config, not message, due to not using an anonymous sender
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            Object payload = ((AmqpValue) body).getValue();
+
+            assertThat(HELLO + count).isEqualTo(payload);
+
+            count.incrementAndGet();
         });
+
+        assertThat(count.get()).isEqualTo(msgCount);
+
+        // Should have used an fixed-address sender link, verify target address
+        assertThat(attachAddress.get()).isEqualTo(address);
     }
 
     @Test
-    public void testSinkUsingVertxAmqpMessage() {
-        String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
+    @Timeout(30)
+    public void testSinkUsingProtonMessage() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        List<AmqpMessage<String>> messages = new CopyOnWriteArrayList<>();
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    messages.add(new AmqpMessage<>(v, null, null));
-                });
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(v -> {
+                    org.apache.qpid.proton.message.Message message = org.apache.qpid.proton.message.Message.Factory
+                            .create();
+                    message.setBody(new Data(new Binary((HELLO + v).getBytes(StandardCharsets.UTF_8))));
+                    message.setContentType("text/plain");
+                    message.setSubject("bar");
+                    return Message.of(message);
+                })
+                .subscribe((Subscriber<? super Message<?>>) sink.build());
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("text/plain");
+            assertThat(msg.getSubject()).isEqualTo("bar");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            byte[] receievedBytes = Binary.copy(((Data) body).getValue()).getArray();
+
+            byte[] expectedBytes = (HELLO + count.get()).getBytes(StandardCharsets.UTF_8);
+            assertThat(receievedBytes).isEqualTo(expectedBytes);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testSinkUsingMutinyMessage() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> io.vertx.mutiny.amqp.AmqpMessage.create()
-                        .withBody(HELLO + v)
+                        .withBufferAsBody(Buffer.buffer((HELLO + v).getBytes(StandardCharsets.UTF_8)))
+                        .contentType("text/plain")
                         .subject("bar")
                         .build())
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<io.vertx.mutiny.amqp.AmqpMessage>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
-        messages.forEach(m -> {
-            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("bar");
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("text/plain");
+            assertThat(msg.getSubject()).isEqualTo("bar");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            byte[] receievedBytes = Binary.copy(((Data) body).getValue()).getArray();
+
+            byte[] expectedBytes = (HELLO + count.get()).getBytes(StandardCharsets.UTF_8);
+            assertThat(receievedBytes).isEqualTo(expectedBytes);
+
+            count.incrementAndGet();
         });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testSinkUsingAmqpMessageAndChannelNameProperty() {
+    @Timeout(30)
+    public void testSinkUsingMutinyMessageViaBuilder() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(v -> {
+                    io.vertx.mutiny.amqp.AmqpMessageBuilder builder = io.vertx.mutiny.amqp.AmqpMessageBuilder.create();
+                    builder.withBufferAsBody(Buffer.buffer((HELLO + v).getBytes(StandardCharsets.UTF_8)))
+                            .contentType("text/plain")
+                            .subject("baz");
+                    return Message.of(builder.build());
+                })
+                .subscribe((Subscriber<? super Message<?>>) sink.build());
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("text/plain");
+            assertThat(msg.getSubject()).isEqualTo("baz");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            byte[] receievedBytes = Binary.copy(((Data) body).getValue()).getArray();
+
+            byte[] expectedBytes = (HELLO + count.get()).getBytes(StandardCharsets.UTF_8);
+            assertThat(receievedBytes).isEqualTo(expectedBytes);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testSinkUsingVertxAmqpClientMessage() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(v -> {
+                    io.vertx.amqp.AmqpMessageBuilder builder = io.vertx.amqp.AmqpMessageBuilder.create();
+                    builder.subject("baz")
+                            .withBufferAsBody(io.vertx.core.buffer.Buffer.buffer((HELLO + v).getBytes(StandardCharsets.UTF_8)))
+                            .contentType("text/plain");
+                    return Message.of(builder.build());
+                })
+                .subscribe((Subscriber<? super Message<?>>) sink.build());
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("text/plain");
+            assertThat(msg.getSubject()).isEqualTo("baz");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            byte[] receievedBytes = Binary.copy(((Data) body).getValue()).getArray();
+
+            byte[] expectedBytes = (HELLO + count.get()).getBytes(StandardCharsets.UTF_8);
+            assertThat(receievedBytes).isEqualTo(expectedBytes);
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
+    }
+
+    @Test
+    @Timeout(30)
+    @SuppressWarnings({ "deprecation" })
+    public void testSinkUsingAmqpMessageAndChannelNameProperty() throws Exception {
+        int msgCount = 10;
         String topic = UUID.randomUUID().toString();
-        AtomicInteger expected = new AtomicInteger(0);
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
-        List<AmqpMessage<String>> messages = new ArrayList<>();
-        usage.consume(topic,
-                v -> {
-                    expected.getAndIncrement();
-                    messages.add(new AmqpMessage<>(v, null, null));
-                });
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkUsingChannelName(topic);
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkUsingChannelName(topic, server.actualPort());
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> AmqpMessage.<String> builder().withBody(HELLO + v).withSubject("foo").build())
                 .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
 
-        await().untilAtomic(expected, is(10));
-        assertThat(expected).hasValue(10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
-        messages.forEach(m -> {
-            assertThat(m.getPayload()).isInstanceOf(String.class).startsWith(HELLO);
-            assertThat(m.getSubject()).isEqualTo("foo");
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo(topic);
+            assertThat(msg.getSubject()).isEqualTo("foo");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            Object payload = ((AmqpValue) body).getValue();
+
+            assertThat(HELLO + count).isEqualTo(payload);
+            count.incrementAndGet();
         });
+
+        assertThat(count.get()).isEqualTo(msgCount);
+
+        // Should have used an anonymous sender link, verify null target address
+        assertThat(attachAddress.get()).isNull();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void testConfigByCDIMissingBean() {
-        Weld weld = new Weld();
+    @Timeout(30)
+    public void testOutgoingMetadata() throws Exception {
+        String address = UUID.randomUUID().toString();
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        weld.addBeanClass(ProducingBean.class);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(address, server.actualPort());
 
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
-                .write();
-
-        assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
-    }
-
-    @Test
-    public void testConfigByCDIIncorrectBean() {
-        Weld weld = new Weld();
-
-        weld.addBeanClass(ProducingBean.class);
-        weld.addBeanClass(ClientConfigurationBean.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("mp.messaging.outgoing.sink.client-options-name", "dummyoptionsnonexistent")
-                .write();
-
-        assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
-    }
-
-    @Test
-    public void testConfigByCDICorrect() throws InterruptedException {
-        Weld weld = new Weld();
-
-        CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers("sink",
-                v -> latch.countDown());
-
-        weld.addBeanClass(ProducingBean.class);
-        weld.addBeanClass(ClientConfigurationBean.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("mp.messaging.outgoing.sink.durable", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
-                .write();
-
-        container = weld.initialize();
-
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-    }
-
-    @Test
-    @Disabled("Failing on CI - need to be investigated")
-    public void testConfigGlobalOptionsByCDIMissingBean() {
-        Weld weld = new Weld();
-
-        weld.addBeanClass(ProducingBean.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("amqp-client-options-name", "dummyoptionsnonexistent")
-                .write();
-
-        assertThatThrownBy(() -> {
-            container = weld.initialize();
-        }).isInstanceOf(DeploymentException.class);
-    }
-
-    @Test
-    @Disabled("Failing on CI - to be investigated")
-    public void testConfigGlobalOptionsByCDIIncorrectBean() {
-        Weld weld = new Weld();
-
-        weld.addBeanClass(ProducingBean.class);
-        weld.addBeanClass(ClientConfigurationBean.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("mp.messaging.outgoing.sink.durable", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("amqp-client-options-name", "dummyoptionsnonexistent")
-                .write();
-
-        assertThatThrownBy(() -> {
-            container = weld.initialize();
-        }).isInstanceOf(DeploymentException.class);
-    }
-
-    @Test
-    public void testConfigGlobalOptionsByCDICorrect() throws InterruptedException {
-        Weld weld = new Weld();
-
-        CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers("sink",
-                v -> latch.countDown());
-
-        weld.addBeanClass(ProducingBean.class);
-        weld.addBeanClass(ClientConfigurationBean.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("mp.messaging.outgoing.sink.durable", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .put("amqp-client-options-name", "myclientoptions")
-                .write();
-
-        container = weld.initialize();
-
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-    }
-
-    @Test
-    public void testOutgoingMetadata() {
-        String topic = UUID.randomUUID().toString();
-        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
-        usage.consume(topic, messages::add);
-
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic);
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
@@ -735,66 +909,76 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
                         .withSubject("subject")
                         .withMessageId("my-id")
                         .withReplyTo("reply-to")
-                        .withReplyToGroupId("group")
-                        .withPriority((short) 4)
+                        .withReplyToGroupId("reply-to-group")
+                        .withPriority((short) 6)
                         .withTtl(2000)
                         .withGroupId("group")
                         .withContentType("text/plain")
-                        .withApplicationProperties(new JsonObject().put("key", "value"))
-                        .withMessageAnnotations("some-annotation", "something important")
-                        .withDeliveryAnnotations("some-delivery-annotation", "another important config")
                         .withCorrelationId("correlation-" + m.getPayload())
+                        .withUserId("user")
+                        .withDeliveryAnnotations("some-delivery-annotation", "da-value")
+                        .withMessageAnnotations("some-msg-annotation", "ma-value")
+                        .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withFooter("my-trailer", "hello-footer")
                         .build()))
                 .subscribe((Subscriber<? super Message<Integer>>) sink.build());
 
-        await().until(() -> messages.size() == 10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(messages).allSatisfy(msg -> {
-            assertThat(msg.contentType()).isEqualTo("text/plain");
-            assertThat(msg.subject()).isEqualTo("subject");
-            assertThat(msg.getDelegate().unwrap().getMessageId()).isEqualTo("my-id");
-            assertThat(msg.getDelegate().unwrap().getReplyToGroupId()).isEqualTo("group");
-            assertThat(msg.replyTo()).isEqualTo("reply-to");
-            assertThat(msg.priority()).isEqualTo((short) 4);
-            assertThat(msg.correlationId()).startsWith("correlation-");
-            assertThat(msg.groupId()).isEqualTo("group");
-            assertThat(msg.ttl()).isEqualTo(2000);
-            assertThat(msg.applicationProperties()).containsExactly(entry("key", "value"));
-            assertThat(msg.getDelegate().unwrap().getMessageAnnotations().getValue())
-                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
-        });
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo(address);
+            assertThat(msg.getSubject()).isEqualTo("subject");
+            assertThat(msg.getMessageId()).isEqualTo("my-id");
+            assertThat(msg.getReplyTo()).isEqualTo("reply-to");
+            assertThat(msg.getReplyToGroupId()).isEqualTo("reply-to-group");
+            assertThat(msg.getPriority()).isEqualTo((short) 6);
+            assertThat(msg.getTtl()).isEqualTo(2000);
+            assertThat(msg.getGroupId()).isEqualTo("group");
+            assertThat(msg.getContentType()).isEqualTo("text/plain");
+            assertThat(msg.getCorrelationId()).isEqualTo("correlation-" + count.get());
+            assertThat(msg.isFirstAcquirer()).isFalse();
+            assertThat(msg.getUserId()).isEqualTo("user".getBytes(StandardCharsets.UTF_8));
 
-        assertThat(messages).allSatisfy(msg -> {
-            IncomingAmqpMetadata metadata = new IncomingAmqpMetadata(msg.getDelegate());
-            assertThat(metadata.getContentType()).isEqualTo("text/plain");
-            assertThat(metadata.getSubject()).isEqualTo("subject");
-            assertThat(metadata.getId()).isEqualTo("my-id");
-            assertThat(metadata.getReplyToGroupId()).isEqualTo("group");
-            assertThat(metadata.getReplyTo()).isEqualTo("reply-to");
-            assertThat(metadata.getPriority()).isEqualTo((short) 4);
-            assertThat(metadata.getTtl()).isEqualTo(2000);
-            assertThat(metadata.getCorrelationId()).startsWith("correlation-");
-            assertThat(metadata.getGroupId()).isEqualTo("group");
-            assertThat(metadata.getProperties()).containsExactly(entry("key", "value"));
-            assertThat(metadata.getMessageAnnotations().getValue())
-                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
-            // Delivery annotations are not received.
-            assertThat(metadata.getDeliveryAnnotations()).isNull();
-            assertThat(metadata.isFirstAcquirer()).isFalse();
+            assertThat(msg.getDeliveryAnnotations()).isNotNull();
+            assertThat(msg.getDeliveryAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-delivery-annotation"), "da-value"));
+
+            assertThat(msg.getMessageAnnotations()).isNotNull();
+            assertThat(msg.getMessageAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-msg-annotation"), "ma-value"));
+
+            assertThat(msg.getApplicationProperties()).isNotNull();
+            assertThat(msg.getApplicationProperties().getValue()).containsExactly(entry("key", "value"));
+
+            assertThat(msg.getFooter()).isNotNull();
             //noinspection unchecked
-            assertThat(metadata.getFooter().getValue()).containsExactly(entry("my-trailer", "hello-footer"));
-            assertThat(metadata.getUserId()).isNull();
+            assertThat(msg.getFooter().getValue()).containsExactly(entry("my-trailer", "hello-footer"));
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            assertThat(((AmqpValue) body).getValue()).isEqualTo(count.get());
+
+            count.incrementAndGet();
         });
+
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void testOutgoingMetadataWithTtlSetOnConnector() {
-        String topic = UUID.randomUUID().toString();
-        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
-        usage.consume(topic, messages::add);
+    @Timeout(30)
+    public void testOutgoingMetadataWithTtlSetOnConnector() throws Exception {
+        String address = UUID.randomUUID().toString();
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic, 3000);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address, server.actualPort(),
+                3000);
+
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
@@ -802,62 +986,75 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
                         .withSubject("subject")
                         .withMessageId("my-id")
                         .withReplyTo("reply-to")
-                        .withReplyToGroupId("group")
-                        .withPriority((short) 4)
+                        .withReplyToGroupId("reply-to-group")
+                        .withPriority((short) 6)
                         .withGroupId("group")
                         .withContentType("text/plain")
-                        .withMessageAnnotations("some-annotation", "something important")
-                        .withDeliveryAnnotations("some-delivery-annotation", "another important config")
                         .withCorrelationId("correlation-" + m.getPayload())
+                        .withUserId("user")
+                        .withDeliveryAnnotations("some-delivery-annotation", "da-value")
+                        .withMessageAnnotations("some-msg-annotation", "ma-value")
+                        .withApplicationProperties(new JsonObject().put("key", "value"))
+                        .withFooter("my-trailer", "hello-footer")
                         .build()))
                 .subscribe((Subscriber<? super Message<Integer>>) sink.build());
 
-        await().until(() -> messages.size() == 10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(messages).allSatisfy(msg -> {
-            assertThat(msg.contentType()).isEqualTo("text/plain");
-            assertThat(msg.subject()).isEqualTo("subject");
-            assertThat(msg.getDelegate().unwrap().getMessageId()).isEqualTo("my-id");
-            assertThat(msg.getDelegate().unwrap().getReplyToGroupId()).isEqualTo("group");
-            assertThat(msg.replyTo()).isEqualTo("reply-to");
-            assertThat(msg.priority()).isEqualTo((short) 4);
-            assertThat(msg.correlationId()).startsWith("correlation-");
-            assertThat(msg.groupId()).isEqualTo("group");
-            assertThat(msg.ttl()).isEqualTo(3000);
-            assertThat(msg.applicationProperties()).isNull();
-            assertThat(msg.getDelegate().unwrap().getMessageAnnotations().getValue())
-                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo(address);
+            assertThat(msg.getSubject()).isEqualTo("subject");
+            assertThat(msg.getMessageId()).isEqualTo("my-id");
+            assertThat(msg.getReplyTo()).isEqualTo("reply-to");
+            assertThat(msg.getReplyToGroupId()).isEqualTo("reply-to-group");
+            assertThat(msg.getPriority()).isEqualTo((short) 6);
+            assertThat(msg.getTtl()).isEqualTo(3000);
+            assertThat(msg.getGroupId()).isEqualTo("group");
+            assertThat(msg.getContentType()).isEqualTo("text/plain");
+            assertThat(msg.getCorrelationId()).isEqualTo("correlation-" + count.get());
+            assertThat(msg.isFirstAcquirer()).isFalse();
+            assertThat(msg.getUserId()).isEqualTo("user".getBytes(StandardCharsets.UTF_8));
+
+            assertThat(msg.getDeliveryAnnotations()).isNotNull();
+            assertThat(msg.getDeliveryAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-delivery-annotation"), "da-value"));
+
+            assertThat(msg.getMessageAnnotations()).isNotNull();
+            assertThat(msg.getMessageAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-msg-annotation"), "ma-value"));
+
+            assertThat(msg.getApplicationProperties()).isNotNull();
+            assertThat(msg.getApplicationProperties().getValue()).containsExactly(entry("key", "value"));
+
+            assertThat(msg.getFooter()).isNotNull();
+            //noinspection unchecked
+            assertThat(msg.getFooter().getValue()).containsExactly(entry("my-trailer", "hello-footer"));
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            assertThat(((AmqpValue) body).getValue()).isEqualTo(count.get());
+
+            count.incrementAndGet();
         });
 
-        assertThat(messages).allSatisfy(msg -> {
-            IncomingAmqpMetadata metadata = new IncomingAmqpMetadata(msg.getDelegate());
-            assertThat(metadata.getContentType()).isEqualTo("text/plain");
-            assertThat(metadata.getSubject()).isEqualTo("subject");
-            assertThat(metadata.getId()).isEqualTo("my-id");
-            assertThat(metadata.getReplyToGroupId()).isEqualTo("group");
-            assertThat(metadata.getReplyTo()).isEqualTo("reply-to");
-            assertThat(metadata.getPriority()).isEqualTo((short) 4);
-            assertThat(metadata.getTtl()).isEqualTo(3000);
-            assertThat(metadata.getCorrelationId()).startsWith("correlation-");
-            assertThat(metadata.getGroupId()).isEqualTo("group");
-            assertThat(metadata.getProperties()).isNull();
-            assertThat(metadata.getMessageAnnotations().getValue())
-                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
-            // Delivery annotations are not received.
-            assertThat(metadata.getDeliveryAnnotations()).isNull();
-            assertThat(metadata.isFirstAcquirer()).isFalse();
-            assertThat(metadata.getFooter()).isNull();
-            assertThat(metadata.getUserId()).isNull();
-        });
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void testOutgoingMetadataWithTtlSetOnConnectorButOverriddenInMessage() {
-        String topic = UUID.randomUUID().toString();
-        List<io.vertx.mutiny.amqp.AmqpMessage> messages = new CopyOnWriteArrayList<>();
-        usage.consume(topic, messages::add);
+    @Timeout(30)
+    public void testOutgoingMetadataWithTtlSetOnConnectorButOverriddenInMessage() throws Exception {
+        String address = UUID.randomUUID().toString();
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic, 3000);
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address, server.actualPort(),
+                3000);
+
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
@@ -865,120 +1062,107 @@ public class AmqpSinkTest extends AmqpBrokerTestBase {
                         .withSubject("subject")
                         .withMessageId("my-id")
                         .withReplyTo("reply-to")
-                        .withReplyToGroupId("group")
-                        .withPriority((short) 4)
+                        .withReplyToGroupId("reply-to-group")
+                        .withPriority((short) 6)
                         .withTtl(4000)
                         .withGroupId("group")
                         .withContentType("text/plain")
-                        .withApplicationProperties(new JsonObject().put("key", "value"))
-                        .withMessageAnnotations("some-annotation", "something important")
-                        .withDeliveryAnnotations("some-delivery-annotation", "another important config")
                         .withCorrelationId("correlation-" + m.getPayload())
+                        .withUserId("user")
+                        .withDeliveryAnnotations("some-delivery-annotation", "da-value")
+                        .withMessageAnnotations("some-msg-annotation", "ma-value")
+                        .withApplicationProperties(new JsonObject().put("key", "value"))
+                        .withFooter("my-trailer", "hello-footer")
                         .build()))
                 .subscribe((Subscriber<? super Message<Integer>>) sink.build());
 
-        await().until(() -> messages.size() == 10);
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(messages).allSatisfy(msg -> {
-            assertThat(msg.contentType()).isEqualTo("text/plain");
-            assertThat(msg.subject()).isEqualTo("subject");
-            assertThat(msg.getDelegate().unwrap().getMessageId()).isEqualTo("my-id");
-            assertThat(msg.getDelegate().unwrap().getReplyToGroupId()).isEqualTo("group");
-            assertThat(msg.replyTo()).isEqualTo("reply-to");
-            assertThat(msg.priority()).isEqualTo((short) 4);
-            assertThat(msg.correlationId()).startsWith("correlation-");
-            assertThat(msg.groupId()).isEqualTo("group");
-            assertThat(msg.ttl()).isEqualTo(4000);
-            assertThat(msg.applicationProperties()).containsExactly(entry("key", "value"));
-            assertThat(msg.getDelegate().unwrap().getMessageAnnotations().getValue())
-                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo(address);
+            assertThat(msg.getSubject()).isEqualTo("subject");
+            assertThat(msg.getMessageId()).isEqualTo("my-id");
+            assertThat(msg.getReplyTo()).isEqualTo("reply-to");
+            assertThat(msg.getReplyToGroupId()).isEqualTo("reply-to-group");
+            assertThat(msg.getPriority()).isEqualTo((short) 6);
+            assertThat(msg.getTtl()).isEqualTo(4000);
+            assertThat(msg.getGroupId()).isEqualTo("group");
+            assertThat(msg.getContentType()).isEqualTo("text/plain");
+            assertThat(msg.getCorrelationId()).isEqualTo("correlation-" + count.get());
+            assertThat(msg.isFirstAcquirer()).isFalse();
+            assertThat(msg.getUserId()).isEqualTo("user".getBytes(StandardCharsets.UTF_8));
+
+            assertThat(msg.getDeliveryAnnotations()).isNotNull();
+            assertThat(msg.getDeliveryAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-delivery-annotation"), "da-value"));
+
+            assertThat(msg.getMessageAnnotations()).isNotNull();
+            assertThat(msg.getMessageAnnotations().getValue())
+                    .containsExactly(entry(Symbol.valueOf("some-msg-annotation"), "ma-value"));
+
+            assertThat(msg.getApplicationProperties()).isNotNull();
+            assertThat(msg.getApplicationProperties().getValue()).containsExactly(entry("key", "value"));
+
+            assertThat(msg.getFooter()).isNotNull();
+            //noinspection unchecked
+            assertThat(msg.getFooter().getValue()).containsExactly(entry("my-trailer", "hello-footer"));
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            assertThat(((AmqpValue) body).getValue()).isEqualTo(count.get());
+
+            count.incrementAndGet();
         });
 
-        assertThat(messages).allSatisfy(msg -> {
-            IncomingAmqpMetadata metadata = new IncomingAmqpMetadata(msg.getDelegate());
-            assertThat(metadata.getContentType()).isEqualTo("text/plain");
-            assertThat(metadata.getSubject()).isEqualTo("subject");
-            assertThat(metadata.getId()).isEqualTo("my-id");
-            assertThat(metadata.getReplyToGroupId()).isEqualTo("group");
-            assertThat(metadata.getReplyTo()).isEqualTo("reply-to");
-            assertThat(metadata.getPriority()).isEqualTo((short) 4);
-            assertThat(metadata.getTtl()).isEqualTo(4000);
-            assertThat(metadata.getCorrelationId()).startsWith("correlation-");
-            assertThat(metadata.getGroupId()).isEqualTo("group");
-            assertThat(metadata.getProperties()).containsExactly(entry("key", "value"));
-            assertThat(metadata.getMessageAnnotations().getValue())
-                    .containsExactly(entry(Symbol.valueOf("some-annotation"), "something important"));
-            // Delivery annotations are not received.
-            assertThat(metadata.getDeliveryAnnotations()).isNull();
-            assertThat(metadata.isFirstAcquirer()).isFalse();
-            assertThat(metadata.getFooter()).isNull();
-            assertThat(metadata.getUserId()).isNull();
-        });
+        assertThat(count.get()).isEqualTo(msgCount);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic) {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
-        config.put("address", topic);
-        config.put("name", "the name");
-        config.put("host", host);
-        config.put("durable", false);
-        config.put("port", port);
-        config.put("username", username);
-        config.put("password", password);
-
+    private SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Map<String, Object> config) {
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
         return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic, long ttl) {
+    private Map<String, Object> createBaseConfig(String topic, int port) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
-        config.put("address", topic);
         config.put("name", "the name");
+        config.put("host", "localhost");
+        config.put("port", port);
+
+        return config;
+    }
+
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic, int port) {
+        Map<String, Object> config = createBaseConfig(topic, port);
+        config.put("address", topic);
+
+        return getSubscriberBuilder(config);
+    }
+
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkWithConnectorTtl(String topic, int port,
+            long ttl) {
+        Map<String, Object> config = createBaseConfig(topic, port);
+        config.put("address", topic);
         config.put("ttl", ttl);
-        config.put("host", host);
-        config.put("durable", false);
-        config.put("port", port);
-        config.put("username", username);
-        config.put("password", password);
 
-        this.provider = new AmqpConnector();
-        provider.setup(executionHolder);
-        return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+        return getSubscriberBuilder(config);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndNonAnonymousSink(String topic) {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndNonAnonymousSink(String topic, int port) {
+        Map<String, Object> config = createBaseConfig(topic, port);
         config.put("address", topic);
-        config.put("name", "the name");
-        config.put("host", host);
-        config.put("durable", false);
-        config.put("port", port);
         config.put("use-anonymous-sender", false);
-        config.put("username", username);
-        config.put("password", password);
 
-        this.provider = new AmqpConnector();
-        provider.setup(executionHolder);
-        return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+        return getSubscriberBuilder(config);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkUsingChannelName(String topic) {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
-        config.put("name", "the name");
-        config.put("host", host);
-        config.put("durable", false);
-        config.put("port", port);
-        config.put("username", username);
-        config.put("password", password);
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkUsingChannelName(String topic, int port) {
+        Map<String, Object> config = createBaseConfig(topic, port);
+        // We dont add the address config element, relying on the channel name instead
 
-        this.provider = new AmqpConnector();
-        provider.setup(executionHolder);
-        return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+        return getSubscriberBuilder(config);
     }
 
 }
