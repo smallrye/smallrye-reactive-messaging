@@ -1118,6 +1118,48 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(count.get()).isEqualTo(msgCount);
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    @Timeout(30)
+    public void testUnusedMessagesSectionsNotSent() throws Exception {
+        String address = UUID.randomUUID().toString();
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(address, server.actualPort());
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getAddress()).isEqualTo(address);
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            assertThat(((AmqpValue) body).getValue()).isEqualTo(count.get());
+
+            // Check that the header, delivery annotations, message annotations, application properties,
+            // and footer sections are null/not-present, as we didnt populate anything that goes in them.
+            assertThat(msg.getHeader()).isNull();
+            assertThat(msg.getDeliveryAnnotations()).isNull();
+            assertThat(msg.getMessageAnnotations()).isNull();
+            assertThat(msg.getApplicationProperties()).isNull();
+            assertThat(msg.getFooter()).isNull();
+
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount);
+    }
+
     private SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Map<String, Object> config) {
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
