@@ -20,8 +20,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.attributes.SemanticAttributes;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
@@ -315,7 +315,7 @@ public class KafkaSource<K, V> {
             final Span span = spanBuilder.startSpan();
 
             // Set Span attributes
-            span.setAttribute("partition", kafkaRecord.getPartition());
+            span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_PARTITION, kafkaRecord.getPartition());
             span.setAttribute("offset", kafkaRecord.getOffset());
             span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
