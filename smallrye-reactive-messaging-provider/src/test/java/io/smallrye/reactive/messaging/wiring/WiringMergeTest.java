@@ -35,7 +35,7 @@ public class WiringMergeTest {
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Collections.singletonList(cc1),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Collections.singletonList(cc1),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isFalse();
@@ -58,7 +58,7 @@ public class WiringMergeTest {
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Collections.singletonList(cc1),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Collections.singletonList(cc1),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
@@ -79,7 +79,7 @@ public class WiringMergeTest {
         EmitterConfiguration ec = new EmitterConfiguration("a", false, null, null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Collections.emptyList(),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Collections.emptyList(),
                 Collections.singletonList(subscriber));
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
@@ -98,7 +98,7 @@ public class WiringMergeTest {
         EmitterConfiguration ec = new EmitterConfiguration("a", false, null, null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Collections.emptyList(),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Collections.emptyList(),
                 Collections.emptyList());
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();

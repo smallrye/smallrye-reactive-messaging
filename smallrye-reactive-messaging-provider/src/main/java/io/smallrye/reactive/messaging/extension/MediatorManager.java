@@ -11,6 +11,7 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.*;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
@@ -56,6 +57,10 @@ public class MediatorManager {
     Wiring wiring;
     @Inject
     Instance<ChannelRegistar> registars;
+
+    @Inject
+    @ConfigProperty(name = STRICT_MODE_PROPERTY, defaultValue = "BAR")
+    boolean strictMode;
 
     public <T> void analyze(AnnotatedType<T> annotatedType, Bean<T> bean) {
         log.scanningType(annotatedType.getJavaClass());
@@ -161,7 +166,7 @@ public class MediatorManager {
         // Register connectors and other "ends" managed externally.
         registars.stream().forEach(ChannelRegistar::initialize);
 
-        wiring.prepare(registry, emitters, channels, collected.mediators());
+        wiring.prepare(strictMode, registry, emitters, channels, collected.mediators());
         Graph graph = wiring.resolve();
 
         if (graph.hasWiringErrors()) {

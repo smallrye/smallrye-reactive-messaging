@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.wiring;
 
-import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -13,7 +12,6 @@ import java.util.NoSuchElementException;
 
 import javax.enterprise.inject.spi.Bean;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
@@ -23,17 +21,11 @@ import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
 
 @SuppressWarnings("rawtypes")
 class WiringTest {
-
-    @AfterEach
-    public void cleanup() {
-        System.setProperty(STRICT_MODE_PROPERTY, "false");
-    }
-
     @Test
     public void testEmptyGraph() {
         ChannelRegistry registry = mock(ChannelRegistry.class);
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).isEmpty();
         assertThat(graph.isClosed()).isTrue();
@@ -60,7 +52,7 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(),
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
                 Arrays.asList(subscriber, processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(3);
@@ -79,8 +71,6 @@ class WiringTest {
      */
     @Test
     public void testProducerProcessorSubscriberChainStrict() {
-        System.setProperty(STRICT_MODE_PROPERTY, "true");
-
         ChannelRegistry registry = mock(ChannelRegistry.class);
         Bean bean = mock(Bean.class);
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
@@ -93,7 +83,7 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(),
+        wiring.prepare(true, registry, Collections.emptyList(), Collections.emptyList(),
                 Arrays.asList(subscriber, processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(3);
@@ -121,7 +111,7 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(),
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
                 Arrays.asList(subscriber, processor));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(1);
@@ -149,7 +139,7 @@ class WiringTest {
         producer.compute(Collections.emptyList(), OutgoingLiteral.of("a"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(),
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
                 Arrays.asList(subscriber, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(1); // Only one resolved component (producer)
@@ -177,7 +167,7 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(),
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(2);
@@ -197,7 +187,6 @@ class WiringTest {
      */
     @Test
     public void testProducerProcessorNoSubscriberChainStrict() {
-        System.setProperty(STRICT_MODE_PROPERTY, "true");
         ChannelRegistry registry = mock(ChannelRegistry.class);
         Bean bean = mock(Bean.class);
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
@@ -208,7 +197,7 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(),
+        wiring.prepare(true, registry, Collections.emptyList(), Collections.emptyList(),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(2);
@@ -240,7 +229,7 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(),
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(3);
@@ -265,7 +254,7 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(1);
         assertThat(graph.getUnresolvedComponents()).hasSize(1);
@@ -289,7 +278,7 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(2);
         assertThat(graph.getUnresolvedComponents()).hasSize(0);
@@ -316,7 +305,7 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
+        wiring.prepare(false, registry, Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
                 Collections.emptyList(),
                 Arrays.asList(subscriber, processor));
         Graph graph = wiring.resolve();
@@ -342,7 +331,8 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
                 Collections.emptyList(),
                 Collections.singletonList(processor));
@@ -369,7 +359,8 @@ class WiringTest {
         subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), null, null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
                 Collections.emptyList(),
                 Collections.singletonList(subscriber));
@@ -396,7 +387,8 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
                 Collections.singletonList(new ChannelConfiguration("b")),
                 Collections.singletonList(processor));
@@ -420,7 +412,8 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
                 Collections.singletonList(new ChannelConfiguration("b")),
                 Collections.emptyList());
@@ -444,7 +437,8 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
                 Collections.singletonList(new ChannelConfiguration("a")),
                 Collections.emptyList());
@@ -472,7 +466,8 @@ class WiringTest {
         processor2.compute(Collections.singletonList(IncomingLiteral.of("b")), OutgoingLiteral.of("a"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.emptyList(),
                 Collections.emptyList(),
                 Arrays.asList(processor1, processor2));
@@ -497,7 +492,8 @@ class WiringTest {
         processor3.compute(Collections.singletonList(IncomingLiteral.of("c")), OutgoingLiteral.of("a"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.emptyList(),
                 Collections.emptyList(),
                 Arrays.asList(processor1, processor2, processor3));
@@ -525,7 +521,8 @@ class WiringTest {
         processor3.compute(Collections.singletonList(IncomingLiteral.of("c")), OutgoingLiteral.of("a"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry,
+        wiring.prepare(false,
+                registry,
                 Collections.emptyList(),
                 Collections.emptyList(),
                 Arrays.asList(processor1, processor2, processor3));

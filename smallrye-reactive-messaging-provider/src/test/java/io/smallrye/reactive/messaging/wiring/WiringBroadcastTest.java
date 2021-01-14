@@ -43,7 +43,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -76,7 +76,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -108,7 +108,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -140,7 +140,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -164,7 +164,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.singletonList(ec), Arrays.asList(cc1, cc2),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
 
@@ -198,7 +198,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -231,7 +231,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -267,7 +267,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc3 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2, cc3),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2, cc3),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(5);
@@ -299,7 +299,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -327,7 +327,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
@@ -365,7 +365,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("b");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -399,7 +399,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("b");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -435,7 +435,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc3 = new ChannelConfiguration("b");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2, cc3),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2, cc3),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(5);
@@ -468,7 +468,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("b");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.getResolvedComponents()).hasSize(4);
@@ -496,7 +496,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("b");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Arrays.asList(processor, producer));
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
@@ -530,7 +530,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
 
@@ -562,7 +562,7 @@ public class WiringBroadcastTest {
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
         Wiring wiring = new Wiring();
-        wiring.prepare(registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
+        wiring.prepare(false, registry, Collections.emptyList(), Arrays.asList(cc1, cc2),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
 
