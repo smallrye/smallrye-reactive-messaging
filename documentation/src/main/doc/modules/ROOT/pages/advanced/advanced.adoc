@@ -264,7 +264,12 @@ org.jboss.weld.level=SEVERE
 
 By default, SmallRye Reactive Messaging does not enforce whether all _mediators_ are connected. It just prints a warning
 message. The strict mode fails the deployment if some "incomings" are not bound to "outgoings". To enable this mode,
-pass the `-Dsmallrye-messaging-strict-binding=true` to the command line.
+you can pass the `-Dsmallrye-messaging-strict-binding=true` via the command line, or you can set the
+`smallrye-messaging-strict-binding` attribute to `true` in the configuration:
+[source, text]
+----
+smallrye-messaging-strict-binding=true
+----
 
 [#disabling-channels]
 == Disabling channels
