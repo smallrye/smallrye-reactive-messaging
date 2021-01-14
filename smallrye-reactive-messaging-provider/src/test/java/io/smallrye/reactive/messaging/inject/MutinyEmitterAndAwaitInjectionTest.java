@@ -10,6 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.spi.DefinitionException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -112,10 +113,10 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         assertThat(bean.hasCaughtNullPayload()).isTrue();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = DefinitionException.class)
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndAwait(Message.of("foo"));
+        installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndAwait("foo");
     }
 
     @Test
@@ -125,6 +126,7 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         assertThat(bean.list()).containsExactly("A", "B", "C");
     }
 
+    @SuppressWarnings("ReactiveStreamsSubscriberImplementation")
     @Test
     public void testEmitterAndPublisherInjectedInTheSameClass() {
         EmitterAndPublisher bean = installInitializeAndGet(EmitterAndPublisher.class);
@@ -134,7 +136,6 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         assertThat(publisher).isNotNull();
         List<String> list = new ArrayList<>();
         AtomicBoolean completed = new AtomicBoolean();
-        //noinspection SubscriberImplementation
         publisher.subscribe(new Subscriber<String>() {
             private Subscription subscription;
 
@@ -320,9 +321,9 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
     public static class BeanWithMissingChannel {
         @Inject
         @Channel("missing")
-        MutinyEmitter<Message<String>> emitter;
+        MutinyEmitter<String> emitter;
 
-        public MutinyEmitter<Message<String>> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
     }

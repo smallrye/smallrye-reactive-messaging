@@ -14,6 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.spi.DefinitionException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
@@ -29,6 +30,7 @@ import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
 import io.smallrye.reactive.messaging.extension.EmitterImpl;
 
+@SuppressWarnings("ConstantConditions")
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @Test
@@ -149,7 +151,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = DefinitionException.class)
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
         installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
@@ -162,6 +164,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).containsExactly("A", "B", "C");
     }
 
+    @SuppressWarnings("ReactiveStreamsSubscriberImplementation")
     @Test
     public void testEmitterAndPublisherInjectedInTheSameClass() {
         EmitterAndPublisher bean = installInitializeAndGet(EmitterAndPublisher.class);
@@ -171,7 +174,6 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(publisher).isNotNull();
         List<String> list = new ArrayList<>();
         AtomicBoolean completed = new AtomicBoolean();
-        //noinspection SubscriberImplementation
         publisher.subscribe(new Subscriber<String>() {
             private Subscription subscription;
 
@@ -444,9 +446,9 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     public static class BeanWithMissingChannel {
         @Inject
         @Channel("missing")
-        Emitter<Message<String>> emitter;
+        Emitter<String> emitter;
 
-        public Emitter<Message<String>> emitter() {
+        public Emitter<String> emitter() {
             return emitter;
         }
     }
@@ -674,6 +676,92 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
         sub1.assertNoErrors();
         sub2.assertNoErrors();
+    }
+
+    @Test
+    public void emitterOfMessageInjectionTest() {
+        addBeanClass(EmitterOfMessageComponent.class);
+        initialize();
+        assertThatThrownBy(() -> {
+            EmitterOfMessageComponent component = get(EmitterOfMessageComponent.class);
+            component.emit("foo");
+        })
+                .isInstanceOf(DefinitionException.class)
+                .hasMessageContaining("Emitter<T>");
+    }
+
+    @Test
+    public void injectionOfRawEmitterTest() {
+        addBeanClass(EmitterRawComponent.class);
+        initialize();
+        assertThatThrownBy(() -> {
+            EmitterRawComponent component = get(EmitterRawComponent.class);
+            component.emit("foo");
+        })
+                .isInstanceOf(DefinitionException.class)
+                .hasMessageContaining("emitted type");
+    }
+
+    @Test
+    public void injectionOfRawMessageEmitterTest() {
+        addBeanClass(EmitterOfRawMessageComponent.class);
+        initialize();
+        assertThatThrownBy(() -> {
+            EmitterOfRawMessageComponent component = get(EmitterOfRawMessageComponent.class);
+            component.emit("foo");
+        })
+                .isInstanceOf(DefinitionException.class)
+                .hasMessageContaining("Emitter<T>");
+    }
+
+    @ApplicationScoped
+    public static class EmitterOfMessageComponent {
+        @Inject
+        @Channel("foo")
+        Emitter<Message<String>> emitter;
+
+        public void emit(String s) {
+            emitter.send(Message.of(s));
+        }
+
+        @Incoming("foo")
+        public void consume(String s) {
+            // Do nothing - just here to close the graph
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    @ApplicationScoped
+    public static class EmitterRawComponent {
+        @Inject
+        @Channel("foo")
+        Emitter emitter;
+
+        public void emit(String s) {
+            emitter.send(Message.of(s));
+        }
+
+        @Incoming("foo")
+        public void consume(String s) {
+            // Do nothing - just here to close the graph
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    @ApplicationScoped
+    public static class EmitterOfRawMessageComponent {
+        @Inject
+        @Channel("foo")
+        Emitter<Message> emitter;
+
+        public void emit(String s) {
+            emitter.send(Message.of(s));
+        }
+
+        @Incoming("foo")
+        public void consume(String s) {
+            // Do nothing - just here to close the graph
+        }
     }
 
 }

@@ -138,7 +138,7 @@ public abstract class AbstractEmitter<T> {
 
         MultiEmitter<? super Message<? extends T>> emitter = verify(internal, name);
         if (synchronousFailure.get() != null) {
-            throw ex.illegalStateForEmitter(synchronousFailure.get());
+            throw ex.incomingNotFoundForEmitter(synchronousFailure.get());
         }
         if (emitter.isCancelled()) {
             throw ex.illegalStateForDownstreamCancel();

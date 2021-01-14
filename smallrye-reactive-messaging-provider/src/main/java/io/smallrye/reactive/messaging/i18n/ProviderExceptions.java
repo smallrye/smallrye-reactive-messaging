@@ -86,11 +86,11 @@ public interface ProviderExceptions {
     @Message(id = 18, value = "Unable to find a stream with the name %s, available streams are: %s")
     IllegalStateException illegalStateForStream(String name, Set<String> valid);
 
-    @Message(id = 19, value = "Unable to find a emitter with the name %s, available emitters are: %s")
-    IllegalStateException illegalStateForEmitter(String name, Set<String> valid);
+    @Message(id = 19, value = "Unable to connect an emitter with the channel `%s`")
+    DefinitionException incomingNotFoundForEmitter(String name);
 
-    @Message(id = 20, value = "%s qualifier not found on + %s")
-    IllegalStateException illegalStateForAnnotationNotFound(String annotation, InjectionPoint injectionPoint);
+    @Message(id = 20, value = "Missing @Channel qualifier for + `%s`")
+    DefinitionException emitterWithoutChannelAnnotation(InjectionPoint injectionPoint);
 
     @Message(id = 21, value = "The default buffer size must be strictly positive")
     IllegalArgumentException illegalArgumentForDefaultBuffer();
@@ -102,7 +102,7 @@ public interface ProviderExceptions {
     IllegalArgumentException illegalArgumentForNullValue();
 
     @Message(id = 24, value = "The emitter encountered a failure")
-    IllegalStateException illegalStateForEmitter(@Cause Throwable throwable);
+    IllegalStateException incomingNotFoundForEmitter(@Cause Throwable throwable);
 
     @Message(id = 25, value = "The downstream has cancelled the consumption")
     IllegalStateException illegalStateForDownstreamCancel();
@@ -250,5 +250,12 @@ public interface ProviderExceptions {
     DeploymentException deploymentInvalidConfiguration(Set<String> sources);
 
     @Message(id = 74, value = "Unable to retrieve the config")
-    IllegalStateException illegalStateRetieveConfig();
+    IllegalStateException illegalStateRetrieveConfig();
+
+    @Message(id = 75, value = "Invalid Emitter injection found for `%s`. Injecting an `Emitter<Message<T>>` is invalid. You can use an `Emitter<T>` to send instances of `T` and `Message<T>`.")
+    DefinitionException invalidEmitterOfMessage(InjectionPoint ip);
+
+    @Message(id = 76, value = "Invalid Emitter injection found for  `%s`. The Emitter expected to be parameterized with the emitted type, such as Emitter<String>.")
+    DefinitionException invalidRawEmitter(InjectionPoint ip);
+
 }

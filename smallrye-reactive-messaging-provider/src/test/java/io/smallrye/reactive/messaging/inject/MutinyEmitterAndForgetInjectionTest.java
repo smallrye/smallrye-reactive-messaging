@@ -8,11 +8,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.spi.DefinitionException;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logmanager.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +27,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.testing.logging.LogCapture;
 
+@SuppressWarnings("ConstantConditions")
 public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTails {
 
     @RegisterExtension
@@ -92,8 +93,8 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
     @Test
     public void testWithMissingChannel() {
         try {
-            installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndForget(Message.of("foo"));
-        } catch (IllegalStateException e) {
+            installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndForget("foo");
+        } catch (DefinitionException e) {
             assertThat(e).hasMessageContaining("SRMSG00019");
         }
     }
@@ -105,6 +106,7 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
         assertThat(bean.list()).containsExactly("A", "B", "C");
     }
 
+    @SuppressWarnings("ReactiveStreamsSubscriberImplementation")
     @Test
     public void testEmitterAndPublisherInjectedInTheSameClass() {
         EmitterAndPublisher bean = installInitializeAndGet(EmitterAndPublisher.class);
@@ -114,7 +116,6 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
         assertThat(publisher).isNotNull();
         List<String> list = new ArrayList<>();
         AtomicBoolean completed = new AtomicBoolean();
-        //noinspection SubscriberImplementation
         publisher.subscribe(new Subscriber<String>() {
             private Subscription subscription;
 
@@ -203,9 +204,9 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
     public static class BeanWithMissingChannel {
         @Inject
         @Channel("missing")
-        MutinyEmitter<Message<String>> emitter;
+        MutinyEmitter<String> emitter;
 
-        public MutinyEmitter<Message<String>> emitter() {
+        public MutinyEmitter<String> emitter() {
             return emitter;
         }
     }
