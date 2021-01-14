@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.wiring;
 
-import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
 import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 
 import java.util.*;
@@ -18,12 +17,11 @@ public class Graph {
     private final Set<Wiring.ConsumingComponent> outbound;
     private final List<Exception> errors = new ArrayList<>();
 
-    public Graph(Set<Wiring.Component> resolved, Set<Wiring.ConsumingComponent> unresolved) {
+    public Graph(boolean strict, Set<Wiring.Component> resolved, Set<Wiring.ConsumingComponent> unresolved) {
         this.resolved = resolved;
         this.unresolved = unresolved;
         this.isClosed = computeClosure();
 
-        boolean strict = Boolean.parseBoolean(System.getProperty(STRICT_MODE_PROPERTY, "false"));
         if (strict) {
             log.strictModeEnabled();
         }

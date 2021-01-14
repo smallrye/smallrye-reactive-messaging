@@ -43,12 +43,16 @@ public class Wiring {
 
     private Graph graph;
 
+    private boolean strictMode;
+
     public Wiring() {
         components = new ArrayList<>();
     }
 
-    public void prepare(ChannelRegistry registry, List<EmitterConfiguration> emitters, List<ChannelConfiguration> channels,
+    public void prepare(boolean strictMode, ChannelRegistry registry, List<EmitterConfiguration> emitters,
+            List<ChannelConfiguration> channels,
             List<MediatorConfiguration> mediators) {
+        this.strictMode = strictMode;
 
         for (MediatorConfiguration mediator : mediators) {
             if (mediator.getOutgoing() != null && !mediator.getIncoming().isEmpty()) {
@@ -148,7 +152,7 @@ public class Wiring {
             resolved.addAll(newlyResolved);
         }
 
-        graph = new Graph(resolved, unresolved);
+        graph = new Graph(strictMode, resolved, unresolved);
         long duration = System.nanoTime() - begin;
         ProviderLogging.log.completedGraphResolution(duration);
         return graph;
