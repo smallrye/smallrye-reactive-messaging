@@ -69,12 +69,12 @@
     <microprofile-metrics-api.version>3.0</microprofile-metrics-api.version>
     <microprofile-health-api.version>3.0</microprofile-health-api.version>
 
-    <smallrye-config.version>2.0.1</smallrye-config.version>
-    <smallrye-metrics.version>3.0.0-RC2</smallrye-metrics.version>
+    <smallrye-config.version>2.0.2</smallrye-config.version>
+    <smallrye-metrics.version>3.0.0</smallrye-metrics.version>
     <smallrye-common.version>1.5.0</smallrye-common.version>
     <smallrye-health.version>3.0.0-RC2</smallrye-health.version>
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
-    <smallrye-fault-tolerance.version>5.0.0-RC1</smallrye-fault-tolerance.version>
+    <smallrye-fault-tolerance.version>5.0.0-RC3</smallrye-fault-tolerance.version>
 
     <mutiny.version>0.13.0</mutiny.version>
     <artemis.version>2.16.0</artemis.version>
