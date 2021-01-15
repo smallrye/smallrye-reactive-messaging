@@ -15,7 +15,7 @@ import io.smallrye.reactive.messaging.beans.BeanConsumingMessagesAndProducingMes
 public class ProcessorShapeConsumingIndividualItemsTest extends WeldTestBase {
 
     private static final List<String> LIST = Multi.createFrom().range(1, 11).map(i -> Integer.toString(i))
-            .collectItems().asList()
+            .collect().asList()
             .await().indefinitely();
 
     @Test

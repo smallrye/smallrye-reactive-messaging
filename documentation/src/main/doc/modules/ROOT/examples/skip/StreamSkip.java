@@ -31,7 +31,7 @@ public class StreamSkip {
     @Outgoing("out-3")
     public Multi<String> processPayloadStream(Multi<String> stream) {
         return stream
-            .transform().byFilteringItemsWith(s -> !s.equalsIgnoreCase("skip"))
+            .select().where(s -> !s.equalsIgnoreCase("skip"))
             .onItem().transform(String::toUpperCase);
     }
 
@@ -39,7 +39,7 @@ public class StreamSkip {
     @Outgoing("out-4")
     public Multi<Message<String>> processMessageStream(Multi<Message<String>> stream) {
         return stream
-            .transform().byFilteringItemsWith(m -> !m.getPayload().equalsIgnoreCase("skip"))
+            .select().where(m -> !m.getPayload().equalsIgnoreCase("skip"))
             .onItem().transform(m -> m.withPayload(m.getPayload().toUpperCase()));
     }
     // end::skip[]

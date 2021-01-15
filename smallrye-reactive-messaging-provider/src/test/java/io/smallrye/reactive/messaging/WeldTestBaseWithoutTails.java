@@ -40,7 +40,7 @@ public class WeldTestBaseWithoutTails {
 
     static final List<String> EXPECTED = Multi.createFrom().range(1, 11).flatMap(i -> Multi.createFrom().items(i, i))
             .map(i -> Integer.toString(i))
-            .collectItems().asList()
+            .collect().asList()
             .await().indefinitely();
 
     protected SeContainerInitializer initializer;

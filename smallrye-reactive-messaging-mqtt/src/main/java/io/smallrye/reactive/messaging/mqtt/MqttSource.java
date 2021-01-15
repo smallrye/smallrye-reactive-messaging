@@ -47,7 +47,7 @@ public class MqttSource {
                                 .onItem().transformToMulti(x -> {
                                     subscribed.set(true);
                                     return holder.stream()
-                                            .transform().byFilteringItemsWith(m -> matches(topic, m))
+                                            .select().where(m -> matches(topic, m))
                                             .onItem().transform(m -> new ReceivingMqttMessage(m, onNack));
                                 }))
                         .stage(multi -> {

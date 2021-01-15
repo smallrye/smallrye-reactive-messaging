@@ -25,7 +25,7 @@ public class BeanInjectedWithAMultiOfPayloads {
     public List<String> consume() {
         return Multi.createBy().concatenating()
                 .streams(constructor, field)
-                .collectItems().asList()
+                .collect().asList()
                 .await().indefinitely();
     }
 

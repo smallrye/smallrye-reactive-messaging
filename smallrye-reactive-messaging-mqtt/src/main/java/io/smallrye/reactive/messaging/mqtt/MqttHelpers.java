@@ -17,7 +17,7 @@ public class MqttHelpers {
         options.setAutoKeepAlive(config.getAutoKeepAlive());
         options.setClientId(config.getClientId().orElse(null));
         options.setConnectTimeout(config.getConnectTimeoutSeconds());
-        options.setKeepAliveTimeSeconds(config.getKeepAliveSeconds());
+        options.setKeepAliveInterval(config.getKeepAliveSeconds());
         options.setMaxInflightQueue(config.getMaxInflightQueue());
         options.setMaxMessageSize(config.getMaxMessageSize());
         options.setPassword(config.getPassword().orElse(null));

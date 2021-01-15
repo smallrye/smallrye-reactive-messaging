@@ -26,10 +26,10 @@ public class ChannelMergeTest extends WeldTestBaseWithoutTails {
         addBeanClass(ChannelConsumer.class);
         initialize();
         ChannelConsumer consumer = get(ChannelConsumer.class);
-        assertThatThrownBy(() -> consumer.getMessages().collectItems().asList().await().indefinitely())
+        assertThatThrownBy(() -> consumer.getMessages().collect().asList().await().indefinitely())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("SRMSG00018");
-        assertThatThrownBy(() -> consumer.getPayloads().collectItems().asList().await().indefinitely())
+        assertThatThrownBy(() -> consumer.getPayloads().collect().asList().await().indefinitely())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("SRMSG00018");
     }

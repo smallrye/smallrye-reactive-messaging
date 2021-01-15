@@ -32,7 +32,7 @@ public class BlockingExceptionTest extends WeldTestBaseWithoutTails {
         assertThat(logCapture.records()).isNotNull()
                 .filteredOn(r -> r.getMessage().contains("SRMSG00200"))
                 .hasSize(1)
-                .hasOnlyOneElementSatisfying(r -> assertThat(r.getMessage())
+                .allSatisfy(r -> assertThat(r.getMessage())
                         .contains("io.smallrye.reactive.messaging.blocking.beans.IncomingBlockingExceptionBean#consume"));
     }
 }

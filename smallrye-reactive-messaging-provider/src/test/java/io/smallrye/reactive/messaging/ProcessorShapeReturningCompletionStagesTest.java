@@ -16,7 +16,7 @@ import io.smallrye.reactive.messaging.beans.BeanProducingACompletionStageOfMessa
 public class ProcessorShapeReturningCompletionStagesTest extends WeldTestBase {
 
     private static final List<String> LIST = Multi.createFrom().range(1, 11).map(i -> Integer.toString(i))
-            .collectItems().asList()
+            .collect().asList()
             .await().indefinitely();
 
     @Test
