@@ -29,7 +29,7 @@ public class BeanInjectedWithAPublisherBuilderOfMessages {
         return Multi.createBy().concatenating()
                 .streams(constructor.buildRs(), field.buildRs())
                 .map(Message::getPayload)
-                .collectItems().asList()
+                .collect().asList()
                 .await().indefinitely();
     }
 

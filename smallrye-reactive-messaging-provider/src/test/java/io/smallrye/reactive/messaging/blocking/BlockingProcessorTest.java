@@ -19,7 +19,7 @@ import io.smallrye.reactive.messaging.blocking.beans.BeanConsumingMessagesAndPro
 public class BlockingProcessorTest extends WeldTestBase {
 
     private static final List<String> LIST = Multi.createFrom().range(1, 11).map(i -> Integer.toString(i))
-            .collectItems().asList()
+            .collect().asList()
             .await().indefinitely();
 
     @Test

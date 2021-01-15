@@ -58,7 +58,7 @@ public class Clients {
 
         public ClientHolder(MqttClient client, String host, int port, String server) {
             this.client = client;
-            this.connection = client.connect(port, host, server).cache();
+            this.connection = client.connect(port, host, server).memoize().indefinitely();
             messages = BroadcastProcessor.create();
             client.publishHandler(messages::onNext);
             client.closeHandler(v -> messages.onComplete());

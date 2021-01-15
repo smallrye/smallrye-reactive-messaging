@@ -29,14 +29,17 @@ public class BeanInjectedWithDifferentFlavorsOfTheSameChannelLegacy {
     @Channel("hello")
     private Publisher<Message<String>> field3;
 
+    @SuppressWarnings("rawtypes")
     @Inject
     @Channel("hello")
     private Publisher<Message> field4;
 
+    @SuppressWarnings("rawtypes")
     @Inject
     @Channel("hello")
     private Flowable<Message> field5;
 
+    @SuppressWarnings("rawtypes")
     @Inject
     @Channel("hello")
     private PublisherBuilder<Message> field6;

@@ -38,6 +38,8 @@ public class CommitStrategiesTest extends WeldTestBase {
     public Vertx vertx;
     private MockConsumer<String, String> consumer;
 
+    private KafkaSource<String, String> source;
+
     @BeforeEach
     public void initializing() {
         vertx = Vertx.vertx();
@@ -46,6 +48,9 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @AfterEach
     void closing() {
+        if (source != null) {
+            source.closeQuietly();
+        }
         vertx.closeAndAwait();
     }
 
@@ -53,7 +58,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     void testLatestCommitStrategy() {
         MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
                 UUID.randomUUID().toString());
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -143,7 +148,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         MapBasedConfig config = commonConfiguration()
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -205,7 +210,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
                 .with("auto.commit.interval.ms", 100);
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -282,7 +287,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("health-enabled", true)
                 .with("throttled.unprocessed-record-max-age.ms", 1000)
                 .with("auto.commit.interval.ms", 100);
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -373,7 +378,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         config
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
