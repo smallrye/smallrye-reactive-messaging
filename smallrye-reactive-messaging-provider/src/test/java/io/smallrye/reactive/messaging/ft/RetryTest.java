@@ -39,6 +39,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> processor.list().size() == 10);
         assertThat(processor.list()).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -51,6 +52,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> processor.list().size() == 10);
         assertThat(processor.list()).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -63,6 +65,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> processor.list().size() == 10);
         assertThat(processor.list()).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -75,6 +78,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> processor.list().size() == 10);
         assertThat(processor.list()).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -87,6 +91,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> subscriber.list().size() == 10);
         assertThat(subscriber.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -99,6 +104,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> subscriber.list().size() == 10);
         assertThat(subscriber.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -111,6 +117,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> subscriber.list().size() == 10);
         assertThat(subscriber.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -123,6 +130,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         await().until(() -> subscriber.list().size() == 10);
         assertThat(subscriber.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 10);
         assertThat(generator.acks()).isEqualTo(10);
         assertThat(generator.nacks()).isEqualTo(0);
     }
@@ -134,6 +142,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
         FailingForeverProcessorOfPayload processor = get(FailingForeverProcessorOfPayload.class);
         await().untilAsserted(() -> assertThat(processor.list()).containsExactly(1, 2, 3, 5, 6, 7, 8, 9, 10));
         MessageGenerator generator = get(MessageGenerator.class);
+        await().until(() -> generator.acks() == 9);
         assertThat(generator.acks()).isEqualTo(9);
         assertThat(generator.nacks()).isEqualTo(1);
 
