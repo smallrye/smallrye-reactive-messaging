@@ -23,6 +23,12 @@ public class KafkaAdminHelper {
             }
         }
         copy.put(AdminClientConfig.CLIENT_ID_CONFIG, "kafka-admin-" + (incoming ? "incoming-" : "outgoing-") + channel);
+
+        if (!kafkaConfigurationMap.containsKey(AdminClientConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
+            // If no backoff is set, use 10s, it avoids high load on disconnection.
+            copy.put(AdminClientConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "10000");
+        }
+
         return KafkaAdminClient.create(vertx, copy);
     }
 }
