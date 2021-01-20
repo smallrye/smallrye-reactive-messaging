@@ -85,6 +85,11 @@ public class KafkaSource<K, V> {
                 .forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
         kafkaConfiguration.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroup);
 
+        if (!kafkaConfiguration.containsKey(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
+            // If no backoff is set, use 10s, it avoids high load on disconnection.
+            kafkaConfiguration.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "10000");
+        }
+
         String servers = config.getBootstrapServers();
         if (!kafkaConfiguration.containsKey(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
             log.configServers(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
@@ -216,7 +221,7 @@ public class KafkaSource<K, V> {
                 .onFailure().invoke(t -> reportFailure(t, false));
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "unchecked" })
     private <T> DeserializationFailureHandler<T> getDeserializationHandler(boolean isKey,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers) {
         String name = isKey ? configuration.getKeyDeserializationFailureHandler().orElse(null)

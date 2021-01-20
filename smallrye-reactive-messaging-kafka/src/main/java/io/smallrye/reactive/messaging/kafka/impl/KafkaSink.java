@@ -131,9 +131,8 @@ public class KafkaSink {
     /**
      * List exception for which we should not retry - they are fatal.
      * The list comes from https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/Callback.html.
-     *
+     * <p>
      * Also included: SerializationException (as the chances to serialize the payload correctly one retry are almost 0).
-     *
      */
     private static final Set<Class<? extends Throwable>> NOT_RECOVERABLE = new HashSet<>(Arrays.asList(
             InvalidTopicException.class,
@@ -331,7 +330,11 @@ public class KafkaSink {
             String id = "kafka-producer-" + config.getChannel();
             log.setKafkaProducerClientId(id);
             kafkaConfiguration.put(ProducerConfig.CLIENT_ID_CONFIG, id);
+        }
 
+        if (!kafkaConfiguration.containsKey(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
+            // If no backoff is set, use 10s, it avoids high load on disconnection.
+            kafkaConfiguration.put(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "10000");
         }
 
         return ConfigurationCleaner.cleanupProducerConfiguration(kafkaConfiguration);
