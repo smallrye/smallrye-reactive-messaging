@@ -5,7 +5,6 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -385,22 +384,12 @@ public class KafkaSink {
         if (processor != null) {
             processor.cancel();
         }
-        CountDownLatch latch = new CountDownLatch(1);
+
         try {
-            this.stream.close(ar -> {
-                if (ar.failed()) {
-                    log.errorWhileClosingWriteStream(ar.cause());
-                }
-                latch.countDown();
-            });
+            // close() blocks forever (Long.MAX).
+            this.stream.unwrap().close(Duration.ofMillis(configuration.getCloseTimeout()));
         } catch (Throwable e) {
             log.errorWhileClosingWriteStream(e);
-            latch.countDown();
-        }
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
 
         if (admin != null) {
