@@ -20,6 +20,8 @@ public class KafkaAdminHelper {
         for (Map.Entry<String, Object> entry : kafkaConfigurationMap.entrySet()) {
             if (AdminClientConfig.configNames().contains(entry.getKey())) {
                 copy.put(entry.getKey(), entry.getValue().toString());
+            } else if (entry.getKey().startsWith("sasl.")) {
+                copy.put(entry.getKey(), entry.getValue().toString());
             }
         }
         copy.put(AdminClientConfig.CLIENT_ID_CONFIG, "kafka-admin-" + (incoming ? "incoming-" : "outgoing-") + channel);
