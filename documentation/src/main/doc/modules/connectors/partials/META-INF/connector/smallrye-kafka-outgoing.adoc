@@ -17,6 +17,10 @@ Type: _string_ | false | `localhost:9092`
 
 Type: _long_ | false | `33554432`
 
+| *close-timeout* | The amount of milliseconds waiting for a graceful shutdown of the Kafka producer
+
+Type: _int_ | false | `10000`
+
 | *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.
 
 Type: _boolean_ | false | `true`
