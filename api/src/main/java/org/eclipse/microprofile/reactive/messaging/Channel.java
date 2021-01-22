@@ -27,6 +27,8 @@ import java.lang.annotation.Target;
 import javax.enterprise.util.Nonbinding;
 import javax.inject.Qualifier;
 
+import io.smallrye.common.annotation.Experimental;
+
 /**
  * This qualifier indicates which channel should be injected / populated.
  * <p>
@@ -52,13 +54,14 @@ import javax.inject.Qualifier;
  * emitter.send("a");
  * </code>
  * </pre>
- * 
+ *
  * A subscriber for the above channel must be found by the time a message is emitted to the channel.
  * Otherwise, {@code IllegalStateException} must be thrown.
  */
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ METHOD, CONSTRUCTOR, FIELD, PARAMETER })
+@Experimental("smallrye-only, added to the specification")
 public @interface Channel {
 
     /**
