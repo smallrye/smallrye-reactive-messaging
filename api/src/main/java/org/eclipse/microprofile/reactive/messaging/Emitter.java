@@ -20,6 +20,8 @@ package org.eclipse.microprofile.reactive.messaging;
 
 import java.util.concurrent.CompletionStage;
 
+import io.smallrye.common.annotation.Experimental;
+
 /**
  * Interface used to feed a channel from an <em>imperative</em> piece of code.
  * <p>
@@ -45,6 +47,7 @@ import java.util.concurrent.CompletionStage;
  *
  * @param <T> type of payload
  */
+@Experimental("smallrye-only, added to the specification")
 public interface Emitter<T> {
 
     /**
