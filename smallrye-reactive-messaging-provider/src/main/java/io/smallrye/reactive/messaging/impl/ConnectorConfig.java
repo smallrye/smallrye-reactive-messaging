@@ -25,6 +25,11 @@ public class ConnectorConfig implements Config {
      */
     public static final String BROADCAST_PROPERTY = "broadcast";
 
+    /**
+     * Name of the attribute configuring the merge on a connector.
+     */
+    public static final String MERGE_PROPERTY = "merge";
+
     private final String prefix;
     private final Config overall;
 

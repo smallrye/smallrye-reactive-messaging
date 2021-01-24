@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
@@ -149,6 +151,18 @@ public class KafkaSinkTest extends KafkaTestBase {
         KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output-record");
         builder.put("key.serializer", IntegerSerializer.class.getName());
         builder.put("value.serializer", StringSerializer.class.getName());
+        if (t != null) {
+            builder.put("topic", t);
+        }
+
+        return builder.build();
+    }
+
+    private KafkaMapBasedConfig getKafkaSinkConfigWithMultipleUpstreams(String t) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.data");
+        builder.put("key.serializer", StringSerializer.class.getName());
+        builder.put("value.serializer", IntegerSerializer.class.getName());
+        builder.put("merge", true);
         if (t != null) {
             builder.put("topic", t);
         }
@@ -466,6 +480,33 @@ public class KafkaSinkTest extends KafkaTestBase {
                         "value-9", "value-10");
     }
 
+    @Test
+    public void testConnectorWithMultipleUpstreams() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<Integer> values = new ArrayList<>();
+        String clientId = UUID.randomUUID().toString();
+        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
+                new StringDeserializer(), new IntegerDeserializer(),
+                () -> expected.get() < 20, null, latch::countDown, Collections.singletonList(topic),
+                record -> {
+                    values.add(record.value());
+                    expected.getAndIncrement();
+                });
+
+        KafkaMapBasedConfig config = getKafkaSinkConfigWithMultipleUpstreams(topic);
+        System.out.println(config);
+        runApplication(config, BeanWithMultipleUpstreams.class);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(20);
+        assertThat(values)
+                .contains(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
+    }
+
     @ApplicationScoped
     public static class BeanProducingKafkaRecord {
 
@@ -550,6 +591,22 @@ public class KafkaSinkTest extends KafkaTestBase {
         @Outgoing("data")
         public Publisher<Integer> source() {
             return Multi.createFrom().range(0, 10);
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class BeanWithMultipleUpstreams {
+
+        @Outgoing("data")
+        public Publisher<Integer> source() {
+            return Multi.createFrom().range(0, 10);
+        }
+
+        @Outgoing("data")
+        public Publisher<Integer> source2() {
+            return Multi.createFrom().range(10, 20)
+                    .onItem().call(x -> Uni.createFrom().voidItem().onItem().delayIt().by(Duration.ofMillis(20)));
         }
 
     }

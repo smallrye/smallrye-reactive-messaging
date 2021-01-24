@@ -26,3 +26,4 @@ The `mode` attribute allows configuring this behavior:
 * `MERGE` (default) gets all the messages as they come, without any defined order. Messages from different producers may be interleaved.
 * `CONCAT` concatenates the producers. The messages from one producer are received until the messages from other producers are received.
 
+NOTE: Outbound connectors also support a `merge` attribute that allows consuming the messages to multiple upstreams. It will dispatch all the received messages.

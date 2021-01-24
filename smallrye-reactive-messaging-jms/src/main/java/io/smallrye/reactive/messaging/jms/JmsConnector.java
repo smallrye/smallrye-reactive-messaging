@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.jms;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 
 import java.util.Iterator;
@@ -57,6 +58,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 @ConnectorAttribute(name = "priority", description = "The JMS Message priority", direction = Direction.OUTGOING, type = "int")
 @ConnectorAttribute(name = "reply-to", description = "The reply to destination if any", direction = Direction.OUTGOING, type = "string")
 @ConnectorAttribute(name = "reply-to-destination-type", description = "The type of destination for the response. It can be either `queue` or `topic`", direction = Direction.OUTGOING, type = "string", defaultValue = "queue")
+@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 public class JmsConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     /**
