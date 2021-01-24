@@ -91,7 +91,7 @@ public class WiringMergeTest {
     public void testInvalidMergeWithOutgoingConnector() {
         ChannelRegistry registry = mock(ChannelRegistry.class);
         when(registry.getIncomingChannels()).thenReturn(Collections.singletonMap("a", true));
-        when(registry.getOutgoingNames()).thenReturn(Collections.singleton("a"));
+        when(registry.getOutgoingChannels()).thenReturn(Collections.singletonMap("a", false));
         Bean bean = mock(Bean.class);
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
@@ -103,7 +103,25 @@ public class WiringMergeTest {
         Graph graph = wiring.resolve();
         assertThat(graph.hasWiringErrors()).isTrue();
         assertThat(graph.getWiringErrors()).hasSize(1)
-                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreamCandidatesException.class));
+                .allSatisfy(e -> assertThat(e).isInstanceOf(TooManyUpstreamCandidatesException.class)
+                        .hasMessageContaining("mp.messaging.outgoing.a.merge"));
+    }
+
+    @Test
+    public void testConnectorMerge() {
+        ChannelRegistry registry = mock(ChannelRegistry.class);
+        when(registry.getIncomingChannels()).thenReturn(Collections.singletonMap("a", true));
+        when(registry.getOutgoingChannels()).thenReturn(Collections.singletonMap("a", true));
+        Bean bean = mock(Bean.class);
+        when(bean.getBeanClass()).thenReturn(WiringTest.class);
+
+        EmitterConfiguration ec = new EmitterConfiguration("a", false, null, null);
+
+        Wiring wiring = new Wiring();
+        wiring.prepare(false, registry, Collections.singletonList(ec), Collections.emptyList(),
+                Collections.emptyList());
+        Graph graph = wiring.resolve();
+        assertThat(graph.hasWiringErrors()).isFalse();
     }
 
     private Method getMethod(String name) {

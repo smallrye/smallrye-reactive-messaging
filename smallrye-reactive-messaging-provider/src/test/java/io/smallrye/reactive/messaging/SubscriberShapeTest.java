@@ -149,7 +149,6 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
         collector.close();
     }
 
-    @SuppressWarnings("unchecked")
     private void assertThatSubscriberWasPublished(SeContainer container) {
         assertThat(registry(container).getOutgoingNames()).contains("subscriber");
         List<SubscriberBuilder<? extends Message<?>, Void>> subscriber = registry(container).getSubscribers("subscriber");

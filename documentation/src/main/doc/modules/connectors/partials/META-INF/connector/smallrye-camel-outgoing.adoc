@@ -7,4 +7,8 @@
 
 Type: _string_ | true | 
 
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
+
 |===

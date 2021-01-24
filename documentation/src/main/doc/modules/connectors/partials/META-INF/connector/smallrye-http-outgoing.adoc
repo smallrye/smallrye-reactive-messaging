@@ -7,6 +7,10 @@
 
 Type: _string_ | false | 
 
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
+
 | *method* |  The HTTP method (either `POST` or `PUT`)
 
 Type: _string_ | false | `POST`

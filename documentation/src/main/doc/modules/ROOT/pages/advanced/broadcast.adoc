@@ -27,6 +27,8 @@ This allows waiting for the complete graph to be weaved:
 include::example$broadcast/BroadcastWithCountExamples.java[tag=chain]
 ----
 
+NOTE: Inbound connectors also support a `broadcast` attribute that allows broadcasting the messages to multiple downstream subscribers.
+
 == Use with Emitter
 
 For details on how to use `@Broadcast` with `Emitter` see the xref:emitter/emitter.adoc#emitter-broadcast[documentation].

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.camel;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.camel.i18n.CamelExceptions.ex;
 import static io.smallrye.reactive.messaging.camel.i18n.CamelLogging.log;
 
@@ -32,6 +33,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 @Connector(CamelConnector.CONNECTOR_NAME)
 @ConnectorAttribute(name = "endpoint-uri", description = "The URI of the Camel endpoint (read from or written to)", mandatory = true, type = "string", direction = Direction.INCOMING_AND_OUTGOING)
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a Camel exchange is nacked. Values can be `fail` (default) or `ignore`", defaultValue = "fail")
+@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 public class CamelConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     private static final String REACTIVE_STREAMS_SCHEME = "reactive-streams:";

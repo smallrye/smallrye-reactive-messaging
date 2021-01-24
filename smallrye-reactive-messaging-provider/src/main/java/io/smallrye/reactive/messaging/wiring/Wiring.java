@@ -77,10 +77,9 @@ public class Wiring {
             components.add(new InboundConnectorComponent(entry.getKey(), entry.getValue()));
         }
 
-        for (String outgoingName : registry.getOutgoingNames()) {
-            components.add(new OutgoingConnectorComponent(outgoingName));
+        for (Map.Entry<String, Boolean> entry : registry.getOutgoingChannels().entrySet()) {
+            components.add(new OutgoingConnectorComponent(entry.getKey(), entry.getValue()));
         }
-
     }
 
     public Graph resolve() {
@@ -311,9 +310,11 @@ public class Wiring {
 
         private final String name;
         private final Set<Component> upstreams = new LinkedHashSet<>();
+        private final boolean merge;
 
-        public OutgoingConnectorComponent(String name) {
+        public OutgoingConnectorComponent(String name, boolean merge) {
             this.name = name;
+            this.merge = merge;
         }
 
         @Override
@@ -323,7 +324,7 @@ public class Wiring {
 
         @Override
         public boolean merge() {
-            return false; // TODO is that true?
+            return merge;
         }
 
         @Override
@@ -360,7 +361,7 @@ public class Wiring {
 
         @Override
         public void validate() throws WiringException {
-            if (upstreams().size() > 1) {
+            if (upstreams().size() > 1 && !merge) {
                 throw new TooManyUpstreamCandidatesException(this);
             }
         }
