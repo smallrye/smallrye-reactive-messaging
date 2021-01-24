@@ -67,7 +67,6 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.durable", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .write();
