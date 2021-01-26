@@ -13,6 +13,7 @@ public class ConfigurationCleaner {
             "connector",
             "channel-name",
             "topic",
+            "enabled",
 
             "health-enabled",
             "health-readiness-enabled",
