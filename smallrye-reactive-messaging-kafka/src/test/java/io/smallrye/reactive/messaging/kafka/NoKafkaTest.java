@@ -120,6 +120,31 @@ public class NoKafkaTest extends KafkaTestBase {
     }
 
     @Test
+    public void testIncomingWithoutKafkaClusterUsingAdminHealthCheck() {
+        usage.setBootstrapServers(servers);
+        MyIncomingBean bean = runApplication(myKafkaSourceConfig().with("health-readiness-topic-verification", true),
+                MyIncomingBean.class);
+        assertThat(bean.received()).hasSize(0);
+
+        await().until(() -> !isReady());
+        await().until(this::isAlive);
+
+        kafka = startKafkaBroker(port);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceIntegers(5, null, () -> new ProducerRecord<>(topic, "1", counter.getAndIncrement()));
+
+        // Wait a bit longer as we may not have a leader for the topic yet.
+        await()
+                .atMost(1, TimeUnit.MINUTES)
+                .until(() -> bean.received().size() == 5);
+
+    }
+
+    @Test
     public void testOutgoingWithoutKafkaClusterWithoutBackPressure() {
         MyOutgoingBeanWithoutBackPressure bean = runApplication(myKafkaSinkConfig(topic),
                 MyOutgoingBeanWithoutBackPressure.class);

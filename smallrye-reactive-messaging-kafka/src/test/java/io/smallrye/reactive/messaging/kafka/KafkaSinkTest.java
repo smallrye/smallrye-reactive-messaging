@@ -222,6 +222,34 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
+    @Test
+    public void testABeanProducingKafkaMessagesSentToKafkaUsingAdminHealthCheck() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        List<String> keys = new ArrayList<>();
+        List<String> headers = new ArrayList<>();
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                record -> {
+                    keys.add(record.key());
+                    String count = new String(record.headers().lastHeader("count").value());
+                    headers.add(count);
+                    expected.getAndIncrement();
+                });
+
+        runApplication(getKafkaSinkConfigForMessageProducingBean()
+                .with("mp.messaging.outgoing.output-2.health-readiness-topic-verification", true),
+                ProducingKafkaMessageBean.class);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(expected).hasValue(10);
+        assertThat(keys).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testInvalidPayloadType() throws InterruptedException {

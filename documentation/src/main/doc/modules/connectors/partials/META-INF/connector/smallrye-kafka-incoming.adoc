@@ -21,6 +21,10 @@ Type: _boolean_ | false | `true`
 
 Type: _boolean_ | false | `true`
 
+| *health-readiness-topic-verification* | Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection.
+
+Type: _boolean_ | false | `false`
+
 | *health-readiness-timeout* | During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.
 
 Type: _long_ | false | `2000`
