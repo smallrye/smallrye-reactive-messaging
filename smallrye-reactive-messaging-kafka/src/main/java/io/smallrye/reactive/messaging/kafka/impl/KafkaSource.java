@@ -151,7 +151,7 @@ public class KafkaSource<K, V> {
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
         this.consumer = kafkaConsumer;
         if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
-            health = new KafkaSourceReadinessHealth(this, vertx, configuration, kafkaConfiguration,
+            health = new KafkaSourceReadinessHealth(vertx, configuration, kafkaConfiguration,
                     consumer.getDelegate().unwrap(), topics, pattern);
         } else {
             health = null;

@@ -16,18 +16,20 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
-public class KafkaSinkReadinessHealth extends BaseHealth {
+public class KafkaSinkReadinessHealth {
 
-    private final KafkaConnectorOutgoingConfiguration config;
+    public static final String CONNECTION_COUNT_METRIC_NAME = "connection-count";
     private final KafkaAdminClient admin;
+    private final KafkaConnectorOutgoingConfiguration config;
+    private final String channel;
     private final Metric metric;
     private final String topic;
 
     public KafkaSinkReadinessHealth(Vertx vertx, KafkaConnectorOutgoingConfiguration config,
             Map<String, Object> kafkaConfiguration, Producer<?, ?> producer) {
-        super(config.getChannel());
-        this.topic = config.getTopic().orElse(config.getChannel());
         this.config = config;
+        this.channel = config.getChannel();
+        this.topic = config.getTopic().orElse(this.channel);
 
         if (config.getHealthReadinessTopicVerification()) {
             // Do not create the client if the readiness health checks are disabled
@@ -36,27 +38,36 @@ public class KafkaSinkReadinessHealth extends BaseHealth {
         } else {
             this.admin = null;
             Map<MetricName, ? extends Metric> metrics = producer.metrics();
-            this.metric = getMetric(metrics);
+            Metric metric = null;
+            for (MetricName metricName : metrics.keySet()) {
+                if (metricName.name().equals(CONNECTION_COUNT_METRIC_NAME)) {
+                    metric = metrics.get(metricName);
+                    break;
+                }
+            }
+            this.metric = metric;
         }
     }
 
     public void close() {
         if (admin != null) {
             try {
-                // TODO should be closeAndAwait but because of https://github.com/vert-x3/vertx-kafka-client/issues/192, we discard the result.
-                admin.closeAndForget();
+                this.admin.closeAndAwait();
             } catch (Throwable e) {
                 log.exceptionOnClose(e);
             }
         }
     }
 
-    @Override
-    public KafkaAdminClient getAdmin() {
-        return admin;
+    public void isReady(HealthReport.HealthReportBuilder builder) {
+        if (admin != null) {
+            adminBasedHealthCheck(builder);
+        } else {
+            metricsBasedHealthCheck(builder);
+        }
     }
 
-    protected void metricsBasedHealthCheck(HealthReport.HealthReportBuilder builder) {
+    private void metricsBasedHealthCheck(HealthReport.HealthReportBuilder builder) {
         if (metric != null) {
             builder.add(channel, (double) metric.metricValue() >= 1.0);
         } else {
@@ -64,7 +75,7 @@ public class KafkaSinkReadinessHealth extends BaseHealth {
         }
     }
 
-    protected void adminBasedHealthCheck(HealthReport.HealthReportBuilder builder) {
+    private void adminBasedHealthCheck(HealthReport.HealthReportBuilder builder) {
         Set<String> topics;
         try {
             topics = admin.listTopics()
