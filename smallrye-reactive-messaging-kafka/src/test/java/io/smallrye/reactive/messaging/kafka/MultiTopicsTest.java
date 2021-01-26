@@ -202,7 +202,8 @@ public class MultiTopicsTest extends KafkaTestBase {
                         "value.deserializer", StringDeserializer.class.getName(),
                         "topic", "greetings-.+",
                         "pattern", true,
-                        "auto.offset.reset", "earliest")
+                        "auto.offset.reset", "earliest",
+                        "health-readiness-topic-verification", true)
                 .build(), KafkaConsumer.class);
 
         await().until(this::isAlive);
