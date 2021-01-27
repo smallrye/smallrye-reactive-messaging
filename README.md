@@ -13,8 +13,14 @@ extension to build event-driven microservices and data streaming applications. I
 * [Apache Camel](https://camel.apache.org/)
 * And more!
 
-It also provides a way to inject _streams_ into CDI beans, and so link your [Reactive Messaging streams](https://github.com/eclipse/microprofile-reactive-streams-operators) 
+It also provides a way to inject _streams_ into CDI beans, and so link your [Reactive Messaging streams](https://github.com/eclipse/microprofile-reactive-streams-operators)
 into [CDI](http://www.cdi-spec.org/) beans,or [JAX-RS](https://github.com/eclipse-ee4j/jaxrs-api) resources.
+
+
+## Branches
+
+* master - 2.x development stream. Uses Vert.x 3.x and Microprofile 3.x
+* 3.x - 3.x development stream. Users Vert.x 4.x and Microprofile 4.x
 
 ## Getting started
 
