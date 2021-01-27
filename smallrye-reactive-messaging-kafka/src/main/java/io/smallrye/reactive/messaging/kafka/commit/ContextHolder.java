@@ -46,7 +46,7 @@ public class ContextHolder {
         if (Vertx.currentContext() == context) {
             runnable.run();
         } else {
-            context.runOnContext(x -> runnable.run());
+            context.runOnContext(runnable);
         }
     }
 

@@ -124,7 +124,7 @@ public class ConnectionHolder {
             runnable.run();
             future.complete(null);
         } else {
-            context.runOnContext(x -> {
+            context.runOnContext(() -> {
                 runnable.run();
                 future.complete(null);
             });
@@ -138,7 +138,7 @@ public class ConnectionHolder {
             runnable.run();
             future.completeExceptionally(reason);
         } else {
-            context.runOnContext(x -> {
+            context.runOnContext(() -> {
                 runnable.run();
                 future.completeExceptionally(reason);
             });

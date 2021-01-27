@@ -48,10 +48,11 @@ public class EventBusSink {
                     // TODO support getting an EventBusMessage as message.
                     if (!this.publish) {
                         if (expectReply) {
-                            return vertx.eventBus().request(address, msg.getPayload(), options).subscribeAsCompletionStage()
+                            return vertx.eventBus().request(address, msg.getPayload(), options)
+                                    .subscribeAsCompletionStage()
                                     .thenApply(m -> msg);
                         } else {
-                            vertx.eventBus().sendAndForget(address, msg.getPayload(), options);
+                            vertx.eventBus().send(address, msg.getPayload(), options);
                             return CompletableFuture.completedFuture(msg);
                         }
                     } else {

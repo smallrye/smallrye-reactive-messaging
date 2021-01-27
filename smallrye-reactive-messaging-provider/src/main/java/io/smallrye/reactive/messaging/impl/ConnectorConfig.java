@@ -7,7 +7,9 @@ import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.*
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 
 /**
  * Implementation of config used to configured the different messaging provider / connector.
@@ -82,6 +84,23 @@ public class ConnectorConfig implements Config {
         }
     }
 
+    @Override
+    public ConfigValue getConfigValue(String propertyName) {
+        if (CHANNEL_NAME_ATTRIBUTE.equalsIgnoreCase(propertyName)) {
+            return overall.getConfigValue(channelKey(CHANNEL_NAME_ATTRIBUTE));
+        }
+        if (CONNECTOR_ATTRIBUTE.equalsIgnoreCase(propertyName) || "type".equalsIgnoreCase(propertyName)) {
+            return overall.getConfigValue(channelKey(CONNECTOR_ATTRIBUTE));
+        }
+        // First check if the channel configuration contains the desired attribute.
+        ConfigValue value = overall.getConfigValue(channelKey(propertyName));
+        if (value.getRawValue() == null) {
+            // Try connector configuration
+            return overall.getConfigValue(connectorKey(propertyName));
+        }
+        return value;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
@@ -153,5 +172,15 @@ public class ConnectorConfig implements Config {
     @Override
     public Iterable<ConfigSource> getConfigSources() {
         return overall.getConfigSources();
+    }
+
+    @Override
+    public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+        return overall.getConverter(forType);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> type) {
+        return overall.unwrap(type);
     }
 }

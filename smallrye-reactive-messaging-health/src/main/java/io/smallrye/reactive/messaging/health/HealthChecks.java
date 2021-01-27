@@ -7,7 +7,7 @@ public class HealthChecks {
     public static HealthCheckResponse getHealthCheck(HealthReport report, String check) {
         HealthCheckResponseBuilder builder = HealthCheckResponse.builder()
                 .name("SmallRye Reactive Messaging - " + check)
-                .state(report.isOk());
+                .status(report.isOk());
 
         report.getChannels().forEach(ci -> {
             String msg = "";

@@ -18,10 +18,9 @@ public class JsonHelper {
             // Transform keys that may comes from environment variables.
             // As kafka properties use `.`, transform "_" into "."
             String key = originalKey.toLowerCase().replace("_", ".");
-
             try {
                 Optional<Integer> i = config.getOptionalValue(originalKey, Integer.class);
-                if (i.isPresent()) {
+                if (i.isPresent() && i.get() instanceof Integer) {
                     json.put(key, i.get());
                     continue;
                 }
@@ -31,7 +30,7 @@ public class JsonHelper {
 
             try {
                 Optional<Double> d = config.getOptionalValue(originalKey, Double.class);
-                if (d.isPresent()) {
+                if (d.isPresent() && d.get() instanceof Double) {
                     json.put(key, d.get());
                     continue;
                 }

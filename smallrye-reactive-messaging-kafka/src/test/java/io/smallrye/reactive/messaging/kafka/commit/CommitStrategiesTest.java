@@ -37,7 +37,6 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     public Vertx vertx;
     private MockConsumer<String, String> consumer;
-
     private KafkaSource<String, String> source;
 
     @BeforeEach
@@ -352,7 +351,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString())
                 .with("consumer-rebalance-listener.name", "my-missing-name");
         assertThatThrownBy(() -> {
-            new KafkaSource<>(vertx, "my-group",
+            source = new KafkaSource<>(vertx, "my-group",
                     new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                     CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
@@ -365,7 +364,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         config
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
-        assertThatThrownBy(() -> new KafkaSource<>(vertx, "my-group",
+        assertThatThrownBy(() -> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
                         .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");

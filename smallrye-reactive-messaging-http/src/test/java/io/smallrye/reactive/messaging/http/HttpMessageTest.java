@@ -43,7 +43,7 @@ public class HttpMessageTest {
 
     @After
     public void tearDown() {
-        vertx.close();
+        vertx.closeAndAwait();
     }
 
     @Test

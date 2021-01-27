@@ -385,7 +385,8 @@ public class KafkaSource<K, V> {
         }
         if (admin != null) {
             try {
-                this.admin.closeAndAwait();
+                // TODO should be closeAndAwait but because of https://github.com/vert-x3/vertx-kafka-client/issues/192, we discard the result.
+                this.admin.closeAndForget();
             } catch (Throwable e) {
                 log.exceptionOnClose(e);
             }

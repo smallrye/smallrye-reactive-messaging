@@ -49,7 +49,7 @@ public class KafkaSink {
     private final String topic;
     private final String key;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
-    private final long retries;
+    private final int retries;
     private final KafkaConnectorOutgoingConfiguration configuration;
     private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
@@ -393,7 +393,8 @@ public class KafkaSink {
         }
 
         if (admin != null) {
-            admin.closeAndAwait();
+            // TODO should be closeAndAwait but because of https://github.com/vert-x3/vertx-kafka-client/issues/192, we discard the result.
+            admin.closeAndForget();
         }
     }
 

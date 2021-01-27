@@ -22,7 +22,9 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.config.spi.Converter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -82,7 +84,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "value.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the payload", mandatory = true)
 @ConnectorAttribute(name = "acks", type = "string", direction = Direction.OUTGOING, description = "The number of acknowledgments the producer requires the leader to have received before considering a request complete. This controls the durability of records that are sent. Accepted values are: 0, 1, all", defaultValue = "1")
 @ConnectorAttribute(name = "buffer.memory", type = "long", direction = Direction.OUTGOING, description = "The total bytes of memory the producer can use to buffer records waiting to be sent to the server.", defaultValue = "33554432")
-@ConnectorAttribute(name = "retries", type = "long", direction = Direction.OUTGOING, description = "Setting a value greater than zero will cause the client to resend any record whose send fails with a potentially transient error.", defaultValue = "2147483647")
+@ConnectorAttribute(name = "retries", type = "int", direction = Direction.OUTGOING, description = "Setting a value greater than zero will cause the client to resend any record whose send fails with a potentially transient error.", defaultValue = "2147483647")
 @ConnectorAttribute(name = "key", type = "string", direction = Direction.OUTGOING, description = "A key to used when writing the record")
 @ConnectorAttribute(name = "partition", type = "int", direction = Direction.OUTGOING, description = "The target partition id. -1 to let the client determine the partition", defaultValue = "-1")
 @ConnectorAttribute(name = "waitForWriteCompletion", type = "boolean", direction = Direction.OUTGOING, description = "Whether the client waits for Kafka to acknowledge the written record before acknowledging the message", defaultValue = "true")
@@ -207,6 +209,11 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 return t;
             }
 
+            @Override
+            public ConfigValue getConfigValue(String propertyName) {
+                return passedCfg.getConfigValue(propertyName);
+            }
+
             @SuppressWarnings("unchecked")
             @Override
             public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
@@ -229,6 +236,16 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @Override
             public Iterable<ConfigSource> getConfigSources() {
                 return passedCfg.getConfigSources();
+            }
+
+            @Override
+            public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
+                return passedCfg.getConverter(forType);
+            }
+
+            @Override
+            public <T> T unwrap(Class<T> type) {
+                return passedCfg.unwrap(type);
             }
         };
     }

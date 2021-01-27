@@ -4,7 +4,7 @@
   <parent>
     <artifactId>smallrye-reactive-messaging</artifactId>
     <groupId>io.smallrye.reactive</groupId>
-    <version>2.8.0-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </parent>
   <properties>
 

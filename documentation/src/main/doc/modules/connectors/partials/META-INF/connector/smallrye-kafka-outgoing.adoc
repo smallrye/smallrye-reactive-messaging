@@ -95,7 +95,7 @@ Type: _int_ | false | `-1`
 
 | *retries* | Setting a value greater than zero will cause the client to resend any record whose send fails with a potentially transient error.
 
-Type: _long_ | false | `2147483647`
+Type: _int_ | false | `2147483647`
 
 | *topic* | The consumed / populated Kafka topic. If neither this property nor the `topics` properties are set, the channel name is used
 
