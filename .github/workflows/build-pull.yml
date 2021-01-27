@@ -1,7 +1,11 @@
 ---
 name: Pull Request Build
 
-on: pull_request
+on:
+    pull_request:
+        branches:
+            - master
+            - 3.x
 
 jobs:
     build:
