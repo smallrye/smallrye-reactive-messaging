@@ -19,8 +19,8 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ChannelRegistry;
@@ -39,21 +39,6 @@ public class ChannelProducer {
     ChannelRegistry channelRegistry;
 
     /**
-     * Injects {@code Flowable<Message<X>>} and {@code Flowable<X>}.
-     *
-     * @param injectionPoint the injection point
-     * @param <T> the first generic parameter (either Message or X)
-     * @return the flowable to be injected
-     */
-    @Produces
-    @Typed(Flowable.class)
-    @Channel("") // Stream name is ignored during type-safe resolution
-    <T> Flowable<T> produceFlowable(InjectionPoint injectionPoint) {
-        Multi<?> multi = produceMulti(injectionPoint);
-        return cast(Flowable.fromPublisher(multi));
-    }
-
-    /**
      * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
      * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
      *
@@ -62,6 +47,7 @@ public class ChannelProducer {
      * @return the Multi to be injected
      */
     @Produces
+    @Typed({ Publisher.class, Multi.class })
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Multi<T> produceMulti(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
@@ -76,21 +62,22 @@ public class ChannelProducer {
     }
 
     /**
-     * Injects {@code Flowable<Message<X>>} and {@code Flowable<X>}. It also matches the injection of
+     * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
      * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
      *
      * NOTE: this injection point is about the deprecated {@link io.smallrye.reactive.messaging.annotations.Channel} annotation.
      *
      * @param injectionPoint the injection point
      * @param <T> the first generic parameter (either Message or X)
-     * @return the flowable to be injected
+     * @return the stream to be injected
      * @deprecated Use {@link Channel} instead.
      */
     @Produces
     @Deprecated
+    @Typed({ Publisher.class, Multi.class })
     @io.smallrye.reactive.messaging.annotations.Channel("")
-    <T> Flowable<T> producePublisherWithLegacyChannelAnnotation(InjectionPoint injectionPoint) {
-        return produceFlowable(injectionPoint);
+    <T> Multi<T> producePublisherWithLegacyChannelAnnotation(InjectionPoint injectionPoint) {
+        return produceMulti(injectionPoint);
     }
 
     /**

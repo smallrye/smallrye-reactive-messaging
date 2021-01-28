@@ -15,7 +15,7 @@ include::example$processing/StreamExamples.java[tag=processing-stream-message]
 include::example$processing/StreamExamples.java[tag=processing-stream-payload]
 ----
 
-You can receive either a (Reactive Streams) `Publisher`, (Mutiny) `Multi` or a (RxJava 2) `Flowable`.
+You can receive either a (Reactive Streams) `Publisher`, a `PublisherBuilder` or (Mutiny) `Multi`.
 You can return any sub-class of `Publisher` or a `Publisher` directly.
 
 [IMPORTANT]
