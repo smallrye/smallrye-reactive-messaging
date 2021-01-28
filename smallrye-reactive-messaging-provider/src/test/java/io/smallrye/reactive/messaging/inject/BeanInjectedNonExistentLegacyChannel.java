@@ -16,4 +16,8 @@ public class BeanInjectedNonExistentLegacyChannel {
     @Channel("idonotexist")
     private Multi<Message<String>> field;
 
+    public void goingToFail() {
+        field.collect().asList().await().indefinitely();
+    }
+
 }

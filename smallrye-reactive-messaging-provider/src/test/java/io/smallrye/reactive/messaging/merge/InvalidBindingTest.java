@@ -15,8 +15,8 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
 import io.reactivex.processors.UnicastProcessor;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -93,8 +93,8 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
     public static class MySource1Bean {
 
         @Outgoing("source")
-        public Flowable<String> foo() {
-            return Flowable.range(0, 10).map(i -> Integer.toString(i));
+        public Multi<String> foo() {
+            return Multi.createFrom().range(0, 10).map(i -> Integer.toString(i));
         }
 
     }
@@ -171,8 +171,8 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
     public static class MySource2Bean {
 
         @Outgoing("source")
-        public Flowable<String> foo() {
-            return Flowable.range(10, 10).map(i -> Integer.toString(i));
+        public Multi<String> foo() {
+            return Multi.createFrom().range(0, 10).map(i -> Integer.toString(i));
         }
 
     }

@@ -11,7 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
@@ -40,7 +40,7 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("source")
         @Outgoing("intermediate")
         public Publisher<String> process(String payload) {
-            return Flowable.just(payload, payload);
+            return Multi.createFrom().items(payload, payload);
         }
 
     }
@@ -50,7 +50,7 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("intermediate")
         @Outgoing("sink")
         public Publisher<Message<String>> process(Message<String> input) {
-            return Flowable.just(
+            return Multi.createFrom().items(
                     input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))),
                     input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))));
         }

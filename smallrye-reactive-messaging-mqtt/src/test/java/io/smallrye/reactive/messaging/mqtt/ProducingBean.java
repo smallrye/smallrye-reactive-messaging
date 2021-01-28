@@ -2,13 +2,12 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
-
-import io.reactivex.Flowable;
 
 @ApplicationScoped
 public class ProducingBean {
@@ -22,7 +21,7 @@ public class ProducingBean {
 
     @Outgoing("data")
     public Publisher<Integer> source() {
-        return Flowable.range(0, 10);
+        return Multi.createFrom().range(0, 10);
     }
 
 }

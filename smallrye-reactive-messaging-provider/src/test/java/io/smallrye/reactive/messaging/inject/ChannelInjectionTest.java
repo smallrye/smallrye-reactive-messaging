@@ -3,8 +3,6 @@ package io.smallrye.reactive.messaging.inject;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
-import javax.enterprise.inject.spi.DeploymentException;
-
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -28,25 +26,9 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
-    public void testInjectionOfFlowableOfMessages() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithAFlowableOfMessages bean = installInitializeAndGet(BeanInjectedWithAFlowableOfMessages.class);
-        assertThat(bean.consume())
-                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
     public void testInjectionOfMultiOfPayloads() {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAMultiOfPayloads bean = installInitializeAndGet(BeanInjectedWithAMultiOfPayloads.class);
-        assertThat(bean.consume())
-                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
-    }
-
-    @Test
-    public void testInjectionOfFlowableOfPayloads() {
-        addBeanClass(SourceBean.class);
-        BeanInjectedWithAFlowableOfPayloads bean = installInitializeAndGet(BeanInjectedWithAFlowableOfPayloads.class);
         assertThat(bean.consume())
                 .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }
@@ -82,7 +64,7 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
         addBeanClass(SourceBean.class);
         BeanInjectedWithDifferentFlavorsOfTheSameChannel bean = installInitializeAndGet(
                 BeanInjectedWithDifferentFlavorsOfTheSameChannel.class);
-        assertThat(bean.consume()).hasSize(14);
+        assertThat(bean.consume()).hasSize(10);
     }
 
     @Test
@@ -101,16 +83,18 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
         addBeanClass(SourceBean.class);
         BeanInjectedWithDifferentFlavorsOfTheSameChannelLegacy bean = installInitializeAndGet(
                 BeanInjectedWithDifferentFlavorsOfTheSameChannelLegacy.class);
-        assertThat(bean.consume()).hasSize(10);
+        assertThat(bean.consume()).hasSize(5);
     }
 
     @Test
-    public void testNonExistentLEgacyChannel() {
+    public void testNonExistentLegacyChannel() {
         addBeanClass(SourceBean.class);
         try {
-            installInitializeAndGet(BeanInjectedNonExistentLegacyChannel.class);
+            BeanInjectedNonExistentLegacyChannel bean = installInitializeAndGet(
+                    BeanInjectedNonExistentLegacyChannel.class);
+            bean.goingToFail();
             fail();
-        } catch (DeploymentException expected) {
+        } catch (IllegalStateException expected) {
         }
     }
 
