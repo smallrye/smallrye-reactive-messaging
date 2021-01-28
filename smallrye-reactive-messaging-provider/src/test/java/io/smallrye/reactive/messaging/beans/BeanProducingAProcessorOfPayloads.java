@@ -14,7 +14,7 @@ public class BeanProducingAProcessorOfPayloads {
 
     @Incoming("count")
     @Outgoing("sink")
-    public Processor<Integer, String> process() {
+    Processor<Integer, String> process() {
         return ReactiveStreams.<Integer> builder()
                 .map(i -> i + 1)
                 .flatMapRsPublisher(i -> Flowable.just(i, i))

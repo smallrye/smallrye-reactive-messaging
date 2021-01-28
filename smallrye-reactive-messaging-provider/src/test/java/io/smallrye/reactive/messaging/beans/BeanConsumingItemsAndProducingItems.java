@@ -10,7 +10,7 @@ public class BeanConsumingItemsAndProducingItems {
 
     @Incoming("count")
     @Outgoing("sink")
-    public String process(int value) {
+    String process(int value) {
         return Integer.toString(value + 1);
     }
 

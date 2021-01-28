@@ -11,7 +11,7 @@ import io.reactivex.Flowable;
 public class BeanProducingPayloadAsPublisher {
 
     @Outgoing("sink")
-    public Publisher<String> publisher() {
+    Publisher<String> publisher() {
         return Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i));
     }
 

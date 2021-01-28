@@ -12,7 +12,7 @@ public class BeanProducingACompletableFuture {
 
     @Incoming("count")
     @Outgoing("sink")
-    public CompletableFuture<String> process(int value) {
+    CompletableFuture<String> process(int value) {
         return CompletableFuture.supplyAsync(() -> Integer.toString(value + 1));
     }
 }

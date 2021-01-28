@@ -77,6 +77,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, msg.methodMustBeSet());
+        this.method.setAccessible(true);
+
         this.returnType = method.getReturnType();
         this.parameterTypes = method.getParameterTypes();
         this.mediatorBean = Objects.requireNonNull(bean, msg.beanMustBeSet());

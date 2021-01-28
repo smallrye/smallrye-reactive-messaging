@@ -14,7 +14,7 @@ public class BeanConsumingMsgAsFlowableAndPublishingMsgAsPublisher {
 
     @Incoming("count")
     @Outgoing("sink")
-    public Publisher<Message<String>> process(Flowable<Message<Integer>> source) {
+    Publisher<Message<String>> process(Flowable<Message<Integer>> source) {
         return source
                 .map(Message::getPayload)
                 .map(i -> i + 1)
