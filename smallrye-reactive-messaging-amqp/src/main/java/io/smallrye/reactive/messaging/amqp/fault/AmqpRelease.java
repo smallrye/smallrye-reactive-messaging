@@ -18,7 +18,6 @@ public class AmqpRelease implements AmqpFailureHandler {
 
     @Override
     public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Context context, Throwable reason) {
-        // We mark the message as rejected and fail.
         log.nackedReleaseMessage(channel);
         log.fullIgnoredFailure(reason);
         return ConnectionHolder.runOnContext(context, () -> msg.getAmqpMessage().released());
