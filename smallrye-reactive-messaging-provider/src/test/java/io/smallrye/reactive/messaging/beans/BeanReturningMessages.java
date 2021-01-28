@@ -13,7 +13,7 @@ public class BeanReturningMessages {
     private AtomicInteger count = new AtomicInteger();
 
     @Outgoing("infinite-producer")
-    public Message<Integer> create() {
+    Message<Integer> create() {
         return Message.of(count.incrementAndGet());
     }
 

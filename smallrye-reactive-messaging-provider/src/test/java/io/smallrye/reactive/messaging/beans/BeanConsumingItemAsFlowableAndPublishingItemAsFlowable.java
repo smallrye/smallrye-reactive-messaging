@@ -12,7 +12,7 @@ public class BeanConsumingItemAsFlowableAndPublishingItemAsFlowable {
 
     @Incoming("count")
     @Outgoing("sink")
-    public Flowable<String> process(Flowable<Integer> source) {
+    Flowable<String> process(Flowable<Integer> source) {
         return source
                 .map(i -> i + 1)
                 .flatMap(i -> Flowable.just(i, i))

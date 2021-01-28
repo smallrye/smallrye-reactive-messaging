@@ -11,7 +11,7 @@ public class BeanConsumingItemsAndProducingMessages {
 
     @Incoming("count")
     @Outgoing("sink")
-    public Message<String> process(int value) {
+    Message<String> process(int value) {
         return Message.of(Integer.toString(value + 1));
     }
 
