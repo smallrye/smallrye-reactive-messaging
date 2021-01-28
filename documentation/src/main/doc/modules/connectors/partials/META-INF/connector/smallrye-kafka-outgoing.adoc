@@ -89,6 +89,10 @@ Type: _string_ | false | `org.apache.kafka.common.serialization.StringSerializer
 
 Type: _long_ | false | `1024`
 
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
+
 | *partition* | The target partition id. -1 to let the client determine the partition
 
 Type: _int_ | false | `-1`

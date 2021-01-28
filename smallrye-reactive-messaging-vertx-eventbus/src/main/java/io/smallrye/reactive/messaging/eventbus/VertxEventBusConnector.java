@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.eventbus;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -26,6 +28,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "publish", type = "boolean", direction = Direction.OUTGOING, description = "Whether the to _publish_ the message to multiple Event Bus consumers. You cannot use `publish` in combination with `expect-reply`.", defaultValue = "false")
 @ConnectorAttribute(name = "codec", type = "string", direction = Direction.OUTGOING, description = "The name of the codec used to encode the outgoing message. The codec must have been registered.")
 @ConnectorAttribute(name = "timeout", type = "long", direction = Direction.OUTGOING, description = "The reply timeout (in ms), -1 to not set a timeout", defaultValue = "-1")
+@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 public class VertxEventBusConnector implements OutgoingConnectorFactory, IncomingConnectorFactory {
 
     static final String CONNECTOR_NAME = "smallrye-vertx-eventbus";

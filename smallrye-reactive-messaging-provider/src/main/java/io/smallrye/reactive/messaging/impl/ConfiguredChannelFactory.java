@@ -161,7 +161,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createSubscriberBuilder(channel, config));
+                    registry.register(channel, createSubscriberBuilder(channel, config),
+                            config.getOptionalValue(ConnectorConfig.MERGE_PROPERTY, Boolean.class).orElse(false));
                 } else {
                     log.outgoingChannelDisabled(channel);
                 }

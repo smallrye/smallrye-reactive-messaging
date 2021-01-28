@@ -39,6 +39,10 @@ Type: _int_ | false | `10`
 
 Type: _int_ | false | `8092`
 
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
+
 | *password* | Set the password to connect to the server
 
 Type: _string_ | false | 

@@ -19,7 +19,12 @@ public interface ChannelRegistry {
             boolean broadcast);
 
     SubscriberBuilder<? extends Message<?>, Void> register(String name,
-            SubscriberBuilder<? extends Message<?>, Void> subscriber);
+            SubscriberBuilder<? extends Message<?>, Void> subscriber, boolean merge);
+
+    default SubscriberBuilder<? extends Message<?>, Void> register(String name,
+            SubscriberBuilder<? extends Message<?>, Void> subscriber) {
+        return register(name, subscriber, false);
+    }
 
     void register(String name, Emitter<?> emitter);
 
@@ -40,4 +45,7 @@ public interface ChannelRegistry {
     Set<String> getEmitterNames();
 
     Map<String, Boolean> getIncomingChannels();
+
+    Map<String, Boolean> getOutgoingChannels();
+
 }

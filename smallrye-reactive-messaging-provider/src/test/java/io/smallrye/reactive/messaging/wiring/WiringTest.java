@@ -221,7 +221,7 @@ class WiringTest {
     public void testConnectorProcessorConnectorChain() {
         ChannelRegistry registry = mock(ChannelRegistry.class);
         when(registry.getIncomingChannels()).thenReturn(Collections.singletonMap("a", false));
-        when(registry.getOutgoingNames()).thenReturn(Collections.singleton("b"));
+        when(registry.getOutgoingChannels()).thenReturn(Collections.singletonMap("b", false));
         Bean bean = mock(Bean.class);
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
@@ -249,7 +249,7 @@ class WiringTest {
     public void testConnectorNoProcessorConnectorChain() {
         ChannelRegistry registry = mock(ChannelRegistry.class);
         when(registry.getIncomingChannels()).thenReturn(Collections.singletonMap("a", false));
-        when(registry.getOutgoingNames()).thenReturn(Collections.singleton("b"));
+        when(registry.getOutgoingChannels()).thenReturn(Collections.singletonMap("b", false));
         Bean bean = mock(Bean.class);
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
@@ -273,7 +273,31 @@ class WiringTest {
     public void testConnectorToConnectorChain() {
         ChannelRegistry registry = mock(ChannelRegistry.class);
         when(registry.getIncomingChannels()).thenReturn(Collections.singletonMap("a", false));
-        when(registry.getOutgoingNames()).thenReturn(Collections.singleton("a"));
+        when(registry.getOutgoingChannels()).thenReturn(Collections.singletonMap("a", false));
+        Bean bean = mock(Bean.class);
+        when(bean.getBeanClass()).thenReturn(WiringTest.class);
+
+        Wiring wiring = new Wiring();
+        wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        Graph graph = wiring.resolve();
+        assertThat(graph.getResolvedComponents()).hasSize(2);
+        assertThat(graph.getUnresolvedComponents()).hasSize(0);
+        assertThat(graph.isClosed()).isTrue();
+        assertThat(graph.hasWiringErrors()).isFalse();
+
+        assertThat(graph.getInbound()).hasSize(1).allSatisfy(pc -> assertThat(pc.outgoing()).contains("a"));
+        assertThat(graph.getOutbound()).hasSize(1).allSatisfy(pc -> assertThat(pc.incomings()).containsExactly("a"));
+    }
+
+    /**
+     * Two connectors (inbound, outbound) connected directly.
+     * connector -> connector.
+     */
+    @Test
+    public void testConnectorToConnectorChainWithOutgoingConnectorAbleToMerge() {
+        ChannelRegistry registry = mock(ChannelRegistry.class);
+        when(registry.getIncomingChannels()).thenReturn(Collections.singletonMap("a", false));
+        when(registry.getOutgoingChannels()).thenReturn(Collections.singletonMap("a", true));
         Bean bean = mock(Bean.class);
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 

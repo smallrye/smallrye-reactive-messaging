@@ -25,6 +25,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "url", type = "string", direction = OUTGOING, description = "The targeted URL", mandatory = true)
 @ConnectorAttribute(name = "method", type = "string", direction = OUTGOING, description = " The HTTP method (either `POST` or `PUT`)", defaultValue = "POST")
 @ConnectorAttribute(name = "converter", type = "string", direction = OUTGOING, description = "The converter classname used to serialized the outgoing message in the HTTP body")
+@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 
 @ConnectorAttribute(name = "host", type = "string", direction = INCOMING, description = "the host (interface) on which the server is opened", defaultValue = "0.0.0.0")
 @ConnectorAttribute(name = "port", type = "int", direction = INCOMING, description = "the port", defaultValue = "8080")

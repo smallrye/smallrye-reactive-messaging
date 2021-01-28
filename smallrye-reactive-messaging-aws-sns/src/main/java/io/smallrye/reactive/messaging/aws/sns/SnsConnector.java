@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.aws.sns;
 
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
 import static io.smallrye.reactive.messaging.aws.sns.i18n.SnsLogging.log;
 
 import java.util.Objects;
@@ -49,6 +48,7 @@ import software.amazon.awssdk.services.sns.model.PublishRequest;
 @ConnectorAttribute(name = "broadcast", description = "Whether the SNS messages are dispatched to multiple subscribers (`@Incoming`)", type = "boolean", defaultValue = "false", direction = INCOMING)
 @ConnectorAttribute(name = "mock-sns-topics", description = "Indicates to the connector to use mock/fake topics. _For testing only_", type = "boolean", defaultValue = "false", direction = INCOMING_AND_OUTGOING, alias = "sns-mock-topics")
 @ConnectorAttribute(name = "app-url", description = "Configures AWS App public URL. This URL should be accessible by AWS SNS (subscription url). It can be a public URL or an URL accessible by SNS within the same VPC.", type = "string", direction = INCOMING, alias = "sns-app-url")
+@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 
 public class SnsConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 

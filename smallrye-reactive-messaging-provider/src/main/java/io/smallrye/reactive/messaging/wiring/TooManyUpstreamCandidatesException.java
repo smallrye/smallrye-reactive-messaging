@@ -23,7 +23,11 @@ public class TooManyUpstreamCandidatesException extends WiringException {
                     "'%s' supports a single upstream producer for channel '%s', but found %d: %s. You may want to add the '@Merge' annotation on the method.",
                     component, incoming, upstreams.size(), upstreams);
         } else {
-            if (component instanceof Wiring.ProcessorMediatorComponent
+            if (component instanceof Wiring.OutgoingConnectorComponent) {
+                // outgoing connectors have a single incoming channel
+                return "'mp.messaging.outgoing." + component.incomings().get(0)
+                        + ".merge=true' + to allow multiple upstreams.";
+            } else if (component instanceof Wiring.ProcessorMediatorComponent
                     || component instanceof Wiring.SubscriberMediatorComponent) {
                 return String.format(
                         "'%s' supports a single upstream producer, but found %d: %s. You may want to add the '@Merge' annotation on the method.",

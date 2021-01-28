@@ -41,6 +41,10 @@ Type: _string_ | false | `localhost`
 
 Type: _string_ | false | 
 
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
+
 | *password*
 
 _(amqp-password)_ | The password used to authenticate to the broker
