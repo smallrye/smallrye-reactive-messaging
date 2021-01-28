@@ -11,9 +11,9 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import io.reactivex.processors.BehaviorProcessor;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 import io.vertx.mqtt.MqttServerOptions;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
@@ -43,7 +43,7 @@ class MqttServerSource {
         this.broadcast = config.getBroadcast();
         final MqttServerOptions options = mqttServerOptions(config);
         this.mqttServer = MqttServer.create(vertx, options);
-        final BehaviorProcessor<MqttMessage> processor = BehaviorProcessor.create();
+        final UnicastProcessor<MqttMessage> processor = UnicastProcessor.create();
 
         mqttServer.exceptionHandler(error -> {
             log.exceptionThrown(error);
@@ -110,8 +110,8 @@ class MqttServerSource {
         Multi<MqttServer> server = startServer(options).cache();
 
         this.source = ReactiveStreams.fromPublisher(processor
-                .delaySubscription(server)
-                .doOnSubscribe(log::newSubscriberAdded));
+                .onSubscribe().call(() -> server.collect().first().map(x -> null))
+                .onSubscribe().invoke(log::newSubscriberAdded));
     }
 
     private Multi<MqttServer> startServer(MqttServerOptions options) {

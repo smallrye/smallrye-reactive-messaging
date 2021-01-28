@@ -1,37 +1,40 @@
 package io.smallrye.reactive.messaging.merge;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.annotations.Merge;
 
 @ApplicationScoped
 public class BeanUsingOne {
 
-    private List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
 
     @Outgoing("X")
-    public Flowable<String> x() {
-        return Flowable.zip(Flowable.fromArray("a", "b", "c"),
-                Flowable.interval(10, TimeUnit.MILLISECONDS),
-                (a, b) -> a);
+    public Multi<String> x() {
+        return Multi.createBy().combining().streams(
+                Multi.createFrom().items("a", "b", "c"),
+                Multi.createFrom().ticks().every(Duration.ofMillis(10)))
+                .asTuple()
+                .map(Tuple2::getItem1);
     }
 
     @Outgoing("Z1")
-    public Flowable<String> z1() {
-        return Flowable.fromArray("d", "e", "f");
+    public Multi<String> z1() {
+        return Multi.createFrom().items("d", "e", "f");
     }
 
     @Outgoing("X")
     @Incoming("Z2")
-    public Flowable<String> y(Flowable<String> z) {
+    public Multi<String> y(Multi<String> z) {
         return z.map(String::toUpperCase);
     }
 
@@ -43,9 +46,12 @@ public class BeanUsingOne {
 
     @Outgoing("Z2")
     @Incoming("Z1")
-    public Flowable<String> z2(Flowable<String> z) {
-        return z
-                .zipWith(Flowable.interval(5, TimeUnit.MILLISECONDS), (a, b) -> a);
+    public Multi<String> z2(Multi<String> z) {
+        return Multi.createBy().combining().streams(
+                z,
+                Multi.createFrom().ticks().every(Duration.ofMillis(5)))
+                .asTuple()
+                .map(Tuple2::getItem1);
     }
 
     public List<String> list() {

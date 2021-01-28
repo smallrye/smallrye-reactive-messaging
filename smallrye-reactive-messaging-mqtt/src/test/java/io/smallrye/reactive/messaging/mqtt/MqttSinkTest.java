@@ -11,6 +11,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -18,7 +19,6 @@ import org.junit.After;
 import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
-import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import repeat.Repeat;
 
@@ -51,7 +51,7 @@ public class MqttSinkTest extends MqttTestBase {
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
@@ -77,7 +77,7 @@ public class MqttSinkTest extends MqttTestBase {
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
@@ -103,7 +103,7 @@ public class MqttSinkTest extends MqttTestBase {
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
-        Flowable.range(0, 10)
+        Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<String>>) subscriber);

@@ -27,8 +27,8 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
-    public void testBeanProducingMessagesAsFlowable() {
-        addBeanClass(BeanProducingMessagesAsFlowable.class);
+    public void testBeanProducingMessagesAsCustomPublisher() {
+        addBeanClass(BeanProducingMessagesAsCustomPublisher.class);
         initialize();
         CollectorOnly collector = container.select(CollectorOnly.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);
@@ -43,8 +43,8 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
-    public void testBeanProducingPayloadsAsFlowable() {
-        addBeanClass(BeanProducingPayloadAsFlowable.class);
+    public void testBeanProducingPayloadsAsCustomPublisher() {
+        addBeanClass(BeanProducingPayloadAsCustomPublisher.class);
         initialize();
         CollectorOnly collector = container.select(CollectorOnly.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);
