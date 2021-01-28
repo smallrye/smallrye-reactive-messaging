@@ -11,7 +11,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 public class BeanReturningAPublisherBuilderOfMessages {
 
     @Outgoing("producer")
-    public PublisherBuilder<Message<String>> create() {
+    PublisherBuilder<Message<String>> create() {
         return ReactiveStreams.of("a", "b", "c").map(Message::of);
     }
 

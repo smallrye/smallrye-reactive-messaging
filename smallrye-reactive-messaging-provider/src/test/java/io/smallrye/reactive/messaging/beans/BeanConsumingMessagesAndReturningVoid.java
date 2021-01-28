@@ -14,7 +14,7 @@ public class BeanConsumingMessagesAndReturningVoid {
     private List<String> list = new ArrayList<>();
 
     @Incoming("count")
-    public void consume(Message<String> message) {
+    void consume(Message<String> message) {
         list.add(message.getPayload());
     }
 
