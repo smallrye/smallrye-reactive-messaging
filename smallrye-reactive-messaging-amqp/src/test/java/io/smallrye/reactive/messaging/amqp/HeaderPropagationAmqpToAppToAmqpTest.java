@@ -55,13 +55,11 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.amqp.durable", true)
                 .put("mp.messaging.outgoing.amqp.host", host)
                 .put("mp.messaging.outgoing.amqp.port", port)
-                .put("mp.messaging.outgoing.amqp.durable", "false")
                 .put("amqp-username", username)
                 .put("amqp-password", password)
 
                 .put("mp.messaging.incoming.source.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.source.address", source)
-                .put("mp.messaging.incoming.source.durable", "true")
                 .put("mp.messaging.incoming.source.host", host)
                 .put("mp.messaging.incoming.source.port", port)
                 .write();
