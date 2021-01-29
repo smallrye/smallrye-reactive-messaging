@@ -49,6 +49,15 @@ public class AmqpLinkTest extends AmqpTestBase {
 
     @Test
     public void testIncoming() throws Exception {
+        doIncomingTestImpl(false);
+    }
+
+    @Test
+    public void testIncomingDurable() throws Exception {
+        doIncomingTestImpl(true);
+    }
+
+    private void doIncomingTestImpl(boolean durable) throws Exception {
         List<DispositionRecord> dispositionsReceived = Collections.synchronizedList(new ArrayList<>());
 
         AtomicReference<ProtonConnection> connectionRef = new AtomicReference<>();
@@ -63,15 +72,17 @@ public class AmqpLinkTest extends AmqpTestBase {
         String subscriptionName = "mySubName";
         String address = "people";
 
-        new MapBasedConfig()
+        MapBasedConfig config = new MapBasedConfig()
                 .put("mp.messaging.incoming.people-in.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.people-in.container-id", containerId)
                 .put("mp.messaging.incoming.people-in.address", address)
                 .put("mp.messaging.incoming.people-in.link-name", subscriptionName)
                 .put("mp.messaging.incoming.people-in.host", "localhost")
-                .put("mp.messaging.incoming.people-in.port", server.actualPort())
-                .put("mp.messaging.incoming.people-in.durable", true)
-                .write();
+                .put("mp.messaging.incoming.people-in.port", server.actualPort());
+        if (durable) {
+            config.put("mp.messaging.incoming.people-in.durable", true);
+        }
+        config.write();
 
         container = weld.initialize();
 
@@ -104,8 +115,13 @@ public class AmqpLinkTest extends AmqpTestBase {
         Source source = (org.apache.qpid.proton.amqp.messaging.Source) serverSender.getRemoteSource();
         assertThat(source).isNotNull();
         assertThat(source.getAddress()).isEqualTo(address);
-        assertThat(source.getDurable()).isEqualTo(TerminusDurability.UNSETTLED_STATE);
-        assertThat(source.getExpiryPolicy()).isEqualTo(TerminusExpiryPolicy.NEVER);
+        if (durable) {
+            assertThat(source.getDurable()).isEqualTo(TerminusDurability.UNSETTLED_STATE);
+            assertThat(source.getExpiryPolicy()).isEqualTo(TerminusExpiryPolicy.NEVER);
+        } else {
+            assertThat(source.getDurable()).isEqualTo(TerminusDurability.NONE);
+            assertThat(source.getExpiryPolicy()).isNotEqualTo(TerminusExpiryPolicy.NEVER);
+        }
     }
 
     @ApplicationScoped
