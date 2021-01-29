@@ -7,26 +7,35 @@ NOTE: To disable health reporting, set the `health-enabled` attribute for the ch
 
 === Readiness
 
-On the inbound side (receiving records from Kafka), the readiness check verifies that:
+On the inbound side, two strategies are available to check the readiness of the application.
+The default strategy verifies that we have at least one active connection with the broker.
+This strategy is lightweight.
+
+You can also enable another strategy by setting the `health-readiness-topic-verification` attribute to `true`.
+In this case, the check verifies that:
 
 * the broker is available
 * the Kafka topic is created (available in the broker).
 * no failures have been caught
 
-If you consume multiple topics using the `topics` attribute, the readiness check verifies that all the consumed topics are available.
+With this second strategy, if you consume multiple topics using the `topics` attribute, the readiness check verifies that all the consumed topics are available.
 If you use a pattern (using the `pattern` attribute), the readiness check verifies that at least one existing topic matches the pattern.
 
-On the outbound side (writing records to Kafka), the readiness check verifies that:
+On the outbound side (writing records to Kafka), two strategies are also offered.
+The default strategy just verifies that the producer has at least one active connection with the broker.
+
+You can also enable another strategy by setting the `health-readiness-topic-verification` attribute to `true`.
+In this case, teh check verifies that
 
 * the broker is available
 * the Kafka topic is created (available in the broker).
 
-The readiness check uses a Kafka Admin Client to retrieve the existing topics.
+With this second strategy, the readiness check uses a Kafka Admin Client to retrieve the existing topics.
 Retrieving the topics can be a lengthy operation.
 You can configure a timeout using the `health-readiness-timeout` attribute.
 The default timeout is set to 2 seconds.
 
-Also, you can disable the readiness check using by setting `health-readiness-enabled` to `false`.
+Also, you can disable the readiness checks altogether by setting `health-readiness-enabled` to `false`.
 
 === Liveness
 

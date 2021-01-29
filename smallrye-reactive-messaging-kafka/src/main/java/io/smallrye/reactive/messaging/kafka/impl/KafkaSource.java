@@ -30,9 +30,9 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.*;
 import io.smallrye.reactive.messaging.kafka.fault.*;
+import io.smallrye.reactive.messaging.kafka.health.KafkaSourceReadinessHealth;
 import io.vertx.core.AsyncResult;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
@@ -42,15 +42,14 @@ public class KafkaSource<K, V> {
     private final KafkaFailureHandler failureHandler;
     private final KafkaCommitHandler commitHandler;
     private final KafkaConnectorIncomingConfiguration configuration;
-    private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
     private final Set<String> topics;
     private final Pattern pattern;
     private final boolean isTracingEnabled;
     private final boolean isHealthEnabled;
-    private final boolean isReadinessEnabled;
     private final boolean isCloudEventEnabled;
     private final String channel;
+    private final KafkaSourceReadinessHealth health;
 
     public KafkaSource(Vertx vertx,
             String consumerGroup,
@@ -77,7 +76,6 @@ public class KafkaSource<K, V> {
 
         isTracingEnabled = this.configuration.getTracingEnabled();
         isHealthEnabled = this.configuration.getHealthEnabled();
-        isReadinessEnabled = this.configuration.getHealthReadinessEnabled();
         isCloudEventEnabled = this.configuration.getCloudEvents();
         channel = this.configuration.getChannel();
 
@@ -146,15 +144,14 @@ public class KafkaSource<K, V> {
 
         commitHandler = createCommitHandler(vertx, kafkaConsumer, consumerGroup, config, commitStrategy);
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
-
-        Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
-            // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel(), true);
-        } else {
-            this.admin = null;
-        }
         this.consumer = kafkaConsumer;
+        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
+            health = new KafkaSourceReadinessHealth(vertx, configuration, kafkaConfiguration,
+                    consumer.getDelegate().unwrap(), topics, pattern);
+        } else {
+            health = null;
+        }
+
         ConsumerRebalanceListener listener = RebalanceListeners
                 .createRebalanceListener(config, consumerGroup, consumerRebalanceListeners, consumer, commitHandler);
         RebalanceListeners.inject(this.consumer, listener);
@@ -383,12 +380,9 @@ public class KafkaSource<K, V> {
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
-        if (admin != null) {
-            try {
-                this.admin.closeAndAwait();
-            } catch (Throwable e) {
-                log.exceptionOnClose(e);
-            }
+
+        if (health != null) {
+            health.close();
         }
     }
 
@@ -411,34 +405,9 @@ public class KafkaSource<K, V> {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (isHealthEnabled && isReadinessEnabled) {
-            Set<String> existingTopics;
-            try {
-                existingTopics = admin.listTopics()
-                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
-                if (pattern == null && existingTopics.containsAll(topics)) {
-                    builder.add(channel, true);
-                } else if (pattern != null) {
-                    // Check that at least one topic matches
-                    boolean ok = existingTopics.stream()
-                            .anyMatch(s -> pattern.matcher(s).matches());
-                    if (ok) {
-                        builder.add(channel, ok);
-                    } else {
-                        builder.add(channel, false,
-                                "Unable to find a topic matching the given pattern: " + pattern);
-                    }
-                } else {
-                    String missing = topics.stream().filter(s -> !existingTopics.contains(s))
-                            .collect(Collectors.joining());
-                    builder.add(channel, false, "Unable to find topic(s): " + missing);
-                }
-            } catch (Exception failed) {
-                builder.add(channel, false, "No response from broker for channel "
-                        + channel + " : " + failed);
-            }
+        if (health != null) {
+            health.isReady(builder);
         }
-
         // If health is disable do not add anything to the builder.
     }
 

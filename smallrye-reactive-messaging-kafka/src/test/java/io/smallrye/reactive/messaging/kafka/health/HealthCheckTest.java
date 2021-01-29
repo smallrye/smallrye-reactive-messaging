@@ -53,6 +53,32 @@ public class HealthCheckTest extends KafkaTestBase {
         assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
     }
 
+    @Test
+    public void testHealthOfApplicationWithoutOutgoingTopicUsingAdminCheck() {
+        KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean();
+        config.put("my.topic", topic);
+        runApplication(config, ProducingBean.class);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                (k, v) -> expected.getAndIncrement());
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        await().until(() -> expected.get() == 10);
+        HealthReport liveness = getHealth().getLiveness();
+        HealthReport readiness = getHealth().getReadiness();
+
+        assertThat(liveness.isOk()).isTrue();
+        assertThat(readiness.isOk()).isTrue();
+        assertThat(liveness.getChannels()).hasSize(1);
+        assertThat(readiness.getChannels()).hasSize(0);
+        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
+    }
+
     private KafkaMapBasedConfig getKafkaSinkConfigForProducingBean() {
         KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output")
                 .put("value.serializer", IntegerSerializer.class.getName())

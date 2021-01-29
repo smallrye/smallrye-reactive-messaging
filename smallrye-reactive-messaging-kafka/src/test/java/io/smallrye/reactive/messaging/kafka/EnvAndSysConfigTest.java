@@ -28,7 +28,7 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @Test
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_TOPIC", value = TOPIC_1)
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_VALUE_DESERIALIZER", value = "org.apache.kafka.common.serialization.StringDeserializer")
-    public void testConsumerConfigurationComingForEnv() throws InterruptedException {
+    public void testConsumerConfigurationComingFromEnv() throws InterruptedException {
         KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "auto.offset.reset", "earliest")
@@ -40,7 +40,7 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @Test
     @SetSystemProperty(key = "mp.messaging.incoming.kafka.topic", value = TOPIC_2)
     @SetSystemProperty(key = "mp.messaging.incoming.kafka.value.deserializer", value = "org.apache.kafka.common.serialization.StringDeserializer")
-    public void testConsumerConfigurationComingForSys() throws InterruptedException {
+    public void testConsumerConfigurationComingFromSys() throws InterruptedException {
         KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
                 .put(
                         "auto.offset.reset", "earliest")

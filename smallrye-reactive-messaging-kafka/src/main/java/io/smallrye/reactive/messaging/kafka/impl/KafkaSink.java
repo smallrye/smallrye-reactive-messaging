@@ -34,13 +34,13 @@ import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.health.KafkaSinkReadinessHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
 public class KafkaSink {
 
@@ -51,13 +51,14 @@ public class KafkaSink {
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
     private final long retries;
     private final KafkaConnectorOutgoingConfiguration configuration;
-    private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
     private final KafkaSenderProcessor processor;
     private final boolean writeAsBinaryCloudEvent;
     private final boolean writeCloudEvents;
     private final boolean mandatoryCloudEventAttributeSet;
     private final boolean isTracingEnabled;
+    private final KafkaSinkReadinessHealth health;
+    private final boolean isHealthEnabled;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
@@ -97,11 +98,11 @@ public class KafkaSink {
                     + configuration.getValueSerializer());
         }
 
-        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
-            // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap, config.getChannel(), false);
+        this.isHealthEnabled = configuration.getHealthEnabled();
+        if (isHealthEnabled && this.configuration.getHealthReadinessEnabled()) {
+            this.health = new KafkaSinkReadinessHealth(vertx, config, kafkaConfigurationMap, stream.unwrap());
         } else {
-            this.admin = null;
+            this.health = null;
         }
 
         long requests = config.getMaxInflightMessages();
@@ -344,7 +345,7 @@ public class KafkaSink {
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {
-        if (configuration.getHealthEnabled()) {
+        if (isHealthEnabled) {
             List<Throwable> actualFailures;
             synchronized (this) {
                 actualFailures = new ArrayList<>(failures);
@@ -361,22 +362,9 @@ public class KafkaSink {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
-            Set<String> topics;
-            try {
-                topics = admin.listTopics()
-                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
-                if (topics.contains(topic)) {
-                    builder.add(configuration.getChannel(), true);
-                } else {
-                    builder.add(configuration.getChannel(), false, "Unable to find topic " + topic);
-                }
-            } catch (Exception failed) {
-                builder.add(configuration.getChannel(), false, "No response from broker for topic "
-                        + topic + " : " + failed);
-            }
+        if (health != null) {
+            health.isReady(builder);
         }
-
         // If health is disable do not add anything to the builder.
     }
 
@@ -392,8 +380,8 @@ public class KafkaSink {
             log.errorWhileClosingWriteStream(e);
         }
 
-        if (admin != null) {
-            admin.closeAndAwait();
+        if (health != null) {
+            health.close();
         }
     }
 
