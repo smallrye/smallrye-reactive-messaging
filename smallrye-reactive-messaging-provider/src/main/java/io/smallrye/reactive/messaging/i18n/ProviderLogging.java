@@ -120,4 +120,8 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 236, value = "Materialization completed in %d ns")
     void materializationCompleted(long duration);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 237, value = "No ExecutionHolder, disabling @Blocking support")
+    void noExecutionHolderDisablingBlockingSupport();
+
 }
