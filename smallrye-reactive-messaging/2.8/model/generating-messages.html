@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2.8">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="model.html#converters">Converting messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-avro-configuration">Using Avro</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt-server/mqtt-server.html">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../http/http.html">HTTP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-outbound">Sending HTTP request</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html">Vert.x Event Bus</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-inbound">Event Bus Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-outbound">Sending Event Bus Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2.8</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2.8</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+</nav>
+</div>
+<article class="doc">
+<div class="sect1">
+<h2 id="generating-messages"><a class="anchor" href="#generating-messages"></a>Generating Messages</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To produce messages to a channel, you need to use the <code>@Outgoing</code> annotation.
+This annotation takes a single parameter: the name of the populated channel.</p>
+</div>
+<div class="sect2">
+<h3 id="_generating_messages_synchronously"><a class="anchor" href="#_generating_messages_synchronously"></a>Generating messages synchronously</h3>
+<div class="paragraph">
+<p>You can generate messages synchronously.
+In this case, the method is called for every <em>request</em> from the downstream:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public Message&lt;Integer&gt; generateMessagesSynchronously() {
+    return Message.of(counter.getAndIncrement());
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Requests?</div>
+<div class="paragraph">
+<p>Reactive Messaging connects components to build a reactive stream.
+In a reactive stream, the emissions are controlled by the consumer (downstream) indicating to the publisher (upstream) how many items it can consume.
+With this protocol, the consumers are never flooded.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_messages_using_completionstage"><a class="anchor" href="#_generating_messages_using_completionstage"></a>Generating messages using CompletionStage</h3>
+<div class="paragraph">
+<p>You can also return a <code>CompletionStage</code> / <code>CompletableFuture</code>.
+In this case, Reactive Messaging waits until the <code>CompletionStage</code> gets completed before calling it again.</p>
+</div>
+<div class="paragraph">
+<p>For instance, this signature is useful to poll messages from a source using an asynchronous client:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public CompletionStage&lt;Message&lt;Price&gt;&gt; generateMessagesAsCompletionStage() {
+    return asyncClient.poll()
+        .thenApply(Message::of);
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_messages_using_uni"><a class="anchor" href="#_generating_messages_using_uni"></a>Generating messages using Uni</h3>
+<div class="paragraph">
+<p>You can also return a <a href="https://smallrye.io/smallrye-mutiny/#_uni_and_multi">Uni</a> instance.
+In this case, Reactive Messaging waits until the <code>Uni</code> emits its item before calling it again.</p>
+</div>
+<div class="paragraph">
+<p>This signature is useful when integrating asynchronous clients providing a Mutiny API.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public Uni&lt;Message&lt;Integer&gt;&gt; generateMessagesAsync() {
+    return Uni.createFrom().item(() -&gt; Message.of(counter.getAndIncrement()));
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_reactive_streams_of_messages"><a class="anchor" href="#_generating_reactive_streams_of_messages"></a>Generating Reactive Streams of messages</h3>
+<div class="paragraph">
+<p>Instead of producing the message one by one, you can return the stream directly.
+If you have a data source producing Reactive Streams <code>Publisher</code> (or sub-types), this is the signature you are looking for:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public Publisher&lt;Message&lt;String&gt;&gt; generateMessageStream() {
+    Multi&lt;String&gt; multi = reactiveClient.getStream();
+    return multi.map(Message::of);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this case, the method is called once to retrieve the <code>Publisher</code>.</p>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

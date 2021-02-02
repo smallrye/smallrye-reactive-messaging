@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2.8">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#converters">Converting messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="kafka.html#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="kafka.html#kafka-avro-configuration">Using Avro</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt-server/mqtt-server.html">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../http/http.html">HTTP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-outbound">Sending HTTP request</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html">Vert.x Event Bus</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-inbound">Event Bus Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-outbound">Sending Event Bus Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2.8</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2.8</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+</nav>
+</div>
+<article class="doc">
+<div class="sect2">
+<h3 id="kafka-consumer-rebalance-listener"><a class="anchor" href="#kafka-consumer-rebalance-listener"></a>Consumer Rebalance Listener</h3>
+<div class="paragraph">
+<p>To handle offset commit and assigned partitions yourself, you can provide a consumer rebalance listener.
+To achieve this, implement the <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> interface and exposed it as a <code>@Named</code> bean.
+A usual use case is to store offset in a separate data store to implement exactly-once semantic, or starting the processing at a specific offset.</p>
+</div>
+<div class="paragraph">
+<p>The listener is invoked every time the consumer topic/partition assignment changes.
+For example, when the application starts, it invokes the <code>partitionsAssigned</code> callback with the initial set of topics/partitions associated with the consumer.
+If, later, this set changes, it calls the <code>partitionsRevoked</code> and <code>partitionsAssigned</code> callbacks again, so you can implement custom logic.</p>
+</div>
+<div class="paragraph">
+<p>Note that the rebalance listener methods are called from the Kafka <em>polling</em> thread and must block the caller thread until completion.
+That&#8217;s because the rebalance protocol has synchronization barriers, and using asynchronous code in a rebalance listener may be executed after the synchronization barrier.</p>
+</div>
+<div class="paragraph">
+<p>When topics/partitions are assigned or revoked from a consumer, it pauses the message delivery and restarts once the rebalance completes.</p>
+</div>
+<div class="paragraph">
+<p>If the rebalance listener handles offset commit on behalf of the user (using the <code>ignore</code> commit strategy), the rebalance listener <strong>must</strong> commit the offset synchronously in the <code>partitionsRevoked</code> callback.
+We also recommend applying the same logic when the application stops.</p>
+</div>
+<div class="paragraph">
+<p>Unlike the <code>ConsumerRebalanceListener</code>  from Apache Kafka, the <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> methods pass the Kafka <code>Consumer</code> and the set of topics/partitions.</p>
+</div>
+<div class="sect3">
+<h4 id="_example"><a class="anchor" href="#_example"></a>Example</h4>
+<div class="paragraph">
+<p>In this example we set-up a consumer that always starts on messages from at most 10 minutes ago (of offset 0). First we need to provide
+a bean managed implementation of <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> annotated with
+<code>javax.inject.Named</code>. We then must configure our inbound connector to use this named bean.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Named;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
+
+@ApplicationScoped
+@Named("rebalanced-example.rebalancer")
+public class KafkaRebalancedConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
+
+    private static final Logger LOGGER = Logger.getLogger(KafkaRebalancedConsumerRebalanceListener.class.getName());
+
+    /**
+     * When receiving a list of partitions will search for the earliest offset within 10 minutes
+     * and seek the consumer to it.
+     *
+     * @param consumer   underlying consumer
+     * @param partitions set of assigned topic partitions
+     */
+    @Override
+    public void onPartitionsAssigned(Consumer&lt;?, ?&gt; consumer,
+        Collection&lt;org.apache.kafka.common.TopicPartition&gt; partitions) {
+        long now = System.currentTimeMillis();
+        long shouldStartAt = now - 600_000L; //10 minute ago
+
+        Map&lt;org.apache.kafka.common.TopicPartition, Long&gt; request = new HashMap&lt;&gt;();
+        for (org.apache.kafka.common.TopicPartition partition : partitions) {
+            LOGGER.info("Assigned " + partition);
+            request.put(partition, shouldStartAt);
+        }
+        Map&lt;org.apache.kafka.common.TopicPartition, OffsetAndTimestamp&gt; offsets = consumer
+            .offsetsForTimes(request);
+        for (Map.Entry&lt;org.apache.kafka.common.TopicPartition, OffsetAndTimestamp&gt; position : offsets.entrySet()) {
+            long target = position.getValue() == null ? 0L : position.getValue().offset();
+            LOGGER.info("Seeking position " + target + " for " + position.getKey());
+            consumer.seek(position.getKey(), target);
+        }
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class KafkaRebalancedConsumer {
+
+    @Incoming("rebalanced-example")
+    @Acknowledgment(Acknowledgment.Strategy.NONE)
+    public CompletionStage&lt;Void&gt; consume(IncomingKafkaRecord&lt;Integer, String&gt; message) {
+        // We don't need to ACK messages because in this example we set offset during consumer re-balance
+        return CompletableFuture.completedFuture(null);
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To configure the inbound connector to use the provided listener we either set the consumer rebalance listener&#8217;s name:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.rebalanced-example.consumer-rebalance-listener.name=rebalanced-example.rebalancer</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Or have the listener&#8217;s name be the same as the group id:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.rebalanced-example.group.id=rebalanced-example.rebalancer</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Setting the consumer re-balance listener&#8217;s name takes precedence over using the group id.</p>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2.8">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#converters">Converting messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item is-current-page" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#kafka-avro-configuration">Using Avro</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt-server/mqtt-server.html">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../http/http.html">HTTP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-outbound">Sending HTTP request</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html">Vert.x Event Bus</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-inbound">Event Bus Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-outbound">Sending Event Bus Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2.8</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2.8</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">SmallRye Reactive Messaging</a></li>
+    <li><a href="../connectors/connectors.html">Connectors</a></li>
+    <li><a href="kafka.html">Apache Kafka</a></li>
+  </ul>
+</nav>
+</div>
+<article class="doc">
+<h1 class="page">Apache Kafka</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Kafka connector adds support for Kafka to Reactive Messaging.
+With it you can receive Kafka Records as well as write <code>message</code> into Kafka.</p>
+</div>
+<div class="paragraph">
+<p>The Kafka Connector is based on the <a href="https://vertx.io/docs/vertx-kafka-client/java/">Vert.x Kafka Client</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_introduction"><a class="anchor" href="#_introduction"></a>Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="https://kafka.apache.org/">Apache Kafka</a> is a popular distributed streaming platform.
+It lets you:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Publish and subscribe to streams of records, similar to a message queue or enterprise messaging system.</p>
+</li>
+<li>
+<p>Store streams of records in a fault-tolerant durable way.</p>
+</li>
+<li>
+<p>Process streams of records as they occur.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The Kafka cluster stores streams of <em>records</em> in categories called <em>topics</em>.
+Each record consists of a <em>key</em>, a <em>value</em>, and a <em>timestamp</em>.</p>
+</div>
+<div class="paragraph">
+<p>For more details about Kafka, check the <a href="https://kafka.apache.org/intro">documentation</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-installation"><a class="anchor" href="#kafka-installation"></a>Using the Kafka Connector</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To use the Kafka Connector, add the following dependency to your project:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
+  &lt;version&gt;2.8.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The connector name is: <code>smallrye-kafka</code>.</p>
+</div>
+<div class="paragraph">
+<p>So, to indicate that a channel is managed by this connector you need:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code># Inbound
+mp.messaging.incoming.[channel-name].connector=smallrye-kafka
+
+# Outbound
+mp.messaging.outgoing.[channel-name].connector=smallrye-kafka</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-inbound"><a class="anchor" href="#kafka-inbound"></a>Receiving Kafka Records</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Kafka Connector retrieves Kafka Records from Kafka Brokers and maps each of them to Reactive Messaging <code>Messages</code>.</p>
+</div>
+<div class="sect2">
+<h3 id="_example"><a class="anchor" href="#_example"></a>Example</h3>
+<div class="paragraph">
+<p>Let&#8217;s imagine you have a Kafka broker running, and accessible using the <code>kafka:9092</code> address (by default it would use <code>localhost:9092</code>).
+Configure your application to receive Kafka records from a Kafka <em>topic</em> on the <code>prices</code> channel as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>kafka.bootstrap.servers=kafka:9092      <i class="conum" data-value="1"></i><b>(1)</b>
+
+mp.messaging.incoming.prices.connector=smallrye-kafka       <i class="conum" data-value="2"></i><b>(2)</b>
+mp.messaging.incoming.prices.value.deserializer=org.apache.kafka.common.serialization.DoubleDeserializer    <i class="conum" data-value="3"></i><b>(3)</b>
+mp.messaging.incoming.prices.broadcast=true     <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Configure the broker location. You can configure it globally or per channel</p>
+</li>
+<li>
+<p>Configure the connector to manage the <code>prices</code> channel</p>
+</li>
+<li>
+<p>Sets the (Kafka) deserializer to read the record&#8217;s value</p>
+</li>
+<li>
+<p>Make sure that we can receive from more that one consumer (see <code>KafkaPriceConsumer</code> and <code>KafkaPriceMessageConsumer</code> below)</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You don&#8217;t need to set the Kafka topic. By default, it uses the channel name (<code>prices</code>). You can configure the <code>topic</code> attribute to override it.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Then, your application receives <code>Message&lt;Double&gt;</code>.
+You can consume the payload directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class KafkaPriceConsumer {
+
+    @Incoming("prices")
+    public void consume(double price) {
+        // process your price.
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or, you can retrieve the <code>Message&lt;Double&gt;</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class KafkaPriceMessageConsumer {
+
+    @Incoming("prices")
+    public CompletionStage&lt;Void&gt; consume(Message&lt;Double&gt; price) {
+        // process your price.
+
+        // Acknowledge the incoming message (commit the offset)
+        return price.ack();
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deserialization"><a class="anchor" href="#_deserialization"></a>Deserialization</h3>
+<div class="paragraph">
+<p>The deserialization is handled by the underlying Kafka Client.
+You need to configure the:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.[channel-name].value.deserializer</code> to configure the value deserializer (mandatory)</p>
+</li>
+<li>
+<p><code>mp.messaging.incoming.[channel-name].key.deserializer</code> to configure the key deserializer (optional, default to <code>String</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If you want to use a custom deserializer, add it to your <code>CLASSPATH</code> and configure the associate attribute.</p>
+</div>
+<div class="paragraph">
+<p>In addition, the Kafka Connector also provides a set of <em>message converters</em>.
+So you can receive <em>payloads</em> representing records from Kafka using:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://smallrye.io/smallrye-reactive-messaging/2.8.0/apidocs/io/smallrye/reactive/messaging/kafka/Record.html">Record&lt;K,V&gt;</a> - a pair key/value</p>
+</li>
+<li>
+<p><a href="https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/consumer/KafkaConsumer.html">KafkaConsumer&lt;K,V&gt;</a> - a structure representing the record with all its metadata</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Incoming("topic-a")
+    public void consume(Record&lt;String, String&gt; record) {
+        String key = record.key(); // Can be `null` if the incoming record has no value
+        String value = record.value(); // Can be `null` if the incoming record has no value
+    }
+
+    @Incoming("topic-b")
+    public void consume(ConsumerRecord&lt;String, String&gt; record) {
+        String key = record.key(); // Can be `null` if the incoming record has no value
+        String value = record.value(); // Can be `null` if the incoming record has no value
+        String topic = record.topic();
+        int partition = record.partition();
+        // ...
+    }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
+<div class="paragraph">
+<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.8.0/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
+<code>K</code> is the type of the record&#8217;s key.
+<code>T</code> is the type of the record&#8217;s value.
+It provides the key, topic, partitions, headers and so on:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">        IncomingKafkaRecordMetadata&lt;String, Double&gt; metadata = incoming.getMetadata(IncomingKafkaRecordMetadata.class)
+            .orElse(null);
+        if (metadata != null) {
+            // The topic
+            String topic = metadata.getTopic();
+
+            // The key
+            String key = metadata.getKey();
+
+            // The timestamp
+            Instant timestamp = metadata.getTimestamp();
+
+            // The underlying record
+            KafkaConsumerRecord&lt;String, Double&gt; record = metadata.getRecord();
+
+            // ...
+        }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_acknowledgement"><a class="anchor" href="#_acknowledgement"></a>Acknowledgement</h3>
+<div class="paragraph">
+<p>When a message produced from a Kafka record is acknowledged, the connector invokes a <em>commit strategy</em>.
+These strategies decide when the consumer offset for a specific topic/partition is committed.
+Committing an offset indicates that all previous records have been processed.
+It is also the position where the application would restart the processing after a crash recovery or a restart.</p>
+</div>
+<div class="paragraph">
+<p>Committing every offset has performance penalties as Kafka offset management can be slow.
+However, not committing the offset often enough may lead to message duplication if the application crashes between two commits.</p>
+</div>
+<div class="paragraph">
+<p>The Kafka connector supports three strategies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>throttled</code> keeps track of received messages and commit to the next offset after the latest <em>acked</em> message in sequence.
+This strategy guarantees <em>at-least-once delivery</em> even if the channel performs asynchronous processing.
+The connector tracks the received records and periodically (period specified by <code>auto.commit.interval.ms</code> (default: 5000)) commits the highest consecutive offset.
+The connector will be marked as unhealthy if a message associated with a record is not acknowledged in <code>throttled.unprocessed-record-max-age.ms</code> (default: 60000).
+Indeed, this strategy cannot commit the offset as soon as a single record processing fails (see failure-strategy to configure what happens on failing processing).
+If <code>throttled.unprocessed-record-max-age.ms</code> is set to less than or equal to 0, it does not perform any health check verification. Such a setting might lead to running out of memory if there are poison pill messages.
+This strategy is the default if <code>enable.auto.commit</code> is not explicitly set to <code>true</code>.</p>
+</li>
+<li>
+<p><code>latest</code> commits the record offset received by the Kafka consumer as soon as the associated message is acknowledged (if the offset is higher than the previously committed offset).
+This strategy provides <em>at-least-once</em> delivery if the channel processes the message without performing any asynchronous processing.
+This strategy should not be used on high-load as offset commit is expensive.
+However, it reduces the risk of duplicates.</p>
+</li>
+<li>
+<p><code>ignore</code> performs no commit.
+This strategy is the default strategy when the consumer is explicitly configured with <code>enable.auto.commit</code> to <code>true</code>.
+It delegates the offset commit to the Kafka client.
+This strategy provides <em>at-least-once delivery</em> if the channel processes the message without performing any asynchronous operations and when <code>enable.auto.commit</code> is set to <code>true</code>.
+However, if the processing failed between two commits, messages received after the commit and before the failure will be re-processed.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+The Kafka connector disables the Kafka <em>auto commit</em> is not explicitly enabled.
+This behavior differs from the traditional Kafka consumer.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If high-throughout is important for you, and not limited by the downstream, we recommend to either:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Use the <code>throttled</code> policy</p>
+</li>
+<li>
+<p>or set <code>enable.auto.commit</code> to <code>true</code> and annotate the consuming method with <code>@Acknowledgment(Acknowledgment.Strategy.NONE)</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_failure_management"><a class="anchor" href="#_failure_management"></a>Failure Management</h3>
+<div class="paragraph">
+<p>If a message produced from a Kafka record is <em>nacked</em>, a failure strategy is applied.
+The Kafka connector supports 3 strategies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>fail</code> - fail the application, no more records will be processed. (default)
+The offset of the record that has not been processed correctly is not committed.</p>
+</li>
+<li>
+<p><code>ignore</code> - the failure is logged, but the processing continue.
+The offset of the record that has not been processed correctly is committed.</p>
+</li>
+<li>
+<p><code>dead-letter-queue</code> - the offset of the record that has not been processed correctly is committed, but the record is written to a (Kafka) <em>dead letter queue</em> topic.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The strategy is selected using the <code>failure-strategy</code> attribute.</p>
+</div>
+<div class="paragraph">
+<p>In the case of <code>dead-letter-queue</code>, you can configure the following attributes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>dead-letter-queue.topic</code>: the topic to use to write the records not processed correctly, default is <code>dead-letter-topic-$channel</code>, with <code>$channel</code> being the name of the channel.</p>
+</li>
+<li>
+<p><code>dead-letter-queue.key.serializer</code>: the serializer used to write the record key on the dead letter queue. By default, it deduces the serializer from the key deserializer.</p>
+</li>
+<li>
+<p><code>dead-letter-queue.value.serializer</code>: the serializer used to write the record value on the dead letter queue. By default, it deduces the serializer from the value deserializer.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The record written on the dead letter queue contains a set of additional headers about the original record:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>dead-letter-reason</code> - the reason of the failure</p>
+</li>
+<li>
+<p><code>dead-letter-cause</code> - the cause of the failure if any</p>
+</li>
+<li>
+<p><code>dead-letter-topic</code> - the original topic of the record</p>
+</li>
+<li>
+<p><code>dead-letter-partition</code> - the original partition of the record (integer mapped to String)</p>
+</li>
+<li>
+<p><code>dead-letter-offset</code> - the original offset of the record (long mapped to String)</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_handling_deserialization_failures"><a class="anchor" href="#_handling_deserialization_failures"></a>Handling deserialization failures</h3>
+<div class="paragraph">
+<p>Because deserialization happens before creating a <code>Message</code>, the failure strategy presented above cannot be applied.
+However, when a deserialization failure occurs, you can intercept it and provide a fallback value.
+If you don&#8217;t, <code>null</code> will be used as fallback value.</p>
+</div>
+<div class="paragraph">
+<p>To achieve this, create a CDI bean implementing the <a href="https://smallrye.io/smallrye-reactive-messaging/2.8.0/apidocs/io/smallrye/reactive/messaging/kafka/DeserializationFailureHandler.html">DeserializationFailureHandler&lt;T&gt;</a> interface:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ApplicationScoped
+@Named("failure-fallback") // Set the name of the failure handler
+public class MyDeserializationFailureHandler
+    implements DeserializationFailureHandler&lt;JsonObject&gt; { // Specify the expected type
+
+    @Override
+    public JsonObject handleDeserializationFailure(String topic, boolean isKey,
+            String deserializer, byte[] data,
+            Exception exception, Headers headers) {
+        return fallback;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The bean must be exposed with the <code>@Named</code> qualifier specifying the name of the bean.
+Then, in the connector configuration, specify the following attribute:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.$channel.key-deserialization-failure-handler</code>: name of the bean handling deserialization failures happening for the record&#8217;s key</p>
+</li>
+<li>
+<p><code>mp.messaging.incoming.$channel.value-deserialization-failure-handler</code>: name of the bean handling deserialization failures happening for the record&#8217;s value,</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The handler is called with the record&#8217;s topic, a boolean indicating whether the failure happened on a key, the class name of the deserializer that throws the exception, the corrupted data, the exception, and the records headers augmented with headers describing the failure (which ease the write to a dead letter).
+The handler can return <code>null</code> (which would be as if there were no handlers).
+However, if the handler throws an exception, the application would be marked unhealthy.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_receiving_cloud_events"><a class="anchor" href="#_receiving_cloud_events"></a>Receiving Cloud Events</h3>
+<div class="paragraph">
+<p>The Kafka connector supports <a href="https://cloudevents.io/">Cloud Events</a>.
+When the connector detects a <em>structured</em> or <em>binary</em> Cloud Events, it adds a  <a href="https://smallrye.io/smallrye-reactive-messaging/2.8.0/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata of the Message.
+<code>IncomingKafkaCloudEventMetadata</code> contains the various (mandatory and optional) Cloud Event attributes.</p>
+</div>
+<div class="paragraph">
+<p>If the connector cannot extract the Cloud Event metadata, it sends the Message without the metadata.</p>
+</div>
+<div class="sect3">
+<h4 id="_binary_cloud_events"><a class="anchor" href="#_binary_cloud_events"></a>Binary Cloud Events</h4>
+<div class="paragraph">
+<p>For <code>binary</code> Cloud Events, <strong>all</strong> mandatory Cloud Event attributes must be set in the record header, prefixed by <code>ce_</code> (as mandated by the <a href="https://github.com/cloudevents/spec/blob/master/kafka-protocol-binding.md">protocol binding</a>).
+The connector considers headers starting with the <code>ce_</code> prefix but not listed in the specification as extensions.
+You can access them using the <code>getExtension</code> method from <code>IncomingKafkaCloudEventMetadata</code>.
+You can retrieve them as <code>String</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>datacontenttype</code> attribute is mapped to the <code>content-type</code> header of the record.
+The <code>partitionkey</code> attribute is mapped to the record&#8217;s key, if any.</p>
+</div>
+<div class="paragraph">
+<p>Note that all headers are read as UTF-8.</p>
+</div>
+<div class="paragraph">
+<p>With binary Cloud Events, the record&#8217;s key and value can use any deserializer.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_structured_cloud_events"><a class="anchor" href="#_structured_cloud_events"></a>Structured Cloud Events</h4>
+<div class="paragraph">
+<p>For <code>structured</code> Cloud Events, the event is encoded in the record&#8217;s value.
+Only JSON is supported, so your event must be encoded as JSON in the record&#8217;s value.</p>
+</div>
+<div class="paragraph">
+<p>Structured Cloud Event must set the <code>content-type</code> header of the record to <code>application/cloudevents</code> or prefix the value with <code>application/cloudevents</code> such as: <code>application/cloudevents+json; charset=UTF-8</code>.</p>
+</div>
+<div class="paragraph">
+<p>To receive structured Cloud Events, your value deserializer must be:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>org.apache.kafka.common.serialization.StringDeserializer</code></p>
+</li>
+<li>
+<p><code>org.apache.kafka.common.serialization.ByteArrayDeserializer</code></p>
+</li>
+<li>
+<p><code>io.vertx.kafka.client.serialization.JsonObjectDeserializer</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>As mentioned previously, the value must be a valid JSON object containing at least all the mandatory Cloud Events attributes.</p>
+</div>
+<div class="paragraph">
+<p>If the record is a structured Cloud Event, the created Message&#8217;s payload is the Cloud Event <code>data</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>partitionkey</code> attribute is mapped to the record&#8217;s key if any.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuration_reference"><a class="anchor" href="#_configuration_reference"></a>Configuration Reference</h3>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Incoming Attributes of the 'smallrye-kafka' connector</caption>
+<colgroup>
+<col style="width: 27.7777%;">
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 22.2224%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Attribute (<em>alias</em>)</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Mandatory</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>bootstrap.servers</strong></p>
+<p class="tableblock"><em>(kafka.bootstrap.servers)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A comma-separated list of host:port to use for establishing the initial connection to the Kafka cluster.</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>localhost:9092</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>topic</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The consumed / populated Kafka topic. If neither this property nor the <code>topics</code> properties are set, the channel name is used</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-enabled</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether health reporting is enabled (default) or disabled</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-readiness-enabled</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether readiness health reporting is enabled (default) or disabled</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-readiness-topic-verification</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection.</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-readiness-timeout</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.</p>
+<p class="tableblock">Type: <em>long</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>2000</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>tracing-enabled</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether tracing is enabled (default) or disabled</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables (default) or disables the Cloud Event support. If enabled on an <em>incoming</em> channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an <em>outgoing</em>, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>topics</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A comma-separating list of topics to be consumed. Cannot be used with the <code>topic</code> or <code>pattern</code> properties</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>pattern</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Indicate that the <code>topic</code> property is a regular expression. Must be used with the <code>topic</code> property. Cannot be used with the <code>topics</code> property</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>key.deserializer</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The deserializer classname used to deserialize the record&#8217;s key</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.apache.kafka.common.serialization.StringDeserializer</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>value.deserializer</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The deserializer classname used to deserialize the record&#8217;s value</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>fetch.min.bytes</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The minimum amount of data the server should return for a fetch request. The default setting of 1 byte means that fetch requests are answered as soon as a single byte of data is available or the fetch request times out waiting for data to arrive.</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>group.id</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A unique string that identifies the consumer group the application belongs to. If not set, a unique, generated id is used</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>enable.auto.commit</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If enabled, consumer&#8217;s offset will be periodically committed in the background by the underlying Kafka client, ignoring the actual processing outcome of the records. It is recommended to NOT enable this setting and let Reactive Messaging handles the commit.</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>retry</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether or not the connection to the broker is re-attempted in case of failure</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>retry-attempts</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of reconnection before failing. -1 means infinite retry</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-1</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>retry-max-wait</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The max delay (in seconds) between 2 reconnects</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>30</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>broadcast</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the Kafka records should be dispatched to multiple consumer</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>auto.offset.reset</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">What to do when there is no initial offset in Kafka.Accepted values are earliest, latest and none</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>latest</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>failure-strategy</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specify the failure strategy to apply when a message produced from a record is acknowledged negatively (nack). Values can be <code>fail</code> (default), <code>ignore</code>, or <code>dead-letter-queue</code></p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fail</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>commit-strategy</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specify the commit strategy to apply when a message produced from a record is acknowledged. Values can be <code>latest</code>, <code>ignore</code> or <code>throttled</code>. If <code>enable.auto.commit</code> is true then the default is <code>ignore</code> otherwise it is <code>throttled</code></p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>throttled.unprocessed-record-max-age.ms</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">While using the <code>throttled</code> commit-strategy, specify the max age in milliseconds that an unprocessed message can be before the connector is marked as unhealthy.</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>60000</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>dead-letter-queue.topic</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When the <code>failure-strategy</code> is set to <code>dead-letter-queue</code> indicates on which topic the record is sent. Defaults is <code>dead-letter-topic-$channel</code></p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>dead-letter-queue.key.serializer</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When the <code>failure-strategy</code> is set to <code>dead-letter-queue</code> indicates the key serializer to use. If not set the serializer associated to the key deserializer is used</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>dead-letter-queue.value.serializer</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When the <code>failure-strategy</code> is set to <code>dead-letter-queue</code> indicates the value serializer to use. If not set the serializer associated to the value deserializer is used</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>partitions</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>consumer-rebalance-listener.name</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The name set in <code>javax.inject.Named</code> of a bean that implements <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code>. If set, this rebalance listener is applied to the consumer.</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>key-deserialization-failure-handler</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The name set in <code>javax.inject.Named</code> of a bean that implements <code>io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler</code>. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>value-deserialization-failure-handler</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The name set in <code>javax.inject.Named</code> of a bean that implements <code>io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler</code>. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>You can also pass any property supported by the <a href="https://vertx.io/docs/vertx-kafka-client/java/">Vert.x Kafka client</a> as attribute.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="kafka-consumer-rebalance-listener"><a class="anchor" href="#kafka-consumer-rebalance-listener"></a>Consumer Rebalance Listener</h3>
+<div class="paragraph">
+<p>To handle offset commit and assigned partitions yourself, you can provide a consumer rebalance listener.
+To achieve this, implement the <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> interface and exposed it as a <code>@Named</code> bean.
+A usual use case is to store offset in a separate data store to implement exactly-once semantic, or starting the processing at a specific offset.</p>
+</div>
+<div class="paragraph">
+<p>The listener is invoked every time the consumer topic/partition assignment changes.
+For example, when the application starts, it invokes the <code>partitionsAssigned</code> callback with the initial set of topics/partitions associated with the consumer.
+If, later, this set changes, it calls the <code>partitionsRevoked</code> and <code>partitionsAssigned</code> callbacks again, so you can implement custom logic.</p>
+</div>
+<div class="paragraph">
+<p>Note that the rebalance listener methods are called from the Kafka <em>polling</em> thread and must block the caller thread until completion.
+That&#8217;s because the rebalance protocol has synchronization barriers, and using asynchronous code in a rebalance listener may be executed after the synchronization barrier.</p>
+</div>
+<div class="paragraph">
+<p>When topics/partitions are assigned or revoked from a consumer, it pauses the message delivery and restarts once the rebalance completes.</p>
+</div>
+<div class="paragraph">
+<p>If the rebalance listener handles offset commit on behalf of the user (using the <code>ignore</code> commit strategy), the rebalance listener <strong>must</strong> commit the offset synchronously in the <code>partitionsRevoked</code> callback.
+We also recommend applying the same logic when the application stops.</p>
+</div>
+<div class="paragraph">
+<p>Unlike the <code>ConsumerRebalanceListener</code>  from Apache Kafka, the <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> methods pass the Kafka <code>Consumer</code> and the set of topics/partitions.</p>
+</div>
+<div class="sect3">
+<h4 id="_example_2"><a class="anchor" href="#_example_2"></a>Example</h4>
+<div class="paragraph">
+<p>In this example we set-up a consumer that always starts on messages from at most 10 minutes ago (of offset 0). First we need to provide
+a bean managed implementation of <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> annotated with
+<code>javax.inject.Named</code>. We then must configure our inbound connector to use this named bean.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Named;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
+
+@ApplicationScoped
+@Named("rebalanced-example.rebalancer")
+public class KafkaRebalancedConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
+
+    private static final Logger LOGGER = Logger.getLogger(KafkaRebalancedConsumerRebalanceListener.class.getName());
+
+    /**
+     * When receiving a list of partitions will search for the earliest offset within 10 minutes
+     * and seek the consumer to it.
+     *
+     * @param consumer   underlying consumer
+     * @param partitions set of assigned topic partitions
+     */
+    @Override
+    public void onPartitionsAssigned(Consumer&lt;?, ?&gt; consumer,
+        Collection&lt;org.apache.kafka.common.TopicPartition&gt; partitions) {
+        long now = System.currentTimeMillis();
+        long shouldStartAt = now - 600_000L; //10 minute ago
+
+        Map&lt;org.apache.kafka.common.TopicPartition, Long&gt; request = new HashMap&lt;&gt;();
+        for (org.apache.kafka.common.TopicPartition partition : partitions) {
+            LOGGER.info("Assigned " + partition);
+            request.put(partition, shouldStartAt);
+        }
+        Map&lt;org.apache.kafka.common.TopicPartition, OffsetAndTimestamp&gt; offsets = consumer
+            .offsetsForTimes(request);
+        for (Map.Entry&lt;org.apache.kafka.common.TopicPartition, OffsetAndTimestamp&gt; position : offsets.entrySet()) {
+            long target = position.getValue() == null ? 0L : position.getValue().offset();
+            LOGGER.info("Seeking position " + target + " for " + position.getKey());
+            consumer.seek(position.getKey(), target);
+        }
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class KafkaRebalancedConsumer {
+
+    @Incoming("rebalanced-example")
+    @Acknowledgment(Acknowledgment.Strategy.NONE)
+    public CompletionStage&lt;Void&gt; consume(IncomingKafkaRecord&lt;Integer, String&gt; message) {
+        // We don't need to ACK messages because in this example we set offset during consumer re-balance
+        return CompletableFuture.completedFuture(null);
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To configure the inbound connector to use the provided listener we either set the consumer rebalance listener&#8217;s name:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.rebalanced-example.consumer-rebalance-listener.name=rebalanced-example.rebalancer</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Or have the listener&#8217;s name be the same as the group id:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.rebalanced-example.group.id=rebalanced-example.rebalancer</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Setting the consumer re-balance listener&#8217;s name takes precedence over using the group id.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-outbound"><a class="anchor" href="#kafka-outbound"></a>Writing Kafka Records</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Kafka Connector can write Reactive Messaging <code>Messages</code> as Kafka Records.</p>
+</div>
+<div class="sect2">
+<h3 id="_example_3"><a class="anchor" href="#_example_3"></a>Example</h3>
+<div class="paragraph">
+<p>Let&#8217;s imagine you have a Kafka broker running, and accessible using the <code>kafka:9092</code> address (by default it would use <code>localhost:9092</code>).
+Configure your application to write the messages from the <code>prices</code> channel into a Kafka <em>topic</em> as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>kafka.bootstrap.servers=kafka:9092      <i class="conum" data-value="1"></i><b>(1)</b>
+
+mp.messaging.outgoing.prices-out.connector=smallrye-kafka   <i class="conum" data-value="2"></i><b>(2)</b>
+mp.messaging.outgoing.prices-out.value.serializer=org.apache.kafka.common.serialization.DoubleSerializer  <i class="conum" data-value="3"></i><b>(3)</b>
+mp.messaging.outgoing.prices-out.topic=prices   <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Configure the broker location. You can configure it globally or per channel</p>
+</li>
+<li>
+<p>Configure the connector to manage the <code>prices</code> channel</p>
+</li>
+<li>
+<p>Sets the (Kafka) serializer to encode the message payload into the record&#8217;s value</p>
+</li>
+<li>
+<p>Make sure the topic name is <code>prices</code> (and not the default <code>prices-out</code>)</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Then, your application must send <code>Message&lt;Double&gt;</code> to the <code>prices</code> channel.
+It can use <code>double</code> payloads as in the following snippet:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package outbound;
+
+import io.smallrye.mutiny.Multi;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.time.Duration;
+import java.util.Random;
+
+@ApplicationScoped
+public class KafkaPriceProducer {
+
+    private final Random random = new Random();
+
+    @Outgoing("prices-out")
+    public Multi&lt;Double&gt; generate() {
+        // Build an infinite stream of random prices
+        // It emits a price every second
+        return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
+            .map(x -&gt; random.nextDouble());
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or, you can send <code>Message&lt;Double&gt;</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package outbound;
+
+import io.smallrye.mutiny.Multi;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.time.Duration;
+import java.util.Random;
+
+@ApplicationScoped
+public class KafkaPriceMessageProducer {
+
+    private final Random random = new Random();
+
+    @Outgoing("prices-out")
+    public Multi&lt;Message&lt;Double&gt;&gt; generate() {
+        // Build an infinite stream of random prices
+        // It emits a price every second
+        return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
+            .map(x -&gt; Message.of(random.nextDouble()));
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_serialization"><a class="anchor" href="#_serialization"></a>Serialization</h3>
+<div class="paragraph">
+<p>The serialization is handled by the underlying Kafka Client.
+You need to configure the:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.outgoing.[channel-name].value.serializer</code> to configure the value serializer (mandatory)</p>
+</li>
+<li>
+<p><code>mp.messaging.outgoing.[channel-name].key.serializer</code> to configure the key serializer (optional, default to <code>String</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If you want to use a custom serializer, add it to your <code>CLASSPATH</code> and configure the associate attribute.</p>
+</div>
+<div class="paragraph">
+<p>By default, the written record contains:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the <code>Message</code> payload as <em>value</em></p>
+</li>
+<li>
+<p>no key, or the key configured using the <code>key</code> attribute or the key passed in the metadata attached to the <code>Message</code></p>
+</li>
+<li>
+<p>the timestamp computed for the system clock (<code>now</code>) or the timestamp passed in the metadata attached to the <code>Message</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sending_keyvalue_pairs"><a class="anchor" href="#_sending_keyvalue_pairs"></a>Sending key/value pairs</h3>
+<div class="paragraph">
+<p>In the Kafka world, it&#8217;s often necessary to send <em>records</em>, i.e. a key/value pair.
+The connector provides the <a href="https://smallrye.io/smallrye-reactive-messaging/2.8.0/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/Record.html"><code>io.smallrye.reactive.messaging.kafka.Record</code></a> class that you can use to send a pair:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Incoming("in")
+    @Outgoing("out")
+    public Record&lt;String, String&gt; process(String in) {
+        return Record.of("my-key", in);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When the connector receives a message with a <code>Record</code> payload, it extracts the key and value from it.
+The configured serializers for the key and the value must be compatible with the record&#8217;s key and value.
+Note that the <code>key</code> and the <code>value</code> can be <code>null</code>.
+It is also possible to create a record with a <code>null</code> key AND a <code>null</code> value.</p>
+</div>
+<div class="paragraph">
+<p>If you need more control on the written records, use <code>OutgoingKafkaRecordMetadata</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
+<div class="paragraph">
+<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/2.8.0/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
+For example, you can add Kafka headers, configure the record key&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">        // Creates an OutgoingKafkaRecordMetadata
+        // The type parameter is the type of the record's key
+        OutgoingKafkaRecordMetadata&lt;String&gt; metadata = OutgoingKafkaRecordMetadata.&lt;String&gt;builder()
+            .withKey("my-key")
+            .withHeaders(new RecordHeaders().add("my-header", "value".getBytes()))
+            .build();
+
+        // Create a new message from the `incoming` message
+        // Add `metadata` to the metadata from the `incoming` message.
+        return incoming.addMetadata(metadata);</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_dynamic_topic_names"><a class="anchor" href="#_dynamic_topic_names"></a>Dynamic topic names</h3>
+<div class="paragraph">
+<p>Sometimes it is desirable to select the destination of a message dynamically.
+In this case, you should not configure the topic inside your application configuration file, but instead, use the outbound metadata to set the name of the topic.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can route to a dynamic topic based on the incoming message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">        String topicName = selectTopicFromIncommingMessage(incoming);
+        OutgoingKafkaRecordMetadata&lt;String&gt; metadata = OutgoingKafkaRecordMetadata.&lt;String&gt;builder()
+            .withTopic(topicName)
+            .build();
+
+        // Create a new message from the `incoming` message
+        // Add `metadata` to the metadata from the `incoming` message.
+        return incoming.addMetadata(metadata);</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_acknowledgement_2"><a class="anchor" href="#_acknowledgement_2"></a>Acknowledgement</h3>
+<div class="paragraph">
+<p>Kafka acknowledgement can take times depending on the configuration.
+Also, it stores in-memory the records that cannot be written.</p>
+</div>
+<div class="paragraph">
+<p>By default, the connector does wait for Kafka to acknowledge the record to continue the processing (acknowledging the received <code>Message</code>).
+You can disable this by setting the <code>waitForWriteCompletion</code> attribute to <code>false</code>.</p>
+</div>
+<div class="paragraph">
+<p>Note that the <code>acks</code> attribute has a huge impact on the record acknowledgement.</p>
+</div>
+<div class="paragraph">
+<p>If a record cannot be written, the message is <code>nacked</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_back_pressure_and_inflight_records"><a class="anchor" href="#_back_pressure_and_inflight_records"></a>Back-pressure and inflight records</h3>
+<div class="paragraph">
+<p>The Kafka outbound connector handles back-pressure monitoring the number of in-flight messages waiting to be written to the Kafka broker.
+The number of in-flight messages is configured using the <code>max-inflight-messages</code> attribute and defaults to 1024.</p>
+</div>
+<div class="paragraph">
+<p>The connector only sends that amount of messages concurrently.
+No other messages will be sent until at least one in-flight message gets acknowledged by the broker.
+Then, the connector writes a new message to Kafka when one of the broker&#8217;s in-flight messages get acknowledged.
+Be sure to configure Kafka&#8217;s <code>batch.size</code> and <code>linger.ms</code> accordingly.</p>
+</div>
+<div class="paragraph">
+<p>You can also remove the limit of inflight messages by setting <code>max-inflight-messages</code> to <code>0</code>.
+However, note that the Kafka Producer may block if the number of requests reaches <code>max.in.flight.requests.per.connection</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sending_cloud_events"><a class="anchor" href="#_sending_cloud_events"></a>Sending Cloud Events</h3>
+<div class="paragraph">
+<p>The Kafka connector supports <a href="https://cloudevents.io/">Cloud Events</a>.
+The connector sends the outbound record as Cloud Events if:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the message metadata contains an <code>io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata</code> instance,</p>
+</li>
+<li>
+<p>the channel configuration defines the <code>cloud-events-type</code> and <code>cloud-events-source</code> attribute.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can create <code>io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata</code> instances using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package outbound;
+
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.net.URI;
+
+@ApplicationScoped
+public class KafkaCloudEventProcessor {
+
+    @Outgoing("cloud-events")
+    public Message&lt;String&gt; toCloudEvents(Message&lt;String&gt; in) {
+        return in.addMetadata(OutgoingCloudEventMetadata.builder()
+            .withId("id-" + in.getPayload())
+            .withType("greetings")
+            .withSource(URI.create("http://example.com"))
+            .withSubject("greeting-message")
+            .build());
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If the metadata does not contain an id, the connector generates one (random UUID).
+The <code>type</code> and <code>source</code> can be configured per message or at the channel level using the <code>cloud-events-type</code> and <code>cloud-events-source</code> attributes.
+Other attributes are also configurable.</p>
+</div>
+<div class="paragraph">
+<p>The metadata can be contributed by multiple methods, however, you must always retrieve the already existing metadata to avoid overriding the values:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package outbound;
+
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.net.URI;
+
+@ApplicationScoped
+public class KafkaCloudEventMultipleProcessors {
+
+    @Incoming("source")
+    @Outgoing("processed")
+    public Message&lt;String&gt; process(Message&lt;String&gt; in) {
+        return in.addMetadata(OutgoingCloudEventMetadata.builder()
+            .withId("id-" + in.getPayload())
+            .withType("greeting")
+            .build());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Incoming("processed")
+    @Outgoing("cloud-events")
+    public Message&lt;String&gt; process2(Message&lt;String&gt; in) {
+        OutgoingCloudEventMetadata&lt;String&gt; metadata = in
+            .getMetadata(OutgoingCloudEventMetadata.class)
+            .orElseGet(() -&gt; OutgoingCloudEventMetadata.builder().build());
+
+        return in.addMetadata(OutgoingCloudEventMetadata.from(metadata)
+            .withSource(URI.create("source://me"))
+            .withSubject("test")
+            .build());
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By default, the connector sends the Cloud Events using the <em>binary</em> format.
+You can write <em>structured</em> Cloud Events by setting the <code>cloud-events-mode</code> to <code>structured</code>.
+Only JSON is supported, so the created records had it&#8217;s <code>content-type</code> header set to <code>application/cloudevents+json; charset=UTF-8</code>
+When using the <em>structured</em> mode, the value serializer must be set to <code>org.apache.kafka.common.serialization.StringSerializer</code>, otherwise the connector reports the error.
+In addition, in <em>structured</em>, the connector maps the message&#8217;s payload to JSON, except for <code>String</code> passed directly.</p>
+</div>
+<div class="paragraph">
+<p>The record&#8217;s key can be set in the channel configuration (<code>key</code> attribute), in the <code>OutgoingKafkaRecordMetadata</code> or using the <code>partitionkey</code> Cloud Event attribute.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+you can disable the Cloud Event support by setting the <code>cloud-events</code> attribute to <code>false</code>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuration_reference_2"><a class="anchor" href="#_configuration_reference_2"></a>Configuration Reference</h3>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Outgoing Attributes of the 'smallrye-kafka' connector</caption>
+<colgroup>
+<col style="width: 27.7777%;">
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 22.2224%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Attribute (<em>alias</em>)</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Mandatory</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>acks</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The number of acknowledgments the producer requires the leader to have received before considering a request complete. This controls the durability of records that are sent. Accepted values are: 0, 1, all</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>bootstrap.servers</strong></p>
+<p class="tableblock"><em>(kafka.bootstrap.servers)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A comma-separated list of host:port to use for establishing the initial connection to the Kafka cluster.</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>localhost:9092</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>buffer.memory</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The total bytes of memory the producer can use to buffer records waiting to be sent to the server.</p>
+<p class="tableblock">Type: <em>long</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>33554432</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>close-timeout</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of milliseconds waiting for a graceful shutdown of the Kafka producer</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10000</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables (default) or disables the Cloud Event support. If enabled on an <em>incoming</em> channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an <em>outgoing</em>, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events-data-content-type</strong></p>
+<p class="tableblock"><em>(cloud-events-default-data-content-type)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Configure the default <code>datacontenttype</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>datacontenttype</code> attribute itself</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events-data-schema</strong></p>
+<p class="tableblock"><em>(cloud-events-default-data-schema)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Configure the default <code>dataschema</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>dataschema</code> attribute itself</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events-insert-timestamp</strong></p>
+<p class="tableblock"><em>(cloud-events-default-timestamp)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether or not the connector should insert automatically the <code>time</code> attribute` into the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>time</code> attribute itself</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events-mode</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Cloud Event mode (<code>structured</code> or <code>binary</code> (default)). Indicates how are written the cloud events in the outgoing record</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>binary</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events-source</strong></p>
+<p class="tableblock"><em>(cloud-events-default-source)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Configure the default <code>source</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>source</code> attribute itself</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events-subject</strong></p>
+<p class="tableblock"><em>(cloud-events-default-subject)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Configure the default <code>subject</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>subject</code> attribute itself</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>cloud-events-type</strong></p>
+<p class="tableblock"><em>(cloud-events-default-type)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Configure the default <code>type</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>type</code> attribute itself</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-enabled</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether health reporting is enabled (default) or disabled</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-readiness-enabled</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether readiness health reporting is enabled (default) or disabled</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-readiness-timeout</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.</p>
+<p class="tableblock">Type: <em>long</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>2000</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>health-readiness-topic-verification</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection.</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>key</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A key to used when writing the record</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>key.serializer</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The serializer classname used to serialize the record&#8217;s key</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>org.apache.kafka.common.serialization.StringSerializer</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>max-inflight-messages</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of messages to be written to Kafka concurrently. It limits the number of messages waiting to be written and acknowledged by the broker. You can set this attribute to <code>0</code> remove the limit</p>
+<p class="tableblock">Type: <em>long</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1024</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>merge</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the connector should allow multiple upstreams</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>partition</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The target partition id. -1 to let the client determine the partition</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-1</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>retries</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Setting a value greater than zero will cause the client to resend any record whose send fails with a potentially transient error.</p>
+<p class="tableblock">Type: <em>long</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>2147483647</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>topic</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The consumed / populated Kafka topic. If neither this property nor the <code>topics</code> properties are set, the channel name is used</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>tracing-enabled</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether tracing is enabled (default) or disabled</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>value.serializer</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The serializer classname used to serialize the payload</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>waitForWriteCompletion</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether the client waits for Kafka to acknowledge the written record before acknowledging the message</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>You can also pass any property supported by the <a href="https://vertx.io/docs/vertx-kafka-client/java/">Vert.x Kafka client</a>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-default-configuration"><a class="anchor" href="#kafka-default-configuration"></a>Retrieving Kafka default configuration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If your application/runtime exposes as a CDI <em>bean</em> a <code>Map&lt;String, Object</code> named <code>default-kafka-broker</code>, this configuration is used to
+establish the connection with the Kafka broker:</p>
+</div>
+<div class="paragraph">
+<p>For example, you can imagine exposing this map as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Produces
+@ApplicationScoped
+@Named("default-kafka-broker")
+public Map&lt;String, Object&gt; createKafkaRuntimeConfig() {
+    Map&lt;String, Object&gt; properties = new HashMap&lt;&gt;();
+
+    StreamSupport
+        .stream(config.getPropertyNames().spliterator(), false)
+        .map(String::toLowerCase)
+        .filter(name -&gt; name.startsWith("kafka"))
+        .distinct()
+        .sorted()
+        .forEach(name -&gt; {
+            final String key = name.substring("kafka".length() + 1).toLowerCase().replaceAll("[^a-z0-9.]", ".");
+            final String value = config.getOptionalValue(name, String.class).orElse("");
+            properties.put(key, value);
+        });
+
+    return properties;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This previous example would extract all the configuration keys from MicroProfile Config starting with <code>kafka</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Quarkus</div>
+<div class="paragraph">
+<p>Starting Quarkus 1.5, this map is automatically exposed.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-avro-configuration"><a class="anchor" href="#kafka-avro-configuration"></a>Using Apache Avro serializer/deserializer</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If you are using <a href="https://avro.apache.org/">Apache Avro</a> serializer/deserializer, please note the following properties:</p>
+</div>
+<div class="sect2">
+<h3 id="_for_confluent_schema_registry"><a class="anchor" href="#_for_confluent_schema_registry"></a>For <a href="https://docs.confluent.io/current/schema-registry/serdes-develop/serdes-avro.html">Confluent</a> Schema Registry</h3>
+<div class="sect3">
+<h4 id="_consumer"><a class="anchor" href="#_consumer"></a>Consumer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.deserializer"</th>
+<th class="tableblock halign-left valign-top">"io.confluent.kafka.serializers.KafkaAvroDeserializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"schema.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"specific.avro.reader"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.[channel].value.deserializer=io.confluent.kafka.serializers.KafkaAvroDeserializer
+mp.messaging.incoming.[channel].schema.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/
+mp.messaging.incoming.[channel].specific.avro.reader=true</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_producer"><a class="anchor" href="#_producer"></a>Producer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.serializer"</th>
+<th class="tableblock halign-left valign-top">"io.confluent.kafka.serializers.KafkaAvroSerializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"schema.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/"</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.[channel].value.serializer=io.confluent.kafka.serializers.KafkaAvroSerializer
+mp.messaging.outgoing.[channel].schema.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_for_apicurio_schema_registry"><a class="anchor" href="#_for_apicurio_schema_registry"></a>For <a href="https://github.com/Apicurio/apicurio-registry">Apicurio</a> Schema Registry</h3>
+<div class="sect3">
+<h4 id="_consumer_2"><a class="anchor" href="#_consumer_2"></a>Consumer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.deserializer"</th>
+<th class="tableblock halign-left valign-top">"io.apicurio.registry.utils.serde.AvroKafkaDeserializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/api"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.avro-datum-provider"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider"</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.[channel].value.deserializer=io.apicurio.registry.utils.serde.AvroKafkaDeserializer
+mp.messaging.incoming.[channel].apicurio.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/api
+mp.messaging.incoming.[channel].apicurio.registry.avro-datum-provider=io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_producer_2"><a class="anchor" href="#_producer_2"></a>Producer</h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">"value.serializer"</th>
+<th class="tableblock halign-left valign-top">"io.apicurio.registry.utils.serde.AvroKafkaSerializer"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.url"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"http://&lt;your_host&gt;:&lt;your_port&gt;/api"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.avro-datum-provider"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.global-id"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy"</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"apicurio.registry.artifact-id"</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy"</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.outgoing.[channel].value.serializer=io.apicurio.registry.utils.serde.AvroKafkaSerializer
+mp.messaging.outgoing.[channel].apicurio.registry.url=http://&lt;your_host&gt;:&lt;your_port&gt;/api
+mp.messaging.outgoing.[channel].apicurio.registry.avro-datum-provider=io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider
+mp.messaging.outgoing.[channel].apicurio.registry.global-id=io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy
+mp.messaging.outgoing.[channel].apicurio.registry.artifact-id=io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-health"><a class="anchor" href="#kafka-health"></a>Health reporting</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Kafka connector reports the readiness and liveness of each channel managed by the connector.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+To disable health reporting, set the <code>health-enabled</code> attribute for the channel to <code>false</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_readiness"><a class="anchor" href="#_readiness"></a>Readiness</h3>
+<div class="paragraph">
+<p>On the inbound side, two strategies are available to check the readiness of the application.
+The default strategy verifies that we have at least one active connection with the broker.
+This strategy is lightweight.</p>
+</div>
+<div class="paragraph">
+<p>You can also enable another strategy by setting the <code>health-readiness-topic-verification</code> attribute to <code>true</code>.
+In this case, the check verifies that:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the broker is available</p>
+</li>
+<li>
+<p>the Kafka topic is created (available in the broker).</p>
+</li>
+<li>
+<p>no failures have been caught</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>With this second strategy, if you consume multiple topics using the <code>topics</code> attribute, the readiness check verifies that all the consumed topics are available.
+If you use a pattern (using the <code>pattern</code> attribute), the readiness check verifies that at least one existing topic matches the pattern.</p>
+</div>
+<div class="paragraph">
+<p>On the outbound side (writing records to Kafka), two strategies are also offered.
+The default strategy just verifies that the producer has at least one active connection with the broker.</p>
+</div>
+<div class="paragraph">
+<p>You can also enable another strategy by setting the <code>health-readiness-topic-verification</code> attribute to <code>true</code>.
+In this case, teh check verifies that</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the broker is available</p>
+</li>
+<li>
+<p>the Kafka topic is created (available in the broker).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>With this second strategy, the readiness check uses a Kafka Admin Client to retrieve the existing topics.
+Retrieving the topics can be a lengthy operation.
+You can configure a timeout using the <code>health-readiness-timeout</code> attribute.
+The default timeout is set to 2 seconds.</p>
+</div>
+<div class="paragraph">
+<p>Also, you can disable the readiness checks altogether by setting <code>health-readiness-enabled</code> to <code>false</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_liveness"><a class="anchor" href="#_liveness"></a>Liveness</h3>
+<div class="paragraph">
+<p>On the inbound side (receiving records from Kafka), the liveness check verifies that:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>no failures have been caught</p>
+</li>
+<li>
+<p>the client is connected to the broker</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>On the outbound side (writing records to Kafka), the liveness check verifies that:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>no failures have been caught</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Note that a message processing failures <em>nacks</em> the message which is then handled by the failure-strategy.
+It the responsibility of the failure-strategy to report the failure and influence the outcome of the liveness checks.
+The <code>fail</code> failure strategy reports the failure and so the liveness check will report the failure.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="kafka-consumer-rebalance-listener"><a class="anchor" href="#kafka-consumer-rebalance-listener"></a>Consumer Rebalance Listener</h3>
+<div class="paragraph">
+<p>To handle offset commit and assigned partitions yourself, you can provide a consumer rebalance listener.
+To achieve this, implement the <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> interface and exposed it as a <code>@Named</code> bean.
+A usual use case is to store offset in a separate data store to implement exactly-once semantic, or starting the processing at a specific offset.</p>
+</div>
+<div class="paragraph">
+<p>The listener is invoked every time the consumer topic/partition assignment changes.
+For example, when the application starts, it invokes the <code>partitionsAssigned</code> callback with the initial set of topics/partitions associated with the consumer.
+If, later, this set changes, it calls the <code>partitionsRevoked</code> and <code>partitionsAssigned</code> callbacks again, so you can implement custom logic.</p>
+</div>
+<div class="paragraph">
+<p>Note that the rebalance listener methods are called from the Kafka <em>polling</em> thread and must block the caller thread until completion.
+That&#8217;s because the rebalance protocol has synchronization barriers, and using asynchronous code in a rebalance listener may be executed after the synchronization barrier.</p>
+</div>
+<div class="paragraph">
+<p>When topics/partitions are assigned or revoked from a consumer, it pauses the message delivery and restarts once the rebalance completes.</p>
+</div>
+<div class="paragraph">
+<p>If the rebalance listener handles offset commit on behalf of the user (using the <code>ignore</code> commit strategy), the rebalance listener <strong>must</strong> commit the offset synchronously in the <code>partitionsRevoked</code> callback.
+We also recommend applying the same logic when the application stops.</p>
+</div>
+<div class="paragraph">
+<p>Unlike the <code>ConsumerRebalanceListener</code>  from Apache Kafka, the <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> methods pass the Kafka <code>Consumer</code> and the set of topics/partitions.</p>
+</div>
+<div class="sect3">
+<h4 id="_example_4"><a class="anchor" href="#_example_4"></a>Example</h4>
+<div class="paragraph">
+<p>In this example we set-up a consumer that always starts on messages from at most 10 minutes ago (of offset 0). First we need to provide
+a bean managed implementation of <code>io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener</code> annotated with
+<code>javax.inject.Named</code>. We then must configure our inbound connector to use this named bean.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Named;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
+
+@ApplicationScoped
+@Named("rebalanced-example.rebalancer")
+public class KafkaRebalancedConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
+
+    private static final Logger LOGGER = Logger.getLogger(KafkaRebalancedConsumerRebalanceListener.class.getName());
+
+    /**
+     * When receiving a list of partitions will search for the earliest offset within 10 minutes
+     * and seek the consumer to it.
+     *
+     * @param consumer   underlying consumer
+     * @param partitions set of assigned topic partitions
+     */
+    @Override
+    public void onPartitionsAssigned(Consumer&lt;?, ?&gt; consumer,
+        Collection&lt;org.apache.kafka.common.TopicPartition&gt; partitions) {
+        long now = System.currentTimeMillis();
+        long shouldStartAt = now - 600_000L; //10 minute ago
+
+        Map&lt;org.apache.kafka.common.TopicPartition, Long&gt; request = new HashMap&lt;&gt;();
+        for (org.apache.kafka.common.TopicPartition partition : partitions) {
+            LOGGER.info("Assigned " + partition);
+            request.put(partition, shouldStartAt);
+        }
+        Map&lt;org.apache.kafka.common.TopicPartition, OffsetAndTimestamp&gt; offsets = consumer
+            .offsetsForTimes(request);
+        for (Map.Entry&lt;org.apache.kafka.common.TopicPartition, OffsetAndTimestamp&gt; position : offsets.entrySet()) {
+            long target = position.getValue() == null ? 0L : position.getValue().offset();
+            LOGGER.info("Seeking position " + target + " for " + position.getKey());
+            consumer.seek(position.getKey(), target);
+        }
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class KafkaRebalancedConsumer {
+
+    @Incoming("rebalanced-example")
+    @Acknowledgment(Acknowledgment.Strategy.NONE)
+    public CompletionStage&lt;Void&gt; consume(IncomingKafkaRecord&lt;Integer, String&gt; message) {
+        // We don't need to ACK messages because in this example we set offset during consumer re-balance
+        return CompletableFuture.completedFuture(null);
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To configure the inbound connector to use the provided listener we either set the consumer rebalance listener&#8217;s name:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.rebalanced-example.consumer-rebalance-listener.name=rebalanced-example.rebalancer</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Or have the listener&#8217;s name be the same as the group id:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>mp.messaging.incoming.rebalanced-example.group.id=rebalanced-example.rebalancer</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Setting the consumer re-balance listener&#8217;s name takes precedence over using the group id.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
