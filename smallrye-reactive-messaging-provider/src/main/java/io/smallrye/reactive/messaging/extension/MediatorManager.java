@@ -59,7 +59,7 @@ public class MediatorManager {
     Instance<ChannelRegistar> registars;
 
     @Inject
-    @ConfigProperty(name = STRICT_MODE_PROPERTY, defaultValue = "BAR")
+    @ConfigProperty(name = STRICT_MODE_PROPERTY, defaultValue = "false")
     boolean strictMode;
 
     public <T> void analyze(AnnotatedType<T> annotatedType, Bean<T> bean) {
