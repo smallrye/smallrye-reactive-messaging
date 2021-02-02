@@ -106,13 +106,27 @@ public class MediatorManager {
     /**
      * Checks if the given method is not an overloaded version of another method already included.
      */
-    private <T> boolean shouldCollectMethod(Method method, CollectedMediatorMetadata collected) {
-        // TODO Not very happy with this - it eliminates methods based on name and not full signature.
+    private boolean shouldCollectMethod(Method method, CollectedMediatorMetadata collected) {
         Optional<MediatorConfiguration> existing = collected.mediators().stream()
                 .filter(mc -> mc.getMethod().getDeclaringClass() == method.getDeclaringClass()
-                        && mc.getMethod().getName().equals(method.getName()))
+                        && mc.getMethod().getName().equals(method.getName())
+                        && areParametersEquivalent(method, mc.getMethod()))
                 .findAny();
         return !existing.isPresent();
+    }
+
+    private boolean areParametersEquivalent(Method method1, Method method2) {
+        if (method1.getParameterCount() != method2.getParameterCount()) {
+            return false;
+        }
+        for (int i = 0; i < method1.getParameterCount(); i++) {
+            Class<?> type1 = method1.getParameterTypes()[i];
+            Class<?> type2 = method2.getParameterTypes()[i];
+            if (!(type1.isAssignableFrom(type2) || type2.isAssignableFrom(type1))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private <T> boolean hasMediatorAnnotations(AnnotatedMethod<? super T> method) {

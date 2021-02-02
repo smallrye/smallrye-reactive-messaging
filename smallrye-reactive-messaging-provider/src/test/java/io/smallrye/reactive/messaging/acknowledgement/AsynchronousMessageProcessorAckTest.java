@@ -16,7 +16,6 @@ import org.junit.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.vertx.core.impl.ConcurrentHashSet;
 
 public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTails {
 
@@ -32,8 +31,8 @@ public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = ConcurrentHashMap.newKeySet();
+        Set<String> nacked = ConcurrentHashMap.newKeySet();
 
         run(acked, nacked, emitter);
 
@@ -49,8 +48,8 @@ public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = ConcurrentHashMap.newKeySet();
+        Set<String> nacked = ConcurrentHashMap.newKeySet();
 
         run(acked, nacked, emitter);
 
@@ -66,8 +65,8 @@ public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = ConcurrentHashMap.newKeySet();
+        Set<String> nacked = ConcurrentHashMap.newKeySet();
 
         List<Throwable> throwables = run(acked, nacked, emitter);
 
@@ -84,8 +83,8 @@ public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = ConcurrentHashMap.newKeySet();
+        Set<String> nacked = ConcurrentHashMap.newKeySet();
 
         List<Throwable> throwables = run(acked, nacked, emitter);
 
@@ -158,7 +157,8 @@ public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTail
         @Outgoing("out")
         public Uni<Message<String>> process(Message<String> m) {
             String s = m.getPayload();
-            return Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> m.withPayload(s.toUpperCase())));
+            return Uni.createFrom()
+                    .completionStage(CompletableFuture.supplyAsync(() -> m.withPayload(s.toUpperCase())));
         }
 
     }
@@ -201,7 +201,8 @@ public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTail
                         .onItem().ignore().andSwitchTo(Uni.createFrom().nullItem());
             }
 
-            return Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> m.withPayload(s.toUpperCase())));
+            return Uni.createFrom()
+                    .completionStage(CompletableFuture.supplyAsync(() -> m.withPayload(s.toUpperCase())));
         }
 
     }
