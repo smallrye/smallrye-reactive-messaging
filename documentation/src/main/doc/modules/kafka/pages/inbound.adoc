@@ -212,6 +212,15 @@ If the record is a structured Cloud Event, the created Message's payload is the 
 
 The `partitionkey` attribute is mapped to the record's key if any.
 
+=== Back Pressure
+
+The connector pauses the underlying Kafka client if there is no downstream consumption.
+Periodically, it checks if the downstream demand reaches 0 for a period of time, and if so, pause the polling.
+
+The polling is resumed as soon as the downstream emits another request.
+
+The period of inactivity can be configured using the `pause-after-inactivity` attribute, and is set to 5 seconds by default.
+Setting this atribute to 0 disables the mechanism, meaning the underlying Kafka client is not paused.
 
 === Configuration Reference
 

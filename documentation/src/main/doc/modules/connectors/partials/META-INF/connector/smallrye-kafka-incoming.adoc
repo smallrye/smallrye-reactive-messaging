@@ -125,4 +125,8 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
+| *pause-after-inactivity* | Duration in seconds after which the underlying Kafka consumer is paused if there is no requests. The consumer is resumed at the next request. 0 disables this feature.
+
+Type: _int_ | false | `5`
+
 |===

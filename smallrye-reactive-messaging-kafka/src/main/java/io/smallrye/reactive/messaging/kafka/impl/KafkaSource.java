@@ -6,6 +6,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -184,6 +186,25 @@ public class KafkaSource<K, V> {
             }
         }
 
+        AtomicBoolean paused = new AtomicBoolean();
+        AtomicLong lastRequest = new AtomicLong();
+
+        int inactivityPeriodInMs = configuration.getPauseAfterInactivity() * 1000;
+        if (configuration.getPauseAfterInactivity() > 0) {
+            vertx.setPeriodic(inactivityPeriodInMs, x -> {
+                boolean expired = (lastRequest.get() + inactivityPeriodInMs) <= System.currentTimeMillis();
+                if (consumer.demand() == 0 && expired
+                        && paused.compareAndSet(false, true)) {
+                    // If after a grace period we didn't get any request, pause the consumer.
+                    // this avoid having error indicating that too much time has been spent between two polls.
+                    log.pausingChannel(channel, config.getPauseAfterInactivity());
+                    consumer.assignment()
+                            .onItem().call(set -> consumer.pause(set))
+                            .subscribeAsCompletionStage();
+                }
+            });
+        }
+
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
                 .onSubscribe().call(s -> {
                     this.consumer.exceptionHandler(t -> reportFailure(t, false));
@@ -205,10 +226,21 @@ public class KafkaSource<K, V> {
                         return this.consumer.subscribe(topics);
                     }
                 })
-                .map(rec -> commitHandler
-                        .received(
-                                new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
-                                        isTracingEnabled)));
+                .onRequest().call(l -> {
+                    lastRequest.set(System.currentTimeMillis());
+                    if (paused.compareAndSet(true, false)) {
+                        log.resumingChannel(channel);
+                        return consumer.paused()
+                                .flatMap(consumer::resume);
+                    }
+                    return Uni.createFrom().nullItem();
+                })
+                .map(rec -> {
+                    return commitHandler
+                            .received(
+                                    new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
+                                            isTracingEnabled));
+                });
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);

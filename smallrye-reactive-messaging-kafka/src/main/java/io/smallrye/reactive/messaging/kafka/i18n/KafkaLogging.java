@@ -190,4 +190,11 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18241, value = "The deserialization failure handler `%s` throws an exception")
     void deserializationFailureHandlerFailure(String instance, @Cause Throwable t);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18244, value = "Pausing Kafka consumption for channel %s - no request received for %d seconds")
+    void pausingChannel(String channel, int time);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18245, value = "Resuming Kafka consumption for channel %s")
+    void resumingChannel(String channel);
 }
