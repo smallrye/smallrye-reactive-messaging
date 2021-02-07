@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.*;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -26,7 +27,6 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -37,14 +37,14 @@ import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkReadinessHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
+import io.vertx.mutiny.kafka.client.producer.KafkaProducer;
+import io.vertx.mutiny.kafka.client.producer.KafkaProducerRecord;
 
 public class KafkaSink {
 
-    private final KafkaWriteStream<?, ?> stream;
     private final int partition;
     private final String topic;
     private final String key;
@@ -59,13 +59,18 @@ public class KafkaSink {
     private final boolean isTracingEnabled;
     private final KafkaSinkReadinessHealth health;
     private final boolean isHealthEnabled;
+    private final KafkaProducer<?, ?> producer;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
 
-        Map<String, Object> kafkaConfigurationMap = kafkaConfiguration.getMap();
-        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfigurationMap);
-        stream.exceptionHandler(e -> {
+        Map<String, String> copy = new HashMap<>();
+        for (Map.Entry<String, Object> entry : kafkaConfiguration.getMap().entrySet()) {
+            copy.put(entry.getKey(), entry.getValue().toString());
+        }
+
+        producer = KafkaProducer.create(vertx, copy);
+        producer.exceptionHandler(e -> {
             if (config.getTopic().isPresent()) {
                 log.unableToWrite(config.getChannel(), config.getTopic().get(), e);
             } else {
@@ -74,7 +79,7 @@ public class KafkaSink {
         });
 
         // fire producer event (e.g. bind metrics)
-        kafkaCDIEvents.producer().fire(stream.unwrap());
+        kafkaCDIEvents.producer().fire(producer.getDelegate().unwrap());
 
         partition = config.getPartition();
         retries = config.getRetries();
@@ -100,7 +105,8 @@ public class KafkaSink {
 
         this.isHealthEnabled = configuration.getHealthEnabled();
         if (isHealthEnabled && this.configuration.getHealthReadinessEnabled()) {
-            this.health = new KafkaSinkReadinessHealth(vertx, config, kafkaConfigurationMap, stream.unwrap());
+            this.health = new KafkaSinkReadinessHealth(vertx, config, copy,
+                    producer.getDelegate().unwrap());
         } else {
             this.health = null;
         }
@@ -149,7 +155,6 @@ public class KafkaSink {
                 OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
                 String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
 
-                ProducerRecord<?, ?> record;
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
                         .orElse(null);
 
@@ -158,6 +163,7 @@ public class KafkaSink {
                 // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
                 // - or if the message does not contain this metadata, the type and source are configured on the channel
 
+                ProducerRecord<?, ?> record;
                 if (writeCloudEvents && (ceMetadata != null || mandatoryCloudEventAttributeSet)) {
                     if (writeAsBinaryCloudEvent) {
                         record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, metadata, ceMetadata,
@@ -172,10 +178,11 @@ public class KafkaSink {
                 }
                 log.sendingMessageToTopic(message, actualTopic);
 
-                //noinspection unchecked,rawtypes
-                Uni<Void> uni = Uni.createFrom()
-                        .emitter(
-                                e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
+                @SuppressWarnings("rawtypes")
+                KafkaProducerRecord copy = copy(record);
+                @SuppressWarnings("unchecked")
+                Uni<Void> uni = producer.send(copy)
+                        .onItemOrFailure().transformToUni((rec, fail) -> handleWriteResult((Throwable) fail, message, record));
 
                 if (this.retries > 0) {
                     uni = uni.onFailure(this::isRecoverable).retry()
@@ -194,25 +201,31 @@ public class KafkaSink {
         };
     }
 
+    private KafkaProducerRecord<?, ?> copy(ProducerRecord<?, ?> record) {
+        KafkaProducerRecord<?, ?> copy = KafkaProducerRecord.create(
+                record.topic(),
+                record.key(),
+                record.value(),
+                record.timestamp(),
+                record.partition());
+        for (Header header : record.headers()) {
+            copy.addHeader(header.key(), Buffer.buffer(header.value()));
+        }
+        return copy;
+    }
+
     private boolean isRecoverable(Throwable f) {
         return !NOT_RECOVERABLE.contains(f.getClass());
     }
 
-    private void handleWriteResult(AsyncResult<?> ar, Message<?> message, ProducerRecord<?, ?> record,
-            UniEmitter<? super Void> emitter) {
+    private Uni<Void> handleWriteResult(Throwable failure, Message<?> message, ProducerRecord<?, ?> record) {
         String actualTopic = record.topic();
-        if (ar.succeeded()) {
+        if (failure == null) {
             log.successfullyToTopic(message, actualTopic);
-            message.ack().whenComplete((x, f) -> {
-                if (f != null) {
-                    emitter.fail(f);
-                } else {
-                    emitter.complete(null);
-                }
-            });
+            return Uni.createFrom().completionStage(message.ack());
         } else {
             // Fail, there will be retry.
-            emitter.fail(ar.cause());
+            return Uni.createFrom().failure(failure);
         }
     }
 
@@ -375,7 +388,7 @@ public class KafkaSink {
 
         try {
             // close() blocks forever (Long.MAX).
-            this.stream.unwrap().close(Duration.ofMillis(configuration.getCloseTimeout()));
+            this.producer.getDelegate().unwrap().close(Duration.ofMillis(configuration.getCloseTimeout()));
         } catch (Throwable e) {
             log.errorWhileClosingWriteStream(e);
         }
@@ -385,4 +398,11 @@ public class KafkaSink {
         }
     }
 
+    public String getChannel() {
+        return configuration.getChannel();
+    }
+
+    public KafkaProducer<?, ?> getProducer() {
+        return producer;
+    }
 }

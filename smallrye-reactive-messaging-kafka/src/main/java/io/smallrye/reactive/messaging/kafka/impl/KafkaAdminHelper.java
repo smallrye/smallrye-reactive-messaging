@@ -15,9 +15,9 @@ public class KafkaAdminHelper {
     }
 
     public static KafkaAdminClient createAdminClient(Vertx vertx,
-            Map<String, Object> kafkaConfigurationMap, String channel, boolean incoming) {
+            Map<String, ?> kafkaConfigurationMap, String channel, boolean incoming) {
         Map<String, String> copy = new HashMap<>();
-        for (Map.Entry<String, Object> entry : kafkaConfigurationMap.entrySet()) {
+        for (Map.Entry<String, ?> entry : kafkaConfigurationMap.entrySet()) {
             if (AdminClientConfig.configNames().contains(entry.getKey())) {
                 copy.put(entry.getKey(), entry.getValue().toString());
             } else if (entry.getKey().startsWith("sasl.")) {

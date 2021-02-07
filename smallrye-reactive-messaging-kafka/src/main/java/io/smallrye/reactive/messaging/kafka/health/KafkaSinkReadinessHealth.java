@@ -26,7 +26,7 @@ public class KafkaSinkReadinessHealth {
     private final String topic;
 
     public KafkaSinkReadinessHealth(Vertx vertx, KafkaConnectorOutgoingConfiguration config,
-            Map<String, Object> kafkaConfiguration, Producer<?, ?> producer) {
+            Map<String, String> kafkaConfiguration, Producer<?, ?> producer) {
         this.config = config;
         this.channel = config.getChannel();
         this.topic = config.getTopic().orElse(this.channel);

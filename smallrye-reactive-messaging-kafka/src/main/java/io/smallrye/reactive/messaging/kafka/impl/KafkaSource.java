@@ -412,11 +412,13 @@ public class KafkaSource<K, V> {
     }
 
     /**
-     * For testing purpose only
-     *
      * @return get the underlying consumer.
      */
     public KafkaConsumer<K, V> getConsumer() {
         return this.consumer;
+    }
+
+    public String getChannel() {
+        return channel;
     }
 }

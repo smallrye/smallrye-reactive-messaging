@@ -45,6 +45,8 @@ import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessed
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import io.vertx.mutiny.kafka.client.producer.KafkaProducer;
 
 @ApplicationScoped
 @Connector(KafkaConnector.CONNECTOR_NAME)
@@ -271,5 +273,21 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         }
 
         return builder.build();
+    }
+
+    @SuppressWarnings("unchecked")
+    public <K, V> KafkaConsumer<K, V> getConsumer(String channel) {
+        return (KafkaConsumer<K, V>) sources.stream()
+                .filter(ks -> ks.getChannel().equals(channel))
+                .map(KafkaSource::getConsumer)
+                .findFirst().orElse(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <K, V> KafkaProducer<K, V> getProducer(String channel) {
+        return (KafkaProducer<K, V>) sinks.stream()
+                .filter(ks -> ks.getChannel().equals(channel))
+                .map(KafkaSink::getProducer)
+                .findFirst().orElse(null);
     }
 }
