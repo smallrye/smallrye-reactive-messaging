@@ -28,13 +28,11 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
@@ -42,9 +40,11 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
@@ -56,21 +56,22 @@ public class TracingPropagationTest extends KafkaTestBase {
     private InMemorySpanExporter testExporter;
     private SpanProcessor spanProcessor;
 
-    @BeforeAll
-    static void setupOpenTelemetry() {
-        // We need to set a propagator
-        OpenTelemetry otelInstance = OpenTelemetrySdk.builder().setPropagators(
-                ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
-                .build();
-
-        GlobalOpenTelemetry.set(otelInstance);
-    }
-
     @BeforeEach
     public void setup() {
+        GlobalOpenTelemetry.resetForTest();
+
         testExporter = InMemorySpanExporter.create();
-        spanProcessor = SimpleSpanProcessor.builder(testExporter).setExportOnlySampled(false).build();
-        OpenTelemetrySdk.getGlobalTracerManagement().addSpanProcessor(spanProcessor);
+        spanProcessor = SimpleSpanProcessor.create(testExporter);
+
+        SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
+                .addSpanProcessor(spanProcessor)
+                .setSampler(Sampler.alwaysOn())
+                .build();
+
+        OpenTelemetrySdk.builder()
+                .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
+                .setTracerProvider(tracerProvider)
+                .buildAndRegisterGlobal();
 
         // Without this, TRACER can be set to a tracer prior to the above configuration being active.
         // Resulting in no traces being captured
@@ -89,7 +90,7 @@ public class TracingPropagationTest extends KafkaTestBase {
 
     @AfterAll
     static void shutdown() {
-        OpenTelemetrySdk.getGlobalTracerManagement().shutdown();
+        GlobalOpenTelemetry.resetForTest();
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -175,7 +176,7 @@ public class TracingPropagationTest extends KafkaTestBase {
 
         List<String> receivedParentSpanIds = new ArrayList<>();
 
-        await().atMost(Duration.ofMinutes(5)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
+        await().atMost(Duration.ofMinutes(2)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
 
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             if (data.getKind().equals(Span.Kind.CONSUMER)) {
