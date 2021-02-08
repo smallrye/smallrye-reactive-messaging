@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
@@ -37,13 +38,14 @@ public class WorkerPoolRegistry {
     private static final String WORKER_CONCURRENCY = "max-concurrency";
 
     @Inject
-    private ExecutionHolder executionHolder;
+    private Instance<ExecutionHolder> executionHolder;
 
     @Inject
     private Instance<Config> configInstance;
 
     private final Map<String, Integer> workerConcurrency = new HashMap<>();
     private final Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
+    private ExecutionHolder holder;
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(100) @BeforeDestroyed(ApplicationScoped.class) Object event) {
@@ -54,11 +56,23 @@ public class WorkerPoolRegistry {
         }
     }
 
+    @PostConstruct
+    public void init() {
+        if (executionHolder.isUnsatisfied()) {
+            log.noExecutionHolderDisablingBlockingSupport();
+        } else {
+            this.holder = executionHolder.get();
+        }
+    }
+
     public <T> Uni<T> executeWork(Uni<T> uni, String workerName, boolean ordered) {
+        if (holder == null) {
+            throw new UnsupportedOperationException("@Blocking disabled");
+        }
         Objects.requireNonNull(uni, msg.actionNotProvided());
 
         if (workerName == null) {
-            return executionHolder.vertx().executeBlocking(uni, ordered);
+            return holder.vertx().executeBlocking(uni, ordered);
         } else {
             return getWorker(workerName).executeBlocking(uni, ordered);
         }
@@ -76,7 +90,7 @@ public class WorkerPoolRegistry {
                 synchronized (this) {
                     executor = workerExecutors.get(workerName);
                     if (executor == null) {
-                        executor = executionHolder.vertx().createSharedWorkerExecutor(workerName,
+                        executor = holder.vertx().createSharedWorkerExecutor(workerName,
                                 workerConcurrency.get(workerName));
                         log.workerPoolCreated(workerName, workerConcurrency.get(workerName));
                         workerExecutors.put(workerName, executor);
