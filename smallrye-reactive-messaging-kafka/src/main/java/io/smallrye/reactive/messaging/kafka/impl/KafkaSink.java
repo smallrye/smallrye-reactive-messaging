@@ -22,6 +22,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
@@ -273,7 +274,7 @@ public class KafkaSink {
             Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
 
             final SpanBuilder spanBuilder = TRACER.spanBuilder(topic + " send")
-                    .setSpanKind(Span.Kind.PRODUCER);
+                    .setSpanKind(SpanKind.PRODUCER);
 
             if (tracingMetadata.isPresent()) {
                 // Handle possible parent span
