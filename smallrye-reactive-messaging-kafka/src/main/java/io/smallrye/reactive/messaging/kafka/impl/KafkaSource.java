@@ -20,6 +20,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
@@ -304,7 +305,7 @@ public class KafkaSource<K, V> {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
             final SpanBuilder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
-                    .setSpanKind(Span.Kind.CONSUMER);
+                    .setSpanKind(SpanKind.CONSUMER);
 
             // Handle possible parent span
             final Context parentSpanContext = tracingMetadata.getPreviousContext();
