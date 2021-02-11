@@ -10,6 +10,7 @@ import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.enterprise.inject.spi.InjectionPoint;
 
+import org.eclipse.microprofile.config.spi.Converter;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Cause;
@@ -258,4 +259,12 @@ public interface ProviderExceptions {
     @Message(id = 76, value = "Invalid Emitter injection found for  `%s`. The Emitter expected to be parameterized with the emitted type, such as Emitter<String>.")
     DefinitionException invalidRawEmitter(InjectionPoint ip);
 
+    @Message(id = 77, value = "No converter for type `%s`")
+    NoSuchElementException noConverterForType(Class<?> propertyType);
+
+    @Message(id = 78, value = "Converter `%s` returned null for value `%s`")
+    NoSuchElementException converterReturnedNull(Converter<?> converter, String value);
+
+    @Message(id = 79, value = "The config is not of type `%s`")
+    IllegalArgumentException configNotOfType(Class<?> type);
 }
