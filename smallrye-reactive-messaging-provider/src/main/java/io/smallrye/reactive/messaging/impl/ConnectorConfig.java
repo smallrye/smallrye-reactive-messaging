@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.*;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigValue;
@@ -64,38 +65,37 @@ public class ConnectorConfig implements Config {
         return CONNECTOR_PREFIX + connector + "." + keyName;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <T> T getValue(String propertyName, Class<T> propertyType) {
         if (CHANNEL_NAME_ATTRIBUTE.equalsIgnoreCase(propertyName)) {
-            return (T) name;
+            return convert(name, propertyType);
         }
         if (CONNECTOR_ATTRIBUTE.equalsIgnoreCase(propertyName) || "type".equalsIgnoreCase(propertyName)) {
-            return (T) connector;
+            return convert(connector, propertyType);
         }
 
         // First check if the channel configuration contains the desired attribute.
-        try {
-            return overall.getValue(channelKey(propertyName), propertyType);
-        } catch (NoSuchElementException e) {
-            // If not, check the connector configuration
-            try {
-                return overall.getValue(connectorKey(propertyName), propertyType);
-            } catch (NoSuchElementException e2) {
-                // Catch the exception to provide a more meaningful error messages.
-                throw ex.noSuchElementForAttribute(propertyName, name, channelKey(propertyName),
-                        connectorKey(propertyName));
-            }
+        Optional<T> maybeResult = overall.getOptionalValue(channelKey(propertyName), propertyType);
+        if (maybeResult.isPresent()) {
+            return maybeResult.get();
         }
+
+        // Then check if the connector configuration contains the desired attribute.
+        maybeResult = overall.getOptionalValue(connectorKey(propertyName), propertyType);
+        if (maybeResult.isPresent()) {
+            return maybeResult.get();
+        }
+
+        throw ex.noSuchElementForAttribute(propertyName, name, channelKey(propertyName), connectorKey(propertyName));
     }
 
     @Override
     public ConfigValue getConfigValue(String propertyName) {
         if (CHANNEL_NAME_ATTRIBUTE.equalsIgnoreCase(propertyName)) {
-            return overall.getConfigValue(channelKey(CHANNEL_NAME_ATTRIBUTE));
+            return new ConfigValueImpl(CHANNEL_NAME_ATTRIBUTE, name);
         }
         if (CONNECTOR_ATTRIBUTE.equalsIgnoreCase(propertyName) || "type".equalsIgnoreCase(propertyName)) {
-            return overall.getConfigValue(channelKey(CONNECTOR_ATTRIBUTE));
+            return new ConfigValueImpl(CONNECTOR_ATTRIBUTE, connector);
         }
         // First check if the channel configuration contains the desired attribute.
         ConfigValue value = overall.getConfigValue(channelKey(propertyName));
@@ -106,20 +106,48 @@ public class ConnectorConfig implements Config {
         return value;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         if (CHANNEL_NAME_ATTRIBUTE.equalsIgnoreCase(propertyName)) {
-            return Optional.of((T) name);
+            return convertOptional(name, propertyType);
         }
         if (CONNECTOR_ATTRIBUTE.equalsIgnoreCase(propertyName) || "type".equalsIgnoreCase(propertyName)) {
-            return Optional.of((T) connector);
+            return convertOptional(connector, propertyType);
         }
 
         // First check if the channel configuration contains the desired attribute.
         Optional<T> maybe = overall.getOptionalValue(channelKey(propertyName), propertyType);
         return maybe.isPresent() ? maybe
                 : overall.getOptionalValue(connectorKey(propertyName), propertyType);
+    }
+
+    private <T> T convert(String rawValue, Class<T> propertyType) {
+        Optional<Converter<T>> converter = overall.getConverter(propertyType);
+
+        if (!converter.isPresent()) {
+            if (propertyType.isAssignableFrom(String.class)) {
+                return propertyType.cast(rawValue);
+            }
+            throw ex.noConverterForType(propertyType);
+        }
+
+        T result = converter.get().convert(rawValue);
+
+        if (result == null) {
+            throw ex.converterReturnedNull(converter.get(), rawValue);
+        }
+
+        return result;
+    }
+
+    private <T> Optional<T> convertOptional(String rawValue, Class<T> propertyType) {
+        Optional<Converter<T>> converter = overall.getConverter(propertyType);
+
+        if (!converter.isPresent() && propertyType.isAssignableFrom(String.class)) {
+            return Optional.of(propertyType.cast(rawValue));
+        }
+
+        return converter.map(c -> c.convert(rawValue));
     }
 
     /**
@@ -131,33 +159,41 @@ public class ConnectorConfig implements Config {
      */
     @Override
     public Iterable<String> getPropertyNames() {
-        String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
         String prefix = this.prefix + name + ".";
-        String prefixFromEnv = toEnv(prefix);
-        String connectorPrefixFromEnv = toEnv(connectorPrefix);
+        String prefixAlpha = toAlpha(prefix);
+        String prefixAlphaUpper = prefixAlpha.toUpperCase();
+        String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
+        String connectorPrefixAlpha = toAlpha(connectorPrefix);
+        String connectorPrefixAlphaUpper = connectorPrefixAlpha.toUpperCase();
 
         Set<String> names = new HashSet<>();
         for (String name : overall.getPropertyNames()) {
             if (name.startsWith(connectorPrefix)) {
                 String computed = name.substring(connectorPrefix.length());
-                if (doesNotContainEnv(names, computed)) {
+                names.add(computed);
+            } else if (name.startsWith(connectorPrefixAlpha)) {
+                String computed = name.substring(connectorPrefixAlpha.length());
+                if (nameExists(connectorPrefix + computed)) {
                     names.add(computed);
                 }
-            } else if (name.startsWith(connectorPrefixFromEnv)) {
-                String computed = name.substring(connectorPrefixFromEnv.length());
-                // Remove the potential existing key
-                names.removeIf(s -> toEnv(s).equalsIgnoreCase(computed));
-                names.add(computed);
+            } else if (name.startsWith(connectorPrefixAlphaUpper)) {
+                String computed = name.substring(connectorPrefixAlphaUpper.length());
+                if (nameExists(connectorPrefix + computed)) {
+                    names.add(computed);
+                }
             } else if (name.startsWith(prefix)) {
                 String computed = name.substring(prefix.length());
-                if (doesNotContainEnv(names, computed)) {
+                names.add(computed);
+            } else if (name.startsWith(prefixAlpha)) {
+                String computed = name.substring(prefixAlpha.length());
+                if (nameExists(prefix + computed)) {
                     names.add(computed);
                 }
-            } else if (name.startsWith(prefixFromEnv)) {
-                String computed = name.substring(prefixFromEnv.length());
-                // Remove the potential existing key
-                names.removeIf(s -> toEnv(s).equalsIgnoreCase(computed));
-                names.add(computed);
+            } else if (name.startsWith(prefixAlphaUpper)) {
+                String computed = name.substring(prefixAlphaUpper.length());
+                if (nameExists(prefix + computed)) {
+                    names.add(computed);
+                }
             }
         }
 
@@ -165,13 +201,14 @@ public class ConnectorConfig implements Config {
         return names;
     }
 
-    private boolean doesNotContainEnv(Set<String> names, String computed) {
-        String env = toEnv(computed);
-        return !names.contains(env);
+    private static final Pattern NON_ALPHA = Pattern.compile("\\W");
+
+    private String toAlpha(String key) {
+        return NON_ALPHA.matcher(key).replaceAll("_");
     }
 
-    private String toEnv(String key) {
-        return key.toUpperCase().replace(".", "_").replace("-", "_");
+    private boolean nameExists(String name) {
+        return overall.getConfigValue(name).getRawValue() == null ? false : true;
     }
 
     @Override
@@ -186,6 +223,48 @@ public class ConnectorConfig implements Config {
 
     @Override
     public <T> T unwrap(Class<T> type) {
-        return overall.unwrap(type);
+        if (type.isInstance(this)) {
+            return type.cast(this);
+        } else {
+            throw ex.configNotOfType(type);
+        }
+    }
+
+    private static class ConfigValueImpl implements ConfigValue {
+
+        private final String name;
+        private final String value;
+
+        public ConfigValueImpl(String name, String value) {
+            super();
+            this.name = name;
+            this.value = value;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public String getRawValue() {
+            return value;
+        }
+
+        @Override
+        public String getSourceName() {
+            return "ConnectorConfig internal";
+        }
+
+        @Override
+        public int getSourceOrdinal() {
+            return 0;
+        }
+
     }
 }
