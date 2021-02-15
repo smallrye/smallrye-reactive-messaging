@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.health;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,9 +17,8 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
-public class KafkaSourceReadinessHealth {
+public class KafkaSourceReadinessHealth extends BaseHealth {
 
-    public static final String CONNECTION_COUNT_METRIC_NAME = "connection-count";
     private final KafkaAdminClient admin;
     private final KafkaConnectorIncomingConfiguration config;
     private final Pattern pattern;
@@ -31,6 +28,7 @@ public class KafkaSourceReadinessHealth {
 
     public KafkaSourceReadinessHealth(Vertx vertx, KafkaConnectorIncomingConfiguration config,
             Map<String, String> kafkaConfiguration, Consumer<?, ?> consumer, Set<String> topics, Pattern pattern) {
+        super(config.getChannel());
         this.config = config;
         this.channel = config.getChannel();
         this.topics = topics;
@@ -44,36 +42,11 @@ public class KafkaSourceReadinessHealth {
         } else {
             this.admin = null;
             Map<MetricName, ? extends Metric> metrics = consumer.metrics();
-            Metric metric = null;
-            for (MetricName metricName : metrics.keySet()) {
-                if (metricName.name().equals(CONNECTION_COUNT_METRIC_NAME)) {
-                    metric = metrics.get(metricName);
-                    break;
-                }
-            }
-            this.metric = metric;
+            this.metric = getMetric(metrics);
         }
     }
 
-    public void close() {
-        if (admin != null) {
-            try {
-                this.admin.closeAndAwait();
-            } catch (Throwable e) {
-                log.exceptionOnClose(e);
-            }
-        }
-    }
-
-    public void isReady(HealthReport.HealthReportBuilder builder) {
-        if (admin != null) {
-            adminBasedHealthCheck(builder);
-        } else {
-            metricsBasedHealthCheck(builder);
-        }
-    }
-
-    private void metricsBasedHealthCheck(HealthReport.HealthReportBuilder builder) {
+    protected void metricsBasedHealthCheck(HealthReport.HealthReportBuilder builder) {
         if (metric != null) {
             builder.add(channel, (double) metric.metricValue() >= 1.0);
         } else {
@@ -107,5 +80,10 @@ public class KafkaSourceReadinessHealth {
             builder.add(channel, false, "No response from broker for channel "
                     + channel + " : " + failed);
         }
+    }
+
+    @Override
+    public KafkaAdminClient getAdmin() {
+        return admin;
     }
 }
