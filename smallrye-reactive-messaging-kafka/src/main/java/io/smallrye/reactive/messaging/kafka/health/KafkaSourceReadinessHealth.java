@@ -27,7 +27,7 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
     private final Metric metric;
 
     public KafkaSourceReadinessHealth(Vertx vertx, KafkaConnectorIncomingConfiguration config,
-            Map<String, String> kafkaConfiguration, Consumer<?, ?> consumer, Set<String> topics, Pattern pattern) {
+            Map<String, ?> kafkaConfiguration, Consumer<?, ?> consumer, Set<String> topics, Pattern pattern) {
         super(config.getChannel());
         this.config = config;
         this.channel = config.getChannel();

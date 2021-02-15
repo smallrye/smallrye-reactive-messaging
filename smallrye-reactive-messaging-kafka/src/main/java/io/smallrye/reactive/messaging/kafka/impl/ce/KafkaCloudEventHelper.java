@@ -13,8 +13,10 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.*;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -29,8 +31,6 @@ import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
-import io.vertx.mutiny.kafka.client.producer.KafkaHeader;
 
 public class KafkaCloudEventHelper {
 
@@ -61,7 +61,7 @@ public class KafkaCloudEventHelper {
     }
 
     public static <T, K> IncomingKafkaCloudEventMetadata<K, T> createFromStructuredCloudEvent(
-            KafkaConsumerRecord<K, T> record) {
+            ConsumerRecord<K, T> record) {
         DefaultCloudEventMetadataBuilder<T> builder = new DefaultCloudEventMetadataBuilder<>();
 
         JsonObject content;
@@ -130,7 +130,7 @@ public class KafkaCloudEventHelper {
     }
 
     public static <T, K> IncomingKafkaCloudEventMetadata<K, T> createFromBinaryCloudEvent(
-            KafkaConsumerRecord<?, T> record) {
+            ConsumerRecord<?, T> record) {
         DefaultCloudEventMetadataBuilder<T> builder = new DefaultCloudEventMetadataBuilder<>();
 
         // Build a map containing all the headers
@@ -138,7 +138,7 @@ public class KafkaCloudEventHelper {
         Map<String, String> headers = new HashMap<>();
         record.headers().forEach(kh -> {
             String key = kh.key();
-            String value = kh.value().toString("UTF-8"); // Rules 3.2.3 - Force UTF-8
+            String value = new String(kh.value(), StandardCharsets.UTF_8); // Rules 3.2.3 - Force UTF-8
             headers.put(key, value);
         });
 
@@ -435,7 +435,7 @@ public class KafkaCloudEventHelper {
         NOT_A_CLOUD_EVENT
     }
 
-    public static CloudEventMode getCloudEventMode(KafkaConsumerRecord<?, ?> record) {
+    public static CloudEventMode getCloudEventMode(ConsumerRecord<?, ?> record) {
         String contentType = getHeader(KAFKA_HEADER_CONTENT_TYPE, record);
         if (contentType != null && contentType.startsWith(CE_CONTENT_TYPE_PREFIX)) {
             return CloudEventMode.STRUCTURED;
@@ -445,18 +445,18 @@ public class KafkaCloudEventHelper {
         return CloudEventMode.NOT_A_CLOUD_EVENT;
     }
 
-    private static boolean containsAllMandatoryAttributes(KafkaConsumerRecord<?, ?> record) {
+    private static boolean containsAllMandatoryAttributes(ConsumerRecord<?, ?> record) {
         return getHeader(KAFKA_HEADER_FOR_ID, record) != null
                 && getHeader(KAFKA_HEADER_FOR_SOURCE, record) != null
                 && getHeader(KAFKA_HEADER_FOR_TYPE, record) != null
                 && getHeader(KAFKA_HEADER_FOR_SPEC_VERSION, record) != null;
     }
 
-    private static String getHeader(String name, KafkaConsumerRecord<?, ?> record) {
-        List<KafkaHeader> headers = record.headers();
-        for (KafkaHeader header : headers) {
+    private static String getHeader(String name, ConsumerRecord<?, ?> record) {
+        Headers headers = record.headers();
+        for (Header header : headers) {
             if (header.key().equals(name)) {
-                return header.value().toString("UTF-8");
+                return new String(header.value(), StandardCharsets.UTF_8);
             }
         }
         return null;

@@ -1,12 +1,9 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
-import java.lang.reflect.Field;
 import java.util.concurrent.*;
 
 import org.apache.kafka.common.errors.InterruptException;
 
-import io.vertx.kafka.client.consumer.KafkaReadStream;
-import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -24,18 +21,8 @@ public class ContextHolder {
         this.timeout = defaultTimeout;
     }
 
-    public void capture(KafkaReadStream<?, ?> stream) {
-        if (!(stream instanceof KafkaReadStreamImpl)) {
-            throw new IllegalArgumentException("Cannot capture the context - not a KafkaReadStreamImpl");
-        } else {
-            try {
-                Field field = KafkaReadStreamImpl.class.getDeclaredField("context");
-                field.setAccessible(true);
-                context = new Context((io.vertx.core.Context) field.get(stream));
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Cannot capture the context", e);
-            }
-        }
+    public void capture(Context context) {
+        this.context = context;
     }
 
     public Context getContext() {
@@ -52,7 +39,7 @@ public class ContextHolder {
 
     public <T> T runOnContextAndAwait(Callable<T> action) {
         FutureTask<T> task = new FutureTask<>(action);
-        runOnContext(task);
+        context.runOnContext(task);
 
         try {
             return task.get(timeout, TimeUnit.MILLISECONDS);

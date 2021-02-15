@@ -45,9 +45,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     }
 
     public static KafkaFailureHandler create(Vertx vertx,
-            Map<String, String> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source,
+            Map<String, ?> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source,
             KafkaCDIEvents kafkaCDIEvents) {
-        Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
+        Map<String, String> deadQueueProducerConfig = new HashMap<>();
+        kafkaConfiguration.forEach((key, value) -> deadQueueProducerConfig.put(key, (String) value));
         String keyDeserializer = deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
         String valueDeserializer = deadQueueProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
 

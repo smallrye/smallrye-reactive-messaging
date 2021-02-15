@@ -30,7 +30,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 @SuppressWarnings("rawtypes")
 public class MultiTopicsTest extends KafkaTestBase {
 
-    @RepeatedTest(50)
+    @RepeatedTest(5)
     public void testWithThreeTopicsInConfiguration() {
         String topic1 = UUID.randomUUID().toString();
         String topic2 = UUID.randomUUID().toString();
@@ -84,7 +84,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         assertThat(top3).hasValue(3);
     }
 
-    @RepeatedTest(10)
+    @RepeatedTest(5)
     public void testWithOnlyTwoTopicsReceiving() {
         String topic1 = UUID.randomUUID().toString();
         String topic2 = UUID.randomUUID().toString();

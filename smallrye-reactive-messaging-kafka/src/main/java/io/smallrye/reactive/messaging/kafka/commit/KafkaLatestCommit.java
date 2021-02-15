@@ -6,12 +6,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
-import io.vertx.kafka.client.consumer.OffsetAndMetadata;
+import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.vertx.mutiny.core.Vertx;
 
 /**
@@ -28,7 +28,7 @@ import io.vertx.mutiny.core.Vertx;
  */
 public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandler {
 
-    private final KafkaConsumer<?, ?> consumer;
+    private final ReactiveKafkaConsumer<?, ?> consumer;
 
     /**
      * Stores the last offset for each topic/partition.
@@ -37,10 +37,10 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
     private final Map<TopicPartition, Long> offsets = new HashMap<>();
 
     public KafkaLatestCommit(Vertx vertx, KafkaConnectorIncomingConfiguration configuration,
-            io.vertx.mutiny.kafka.client.consumer.KafkaConsumer<?, ?> consumer) {
+            ReactiveKafkaConsumer<?, ?> consumer) {
         super(vertx, configuration.config()
                 .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class).orElse(60000));
-        this.consumer = (KafkaConsumer<?, ?>) consumer.getDelegate();
+        this.consumer = consumer;
     }
 
     @Override
@@ -54,14 +54,8 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
             if (last == null || last < record.getOffset() + 1) {
                 offsets.put(key, record.getOffset() + 1);
                 map.put(key, new OffsetAndMetadata(record.getOffset() + 1, null));
-
-                consumer.commit(map, ar -> {
-                    if (ar.failed()) {
-                        future.completeExceptionally(ar.cause());
-                    } else {
-                        future.complete(null);
-                    }
-                });
+                consumer.commit(map)
+                        .subscribe().with(x -> future.complete(null), future::completeExceptionally);
             } else {
                 future.complete(null);
             }

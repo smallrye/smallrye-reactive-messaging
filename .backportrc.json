@@ -1,8 +1,0 @@
-{
-    "upstream": "smallrye/smallrye-reactive-messaging",
-    "targetBranchChoices": [
-        { "name": "3.x", "checked": true },
-        "master"
-    ],
-    "targetPRLabels": ["backport"]
-}

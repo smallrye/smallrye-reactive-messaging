@@ -8,6 +8,7 @@ import java.util.*;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
 
@@ -27,7 +28,7 @@ public class RebalanceListeners {
             KafkaConnectorIncomingConfiguration config,
             String consumerGroup,
             Instance<KafkaConsumerRebalanceListener> instances,
-            KafkaConsumer<?, ?> consumer,
+            Consumer<?, ?> consumer,
             KafkaCommitHandler commitHandler) {
         Optional<KafkaConsumerRebalanceListener> rebalanceListener = findMatchingListener(config, consumerGroup, instances);
 
@@ -36,35 +37,26 @@ public class RebalanceListeners {
             return new ConsumerRebalanceListener() {
                 @Override
                 public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                    long demand = consumer.demand();
-                    consumer.pause();
                     log.executingConsumerRevokedRebalanceListener(consumerGroup);
-
+                    // TODO Why don't we call the commit handler?
                     try {
-                        listener.onPartitionsRevoked(consumer.getDelegate().unwrap(), partitions);
+                        listener.onPartitionsRevoked(consumer, partitions);
                         log.executedConsumerRevokedRebalanceListener(consumerGroup);
                     } catch (RuntimeException e) {
                         log.unableToExecuteConsumerRevokedRebalanceListener(consumerGroup, e);
                         throw e;
-                    } finally {
-                        consumer.fetch(demand);
                     }
                 }
 
                 @Override
                 public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                    long demand = consumer.demand();
-                    consumer.pause();
-                    Collection<io.vertx.kafka.client.common.TopicPartition> tps = wrap(partitions);
-                    commitHandler.partitionsAssigned(tps);
+                    commitHandler.partitionsAssigned(partitions);
                     try {
-                        listener.onPartitionsAssigned(consumer.getDelegate().unwrap(), partitions);
+                        listener.onPartitionsAssigned(consumer, partitions);
                         log.executedConsumerAssignedRebalanceListener(consumerGroup);
                     } catch (RuntimeException e) {
                         log.reEnablingConsumerForGroup(consumerGroup);
                         throw e;
-                    } finally {
-                        consumer.fetch(demand);
                     }
                 }
             };
@@ -72,37 +64,15 @@ public class RebalanceListeners {
             return new ConsumerRebalanceListener() {
                 @Override
                 public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                    Collection<io.vertx.kafka.client.common.TopicPartition> tps = wrap(partitions);
-                    long demand = consumer.demand();
-                    consumer.pause();
-                    try {
-                        commitHandler.partitionsRevoked(tps);
-                    } finally {
-                        consumer.fetch(demand);
-                    }
+                    commitHandler.partitionsRevoked(partitions);
                 }
 
                 @Override
                 public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                    Collection<io.vertx.kafka.client.common.TopicPartition> tps = wrap(partitions);
-                    long demand = consumer.demand();
-                    consumer.pause();
-                    try {
-                        commitHandler.partitionsAssigned(tps);
-                    } finally {
-                        consumer.fetch(demand);
-                    }
+                    commitHandler.partitionsAssigned(partitions);
                 }
             };
         }
-    }
-
-    private static Collection<io.vertx.kafka.client.common.TopicPartition> wrap(Collection<TopicPartition> partitions) {
-        List<io.vertx.kafka.client.common.TopicPartition> tps = new ArrayList<>(partitions.size());
-        for (TopicPartition partition : partitions) {
-            tps.add(new io.vertx.kafka.client.common.TopicPartition(partition.topic(), partition.partition()));
-        }
-        return tps;
     }
 
     private static Optional<KafkaConsumerRebalanceListener> findMatchingListener(

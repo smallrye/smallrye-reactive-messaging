@@ -29,6 +29,6 @@ public class ConsumerRecordConverter implements MessageConverter {
                 .orElseThrow(() -> new IllegalStateException("No Kafka metadata"));
         return
         // The consumer record is not directly accessible:
-        in.withPayload(metadata.getRecord().getDelegate().record());
+        in.withPayload(metadata.getRecord());
     }
 }

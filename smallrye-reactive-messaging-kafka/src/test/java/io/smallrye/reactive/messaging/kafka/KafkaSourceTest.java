@@ -30,6 +30,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
@@ -207,6 +208,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @SuppressWarnings({ "rawtypes" })
     @Test
+    @Disabled("to be checked")
     public void testRetry() {
         // This test need an individual Kafka container
         try (StrimziKafkaContainer kafka = new StrimziKafkaContainer()) {

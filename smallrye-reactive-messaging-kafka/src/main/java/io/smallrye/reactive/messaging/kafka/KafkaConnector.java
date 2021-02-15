@@ -85,6 +85,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "graceful-shutdown", type = "boolean", direction = Direction.INCOMING, description = "Whether or not a graceful shutdown should be attempted when the application terminates.", defaultValue = "true")
+@ConnectorAttribute(name = "poll-timeout", type = "int", direction = Direction.INCOMING, description = "The polling timeout in milliseconds. When polling records, the poll will wait at most that duration before returning records. Default is 1000ms", defaultValue = "1000")
+@ConnectorAttribute(name = "pause-if-no-requests", type = "boolean", direction = Direction.INCOMING, description = "Whether the polling must be paused when the application does not request items and resume when it does. This allows implementing back-pressure based on the application capacity. Note that polling is not stopped, but will not retrieve any records when paused.", defaultValue = "true")
 
 @ConnectorAttribute(name = "key.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringSerializer")
 @ConnectorAttribute(name = "value.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the payload", mandatory = true)
@@ -104,7 +106,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
 @ConnectorAttribute(name = "close-timeout", type = "int", direction = Direction.OUTGOING, description = "The amount of milliseconds waiting for a graceful shutdown of the Kafka producer", defaultValue = "10000")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
-public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
+public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter, KafkaClientService {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
@@ -319,4 +321,13 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
         return builder.build();
     }
+
+    @SuppressWarnings("unchecked")
+    public <K, V> KafkaConsumer<K, V> getConsumer(String channel) {
+        return (KafkaConsumer<K, V>) sources.stream()
+                .filter(ks -> ks.getChannel().equals(channel))
+                .map(KafkaSource::getConsumer)
+                .findFirst().orElse(null);
+    }
+
 }
