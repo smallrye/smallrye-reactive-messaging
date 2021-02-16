@@ -47,7 +47,7 @@ public class MqttSource {
                                 .converter(MultiRxConverters.fromFlowable(), client.subscribePublishesWith()
                                         .topicFilter(topic).qos(MqttQos.fromCode(qos))
                                         .applySubscribe())
-                            //TODO: do we really need this ?
+                                //TODO: do we really need this ?
                                 .filter(m -> matches(topic, m))
                                 .onItem()
                                 .transform(x -> {

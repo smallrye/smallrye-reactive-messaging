@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+import static java.lang.String.format;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.ssl.TrustManagerFactory;
 
+import com.hivemq.client.mqtt.MqttClientSslConfigBuilder;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
@@ -85,13 +89,17 @@ public class Clients {
         });
 
         if (options.getSsl()) {
-            builder.sslConfig().trustManagerFactory(createSelfSignedTrustManagerFactory("")).applySslConfig();
+            final MqttClientSslConfigBuilder.Nested<? extends Mqtt3ClientBuilder> nested = builder.sslConfig();
+            options.config().getOptionalValue("ca-cart-file", String.class)
+                    .ifPresent(file -> nested.trustManagerFactory(createSelfSignedTrustManagerFactory(file)));
+            nested.applySslConfig();
         }
 
         return builder
                 .automaticReconnectWithDefaultConfig()
                 .addConnectedListener(context -> {
-                    System.err.println("connected...");
+                    log.info(format("connected to %s:%d", context.getClientConfig().getServerHost(),
+                            context.getClientConfig().getServerPort()));
                 }).buildRx();
     }
 
