@@ -9,9 +9,11 @@ import java.util.regex.Pattern;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import io.vertx.mqtt.MqttClientOptions;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.converters.multi.MultiRxConverters;
 
 public class MqttSource {
 
@@ -19,13 +21,9 @@ public class MqttSource {
     private final AtomicBoolean subscribed = new AtomicBoolean();
     private final Pattern pattern;
 
-    public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config) {
-        MqttClientOptions options = MqttHelpers.createMqttClientOptions(config);
+    public MqttSource(MqttConnectorIncomingConfiguration config) {
+        MqttConnectorIncomingConfiguration options = config;
 
-        String host = config.getHost();
-        int def = options.isSsl() ? 8883 : 1883;
-        int port = config.getPort().orElse(def);
-        String server = config.getServerName().orElse(null);
         String topic = config.getTopic().orElseGet(config::getChannel);
         int qos = config.getQos();
         boolean broadcast = config.getBroadcast();
@@ -40,15 +38,21 @@ public class MqttSource {
             pattern = null;
         }
 
-        Clients.ClientHolder holder = Clients.getHolder(vertx, host, port, server, options);
+        Clients.ClientHolder holder = Clients.getHolder(options);
+
         this.source = ReactiveStreams.fromPublisher(
                 holder.connect()
-                        .onItem().transformToMulti(client -> client.subscribe(topic, qos)
-                                .onItem().transformToMulti(x -> {
+                        .onItem()
+                        .transformToMulti(client -> Multi.createFrom()
+                                .converter(MultiRxConverters.fromFlowable(), client.subscribePublishesWith()
+                                        .topicFilter(topic).qos(MqttQos.fromCode(qos))
+                                        .applySubscribe())
+                            //TODO: do we really need this ?
+                                .filter(m -> matches(topic, m))
+                                .onItem()
+                                .transform(x -> {
                                     subscribed.set(true);
-                                    return holder.stream()
-                                            .select().where(m -> matches(topic, m))
-                                            .onItem().transform(m -> new ReceivingMqttMessage(m, onNack));
+                                    return new ReceivingMqttMessage(x, onNack);
                                 }))
                         .stage(multi -> {
                             if (broadcast) {
@@ -60,11 +64,12 @@ public class MqttSource {
                         .onFailure().invoke(log::unableToConnectToBroker));
     }
 
-    private boolean matches(String topic, MqttPublishMessage m) {
+    private boolean matches(String topic, Mqtt3Publish m) {
+        String topicName = m.getTopic().toString();
         if (pattern != null) {
-            return pattern.matcher(m.topicName()).matches();
+            return pattern.matcher(topicName).matches();
         }
-        return m.topicName().equals(topic);
+        return topicName.equals(topic);
     }
 
     private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {

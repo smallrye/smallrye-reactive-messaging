@@ -1,31 +1,32 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3PublishResult;
+import io.reactivex.Flowable;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.converters.uni.UniRxConverters;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-
-import io.netty.handler.codec.mqtt.MqttQoS;
-import io.smallrye.mutiny.Uni;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.mqtt.MqttClientOptions;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
-import io.vertx.mutiny.mqtt.MqttClient;
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 public class MqttSink {
 
-    private final String host;
-    private final int port;
-    private final String server;
     private final String topic;
     private final int qos;
 
@@ -33,26 +34,21 @@ public class MqttSink {
     private final AtomicBoolean connected = new AtomicBoolean();
 
     public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config) {
-        MqttClientOptions options = MqttHelpers.createMqttClientOptions(config);
-        host = config.getHost();
-        int def = options.isSsl() ? 8883 : 1883;
-        port = config.getPort().orElse(def);
-        server = config.getServerName().orElse(null);
         topic = config.getTopic().orElseGet(config::getChannel);
         qos = config.getQos();
 
-        AtomicReference<MqttClient> reference = new AtomicReference<>();
+        AtomicReference<Mqtt3RxClient> reference = new AtomicReference<>();
         sink = ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(msg -> {
-                    MqttClient client = reference.get();
+                    Mqtt3RxClient client = reference.get();
                     if (client != null) {
-                        if (client.isConnected()) {
+                        if (client.toBlocking().getState().isConnected()) {
                             connected.set(true);
                             return CompletableFuture.completedFuture(msg);
                         } else {
                             CompletableFuture<Message<?>> future = new CompletableFuture<>();
                             vertx.setPeriodic(100, id -> {
-                                if (client.isConnected()) {
+                                if (client.toBlocking().getState().isConnected()) {
                                     vertx.cancelTimer(id);
                                     connected.set(true);
                                     future.complete(msg);
@@ -61,7 +57,7 @@ public class MqttSink {
                             return future;
                         }
                     } else {
-                        return Clients.getConnectedClient(vertx, host, port, server, options)
+                        return Clients.getConnectedClient(config)
                                 .map(c -> {
                                     reference.set(c);
                                     connected.set(true);
@@ -72,26 +68,26 @@ public class MqttSink {
                 })
                 .flatMapCompletionStage(msg -> send(reference, msg))
                 .onComplete(() -> {
-                    MqttClient c = reference.getAndSet(null);
+                    Mqtt3Client c = reference.getAndSet(null);
                     if (c != null) {
                         connected.set(false);
-                        c.disconnectAndForget();
+                        c.toBlocking().disconnect();
                     }
                 })
                 .onError(log::errorWhileSendingMessageToBroker)
                 .ignore();
     }
 
-    private CompletionStage<?> send(AtomicReference<MqttClient> reference, Message<?> msg) {
-        MqttClient client = reference.get();
+    private CompletionStage<?> send(AtomicReference<Mqtt3RxClient> reference, Message<?> msg) {
+        Mqtt3RxClient client = reference.get();
         String actualTopicToBeUsed = this.topic;
-        MqttQoS actualQoS = MqttQoS.valueOf(this.qos);
+        MqttQos actualQoS = MqttQos.fromCode(this.qos);
         boolean isRetain = false;
 
         if (msg instanceof SendingMqttMessage) {
             MqttMessage<?> mm = ((SendingMqttMessage<?>) msg);
             actualTopicToBeUsed = mm.getTopic() == null ? topic : mm.getTopic();
-            actualQoS = mm.getQosLevel() == null ? actualQoS : mm.getQosLevel();
+            actualQoS = MqttQos.fromCode(mm.getQosLevel() == null ? actualQoS.getCode() : mm.getQosLevel().value());
             isRetain = mm.isRetain();
         }
 
@@ -100,7 +96,13 @@ public class MqttSink {
             return CompletableFuture.completedFuture(msg);
         }
 
-        return client.publish(actualTopicToBeUsed, convert(msg.getPayload()), actualQoS, false, isRetain)
+        final Flowable<Mqtt3PublishResult> publish = client.publish(Flowable.just(Mqtt3Publish.builder()
+                .topic(actualTopicToBeUsed)
+                .qos(actualQoS)
+                .payload(convert(msg.getPayload()))
+                .build()));
+
+        return Uni.createFrom().converter(UniRxConverters.fromFlowable(), publish)
                 .onItemOrFailure().transformToUni((s, f) -> {
                     if (f != null) {
                         return Uni.createFrom().completionStage(msg.nack(f).thenApply(x -> msg));
@@ -111,7 +113,13 @@ public class MqttSink {
                 .subscribeAsCompletionStage();
     }
 
-    private Buffer convert(Object payload) {
+    private ByteBuffer convert(Object payload) {
+        final Buffer buffer = toBuffer(payload);
+
+        return ByteBuffer.wrap(buffer.getBytes());
+    }
+
+    private Buffer toBuffer(Object payload) {
         if (payload instanceof JsonObject) {
             return new Buffer(((JsonObject) payload).toBuffer());
         }

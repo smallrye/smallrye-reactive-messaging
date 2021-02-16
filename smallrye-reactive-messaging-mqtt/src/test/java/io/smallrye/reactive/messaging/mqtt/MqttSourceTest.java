@@ -38,7 +38,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("host", address);
         config.put("port", port);
         config.put("channel-name", topic);
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        MqttSource source = new MqttSource(new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
@@ -64,7 +64,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        MqttSource source = new MqttSource(new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
@@ -93,7 +93,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("broadcast", true);
 
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        MqttSource source = new MqttSource(new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         List<MqttMessage<?>> messages1 = new ArrayList<>();
         List<MqttMessage<?>> messages2 = new ArrayList<>();
@@ -134,7 +134,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("port", port);
         config.put("channel-name", topic);
         config.put("max-message-size", 20 * 1024);
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        MqttSource source = new MqttSource(new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
 
         byte[] large = new byte[10 * 1024];
         random.nextBytes(large);

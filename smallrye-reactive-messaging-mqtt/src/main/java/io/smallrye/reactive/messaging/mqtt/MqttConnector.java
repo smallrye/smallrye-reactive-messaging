@@ -68,7 +68,7 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config));
+        MqttSource source = new MqttSource(new MqttConnectorIncomingConfiguration(config));
         sources.add(source);
         return source.getSource();
     }

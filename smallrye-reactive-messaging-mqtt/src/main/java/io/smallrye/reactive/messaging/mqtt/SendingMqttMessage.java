@@ -4,6 +4,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
+import com.hivemq.client.internal.shaded.org.jetbrains.annotations.NotNull;
+
 import io.netty.handler.codec.mqtt.MqttQoS;
 
 public final class SendingMqttMessage<T> implements MqttMessage<T> {
@@ -47,7 +49,7 @@ public final class SendingMqttMessage<T> implements MqttMessage<T> {
         return -1;
     }
 
-    public MqttQoS getQosLevel() {
+    public @NotNull MqttQoS getQosLevel() {
         return qos;
     }
 

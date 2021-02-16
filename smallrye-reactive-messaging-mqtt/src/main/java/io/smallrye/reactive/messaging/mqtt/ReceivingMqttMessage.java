@@ -3,33 +3,35 @@ package io.smallrye.reactive.messaging.mqtt;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import com.hivemq.client.internal.shaded.org.jetbrains.annotations.NotNull;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+
 import io.netty.handler.codec.mqtt.MqttQoS;
-import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class ReceivingMqttMessage implements MqttMessage<byte[]> {
-    final MqttPublishMessage message;
+    final Mqtt3Publish message;
     final MqttFailureHandler onNack;
 
-    ReceivingMqttMessage(MqttPublishMessage message, MqttFailureHandler onNack) {
+    ReceivingMqttMessage(Mqtt3Publish message, MqttFailureHandler onNack) {
         this.message = message;
         this.onNack = onNack;
     }
 
     @Override
     public byte[] getPayload() {
-        return this.message.payload().getDelegate().getBytes();
+        return this.message.getPayloadAsBytes();
     }
 
     public int getMessageId() {
-        return message.messageId();
+        return -1;
     }
 
-    public MqttQoS getQosLevel() {
-        return message.qosLevel();
+    public @NotNull MqttQoS getQosLevel() {
+        return MqttQoS.valueOf(message.getQos().getCode());
     }
 
     public boolean isDuplicate() {
-        return message.isDup();
+        return false;
     }
 
     public boolean isRetain() {
@@ -37,7 +39,7 @@ public class ReceivingMqttMessage implements MqttMessage<byte[]> {
     }
 
     public String getTopic() {
-        return message.topicName();
+        return message.getTopic().toString();
     }
 
     @Override
