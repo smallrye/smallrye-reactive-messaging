@@ -43,17 +43,18 @@ public class MqttSource {
         this.source = ReactiveStreams.fromPublisher(
                 holder.connect()
                         .onItem()
-                        .transformToMulti(client -> Multi.createFrom()
-                                .converter(MultiRxConverters.fromFlowable(), client.subscribePublishesWith()
-                                        .topicFilter(topic).qos(MqttQos.fromCode(qos))
-                                        .applySubscribe())
-                                //TODO: do we really need this ?
-                                .filter(m -> matches(topic, m))
-                                .onItem()
-                                .transform(x -> {
-                                    subscribed.set(true);
-                                    return new ReceivingMqttMessage(x, onNack);
-                                }))
+                        .transformToMulti(client -> {
+                            return Multi.createFrom()
+                                    .converter(MultiRxConverters.fromFlowable(), client.subscribePublishesWith()
+                                            .topicFilter(topic).qos(MqttQos.fromCode(qos))
+                                            .applySubscribe().doOnSingle(subAck -> {
+                                                subscribed.set(true);
+                                            }))
+                                    //TODO: do we really need this ?
+                                    .filter(m -> matches(topic, m))
+                                    .onItem()
+                                    .transform(x -> new ReceivingMqttMessage(x, onNack));
+                        })
                         .stage(multi -> {
                             if (broadcast) {
                                 return multi.broadcast().toAllSubscribers();
