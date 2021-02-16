@@ -102,6 +102,7 @@ public class MqttSink {
                 .topic(actualTopicToBeUsed)
                 .qos(actualQoS)
                 .payload(convert(msg.getPayload()))
+                .retain(isRetain)
                 .build()));
 
         return Uni.createFrom().converter(UniRxConverters.fromFlowable(), publish)

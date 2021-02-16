@@ -24,14 +24,9 @@ import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
 import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck;
-import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.converters.uni.UniRxConverters;
-import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 
 public class Clients {
 
@@ -56,16 +51,12 @@ public class Clients {
         String server = options.getServerName().orElse("");
         String clientId = options.getClientId().orElse("");
 
-        String id = keyForClient(host, port, server, clientId);
+        String id = host + port + "<" + server + ">-[" + clientId + "]";
 
         return clients.computeIfAbsent(id, key -> {
             Mqtt3RxClient client = create(host, port, options);
-            return new ClientHolder(client, host, port, server);
+            return new ClientHolder(client);
         });
-    }
-
-    private static String keyForClient(String host, int port, String server, String clientId) {
-        return host + port + "<" + server + ">-[" + clientId + "]";
     }
 
     static Mqtt3RxClient create(String brokerHost, int brokerPort, MqttConnectorCommonConfiguration options) {
@@ -115,19 +106,12 @@ public class Clients {
 
         private final Mqtt3RxClient client;
         private final Uni<Mqtt3ConnAck> connection;
-        private final BroadcastProcessor<Mqtt3Publish> messages;
 
-        public ClientHolder(Mqtt3RxClient client, String host, int port, String server) {
+        public ClientHolder(Mqtt3RxClient client) {
             this.client = client;
-            final Single<Mqtt3ConnAck> connect = client.connect();
+
             this.connection = Uni.createFrom().converter(UniRxConverters.fromSingle(), client.connect()).memoize()
                     .indefinitely();
-            messages = BroadcastProcessor.create();
-
-            client.publish(Flowable.fromPublisher(messages));
-            client.disconnect().andThen(messages);
-            connect.doOnError(t -> messages.onError(t));
-            //connect.doOnTerminate( () --> messages.onComplete());
         }
 
         public Uni<Mqtt3RxClient> connect() {
@@ -140,10 +124,6 @@ public class Clients {
             if (mqtt3BlockingClient.getState().isConnected()) {
                 mqtt3BlockingClient.disconnect();
             }
-        }
-
-        public Multi<Mqtt3Publish> stream() {
-            return messages;
         }
     }
 
