@@ -173,7 +173,8 @@ public class MqttSourceTest extends MqttTestBase {
         ConsumptionBean bean = deploy();
 
         await()
-                .until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+                .until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt-hivemq")).get()
+                        .isReady());
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();

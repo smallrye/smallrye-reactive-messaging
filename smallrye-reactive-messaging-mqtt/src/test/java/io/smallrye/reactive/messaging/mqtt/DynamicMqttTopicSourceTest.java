@@ -40,7 +40,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
     private void awaitAndVerify() {
         DynamicTopicApp bean = container.getBeanManager().createInstance().select(DynamicTopicApp.class).get();
         MqttConnector connector = this.container
-                .select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();
+                .select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt-hivemq")).get();
 
         await()
                 .pollInterval(Duration.ofSeconds(1))

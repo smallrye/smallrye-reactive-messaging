@@ -47,7 +47,8 @@ public class ConnectionSharingTest extends MqttTestBase {
         App bean = container.getBeanManager().createInstance().select(App.class).get();
 
         await()
-                .until(() -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+                .until(() -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt-hivemq")).get()
+                        .isReady());
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.prices().size() >= 10);
         assertThat(bean.prices()).isNotEmpty();
