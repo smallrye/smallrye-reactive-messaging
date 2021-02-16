@@ -76,7 +76,7 @@
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>5.0.0</smallrye-fault-tolerance.version>
 
-    <mutiny.version>0.13.0</mutiny.version>
+    <mutiny.version>0.14.0</mutiny.version>
     <artemis.version>2.16.0</artemis.version>
 
     <jboss-log-manager.version>2.1.18.Final</jboss-log-manager.version>
@@ -84,8 +84,8 @@
     <opentelemetry.version>0.16.0</opentelemetry.version>
     <opentelemetry-semver.version>0.16.0-alpha</opentelemetry-semver.version>
 
-    <smallrye-reactive-converter-api.version>2.0.0</smallrye-reactive-converter-api.version>
-    <smallrye-vertx-mutiny-clients.version>2.0.0</smallrye-vertx-mutiny-clients.version>
+    <smallrye-reactive-converter-api.version>2.1.1</smallrye-reactive-converter-api.version>
+    <smallrye-vertx-mutiny-clients.version>2.1.1</smallrye-vertx-mutiny-clients.version>
 
     <testcontainers.version>1.15.1</testcontainers.version>
 
