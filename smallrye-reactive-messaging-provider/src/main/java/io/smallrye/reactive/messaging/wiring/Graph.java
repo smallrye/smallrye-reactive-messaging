@@ -82,13 +82,31 @@ public class Graph {
         List<Wiring.Component> current = new ArrayList<>(inbound);
         while (!current.isEmpty()) {
             List<Wiring.Component> downstreams = new ArrayList<>();
+            List<Wiring.Component> toBeMaterialized = new ArrayList<>();
             for (Wiring.Component cmp : current) {
-                if (!materialized.contains(cmp) && allUpstreamsMaterialized(cmp, materialized)) {
-                    cmp.materialize(registry);
-                    downstreams.addAll(cmp.downstreams());
-                    materialized.add(cmp);
+                if (!materialized.contains(cmp) && !toBeMaterialized.contains(cmp)
+                        && allUpstreamsMaterialized(cmp, materialized)) {
+                    toBeMaterialized.add(cmp);
                 }
             }
+
+            // Sort the component that can be materialized during this iteration
+            // Emitter connector first.
+            toBeMaterialized.sort((o1, o2) -> {
+                if (o1.equals(o2)) {
+                    return 0;
+                }
+                if (o1 instanceof Wiring.EmitterComponent) {
+                    return -1;
+                }
+                return 1;
+            });
+            toBeMaterialized.forEach(c -> {
+                c.materialize(registry);
+                downstreams.addAll(c.downstreams());
+                materialized.add(c);
+            });
+
             current.removeAll(materialized);
             current.addAll(downstreams);
         }
