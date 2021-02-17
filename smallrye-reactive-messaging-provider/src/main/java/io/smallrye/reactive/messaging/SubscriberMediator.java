@@ -99,12 +99,27 @@ public class SubscriberMediator extends AbstractMediator {
             @Override
             public void onSubscribe(Subscription s) {
                 subscription.set(s);
-                delegate.onSubscribe(s);
+                delegate.onSubscribe(new Subscription() {
+                    @Override
+                    public void request(long n) {
+                        s.request(n);
+                    }
+
+                    @Override
+                    public void cancel() {
+                        s.cancel();
+                    }
+                });
             }
 
             @Override
             public void onNext(Message<?> o) {
-                delegate.onNext(o);
+                try {
+                    delegate.onNext(o);
+                } catch (Exception e) {
+                    log.messageProcessingException(e);
+                    syncErrorCatcher.set(e);
+                }
             }
 
             @Override
@@ -120,7 +135,7 @@ public class SubscriberMediator extends AbstractMediator {
             }
         };
 
-        this.source.to(delegating).run();
+        this.source.buildRs().subscribe(delegating);
         // Check if a synchronous error has been caught
         Throwable throwable = syncErrorCatcher.get();
         if (throwable != null) {
@@ -251,14 +266,14 @@ public class SubscriberMediator extends AbstractMediator {
         }
 
         if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
-            Subscriber<Object> sub;
+            Subscriber<Object> userSubscriber;
             if (result instanceof Subscriber) {
-                sub = (Subscriber<Object>) result;
+                userSubscriber = (Subscriber<Object>) result;
             } else {
-                sub = ((SubscriberBuilder<Object, Void>) result).build();
+                userSubscriber = ((SubscriberBuilder<Object, Void>) result).build();
             }
 
-            SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(sub, Message::getPayload,
+            SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(userSubscriber, Message::getPayload,
                     (m, t) -> {
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                             if (t != null) {
@@ -276,11 +291,12 @@ public class SubscriberMediator extends AbstractMediator {
                             return future;
                         }
                     });
+
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
-                    .via(wrapper)
-                    .onError(this::reportFailure)
-                    .ignore();
+                    .to(wrapper);
+            //                    .onError(this::reportFailure)
+            //                    .ignore();
         } else {
             Subscriber<Message<?>> sub;
             if (result instanceof Subscriber) {
