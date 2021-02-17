@@ -154,5 +154,4 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
         List<SubscriberBuilder<? extends Message<?>, Void>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
     }
-
 }
