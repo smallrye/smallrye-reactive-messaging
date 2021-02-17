@@ -84,7 +84,7 @@
     <opentelemetry.version>0.16.0</opentelemetry.version>
     <opentelemetry-semver.version>0.16.0-alpha</opentelemetry-semver.version>
 
-    <smallrye-reactive-converter-api.version>1.4.0</smallrye-reactive-converter-api.version>
+    <smallrye-reactive-converter-api.version>2.1.1</smallrye-reactive-converter-api.version>
     <smallrye-vertx-mutiny-clients.version>1.4.0</smallrye-vertx-mutiny-clients.version>
 
     <testcontainers.version>1.15.2</testcontainers.version>
