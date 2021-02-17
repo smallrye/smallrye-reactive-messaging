@@ -44,13 +44,13 @@ public class MqttSink {
                 .flatMapCompletionStage(msg -> {
                     Mqtt3RxClient client = reference.get();
                     if (client != null) {
-                        if (client.toBlocking().getState().isConnected()) {
+                        if (client.getState().isConnected()) {
                             connected.set(true);
                             return CompletableFuture.completedFuture(msg);
                         } else {
                             CompletableFuture<Message<?>> future = new CompletableFuture<>();
                             vertx.setPeriodic(100, id -> {
-                                if (client.toBlocking().getState().isConnected()) {
+                                if (client.getState().isConnected()) {
                                     vertx.cancelTimer(id);
                                     connected.set(true);
                                     future.complete(msg);
