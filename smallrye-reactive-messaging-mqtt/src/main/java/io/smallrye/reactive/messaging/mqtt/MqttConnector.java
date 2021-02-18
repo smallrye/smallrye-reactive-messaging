@@ -21,6 +21,8 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
@@ -51,7 +53,9 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`", defaultValue = "fail")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "ca-cart-file", direction = INCOMING_AND_OUTGOING, description = "File containing the self-signed CA for SSL connection", type = "string")
-public class MqttConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+@ConnectorAttribute(name = "readiness-timeout", direction = INCOMING_AND_OUTGOING, description = "Timeout for declaring the MQTT Client not ready", type = "int", defaultValue = "20000")
+@ConnectorAttribute(name = "liveness-timeout", direction = INCOMING_AND_OUTGOING, description = "Timeout for declaring the MQTT Client not alive", type = "int", defaultValue = "120000")
+public class MqttConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt-hivemq";
 
@@ -102,4 +106,21 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
         Clients.clear();
     }
+
+    public HealthReport getReadiness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+
+        Clients.checkReadiness(builder);
+
+        return builder.build();
+    }
+
+    public HealthReport getLiveness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+
+        Clients.checkLiveness(builder);
+
+        return builder.build();
+    }
+
 }

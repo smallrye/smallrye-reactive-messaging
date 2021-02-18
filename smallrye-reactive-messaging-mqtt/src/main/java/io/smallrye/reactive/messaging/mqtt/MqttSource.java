@@ -22,8 +22,6 @@ public class MqttSource {
     private final Pattern pattern;
 
     public MqttSource(MqttConnectorIncomingConfiguration config) {
-        MqttConnectorIncomingConfiguration options = config;
-
         String topic = config.getTopic().orElseGet(config::getChannel);
         int qos = config.getQos();
         boolean broadcast = config.getBroadcast();
@@ -38,23 +36,21 @@ public class MqttSource {
             pattern = null;
         }
 
-        Clients.ClientHolder holder = Clients.getHolder(options);
+        Clients.ClientHolder holder = Clients.getHolder(config);
 
         this.source = ReactiveStreams.fromPublisher(
                 holder.connect()
                         .onItem()
-                        .transformToMulti(client -> {
-                            return Multi.createFrom()
-                                    .converter(MultiRxConverters.fromFlowable(), client.subscribePublishesWith()
-                                            .topicFilter(topic).qos(MqttQos.fromCode(qos))
-                                            .applySubscribe().doOnSingle(subAck -> {
-                                                subscribed.set(true);
-                                            }))
-                                    //TODO: do we really need this ?
-                                    .filter(m -> matches(topic, m))
-                                    .onItem()
-                                    .transform(x -> new ReceivingMqttMessage(x, onNack));
-                        })
+                        .transformToMulti(client -> Multi.createFrom()
+                                .converter(MultiRxConverters.fromFlowable(), client.subscribePublishesWith()
+                                        .topicFilter(topic).qos(MqttQos.fromCode(qos))
+                                        .applySubscribe().doOnSingle(subAck -> {
+                                            subscribed.set(true);
+                                        }))
+                                //TODO: do we really need this ?
+                                .filter(m -> matches(topic, m))
+                                .onItem()
+                                .transform(x -> new ReceivingMqttMessage(x, onNack)))
                         .stage(multi -> {
                             if (broadcast) {
                                 return multi.broadcast().toAllSubscribers();

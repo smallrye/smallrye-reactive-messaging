@@ -136,3 +136,4 @@ local.properties
 **/nb*.xml
 
 **/.cache/formatter-maven-cache.properties
+.lck
