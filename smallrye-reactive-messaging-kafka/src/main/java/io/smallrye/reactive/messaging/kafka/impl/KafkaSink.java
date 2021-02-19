@@ -50,7 +50,10 @@ public class KafkaSink {
     private final String topic;
     private final String key;
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
-    private final int retries;
+
+    private final long retries;
+    private final int deliveryTimeoutMs;
+
     private final KafkaConnectorOutgoingConfiguration configuration;
     private final List<Throwable> failures = new ArrayList<>();
     private final KafkaSenderProcessor processor;
@@ -79,6 +82,9 @@ public class KafkaSink {
 
         partition = config.getPartition();
         retries = config.getRetries();
+        int defaultDeliveryTimeoutMs = (Integer) ProducerConfig.configDef().defaultValues()
+                .get(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG);
+        deliveryTimeoutMs = kafkaConfiguration.getInteger(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, defaultDeliveryTimeoutMs);
         topic = config.getTopic().orElseGet(config::getChannel);
         key = config.getKey().orElse(null);
         isTracingEnabled = config.getTracingEnabled();
@@ -178,10 +184,14 @@ public class KafkaSink {
                         .emitter(
                                 e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
 
-                if (this.retries > 0) {
+                if (this.retries == Integer.MAX_VALUE) {
+                    uni = uni.onFailure(this::isRecoverable).retry()
+                            .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).expireIn(deliveryTimeoutMs);
+                } else if (this.retries > 0) {
                     uni = uni.onFailure(this::isRecoverable).retry()
                             .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
                 }
+
                 return uni
                         .onFailure().recoverWithUni(t -> {
                             // Log and nack the messages on failure.
