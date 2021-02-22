@@ -12,8 +12,17 @@ update_configs:
                 dependency_name: "io.vertx:vertx-stack-depchain"
                 version_requirement: "<=4.0.0"
           - match:
-               dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-*"
+               dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-api"
                version_requirement: "<=2.0.0"
+          - match:
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-rxjava2"
+                version_requirement: "<=2.0.0"
+          - match:
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-reactor"
+                version_requirement: "<=2.0.0"
+          - match:
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-mutiny"
+                version_requirement: "<=2.0.0"
           - match:
                dependency_name: "io.smallrye.reactive:smallrye-mutiny-vertx-*"
                version_requirement: "<=2.0.0"
@@ -39,7 +48,16 @@ update_configs:
                 dependency_name: "io.vertx:vertx-stack-depchain"
                 version_requirement: ">4.0.0"
           - match:
-                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-*"
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-api"
+                version_requirement: ">2.0.0"
+          - match:
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-rxjava2"
+                version_requirement: ">2.0.0"
+          - match:
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-reactor"
+                version_requirement: ">2.0.0"
+          - match:
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-mutiny"
                 version_requirement: ">2.0.0"
           - match:
                 dependency_name: "io.smallrye.reactive:smallrye-mutiny-vertx-*"
