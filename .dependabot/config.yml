@@ -82,4 +82,3 @@ update_configs:
                     dependency_name: "com.amazonaws:aws-java-sdk-sns"
             -   match:
                     dependency_name: "com.google.cloud:libraries-bom"
-
