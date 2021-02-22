@@ -1,0 +1,25 @@
+version: 1
+update_configs:
+    # 2.x branch - Vert.x 3.x
+    - package_manager: "java:maven"
+      directory: "/"
+      update_schedule: "daily"
+      target_branch: "master"
+      default_reviewers:
+        - "cescoffier"
+      ignored_updates:
+          - match:
+                dependency_name: "io.vertx:vertx-stack-depchain"
+                version_requirement: "[4.0.0,)"
+
+      # 3.x branch - Vert.x 4.x
+    - package_manager: "java:maven"
+      directory: "/"
+      update_schedule: "daily"
+      target_branch: "3.x"
+      default_reviewers:
+          - "cescoffier"
+      ignored_updates:
+          - match:
+                dependency_name: "io.vertx:vertx-stack-depchain"
+                version_requirement: "[3.9.0,4.0.0)"
