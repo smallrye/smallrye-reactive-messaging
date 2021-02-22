@@ -4,9 +4,9 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.kafka.common.header.Headers;
 
-import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 
-public class HeaderInjectAdapter implements TextMapPropagator.Setter<Headers> {
+public class HeaderInjectAdapter implements TextMapSetter<Headers> {
     public static final HeaderInjectAdapter SETTER = new HeaderInjectAdapter();
 
     @Override
