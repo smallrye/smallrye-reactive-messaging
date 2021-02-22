@@ -44,8 +44,11 @@ update_configs:
                     dependency_name: "com.google.cloud:libraries-bom"
                     version_requirement: ">=3.0.0"
             -   match:
-                    dependency_name: "io.smallrye:smallrye-fault-tolerance"
-                    version_requirement: ">=5.0.0"
+                    dependency_name: "org.eclipse:yasson"
+            -   match:
+                    dependency_name: "software.amazon.awssdk:*"
+            -   match:
+                    dependency_name: "com.google.cloud:libraries-bom"
 
         # 3.x branch - Vert.x 4.x, smallrye-reactive-converter-api 2.x, MP4
     -   package_manager: "java:maven"
@@ -89,3 +92,4 @@ update_configs:
                     dependency_name: "com.amazonaws:aws-java-sdk-sns"
             -   match:
                     dependency_name: "com.google.cloud:libraries-bom"
+                    
