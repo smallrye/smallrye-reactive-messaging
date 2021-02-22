@@ -75,7 +75,7 @@
     <smallrye-health.version>3.0.1</smallrye-health.version>
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>5.0.0</smallrye-fault-tolerance.version>
-    
+
     <mutiny.version>0.14.0</mutiny.version>
     <artemis.version>2.17.0</artemis.version>
 
