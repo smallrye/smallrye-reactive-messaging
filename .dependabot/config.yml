@@ -33,6 +33,8 @@ update_configs:
             -   match:
                     dependency_name: "software.amazon.awssdk:*"
             -   match:
+                    dependency_name: "com.amazonaws:aws-java-sdk-sns"
+            -   match:
                     dependency_name: "com.google.cloud:libraries-bom"
 
         # 3.x branch - Vert.x 4.x, smallrye-reactive-converter-api 2.x, MP4
@@ -64,6 +66,8 @@ update_configs:
                     dependency_name: "org.eclipse:yasson"
             -   match:
                     dependency_name: "software.amazon.awssdk:*"
+            -   match:
+                    dependency_name: "com.amazonaws:aws-java-sdk-sns"
             -   match:
                     dependency_name: "com.google.cloud:libraries-bom"
 
