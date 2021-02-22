@@ -10,7 +10,7 @@ update_configs:
       ignored_updates:
           - match:
                 dependency_name: "io.vertx:vertx-stack-depchain"
-                version_requirement: "[4.0.0,)"
+                version_requirement: "<=4.0.0"
 
       # 3.x branch - Vert.x 4.x
     - package_manager: "java:maven"
@@ -22,4 +22,4 @@ update_configs:
       ignored_updates:
           - match:
                 dependency_name: "io.vertx:vertx-stack-depchain"
-                version_requirement: "[3.9.0,4.0.0)"
+                version_requirement: ">4.0.0"
