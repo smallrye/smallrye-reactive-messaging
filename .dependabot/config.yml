@@ -12,10 +12,10 @@ update_configs:
                 dependency_name: "io.vertx:vertx-stack-depchain"
                 version_requirement: "<=4.0.0"
           - match:
-               dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-api"
+               dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-*"
                version_requirement: "<=2.0.0"
           - match:
-               dependency_name: "io.smallrye.reactive:smallrye-mutiny-vertx*"
+               dependency_name: "io.smallrye.reactive:smallrye-mutiny-vertx-*"
                version_requirement: "<=2.0.0"
           - match:
                 dependency_name: "org.eclipse.microprofile.metrics:microprofile-metrics-api"
@@ -36,10 +36,10 @@ update_configs:
                 dependency_name: "io.vertx:vertx-stack-depchain"
                 version_requirement: ">4.0.0"
           - match:
-                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-api"
+                dependency_name: "io.smallrye.reactive:smallrye-reactive-converter-*"
                 version_requirement: ">2.0.0"
           - match:
-                dependency_name: "io.smallrye.reactive:smallrye-mutiny-vertx*"
+                dependency_name: "io.smallrye.reactive:smallrye-mutiny-vertx-*"
                 version_requirement: ">2.0.0"
           - match:
                 dependency_name: "org.eclipse.microprofile.metrics:microprofile-metrics-api"
