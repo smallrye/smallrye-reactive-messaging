@@ -48,7 +48,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>
-      <version>1.11.661</version>
+      <version>1.11.959</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
