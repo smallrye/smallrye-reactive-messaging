@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
@@ -335,7 +336,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         private final Queue<OffsetReceivedAt> receivedOffsets = new LinkedList<>();
         private final Set<Long> processedOffsets = new HashSet<>();
         private final int unprocessedRecordMaxAge;
-        private long unProcessedTotal = 0L;
+        private final AtomicLong unProcessedTotal = new AtomicLong();
         private long lastCommitted = -1;
 
         OffsetStore(TopicPartition topicPartition, int unprocessedRecordMaxAge) {
@@ -349,7 +350,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         void received(long offset) {
             this.receivedOffsets.offer(OffsetReceivedAt.received(offset));
-            unProcessedTotal++;
+            unProcessedTotal.incrementAndGet();
         }
 
         void processed(long offset) {
@@ -365,7 +366,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                     if (!processedOffsets.remove(receivedOffsets.peek().getOffset())) {
                         break;
                     }
-                    unProcessedTotal--;
+                    unProcessedTotal.decrementAndGet();
                     OffsetReceivedAt poll = receivedOffsets.poll();
                     if (poll != null) {
                         largestSequentialProcessedOffset = poll.getOffset();
@@ -387,10 +388,14 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             OffsetReceivedAt peek = receivedOffsets.peek();
             long time = peek == null ? 0 : (System.currentTimeMillis() - peek.getReceivedAt());
             if (time > unprocessedRecordMaxAge) {
-                log.receivedTooManyMessagesWithoutAcking(topicPartition.toString(), unProcessedTotal, lastCommitted);
+                log.receivedTooManyMessagesWithoutAcking(topicPartition.toString(), unProcessedTotal.get(), lastCommitted);
                 return true;
             }
             return false;
+        }
+
+        long getUnprocessedCount() {
+            return unProcessedTotal.get();
         }
     }
 
@@ -403,12 +408,37 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     @Override
     public void terminate() {
+        long stillUnprocessed = waitForProcessing();
+        if (stillUnprocessed > 0) {
+            log.messageStillUnprocessedAfterTimeout(stillUnprocessed);
+        }
+
         commitAllAndAwait();
         runOnContextAndAwait(() -> {
             offsetStores.clear();
             stopFlushAndCheckHealthTimer();
             return null;
         });
+    }
+
+    private long waitForProcessing() {
+        int attempt = autoCommitInterval / 100;
+        for (int i = 0; i < attempt; i++) {
+            long sum = offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
+            if (sum == 0) {
+                return sum;
+            }
+            log.waitingForMessageProcessing(sum);
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        return offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
+
     }
 
     private void commitAllAndAwait() {
