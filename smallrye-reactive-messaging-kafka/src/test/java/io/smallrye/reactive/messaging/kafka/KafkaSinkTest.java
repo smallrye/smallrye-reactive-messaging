@@ -523,7 +523,6 @@ public class KafkaSinkTest extends KafkaTestBase {
                 });
 
         KafkaMapBasedConfig config = getKafkaSinkConfigWithMultipleUpstreams(topic);
-        System.out.println(config);
         runApplication(config, BeanWithMultipleUpstreams.class);
 
         await().until(this::isReady);

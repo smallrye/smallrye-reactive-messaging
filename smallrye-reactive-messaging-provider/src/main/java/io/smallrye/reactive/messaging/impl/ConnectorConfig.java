@@ -160,6 +160,9 @@ public class ConnectorConfig implements Config {
     @Override
     public Iterable<String> getPropertyNames() {
         String prefix = this.prefix + name + ".";
+        if (name.contains(".")) {
+            prefix = this.prefix + "\"" + name + "\".";
+        }
         String prefixAlpha = toAlpha(prefix);
         String prefixAlphaUpper = prefixAlpha.toUpperCase();
         String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
@@ -208,7 +211,7 @@ public class ConnectorConfig implements Config {
     }
 
     private boolean nameExists(String name) {
-        return overall.getConfigValue(name).getRawValue() == null ? false : true;
+        return overall.getConfigValue(name).getRawValue() != null;
     }
 
     @Override
