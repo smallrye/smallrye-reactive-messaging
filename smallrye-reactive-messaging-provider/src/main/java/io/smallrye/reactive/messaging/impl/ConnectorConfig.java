@@ -133,6 +133,9 @@ public class ConnectorConfig implements Config {
     public Iterable<String> getPropertyNames() {
         String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
         String prefix = this.prefix + name + ".";
+        if (name.contains(".")) {
+            prefix = this.prefix + "\"" + name + "\".";
+        }
         String prefixFromEnv = toEnv(prefix);
         String connectorPrefixFromEnv = toEnv(connectorPrefix);
 
