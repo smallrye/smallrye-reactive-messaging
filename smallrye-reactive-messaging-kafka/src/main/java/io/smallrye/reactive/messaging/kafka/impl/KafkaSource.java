@@ -33,6 +33,7 @@ import io.smallrye.reactive.messaging.kafka.commit.*;
 import io.smallrye.reactive.messaging.kafka.fault.*;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceReadinessHealth;
 import io.vertx.core.AsyncResult;
+import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
@@ -375,6 +376,16 @@ public class KafkaSource<K, V> {
 
     public void closeQuietly() {
         try {
+            Set<TopicPartition> partitions = this.consumer.assignmentAndAwait();
+            if (!partitions.isEmpty()) {
+                log.pauseAllPartitionOnTermination();
+                this.consumer.pauseAndAwait(partitions);
+                // 2 times the poll timeout - so we are sure that the last (non-empty) poll has completed.
+                grace(Duration.ofSeconds(2));
+
+                // If we don't have assignment, no need to wait.
+            }
+
             this.commitHandler.terminate();
             this.failureHandler.terminate();
             this.consumer.closeAndAwait();
@@ -384,6 +395,14 @@ public class KafkaSource<K, V> {
 
         if (health != null) {
             health.close();
+        }
+    }
+
+    private void grace(Duration duration) {
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
