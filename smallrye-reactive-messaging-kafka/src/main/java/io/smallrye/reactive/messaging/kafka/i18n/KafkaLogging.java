@@ -190,4 +190,15 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18241, value = "The deserialization failure handler `%s` throws an exception")
     void deserializationFailureHandlerFailure(String instance, @Cause Throwable t);
 
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18243, value = "Shutting down - Pausing all topic/partitions")
+    void pauseAllPartitionOnTermination();
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18244, value = "Shutting down - Waiting for message processing to complete, %d messages still in processing")
+    void waitingForMessageProcessing(long p);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18245, value = "There are still %d unprocessed messages after the closing timeout")
+    void messageStillUnprocessedAfterTimeout(long unprocessed);
 }
