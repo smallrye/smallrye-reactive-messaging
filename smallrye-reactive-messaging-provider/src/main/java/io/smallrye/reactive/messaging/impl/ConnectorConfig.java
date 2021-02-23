@@ -163,6 +163,7 @@ public class ConnectorConfig implements Config {
         if (name.contains(".")) {
             prefix = this.prefix + "\"" + name + "\".";
         }
+
         String prefixAlpha = toAlpha(prefix);
         String prefixAlphaUpper = prefixAlpha.toUpperCase();
         String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
