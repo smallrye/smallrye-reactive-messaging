@@ -376,17 +376,19 @@ public class KafkaSource<K, V> {
 
     public void closeQuietly() {
         try {
-            Set<TopicPartition> partitions = this.consumer.assignmentAndAwait();
-            if (!partitions.isEmpty()) {
-                log.pauseAllPartitionOnTermination();
-                this.consumer.pauseAndAwait(partitions);
-                // 2 times the poll timeout - so we are sure that the last (non-empty) poll has completed.
-                grace(Duration.ofSeconds(2));
+            if (configuration.getGracefulShutdown()) {
+                Set<TopicPartition> partitions = this.consumer.assignmentAndAwait();
+                if (!partitions.isEmpty()) {
+                    log.pauseAllPartitionOnTermination();
+                    this.consumer.pauseAndAwait(partitions);
+                    // 2 times the poll timeout - so we are sure that the last (non-empty) poll has completed.
+                    grace(Duration.ofSeconds(2));
 
-                // If we don't have assignment, no need to wait.
+                    // If we don't have assignment, no need to wait.
+                }
             }
 
-            this.commitHandler.terminate();
+            this.commitHandler.terminate(configuration.getGracefulShutdown());
             this.failureHandler.terminate();
             this.consumer.closeAndAwait();
         } catch (Throwable e) {

@@ -69,7 +69,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
     @SuppressWarnings("rawtypes")
     @Test
     public void testFromKafkaToAppWithMetadata() {
-        runApplication(getKafkaSinkConfigForMyAppWithKafkaMetadata(topic), MyAppWithKafkaMetadata.class);
+        runApplication(getKafkaSourceConfigForMyAppWithKafkaMetadata(topic), MyAppWithKafkaMetadata.class);
 
         AtomicInteger value = new AtomicInteger();
         usage.produceIntegers(10, null,
@@ -112,13 +112,14 @@ public class MetadataPropagationTest extends KafkaTestBase {
         builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         builder.put("mp.messaging.incoming.source.bootstrap.servers", getBootstrapServers());
         builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
+        builder.put("mp.messaging.incoming.source.graceful-shutdown", false);
         builder.put("mp.messaging.incoming.source.topic", topicIn);
         builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
         return builder.build();
     }
 
-    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppWithKafkaMetadata(String topic) {
+    private KafkaMapBasedConfig getKafkaSourceConfigForMyAppWithKafkaMetadata(String topic) {
         KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("key.deserializer", StringDeserializer.class.getName());

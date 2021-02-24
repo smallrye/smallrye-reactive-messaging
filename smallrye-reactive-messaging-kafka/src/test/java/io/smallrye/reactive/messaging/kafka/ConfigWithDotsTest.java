@@ -30,6 +30,7 @@ public class ConfigWithDotsTest extends KafkaTestBase {
     public void testConfigurationWithDots() throws InterruptedException {
 
         MapBasedConfig config = new MapBasedConfig()
+                .with("mp.messaging.incoming.\"tc.payments.domain_event.job_created\".graceful-shutdown", false)
                 .with("mp.messaging.incoming.\"tc.payments.domain_event.job_created\".bootstrap.servers",
                         KafkaBrokerExtension.getBootstrapServers())
                 .with("mp.messaging.incoming.\"tc.payments.domain_event.job_created\".connector",
