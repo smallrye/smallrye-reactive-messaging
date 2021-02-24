@@ -85,6 +85,10 @@ public class KafkaMapBasedConfig extends MapBasedConfig {
                 inner.put(getFullKey("connector"), KafkaConnector.CONNECTOR_NAME);
             }
 
+            if (!configValues.containsKey("graceful-shutdown")) {
+                inner.put(getFullKey("graceful-shutdown"), false);
+            }
+
             if (!withTracing && !configValues.containsKey("tracing-enabled")) {
                 inner.put(getFullKey("tracing-enabled"), false);
             }

@@ -407,10 +407,12 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     }
 
     @Override
-    public void terminate() {
-        long stillUnprocessed = waitForProcessing();
-        if (stillUnprocessed > 0) {
-            log.messageStillUnprocessedAfterTimeout(stillUnprocessed);
+    public void terminate(boolean graceful) {
+        if (graceful) {
+            long stillUnprocessed = waitForProcessing();
+            if (stillUnprocessed > 0) {
+                log.messageStillUnprocessedAfterTimeout(stillUnprocessed);
+            }
         }
 
         commitAllAndAwait();

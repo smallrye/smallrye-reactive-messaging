@@ -385,6 +385,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")
                 .with("health-enabled", false)
+                .with("graceful-shutdown", false)
                 .with("value.deserializer", StringDeserializer.class.getName());
     }
 
