@@ -20,6 +20,9 @@ update_configs:
                     dependency_name: "org.eclipse.microprofile.metrics:microprofile-config-api"
                     version_requirement: ">=2.0.0"
             -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:mmicroprofile-health-api"
+                    version_requirement: ">=3.0"
+            -   match:
                     dependency_name: "io.smallrye:smallrye-health"
                     version_requirement: ">=3.0.0"
             -   match:
@@ -59,6 +62,9 @@ update_configs:
             -   match:
                     dependency_name: "org.eclipse.microprofile.metrics:microprofile-config-api"
                     version_requirement: "<2.0.0"
+            -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:microprofile-health-api"
+                    version_requirement: "<3.0"
             -   match:
                     dependency_name: "io.smallrye:smallrye-health"
                     version_requirement: "<3.0.0"
