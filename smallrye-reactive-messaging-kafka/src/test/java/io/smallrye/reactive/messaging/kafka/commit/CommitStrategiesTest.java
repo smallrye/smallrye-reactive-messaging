@@ -413,6 +413,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     private MapBasedConfig commonConfiguration() {
         return new MapBasedConfig()
                 .with("channel-name", "channel")
+                .with("graceful-shutdown", false)
                 .with("topic", TOPIC)
                 .with("health-enabled", false)
                 .with("value.deserializer", StringDeserializer.class.getName());

@@ -34,7 +34,7 @@ public interface KafkaCommitHandler {
         return record;
     }
 
-    default void terminate() {
+    default void terminate(boolean graceful) {
         // Do nothing by default.
     }
 

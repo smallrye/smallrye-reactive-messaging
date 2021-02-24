@@ -60,6 +60,7 @@ public class KafkaTestBase extends WeldTestBase {
                 "auto.offset.reset", "earliest",
                 "tracing-enabled", false,
                 "topic", topic,
+                "graceful-shutdown", false,
                 "channel-name", topic).build();
     }
 
