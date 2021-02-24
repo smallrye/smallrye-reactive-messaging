@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
@@ -22,7 +22,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class SourceCloseTest extends KafkaTestBase {
 
-    @RepeatedTest(5)
+    @Test
     public void testNoLostMessagesOnClose() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger count = new AtomicInteger();

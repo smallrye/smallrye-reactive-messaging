@@ -722,6 +722,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         config.put("bootstrap.servers", getBootstrapServers());
         config.put("group.id", randomId);
         config.put("key.deserializer", StringDeserializer.class.getName());
+        config.put("graceful-shutdown", false);
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
         config.put("tracing-enabled", false);
