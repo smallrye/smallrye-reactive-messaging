@@ -217,7 +217,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 Optional<T> passedCfgValue = passedCfg.getOptionalValue(propertyName, propertyType);
                 if (!passedCfgValue.isPresent()) {
                     T defaultValue = (T) defaultKafkaCfg.get(propertyName);
-                    return Optional.of(defaultValue);
+                    return Optional.ofNullable(defaultValue);
                 } else {
                     return passedCfgValue;
                 }
