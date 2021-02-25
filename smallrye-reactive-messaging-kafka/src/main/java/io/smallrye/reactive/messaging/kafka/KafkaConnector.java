@@ -205,11 +205,12 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @SuppressWarnings("unchecked")
             @Override
             public <T> T getValue(String propertyName, Class<T> propertyType) {
-                T t = (T) defaultKafkaCfg.get(propertyName);
-                if (t == null) {
-                    return passedCfg.getValue(propertyName, propertyType);
+                T passedCgfValue = passedCfg.getValue(propertyName, propertyType);
+                if (passedCgfValue == null) {
+                    return (T) defaultKafkaCfg.get(propertyName);
+                } else {
+                    return passedCgfValue;
                 }
-                return t;
             }
 
             @Override
@@ -220,11 +221,13 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @SuppressWarnings("unchecked")
             @Override
             public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-                T def = (T) defaultKafkaCfg.get(propertyName);
-                if (def != null) {
-                    return Optional.of(def);
+                Optional<T> passedCfgValue = passedCfg.getOptionalValue(propertyName, propertyType);
+                if (!passedCfgValue.isPresent()) {
+                    T defaultValue = (T) defaultKafkaCfg.get(propertyName);
+                    return Optional.ofNullable(defaultValue);
+                } else {
+                    return passedCfgValue;
                 }
-                return passedCfg.getOptionalValue(propertyName, propertyType);
             }
 
             @Override
