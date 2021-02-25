@@ -19,7 +19,7 @@ public class JsonHelper {
             // As kafka properties use `.`, transform "_" into "."
             String key = originalKey.toLowerCase().replace("_", ".");
             try {
-                Optional<Integer> i = config.getOptionalValue(originalKey, Integer.class);
+                Optional<Integer> i = config.getOptionalValue(key, Integer.class);
                 if (i.isPresent() && i.get() instanceof Integer) {
                     json.put(key, i.get());
                     continue;
@@ -29,7 +29,7 @@ public class JsonHelper {
             }
 
             try {
-                Optional<Double> d = config.getOptionalValue(originalKey, Double.class);
+                Optional<Double> d = config.getOptionalValue(key, Double.class);
                 if (d.isPresent() && d.get() instanceof Double) {
                     json.put(key, d.get());
                     continue;
@@ -39,22 +39,25 @@ public class JsonHelper {
             }
 
             try {
-                String value = config.getOptionalValue(originalKey, String.class).orElse("").trim();
-                if (value.equalsIgnoreCase("false")) {
-                    json.put(key, false);
-                } else if (value.equalsIgnoreCase("true")) {
-                    json.put(key, true);
-                } else {
-                    json.put(key, value);
+                Optional<String> s = config.getOptionalValue(key, String.class);
+                if (s.isPresent()) {
+                    String value = s.get().trim();
+                    if (value.equalsIgnoreCase("false")) {
+                        json.put(key, false);
+                    } else if (value.equalsIgnoreCase("true")) {
+                        json.put(key, true);
+                    } else {
+                        json.put(key, value);
+                    }
+                    continue;
                 }
-                continue;
             } catch (ClassCastException e) {
                 // Ignore me
             }
 
             // We need to do boolean last, as it would return `false` for any non parsable object.
             try {
-                Optional<Boolean> d = config.getOptionalValue(originalKey, Boolean.class);
+                Optional<Boolean> d = config.getOptionalValue(key, Boolean.class);
                 d.ifPresent(v -> json.put(key, v));
             } catch (ClassCastException | IllegalArgumentException e) {
                 // Ignore the entry
