@@ -2,8 +2,7 @@ package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
@@ -19,6 +18,8 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
+import io.vertx.mutiny.kafka.client.producer.KafkaHeader;
 import io.vertx.mutiny.kafka.client.producer.KafkaProducer;
 import io.vertx.mutiny.kafka.client.producer.KafkaProducerRecord;
 
@@ -49,6 +50,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         Map<String, String> deadQueueProducerConfig = new HashMap<>(kafkaConfiguration);
         String keyDeserializer = deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
         String valueDeserializer = deadQueueProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
+
+        // We need to remove consumer interceptor
+        deadQueueProducerConfig.remove(INTERCEPTOR_CLASSES_CONFIG);
+
         deadQueueProducerConfig.put(KEY_SERIALIZER_CLASS_CONFIG,
                 conf.getDeadLetterQueueKeySerializer().orElse(getMirrorSerializer(keyDeserializer)));
         deadQueueProducerConfig.put(VALUE_SERIALIZER_CLASS_CONFIG,
@@ -99,6 +104,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         dead.addHeader(DEAD_LETTER_TOPIC, record.getTopic());
         dead.addHeader(DEAD_LETTER_PARTITION, Integer.toString(record.getPartition()));
         dead.addHeader(DEAD_LETTER_OFFSET, Long.toString(record.getOffset()));
+        record.getHeaders().forEach(header -> dead.addHeader(KafkaHeader.header(header.key(), Buffer.buffer(header.value()))));
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
                 .onFailure().invoke(t -> source.reportFailure((Throwable) t, true))

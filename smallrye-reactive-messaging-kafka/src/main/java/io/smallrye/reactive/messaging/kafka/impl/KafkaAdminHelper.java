@@ -15,14 +15,22 @@ public class KafkaAdminHelper {
     }
 
     public static KafkaAdminClient createAdminClient(Vertx vertx,
-            Map<String, Object> kafkaConfigurationMap, String channel) {
+            Map<String, Object> kafkaConfigurationMap, String channel, boolean incoming) {
         Map<String, String> copy = new HashMap<>();
         for (Map.Entry<String, Object> entry : kafkaConfigurationMap.entrySet()) {
             if (AdminClientConfig.configNames().contains(entry.getKey())) {
                 copy.put(entry.getKey(), entry.getValue().toString());
+            } else if (entry.getKey().startsWith("sasl.")) {
+                copy.put(entry.getKey(), entry.getValue().toString());
             }
         }
-        copy.put(AdminClientConfig.CLIENT_ID_CONFIG, "kafka-admin-" + channel);
+        copy.put(AdminClientConfig.CLIENT_ID_CONFIG, "kafka-admin-" + (incoming ? "incoming-" : "outgoing-") + channel);
+
+        if (!kafkaConfigurationMap.containsKey(AdminClientConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
+            // If no backoff is set, use 10s, it avoids high load on disconnection.
+            copy.put(AdminClientConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "10000");
+        }
+
         return KafkaAdminClient.create(vertx, copy);
     }
 }

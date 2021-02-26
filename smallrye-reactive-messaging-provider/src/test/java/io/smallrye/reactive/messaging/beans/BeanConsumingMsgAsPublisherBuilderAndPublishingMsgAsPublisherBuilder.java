@@ -14,7 +14,7 @@ public class BeanConsumingMsgAsPublisherBuilderAndPublishingMsgAsPublisherBuilde
 
     @Incoming("count")
     @Outgoing("sink")
-    public PublisherBuilder<Message<String>> process(PublisherBuilder<Message<Integer>> source) {
+    PublisherBuilder<Message<String>> process(PublisherBuilder<Message<Integer>> source) {
         return source
                 .map(Message::getPayload)
                 .map(i -> i + 1)

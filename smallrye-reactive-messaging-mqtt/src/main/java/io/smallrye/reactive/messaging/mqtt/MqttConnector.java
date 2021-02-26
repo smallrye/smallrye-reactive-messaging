@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -50,6 +49,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "qos", type = "int", defaultValue = "0", direction = INCOMING_AND_OUTGOING, description = "Set the QoS level when subscribing to the topic or when sending a message")
 @ConnectorAttribute(name = "broadcast", description = "Whether or not the messages should be dispatched to multiple consumers", type = "boolean", direction = INCOMING, defaultValue = "false")
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`", defaultValue = "fail")
+@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 public class MqttConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt";

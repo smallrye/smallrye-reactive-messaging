@@ -16,7 +16,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class MqttSourceTest extends MqttTestBase {
 
@@ -171,7 +171,6 @@ public class MqttSourceTest extends MqttTestBase {
     @Test
     public void testABeanConsumingTheMQTTMessages() {
         ConsumptionBean bean = deploy();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
 
         await()
                 .until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());

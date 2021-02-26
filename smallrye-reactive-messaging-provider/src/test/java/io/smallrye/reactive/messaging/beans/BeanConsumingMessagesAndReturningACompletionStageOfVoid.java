@@ -20,7 +20,7 @@ public class BeanConsumingMessagesAndReturningACompletionStageOfVoid {
     }
 
     @Incoming("count")
-    public CompletionStage<Void> consume(Message<String> message) {
+    CompletionStage<Void> consume(Message<String> message) {
         return CompletableFuture.supplyAsync(() -> {
             list.add(message.getPayload());
             return null;

@@ -1,17 +1,19 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
+import static io.smallrye.reactive.messaging.kafka.base.MockKafkaUtils.injectMockConsumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
-import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.spi.DeploymentException;
+import javax.enterprise.util.TypeLiteral;
 import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.*;
@@ -22,15 +24,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 public class CommitStrategiesTest extends WeldTestBase {
 
@@ -38,6 +37,8 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     public Vertx vertx;
     private MockConsumer<String, String> consumer;
+
+    private KafkaSource<String, String> source;
 
     @BeforeEach
     public void initializing() {
@@ -47,6 +48,9 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @AfterEach
     void closing() {
+        if (source != null) {
+            source.closeQuietly();
+        }
         vertx.closeAndAwait();
     }
 
@@ -54,9 +58,9 @@ public class CommitStrategiesTest extends WeldTestBase {
     void testLatestCommitStrategy() {
         MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
                 UUID.randomUUID().toString());
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -144,9 +148,9 @@ public class CommitStrategiesTest extends WeldTestBase {
         MapBasedConfig config = commonConfiguration()
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -206,9 +210,9 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
                 .with("auto.commit.interval.ms", 100);
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -275,6 +279,73 @@ public class CommitStrategiesTest extends WeldTestBase {
     }
 
     @Test
+    void testThrottledStrategyWithTooManyUnackedMessages() throws Exception {
+        MapBasedConfig config = commonConfiguration()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("commit-strategy", "throttled")
+                .with("auto.offset.reset", "earliest")
+                .with("health-enabled", true)
+                .with("throttled.unprocessed-record-max-age.ms", 1000)
+                .with("auto.commit.interval.ms", 100);
+        source = new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream()
+                .subscribe().with(list::add);
+
+        TopicPartition p0 = new TopicPartition(TOPIC, 0);
+        TopicPartition p1 = new TopicPartition(TOPIC, 1);
+        Map<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(p0, 0L);
+        offsets.put(p1, 5L);
+        consumer.updateBeginningOffsets(offsets);
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(offsets.keySet());
+            for (int i = 0; i < 500; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i));
+            }
+        });
+
+        // Expected number of messages: 500 messages in each partition minus the [0..5) messages from p1
+        int expected = 500 * 2 - 5;
+        await().until(() -> list.size() == expected);
+        assertThat(list).hasSize(expected);
+
+        // Only ack the one from partition 0, and the 3 first items from partition 1.
+        int count = 0;
+        for (Message<?> message : list) {
+            IncomingKafkaRecordMetadata<?, ?> metadata = message
+                    .getMetadata(IncomingKafkaRecordMetadata.class).orElseThrow(() -> new Exception("metadata expected"));
+            if (metadata.getPartition() == 0) {
+                message.ack().toCompletableFuture().join();
+            } else {
+                if (count < 5) {
+                    message.ack().toCompletableFuture().join();
+                    count = count + 1;
+                }
+            }
+        }
+
+        AtomicReference<HealthReport> report = new AtomicReference<>();
+        await().until(() -> {
+            HealthReport.HealthReportBuilder builder = HealthReport.builder();
+            source.isAlive(builder);
+            HealthReport r = builder.build();
+            report.set(r);
+            return !r.isOk();
+        });
+
+        HealthReport r = report.get();
+        String message = r.getChannels().get(0).getMessage();
+        assertThat(message).contains("my-topic", "partition:1", "9");
+    }
+
+    @Test
     public void testFailureWhenNoRebalanceListenerMatchGivenName() {
         MapBasedConfig config = commonConfiguration();
         config
@@ -283,7 +354,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         assertThatThrownBy(() -> {
             new KafkaSource<>(vertx, "my-group",
                     new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents, -1);
+                    CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -296,7 +367,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         assertThatThrownBy(() -> new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1)).isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
+                        .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }
 
     @Test
@@ -306,9 +378,9 @@ public class CommitStrategiesTest extends WeldTestBase {
         config
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
-        KafkaSource<String, String> source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         injectMockConsumer(source, consumer);
 
@@ -347,23 +419,14 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("value.deserializer", StringDeserializer.class.getName());
     }
 
-    @SuppressWarnings("rawtypes")
-    private void injectMockConsumer(KafkaSource<String, String> source, MockConsumer<String, String> consumer) {
-        try {
-            KafkaConsumer<String, String> cons = source.getConsumer();
-            KafkaReadStream stream = cons.getDelegate().asStream();
-            Field field = stream.getClass().getDeclaredField("consumer");
-            field.setAccessible(true);
-            field.set(stream, consumer);
-            // Close the initial consumer.
-            cons.closeAndAwait();
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to inject mock consumer", e);
-        }
-    }
-
     public Instance<KafkaConsumerRebalanceListener> getConsumerRebalanceListeners() {
         return getBeanManager().createInstance().select(KafkaConsumerRebalanceListener.class);
+    }
+
+    public Instance<DeserializationFailureHandler<?>> getDeserializationFailureHandlers() {
+        return getBeanManager().createInstance().select(
+                new TypeLiteral<DeserializationFailureHandler<?>>() {
+                });
     }
 
     @ApplicationScoped

@@ -22,8 +22,7 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.CamelMessage;
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
-import io.smallrye.reactive.messaging.camel.MapBasedConfig;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class FailureHandlerTest extends CamelTestBase {
 
@@ -41,7 +40,6 @@ public class FailureHandlerTest extends CamelTestBase {
         weld.addBeanClass(MyReceiverBean.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         return container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
     }
 
@@ -92,23 +90,23 @@ public class FailureHandlerTest extends CamelTestBase {
 
     private void getFailConfig() {
         new MapBasedConfig()
-                .put("mp.messaging.incoming.camel.endpoint-uri", "seda:fail")
-                .put("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.camel.endpoint-uri", "seda:fail")
+                .with("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
                 // fail is the default.
                 .write();
     }
 
     private void getIgnoreConfig() {
         new MapBasedConfig()
-                .put("mp.messaging.incoming.camel.endpoint-uri", "seda:ignore")
-                .put("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.camel.failure-strategy", "ignore")
+                .with("mp.messaging.incoming.camel.endpoint-uri", "seda:ignore")
+                .with("mp.messaging.incoming.camel.connector", CamelConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.camel.failure-strategy", "ignore")
                 .write();
     }
 
     @ApplicationScoped
     public static class MyReceiverBean {
-        private List<String> received = new CopyOnWriteArrayList<>();
+        private final List<String> received = new CopyOnWriteArrayList<>();
 
         private static final List<String> SKIPPED = Arrays.asList("3", "6", "9");
 

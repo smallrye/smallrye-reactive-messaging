@@ -28,8 +28,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class MetadataPropagationTest extends KafkaTestBase {
 
@@ -93,15 +93,15 @@ public class MetadataPropagationTest extends KafkaTestBase {
         assertThat(foundMetadata.get()).isTrue();
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
+    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", StringSerializer.class.getName());
         builder.put("topic", "should-not-be-used");
         return builder.build();
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder();
+    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
         builder.put("mp.messaging.outgoing.kafka.value.serializer", StringSerializer.class.getName());
         builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
         builder.put("mp.messaging.outgoing.kafka.bootstrap.servers", getBootstrapServers());
@@ -118,8 +118,8 @@ public class MetadataPropagationTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig getKafkaSinkConfigForMyAppWithKafkaMetadata(String topic) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.kafka");
+    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppWithKafkaMetadata(String topic) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("key.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");

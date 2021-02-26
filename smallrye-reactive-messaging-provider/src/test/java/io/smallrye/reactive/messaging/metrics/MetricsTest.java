@@ -26,7 +26,7 @@ public class MetricsTest extends WeldTestBase {
 
         MyCollector collector = container.select(MyCollector.class).get();
 
-        await().until(() -> collector.hasCompleted());
+        await().until(collector::hasCompleted);
 
         assertEquals(MetricsTestBean.TEST_MESSAGES.size(), getCounter("source").getCount());
 

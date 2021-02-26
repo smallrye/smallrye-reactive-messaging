@@ -138,7 +138,7 @@ public class WorkerPoolRegistry {
 
         // Validate @Blocking is used in conjunction with @Incoming, or @Outgoing
         if (!(method.isAnnotationPresent(Incoming.class) || method.isAnnotationPresent(Outgoing.class))) {
-            throw ex.illegalArgumentForAnnotation("@Blocking", className + "#" + method);
+            throw ex.illegalBlockingSignature(className + "#" + method);
         }
 
         defineWorker(className, methodName, blocking.value());

@@ -76,7 +76,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 log.foundOutgoingConnectors(getConnectors(beanManager, OutgoingConnectorFactory.class));
             }
             this.config = config.stream().findFirst()
-                    .orElseThrow(ex::illegalStateRetieveConfig);
+                    .orElseThrow(ex::illegalStateRetrieveConfig);
         }
     }
 
@@ -150,7 +150,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createPublisherBuilder(channel, config));
+                    registry.register(channel, createPublisherBuilder(channel, config),
+                            config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
                 } else {
                     log.incomingChannelDisabled(channel);
                 }
@@ -160,7 +161,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createSubscriberBuilder(channel, config));
+                    registry.register(channel, createSubscriberBuilder(channel, config),
+                            config.getOptionalValue(ConnectorConfig.MERGE_PROPERTY, Boolean.class).orElse(false));
                 } else {
                     log.outgoingChannelDisabled(channel);
                 }

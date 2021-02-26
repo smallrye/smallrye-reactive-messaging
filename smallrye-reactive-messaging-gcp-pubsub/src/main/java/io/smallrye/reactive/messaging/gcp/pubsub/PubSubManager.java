@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.annotation.PreDestroy;
-import javax.inject.Singleton;
+import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -38,7 +38,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.smallrye.mutiny.subscription.MultiEmitter;
 
-@Singleton
+@ApplicationScoped
 public class PubSubManager {
 
     private final Map<PubSubConfig, Publisher> publishers = new ConcurrentHashMap<>();

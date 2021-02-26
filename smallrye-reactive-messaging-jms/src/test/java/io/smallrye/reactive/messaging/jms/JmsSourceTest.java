@@ -33,7 +33,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
-import io.smallrye.reactive.messaging.jms.support.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class JmsSourceTest extends JmsTestBase {
 
@@ -158,7 +158,7 @@ public class JmsSourceTest extends JmsTestBase {
     @Test
     public void testMultipleRequests() {
         JmsSource source = new JmsSource(jms,
-                new JmsConnectorIncomingConfiguration(new MapBasedConfig.Builder().put("channel-name", "queue").build()),
+                new JmsConnectorIncomingConfiguration(new MapBasedConfig().put("channel-name", "queue")),
                 null, null);
         Publisher<IncomingJmsMessage<?>> publisher = source.getSource().buildRs();
 
@@ -210,8 +210,8 @@ public class JmsSourceTest extends JmsTestBase {
     @Test
     public void testBroadcast() {
         JmsSource source = new JmsSource(jms,
-                new JmsConnectorIncomingConfiguration(new MapBasedConfig.Builder()
-                        .put("channel-name", "queue").put("broadcast", true).build()),
+                new JmsConnectorIncomingConfiguration(new MapBasedConfig()
+                        .put("channel-name", "queue").put("broadcast", true)),
                 null, null);
         PublisherBuilder<IncomingJmsMessage<?>> publisher = source.getSource();
 

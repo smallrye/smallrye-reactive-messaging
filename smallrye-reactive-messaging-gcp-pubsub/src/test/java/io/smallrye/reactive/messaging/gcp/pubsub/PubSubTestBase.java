@@ -27,6 +27,8 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class PubSubTestBase {
 
@@ -97,6 +99,7 @@ public class PubSubTestBase {
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addBeanClass(HealthCenter.class);
+        weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
         weld.addBeanClass(PubSubManager.class);
@@ -110,7 +113,7 @@ public class PubSubTestBase {
         if (config != null) {
             config.write();
         } else {
-            MapBasedConfig.clear();
+            MapBasedConfig.cleanup();
         }
     }
 

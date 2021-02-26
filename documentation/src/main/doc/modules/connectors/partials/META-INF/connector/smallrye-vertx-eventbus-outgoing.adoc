@@ -15,6 +15,10 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `false`
 
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
+
 | *publish* | Whether the to _publish_ the message to multiple Event Bus consumers. You cannot use `publish` in combination with `expect-reply`.
 
 Type: _boolean_ | false | `false`

@@ -23,7 +23,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ConnectionSharingTest extends MqttTestBase {
 
@@ -45,8 +45,6 @@ public class ConnectionSharingTest extends MqttTestBase {
         container = weld.initialize();
 
         App bean = container.getBeanManager().createInstance().select(App.class).get();
-
-        await().until(() -> this.container.select(MediatorManager.class).get().isInitialized());
 
         await()
                 .until(() -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
@@ -102,7 +100,7 @@ public class ConnectionSharingTest extends MqttTestBase {
             return Multi.createFrom().ticks().every(Duration.ofMillis(100))
                     .map(l -> random.nextInt(100))
                     .onOverflow().drop()
-                    .transform().byTakingFirstItems(100);
+                    .select().first(100);
         }
 
         public List<String> prices() {

@@ -16,7 +16,7 @@ public class BeanConsumingMessagesAndReturningACompletionStageOfSomething {
     private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Incoming("count")
-    public CompletionStage<String> consume(Message<String> msg) {
+    CompletionStage<String> consume(Message<String> msg) {
         return CompletableFuture.supplyAsync(() -> {
             list.add(msg.getPayload());
             return "hello";

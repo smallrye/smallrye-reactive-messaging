@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 class RecordConverterTest extends KafkaTestBase {
 
@@ -55,7 +55,7 @@ class RecordConverterTest extends KafkaTestBase {
 
     @Test
     public void testBeanUsingConverter() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
@@ -80,7 +80,7 @@ class RecordConverterTest extends KafkaTestBase {
 
     @Test
     public void testBeanUsingConverterWithNullKeyAndValue() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);

@@ -86,11 +86,11 @@ public interface ProviderExceptions {
     @Message(id = 18, value = "Unable to find a stream with the name %s, available streams are: %s")
     IllegalStateException illegalStateForStream(String name, Set<String> valid);
 
-    @Message(id = 19, value = "Unable to find a emitter with the name %s, available emitters are: %s")
-    IllegalStateException illegalStateForEmitter(String name, Set<String> valid);
+    @Message(id = 19, value = "Unable to connect an emitter with the channel `%s`")
+    DefinitionException incomingNotFoundForEmitter(String name);
 
-    @Message(id = 20, value = "%s qualifier not found on + %s")
-    IllegalStateException illegalStateForAnnotationNotFound(String annotation, InjectionPoint injectionPoint);
+    @Message(id = 20, value = "Missing @Channel qualifier for + `%s`")
+    DefinitionException emitterWithoutChannelAnnotation(InjectionPoint injectionPoint);
 
     @Message(id = 21, value = "The default buffer size must be strictly positive")
     IllegalArgumentException illegalArgumentForDefaultBuffer();
@@ -102,7 +102,7 @@ public interface ProviderExceptions {
     IllegalArgumentException illegalArgumentForNullValue();
 
     @Message(id = 24, value = "The emitter encountered a failure")
-    IllegalStateException illegalStateForEmitter(@Cause Throwable throwable);
+    IllegalStateException incomingNotFoundForEmitter(@Cause Throwable throwable);
 
     @Message(id = 25, value = "The downstream has cancelled the consumption")
     IllegalStateException illegalStateForDownstreamCancel();
@@ -179,8 +179,8 @@ public interface ProviderExceptions {
     @Message(id = 50, value = "Invalid method annotated with %s: %s - Unsupported signature")
     DefinitionException definitionUnsupportedSignature(String annotation, String methodAsString);
 
-    @Message(id = 51, value = "Invalid method annotated with %s: %s - The signature is not supported as it requires 'blocking' acknowledgment, return a CompletionStage<Message<?> instead.")
-    DefinitionException definitionBlockingAcknowledgment(String annotation, String methodAsString);
+    @Message(id = 51, value = "Invalid method annotated with @Incoming: %s - The signature is not supported. The method consumes a `Message`, so the returned type must be `CompletionStage<Void>` or `Uni<Void>`.")
+    DefinitionException unsupportedSynchronousSignature(String methodAsString);
 
     @Message(id = 52, value = "Invalid method annotated with %s: %s - the method must not be `void`")
     DefinitionException definitionNotVoid(String annotation, String methodAsString);
@@ -201,7 +201,7 @@ public interface ProviderExceptions {
     DefinitionException definitionExpectedReturnedParam(String annotation, String methodAsString, String returnClass);
 
     @Message(id = 58, value = "Invalid method annotated with %s: %s - Expected a type parameter for the consumed  %s")
-    DefinitionException definitionExpectedConsumendParam(String annotation, String methodAsString, String returnClass);
+    DefinitionException definitionExpectedConsumedParam(String annotation, String methodAsString, String returnClass);
 
     @Message(id = 59, value = "Invalid method annotated with %s: %s - Automatic post-processing acknowledgment is not supported.")
     DefinitionException definitionAutoAckNotSupported(String annotation, String methodAsString);
@@ -218,14 +218,14 @@ public interface ProviderExceptions {
     @Message(id = 63, value = "Invalid method annotated with %s: %s - The @Broadcast annotation is only supported for method annotated with @Outgoing")
     DefinitionException definitionBroadcastOnlyOutgoing(String annotation, String methodAsString);
 
-    @Message(id = 64, value = "Invalid method annotated with %s: %s - The @Blocking annotation is only supported for methods returning an individual Message or payload")
-    DefinitionException definitionBlockingOnlyIndividual(String annotation, String methodAsString);
+    @Message(id = 64, value = "Invalid method annotated with @Blocking: %s - The @Blocking annotation is only supported for methods returning `void` (@Incoming only), a `Message` or a payload")
+    DefinitionException definitionBlockingOnlyIndividual(String methodAsString);
 
-    @Message(id = 65, value = "Invalid method annotated with %s: %s - The @Blocking annotation is only supported for methods with parameters of an individual Message or payload")
-    DefinitionException definitionBlockingOnlyIndividualParam(String annotation, String methodAsString);
+    @Message(id = 65, value = "Invalid method annotated with @Blocking: %s - The @Blocking annotation is only supported for methods consuming an individual Message or payload like `consume(String s)` or `consume(Message<String> s)")
+    DefinitionException definitionBlockingOnlyIndividualParam(String methodAsString);
 
-    @Message(id = 66, value = "Invalid method annotated with %s: %s - no @Incoming or @Outgoing present")
-    IllegalArgumentException illegalArgumentForAnnotation(String annotation, String annotationTarget);
+    @Message(id = 66, value = "Invalid method annotated with @Blocking: %s - no @Incoming or @Outgoing present")
+    IllegalArgumentException illegalBlockingSignature(String methodAsString);
 
     @Message(id = 67, value = "Invalid method annotated with %s: %s - %s was not defined")
     IllegalArgumentException illegalArgumentForWorkerConfigKey(String annotation, String annotationTarget,
@@ -250,5 +250,12 @@ public interface ProviderExceptions {
     DeploymentException deploymentInvalidConfiguration(Set<String> sources);
 
     @Message(id = 74, value = "Unable to retrieve the config")
-    IllegalStateException illegalStateRetieveConfig();
+    IllegalStateException illegalStateRetrieveConfig();
+
+    @Message(id = 75, value = "Invalid Emitter injection found for `%s`. Injecting an `Emitter<Message<T>>` is invalid. You can use an `Emitter<T>` to send instances of `T` and `Message<T>`.")
+    DefinitionException invalidEmitterOfMessage(InjectionPoint ip);
+
+    @Message(id = 76, value = "Invalid Emitter injection found for  `%s`. The Emitter expected to be parameterized with the emitted type, such as Emitter<String>.")
+    DefinitionException invalidRawEmitter(InjectionPoint ip);
+
 }

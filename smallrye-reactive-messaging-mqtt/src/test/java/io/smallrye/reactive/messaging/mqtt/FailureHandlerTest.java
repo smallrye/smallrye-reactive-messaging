@@ -21,7 +21,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class FailureHandlerTest extends MqttTestBase {
 
@@ -41,7 +41,6 @@ public class FailureHandlerTest extends MqttTestBase {
         weld.addBeanClass(MyReceiverBean.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         return container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
     }
 
@@ -104,7 +103,7 @@ public class FailureHandlerTest extends MqttTestBase {
 
     @ApplicationScoped
     public static class MyReceiverBean {
-        private List<String> received = new CopyOnWriteArrayList<>();
+        private final List<String> received = new CopyOnWriteArrayList<>();
 
         private static final List<String> SKIPPED = Arrays.asList("3", "6", "9");
 

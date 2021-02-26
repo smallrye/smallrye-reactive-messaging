@@ -75,7 +75,7 @@ Type: _boolean_ | false | `false`
 
 | *durable* | Whether AMQP subscription is durable
 
-Type: _boolean_ | false | `true`
+Type: _boolean_ | false | `false`
 
 | *auto-acknowledgement* | Whether the received AMQP messages must be acknowledged when received
 

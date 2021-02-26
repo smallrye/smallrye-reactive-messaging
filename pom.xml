@@ -6,12 +6,12 @@
   <parent>
     <groupId>io.smallrye</groupId>
     <artifactId>smallrye-parent</artifactId>
-    <version>23</version>
+    <version>25</version>
   </parent>
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
-  <version>2.5.0-SNAPSHOT</version>
+  <version>2.9.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>SmallRye Reactive Messaging</name>
@@ -58,39 +58,42 @@
 
   <properties>
     <vertx.version>3.9.4</vertx.version>
-    <rxjava.version>2.2.20</rxjava.version>
+    <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>3.1.3.Final</weld.version>
-    <camel.version>3.6.0</camel.version>
+    <camel.version>3.8.0</camel.version>
 
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
     <microprofile-config.version>1.4</microprofile-config.version>
-    <microprofile-metrics-api.version>2.3.2</microprofile-metrics-api.version>
+    <microprofile-metrics-api.version>2.3.3</microprofile-metrics-api.version>
     <microprofile-health-api.version>2.2</microprofile-health-api.version>
 
-    <smallrye-config.version>1.9.3</smallrye-config.version>
-    <smallrye-metrics.version>2.4.4</smallrye-metrics.version>
-    <smallrye-common.version>1.4.1</smallrye-common.version>
-    <smallrye-health.version>2.2.5</smallrye-health.version>
+    <smallrye-config.version>1.10.0</smallrye-config.version>
+    <smallrye-metrics.version>2.4.6</smallrye-metrics.version>
+    <smallrye-common.version>1.5.0</smallrye-common.version>
+    <smallrye-health.version>2.2.6</smallrye-health.version>
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
+    <smallrye-fault-tolerance.version>4.3.2</smallrye-fault-tolerance.version>
 
-    <mutiny.version>0.10.1</mutiny.version>
-    <artemis.version>2.15.0</artemis.version>
+    <mutiny.version>0.14.0</mutiny.version>
+    <artemis.version>2.17.0</artemis.version>
 
-    <jboss-log-manager.version>2.1.17.Final</jboss-log-manager.version>
+    <jboss-log-manager.version>2.1.18.Final</jboss-log-manager.version>
 
-    <opentelemetry.version>0.9.1</opentelemetry.version>
+    <opentelemetry.version>0.17.1</opentelemetry.version>
+    <opentelemetry-semver.version>0.17.1-alpha</opentelemetry-semver.version>
 
-    <smallrye-reactive-converter-api.version>1.2.2</smallrye-reactive-converter-api.version>
-    <smallrye-vertx-mutiny-clients.version>1.2.2</smallrye-vertx-mutiny-clients.version>
+    <smallrye-reactive-converter-api.version>1.5.0</smallrye-reactive-converter-api.version>
+    <smallrye-vertx-mutiny-clients.version>1.5.0</smallrye-vertx-mutiny-clients.version>
 
-    <testcontainers.version>1.15.0-rc2</testcontainers.version>
+    <testcontainers.version>1.15.2</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>1.10.19</mockito.version>
-    <junit-pioneer.version>1.0.0</junit-pioneer.version>
-    <junit-platform-commons.version>1.7.0</junit-platform-commons.version>
+    <junit-pioneer.version>1.3.0</junit-pioneer.version>
+    <junit-platform-commons.version>1.7.1</junit-platform-commons.version>
+
   </properties>
 
   <modules>
@@ -125,6 +128,7 @@
 
     <module>smallrye-connector-attribute-processor</module>
 
+    <module>test-common</module>
     <module>tck</module>
     <module>documentation</module>
   </modules>
@@ -185,6 +189,12 @@
         <version>${smallrye-testing.version}</version>
         <scope>test</scope>
       </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-fault-tolerance</artifactId>
+        <version>${smallrye-fault-tolerance.version}</version>
+        <scope>test</scope>
+      </dependency>
 
       <dependency>
         <groupId>io.smallrye</groupId>
@@ -230,13 +240,19 @@
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-sdk</artifactId>
+        <artifactId>opentelemetry-semconv</artifactId>
+        <version>${opentelemetry-semver.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-sdk-trace</artifactId>
         <version>${opentelemetry.version}</version>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-exporters-inmemory</artifactId>
+        <artifactId>opentelemetry-sdk-testing</artifactId>
         <version>${opentelemetry.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <!-- From this project -->

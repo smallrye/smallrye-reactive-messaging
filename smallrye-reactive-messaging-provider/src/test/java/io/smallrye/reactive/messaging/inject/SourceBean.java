@@ -8,11 +8,13 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 
 @ApplicationScoped
 public class SourceBean {
 
     @Outgoing("hello")
+    @Broadcast
     public Publisher<String> hello() {
         return Flowable.fromArray("h", "e", "l", "l", "o");
     }

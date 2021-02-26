@@ -17,7 +17,11 @@ Type: _string_ | false | `localhost:9092`
 
 Type: _long_ | false | `33554432`
 
-| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled, the connector sends the outgoing messages as Cloud Event if the message to be sent includes Cloud Event Metadata.
+| *close-timeout* | The amount of milliseconds waiting for a graceful shutdown of the Kafka producer
+
+Type: _int_ | false | `10000`
+
+| *cloud-events* | Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.
 
 Type: _boolean_ | false | `true`
 
@@ -73,6 +77,10 @@ Type: _boolean_ | false | `true`
 
 Type: _long_ | false | `2000`
 
+| *health-readiness-topic-verification* | Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection.
+
+Type: _boolean_ | false | `false`
+
 | *key* | A key to used when writing the record
 
 Type: _string_ | false | 
@@ -84,6 +92,10 @@ Type: _string_ | false | `org.apache.kafka.common.serialization.StringSerializer
 | *max-inflight-messages* | The maximum number of messages to be written to Kafka concurrently. It limits the number of messages waiting to be written and acknowledged by the broker. You can set this attribute to `0` remove the limit
 
 Type: _long_ | false | `1024`
+
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
 
 | *partition* | The target partition id. -1 to let the client determine the partition
 

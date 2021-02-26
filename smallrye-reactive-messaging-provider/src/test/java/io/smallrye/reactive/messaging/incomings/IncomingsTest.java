@@ -77,7 +77,6 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testIncomingsWithMissingSource() {
-        // Strict mode disable, won't fail, but won't work.
         addBeanClass(ProducerOnB.class);
         addBeanClass(MyBeanUsingMultipleIncomings.class);
         initialize();
@@ -190,7 +189,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyBeanUsingMultipleIncomings {
 
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incoming("a")
         @Incoming("b")
@@ -207,7 +206,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyBeanUsingIncomings {
 
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incomings({
                 @Incoming("a"),
@@ -226,7 +225,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyBeanUsingMultipleIncomingsAndMerge {
 
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incoming("a")
         @Incoming("b")
@@ -244,7 +243,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class ProcessorUsingMultipleIncomings {
 
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incoming("a")
         @Incoming("b")
@@ -262,7 +261,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class ProcessorUsingMultipleIncomingsAndMerge {
 
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incoming("a")
         @Incoming("b")
@@ -280,7 +279,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
 
     @ApplicationScoped
     public static class MySink {
-        private List<String> list = new CopyOnWriteArrayList<>();
+        private final List<String> list = new CopyOnWriteArrayList<>();
 
         @Incoming("out")
         public void consume(String s) {

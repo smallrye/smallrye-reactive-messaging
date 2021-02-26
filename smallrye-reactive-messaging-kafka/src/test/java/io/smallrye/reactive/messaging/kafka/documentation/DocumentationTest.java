@@ -10,8 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 /**
  * Checks the the snippet providing in the documentation are actually working.
@@ -48,7 +48,7 @@ public class DocumentationTest extends KafkaTestBase {
         List<Double> list = new CopyOnWriteArrayList<>();
         usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
 
-        MapBasedConfig config = getProducerConfiguration();
+        KafkaMapBasedConfig config = getProducerConfiguration();
         addConfig(config);
         weld.addBeanClass(KafkaPriceProducer.class);
         weld.disableDiscovery();
@@ -62,7 +62,7 @@ public class DocumentationTest extends KafkaTestBase {
         List<Double> list = new CopyOnWriteArrayList<>();
         usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
 
-        MapBasedConfig config = getProducerConfiguration();
+        KafkaMapBasedConfig config = getProducerConfiguration();
         addConfig(config);
         weld.addBeanClass(KafkaPriceMessageProducer.class);
         weld.disableDiscovery();
@@ -71,15 +71,15 @@ public class DocumentationTest extends KafkaTestBase {
         await().until(() -> list.size() >= 50);
     }
 
-    private MapBasedConfig getConsumerConfiguration() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.prices");
+    private KafkaMapBasedConfig getConsumerConfiguration() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.prices");
         builder.put("connector", "smallrye-kafka");
         builder.put("value.deserializer", "org.apache.kafka.common.serialization.DoubleDeserializer");
         return builder.build();
     }
 
-    private MapBasedConfig getProducerConfiguration() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.prices");
+    private KafkaMapBasedConfig getProducerConfiguration() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.prices");
         builder.put("connector", "smallrye-kafka");
         builder.put("value.serializer", "org.apache.kafka.common.serialization.DoubleSerializer");
         return builder.build();

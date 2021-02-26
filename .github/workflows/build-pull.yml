@@ -1,7 +1,11 @@
 ---
 name: Pull Request Build
 
-on: pull_request
+on:
+    pull_request:
+        branches:
+            - master
+            - 3.x
 
 jobs:
     build:
@@ -29,17 +33,18 @@ jobs:
                   source: ${{ matrix.java.source }}
             - name: Build with Maven
               run: |
-                mvn -B clean verify --file pom.xml
+                mvn -B clean verify -Dtest-containers=true --file pom.xml
 
 
     up_to_date_antora:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - name: Install JDK 1.8
-              uses: joschi/setup-jdk@v1.0.0
+            - uses: actions/checkout@v2
+            - uses: AdoptOpenJDK/install-jdk@v1
               with:
-                  java-version: 'openjdk8'
+                version: 11
+                source: 'releases'
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
               run: |

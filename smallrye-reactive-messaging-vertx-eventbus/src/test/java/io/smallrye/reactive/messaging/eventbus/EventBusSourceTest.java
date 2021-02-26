@@ -20,7 +20,7 @@ import org.junit.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.eventbus.DeliveryOptions;
 
 public class EventBusSourceTest extends EventbusTestBase {
@@ -146,7 +146,6 @@ public class EventBusSourceTest extends EventbusTestBase {
     @Test
     public void testABeanConsumingTheEventBusMessages() {
         ConsumptionBean bean = deploy();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();

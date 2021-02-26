@@ -16,7 +16,7 @@ public class BeanReturningASubscriberOfMessages {
     private List<String> list = new ArrayList<>();
 
     @Incoming("count")
-    public Subscriber<Message<String>> create() {
+    Subscriber<Message<String>> create() {
         return ReactiveStreams.<Message<String>> builder().forEach(m -> list.add(m.getPayload()))
                 .build();
     }

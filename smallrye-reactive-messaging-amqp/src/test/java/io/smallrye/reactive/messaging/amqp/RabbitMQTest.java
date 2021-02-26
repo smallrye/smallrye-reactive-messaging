@@ -15,7 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class RabbitMQTest extends RabbitMQBrokerTestBase {
 
@@ -29,7 +29,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
             container.shutdown();
         }
 
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
@@ -67,7 +67,6 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.durable", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .write();
@@ -75,7 +74,6 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
         weld.addBeanClass(ConsumptionBean.class);
 
         container = weld.initialize();
-        await().until(() -> container.select(MediatorManager.class).get().isInitialized());
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
         ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

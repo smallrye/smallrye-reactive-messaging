@@ -11,6 +11,8 @@ import javax.enterprise.inject.Produces;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+
 @ApplicationScoped
 public class MySink {
 

@@ -4,14 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.spi.DeploymentException;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.junit.Test;
 
@@ -43,9 +44,18 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testThatWeCanProduceSubscriberOfMessage() {
+        initializer.addBeanClasses(DumbGenerator.class);
         initializer.addBeanClasses(BeanReturningASubscriberOfMessagesButDiscarding.class);
         initialize();
         assertThatSubscriberWasPublished(container);
+    }
+
+    @ApplicationScoped
+    public static class DumbGenerator {
+        @Outgoing("subscriber")
+        Multi<String> generate() {
+            return Multi.createFrom().items("a", "b", "c", "d");
+        }
     }
 
     @Test
@@ -58,7 +68,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
             fail("Expected failure - method validation should have failed");
         } catch (DeploymentException e) {
             // Check we have the right cause
-            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
+            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("CompletionStage");
         }
     }
 
@@ -82,7 +92,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
             fail("Expected failure - method validation should have failed");
         } catch (DeploymentException e) {
             // Check we have the right cause
-            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("acknowledgment");
+            assertThat(e).hasMessageContaining("Invalid method").hasMessageContaining("CompletionStage");
         }
     }
 
@@ -139,16 +149,9 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
         collector.close();
     }
 
-    @SuppressWarnings("unchecked")
     private void assertThatSubscriberWasPublished(SeContainer container) {
         assertThat(registry(container).getOutgoingNames()).contains("subscriber");
         List<SubscriberBuilder<? extends Message<?>, Void>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
-        List<String> list = new ArrayList<>();
-        Multi.createFrom().items("a", "b", "c").map(Message::of)
-                .onItem().invoke(m -> list.add(m.getPayload()))
-                .subscribe(((SubscriberBuilder<Message<?>, Void>) subscriber.get(0)).build());
-        assertThat(list).containsExactly("a", "b", "c");
     }
-
 }

@@ -22,7 +22,9 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Processor;
 
+import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 
 /**
@@ -143,7 +145,10 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
                 .orElseThrow(ex::illegalArgumentInvalidIncomingConfig);
-        return sources.computeIfAbsent(name, InMemorySourceImpl::new).source;
+
+        boolean broadcast = config.getOptionalValue("broadcast", Boolean.class)
+                .orElse(false);
+        return sources.computeIfAbsent(name, n -> new InMemorySourceImpl<>(n, broadcast)).source;
     }
 
     @Override
@@ -205,13 +210,17 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     }
 
     private static class InMemorySourceImpl<T> implements InMemorySource<T> {
-        private final UnicastProcessor<Message<T>> processor;
+        private final Processor<Message<T>, Message<T>> processor;
         private final PublisherBuilder<? extends Message<T>> source;
         private final String name;
 
-        private InMemorySourceImpl(String name) {
+        private InMemorySourceImpl(String name, boolean broadcast) {
             this.name = name;
-            this.processor = UnicastProcessor.create();
+            if (broadcast) {
+                processor = BroadcastProcessor.create();
+            } else {
+                processor = UnicastProcessor.create();
+            }
             this.source = ReactiveStreams.fromPublisher(processor);
         }
 

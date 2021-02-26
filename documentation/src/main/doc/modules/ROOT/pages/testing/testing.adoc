@@ -43,3 +43,7 @@ While these system properties are already set, you can retrieve them and pass th
 ----
 include::example$testing/MyTestSetup.java[tags=code]
 ----
+
+NOTE: The in-memory connector support the `broadcast` and `merge` attributes.
+So, if your connector is configured with `broadcast: true`, the connector broadcasts the messages to all the channel consumers.
+If your connector is configured with `merge:true`, the connector receives all the messages sent to the mapped channel even when coming from multiple producers.

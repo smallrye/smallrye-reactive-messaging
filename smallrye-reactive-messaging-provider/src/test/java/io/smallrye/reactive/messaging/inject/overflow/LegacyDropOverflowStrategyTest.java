@@ -56,7 +56,7 @@ public class LegacyDropOverflowStrategyTest extends WeldTestBaseWithoutTails {
         bean.emitALotOfItems();
 
         await().until(bean::isDone);
-        assertThat(bean.output()).contains("1", "2", "3", "4", "5").doesNotContain("999");
+        assertThat(bean.output()).contains("1", "2", "3", "4", "5").hasSizeLessThan(999);
         assertThat(bean.failure()).isNull();
         assertThat(bean.exception()).isNull();
     }
@@ -70,7 +70,7 @@ public class LegacyDropOverflowStrategyTest extends WeldTestBaseWithoutTails {
         @OnOverflow(value = OnOverflow.Strategy.DROP)
         Emitter<String> emitter;
 
-        private List<String> output = new CopyOnWriteArrayList<>();
+        private final List<String> output = new CopyOnWriteArrayList<>();
 
         private volatile Throwable downstreamFailure;
         private volatile boolean done;

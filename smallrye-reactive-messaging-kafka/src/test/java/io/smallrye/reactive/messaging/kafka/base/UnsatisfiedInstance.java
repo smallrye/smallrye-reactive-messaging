@@ -9,8 +9,11 @@ import javax.enterprise.util.TypeLiteral;
 
 public class UnsatisfiedInstance<T> implements Instance<T> {
 
-    public static <T> UnsatisfiedInstance<T> instance() {
-        return new UnsatisfiedInstance<>();
+    private static final UnsatisfiedInstance<?> INSTANCE = new UnsatisfiedInstance<>();
+
+    @SuppressWarnings("unchecked")
+    public static <T> Instance<T> instance() {
+        return (Instance<T>) INSTANCE;
     }
 
     private UnsatisfiedInstance() {
@@ -19,18 +22,18 @@ public class UnsatisfiedInstance<T> implements Instance<T> {
 
     @Override
     public Instance<T> select(Annotation... qualifiers) {
-        throw new UnsupportedOperationException();
+        return instance();
     }
 
     @Override
     public <U extends T> Instance<U> select(Class<U> subtype, Annotation... qualifiers) {
-        throw new UnsupportedOperationException();
+        return instance();
     }
 
     @Override
     public <U extends T> Instance<U> select(TypeLiteral<U> subtype,
             Annotation... qualifiers) {
-        throw new UnsupportedOperationException();
+        return instance();
     }
 
     @Override

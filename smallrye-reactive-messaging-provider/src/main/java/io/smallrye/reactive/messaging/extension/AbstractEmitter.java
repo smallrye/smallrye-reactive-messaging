@@ -12,10 +12,9 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
-import io.smallrye.reactive.messaging.EmitterBehavior;
 import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
 
-public abstract class AbstractEmitter<T> implements EmitterBehavior {
+public abstract class AbstractEmitter<T> {
     protected final AtomicReference<MultiEmitter<? super Message<? extends T>>> internal = new AtomicReference<>();
     protected final Multi<Message<? extends T>> publisher;
 
@@ -54,12 +53,10 @@ public abstract class AbstractEmitter<T> implements EmitterBehavior {
         }
     }
 
-    @Override
     public synchronized void complete() {
         verify(internal, name).complete();
     }
 
-    @Override
     public synchronized void error(Exception e) {
         if (e == null) {
             throw ex.illegalArgumentForException("null");
@@ -67,13 +64,11 @@ public abstract class AbstractEmitter<T> implements EmitterBehavior {
         verify(internal, name).fail(e);
     }
 
-    @Override
     public synchronized boolean isCancelled() {
         MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         return emitter == null || emitter.isCancelled();
     }
 
-    @Override
     public boolean hasRequests() {
         MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         return !isCancelled() && emitter.requested() > 0;
@@ -143,7 +138,7 @@ public abstract class AbstractEmitter<T> implements EmitterBehavior {
 
         MultiEmitter<? super Message<? extends T>> emitter = verify(internal, name);
         if (synchronousFailure.get() != null) {
-            throw ex.illegalStateForEmitter(synchronousFailure.get());
+            throw ex.incomingNotFoundForEmitter(synchronousFailure.get());
         }
         if (emitter.isCancelled()) {
             throw ex.illegalStateForDownstreamCancel();

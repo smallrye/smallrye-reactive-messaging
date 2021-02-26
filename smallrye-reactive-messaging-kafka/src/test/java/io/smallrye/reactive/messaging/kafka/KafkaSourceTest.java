@@ -7,31 +7,41 @@ import static org.awaitility.Awaitility.await;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.literal.NamedLiteral;
+import javax.inject.Inject;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.strimzi.StrimziKafkaContainer;
 
 public class KafkaSourceTest extends KafkaTestBase {
 
@@ -55,14 +65,14 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>(topic, "hello", counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -79,7 +89,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         createTopic(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -103,7 +113,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<KafkaRecord> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -130,7 +140,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
-        connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
+        connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
         connector.kafkaCDIEvents = testEvents;
         connector.init();
 
@@ -170,7 +180,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
-        connector.consumerRebalanceListeners = getConsumerRebalanceListeners();
+        connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
         connector.kafkaCDIEvents = new CountKafkaCdiEvents();
         connector.init();
 
@@ -198,34 +208,45 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes" })
     @Test
     public void testRetry() {
-        MapBasedConfig config = newCommonConfigForSource()
-                .with("value.deserializer", IntegerDeserializer.class.getName())
-                .with("retry", true)
-                .with("retry-attempts", 100)
-                .with("retry-max-wait", 30);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
-        List<KafkaRecord> messages1 = new ArrayList<>();
-        source.getStream().subscribe().with(messages1::add);
+        // This test need an individual Kafka container
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer()) {
+            kafka.start();
+            await().until(kafka::isRunning);
+            MapBasedConfig config = newCommonConfigForSource()
+                    .with("bootstrap.servers", kafka.getBootstrapServers())
+                    .with("value.deserializer", IntegerDeserializer.class.getName())
+                    .with("retry", true)
+                    .with("retry-attempts", 100)
+                    .with("retry-max-wait", 30);
 
-        AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+            usage.setBootstrapServers(kafka.getBootstrapServers());
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
+            KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+            source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                    UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
+                    UnsatisfiedInstance.instance(), -1);
+            List<KafkaRecord> messages1 = new ArrayList<>();
+            source.getStream().subscribe().with(messages1::add);
 
-        restart(2);
+            AtomicInteger counter = new AtomicInteger();
+            new Thread(() -> usage.produceIntegers(10, null,
+                    () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+            await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
-        assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
+            try (@SuppressWarnings("unused")
+            FixedKafkaContainer container = restart(kafka, 2)) {
+                new Thread(() -> usage.produceIntegers(10, null,
+                        () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+                await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
+                assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
+            }
+        }
     }
 
-    private MapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+    private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         if (group != null) {
             builder.put("group.id", group);
         }
@@ -244,8 +265,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         return builder.build();
     }
 
-    private MapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.incoming.data");
+    private KafkaMapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         builder.put("group.id", "my-group-starting-on-fifth-" + suffix);
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
@@ -288,6 +309,20 @@ public class KafkaSourceTest extends KafkaTestBase {
     }
 
     @Test
+    public void testABeanConsumingTheKafkaMessagesMultiThread() {
+        MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, "my-group")
+                .with("mp.messaging.incoming.data.topic", topic), MultiThreadConsumer.class);
+        List<Integer> list = bean.getItems();
+        assertThat(list).isEmpty();
+        bean.run();
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(100, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 100);
+    }
+
+    @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
         createTopic("data-2", 2);
         ConsumptionBean bean = run(
@@ -318,7 +353,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     }
 
     @Test
-    public void testABeanConsumingWithMissingRebalanceListenerConfiguredByName() throws Throwable {
+    public void testABeanConsumingWithMissingRebalanceListenerConfiguredByName() {
         assertThatThrownBy(() -> run(myKafkaSourceConfig(0, "not exists", "my-group")))
                 .isInstanceOf(DeploymentException.class)
                 .hasCauseInstanceOf(UnsatisfiedResolutionException.class);
@@ -416,7 +451,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -482,7 +517,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("sasl.mechanism", ""); //optional configuration
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                getConsumerRebalanceListeners(), CountKafkaCdiEvents.noCdiEvents, -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -515,19 +550,57 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     }
 
-    private ConsumptionBean run(MapBasedConfig config) {
+    private ConsumptionBean run(KafkaMapBasedConfig config) {
         addBeans(ConsumptionBean.class, ConsumptionConsumerRebalanceListener.class);
         runApplication(config);
         return get(ConsumptionBean.class);
     }
 
-    private ConsumptionBeanWithoutAck runWithoutAck(MapBasedConfig config) {
+    private ConsumptionBeanWithoutAck runWithoutAck(KafkaMapBasedConfig config) {
         addBeans(ConsumptionBeanWithoutAck.class, ConsumptionConsumerRebalanceListener.class,
                 StartFromFifthOffsetFromLatestConsumerRebalanceListener.class,
                 StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListener.class,
                 StartFromFifthOffsetFromLatestButFailUntilSecondRebalanceConsumerRebalanceListener.class);
         runApplication(config);
         return get(ConsumptionBeanWithoutAck.class);
+    }
+
+    @ApplicationScoped
+    public static class MultiThreadConsumer {
+
+        private final List<Integer> items = new CopyOnWriteArrayList<>();
+        private final List<String> threads = new CopyOnWriteArrayList<>();
+        private final Random random = new Random();
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+
+        @Inject
+        @Channel("data")
+        Multi<Integer> messages;
+
+        public void run() {
+            messages
+                    .emitOn(executor)
+                    .onItem().transform(s -> {
+                        try {
+                            Thread.sleep(random.nextInt(100));
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        return s * -1;
+                    })
+                    .subscribe().with(it -> {
+                        items.add(it);
+                        threads.add(Thread.currentThread().getName());
+                    });
+        }
+
+        public List<Integer> getItems() {
+            return items;
+        }
+
+        public List<String> getThreads() {
+            return threads;
+        }
     }
 
 }

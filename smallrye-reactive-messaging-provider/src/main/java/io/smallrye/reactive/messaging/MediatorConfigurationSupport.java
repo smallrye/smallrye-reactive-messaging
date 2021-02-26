@@ -200,7 +200,7 @@ public class MediatorConfigurationSupport {
 
             // Detect the case 5 that is not supported (anymore, decision taken during the MP reactive hangout Sept. 11th, 2018)
             if (consumption == MediatorConfiguration.Consumption.MESSAGE) {
-                throw ex.definitionBlockingAcknowledgment("@Incoming", methodAsString);
+                throw ex.unsupportedSynchronousSignature(methodAsString);
             }
 
             // Must be enabled once we update the tCK.
@@ -474,7 +474,7 @@ public class MediatorConfigurationSupport {
         GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable
                 .check(Message.class, 0);
         if (firstParamTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
-            throw ex.definitionExpectedConsumendParam("@Incoming", methodAsString, "Publisher");
+            throw ex.definitionExpectedConsumedParam("@Incoming", methodAsString, "Publisher");
         }
         consumption = firstParamTypeGenericCheck == GenericTypeAssignable.Result.Assignable
                 ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
@@ -582,21 +582,27 @@ public class MediatorConfigurationSupport {
         if (!(validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_MESSAGE)
                 || validationOutput.production.equals(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD)
                 || validationOutput.production.equals(MediatorConfiguration.Production.NONE))) {
-            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
+            throw ex.definitionBlockingOnlyIndividual(methodAsString);
         }
 
         if (!(validationOutput.consumption.equals(MediatorConfiguration.Consumption.MESSAGE)
                 || validationOutput.consumption.equals(MediatorConfiguration.Consumption.PAYLOAD)
                 || validationOutput.consumption.equals(MediatorConfiguration.Consumption.NONE))) {
-            throw ex.definitionBlockingOnlyIndividualParam("@Blocking", methodAsString);
+            throw ex.definitionBlockingOnlyIndividualParam(methodAsString);
         }
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
-            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
+            Type returnTypeParameter = returnTypeAssignable.getType(0);
+            if (returnTypeParameter != null && !returnTypeParameter.getTypeName().equals(Void.class.getName())) {
+                throw ex.definitionBlockingOnlyIndividual(methodAsString);
+            }
         }
 
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
-            throw ex.definitionBlockingOnlyIndividual("@Blocking", methodAsString);
+            Type returnTypeParameter = returnTypeAssignable.getType(0);
+            if (returnTypeParameter != null && !returnTypeParameter.getTypeName().equals(Void.class.getName())) {
+                throw ex.definitionBlockingOnlyIndividual(methodAsString);
+            }
         }
     }
 

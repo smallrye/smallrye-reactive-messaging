@@ -159,3 +159,7 @@ PublisherBuilder<Message<O>> method(PublisherBuilder<Message<I>> pub)
 PublisherBuilder<O> method(PublisherBuilder<I> pub)
 | Called once at _assembly_ time | NONE, PRE_PROCESSING | not supported
 |===
+
+IMPORTANT: When processing `Message`, it is often required to _chain_ the incoming `Message` to enable post-processing acknowledgement and metadata propagation.
+Use the `with` (like `withPayload`) methods from the incoming message, so it copies the metadata and ack/nack methods.
+It returns a new `Message` with the right content.

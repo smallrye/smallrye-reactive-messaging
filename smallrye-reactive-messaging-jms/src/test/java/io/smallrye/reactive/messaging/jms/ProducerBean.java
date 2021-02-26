@@ -16,7 +16,7 @@ public class ProducerBean {
         return Multi.createFrom().ticks().every(Duration.ofMillis(10))
                 .onOverflow().buffer(10)
                 .map(Long::intValue)
-                .transform().byTakingFirstItems(10);
+                .select().first(10);
     }
 
 }

@@ -18,25 +18,29 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
 public class InternalChannelRegistry implements ChannelRegistry {
 
     private final Map<String, List<PublisherBuilder<? extends Message<?>>>> publishers = new HashMap<>();
+    private final Map<String, Boolean> outgoing = new HashMap<>();
+    private final Map<String, Boolean> incoming = new HashMap<>();
     private final Map<String, List<SubscriberBuilder<? extends Message<?>, Void>>> subscribers = new HashMap<>();
     private final Map<String, Emitter<?>> emitters = new HashMap<>();
     private final Map<String, MutinyEmitter<?>> mutinyEmitters = new HashMap<>();
 
     @Override
-    public synchronized PublisherBuilder<? extends Message<?>> register(String name,
-            PublisherBuilder<? extends Message<?>> stream) {
+    public PublisherBuilder<? extends Message<?>> register(String name,
+            PublisherBuilder<? extends Message<?>> stream, boolean broadcast) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(stream, msg.streamMustBeSet());
         register(publishers, name, stream);
+        outgoing.put(name, broadcast);
         return stream;
     }
 
     @Override
     public synchronized SubscriberBuilder<? extends Message<?>, Void> register(String name,
-            SubscriberBuilder<? extends Message<?>, Void> subscriber) {
+            SubscriberBuilder<? extends Message<?>, Void> subscriber, boolean merge) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(subscriber, msg.subscriberMustBeSet());
         register(subscribers, name, subscriber);
+        incoming.put(name, merge);
         return subscriber;
     }
 
@@ -99,6 +103,16 @@ public class InternalChannelRegistry implements ChannelRegistry {
         set.addAll(emitters.keySet());
         set.addAll(mutinyEmitters.keySet());
         return set;
+    }
+
+    @Override
+    public Map<String, Boolean> getIncomingChannels() {
+        return outgoing;
+    }
+
+    @Override
+    public Map<String, Boolean> getOutgoingChannels() {
+        return incoming;
     }
 
 }

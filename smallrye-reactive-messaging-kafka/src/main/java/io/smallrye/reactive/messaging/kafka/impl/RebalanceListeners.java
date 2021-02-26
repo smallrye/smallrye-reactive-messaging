@@ -5,9 +5,7 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import java.lang.reflect.Field;
 import java.util.*;
 
-import javax.enterprise.inject.AmbiguousResolutionException;
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -16,6 +14,7 @@ import org.apache.kafka.common.TopicPartition;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
+import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
@@ -113,14 +112,10 @@ public class RebalanceListeners {
                     Instance<KafkaConsumerRebalanceListener> matching = instances.select(NamedLiteral.of(name));
                     // We want to fail if a name if set, but no match or too many matches
                     if (matching.isUnsatisfied()) {
-                        // TODO Extract
-                        throw new UnsatisfiedResolutionException(
-                                "Unable to find the rebalance listener " + name + " for channel " + config.getChannel());
+                        throw KafkaExceptions.ex.unableToFindRebalanceListener(name, config.getChannel());
                     } else if (matching.stream().count() > 1) {
-                        // TODO Extract
-                        throw new AmbiguousResolutionException(
-                                "Unable to select the rebalance listener " + name + " for channel "
-                                        + config.getChannel() + " - too many matches");
+                        throw KafkaExceptions.ex.unableToFindRebalanceListener(name, config.getChannel(),
+                                (int) matching.stream().count());
                     } else if (matching.stream().count() == 1) {
                         return Optional.of(matching.get());
                     } else {

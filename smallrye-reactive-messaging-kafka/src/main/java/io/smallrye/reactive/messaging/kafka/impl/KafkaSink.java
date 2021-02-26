@@ -5,12 +5,12 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.*;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -18,13 +18,14 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import io.grpc.Context;
-import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.TracingContextUtils;
-import io.opentelemetry.trace.attributes.SemanticAttributes;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
@@ -34,13 +35,13 @@ import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.health.KafkaSinkReadinessHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
 public class KafkaSink {
 
@@ -51,13 +52,14 @@ public class KafkaSink {
     private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
     private final long retries;
     private final KafkaConnectorOutgoingConfiguration configuration;
-    private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
     private final KafkaSenderProcessor processor;
     private final boolean writeAsBinaryCloudEvent;
     private final boolean writeCloudEvents;
     private final boolean mandatoryCloudEventAttributeSet;
     private final boolean isTracingEnabled;
+    private final KafkaSinkReadinessHealth health;
+    private final boolean isHealthEnabled;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
@@ -97,11 +99,11 @@ public class KafkaSink {
                     + configuration.getValueSerializer());
         }
 
-        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
-            // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfigurationMap, config.getChannel());
+        this.isHealthEnabled = configuration.getHealthEnabled();
+        if (isHealthEnabled && this.configuration.getHealthReadinessEnabled()) {
+            this.health = new KafkaSinkReadinessHealth(vertx, config, kafkaConfigurationMap, stream.unwrap());
         } else {
-            this.admin = null;
+            this.health = null;
         }
 
         long requests = config.getMaxInflightMessages();
@@ -126,6 +128,20 @@ public class KafkaSink {
         }
         failures.add(failure);
     }
+
+    /**
+     * List exception for which we should not retry - they are fatal.
+     * The list comes from https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/Callback.html.
+     * <p>
+     * Also included: SerializationException (as the chances to serialize the payload correctly one retry are almost 0).
+     */
+    private static final Set<Class<? extends Throwable>> NOT_RECOVERABLE = new HashSet<>(Arrays.asList(
+            InvalidTopicException.class,
+            OffsetMetadataTooLarge.class,
+            RecordBatchTooLargeException.class,
+            RecordTooLargeException.class,
+            UnknownServerException.class,
+            SerializationException.class));
 
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
         return message -> {
@@ -163,7 +179,7 @@ public class KafkaSink {
                                 e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
 
                 if (this.retries > 0) {
-                    uni = uni.onFailure().retry()
+                    uni = uni.onFailure(this::isRecoverable).retry()
                             .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
                 }
                 return uni
@@ -177,6 +193,10 @@ public class KafkaSink {
                 return Uni.createFrom().failure(e);
             }
         };
+    }
+
+    private boolean isRecoverable(Throwable f) {
+        return !NOT_RECOVERABLE.contains(f.getClass());
     }
 
     private void handleWriteResult(AsyncResult<?> ar, Message<?> message, ProducerRecord<?, ?> record,
@@ -206,7 +226,7 @@ public class KafkaSink {
             String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
 
-        Object actualKey = getKey(message, om, configuration);
+        Object actualKey = getKey(message, om);
 
         long actualTimestamp;
         if ((om == null) || (om.getTimestamp() == null)) {
@@ -233,8 +253,7 @@ public class KafkaSink {
 
     @SuppressWarnings({ "rawtypes" })
     private Object getKey(Message<?> message,
-            OutgoingKafkaRecordMetadata<?> metadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            OutgoingKafkaRecordMetadata<?> metadata) {
 
         // First, the message metadata
         if (metadata != null && metadata.getKey() != null) {
@@ -254,8 +273,8 @@ public class KafkaSink {
         if (isTracingEnabled) {
             Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
 
-            final Span.Builder spanBuilder = TRACER.spanBuilder(topic + " send")
-                    .setSpanKind(Span.Kind.PRODUCER);
+            final SpanBuilder spanBuilder = TRACER.spanBuilder(topic + " send")
+                    .setSpanKind(SpanKind.PRODUCER);
 
             if (tracingMetadata.isPresent()) {
                 // Handle possible parent span
@@ -276,7 +295,7 @@ public class KafkaSink {
             }
 
             final Span span = spanBuilder.startSpan();
-            Scope scope = TracingContextUtils.currentContextWith(span);
+            Scope scope = span.makeCurrent();
 
             // Set Span attributes
             span.setAttribute("partition", partition);
@@ -285,7 +304,7 @@ public class KafkaSink {
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
 
             // Set span onto headers
-            OpenTelemetry.getPropagators().getTextMapPropagator()
+            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
                     .inject(Context.current(), headers, HeaderInjectAdapter.SETTER);
             span.end();
             scope.close();
@@ -312,7 +331,11 @@ public class KafkaSink {
             String id = "kafka-producer-" + config.getChannel();
             log.setKafkaProducerClientId(id);
             kafkaConfiguration.put(ProducerConfig.CLIENT_ID_CONFIG, id);
+        }
 
+        if (!kafkaConfiguration.containsKey(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
+            // If no backoff is set, use 10s, it avoids high load on disconnection.
+            kafkaConfiguration.put(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "10000");
         }
 
         return ConfigurationCleaner.cleanupProducerConfiguration(kafkaConfiguration);
@@ -323,7 +346,7 @@ public class KafkaSink {
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {
-        if (configuration.getHealthEnabled()) {
+        if (isHealthEnabled) {
             List<Throwable> actualFailures;
             synchronized (this) {
                 actualFailures = new ArrayList<>(failures);
@@ -340,22 +363,9 @@ public class KafkaSink {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
-            Set<String> topics;
-            try {
-                topics = admin.listTopics()
-                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
-                if (topics.contains(topic)) {
-                    builder.add(configuration.getChannel(), true);
-                } else {
-                    builder.add(configuration.getChannel(), false, "Unable to find topic " + topic);
-                }
-            } catch (Exception failed) {
-                builder.add(configuration.getChannel(), false, "No response from broker for topic "
-                        + topic + " : " + failed);
-            }
+        if (health != null) {
+            health.isReady(builder);
         }
-
         // If health is disable do not add anything to the builder.
     }
 
@@ -363,26 +373,16 @@ public class KafkaSink {
         if (processor != null) {
             processor.cancel();
         }
-        CountDownLatch latch = new CountDownLatch(1);
+
         try {
-            this.stream.close(ar -> {
-                if (ar.failed()) {
-                    log.errorWhileClosingWriteStream(ar.cause());
-                }
-                latch.countDown();
-            });
+            // close() blocks forever (Long.MAX).
+            this.stream.unwrap().close(Duration.ofMillis(configuration.getCloseTimeout()));
         } catch (Throwable e) {
             log.errorWhileClosingWriteStream(e);
-            latch.countDown();
-        }
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
 
-        if (admin != null) {
-            admin.closeAndAwait();
+        if (health != null) {
+            health.close();
         }
     }
 

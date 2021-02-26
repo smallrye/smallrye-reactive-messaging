@@ -4,20 +4,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.vertx.core.json.JsonObject;
 
 class JsonHelperTest {
 
     @Test
     public void test() {
-        MapBasedConfig config = MapBasedConfig.builder()
+        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder()
                 .put("bootstrap.servers", "not-important")
                 .put("key", "value")
                 .put("int", 10)
                 .put("double", 23.4)
                 .put("trueasstring", "true")
                 .put("falseasstring", "false")
+                .put("boolean.t", true)
+                .put("boolean.f", false)
                 .put("FOO_BAR", "value")
                 .build();
 
@@ -29,6 +31,9 @@ class JsonHelperTest {
         assertThat(object.getBoolean("falseasstring")).isFalse();
         assertThat(object.getString("foo.bar")).isEqualTo("value");
         assertThat(object.getString("bootstrap.servers")).isEqualTo("not-important");
+
+        assertThat(object.getBoolean("boolean.t")).isTrue();
+        assertThat(object.getBoolean("boolean.f")).isFalse();
 
     }
 

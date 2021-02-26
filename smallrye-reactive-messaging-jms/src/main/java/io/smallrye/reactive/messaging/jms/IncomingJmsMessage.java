@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -99,6 +100,11 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
 
         return json.fromJson(value, clazz);
 
+    }
+
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return this::ack;
     }
 
     @Override

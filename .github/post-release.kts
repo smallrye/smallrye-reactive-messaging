@@ -21,19 +21,30 @@ import org.kohsuke.github.*
 import java.io.File
 
 val token = args[0]; // Fail if the first argument is not there
+var version: String = "";
+if (args.size == 2) {
+    version = args[1];
+}
 
 val github = GitHubBuilder().withOAuthToken(token).build()
 val repository = github.getRepository("smallrye/smallrye-reactive-messaging")
 
-println("Listing tags of ${repository.getName()}")
-val tags = repository.listTags().asList()
-failIfPredicate({ tags.isNullOrEmpty() }, "No tags in repository ${repository.getName()}")
-val tag = tags.first()
-println("Last tag is " + tag.getName())
+var nextVersion: String = "";
+if (version == null) {
+    println("Listing tags of ${repository.getName()}")
+    val tags = repository.listTags().asList()
+    failIfPredicate({ tags.isNullOrEmpty() }, "No tags in repository ${repository.getName()}")
+    val tag = tags.first()
+    println("Last tag is " + tag.getName())
 
-val version = tag.getName()
-val nextVersion = nextVersion(tag)
-println("Next version would be ${nextVersion}")
+    version = tag.getName()
+    nextVersion = nextVersion(tag)
+    println("Next version would be ${nextVersion}")
+} else {
+    println("Version is ${version}")
+    nextVersion = nextVersion(version)
+    println("Next version would be ${nextVersion}")
+}
 
 val milestones = repository.listMilestones(GHIssueState.ALL).asList()
 failIfPredicate({ milestones.isNullOrEmpty() }, "No milestones in repository ${repository.getName()}")
@@ -87,6 +98,10 @@ fun createReleaseDescription(issues : List<GHIssue>) : String {
 
 fun nextVersion(tag: GHTag) : String {
     return computeNewVersion(tag.getName())
+}
+
+fun nextVersion(tag: String) : String {
+    return computeNewVersion(tag)
 }
 
 fun fail(message: String, code: Int = 2) {

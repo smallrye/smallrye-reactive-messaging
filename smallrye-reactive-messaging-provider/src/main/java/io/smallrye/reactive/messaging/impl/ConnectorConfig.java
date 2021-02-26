@@ -20,6 +20,16 @@ public class ConnectorConfig implements Config {
      */
     public static final String CHANNEL_ENABLED_PROPERTY = "enabled";
 
+    /**
+     * Name of the attribute configuring the broadcast on a connector.
+     */
+    public static final String BROADCAST_PROPERTY = "broadcast";
+
+    /**
+     * Name of the attribute configuring the merge on a connector.
+     */
+    public static final String MERGE_PROPERTY = "merge";
+
     private final String prefix;
     private final Config overall;
 
@@ -97,13 +107,16 @@ public class ConnectorConfig implements Config {
      * Gets the lists of config keys for the given connector.
      * Note that the list contains property names from the config and env variables.
      * It includes keys from the connector config and channel config.
-     * 
+     *
      * @return the list of keys
      */
     @Override
     public Iterable<String> getPropertyNames() {
         String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
         String prefix = this.prefix + name + ".";
+        if (name.contains(".")) {
+            prefix = this.prefix + "\"" + name + "\".";
+        }
         String prefixFromEnv = toEnv(prefix);
         String connectorPrefixFromEnv = toEnv(connectorPrefix);
 

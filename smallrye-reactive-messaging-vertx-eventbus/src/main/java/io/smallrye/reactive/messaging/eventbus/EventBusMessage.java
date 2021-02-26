@@ -67,4 +67,9 @@ public class EventBusMessage<T> implements Message<T> {
         return wrapped;
     }
 
+    @Override
+    public Supplier<CompletionStage<Void>> getAck() {
+        return this::ack;
+    }
+
 }

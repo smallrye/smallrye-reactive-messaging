@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.ArrayList;
@@ -32,8 +33,8 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 
-import io.opentelemetry.OpenTelemetry;
-import io.opentelemetry.trace.Tracer;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
@@ -51,8 +52,11 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "topic", type = "string", direction = Direction.INCOMING_AND_OUTGOING, description = "The consumed / populated Kafka topic. If neither this property nor the `topics` properties are set, the channel name is used")
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "health-readiness-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether readiness health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-readiness-topic-verification", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection.", defaultValue = "false")
 @ConnectorAttribute(name = "health-readiness-timeout", type = "long", direction = Direction.INCOMING_AND_OUTGOING, description = "During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.", defaultValue = "2000")
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
+
 @ConnectorAttribute(name = "topics", type = "string", direction = Direction.INCOMING, description = "A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties")
 @ConnectorAttribute(name = "pattern", type = "boolean", direction = Direction.INCOMING, description = "Indicate that the `topic` property is a regular expression. Must be used with the `topic` property. Cannot be used with the `topics` property", defaultValue = "false")
 @ConnectorAttribute(name = "key.deserializer", type = "string", direction = Direction.INCOMING, description = "The deserializer classname used to deserialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringDeserializer")
@@ -72,8 +76,9 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "dead-letter-queue.key.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the key serializer to use. If not set the serializer associated to the key deserializer is used")
 @ConnectorAttribute(name = "dead-letter-queue.value.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the value serializer to use. If not set the serializer associated to the value deserializer is used")
 @ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic", defaultValue = "1")
-@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.INCOMING, description = "Enables (default) or disables the Cloud Event support. If enabled, the connector analyzes the incoming records and try to create Cloud Event metadata.", defaultValue = "true")
-@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set the listener will be applied to the consumer.")
+@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
+@ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
+@ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
 
 @ConnectorAttribute(name = "key.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringSerializer")
 @ConnectorAttribute(name = "value.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the payload", mandatory = true)
@@ -84,7 +89,6 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "partition", type = "int", direction = Direction.OUTGOING, description = "The target partition id. -1 to let the client determine the partition", defaultValue = "-1")
 @ConnectorAttribute(name = "waitForWriteCompletion", type = "boolean", direction = Direction.OUTGOING, description = "Whether the client waits for Kafka to acknowledge the written record before acknowledging the message", defaultValue = "true")
 @ConnectorAttribute(name = "max-inflight-messages", type = "long", direction = Direction.OUTGOING, description = "The maximum number of messages to be written to Kafka concurrently. It limits the number of messages waiting to be written and acknowledged by the broker. You can set this attribute to `0` remove the limit", defaultValue = "1024")
-@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled, the connector sends the outgoing messages as Cloud Event if the message to be sent includes Cloud Event Metadata.", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events-source", type = "string", direction = Direction.OUTGOING, description = "Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself", alias = "cloud-events-default-source")
 @ConnectorAttribute(name = "cloud-events-type", type = "string", direction = Direction.OUTGOING, description = "Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself", alias = "cloud-events-default-type")
 @ConnectorAttribute(name = "cloud-events-subject", type = "string", direction = Direction.OUTGOING, description = "Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself", alias = "cloud-events-default-subject")
@@ -92,17 +96,22 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "cloud-events-data-schema", type = "string", direction = Direction.OUTGOING, description = "Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself", alias = "cloud-events-default-data-schema")
 @ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = Direction.OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute` into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
+@ConnectorAttribute(name = "close-timeout", type = "int", direction = Direction.OUTGOING, description = "The amount of milliseconds waiting for a graceful shutdown of the Kafka producer", defaultValue = "10000")
+@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
-    public static final Tracer TRACER = OpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
+    public static Tracer TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
 
     @Inject
     ExecutionHolder executionHolder;
 
     @Inject
     Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
+
+    @Inject
+    Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
 
     @Inject
     KafkaCDIEvents kafkaCDIEvents;
@@ -148,7 +157,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
         if (partitions == 1) {
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
-                    kafkaCDIEvents, -1);
+                    kafkaCDIEvents, deserializationFailureHandlers, -1);
             sources.add(source);
 
             boolean broadcast = ic.getBroadcast();
@@ -163,7 +172,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         List<Publisher<IncomingKafkaRecord<Object, Object>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
-                    kafkaCDIEvents, i);
+                    kafkaCDIEvents, deserializationFailureHandlers, i);
             sources.add(source);
             streams.add(source.getStream());
         }
@@ -194,21 +203,24 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @SuppressWarnings("unchecked")
             @Override
             public <T> T getValue(String propertyName, Class<T> propertyType) {
-                T t = (T) defaultKafkaCfg.get(propertyName);
-                if (t == null) {
-                    return passedCfg.getValue(propertyName, propertyType);
+                T passedCgfValue = passedCfg.getValue(propertyName, propertyType);
+                if (passedCgfValue == null) {
+                    return (T) defaultKafkaCfg.get(propertyName);
+                } else {
+                    return passedCgfValue;
                 }
-                return t;
             }
 
             @SuppressWarnings("unchecked")
             @Override
             public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-                T def = (T) defaultKafkaCfg.get(propertyName);
-                if (def != null) {
-                    return Optional.of(def);
+                Optional<T> passedCfgValue = passedCfg.getOptionalValue(propertyName, propertyType);
+                if (!passedCfgValue.isPresent()) {
+                    T defaultValue = (T) defaultKafkaCfg.get(propertyName);
+                    return Optional.ofNullable(defaultValue);
+                } else {
+                    return passedCfgValue;
                 }
-                return passedCfg.getOptionalValue(propertyName, propertyType);
             }
 
             @Override

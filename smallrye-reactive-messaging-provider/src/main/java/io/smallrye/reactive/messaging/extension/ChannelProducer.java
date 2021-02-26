@@ -6,6 +6,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -18,13 +19,14 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.helpers.TypeUtils;
+import io.smallrye.reactive.messaging.i18n.ProviderExceptions;
 
 /**
  * This component computes the <em>right</em> object to be injected into injection point using {@link Channel} and the
@@ -47,13 +49,8 @@ public class ChannelProducer {
     @Typed(Flowable.class)
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Flowable<T> produceFlowable(InjectionPoint injectionPoint) {
-        Type first = getFirstParameter(injectionPoint.getType());
-        if (TypeUtils.isAssignable(first, Message.class)) {
-            return cast(Flowable.fromPublisher(getPublisher(injectionPoint)));
-        } else {
-            return cast(Flowable.fromPublisher(getPublisher(injectionPoint))
-                    .map(Message::getPayload));
-        }
+        Multi<?> multi = produceMulti(injectionPoint);
+        return cast(Flowable.fromPublisher(multi));
     }
 
     /**
@@ -71,7 +68,10 @@ public class ChannelProducer {
         if (TypeUtils.isAssignable(first, Message.class)) {
             return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)));
         } else {
-            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)).map(Message::getPayload));
+            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint))
+                    .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
+                    .onItem().transform(Message::getPayload)
+                    .broadcast().toAllSubscribers());
         }
     }
 
@@ -103,13 +103,8 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> PublisherBuilder<T> producePublisherBuilder(InjectionPoint injectionPoint) {
-        Type first = getFirstParameter(injectionPoint.getType());
-        if (TypeUtils.isAssignable(first, Message.class)) {
-            return cast(ReactiveStreams.fromPublisher(getPublisher(injectionPoint)));
-        } else {
-            return cast(ReactiveStreams.fromPublisher(getPublisher(injectionPoint))
-                    .map(Message::getPayload));
-        }
+        Multi<Object> multi = produceMulti(injectionPoint);
+        return cast(ReactiveStreams.fromPublisher(multi));
     }
 
     /**
@@ -138,7 +133,8 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Emitter<T> produceEmitter(InjectionPoint injectionPoint) {
-        Emitter emitter = getEmitter(injectionPoint);
+        verify(injectionPoint);
+        Emitter<?> emitter = getEmitter(injectionPoint);
         return cast(emitter);
     }
 
@@ -152,7 +148,8 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> MutinyEmitter<T> produceMutinyEmitter(InjectionPoint injectionPoint) {
-        MutinyEmitter emitter = getMutinyEmitter(injectionPoint);
+        verify(injectionPoint);
+        MutinyEmitter<?> emitter = getMutinyEmitter(injectionPoint);
         return cast(emitter);
     }
 
@@ -168,39 +165,57 @@ public class ChannelProducer {
     @io.smallrye.reactive.messaging.annotations.Channel("") // Stream name is ignored during type-safe resolution
     <T> io.smallrye.reactive.messaging.annotations.Emitter<T> produceEmitterLegacy(
             InjectionPoint injectionPoint) {
-        LegacyEmitterImpl emitter = new LegacyEmitterImpl(getEmitter(injectionPoint));
+        LegacyEmitterImpl<?> emitter = new LegacyEmitterImpl<>(getEmitter(injectionPoint));
         return cast(emitter);
     }
 
-    @SuppressWarnings("rawtypes")
-    private Publisher<? extends Message> getPublisher(InjectionPoint injectionPoint) {
+    private Multi<? extends Message<?>> getPublisher(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
-        if (list.isEmpty()) {
-            throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
-        }
-        // TODO Manage merge.
-        return list.get(0).buildRs();
+
+        return Multi.createFrom().deferred(() -> {
+            List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
+            if (list.isEmpty()) {
+                throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
+            } else if (list.size() == 1) {
+                return Multi.createFrom().publisher(list.get(0).buildRs());
+            } else {
+                return Multi.createBy().merging()
+                        .streams(list.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+            }
+        });
     }
 
-    @SuppressWarnings("rawtypes")
-    private Emitter getEmitter(InjectionPoint injectionPoint) {
+    private Emitter<?> getEmitter(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        Emitter emitter = channelRegistry.getEmitter(name);
+        Emitter<?> emitter = channelRegistry.getEmitter(name);
         if (emitter == null) {
-            throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
+            throw ex.incomingNotFoundForEmitter(name);
         }
         return emitter;
     }
 
-    @SuppressWarnings("rawtypes")
-    private MutinyEmitter getMutinyEmitter(InjectionPoint injectionPoint) {
+    private MutinyEmitter<?> getMutinyEmitter(InjectionPoint injectionPoint) {
         String name = getChannelName(injectionPoint);
-        MutinyEmitter emitter = channelRegistry.getMutinyEmitter(name);
+        MutinyEmitter<?> emitter = channelRegistry.getMutinyEmitter(name);
         if (emitter == null) {
-            throw ex.illegalStateForEmitter(name, channelRegistry.getEmitterNames());
+            throw ex.incomingNotFoundForEmitter(name);
         }
         return emitter;
+    }
+
+    private void verify(InjectionPoint injectionPoint) {
+        Type type = injectionPoint.getType();
+        if (type instanceof ParameterizedType && ((ParameterizedType) type).getActualTypeArguments().length > 0) {
+            Type[] arguments = ((ParameterizedType) type).getActualTypeArguments();
+
+            if ((arguments[0] instanceof Class && arguments[0].equals(Message.class)) ||
+                    (arguments[0] instanceof ParameterizedType
+                            && ((ParameterizedType) arguments[0]).getRawType().equals(Message.class))) {
+                throw ProviderExceptions.ex.invalidEmitterOfMessage(injectionPoint);
+            }
+        } else {
+            throw ProviderExceptions.ex.invalidRawEmitter(injectionPoint);
+        }
     }
 
     private Type getFirstParameter(Type type) {
@@ -221,7 +236,7 @@ public class ChannelProducer {
                 return ((io.smallrye.reactive.messaging.annotations.Channel) qualifier).value();
             }
         }
-        throw ex.illegalStateForAnnotationNotFound("@Channel", injectionPoint);
+        throw ex.emitterWithoutChannelAnnotation(injectionPoint);
     }
 
     @SuppressWarnings("deprecation")

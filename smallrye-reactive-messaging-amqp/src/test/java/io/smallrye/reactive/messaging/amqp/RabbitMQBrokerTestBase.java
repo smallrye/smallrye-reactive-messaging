@@ -16,6 +16,7 @@ import org.testcontainers.utility.DockerImageName;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.extension.HealthCenter;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
 public class RabbitMQBrokerTestBase {
@@ -61,7 +62,7 @@ public class RabbitMQBrokerTestBase {
 
         usage = new AmqpUsage(executionHolder.vertx(), host, port, username, password);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 
     @AfterEach
@@ -69,7 +70,7 @@ public class RabbitMQBrokerTestBase {
         usage.close();
         executionHolder.terminate(null);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 
     public boolean isAmqpConnectorReady(WeldContainer container) {

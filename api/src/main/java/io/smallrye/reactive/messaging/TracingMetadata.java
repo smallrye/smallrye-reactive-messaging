@@ -5,9 +5,9 @@ import java.util.Optional;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.grpc.Context;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.context.Context;
 import io.smallrye.common.annotation.Experimental;
 
 @Experimental("Tracer metadata is a SmallRye specific feature for integrating with OpenTelemetry")
@@ -55,7 +55,7 @@ public class TracingMetadata {
 
     public TracingMetadata withSpan(Span span) {
         if (span != null) {
-            return new TracingMetadata(span.getContext(), previousSpanContext);
+            return new TracingMetadata(span.getSpanContext(), previousSpanContext);
         }
         return this;
     }

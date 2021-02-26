@@ -26,7 +26,7 @@ public class BeanInjectedWithAPublisherBuilderOfPayloads {
     public List<String> consume() {
         return Multi.createBy().concatenating()
                 .streams(constructor.buildRs(), field.buildRs())
-                .collectItems().asList()
+                .collect().asList()
                 .await().indefinitely();
     }
 

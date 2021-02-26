@@ -17,8 +17,8 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 /**
  * Reproducer for https://github.com/smallrye/smallrye-reactive-messaging/issues/373.
@@ -29,14 +29,14 @@ public class ChannelNameConflictTest extends KafkaTestBase {
 
     static {
         CONFLICT.put("mp.messaging.incoming.my-topic.connector", "smallrye-kafka");
-        CONFLICT.put("mp.messaging.incoming.my-topic.bootstrap.servers", kafka.getBootstrapServers());
+        CONFLICT.put("mp.messaging.incoming.my-topic.bootstrap.servers", getBootstrapServers());
         CONFLICT.put("mp.messaging.incoming.my-topic.topic", "my-topic-1");
         CONFLICT.put("mp.messaging.incoming.my-topic.value.deserializer",
                 "org.apache.kafka.common.serialization.StringDeserializer");
         CONFLICT.put("mp.messaging.incoming.my-topic.tracing-enabled", false);
 
         CONFLICT.put("mp.messaging.outgoing.my-topic.connector", "smallrye-kafka");
-        CONFLICT.put("mp.messaging.outgoing.my-topic.bootstrap.servers", kafka.getBootstrapServers());
+        CONFLICT.put("mp.messaging.outgoing.my-topic.bootstrap.servers", getBootstrapServers());
         CONFLICT.put("mp.messaging.outgoing.my-topic.topic", "my-topic-1");
         CONFLICT.put("mp.messaging.outgoing.my-topic.value.serializer",
                 "org.apache.kafka.common.serialization.StringSerializer");
@@ -45,7 +45,7 @@ public class ChannelNameConflictTest extends KafkaTestBase {
 
     @Test
     public void testWhenBothIncomingAndOutgoingUseTheSameName() {
-        new MapBasedConfig(CONFLICT).write();
+        new KafkaMapBasedConfig(CONFLICT).write();
         weld.addBeanClass(Bean.class);
         assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
     }

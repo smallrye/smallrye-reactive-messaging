@@ -12,7 +12,7 @@ import io.smallrye.mutiny.Multi;
 public class BeanProducingMessagesAsMulti {
 
     @Outgoing("sink")
-    public Multi<Message<String>> publisher() {
+    Multi<Message<String>> publisher() {
         return Multi.createFrom().range(1, 11).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i))
                 .map(Message::of);
     }

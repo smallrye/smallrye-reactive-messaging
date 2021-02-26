@@ -21,8 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class KafkaNackPropagationTest extends KafkaTestBase {
 
@@ -65,15 +65,15 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
         assertThat(messages).containsExactly(1, 2, 3, 5, 6, 7, 8, 9, 10);
     }
 
-    private MapBasedConfig getDoubleNackConfig() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
+    private KafkaMapBasedConfig getDoubleNackConfig() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", IntegerSerializer.class.getName());
         builder.put("topic", "double-topic");
         return builder.build();
     }
 
-    private MapBasedConfig getPassedNackConfig(String topic) {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.kafka");
+    private KafkaMapBasedConfig getPassedNackConfig(String topic) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
         builder.put("value.serializer", IntegerSerializer.class.getName());
         builder.put("topic", topic);
         return builder.build();

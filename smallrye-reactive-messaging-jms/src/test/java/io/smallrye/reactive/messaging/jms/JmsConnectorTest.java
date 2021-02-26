@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.jms;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -17,7 +18,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
-import io.smallrye.reactive.messaging.jms.support.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class JmsConnectorTest extends JmsTestBase {
 
@@ -63,7 +64,9 @@ public class JmsConnectorTest extends JmsTestBase {
         WeldContainer container = deploy(MessageConsumerBean.class, ProducerBean.class);
 
         MessageConsumerBean bean = container.select(MessageConsumerBean.class).get();
-        await().until(() -> bean.list().size() > 3);
+        await()
+                .atMost(Duration.ofSeconds(30))
+                .until(() -> bean.list().size() >= 1);
 
         List<IncomingJmsMessage<Integer>> messages = bean.messages();
         messages.forEach(msg -> {

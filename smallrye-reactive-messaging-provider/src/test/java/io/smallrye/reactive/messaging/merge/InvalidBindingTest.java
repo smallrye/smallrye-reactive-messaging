@@ -17,10 +17,10 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.reactivex.processors.UnicastProcessor;
-import io.smallrye.reactive.messaging.WeavingException;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.wiring.TooManyUpstreamCandidatesException;
 
 /**
  * Checks that the deployment fails when a subscriber has 2 many potential publishers and does not use the
@@ -39,10 +39,10 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
             fail("Invalid weaving not detected");
         } catch (DeploymentException e) {
             assertThat(e.getCause())
-                    .hasCauseInstanceOf(WeavingException.class)
-                    .hasMessageContaining("`source`")
-                    .hasMessageContaining("#sink")
-                    .hasMessageContaining("(2)");
+                    .hasStackTraceContaining(TooManyUpstreamCandidatesException.class.getName())
+                    .hasStackTraceContaining("'source'")
+                    .hasStackTraceContaining("#sink")
+                    .hasStackTraceContaining("found 2");
         }
     }
 
@@ -71,9 +71,7 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
             e.getCause().printStackTrace();
             assertThat(e.getCause())
                     .isInstanceOf(DeploymentException.class)
-                    .hasCauseInstanceOf(WeavingException.class)
-                    .hasMessageContaining("source")
-                    .hasMessageContaining("Synchronous");
+                    .hasStackTraceContaining("TooManyDownstream");
         }
     }
 

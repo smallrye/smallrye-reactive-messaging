@@ -14,7 +14,7 @@ public class BeanConsumingMsgAsMultiAndPublishingMsgAsMulti {
 
     @Incoming("count")
     @Outgoing("sink")
-    public Multi<Message<String>> process(Multi<Message<Integer>> source) {
+    Multi<Message<String>> process(Multi<Message<Integer>> source) {
         return source
                 .map(Message::getPayload)
                 .map(i -> i + 1)

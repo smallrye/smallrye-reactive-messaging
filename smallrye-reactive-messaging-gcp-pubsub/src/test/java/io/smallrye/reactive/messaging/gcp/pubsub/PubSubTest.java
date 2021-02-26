@@ -20,6 +20,7 @@ import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class PubSubTest extends PubSubTestBase {
 
@@ -77,7 +78,7 @@ public class PubSubTest extends PubSubTestBase {
 
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(final String topic) {
         final MapBasedConfig config = createSourceConfig(topic, null, PUBSUB_CONTAINER.getFirstMappedPort());
-        config.setValue("topic", topic);
+        config.put("topic", topic);
         config.write();
 
         return getConnector().getSubscriberBuilder(config);

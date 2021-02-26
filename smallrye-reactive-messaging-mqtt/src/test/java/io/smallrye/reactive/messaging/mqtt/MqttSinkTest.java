@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import repeat.Repeat;
 
 public class MqttSinkTest extends MqttTestBase {

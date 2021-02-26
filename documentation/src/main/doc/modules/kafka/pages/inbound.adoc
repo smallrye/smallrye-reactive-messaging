@@ -137,6 +137,40 @@ The record written on the dead letter queue contains a set of additional headers
 * `dead-letter-partition` - the original partition of the record (integer mapped to String)
 * `dead-letter-offset` - the original offset of the record (long mapped to String)
 
+=== Handling deserialization failures
+
+Because deserialization happens before creating a `Message`, the failure strategy presented above cannot be applied.
+However, when a deserialization failure occurs, you can intercept it and provide a fallback value.
+If you don't, `null` will be used as fallback value.
+
+To achieve this, create a CDI bean implementing the {javadoc-base}/io/smallrye/reactive/messaging/kafka/DeserializationFailureHandler.html[DeserializationFailureHandler<T>] interface:
+
+[source, java]
+----
+@ApplicationScoped
+@Named("failure-fallback") // Set the name of the failure handler
+public class MyDeserializationFailureHandler
+    implements DeserializationFailureHandler<JsonObject> { // Specify the expected type
+
+    @Override
+    public JsonObject handleDeserializationFailure(String topic, boolean isKey,
+            String deserializer, byte[] data,
+            Exception exception, Headers headers) {
+        return fallback;
+    }
+}
+----
+
+The bean must be exposed with the `@Named` qualifier specifying the name of the bean.
+Then, in the connector configuration, specify the following attribute:
+
+* `mp.messaging.incoming.$channel.key-deserialization-failure-handler`: name of the bean handling deserialization failures happening for the record's key
+* `mp.messaging.incoming.$channel.value-deserialization-failure-handler`: name of the bean handling deserialization failures happening for the record's value,
+
+The handler is called with the record's topic, a boolean indicating whether the failure happened on a key, the class name of the deserializer that throws the exception, the corrupted data, the exception, and the records headers augmented with headers describing the failure (which ease the write to a dead letter).
+The handler can return `null` (which would be as if there were no handlers).
+However, if the handler throws an exception, the application would be marked unhealthy.
+
 === Receiving Cloud Events
 
 The Kafka connector supports https://cloudevents.io/[Cloud Events].

@@ -99,17 +99,32 @@ public class SubscriberMediator extends AbstractMediator {
             @Override
             public void onSubscribe(Subscription s) {
                 subscription.set(s);
-                delegate.onSubscribe(s);
+                delegate.onSubscribe(new Subscription() {
+                    @Override
+                    public void request(long n) {
+                        s.request(n);
+                    }
+
+                    @Override
+                    public void cancel() {
+                        s.cancel();
+                    }
+                });
             }
 
             @Override
             public void onNext(Message<?> o) {
-                delegate.onNext(o);
+                try {
+                    delegate.onNext(o);
+                } catch (Exception e) {
+                    log.messageProcessingException(e);
+                    syncErrorCatcher.set(e);
+                }
             }
 
             @Override
             public void onError(Throwable t) {
-                log.streamProcessingException(t);
+                log.messageProcessingException(t);
                 syncErrorCatcher.set(t);
                 delegate.onError(t);
             }
@@ -120,7 +135,7 @@ public class SubscriberMediator extends AbstractMediator {
             }
         };
 
-        this.source.to(delegating).run();
+        this.source.buildRs().subscribe(delegating);
         // Check if a synchronous error has been caught
         Throwable throwable = syncErrorCatcher.get();
         if (throwable != null) {
@@ -143,7 +158,7 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItem().transform(msg -> invoke(msg.getPayload()))
                             .onItemOrFailure().transformToUni(handleInvocationResult(m))
                             .subscribeAsCompletionStage())
-                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
+                    .onError(this::reportFailure)
                     .ignore();
         }
     }
@@ -171,39 +186,76 @@ public class SubscriberMediator extends AbstractMediator {
 
     private void processMethodReturningACompletionStage() {
         boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
-        this.subscriber = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                        .onItem().transformToUni(m -> {
-                            CompletionStage<?> stage;
-                            if (invokeWithPayload) {
-                                stage = invoke(message.getPayload());
-                            } else {
-                                stage = invoke(message);
-                            }
-                            return Uni.createFrom().completionStage(stage.thenApply(x -> message));
-                        })
-                        .onItemOrFailure().transformToUni(handleInvocationResult(message))
-                        .subscribeAsCompletionStage())
-                .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
-                .ignore();
+        if (configuration.isBlocking()) {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                            .onItem().transformToUni(msg -> {
+                                if (invokeWithPayload) {
+                                    return invokeBlocking(message.getPayload());
+                                } else {
+                                    return invokeBlocking(message);
+                                }
+                            })
+                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
+                            .subscribeAsCompletionStage())
+                    .onError(this::reportFailure)
+                    .ignore();
+        } else {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                            .onItem().transformToUni(m -> {
+                                CompletionStage<?> stage;
+                                if (invokeWithPayload) {
+                                    stage = invoke(message.getPayload());
+                                } else {
+                                    stage = invoke(message);
+                                }
+                                return Uni.createFrom().completionStage(stage.thenApply(x -> message));
+                            })
+                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
+                            .subscribeAsCompletionStage())
+                    .onError(this::reportFailure)
+                    .ignore();
+        }
+    }
+
+    private void reportFailure(Throwable failure) {
+        log.messageProcessingException(failure);
+        health.reportApplicationFailure(configuration.methodAsString(), failure);
     }
 
     private void processMethodReturningAUni() {
         boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
 
-        this.subscriber = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                        .onItem().transformToUni(x -> {
-                            if (invokeWithPayload) {
-                                return invoke(message.getPayload());
-                            } else {
-                                return invoke(message);
-                            }
-                        })
-                        .onItemOrFailure().transformToUni(handleInvocationResult(message))
-                        .subscribeAsCompletionStage())
-                .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
-                .ignore();
+        if (configuration.isBlocking()) {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                            .onItem().transformToUni(x -> {
+                                if (invokeWithPayload) {
+                                    return invokeBlocking(message.getPayload());
+                                } else {
+                                    return invokeBlocking(message);
+                                }
+                            })
+                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
+                            .subscribeAsCompletionStage())
+                    .onError(this::reportFailure)
+                    .ignore();
+        } else {
+            this.subscriber = ReactiveStreams.<Message<?>> builder()
+                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
+                            .onItem().transformToUni(x -> {
+                                if (invokeWithPayload) {
+                                    return invoke(message.getPayload());
+                                } else {
+                                    return invoke(message);
+                                }
+                            })
+                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
+                            .subscribeAsCompletionStage())
+                    .onError(this::reportFailure)
+                    .ignore();
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -214,14 +266,14 @@ public class SubscriberMediator extends AbstractMediator {
         }
 
         if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
-            Subscriber<Object> sub;
+            Subscriber<Object> userSubscriber;
             if (result instanceof Subscriber) {
-                sub = (Subscriber<Object>) result;
+                userSubscriber = (Subscriber<Object>) result;
             } else {
-                sub = ((SubscriberBuilder<Object, Void>) result).build();
+                userSubscriber = ((SubscriberBuilder<Object, Void>) result).build();
             }
 
-            SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(sub, Message::getPayload,
+            SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(userSubscriber, Message::getPayload,
                     (m, t) -> {
                         if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
                             if (t != null) {
@@ -239,11 +291,12 @@ public class SubscriberMediator extends AbstractMediator {
                             return future;
                         }
                     });
+
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
-                    .via(wrapper)
-                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
-                    .ignore();
+                    .to(wrapper);
+            //                    .onError(this::reportFailure)
+            //                    .ignore();
         } else {
             Subscriber<Message<?>> sub;
             if (result instanceof Subscriber) {
@@ -255,7 +308,7 @@ public class SubscriberMediator extends AbstractMediator {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(new SubscriberWrapper<>(casted, Function.identity(), null))
-                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
+                    .onError(this::reportFailure)
                     .ignore();
         }
     }

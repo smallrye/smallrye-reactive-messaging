@@ -57,7 +57,7 @@ public class LegacyDefaultOverflowStrategyTest extends WeldTestBaseWithoutTails 
 
         await().until(() -> bean.exception() != null);
         assertThat(bean.output()).doesNotContain("999");
-        assertThat(bean.output()).hasSizeBetween(0, 256);
+        assertThat(bean.output()).hasSizeLessThan(999);
         assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
     }
 
@@ -69,7 +69,7 @@ public class LegacyDefaultOverflowStrategyTest extends WeldTestBaseWithoutTails 
         @Channel("hello")
         Emitter<String> emitter;
 
-        private List<String> output = new CopyOnWriteArrayList<>();
+        private final List<String> output = new CopyOnWriteArrayList<>();
 
         private volatile Throwable downstreamFailure;
         private Exception callerException;

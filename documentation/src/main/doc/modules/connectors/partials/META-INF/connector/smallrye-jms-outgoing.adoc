@@ -39,6 +39,10 @@ Type: _boolean_ | false |
 
 Type: _boolean_ | false | 
 
+| *merge* | Whether the connector should allow multiple upstreams
+
+Type: _boolean_ | false | `false`
+
 | *password* | The password to connect to to the JMS server
 
 Type: _String_ | false | 

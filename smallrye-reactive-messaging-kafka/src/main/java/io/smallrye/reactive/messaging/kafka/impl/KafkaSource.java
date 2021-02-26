@@ -11,30 +11,29 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.common.errors.RebalanceInProgressException;
+import org.apache.kafka.common.serialization.Deserializer;
 
-import io.grpc.Context;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.attributes.SemanticAttributes;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.*;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
+import io.smallrye.reactive.messaging.kafka.fault.*;
+import io.smallrye.reactive.messaging.kafka.health.KafkaSourceReadinessHealth;
 import io.vertx.core.AsyncResult;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
@@ -44,21 +43,22 @@ public class KafkaSource<K, V> {
     private final KafkaFailureHandler failureHandler;
     private final KafkaCommitHandler commitHandler;
     private final KafkaConnectorIncomingConfiguration configuration;
-    private final KafkaAdminClient admin;
     private final List<Throwable> failures = new ArrayList<>();
     private final Set<String> topics;
     private final Pattern pattern;
     private final boolean isTracingEnabled;
     private final boolean isHealthEnabled;
-    private final boolean isReadinessEnabled;
     private final boolean isCloudEventEnabled;
     private final String channel;
+    private final KafkaSourceReadinessHealth health;
 
     public KafkaSource(Vertx vertx,
             String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
-            KafkaCDIEvents kafkaCDIEvents, int index) {
+            KafkaCDIEvents kafkaCDIEvents,
+            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
+            int index) {
 
         topics = getTopics(config);
 
@@ -77,13 +77,17 @@ public class KafkaSource<K, V> {
 
         isTracingEnabled = this.configuration.getTracingEnabled();
         isHealthEnabled = this.configuration.getHealthEnabled();
-        isReadinessEnabled = this.configuration.getHealthReadinessEnabled();
         isCloudEventEnabled = this.configuration.getCloudEvents();
         channel = this.configuration.getChannel();
 
         JsonHelper.asJsonObject(config.config())
                 .forEach(e -> kafkaConfiguration.put(e.getKey(), e.getValue().toString()));
         kafkaConfiguration.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroup);
+
+        if (!kafkaConfiguration.containsKey(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
+            // If no backoff is set, use 10s, it avoids high load on disconnection.
+            kafkaConfiguration.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "10000");
+        }
 
         String servers = config.getBootstrapServers();
         if (!kafkaConfiguration.containsKey(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
@@ -117,22 +121,38 @@ public class KafkaSource<K, V> {
 
         ConfigurationCleaner.cleanupConsumerConfiguration(kafkaConfiguration);
 
-        final KafkaConsumer<K, V> kafkaConsumer = KafkaConsumer.create(vertx, kafkaConfiguration);
+        Deserializer<K> keyDeserializer = new DeserializerWrapper<>(
+                kafkaConfiguration.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG), true,
+                getDeserializationHandler(true, deserializationFailureHandlers),
+                this);
+        String className = kafkaConfiguration.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG);
+        if (className == null) {
+            throw ex.missingValueDeserializer(config.getChannel(), config.getChannel());
+        }
+        Deserializer<V> valueDeserializer = new DeserializerWrapper<>(
+                className, false, getDeserializationHandler(false, deserializationFailureHandlers),
+                this);
+
+        // Configure the underlying deserializers
+        keyDeserializer.configure(kafkaConfiguration, true);
+        valueDeserializer.configure(kafkaConfiguration, false);
+
+        final KafkaConsumer<K, V> kafkaConsumer = createKafkaConsumer(vertx,
+                ConfigurationCleaner.asKafkaConfiguration(kafkaConfiguration), keyDeserializer, valueDeserializer);
 
         // fire consumer event (e.g. bind metrics)
         kafkaCDIEvents.consumer().fire(kafkaConsumer.getDelegate().unwrap());
 
         commitHandler = createCommitHandler(vertx, kafkaConsumer, consumerGroup, config, commitStrategy);
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
-
-        Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-        if (config.getHealthEnabled() && config.getHealthReadinessEnabled()) {
-            // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel());
-        } else {
-            this.admin = null;
-        }
         this.consumer = kafkaConsumer;
+        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
+            health = new KafkaSourceReadinessHealth(vertx, configuration, kafkaConfiguration,
+                    consumer.getDelegate().unwrap(), topics, pattern);
+        } else {
+            health = null;
+        }
+
         ConsumerRebalanceListener listener = RebalanceListeners
                 .createRebalanceListener(config, consumerGroup, consumerRebalanceListeners, consumer, commitHandler);
         RebalanceListeners.inject(this.consumer, listener);
@@ -199,6 +219,40 @@ public class KafkaSource<K, V> {
                 .onFailure().invoke(t -> reportFailure(t, false));
     }
 
+    @SuppressWarnings({ "unchecked" })
+    private <T> DeserializationFailureHandler<T> getDeserializationHandler(boolean isKey,
+            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers) {
+        String name = isKey ? configuration.getKeyDeserializationFailureHandler().orElse(null)
+                : configuration.getValueDeserializationFailureHandler().orElse(null);
+
+        if (name == null) {
+            return null;
+        }
+
+        Instance<DeserializationFailureHandler<?>> matching = deserializationFailureHandlers
+                .select(NamedLiteral.of(name));
+        if (matching.isUnsatisfied()) {
+            throw ex.unableToFindDeserializationFailureHandler(name, configuration.getChannel());
+        } else if (matching.stream().count() > 1) {
+            throw ex.unableToFindDeserializationFailureHandler(name, configuration.getChannel(),
+                    (int) matching.stream().count());
+        } else if (matching.stream().count() == 1) {
+            return (DeserializationFailureHandler<T>) matching.get();
+        } else {
+            return null;
+        }
+
+    }
+
+    private KafkaConsumer<K, V> createKafkaConsumer(Vertx vertx, Map<String, Object> kafkaConfiguration,
+            Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+        org.apache.kafka.clients.consumer.KafkaConsumer<K, V> underlyingKafkaConsumer = new org.apache.kafka.clients.consumer.KafkaConsumer<>(
+                kafkaConfiguration, keyDeserializer, valueDeserializer);
+        io.vertx.kafka.client.consumer.KafkaConsumer<K, V> bare = io.vertx.kafka.client.consumer.KafkaConsumer.create(
+                vertx.getDelegate(), underlyingKafkaConsumer);
+        return KafkaConsumer.newInstance(bare);
+    }
+
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
         String list = config.getTopics().orElse(null);
         String top = config.getTopic().orElse(null);
@@ -226,6 +280,12 @@ public class KafkaSource<K, V> {
     }
 
     public synchronized void reportFailure(Throwable failure, boolean fatal) {
+        if (failure instanceof RebalanceInProgressException) {
+            // Just log the failure - it will be retried
+            log.failureReportedDuringRebalance(topics, failure);
+            return;
+        }
+
         log.failureReported(topics, failure);
         // Don't keep all the failures, there are only there for reporting.
         if (failures.size() == 10) {
@@ -234,7 +294,9 @@ public class KafkaSource<K, V> {
         failures.add(failure);
 
         if (fatal) {
-            consumer.closeAndForget();
+            if (consumer != null) {
+                consumer.closeAndForget();
+            }
         }
     }
 
@@ -242,8 +304,8 @@ public class KafkaSource<K, V> {
         if (isTracingEnabled) {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
-            final Span.Builder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
-                    .setSpanKind(Span.Kind.CONSUMER);
+            final SpanBuilder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
+                    .setSpanKind(SpanKind.CONSUMER);
 
             // Handle possible parent span
             final Context parentSpanContext = tracingMetadata.getPreviousContext();
@@ -256,7 +318,7 @@ public class KafkaSource<K, V> {
             final Span span = spanBuilder.startSpan();
 
             // Set Span attributes
-            span.setAttribute("partition", kafkaRecord.getPartition());
+            span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_PARTITION, kafkaRecord.getPartition());
             span.setAttribute("offset", kafkaRecord.getOffset());
             span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
@@ -319,12 +381,9 @@ public class KafkaSource<K, V> {
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
-        if (admin != null) {
-            try {
-                this.admin.closeAndAwait();
-            } catch (Throwable e) {
-                log.exceptionOnClose(e);
-            }
+
+        if (health != null) {
+            health.close();
         }
     }
 
@@ -347,34 +406,9 @@ public class KafkaSource<K, V> {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (isHealthEnabled && isReadinessEnabled) {
-            Set<String> existingTopics;
-            try {
-                existingTopics = admin.listTopics()
-                        .await().atMost(Duration.ofMillis(configuration.getHealthReadinessTimeout()));
-                if (pattern == null && existingTopics.containsAll(topics)) {
-                    builder.add(channel, true);
-                } else if (pattern != null) {
-                    // Check that at least one topic matches
-                    boolean ok = existingTopics.stream()
-                            .anyMatch(s -> pattern.matcher(s).matches());
-                    if (ok) {
-                        builder.add(channel, ok);
-                    } else {
-                        builder.add(channel, false,
-                                "Unable to find a topic matching the given pattern: " + pattern);
-                    }
-                } else {
-                    String missing = topics.stream().filter(s -> !existingTopics.contains(s))
-                            .collect(Collectors.joining());
-                    builder.add(channel, false, "Unable to find topic(s): " + missing);
-                }
-            } catch (Exception failed) {
-                builder.add(channel, false, "No response from broker for channel "
-                        + channel + " : " + failed);
-            }
+        if (health != null) {
+            health.isReady(builder);
         }
-
         // If health is disable do not add anything to the builder.
     }
 

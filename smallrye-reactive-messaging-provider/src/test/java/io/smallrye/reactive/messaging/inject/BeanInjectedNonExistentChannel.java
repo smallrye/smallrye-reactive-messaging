@@ -15,4 +15,8 @@ public class BeanInjectedNonExistentChannel {
     @Channel("idonotexist")
     private Multi<Message<String>> field;
 
+    public Multi<Message<String>> getChannel() {
+        return field;
+    }
+
 }

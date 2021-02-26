@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 
 public class HeaderPropagationAmqpToAmqpTest extends AmqpBrokerTestBase {

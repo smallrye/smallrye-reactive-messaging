@@ -1,15 +1,11 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 /**
  * An implementation of {@link Config} based on a simple {@link Map}.
@@ -17,13 +13,13 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnector;
  * <p>
  * Note that this implementation does not do any conversion, so you must pass the expected object instances.
  */
-public class MapBasedConfig extends HashMap<String, Object> implements Config, Map<String, Object> {
+public class KafkaMapBasedConfig extends MapBasedConfig {
 
-    public MapBasedConfig(Map<String, Object> map) {
+    public KafkaMapBasedConfig(Map<String, Object> map) {
         super(map);
     }
 
-    public MapBasedConfig() {
+    public KafkaMapBasedConfig() {
         super();
     }
 
@@ -36,60 +32,7 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
     }
 
     public static Builder builder(String prefix, boolean tracing) {
-        return new MapBasedConfig.Builder(prefix, tracing);
-    }
-
-    public MapBasedConfig with(String k, Object v) {
-        super.put(k, v);
-        return this;
-    }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static void cleanup() {
-        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
-        if (out.isFile()) {
-            out.delete();
-        }
-    }
-
-    @Override
-    public <T> T getValue(String propertyName, Class<T> propertyType) {
-        return getOptionalValue(propertyName, propertyType).orElseThrow(() -> new NoSuchElementException(propertyName));
-    }
-
-    @Override
-    public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-        @SuppressWarnings("unchecked")
-        T value = (T) super.get(propertyName);
-        return Optional.ofNullable(value);
-    }
-
-    @Override
-    public Iterable<String> getPropertyNames() {
-        return super.keySet();
-    }
-
-    @Override
-    public Iterable<ConfigSource> getConfigSources() {
-        return Collections.emptyList();
-    }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    public void write() {
-        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
-        if (out.isFile()) {
-            out.delete();
-        }
-        out.getParentFile().mkdirs();
-
-        Properties properties = new Properties();
-        super.forEach((key, value) -> properties.setProperty(key, value.toString()));
-        try (FileOutputStream fos = new FileOutputStream(out)) {
-            properties.store(fos, "file generated for testing purpose");
-            fos.flush();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return new KafkaMapBasedConfig.Builder(prefix, tracing);
     }
 
     public static class Builder {
@@ -135,7 +78,7 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
             }
         }
 
-        public MapBasedConfig build() {
+        public KafkaMapBasedConfig build() {
             Map<String, Object> inner = new HashMap<>();
 
             if (!configValues.containsKey("connector")) {
@@ -146,10 +89,10 @@ public class MapBasedConfig extends HashMap<String, Object> implements Config, M
                 inner.put(getFullKey("tracing-enabled"), false);
             }
             if (!configValues.containsKey("bootstrap.servers")) {
-                inner.put(getFullKey("bootstrap.servers"), KafkaTestBase.kafka.getBootstrapServers());
+                inner.put(getFullKey("bootstrap.servers"), KafkaTestBase.getBootstrapServers());
             }
             configValues.forEach((key, value) -> inner.put(getFullKey(key), value));
-            return new MapBasedConfig(inner);
+            return new KafkaMapBasedConfig(inner);
         }
     }
 }

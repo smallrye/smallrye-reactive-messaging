@@ -22,14 +22,14 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.MapBasedConfig;
 
 public class HealthCheckTest extends KafkaTestBase {
 
     @Test
     public void testHealthOfApplicationWithoutOutgoingTopic() {
-        MapBasedConfig config = getKafkaSinkConfigForProducingBean();
+        KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean();
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
@@ -53,8 +53,34 @@ public class HealthCheckTest extends KafkaTestBase {
         assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
     }
 
-    private MapBasedConfig getKafkaSinkConfigForProducingBean() {
-        MapBasedConfig.Builder builder = MapBasedConfig.builder("mp.messaging.outgoing.output")
+    @Test
+    public void testHealthOfApplicationWithoutOutgoingTopicUsingAdminCheck() {
+        KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean();
+        config.put("my.topic", topic);
+        runApplication(config, ProducingBean.class);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                (k, v) -> expected.getAndIncrement());
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        await().until(() -> expected.get() == 10);
+        HealthReport liveness = getHealth().getLiveness();
+        HealthReport readiness = getHealth().getReadiness();
+
+        assertThat(liveness.isOk()).isTrue();
+        assertThat(readiness.isOk()).isTrue();
+        assertThat(liveness.getChannels()).hasSize(1);
+        assertThat(readiness.getChannels()).hasSize(0);
+        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
+    }
+
+    private KafkaMapBasedConfig getKafkaSinkConfigForProducingBean() {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output")
                 .put("value.serializer", IntegerSerializer.class.getName())
                 // Disabling readiness
                 .put("health-readiness-enabled", false);

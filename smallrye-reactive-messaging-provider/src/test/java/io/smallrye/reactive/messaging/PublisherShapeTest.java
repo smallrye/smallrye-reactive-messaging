@@ -1,14 +1,20 @@
 package io.smallrye.reactive.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.se.SeContainer;
 
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.junit.Test;
 
 import io.smallrye.reactive.messaging.beans.*;
@@ -86,7 +92,8 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
 
     @Test
     public void testThatWeCanProducePublisherOfMessages() {
-        addBeanClass(BeanReturningAPublisherOfMessages.class);
+        addBeanClass(MyProducerSink.class);
+        addBeanClass(BeanReturningAPublisherBuilderOfItems.class);
         initialize();
         assertThatProducerWasPublished(container);
     }
@@ -94,19 +101,22 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     @Test
     public void testThatWeCanProducePublisherBuilderOfMessages() {
         addBeanClass(BeanReturningAPublisherBuilderOfMessages.class);
+        addBeanClass(MyProducerSink.class);
         initialize();
         assertThatProducerWasPublished(container);
     }
 
     @Test
     public void testThatWeCanProducePublisherOfItems() {
-        addBeanClass(BeanReturningAPublisherOfItems.class);
+        addBeanClass(MyProducerSink.class);
+        addBeanClass(BeanReturningAPublisherBuilderOfItems.class);
         initialize();
         assertThatProducerWasPublished(container);
     }
 
     @Test
     public void testThatWeCanProducePublisherBuilderOfItems() {
+        addBeanClass(MyProducerSink.class);
         addBeanClass(BeanReturningAPublisherBuilderOfItems.class);
         initialize();
         assertThatProducerWasPublished(container);
@@ -115,59 +125,82 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
     @Test
     public void testThatWeCanProducePayloadDirectly() {
         addBeanClass(BeanReturningPayloads.class);
+        addBeanClass(InfiniteSubscriber.class);
         initialize();
 
         List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
-        List<Integer> list = producer.get(0).map(Message::getPayload)
-                .limit(3)
-                .map(i -> (Integer) i)
-                .toList().run().toCompletableFuture().join();
-        assertThat(list).containsExactly(1, 2, 3);
+        InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
+        await().until(() -> subscriber.list().size() == 4);
+        assertThat(subscriber.list()).containsExactly(1, 2, 3, 4);
     }
 
     @Test
     public void testThatWeCanProduceMessageDirectly() {
         addBeanClass(BeanReturningMessages.class);
+        addBeanClass(InfiniteSubscriber.class);
         initialize();
 
         List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
-        List<Integer> list = producer.get(0).map(Message::getPayload)
-                .limit(5)
-                .map(i -> (Integer) i)
-                .toList().run().toCompletableFuture().join();
-        assertThat(list).containsExactly(1, 2, 3, 4, 5);
+        InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
+        await().until(() -> subscriber.list().size() == 4);
+        assertThat(subscriber.list()).containsExactly(1, 2, 3, 4);
     }
 
     @Test
     public void testThatWeCanProduceCompletionStageOfMessageDirectly() {
         addBeanClass(BeanReturningCompletionStageOfMessage.class);
+        addBeanClass(InfiniteSubscriber.class);
         initialize();
 
         List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
-        List<Integer> list = producer.get(0).map(Message::getPayload)
-                .limit(10)
-                .map(i -> (Integer) i)
-                .toList().run().toCompletableFuture().join();
-        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
+        await().until(() -> subscriber.list().size() == 4);
+        assertThat(subscriber.list()).containsExactly(1, 2, 3, 4);
         container.select(BeanReturningCompletionStageOfMessage.class).get().close();
     }
 
     @Test
     public void testThatWeCanProduceCompletionStageOfPayloadDirectly() {
         addBeanClass(BeanReturningCompletionStageOfPayload.class);
+        addBeanClass(InfiniteSubscriber.class);
         initialize();
 
         List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
-        List<Integer> list = producer.get(0).map(Message::getPayload)
-                .limit(4)
-                .map(i -> (Integer) i)
-                .toList().run().toCompletableFuture().join();
-        assertThat(list).containsExactly(1, 2, 3, 4);
+
+        InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
+        await().until(() -> subscriber.list().size() == 4);
+        assertThat(subscriber.list()).containsExactly(1, 2, 3, 4);
         container.select(BeanReturningCompletionStageOfPayload.class).get().close();
+    }
+
+    @ApplicationScoped
+    public static class MyProducerSink {
+        @Incoming("producer")
+        void consume(String s) {
+
+        }
+    }
+
+    @ApplicationScoped
+    public static class InfiniteSubscriber {
+
+        private final List<Integer> list = new ArrayList<>();
+
+        @Incoming("infinite-producer")
+        public SubscriberBuilder<Integer, Void> consumeFourItems() {
+            return ReactiveStreams
+                    .<Integer> builder()
+                    .limit(4)
+                    .forEach(list::add);
+        }
+
+        public List<Integer> list() {
+            return list;
+        }
     }
 
     private void assertThatProducerWasPublished(SeContainer container) {

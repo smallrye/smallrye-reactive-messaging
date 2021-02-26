@@ -1,7 +1,8 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import javax.enterprise.inject.se.SeContainer;
+
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.extension.HealthCenter;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
 public class AmqpBrokerTestBase {
@@ -45,7 +47,7 @@ public class AmqpBrokerTestBase {
 
         usage = new AmqpUsage(executionHolder.vertx(), host, port, username, password);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 
     @AfterEach
@@ -53,10 +55,10 @@ public class AmqpBrokerTestBase {
         usage.close();
         executionHolder.terminate(null);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        MapBasedConfig.clear();
+        MapBasedConfig.cleanup();
     }
 
-    public boolean isAmqpConnectorReady(WeldContainer container) {
+    public boolean isAmqpConnectorReady(SeContainer container) {
         HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
         return health.getReadiness().isOk();
     }
@@ -65,7 +67,7 @@ public class AmqpBrokerTestBase {
         return connector.getReadiness().isOk();
     }
 
-    public boolean isAmqpConnectorAlive(WeldContainer container) {
+    public boolean isAmqpConnectorAlive(SeContainer container) {
         HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
         return health.getLiveness().isOk();
     }
