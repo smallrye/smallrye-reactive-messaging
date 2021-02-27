@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -13,7 +14,6 @@
   <artifactId>smallrye-reactive-messaging-pulsar</artifactId>
 
   <properties>
-    <pulsar.version>2.5.0</pulsar.version>
     <debezium.version>1.0.3.Final</debezium.version>
   </properties>
 
@@ -28,6 +28,7 @@
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.debezium</groupId>
       <artifactId>debezium-core</artifactId>
@@ -63,18 +64,19 @@
       <version>2.5.0</version>
     </dependency>
     <dependency>
-      <groupId>javax.jms</groupId>
-      <artifactId>javax.jms-api</artifactId>
-      <version>2.0.1</version>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-connector-attribute-processor</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.hibernate.validator</groupId>
-      <artifactId>hibernate-validator</artifactId>
-      <version>6.1.2.Final</version>
+      <groupId>io.strimzi</groupId>
+      <artifactId>test-container</artifactId>
+      <version>0.20.1</version>
+      <scope>test</scope>
     </dependency>
-
-
   </dependencies>
+
   <build>
     <plugins>
       <plugin>
@@ -86,6 +88,7 @@
       </plugin>
     </plugins>
   </build>
+
   <profiles>
     <profile>
       <id>coverage</id>

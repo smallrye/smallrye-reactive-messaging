@@ -22,7 +22,7 @@ public class PulsarTestBase {
     private Consumer<String> consumer;
 
     @ClassRule
-    public static GenericContainer pulsarContainer = new GenericContainer("apachepulsar/pulsar-all:2.5.0")
+    public static GenericContainer pulsarContainer = new GenericContainer("apachepulsar/pulsar")
             .withExposedPorts(BROKER_PORT, BROKER_HTTP_PORT)
             .withCommand("/pulsar/bin/pulsar", "standalone")
             .waitingFor(Wait.forHttp(METRICS_ENDPOINT)
@@ -41,8 +41,10 @@ public class PulsarTestBase {
     @Before
     public void setup() {
         try {
-            Integer brokerPort = pulsarContainer.getMappedPort(BROKER_PORT);
-            Integer restPort = pulsarContainer.getMappedPort(BROKER_HTTP_PORT);
+//            Integer brokerPort = pulsarContainer.getMappedPort(BROKER_PORT);
+//            Integer restPort = pulsarContainer.getMappedPort(BROKER_HTTP_PORT);
+            Integer brokerPort = BROKER_PORT;
+            Integer restPort = BROKER_HTTP_PORT;
             final String socketUrl = "pulsar://localhost:" + brokerPort;
             final String restUrl = "http://localhost:" + restPort;
 
@@ -56,9 +58,9 @@ public class PulsarTestBase {
                     .allowTlsInsecureConnection(true)
                     .build();
 
-            admin.tenants().createTenant("test-tenant", getGeneralTenantInfo(admin));
-            admin.namespaces().createNamespace("test-tenant/test-namespace/");
-            admin.topics().createNonPartitionedTopic("test-tenant/test-namespace/test-topic");
+            admin.tenants().createTenant("smallrye-tenant", getGeneralTenantInfo(admin));
+            admin.namespaces().createNamespace("smallrye-tenant/smallrye-namespace/");
+            admin.topics().createNonPartitionedTopic("smallrye-tenant/smallrye-namespace/smallrye-topic");
 
             producer = client.newProducer(Schema.STRING)
                     .topic("test-tenant/test-namespace/test-topic")
