@@ -23,7 +23,7 @@ services:
 
     standalone:
         image: apachepulsar/pulsar
-        hostname: pulsar
+        container_name: pulsar
         networks:
             - pulsar_network
         ports:
@@ -40,7 +40,7 @@ services:
             - pulsarconf:/pulsar/conf
     manager:
         image: apachepulsar/pulsar-manager
-        hostname: manager
+        container_name: manager
         networks:
             - pulsar_network
         environment:
@@ -48,18 +48,6 @@ services:
         ports:
             - "9527:9527"
             - "7750:7750"
-
-
-    create-admin:
-        image: curlimages/curl
-        hostname: deployer
-        depends_on:
-            - standalone
-        networks:
-            - pulsar_network
-        volumes:
-            - "deploy.sh:/usr/bin/deploy.sh"
-        command: ["/bin/bash","/usr/bin/deploy.sh"]
 
 
 networks:
