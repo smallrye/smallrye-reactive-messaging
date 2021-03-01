@@ -68,6 +68,10 @@ public class AmqpClientHelper {
                     .setReconnectAttempts(reconnectAttempts)
                     .setReconnectInterval(reconnectInterval)
                     .setConnectTimeout(connectTimeout);
+
+            config.getSniServerName().ifPresent(options::setSniServerName);
+            config.getVirtualHost().ifPresent(options::setVirtualHost);
+
             return AmqpClient.create(vertx, options);
         } catch (Exception e) {
             log.unableToCreateClient(e);

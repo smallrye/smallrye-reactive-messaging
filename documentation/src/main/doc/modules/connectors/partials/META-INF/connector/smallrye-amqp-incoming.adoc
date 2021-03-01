@@ -33,6 +33,18 @@ _(amqp-use-ssl)_ | Whether the AMQP connection uses SSL/TLS
 
 Type: _boolean_ | false | `false`
 
+| *virtual-host*
+
+_(amqp-virtual-host)_ | If set, configure the virtual host name for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
+
+Type: _string_ | false | 
+
+| *sni-server-name*
+
+_(amqp-sni-server-name)_ | If set, explicitly override the hostname to use for the TLS SNI server name
+
+Type: _string_ | false | 
+
 | *reconnect-attempts*
 
 _(amqp-reconnect-attempts)_ | The number of reconnection attempts
