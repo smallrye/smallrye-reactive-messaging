@@ -118,7 +118,7 @@ public class KafkaTestBase extends WeldTestBase {
      */
     public static class FixedKafkaContainer extends StrimziKafkaContainer {
         public FixedKafkaContainer(int port) {
-            super();
+            super(KafkaBrokerExtension.KAFKA_VERSION);
             super.addFixedExposedPort(port, KAFKA_PORT);
         }
 

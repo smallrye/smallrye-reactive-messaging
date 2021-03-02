@@ -68,6 +68,7 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
 
         // TODO Make sure we don't enqueue too much, especially if req == Long.MAX
         private final Queue<ConsumerRecord<K, V>> queue;
+        private final long retries;
 
         /**
          * {@code true} if the subscription has been cancelled.
@@ -82,6 +83,7 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
             this.pauseResumeEnabled = config.getPauseIfNoRequests();
             this.downstream = subscriber;
             this.queue = new ConcurrentLinkedDeque<>();
+            this.retries = config.getRetryAttempts() == -1 ? Long.MAX_VALUE : config.getRetryAttempts();
             this.pollUni = client.poll()
                     .onItem().transform(cr -> {
                         if (cr.isEmpty()) {
@@ -92,13 +94,9 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
                     })
                     .plug(m -> {
                         if (config.getRetry()) {
-                            long max = config.getRetryAttempts();
-                            if (max == -1) {
-                                max = Long.MAX_VALUE;
-                            }
                             int maxWait = config.getRetryMaxWait();
                             return m.onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait))
-                                    .atMost(max);
+                                    .atMost(retries);
                         }
                         return m;
                     });

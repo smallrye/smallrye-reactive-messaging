@@ -335,7 +335,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
 
         void processed(long offset) {
-            if (!this.receivedOffsets.isEmpty() && this.receivedOffsets.peek().getOffset() <= offset) {
+            final OffsetReceivedAt received = this.receivedOffsets.peek();
+            if (received != null && received.getOffset() <= offset) {
                 processedOffsets.add(offset);
             }
         }
