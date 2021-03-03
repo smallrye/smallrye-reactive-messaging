@@ -7,9 +7,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 
-import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapGetter;
 
-public class HeaderExtractAdapter implements TextMapPropagator.Getter<Headers> {
+public class HeaderExtractAdapter implements TextMapGetter<Headers> {
     public static final HeaderExtractAdapter GETTER = new HeaderExtractAdapter();
 
     private Iterable<String> keys;
@@ -27,6 +27,9 @@ public class HeaderExtractAdapter implements TextMapPropagator.Getter<Headers> {
 
     @Override
     public String get(Headers headers, String key) {
+        if (headers == null) {
+            return null;
+        }
         final Header header = headers.lastHeader(key);
         if (header == null) {
             return null;

@@ -79,6 +79,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
 @ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
+@ConnectorAttribute(name = "graceful-shutdown", type = "boolean", direction = Direction.INCOMING, description = "Whether or not a graceful shutdown should be attempted when the application terminates.", defaultValue = "true")
 
 @ConnectorAttribute(name = "key.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringSerializer")
 @ConnectorAttribute(name = "value.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the payload", mandatory = true)
@@ -203,21 +204,24 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @SuppressWarnings("unchecked")
             @Override
             public <T> T getValue(String propertyName, Class<T> propertyType) {
-                T t = (T) defaultKafkaCfg.get(propertyName);
-                if (t == null) {
-                    return passedCfg.getValue(propertyName, propertyType);
+                T passedCgfValue = passedCfg.getValue(propertyName, propertyType);
+                if (passedCgfValue == null) {
+                    return (T) defaultKafkaCfg.get(propertyName);
+                } else {
+                    return passedCgfValue;
                 }
-                return t;
             }
 
             @SuppressWarnings("unchecked")
             @Override
             public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-                T def = (T) defaultKafkaCfg.get(propertyName);
-                if (def != null) {
-                    return Optional.of(def);
+                Optional<T> passedCfgValue = passedCfg.getOptionalValue(propertyName, propertyType);
+                if (!passedCfgValue.isPresent()) {
+                    T defaultValue = (T) defaultKafkaCfg.get(propertyName);
+                    return Optional.ofNullable(defaultValue);
+                } else {
+                    return passedCfgValue;
                 }
-                return passedCfg.getOptionalValue(propertyName, propertyType);
             }
 
             @Override

@@ -36,6 +36,7 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
         MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
                 .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.kafka.graceful-shutdown", false)
                 .with("mp.messaging.incoming.kafka.topic", topic)
                 .with("mp.messaging.incoming.kafka.auto.offset.reset", "earliest")
                 .with("mp.messaging.incoming.kafka.health-enabled", false)

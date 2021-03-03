@@ -1,0 +1,85 @@
+version: 1
+update_configs:
+    # 2.x branch - Vert.x 3.x, smallrye-reactive-converter-api 1.x, MP3
+    -   package_manager: "java:maven"
+        directory: "/"
+        update_schedule: "daily"
+        target_branch: "master"
+        default_reviewers:
+            - "cescoffier"
+        ignored_updates:
+            -   match:
+                    dependency_name: "io.vertx:vertx-stack-depchain"
+                    version_requirement: ">=4.0.0"
+            -   match:
+                    dependency_name: "io.smallrye.reactive:*"
+            -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:microprofile-metrics-api"
+                    version_requirement: ">=3.0.0"
+            -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:microprofile-config-api"
+                    version_requirement: ">=2.0.0"
+            -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:mmicroprofile-health-api"
+                    version_requirement: ">=3.0"
+            -   match:
+                    dependency_name: "io.smallrye:smallrye-health"
+                    version_requirement: ">=3.0.0"
+            -   match:
+                    dependency_name: "io.smallrye:smallrye-metrics"
+                    version_requirement: ">=3.0.0"
+            -   match:
+                    dependency_name: "io.smallrye:smallrye-config"
+                    version_requirement: ">=2.0.0"
+            -   match:
+                    dependency_name: "io.smallrye:smallrye-fault-tolerance"
+                    version_requirement: ">=5.0.0"
+            -   match:
+                    dependency_name: "org.eclipse:yasson"
+            -   match:
+                    dependency_name: "software.amazon.awssdk:*"
+            -   match:
+                    dependency_name: "com.amazonaws:aws-java-sdk-sns"
+            -   match:
+                    dependency_name: "com.google.cloud:libraries-bom"
+
+        # 3.x branch - Vert.x 4.x, smallrye-reactive-converter-api 2.x, MP4
+    -   package_manager: "java:maven"
+        directory: "/"
+        update_schedule: "daily"
+        target_branch: "3.x"
+        default_reviewers:
+            - "cescoffier"
+        ignored_updates:
+            -   match:
+                    dependency_name: "io.vertx:vertx-stack-depchain"
+                    version_requirement: "<4.0.0"
+            -   match:
+                    dependency_name: "io.smallrye.reactive:*"
+            -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:microprofile-metrics-api"
+                    version_requirement: "<3.0.0"
+            -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:microprofile-config-api"
+                    version_requirement: "<2.0.0"
+            -   match:
+                    dependency_name: "org.eclipse.microprofile.metrics:microprofile-health-api"
+                    version_requirement: "<3.0"
+            -   match:
+                    dependency_name: "io.smallrye:smallrye-health"
+                    version_requirement: "<3.0.0"
+            -   match:
+                    dependency_name: "io.smallrye:smallrye-config"
+                    version_requirement: "<2.0.0"
+            -   match:
+                    dependency_name: "io.smallrye:smallrye-fault-tolerance"
+                    version_requirement: "<5.0.0"
+            -   match:
+                    dependency_name: "org.eclipse:yasson"
+            -   match:
+                    dependency_name: "software.amazon.awssdk:*"
+            -   match:
+                    dependency_name: "com.amazonaws:aws-java-sdk-sns"
+            -   match:
+                    dependency_name: "com.google.cloud:libraries-bom"
+

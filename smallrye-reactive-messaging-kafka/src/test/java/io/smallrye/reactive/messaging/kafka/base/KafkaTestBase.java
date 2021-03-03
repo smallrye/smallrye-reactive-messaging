@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.base;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 import static org.awaitility.Awaitility.await;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
@@ -14,6 +15,7 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.strimzi.StrimziKafkaContainer;
@@ -26,14 +28,19 @@ public class KafkaTestBase extends WeldTestBase {
     public Vertx vertx;
     public KafkaUsage usage;
 
-    // A random topic.
     public String topic;
 
     @BeforeEach
     public void createVertxAndInitUsage() {
         vertx = Vertx.vertx();
-        topic = UUID.randomUUID().toString();
         usage = new KafkaUsage();
+    }
+
+    @BeforeEach
+    public void initTopic(TestInfo testInfo) {
+        String cn = testInfo.getTestClass().map(Class::getSimpleName).orElse(UUID.randomUUID().toString());
+        String mn = testInfo.getTestMethod().map(Method::getName).orElse(UUID.randomUUID().toString());
+        topic = cn + "-" + mn + "-" + UUID.randomUUID().getMostSignificantBits();
     }
 
     @AfterEach
@@ -53,6 +60,7 @@ public class KafkaTestBase extends WeldTestBase {
                 "auto.offset.reset", "earliest",
                 "tracing-enabled", false,
                 "topic", topic,
+                "graceful-shutdown", false,
                 "channel-name", topic).build();
     }
 

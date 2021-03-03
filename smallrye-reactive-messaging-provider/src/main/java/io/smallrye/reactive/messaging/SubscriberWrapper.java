@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging;
 
-import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
-
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
@@ -12,6 +10,8 @@ import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import io.smallrye.mutiny.helpers.Subscriptions;
+
 public class SubscriberWrapper<I, T> implements Processor<T, T> {
 
     /**
@@ -20,47 +20,25 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
     private final Subscriber<I> delegate;
     private final BiFunction<T, Throwable, CompletionStage<Void>> postAck;
 
-    /**
-     * The downstream subscriber.
-     */
-    private final AtomicReference<Subscriber<? super T>> subscriber = new AtomicReference<>();
+    private final AtomicReference<Subscription> upstream = new AtomicReference<>();
 
     private final Function<T, I> mapper;
 
-    public SubscriberWrapper(Subscriber<I> subscriber, Function<T, I> mapper,
+    public SubscriberWrapper(Subscriber<I> userSubscriber, Function<T, I> mapper,
             BiFunction<T, Throwable, CompletionStage<Void>> postAck) {
-        this.delegate = Objects.requireNonNull(subscriber);
+        this.delegate = Objects.requireNonNull(userSubscriber);
         this.mapper = Objects.requireNonNull(mapper);
         this.postAck = postAck;
     }
 
     /**
-     * Gets call with the downstream subscriber (from reactive messaging)
+     * Gets called with the downstream subscriber (from reactive messaging).
      *
      * @param s the downstream subscriber
      */
     @Override
     public void subscribe(Subscriber<? super T> s) {
-        if (!this.subscriber.compareAndSet(null, s)) {
-            s.onSubscribe(new Subscription() {
-                @Override
-                public void request(long n) {
-                    // Ignored.
-                }
-
-                @Override
-                public void cancel() {
-                    // Ignored.
-                }
-            });
-            s.onError(ex.illegalStateForNotSupported("Broadcast"));
-        }
-    }
-
-    @Override
-    public void onSubscribe(Subscription s) {
-        // Pass a custom subscription to the downstream
-        subscriber.get().onSubscribe(new Subscription() {
+        s.onSubscribe(new Subscription() {
             @Override
             public void request(long n) {
                 // ignore requests
@@ -69,12 +47,41 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
             @Override
             public void cancel() {
                 // cancel subscription upstream
-                s.cancel();
+                Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
+                if (subscription != null) {
+                    subscription.cancel();
+                }
             }
         });
+    }
+
+    /**
+     * Receives the subscription from the upstream.
+     *
+     * @param s the subscription
+     */
+    @Override
+    public void onSubscribe(Subscription s) {
+
+        if (!upstream.compareAndSet(null, s)) {
+            throw new IllegalStateException("We already received a subscription");
+        }
 
         // Pass the subscription to the user subscriber.
-        delegate.onSubscribe(s);
+        delegate.onSubscribe(new Subscription() {
+            @Override
+            public void request(long n) {
+                s.request(n);
+            }
+
+            @Override
+            public void cancel() {
+                Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
+                if (subscription != null) {
+                    subscription.cancel();
+                }
+            }
+        });
     }
 
     @Override
@@ -82,15 +89,11 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
         try {
             delegate.onNext(mapper.apply(item));
             if (postAck != null) {
-                postAck.apply(item, null).thenAccept(x -> subscriber.get().onNext(item));
-            } else {
-                subscriber.get().onNext(item);
+                postAck.apply(item, null);
             }
         } catch (Exception e) {
             if (postAck != null) {
-                postAck.apply(item, e).thenAccept(x -> subscriber.get().onNext(item));
-            } else {
-                subscriber.get().onError(e);
+                postAck.apply(item, e);
             }
         }
     }

@@ -94,6 +94,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                 .put(
                         "value.deserializer", StringDeserializer.class.getName(),
                         "topics", topic1 + ", " + topic2 + ", " + topic3,
+                        "graceful-shutdown", false,
                         "auto.offset.reset", "earliest")
                 .build(), KafkaConsumer.class);
 

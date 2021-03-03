@@ -125,4 +125,8 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
+| *graceful-shutdown* | Whether or not a graceful shutdown should be attempted when the application terminates.
+
+Type: _boolean_ | false | `true`
+
 |===
