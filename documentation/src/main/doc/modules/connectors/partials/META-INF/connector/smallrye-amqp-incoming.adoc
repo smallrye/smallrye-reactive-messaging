@@ -35,7 +35,7 @@ Type: _boolean_ | false | `false`
 
 | *virtual-host*
 
-_(amqp-virtual-host)_ | If set, configure the virtual host name for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
+_(amqp-virtual-host)_ | If set, configure the hostname value used for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
 
 Type: _string_ | false | 
 
