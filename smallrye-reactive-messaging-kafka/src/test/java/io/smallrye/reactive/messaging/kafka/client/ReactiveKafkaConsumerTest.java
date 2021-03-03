@@ -698,6 +698,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
     }
 
     @Test
+    @Disabled
     public void testPausingWhileBrokerIsDown() throws Exception {
         try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
             kafka.start();
@@ -728,7 +729,6 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
             kafka.stop();
             await().until(() -> !kafka.isRunning());
-            System.out.println("STOPPEDDD!");
 
             await().until(() -> !source.getConsumer().paused().await().indefinitely().isEmpty());
             subscriber.request(3);
@@ -756,7 +756,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
     }
 
     @Test
-    @Disabled("similar to the previous one")
+    @Disabled
     public void testResumingPausingWhileBrokerIsDown() throws Exception {
         try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
             kafka.start();

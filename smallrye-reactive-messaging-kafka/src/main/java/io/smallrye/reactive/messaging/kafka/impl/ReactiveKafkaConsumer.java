@@ -290,7 +290,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
                 // We can't block, just forget the result
                 uni.subscribeAsCompletionStage();
             } else {
-                uni.await().atMost(Duration.ofMillis(timeout * 2));
+                uni.await().atMost(Duration.ofMillis(timeout * 2L));
             }
         }
     }

@@ -38,7 +38,7 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
 
     public KafkaLatestCommit(Vertx vertx, KafkaConnectorIncomingConfiguration configuration,
             ReactiveKafkaConsumer<?, ?> consumer) {
-        super(vertx, configuration.config()
+        super(vertx.getDelegate(), configuration.config()
                 .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class).orElse(60000));
         this.consumer = consumer;
     }

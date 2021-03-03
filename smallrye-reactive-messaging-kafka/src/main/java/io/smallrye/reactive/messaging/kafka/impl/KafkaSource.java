@@ -107,7 +107,7 @@ public class KafkaSource<K, V> {
         kafkaCDIEvents.consumer().fire(client.unwrap());
 
         if (commitHandler instanceof ContextHolder) {
-            ((ContextHolder) commitHandler).capture(context);
+            ((ContextHolder) commitHandler).capture(context.getDelegate());
         }
         this.client.setRebalanceListener();
 

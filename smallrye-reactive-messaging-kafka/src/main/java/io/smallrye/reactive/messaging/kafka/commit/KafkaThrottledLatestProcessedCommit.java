@@ -56,7 +56,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             int unprocessedRecordMaxAge,
             int autoCommitInterval,
             int defaultTimeout) {
-        super(vertx, defaultTimeout);
+        super(vertx.getDelegate(), defaultTimeout);
         this.groupId = groupId;
         this.consumer = consumer;
         this.source = source;
@@ -175,7 +175,9 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * Must be called form the event loop.
      */
     private void startFlushAndCheckHealthTimer() {
-        timerId = vertx.setTimer(autoCommitInterval, this::flushAndCheckHealth);
+        timerId = vertx.setTimer(autoCommitInterval, x -> {
+            runOnContext(() -> this.flushAndCheckHealth(x));
+        });
 
     }
 
@@ -311,7 +313,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
     }
 
-    private static class OffsetStore {
+    private class OffsetStore {
 
         private final TopicPartition topicPartition;
         private final Queue<OffsetReceivedAt> receivedOffsets = new LinkedList<>();
