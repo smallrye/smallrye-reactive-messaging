@@ -69,6 +69,12 @@ _(amqp-reconnect-interval)_ | The interval in second between two reconnection at
 
 Type: _int_ | false | `10`
 
+| *sni-server-name*
+
+_(amqp-sni-server-name)_ | If set, explicitly override the hostname to use for the TLS SNI server name
+
+Type: _string_ | false | 
+
 | *ttl* | The time-to-live of the send AMQP messages. 0 to disable the TTL
 
 Type: _long_ | false | `0`
@@ -86,6 +92,12 @@ Type: _boolean_ | false | `false`
 | *username*
 
 _(amqp-username)_ | The username used to authenticate to the broker
+
+Type: _string_ | false | 
+
+| *virtual-host*
+
+_(amqp-virtual-host)_ | If set, configure the hostname value used for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
 
 Type: _string_ | false | 
 
