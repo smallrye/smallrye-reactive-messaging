@@ -14,7 +14,6 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -26,6 +25,12 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 public class FailureHandlerTest extends MqttTestBase {
 
     private WeldContainer container;
+
+    private MqttFactory vertxMqttFactory = new VertxMqttFactory();
+
+    protected MqttFactory mqttFactory() {
+        return vertxMqttFactory;
+    }
 
     @After
     public void cleanup() {
@@ -50,9 +55,7 @@ public class FailureHandlerTest extends MqttTestBase {
         MyReceiverBean bean = deploy();
         AtomicInteger counter = new AtomicInteger();
 
-        MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
-                ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
-        await().until(connector::isReady);
+        await().until(() -> mqttFactory().connectorIsReady(container));
 
         usage.produceStrings("fail", 10, null, () -> Integer.toString(counter.getAndIncrement()));
 
@@ -67,9 +70,7 @@ public class FailureHandlerTest extends MqttTestBase {
         MyReceiverBean bean = deploy();
         AtomicInteger counter = new AtomicInteger();
 
-        MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
-                ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
-        await().until(connector::isReady);
+        await().until(() -> mqttFactory().connectorIsReady(container));
 
         usage.produceStrings("ignore", 10, null, () -> Integer.toString(counter.getAndIncrement()));
 
@@ -82,7 +83,7 @@ public class FailureHandlerTest extends MqttTestBase {
     private void getFailConfig() {
         new MapBasedConfig()
                 .put("mp.messaging.incoming.mqtt.topic", "fail")
-                .put("mp.messaging.incoming.mqtt.connector", MqttConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.mqtt.connector", mqttFactory().connectorName())
                 .put("mp.messaging.incoming.mqtt.host", address)
                 .put("mp.messaging.incoming.mqtt.port", port)
                 .put("mp.messaging.incoming.mqtt.durable", true)
@@ -93,7 +94,7 @@ public class FailureHandlerTest extends MqttTestBase {
     private void getIgnoreConfig() {
         new MapBasedConfig()
                 .put("mp.messaging.incoming.mqtt.topic", "ignore")
-                .put("mp.messaging.incoming.mqtt.connector", MqttConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.mqtt.connector", mqttFactory().connectorName())
                 .put("mp.messaging.incoming.mqtt.host", address)
                 .put("mp.messaging.incoming.mqtt.port", port)
                 .put("mp.messaging.incoming.mqtt.durable", true)

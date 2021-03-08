@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import static io.smallrye.reactive.messaging.mqtt.MqttSourceTest.getConfig;
+import static io.smallrye.reactive.messaging.mqtt.MqttSourceTest.getConfigForConnector;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -16,11 +16,15 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
 import org.junit.Test;
 
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-
 public class SecureMqttSourceTest extends SecureMqttTestBase {
 
     private WeldContainer container;
+
+    private MqttFactory vertxMqttFactory = new VertxMqttFactory();
+
+    protected MqttFactory mqttFactory() {
+        return vertxMqttFactory;
+    }
 
     @After
     public void cleanup() {
@@ -40,7 +44,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         config.put("username", "user");
         config.put("password", "foo");
         config.put("channel-name", topic);
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        Source source = mqttFactory().createSource(vertx, config);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
@@ -85,7 +89,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
     }
 
     private ConsumptionBean deploy() {
-        Weld weld = MqttTestBase.baseWeld(getConfig());
+        Weld weld = MqttTestBase.baseWeld(getConfigForConnector(mqttFactory().connectorName()));
         weld.addBeanClass(ConsumptionBean.class);
         container = weld.initialize();
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

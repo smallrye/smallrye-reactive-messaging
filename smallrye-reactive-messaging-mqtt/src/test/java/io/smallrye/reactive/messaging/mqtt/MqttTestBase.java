@@ -1,5 +1,16 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import java.io.File;
+
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.weld.environment.se.Weld;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.MediatorFactory;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
@@ -9,20 +20,11 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.mqtt.hivemq.HiveMQMqttConnector;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.vertx.mutiny.core.Vertx;
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.jboss.weld.environment.se.Weld;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import repeat.RepeatRule;
-
-import java.io.File;
 
 public class MqttTestBase {
 
@@ -80,6 +82,7 @@ public class MqttTestBase {
         weld.addPackages(EmitterImpl.class.getPackage());
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(MqttConnector.class);
+        weld.addBeanClass(HiveMQMqttConnector.class);
 
         // Add SmallRye Config
         weld.addExtension(new io.smallrye.config.inject.ConfigExtension());

@@ -21,7 +21,7 @@ import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.mutiny.mqtt.MqttClient;
 
-public class MqttSink {
+public class MqttSink implements Sink {
 
     private final String host;
     private final int port;

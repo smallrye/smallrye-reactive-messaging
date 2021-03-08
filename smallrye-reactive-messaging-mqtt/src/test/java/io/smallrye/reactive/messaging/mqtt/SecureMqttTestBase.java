@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.vertx.mutiny.core.Vertx;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.After;
 import org.junit.Before;
@@ -11,6 +9,9 @@ import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+
+import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.vertx.mutiny.core.Vertx;
 
 public class SecureMqttTestBase {
 

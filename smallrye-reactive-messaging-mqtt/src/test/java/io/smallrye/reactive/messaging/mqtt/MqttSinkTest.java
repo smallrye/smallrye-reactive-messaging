@@ -26,12 +26,18 @@ public class MqttSinkTest extends MqttTestBase {
 
     private WeldContainer container;
 
+    private MqttFactory vertxMqttFactory = new VertxMqttFactory();
+
+    protected MqttFactory mqttFactory() {
+        return vertxMqttFactory;
+    }
+
     @After
     public void cleanup() {
         if (container != null) {
             container.close();
         }
-        Clients.clear();
+        mqttFactory().clearClients();
     }
 
     @SuppressWarnings("unchecked")
@@ -48,7 +54,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
+        Sink sink = mqttFactory().createSink(vertx, config);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -74,7 +80,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
+        Sink sink = mqttFactory().createSink(vertx, config);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -100,7 +106,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
+        Sink sink = mqttFactory().createSink(vertx, config);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Flowable.range(0, 10)
@@ -133,7 +139,7 @@ public class MqttSinkTest extends MqttTestBase {
         String prefix = "mp.messaging.outgoing.sink.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "topic", "sink");
-        config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
+        config.put(prefix + "connector", mqttFactory().connectorName());
         config.put(prefix + "host", System.getProperty("mqtt-host"));
         config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
         if (System.getProperty("mqtt-user") != null) {

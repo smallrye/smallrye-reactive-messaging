@@ -1,23 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt.hivemq;
 
-import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
-import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
-import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3PublishResult;
-import io.reactivex.Flowable;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.converters.uni.UniRxConverters;
-import io.smallrye.reactive.messaging.mqtt.MqttMessage;
-import io.smallrye.reactive.messaging.mqtt.SendingMqttMessage;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
@@ -25,9 +8,29 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-public class MqttSink {
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3PublishResult;
+
+import io.reactivex.Flowable;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.converters.uni.UniRxConverters;
+import io.smallrye.reactive.messaging.mqtt.MqttMessage;
+import io.smallrye.reactive.messaging.mqtt.SendingMqttMessage;
+import io.smallrye.reactive.messaging.mqtt.Sink;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
+
+public class HiveMQMqttSink implements Sink {
 
     private final String topic;
     private final int qos;
@@ -35,7 +38,7 @@ public class MqttSink {
     private final SubscriberBuilder<? extends Message<?>, Void> sink;
     private final AtomicBoolean connected = new AtomicBoolean();
 
-    public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config) {
+    public HiveMQMqttSink(Vertx vertx, HiveMQMqttConnectorOutgoingConfiguration config) {
         topic = config.getTopic().orElseGet(config::getChannel);
         qos = config.getQos();
 
@@ -59,7 +62,7 @@ public class MqttSink {
                             return future;
                         }
                     } else {
-                        return Clients.getConnectedClient(config)
+                        return HiveMQClients.getConnectedClient(config)
                                 .map(c -> {
                                     reference.set(c);
                                     connected.set(true);

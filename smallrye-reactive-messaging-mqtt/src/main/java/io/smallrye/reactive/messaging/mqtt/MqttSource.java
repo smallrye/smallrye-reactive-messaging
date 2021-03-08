@@ -13,7 +13,7 @@ import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
-public class MqttSource {
+public class MqttSource implements Source {
 
     private final PublisherBuilder<MqttMessage<?>> source;
     private final AtomicBoolean subscribed = new AtomicBoolean();
@@ -78,11 +78,11 @@ public class MqttSource {
         }
     }
 
-    PublisherBuilder<MqttMessage<?>> getSource() {
+    public PublisherBuilder<MqttMessage<?>> getSource() {
         return source;
     }
 
-    boolean isSubscribed() {
+    public boolean isSubscribed() {
         return subscribed.get();
     }
 }

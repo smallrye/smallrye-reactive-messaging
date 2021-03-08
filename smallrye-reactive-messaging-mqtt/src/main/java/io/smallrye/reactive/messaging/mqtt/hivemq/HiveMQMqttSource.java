@@ -1,29 +1,28 @@
 package io.smallrye.reactive.messaging.mqtt.hivemq;
 
-import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.converters.multi.MultiRxConverters;
-import io.smallrye.reactive.messaging.mqtt.MqttFailStop;
-import io.smallrye.reactive.messaging.mqtt.MqttFailureHandler;
-import io.smallrye.reactive.messaging.mqtt.MqttIgnoreFailure;
-import io.smallrye.reactive.messaging.mqtt.MqttMessage;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
-import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-public class MqttSource {
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.converters.multi.MultiRxConverters;
+import io.smallrye.reactive.messaging.mqtt.*;
+
+public class HiveMQMqttSource implements Source {
 
     private final PublisherBuilder<MqttMessage<?>> source;
     private final AtomicBoolean subscribed = new AtomicBoolean();
     private final Pattern pattern;
 
-    public MqttSource(MqttConnectorIncomingConfiguration config) {
+    public HiveMQMqttSource(HiveMQMqttConnectorIncomingConfiguration config) {
         String topic = config.getTopic().orElseGet(config::getChannel);
         int qos = config.getQos();
         boolean broadcast = config.getBroadcast();
@@ -38,7 +37,7 @@ public class MqttSource {
             pattern = null;
         }
 
-        Clients.ClientHolder holder = Clients.getHolder(config);
+        HiveMQClients.ClientHolder holder = HiveMQClients.getHolder(config);
 
         this.source = ReactiveStreams.fromPublisher(
                 holder.connect()
@@ -52,7 +51,7 @@ public class MqttSource {
                                 //TODO: do we really need this ?
                                 .filter(m -> matches(topic, m))
                                 .onItem()
-                                .transform(x -> new ReceivingMqttMessage(x, onNack)))
+                                .transform(x -> new HiveMQReceivingMqttMessage(x, onNack)))
                         .stage(multi -> {
                             if (broadcast) {
                                 return multi.broadcast().toAllSubscribers();
@@ -82,11 +81,11 @@ public class MqttSource {
         }
     }
 
-    PublisherBuilder<MqttMessage<?>> getSource() {
+    public PublisherBuilder<MqttMessage<?>> getSource() {
         return source;
     }
 
-    boolean isSubscribed() {
+    public boolean isSubscribed() {
         return subscribed.get();
     }
 }

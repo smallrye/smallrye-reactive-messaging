@@ -1,16 +1,8 @@
 package io.smallrye.reactive.messaging.mqtt.hivemq;
 
-import com.hivemq.client.mqtt.MqttClientSslConfigBuilder;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
-import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.converters.uni.UniRxConverters;
-import io.smallrye.reactive.messaging.health.HealthReport;
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+import static java.lang.String.format;
 
-import javax.net.ssl.TrustManagerFactory;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,25 +16,35 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
-import static java.lang.String.format;
+import javax.net.ssl.TrustManagerFactory;
 
-public class Clients {
+import com.hivemq.client.mqtt.MqttClientSslConfigBuilder;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
+import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck;
+
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.converters.uni.UniRxConverters;
+import io.smallrye.reactive.messaging.health.HealthReport;
+
+public class HiveMQClients {
 
     private static final Map<String, ClientHolder> clients = new ConcurrentHashMap<>();
 
-    private Clients() {
+    private HiveMQClients() {
         // avoid direct instantiation.
     }
 
-    static Uni<Mqtt3RxClient> getConnectedClient(MqttConnectorCommonConfiguration options) {
+    static Uni<Mqtt3RxClient> getConnectedClient(HiveMQMqttConnectorCommonConfiguration options) {
 
         ClientHolder holder = getHolder(options);
 
         return holder.connect();
     }
 
-    static ClientHolder getHolder(MqttConnectorCommonConfiguration options) {
+    static ClientHolder getHolder(HiveMQMqttConnectorCommonConfiguration options) {
 
         String host = options.getHost();
         int def = options.getSsl() ? 8883 : 1883;
@@ -55,7 +57,7 @@ public class Clients {
         return clients.computeIfAbsent(id, key -> new ClientHolder(options));
     }
 
-    static Mqtt3RxClient create(MqttConnectorCommonConfiguration options) {
+    static Mqtt3RxClient create(HiveMQMqttConnectorCommonConfiguration options) {
 
         final Mqtt3ClientBuilder builder = Mqtt3Client.builder()
                 .serverHost(options.getHost())
@@ -112,22 +114,26 @@ public class Clients {
         private final Uni<Mqtt3ConnAck> connection;
         private final int livenessTimeout;
         private final int readinessTimeout;
+        private final Boolean checkTopicEnabled;
 
         private long lastMqttUpdate = 0;
 
-        public ClientHolder(MqttConnectorCommonConfiguration options) {
+        public ClientHolder(HiveMQMqttConnectorCommonConfiguration options) {
             client = create(options);
 
             livenessTimeout = options.getLivenessTimeout();
             readinessTimeout = options.getReadinessTimeout();
+            checkTopicEnabled = options.getCheckTopicEnabled();
 
-            client.toAsync().subscribeWith()
-                    .topicFilter("$SYS/broker/uptime")
-                    .callback(m -> {
-                        log.debug(new String(m.getPayloadAsBytes()));
-                        lastMqttUpdate = System.currentTimeMillis();
-                    })
-                    .send();
+            if (checkTopicEnabled) {
+                client.toAsync().subscribeWith()
+                        .topicFilter(options.getCheckTopicName())
+                        .callback(m -> {
+                            log.debug(new String(m.getPayloadAsBytes()));
+                            lastMqttUpdate = System.currentTimeMillis();
+                        })
+                        .send();
+            }
 
             connection = Uni.createFrom().converter(UniRxConverters.fromSingle(), client.connect()).memoize()
                     .indefinitely();
@@ -140,10 +146,18 @@ public class Clients {
         }
 
         public boolean checkLiveness() {
+            if (!checkTopicEnabled) {
+                return true;
+            }
+
             return (System.currentTimeMillis() - lastMqttUpdate) < livenessTimeout;
         }
 
         public boolean checkReadiness() {
+            if (!checkTopicEnabled) {
+                return true;
+            }
+
             return (System.currentTimeMillis() - lastMqttUpdate) < readinessTimeout;
         }
 

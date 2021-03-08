@@ -17,7 +17,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.After;
@@ -30,6 +29,12 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
 
     private WeldContainer container;
 
+    private MqttFactory vertxMqttFactory = new VertxMqttFactory();
+
+    protected MqttFactory mqttFactory() {
+        return vertxMqttFactory;
+    }
+
     @After
     public void cleanup() {
         if (container != null) {
@@ -39,12 +44,10 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
 
     private void awaitAndVerify() {
         DynamicTopicApp bean = container.getBeanManager().createInstance().select(DynamicTopicApp.class).get();
-        MqttConnector connector = this.container
-                .select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();
 
         await()
                 .pollInterval(Duration.ofSeconds(1))
-                .until(connector::isSourceReady);
+                .until(() -> mqttFactory().connectorIsSourceReady(container));
 
         bean.publish();
 
@@ -110,7 +113,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         String prefix = "mp.messaging.outgoing.out.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "topic", "not-used");
-        config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
+        config.put(prefix + "connector", mqttFactory().connectorName());
         config.put(prefix + "host", System.getProperty("mqtt-host"));
         config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
         if (System.getProperty("mqtt-user") != null) {
@@ -120,7 +123,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
 
         prefix = "mp.messaging.incoming.mqtt.";
         config.put(prefix + "topic", pattern);
-        config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
+        config.put(prefix + "connector", mqttFactory().connectorName());
         config.put(prefix + "host", System.getProperty("mqtt-host"));
         config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
         if (System.getProperty("mqtt-user") != null) {

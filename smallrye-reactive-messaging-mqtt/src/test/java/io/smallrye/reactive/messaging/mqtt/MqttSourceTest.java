@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -20,14 +19,20 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class MqttSourceTest extends MqttTestBase {
 
-    private WeldContainer container;
+    protected WeldContainer container;
+
+    private MqttFactory vertxMqttFactory = new VertxMqttFactory();
+
+    protected MqttFactory mqttFactory() {
+        return vertxMqttFactory;
+    }
 
     @After
     public void cleanup() {
         if (container != null) {
             container.close();
         }
-        Clients.clear();
+        mqttFactory().clearClients();
     }
 
     @Test
@@ -38,7 +43,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("host", address);
         config.put("port", port);
         config.put("channel-name", topic);
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        Source source = mqttFactory().createSource(vertx, config);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
@@ -64,7 +69,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("host", address);
         config.put("port", port);
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        Source source = mqttFactory().createSource(vertx, config);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
@@ -93,7 +98,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("broadcast", true);
 
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        Source source = mqttFactory().createSource(vertx, config);
 
         List<MqttMessage<?>> messages1 = new ArrayList<>();
         List<MqttMessage<?>> messages2 = new ArrayList<>();
@@ -134,7 +139,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("port", port);
         config.put("channel-name", topic);
         config.put("max-message-size", 20 * 1024);
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        Source source = mqttFactory().createSource(vertx, config);
 
         byte[] large = new byte[10 * 1024];
         random.nextBytes(large);
@@ -154,11 +159,11 @@ public class MqttSourceTest extends MqttTestBase {
                         .contains(large);
     }
 
-    static MapBasedConfig getConfig() {
+    public static MapBasedConfig getConfigForConnector(String connectorName) {
         String prefix = "mp.messaging.incoming.data.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "topic", "data");
-        config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
+        config.put(prefix + "connector", connectorName);
         config.put(prefix + "host", System.getProperty("mqtt-host"));
         config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
         if (System.getProperty("mqtt-user") != null) {
@@ -173,7 +178,7 @@ public class MqttSourceTest extends MqttTestBase {
         ConsumptionBean bean = deploy();
 
         await()
-                .until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+                .until(() -> mqttFactory().connectorIsReady(container));
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -187,7 +192,7 @@ public class MqttSourceTest extends MqttTestBase {
     }
 
     private ConsumptionBean deploy() {
-        Weld weld = baseWeld(getConfig());
+        Weld weld = baseWeld(getConfigForConnector(mqttFactory().connectorName()));
         weld.addBeanClass(ConsumptionBean.class);
         container = weld.initialize();
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

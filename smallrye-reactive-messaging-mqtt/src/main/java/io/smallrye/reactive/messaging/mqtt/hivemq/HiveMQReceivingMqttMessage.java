@@ -1,18 +1,19 @@
 package io.smallrye.reactive.messaging.mqtt.hivemq;
 
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.reactive.messaging.mqtt.MqttFailureHandler;
 import io.smallrye.reactive.messaging.mqtt.MqttMessage;
 
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
-
-public class ReceivingMqttMessage implements MqttMessage<byte[]> {
+public class HiveMQReceivingMqttMessage implements MqttMessage<byte[]> {
     final Mqtt3Publish message;
     final MqttFailureHandler onNack;
 
-    ReceivingMqttMessage(Mqtt3Publish message, MqttFailureHandler onNack) {
+    HiveMQReceivingMqttMessage(Mqtt3Publish message, MqttFailureHandler onNack) {
         this.message = message;
         this.onNack = onNack;
     }
