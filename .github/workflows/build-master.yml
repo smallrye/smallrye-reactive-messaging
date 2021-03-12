@@ -4,7 +4,7 @@ name: Continuous Integration Build
 on:
     push:
         branches:
-            - master
+            - main
             - 3.x
         paths-ignore:
             - '.github/**'

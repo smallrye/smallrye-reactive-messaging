@@ -52,15 +52,15 @@ deploy_release() {
 
     if [ -f /tmp/next-version ]; then
       NEXT_VERSION=$(cat /tmp/next-version)
-      echo "Setting master version to ${NEXT_VERSION}-SNAPSHOT"
+      echo "Setting main version to ${NEXT_VERSION}-SNAPSHOT"
       git reset --hard
-      git checkout master
+      git checkout main
       mvn -B versions:set -DnewVersion="${NEXT_VERSION}-SNAPSHOT" -DgenerateBackupPoms=false -s maven-settings.xml
-      git commit -am "[RELEASE] - Bump master to ${NEXT_VERSION}-SNAPSHOT"
-      git push origin master
-      echo "Master updated"
+      git commit -am "[RELEASE] - Bump main branch to ${NEXT_VERSION}-SNAPSHOT"
+      git push origin main
+      echo "Main branch updated"
     else
-        echo "No next version - skip updating the master version"
+        echo "No next version - skip updating the main version"
     fi
 }
 

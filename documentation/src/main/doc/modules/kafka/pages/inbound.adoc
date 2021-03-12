@@ -181,7 +181,7 @@ If the connector cannot extract the Cloud Event metadata, it sends the Message w
 
 ==== Binary Cloud Events
 
-For `binary` Cloud Events, **all** mandatory Cloud Event attributes must be set in the record header, prefixed by `ce_` (as mandated by the https://github.com/cloudevents/spec/blob/master/kafka-protocol-binding.md[protocol binding]).
+For `binary` Cloud Events, **all** mandatory Cloud Event attributes must be set in the record header, prefixed by `ce_` (as mandated by the https://github.com/cloudevents/spec/blob/v1.0/kafka-protocol-binding.md[protocol binding]).
 The connector considers headers starting with the `ce_` prefix but not listed in the specification as extensions.
 You can access them using the `getExtension` method from `IncomingKafkaCloudEventMetadata`.
 You can retrieve them as `String`.
