@@ -4,7 +4,7 @@ update_configs:
     -   package_manager: "java:maven"
         directory: "/"
         update_schedule: "daily"
-        target_branch: "master"
+        target_branch: "main"
         default_reviewers:
             - "cescoffier"
         ignored_updates:

@@ -5,7 +5,7 @@ package io.smallrye.reactive.messaging.ce;
  * The connector dispatching the message, if this connector supports Cloud Event, should write the outgoing message
  * as a Cloud Event using the attribute set in this metadata.
  *
- * See https://github.com/cloudevents/spec/blob/master/spec.md.
+ * See https://github.com/cloudevents/spec/blob/v1.0/spec.md.
  *
  * @param <T> the data type
  */
