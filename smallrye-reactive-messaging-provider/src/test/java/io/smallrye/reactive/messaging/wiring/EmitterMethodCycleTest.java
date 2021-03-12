@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.wiring;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -11,8 +13,6 @@ import org.junit.jupiter.api.RepeatedTest;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class EmitterMethodCycleTest extends WeldTestBaseWithoutTails {
 

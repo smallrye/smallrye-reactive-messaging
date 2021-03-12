@@ -63,6 +63,7 @@ public class DefaultConfigTest extends KafkaTestBase {
         builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
 
         builder.put("mp.messaging.incoming.source.topic", topicIn);
+        builder.put("mp.messaging.incoming.source.graceful-shutdown", false);
         builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
         builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
