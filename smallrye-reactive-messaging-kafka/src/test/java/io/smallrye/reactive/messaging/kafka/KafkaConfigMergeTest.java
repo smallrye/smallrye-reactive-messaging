@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
+import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 
 public class KafkaConfigMergeTest {
 
@@ -48,7 +49,7 @@ public class KafkaConfigMergeTest {
                     }
                 }).build();
 
-        Config merged = KafkaConnector.merge(config, globalMap);
+        Config merged = ConfigHelper.merge(config, globalMap);
         assertThat(merged.getValue("a", String.class)).isEqualTo("string");
         assertThat(merged.getOptionalValue("a", String.class)).contains("string");
         assertThat(merged.getValue("b", Integer.class)).isEqualTo(23);

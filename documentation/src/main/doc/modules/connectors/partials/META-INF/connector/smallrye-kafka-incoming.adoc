@@ -45,6 +45,10 @@ Type: _boolean_ | false | `true`
 
 Type: _boolean_ | false | `true`
 
+| [.no-hyphens]#*kafka-configuration*# | Identifier of a CDI bean that provides the default Kafka consumer/producer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.
+
+Type: _string_ | false | 
+
 | [.no-hyphens]#*topics*# | A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties
 
 Type: _string_ | false | 

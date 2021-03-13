@@ -89,6 +89,10 @@ Type: _boolean_ | false | `false`
 
 Type: _long_ | false | `2000`
 
+| [.no-hyphens]#*kafka-configuration*# | Identifier of a CDI bean that provides the default Kafka consumer/producer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.
+
+Type: _string_ | false | 
+
 | [.no-hyphens]#*key*# | A key to used when writing the record
 
 Type: _string_ | false | 
