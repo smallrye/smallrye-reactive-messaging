@@ -10,7 +10,7 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 
@@ -18,23 +18,23 @@ public class HeaderPropagationTest extends HttpTestBase {
 
     @Test
     public void test() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        stubFor(post(urlEqualTo("/not-used"))
+        wireMockServer.stubFor(post(urlEqualTo("/not-used"))
                 .willReturn(aResponse()
                         .withStatus(500)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/not-used"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/not-used"));
         addClasses(MyApp.class);
         initialize();
 
         awaitForRequest(10);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
         assertThat(requests()).hasSize(10).allSatisfy(req -> {
             assertThat(req.getBodyAsString()).isNotNull();
-            assertThat(req.getAbsoluteUrl()).isEqualTo("http://localhost:8089/items");
+            assertThat(req.getAbsoluteUrl()).isEqualTo(getHost() + "/items");
             assertThat(req.getHeader("X-header")).isEqualTo("value");
         });
     }
@@ -51,7 +51,7 @@ public class HeaderPropagationTest extends HttpTestBase {
         @Outgoing("p1")
         public Message<Integer> processMessage(Message<Integer> input) {
             return HttpMessage.<Integer> builder()
-                    .withUrl("http://localhost:8089/items")
+                    .withUrl(getHost() + "/items")
                     .withPayload(input.getPayload())
                     .withHeaders(Collections.singletonMap("X-header", Collections.singletonList("value")))
                     .withAck(input::ack)

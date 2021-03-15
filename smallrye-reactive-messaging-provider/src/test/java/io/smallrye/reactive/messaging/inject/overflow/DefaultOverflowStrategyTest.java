@@ -16,9 +16,9 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
@@ -30,12 +30,12 @@ public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
     private static ExecutorService executor;
 
-    @BeforeClass
+    @BeforeAll
     public static void init() {
         executor = Executors.newSingleThreadExecutor();
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() {
         executor.shutdown();
     }

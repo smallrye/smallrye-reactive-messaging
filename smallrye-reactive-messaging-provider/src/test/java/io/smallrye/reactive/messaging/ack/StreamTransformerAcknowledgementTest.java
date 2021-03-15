@@ -15,14 +15,14 @@ import static io.smallrye.reactive.messaging.ack.BeanWithStreamTransformers.PRE_
 
 import java.util.Arrays;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class StreamTransformerAcknowledgementTest extends AcknowledgmentTestBase {
 
     private final Class<BeanWithStreamTransformers> beanClass = BeanWithStreamTransformers.class;
 
-    @Before
+    @BeforeEach
     public void configure() {
         acks = Arrays.asList("a", "b", "c", "d", "e");
         expected = Arrays.asList("a", "a", "b", "b", "c", "c", "d", "d", "e", "e");

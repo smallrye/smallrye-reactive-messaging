@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.metrics;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import javax.enterprise.util.AnnotationLiteral;
 
@@ -10,7 +10,7 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.eclipse.microprofile.metrics.Tag;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.metrics.setup.MetricCdiInjectionExtension;
 import io.smallrye.reactive.messaging.MyCollector;

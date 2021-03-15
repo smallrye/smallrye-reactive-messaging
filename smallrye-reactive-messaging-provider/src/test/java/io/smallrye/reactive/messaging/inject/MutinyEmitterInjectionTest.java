@@ -25,7 +25,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -163,16 +163,20 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
-    @Test(expected = DefinitionException.class)
+    @Test
     public void testWithMissingChannel() {
         // The error is only thrown when a message is emitted as the subscription can be delayed.
         final AtomicReference<Throwable> exception = new AtomicReference<>();
-        installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo")).subscribe().with(x -> {
-        }, exception::set);
-        await().until(() -> exception.get() != null);
-        if (exception.get() instanceof DefinitionException) {
-            throw (DefinitionException) exception.get();
+        try {
+            installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo")).subscribe()
+                    .with(x -> {
+                    }, exception::set);
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(DefinitionException.class);
+            return;
         }
+        await().until(() -> exception.get() != null);
+        assertThat(exception.get()).isInstanceOf(DefinitionException.class);
     }
 
     @Test

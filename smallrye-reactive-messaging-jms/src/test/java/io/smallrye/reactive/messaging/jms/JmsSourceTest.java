@@ -5,29 +5,21 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.JMSProducer;
+import javax.jms.*;
 import javax.jms.Queue;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -40,7 +32,7 @@ public class JmsSourceTest extends JmsTestBase {
     private JMSContext jms;
     private ActiveMQJMSConnectionFactory factory;
 
-    @Before
+    @BeforeEach
     public void init() {
         factory = new ActiveMQJMSConnectionFactory(
                 "tcp://localhost:61616",
@@ -48,7 +40,7 @@ public class JmsSourceTest extends JmsTestBase {
         jms = factory.createContext();
     }
 
-    @After
+    @AfterEach
     public void close() {
         jms.close();
         factory.close();

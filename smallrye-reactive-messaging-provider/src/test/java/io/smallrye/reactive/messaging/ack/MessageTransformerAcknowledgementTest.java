@@ -12,7 +12,7 @@ import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingM
 import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.PRE_ACKNOWLEDGMENT_CS;
 import static io.smallrye.reactive.messaging.ack.BeanWithProcessorsManipulatingMessages.PRE_ACKNOWLEDGMENT_UNI;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MessageTransformerAcknowledgementTest extends AcknowledgmentTestBase {
 

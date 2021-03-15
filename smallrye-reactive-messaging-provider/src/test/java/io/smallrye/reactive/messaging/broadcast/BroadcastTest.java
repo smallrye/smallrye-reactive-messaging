@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.broadcast;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 

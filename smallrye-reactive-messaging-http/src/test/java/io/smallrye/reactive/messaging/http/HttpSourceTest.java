@@ -13,8 +13,8 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -22,7 +22,7 @@ import io.vertx.core.json.JsonObject;
 
 public class HttpSourceTest extends HttpTestBase {
 
-    @Before
+    @BeforeEach
     public void setup() {
         RestAssured.reset();
         addClasses(Receiver.class);

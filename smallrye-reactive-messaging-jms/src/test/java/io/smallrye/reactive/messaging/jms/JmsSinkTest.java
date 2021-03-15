@@ -1,33 +1,24 @@
 package io.smallrye.reactive.messaging.jms;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.jms.DeliveryMode;
-import javax.jms.Destination;
-import javax.jms.JMSConsumer;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.Queue;
-import javax.jms.Topic;
+import javax.jms.*;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.CompletionSubscriber;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
@@ -41,7 +32,7 @@ public class JmsSinkTest extends JmsTestBase {
     private ExecutorService executor;
     private CompletionSubscriber<org.eclipse.microprofile.reactive.messaging.Message<?>, Void> subscriber;
 
-    @Before
+    @BeforeEach
     public void init() {
         factory = new ActiveMQJMSConnectionFactory(
                 "tcp://localhost:61616",
@@ -51,7 +42,7 @@ public class JmsSinkTest extends JmsTestBase {
         executor = Executors.newFixedThreadPool(3);
     }
 
-    @After
+    @AfterEach
     public void close() throws Exception {
         jms.close();
         factory.close();
@@ -192,6 +183,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .isInstanceOf(Queue.class);
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testWithReplyToTopic() throws JMSException {
         MapBasedConfig config = new MapBasedConfig()
@@ -215,22 +207,26 @@ public class JmsSinkTest extends JmsTestBase {
                 .isInstanceOf(Topic.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithReplyToWithInvalidDestinationType() {
         MapBasedConfig config = new MapBasedConfig()
-                .put("destination", "queue-one")
-                .put("reply-to", "my-response")
-                .put("reply-to-destination-type", "invalid")
-                .put("channel-name", "jms");
-        new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+                .with("destination", "queue-one")
+                .with("reply-to", "my-response")
+                .with("reply-to-destination-type", "invalid")
+                .with("channel-name", "jms");
+        assertThatThrownBy(() -> {
+            new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        }).isInstanceOf(IllegalArgumentException.class);
+
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testPropagation() throws JMSException {
         MapBasedConfig config = new MapBasedConfig()
-                .put("destination", "queue-one")
-                .put("channel-name", "jms")
-                .put("ttl", 10000L);
+                .with("destination", "queue-one")
+                .with("channel-name", "jms")
+                .with("ttl", 10000L);
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();

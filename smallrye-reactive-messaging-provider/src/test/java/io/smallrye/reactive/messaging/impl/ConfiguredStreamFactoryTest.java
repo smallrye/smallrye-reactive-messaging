@@ -1,12 +1,13 @@
 package io.smallrye.reactive.messaging.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.*;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConfiguredStreamFactoryTest {
 
@@ -62,7 +63,7 @@ public class ConfiguredStreamFactoryTest {
         assertThat(config1.getValue("channel-name", String.class)).isEqualTo("name");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testThatMissingConnectorAttributeIsDetected() {
         Map<String, Object> backend = new HashMap<>();
         backend.put("foo", "bar");
@@ -71,10 +72,13 @@ public class ConfiguredStreamFactoryTest {
         backend.put("io.prefix.name.k3.x", "v3");
 
         Config config = new DummyConfig(backend);
-        ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
+
+        assertThatThrownBy(() -> ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config))
+                .isInstanceOf(IllegalArgumentException.class);
+
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testThatChannelNameIsDetected() {
         Map<String, Object> backend = new HashMap<>();
         backend.put("foo", "bar");
@@ -84,7 +88,8 @@ public class ConfiguredStreamFactoryTest {
         backend.put("io.prefix.name.k3.x", "v3");
 
         Config config = new DummyConfig(backend);
-        ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config);
+        assertThatThrownBy(() -> ConfiguredChannelFactory.extractConfigurationFor("io.prefix.", config))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
