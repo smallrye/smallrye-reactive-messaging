@@ -73,10 +73,6 @@ public class TracingPropagationTest extends KafkaTestBase {
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
                 .setTracerProvider(tracerProvider)
                 .buildAndRegisterGlobal();
-
-        // Without this, TRACER can be set to a tracer prior to the above configuration being active.
-        // Resulting in no traces being captured
-        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
     }
 
     @AfterEach
