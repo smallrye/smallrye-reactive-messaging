@@ -13,9 +13,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.restassured.RestAssured;
@@ -27,7 +27,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
     private WeldContainer container;
     private final String topic = "sns-test";
 
-    @Before
+    @BeforeEach
     public void initTest() {
         System.setProperty("aws.region", "some-region");
         System.setProperty("aws.accessKeyId", "some-key-id");
@@ -51,7 +51,7 @@ public class AwsSnsTest extends AwsSnsTestBase {
                 });
     }
 
-    @After
+    @AfterEach
     public void clearTest() {
         System.clearProperty("aws.region");
         System.clearProperty("aws.accessKeyId");

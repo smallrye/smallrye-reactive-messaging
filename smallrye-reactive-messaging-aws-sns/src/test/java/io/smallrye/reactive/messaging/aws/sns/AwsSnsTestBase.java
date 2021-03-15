@@ -6,9 +6,10 @@ import java.nio.file.Files;
 
 import org.jboss.logging.Logger;
 import org.jboss.weld.environment.se.Weld;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.config.inject.ConfigExtension;
@@ -33,11 +34,20 @@ public class AwsSnsTestBase {
     private String ip;
     private int port;
 
-    @ClassRule
     public static final GenericContainer<?> CONTAINER = new GenericContainer<>("s12v/sns")
             .withExposedPorts(9911);
 
-    @Before
+    @BeforeAll
+    static void startContainer() {
+        CONTAINER.start();
+    }
+
+    @AfterAll
+    static void stopContainer() {
+        CONTAINER.stop();
+    }
+
+    @BeforeEach
     public void setup() {
         executionHolder = new ExecutionHolder(Vertx.vertx());
         ip = CONTAINER.getContainerIpAddress();
@@ -53,7 +63,7 @@ public class AwsSnsTestBase {
         return ip;
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         executionHolder.terminate(null);
     }

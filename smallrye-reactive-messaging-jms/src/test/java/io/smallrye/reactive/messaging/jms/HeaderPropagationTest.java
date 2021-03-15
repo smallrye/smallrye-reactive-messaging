@@ -28,9 +28,9 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
@@ -42,7 +42,7 @@ public class HeaderPropagationTest extends JmsTestBase {
     private JMSContext jms;
     private ActiveMQJMSConnectionFactory factory;
 
-    @Before
+    @BeforeEach
     public void init() {
         factory = new ActiveMQJMSConnectionFactory(
                 "tcp://localhost:61616",
@@ -50,7 +50,7 @@ public class HeaderPropagationTest extends JmsTestBase {
         jms = factory.createContext();
     }
 
-    @After
+    @AfterEach
     public void close() {
         jms.close();
         factory.close();

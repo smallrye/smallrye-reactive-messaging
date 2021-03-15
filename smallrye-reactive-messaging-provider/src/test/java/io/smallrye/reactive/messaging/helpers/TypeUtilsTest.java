@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.helpers;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.Serializable;
 import java.lang.reflect.*;
@@ -8,7 +8,7 @@ import java.net.URI;
 import java.sql.Date;
 import java.util.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings({ "unchecked", "unused", "rawtypes" })
 public class TypeUtilsTest<B> {

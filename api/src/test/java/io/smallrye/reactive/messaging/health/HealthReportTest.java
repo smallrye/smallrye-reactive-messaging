@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.health;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class HealthReportTest {
 

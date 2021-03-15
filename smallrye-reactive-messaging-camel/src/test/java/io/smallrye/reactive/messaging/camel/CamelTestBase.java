@@ -7,8 +7,8 @@ import org.apache.camel.CamelContext;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -18,14 +18,14 @@ public class CamelTestBase {
     private Weld weld;
     protected WeldContainer container;
 
-    @Before
+    @BeforeEach
     public void init() {
         weld = new Weld();
         clear();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }
 
-    @After
+    @AfterEach
     public void cleanUp() {
         weld.shutdown();
         clear();

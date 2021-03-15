@@ -4,8 +4,8 @@ import java.io.File;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.MediatorFactory;
@@ -60,13 +60,13 @@ public class EventbusTestBase {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         vertx = Vertx.vertx();
         usage = new EventBusUsage(vertx.eventBus().getDelegate());
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         vertx.closeAndAwait();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());

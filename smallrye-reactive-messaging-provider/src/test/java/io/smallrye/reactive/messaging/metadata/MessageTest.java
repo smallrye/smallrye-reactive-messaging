@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MessageTest {
 

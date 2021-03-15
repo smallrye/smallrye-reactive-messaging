@@ -10,7 +10,6 @@ import javax.enterprise.inject.se.SeContainerInitializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logmanager.Level;
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -38,7 +37,6 @@ public class BlockingWithoutExecutionHolderTest extends WeldTestBaseWithoutTails
     static LogCapture logCapture = LogCapture.with(r -> "io.smallrye.reactive.messaging.provider".equals(r.getLoggerName()),
             Level.ERROR);
 
-    @Before
     @BeforeEach
     public void setUp() {
         initializer = SeContainerInitializer.newInstance();

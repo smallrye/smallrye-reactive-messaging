@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.incomings;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
@@ -11,8 +12,8 @@ import javax.enterprise.inject.spi.DeploymentException;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
@@ -23,17 +24,18 @@ import io.smallrye.reactive.messaging.extension.MediatorManager;
 
 public class IncomingsTest extends WeldTestBaseWithoutTails {
 
-    @After
+    @AfterEach
     public void cleanup() {
         System.clearProperty(MediatorManager.STRICT_MODE_PROPERTY);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testInvalidIncomings() {
         addBeanClass(ProducerOnA.class);
         addBeanClass(InvalidBeanWithIncomings.class);
 
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
+
     }
 
     @Test
@@ -82,12 +84,12 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
         initialize();
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testIncomingsWithMissingSourceInStrictMode() {
         System.setProperty(MediatorManager.STRICT_MODE_PROPERTY, "true");
         addBeanClass(ProducerOnB.class);
         addBeanClass(MyBeanUsingMultipleIncomings.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @Test
@@ -140,20 +142,20 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f", "g", "h");
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testEmptyIncomings() {
         addBeanClass(ProducerOnA.class);
         addBeanClass(EmptyIncomings.class);
 
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testIncomingsWithInvalidIncoming() {
         addBeanClass(ProducerOnA.class);
         addBeanClass(InvalidBeanWithIncomings.class);
 
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped

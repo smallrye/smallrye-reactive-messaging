@@ -3,8 +3,8 @@ package io.smallrye.reactive.messaging.jms.support;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
@@ -26,17 +26,17 @@ public class JmsTestBase {
     private static final ArtemisHolder holder = new ArtemisHolder();
     private Weld weld;
 
-    @Before
+    @BeforeEach
     public void startArtemis() {
         holder.start();
     }
 
-    @After
+    @AfterEach
     public void stopArtemis() {
         holder.stop();
     }
 
-    @Before
+    @BeforeEach
     public void initializeWeld() {
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
         if (withConnectionFactory()) {
@@ -50,7 +50,7 @@ public class JmsTestBase {
         return true;
     }
 
-    @After
+    @AfterEach
     public void cleanUp() {
         weld.shutdown();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
