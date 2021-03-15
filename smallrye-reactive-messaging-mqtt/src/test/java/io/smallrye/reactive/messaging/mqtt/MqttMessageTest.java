@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 

@@ -3,11 +3,7 @@ package io.smallrye.reactive.messaging.eventbus;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,8 +11,8 @@ import java.util.stream.Collectors;
 
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -27,7 +23,7 @@ public class EventBusSourceTest extends EventbusTestBase {
 
     private WeldContainer container;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();

@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import javax.enterprise.inject.spi.DeploymentException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 

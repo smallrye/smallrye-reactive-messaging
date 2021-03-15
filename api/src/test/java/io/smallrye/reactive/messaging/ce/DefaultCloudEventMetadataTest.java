@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ce.impl.BaseCloudEventMetadata;
 

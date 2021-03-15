@@ -13,16 +13,16 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @SuppressWarnings("ConstantConditions")
 public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
 
-    @Before
+    @BeforeEach
     public void install() {
         Map<String, Object> conf = new HashMap<>();
         conf.put("mp.messaging.incoming.foo.connector", InMemoryConnector.CONNECTOR);
@@ -35,7 +35,7 @@ public class InMemoryConnectorWithBroadcastTest extends WeldTestBase {
         installConfig(new MapBasedConfig(conf));
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         releaseConfig();
     }

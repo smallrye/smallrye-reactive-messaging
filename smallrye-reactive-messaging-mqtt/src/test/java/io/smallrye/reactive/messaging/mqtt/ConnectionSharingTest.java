@@ -4,11 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -19,8 +15,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -29,7 +25,7 @@ public class ConnectionSharingTest extends MqttTestBase {
 
     private WeldContainer container;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
@@ -47,7 +43,8 @@ public class ConnectionSharingTest extends MqttTestBase {
         App bean = container.getBeanManager().createInstance().select(App.class).get();
 
         await()
-                .until(() -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+                .until(
+                        () -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.prices().size() >= 10);
         assertThat(bean.prices()).isNotEmpty();

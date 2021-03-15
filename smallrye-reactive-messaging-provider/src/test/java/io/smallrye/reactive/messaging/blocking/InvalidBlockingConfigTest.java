@@ -1,11 +1,13 @@
 package io.smallrye.reactive.messaging.blocking;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
@@ -13,31 +15,31 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
 public class InvalidBlockingConfigTest extends WeldTestBaseWithoutTails {
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testBlockingWithNoIncomingOutgoingFails() {
         addBeanClass(InvalidBean.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testBlockingWithInvalidWorkerPool1() {
         addBeanClass(ProduceIn.class);
         addBeanClass(EmptyWorkerPoolBean.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testBlockingWithInvalidWorkerPool2() {
         addBeanClass(ProduceIn.class);
         addBeanClass(SpacesWorkerPoolBean.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testBlockingWithUnconfiguredWorkerPool() {
         addBeanClass(ProduceIn.class);
         addBeanClass(BlockingWorkerPoolBean.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped

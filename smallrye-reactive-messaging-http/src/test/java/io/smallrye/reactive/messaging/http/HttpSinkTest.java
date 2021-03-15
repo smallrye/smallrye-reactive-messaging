@@ -12,7 +12,7 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.github.tomakehurst.wiremock.http.Fault;
 
@@ -25,16 +25,16 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingJsonObjects() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
         awaitForRequest(10);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
 
         bodies("/items").stream()
                 .map(JsonObject::new)
@@ -48,16 +48,16 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingMessagesOfJsonObject() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingMessagesOfJsonObject.class, SourceBean.class);
         initialize();
 
         awaitForRequest(10);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
 
         bodies("/items").stream()
                 .map(JsonObject::new)
@@ -71,17 +71,17 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingJsonObjectsWithLatency() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withLogNormalRandomDelay(90, 0.1)
                         .withStatus(204)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
         awaitForRequest(10, 60000);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
 
         bodies("/items").stream()
                 .map(JsonObject::new)
@@ -95,16 +95,16 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingJsonObjectsWith500Error() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(500)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
         awaitForRequest(1);
-        verify(1, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(1, postRequestedFor(urlEqualTo("/items")));
 
         bodies("/items").stream()
                 .map(JsonObject::new)
@@ -118,15 +118,15 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingJsonObjectsWithFault() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingJsonObjects.class, SourceBean.class);
         initialize();
 
         awaitForRequest(1);
-        verify(1, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(1, postRequestedFor(urlEqualTo("/items")));
 
         bodies("/items").stream()
                 .map(JsonObject::new)
@@ -140,16 +140,16 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingJsonArrays() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingJsonArrays.class, SourceBean.class);
         initialize();
 
         awaitForRequest(10);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
 
         bodies("/items").stream()
                 .map(JsonArray::new)
@@ -158,7 +158,7 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingBytes() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
@@ -166,7 +166,7 @@ public class HttpSinkTest extends HttpTestBase {
         initialize();
 
         awaitForRequest(10);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
 
         assertThat(new ArrayList<>(bodies("/items"))).containsExactlyInAnyOrder("1", "2", "3", "4", "5", "6", "7", "8", "9",
                 "10");
@@ -174,16 +174,16 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingByteBuffers() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingByteBuffers.class, SourceBean.class);
         initialize();
 
         awaitForRequest(10);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
 
         assertThat(new ArrayList<>(bodies("/items"))).containsExactlyInAnyOrder("1", "2", "3", "4", "5", "6", "7", "8", "9",
                 "10");
@@ -191,16 +191,16 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingVertxBuffers() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingVertxBuffers.class, SourceBean.class);
         initialize();
 
         awaitForRequest(10);
-        verify(10, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, postRequestedFor(urlEqualTo("/items")));
 
         assertThat(new ArrayList<>(bodies("/items"))).containsExactlyInAnyOrder("1", "2", "3", "4", "5", "6", "7", "8", "9",
                 "10");
@@ -208,17 +208,17 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanUsingCustomCodec() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
         addClasses(BeanProducingPersons.class, SourceBeanWithConverter.class);
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items")
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items")
                 .converter(PersonSerializer.class.getName()));
         initialize();
 
         awaitForRequest(3);
-        verify(3, postRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(3, postRequestedFor(urlEqualTo("/items")));
 
         assertThat(new ArrayList<>(bodies("/items"))).containsExactlyInAnyOrder(
                 new JsonObject().put("name", "superman").encode(),
@@ -228,17 +228,17 @@ public class HttpSinkTest extends HttpTestBase {
 
     @Test
     public void testABeanProducingHttpMessagesOfJsonObject() {
-        stubFor(put(urlEqualTo("/items"))
+        wireMockServer.stubFor(put(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         addClasses(BeanProducingHttpMessagesOfJsonObject.class, SourceBean.class);
-        addConfig(new HttpConnectorConfig("http", "outgoing", "http://localhost:8089/items"));
+        addConfig(new HttpConnectorConfig("http", "outgoing", getHost() + "/items"));
         initialize();
 
         awaitForRequest(10);
-        verify(10, putRequestedFor(urlEqualTo("/items")));
+        wireMockServer.verify(10, putRequestedFor(urlEqualTo("/items")));
 
         bodies("/items").stream()
                 .map(JsonObject::new)

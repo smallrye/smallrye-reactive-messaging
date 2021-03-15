@@ -10,7 +10,7 @@ import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturn
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningCompletionStage.PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE;
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningCompletionStage.PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SubscriberWithCompletionStageMethodAcknowledgementTest extends AcknowledgmentTestBase {
 

@@ -14,9 +14,6 @@ import javax.enterprise.inject.se.SeContainerInitializer;
 import javax.enterprise.inject.spi.Extension;
 
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +44,6 @@ public class WeldTestBaseWithoutTails {
 
     protected SeContainer container;
 
-    @BeforeClass
     @BeforeAll
     public static void disableLogging() {
         System.setProperty("java.util.logging.config.file", "logging.properties");
@@ -91,7 +87,6 @@ public class WeldTestBaseWithoutTails {
         }
     }
 
-    @Before
     @BeforeEach
     public void setUp() {
         initializer = SeContainerInitializer.newInstance();
@@ -123,7 +118,6 @@ public class WeldTestBaseWithoutTails {
         return Collections.emptyList();
     }
 
-    @After
     @AfterEach
     public void tearDown() {
         if (container != null) {

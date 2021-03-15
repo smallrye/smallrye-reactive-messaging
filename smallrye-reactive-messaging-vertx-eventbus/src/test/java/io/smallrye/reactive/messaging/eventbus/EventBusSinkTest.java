@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.eventbus;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
@@ -19,10 +20,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
@@ -30,35 +29,34 @@ import io.smallrye.reactive.messaging.eventbus.codec.Person;
 import io.smallrye.reactive.messaging.eventbus.codec.PersonCodec;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-@RunWith(Parameterized.class)
 public class EventBusSinkTest extends EventbusTestBase {
 
     private WeldContainer container;
 
-    @Parameterized.Parameters
-    public static Object[][] data() {
-        return new Object[10][0];
-    }
-
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
         }
     }
 
-    @Test(expected = NoSuchElementException.class)
+    @Test
     public void rejectSinkWithoutAddress() {
-        new EventBusSink(vertx, new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(Collections.emptyMap())));
+        assertThatThrownBy(() -> {
+            new EventBusSink(vertx,
+                    new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(Collections.emptyMap())));
+        }).isInstanceOf(NoSuchElementException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void rejectSinkWithPublishAndReply() {
         Map<String, Object> config = new HashMap<>();
         config.put("address", "hello");
         config.put("publish", true);
         config.put("expect-reply", true);
-        new EventBusSink(vertx, new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
+        assertThatThrownBy(() -> {
+            new EventBusSink(vertx, new VertxEventBusConnectorOutgoingConfiguration(new MapBasedConfig(config)));
+        }).isInstanceOf(IllegalArgumentException.class);
     }
 
     @SuppressWarnings("unchecked")

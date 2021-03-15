@@ -1,9 +1,10 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
@@ -15,7 +16,6 @@ import io.vertx.mutiny.core.Vertx;
 
 public class SecureMqttTestBase {
 
-    @ClassRule
     public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6")
             .withExposedPorts(1883)
             .withFileSystemBind("src/test/resources/mosquitto-secure", "/mosquitto/config", BindMode.READ_WRITE)
@@ -26,7 +26,17 @@ public class SecureMqttTestBase {
     protected Integer port;
     protected MqttUsage usage;
 
-    @Before
+    @BeforeAll
+    public static void startBroker() {
+        mosquitto.start();
+    }
+
+    @AfterAll
+    public static void stopBroker() {
+        mosquitto.stop();
+    }
+
+    @BeforeEach
     public void setup() {
         mosquitto.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger("mosquitto")));
         vertx = Vertx.vertx();
@@ -39,7 +49,7 @@ public class SecureMqttTestBase {
         usage = new MqttUsage(address, port, "user", "foo");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         System.clearProperty("mqtt-host");
         System.clearProperty("mqtt-port");
@@ -48,7 +58,8 @@ public class SecureMqttTestBase {
         vertx.closeAndAwait();
         usage.close();
 
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
+        SmallRyeConfigProviderResolver.instance()
+                .releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
     }
 
 }

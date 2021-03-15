@@ -16,8 +16,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -25,7 +25,7 @@ public class MultipleTopicsConsumptionTest extends MqttTestBase {
 
     private WeldContainer container;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
@@ -43,7 +43,8 @@ public class MultipleTopicsConsumptionTest extends MqttTestBase {
         Consumers bean = container.getBeanManager().createInstance().select(Consumers.class).get();
 
         await()
-                .until(() -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+                .until(
+                        () -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
 
         assertThat(bean.prices()).isEmpty();
         assertThat(bean.products()).isEmpty();
@@ -69,7 +70,8 @@ public class MultipleTopicsConsumptionTest extends MqttTestBase {
         Consumers bean = container.getBeanManager().createInstance().select(Consumers.class).get();
 
         await()
-                .until(() -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+                .until(
+                        () -> this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
 
         assertThat(bean.prices()).isEmpty();
         assertThat(bean.products()).isEmpty();
