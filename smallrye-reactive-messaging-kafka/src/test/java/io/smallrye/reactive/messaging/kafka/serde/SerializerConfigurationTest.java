@@ -139,6 +139,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
                 .with("channel-name", "channel")
                 .with("topic", topic)
                 .with("health-enabled", false)
+                .with("tracing-enabled", false)
                 .with("value.serializer", StringSerializer.class.getName());
     }
 
