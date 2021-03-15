@@ -417,6 +417,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("graceful-shutdown", false)
                 .with("topic", TOPIC)
                 .with("health-enabled", false)
+                .with("tracing-enabled", false)
                 .with("value.deserializer", StringDeserializer.class.getName());
     }
 
