@@ -298,7 +298,9 @@ public class KafkaSink {
             Scope scope = span.makeCurrent();
 
             // Set Span attributes
-            span.setAttribute("partition", partition);
+            if (partition != -1) {
+                span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_PARTITION, partition);
+            }
             span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, topic);
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
