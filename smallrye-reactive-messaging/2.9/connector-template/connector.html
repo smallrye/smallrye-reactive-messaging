@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="2.9">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#converters">Converting messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-avro-configuration">Using Avro</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt-server/mqtt-server.html">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../http/http.html">HTTP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../http/http.html#http-outbound">Sending HTTP request</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html">Vert.x Event Bus</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-inbound">Event Bus Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../vertx-event-bus/vertx-event-bus.html#vertx-event-bus-outbound">Sending Event Bus Messages</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">2.9</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">2.9</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">SmallRye Reactive Messaging</a></li>
+    <li><a href="connector.html">$CONNECTOR</a></li>
+  </ul>
+</nav>
+</div>
+<article class="doc">
+<h1 class="page">$CONNECTOR</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>The $CONNECTOR connector adds support for $TECHNOLOGY to Reactive Messaging.</p>
+</div>
+<div class="paragraph">
+<p>TASK: Explain what does it do.</p>
+</div>
+<div class="paragraph">
+<p>The  $CONNECTOR connector is based on the $LINK_TO_UNDERLYING_CLIENT.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_introduction"><a class="anchor" href="#_introduction"></a>Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TASK: Introduction and link to the documentation.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="$CONNECTOR-installation"><a class="anchor" href="#$CONNECTOR-installation"></a>Using the $CONNECTOR connector</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To you the $CONNECTOR Connector, add the following dependency to your project:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
+  &lt;artifactId&gt;smallrye-reactive-messaging-$CONNECTOR&lt;/artifactId&gt;
+  &lt;version&gt;2.9.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The connector name is: <code>$CONNECTOR-NAME</code>.</p>
+</div>
+<div class="paragraph">
+<p>So, to indicate that a channel is managed by this connector you need:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code># Inbound
+mp.messaging.incoming.[channel-name].connector=$CONNECTOR-NAME
+
+# Outbound
+mp.messaging.outgoing.[channel-name].connector=$CONNECTOR-NAME</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="$CONNECTOR-inbound"><a class="anchor" href="#$CONNECTOR-inbound"></a>Receiving messages from $CONNECTOR-NAME</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TASK: Update title</p>
+</div>
+<div class="paragraph">
+<p>The $CONNECTOR Connector retrieves $TYPE_OF_MESSAGE and maps each of them into Reactive Messaging <code>Messages</code>.</p>
+</div>
+<div class="sect2">
+<h3 id="_example"><a class="anchor" href="#_example"></a>Example</h3>
+<div class="paragraph">
+<p>Let&#8217;s imagine you have a $BROKER running, and accessible using the <code>$URL</code> address (by default it would use <code>$DEFAULT_URL</code>).
+Configure your application to receive {CHANGE THE TYPE OF MESSAGE} on the <code>prices</code> channel as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>$BASE_URL_PROPERTY=$URL      # &lt;1&gt; TASK: CHANGE HERE
+
+mp.messaging.incoming.prices.connector=$CONNECTOR-NAME       <i class="conum" data-value="2"></i><b>(2)</b>
+$OTHER_ATTRIBUTES    <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Configure the broker location. You can configure it globally or per channel &#8592;- TASK: CHANGE HERE</p>
+</li>
+<li>
+<p>Sets the connector for the <code>prices</code> channel</p>
+</li>
+<li>
+<p>TASK: Explain other attributes</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You don&#8217;t need to set the $DESTINATION. By default, it uses the channel name (<code>prices</code>). You can configure the <code>$DESTINATION_ATTRIBUTE</code> attribute to override it.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Then, your application receives <code>Message&lt;Double&gt;</code>.
+You can consumes the payload directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class PriceConsumer {
+
+    @Incoming("prices")
+    public void consume(double price) {
+        // process your price.
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or, you can retrieve the <code>Message&lt;Double&gt;</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class PriceMessageConsumer {
+
+    @Incoming("prices")
+    public CompletionStage&lt;Void&gt; consume(Message&lt;Double&gt; price) {
+        // process your price.
+
+        // TASK - Explain acknowledgement
+        // Acknowledge the incoming message
+        return price.ack();
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deserialization"><a class="anchor" href="#_deserialization"></a>Deserialization</h3>
+<div class="paragraph">
+<p>TASK: Explain deserialization</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
+<div class="paragraph">
+<p>Messages coming from $TECHNOLOGY contains an instance of <code>$INBOUND_METADATA_CLASS</code> in the metadata.
+TASK: What does it contain and potential type parameter:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import java.time.Instant;
+import java.util.Optional;
+
+public class MetadataExample {
+
+
+    public void metadata() {
+        Message&lt;Double&gt; incoming = Message.of(12.0);
+        // tag::code[]
+
+        //TASK - Change class name
+        Optional&lt;IncomingKafkaRecordMetadata&lt;String, Double&gt;&gt; metadata = incoming.getMetadata(IncomingKafkaRecordMetadata.class);
+        metadata.ifPresent(meta -&gt; {
+            //TASK - Show usage
+
+        });
+        // end::code[]
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_acknowledgement"><a class="anchor" href="#_acknowledgement"></a>Acknowledgement</h3>
+<div class="paragraph">
+<p>TASK: Explain acknowledgement</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuration_reference"><a class="anchor" href="#_configuration_reference"></a>Configuration Reference</h3>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+This should not be displayed
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>TASK: Change the file name
+TASK: Indicate if there is an underlying client that can be configured.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="$CONNECTOR-outbound"><a class="anchor" href="#$CONNECTOR-outbound"></a>Sending messages to $CONNECTOR</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TASK: Update title</p>
+</div>
+<div class="paragraph">
+<p>The $CONNECTOR Connector can write Reactive Messaging <code>Messages</code> as $TYPE_OF_MESSAGE.</p>
+</div>
+<div class="sect2">
+<h3 id="_example_2"><a class="anchor" href="#_example_2"></a>Example</h3>
+<div class="paragraph">
+<p>Let&#8217;s imagine you have a $BROKER} running, and accessible using the <code>$URL</code> address (by default it would use <code>$DEFAULT_URL</code>).
+Configure your application to write the messages from the <code>prices</code> channel into a $TYPE_OF_MESSAGE as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>$BASE_URL_PROPERTY=$URL      # &lt;1&gt; TASK: CHANGE HERE
+
+mp.messaging.outgoing.prices.connector=$CONNECTOR-NAME       <i class="conum" data-value="2"></i><b>(2)</b>
+$OTHER_ATTRIBUTES  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Configure the broker location. You can configure it globally or per channel &#8592;- TASK: CHANGE HERE</p>
+</li>
+<li>
+<p>Sets the connector for the <code>prices</code> channel</p>
+</li>
+<li>
+<p>TASK: Explain other attributes</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You don&#8217;t need to set the $DESTINATION. By default, it uses the channel name (<code>prices</code>). You can configure the <code>$DESTINATION_ATTRIBUTE</code> attribute to override it.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Then, your application must send <code>Message&lt;Double&gt;</code> to the <code>prices</code> channel.
+It can use <code>double</code> payloads as in the following snippet:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package outbound;
+
+import io.smallrye.mutiny.Multi;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.time.Duration;
+import java.util.Random;
+
+@ApplicationScoped
+public class PriceProducer {
+
+    private Random random = new Random();
+
+    @Outgoing("prices")
+    public Multi&lt;Double&gt; generate() {
+        // Build an infinite stream of random prices
+        // It emits a price every second
+        return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
+            .map(x -&gt; random.nextDouble());
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or, you can send <code>Message&lt;Double&gt;</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package outbound;
+
+import io.smallrye.mutiny.Multi;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.time.Duration;
+import java.util.Random;
+
+@ApplicationScoped
+public class PriceMessageProducer {
+
+    private Random random = new Random();
+
+    @Outgoing("prices")
+    public Multi&lt;Message&lt;Double&gt;&gt; generate() {
+        // Build an infinite stream of random prices
+        // It emits a price every second
+        return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
+            .map(x -&gt; Message.of(random.nextDouble()));
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_serialization"><a class="anchor" href="#_serialization"></a>Serialization</h3>
+<div class="paragraph">
+<p>TASK: Explain serialization</p>
+</div>
+<div class="paragraph">
+<p>TASK: Explain the default structure of the sent message</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
+<div class="paragraph">
+<p>When sending <code>Messages</code>, you can add an instance of <code>$OUTBOUND_METADATA_CLASS</code> to influence how the message is going to written to $TECHNOLOGY.
+TASK: What does it contain and potential type parameter:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package outbound;
+
+import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+public class OutboundMetadataExample {
+
+    public Message&lt;Double&gt; metadata(Message&lt;Double&gt; incoming) {
+        // TASK Update the class name and the builder API
+
+        // tag::code[]
+        Object metadata = new Object();
+
+        // Create a new message from the `incoming` message
+        // Add `metadata` to the metadata from the `incoming` message.
+        return incoming.addMetadata(metadata);
+        // end::code[]
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_acknowledgement_2"><a class="anchor" href="#_acknowledgement_2"></a>Acknowledgement</h3>
+<div class="paragraph">
+<p>TASK: Explain acknowledgement</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuration_reference_2"><a class="anchor" href="#_configuration_reference_2"></a>Configuration Reference</h3>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+This should not be displayed
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>TASK: Change the file name
+TASK: Indicate if there is an underlying client that can be configured.</p>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
