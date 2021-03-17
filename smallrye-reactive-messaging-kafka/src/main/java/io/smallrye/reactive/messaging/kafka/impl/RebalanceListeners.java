@@ -11,6 +11,7 @@ import javax.enterprise.inject.literal.NamedLiteral;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
@@ -109,7 +110,11 @@ public class RebalanceListeners {
         return config.getConsumerRebalanceListenerName()
                 .map(name -> {
                     log.loadingConsumerRebalanceListenerFromConfiguredName(name);
-                    Instance<KafkaConsumerRebalanceListener> matching = instances.select(NamedLiteral.of(name));
+                    Instance<KafkaConsumerRebalanceListener> matching = instances.select(Identifier.Literal.of(name));
+                    if (matching.isUnsatisfied()) {
+                        // this `if` block should be removed when support for the `@Named` annotation is removed
+                        matching = instances.select(NamedLiteral.of(name));
+                    }
                     // We want to fail if a name if set, but no match or too many matches
                     if (matching.isUnsatisfied()) {
                         throw KafkaExceptions.ex.unableToFindRebalanceListener(name, config.getChannel());
@@ -123,7 +128,11 @@ public class RebalanceListeners {
                     }
                 })
                 .orElseGet(() -> {
-                    Instance<KafkaConsumerRebalanceListener> matching = instances.select(NamedLiteral.of(consumerGroup));
+                    Instance<KafkaConsumerRebalanceListener> matching = instances.select(Identifier.Literal.of(consumerGroup));
+                    if (matching.isUnsatisfied()) {
+                        // this `if` block should be removed when support for the `@Named` annotation is removed
+                        matching = instances.select(NamedLiteral.of(consumerGroup));
+                    }
                     if (!matching.isUnsatisfied()) {
                         log.loadingConsumerRebalanceListenerFromGroupId(consumerGroup);
                         return Optional.of(matching.get());

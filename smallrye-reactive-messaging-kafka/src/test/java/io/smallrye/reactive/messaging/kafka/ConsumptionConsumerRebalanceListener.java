@@ -5,13 +5,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.common.annotation.Identifier;
+
 @ApplicationScoped
-@Named("ConsumptionConsumerRebalanceListener")
+@Identifier("ConsumptionConsumerRebalanceListener")
 public class ConsumptionConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
 
     private final Map<Integer, TopicPartition> assigned = new ConcurrentHashMap<>();

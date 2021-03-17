@@ -71,9 +71,9 @@ The classname is passed in the `JMSType` property and `_classname` property.
 
 When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/jms/OutgoingJmsMessageMetadata.html[`OutgoingJmsMessageMetadata`] to influence how the message is going to written to JMS.
 
-[source, java]
+[source,java,indent=0]
 ----
-include::example$outbound/JmsOutboundMetadataExample.java[]
+include::example$outbound/JmsOutboundMetadataExample.java[tag=code]
 ----
 
 These metadata allow adding properties but also override the destination.

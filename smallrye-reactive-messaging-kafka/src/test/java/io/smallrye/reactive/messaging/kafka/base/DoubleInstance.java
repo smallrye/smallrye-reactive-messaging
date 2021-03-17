@@ -5,8 +5,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
 import javax.enterprise.util.TypeLiteral;
+
+import io.smallrye.common.annotation.Identifier;
 
 public class DoubleInstance<T> implements Instance<T> {
 
@@ -25,8 +26,8 @@ public class DoubleInstance<T> implements Instance<T> {
         if (qualifiers.length == 0) {
             return this;
         }
-        if (qualifiers.length == 1 && qualifiers[0] instanceof NamedLiteral) {
-            if (((NamedLiteral) qualifiers[0]).value().equalsIgnoreCase(name)) {
+        if (qualifiers.length == 1 && qualifiers[0] instanceof Identifier) {
+            if (((Identifier) qualifiers[0]).value().equalsIgnoreCase(name)) {
                 return this;
             }
         }

@@ -18,9 +18,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
+import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigValue;
@@ -37,6 +38,7 @@ import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
@@ -78,9 +80,9 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "dead-letter-queue.key.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the key serializer to use. If not set the serializer associated to the key deserializer is used")
 @ConnectorAttribute(name = "dead-letter-queue.value.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the value serializer to use. If not set the serializer associated to the value deserializer is used")
 @ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic", defaultValue = "1")
-@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
-@ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
-@ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `javax.inject.Named` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
+@ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
+@ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
+@ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "graceful-shutdown", type = "boolean", direction = Direction.INCOMING, description = "Whether or not a graceful shutdown should be attempted when the application terminates.", defaultValue = "true")
 
 @ConnectorAttribute(name = "key.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringSerializer")
@@ -107,13 +109,17 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     public static Tracer TRACER;
 
+    private static final String DEFAULT_KAFKA_BROKER = "default-kafka-broker";
+
     @Inject
     ExecutionHolder executionHolder;
 
     @Inject
+    @Any
     Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
 
     @Inject
+    @Any
     Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
 
     @Inject
@@ -123,7 +129,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
 
     @Inject
-    @Named("default-kafka-broker")
+    @Any
     Instance<Map<String, Object>> defaultKafkaConfiguration;
 
     private Vertx vertx;
@@ -144,8 +150,15 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         Config c = config;
-        if (!defaultKafkaConfiguration.isUnsatisfied()) {
-            c = merge(config, defaultKafkaConfiguration.get());
+
+        Instance<Map<String, Object>> matching = defaultKafkaConfiguration.select(Identifier.Literal.of(DEFAULT_KAFKA_BROKER));
+        if (matching.isUnsatisfied()) {
+            // this `if` block should be removed when support for the `@Named` annotation is removed
+            // then, we can add `@Identifier("default-kafka-broker")` back to the injection point, instead of `@Any`
+            matching = defaultKafkaConfiguration.select(NamedLiteral.of(DEFAULT_KAFKA_BROKER));
+        }
+        if (!matching.isUnsatisfied()) {
+            c = merge(config, matching.get());
         }
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(c);
         int partitions = ic.getPartitions();
@@ -193,7 +206,12 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         Config c = config;
-        if (!defaultKafkaConfiguration.isUnsatisfied()) {
+        Instance<Map<String, Object>> matching = defaultKafkaConfiguration.select(Identifier.Literal.of(DEFAULT_KAFKA_BROKER));
+        if (matching.isUnsatisfied()) {
+            // this `if` block should be removed when support for the `@Named` annotation is removed
+            matching = defaultKafkaConfiguration.select(NamedLiteral.of(DEFAULT_KAFKA_BROKER));
+        }
+        if (!matching.isUnsatisfied()) {
             c = merge(config, defaultKafkaConfiguration.get());
         }
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
