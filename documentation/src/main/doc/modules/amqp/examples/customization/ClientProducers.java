@@ -1,17 +1,17 @@
 package customization;
 
+import io.smallrye.common.annotation.Identifier;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PemTrustOptions;
 
 import javax.enterprise.inject.Produces;
-import javax.inject.Named;
 
 public class ClientProducers {
 
     // tag::named[]
     @Produces
-    @Named("my-named-options")
+    @Identifier("my-named-options")
     public AmqpClientOptions getNamedOptions() {
         // You can use the produced options to configure the TLS connection
         PemKeyCertOptions keycert = new PemKeyCertOptions()

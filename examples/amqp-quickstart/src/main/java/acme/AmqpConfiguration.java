@@ -1,14 +1,14 @@
 package acme;
 
 import javax.enterprise.inject.Produces;
-import javax.inject.Named;
 
+import io.smallrye.common.annotation.Identifier;
 import io.vertx.amqp.AmqpClientOptions;
 
 public class AmqpConfiguration {
 
     @Produces
-    @Named("my-topic-config")
+    @Identifier("my-topic-config")
     public AmqpClientOptions options() {
         return new AmqpClientOptions()
                 .setHost("localhost")
@@ -18,7 +18,7 @@ public class AmqpConfiguration {
     }
 
     @Produces
-    @Named("my-topic-config2")
+    @Identifier("my-topic-config2")
     public AmqpClientOptions options2() {
         return new AmqpClientOptions()
                 .setHost("localhost")
