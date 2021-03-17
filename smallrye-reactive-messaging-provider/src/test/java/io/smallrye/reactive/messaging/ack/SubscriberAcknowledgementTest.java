@@ -8,7 +8,7 @@ import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturn
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.PRE_PROCESSING_ACK_MESSAGE;
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningSubscribers.PRE_PROCESSING_ACK_PAYLOAD;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SubscriberAcknowledgementTest extends AcknowledgmentTestBase {
 

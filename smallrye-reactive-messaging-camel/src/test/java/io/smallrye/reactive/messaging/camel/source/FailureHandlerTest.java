@@ -15,8 +15,8 @@ import org.apache.camel.CamelContext;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.weld.environment.se.Weld;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.camel.CamelConnector;
@@ -26,7 +26,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class FailureHandlerTest extends CamelTestBase {
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();

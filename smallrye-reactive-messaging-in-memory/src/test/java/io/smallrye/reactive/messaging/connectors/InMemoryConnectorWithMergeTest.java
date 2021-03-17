@@ -10,16 +10,16 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class InMemoryConnectorWithMergeTest extends WeldTestBase {
 
-    @Before
+    @BeforeEach
     public void install() {
         Map<String, Object> conf = new HashMap<>();
         conf.put("mp.messaging.outgoing.bar.connector", InMemoryConnector.CONNECTOR);
@@ -28,7 +28,7 @@ public class InMemoryConnectorWithMergeTest extends WeldTestBase {
         installConfig(new MapBasedConfig(conf));
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         releaseConfig();
     }

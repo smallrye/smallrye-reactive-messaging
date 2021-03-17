@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.blocking;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
@@ -14,7 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
@@ -24,10 +26,10 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
 public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails {
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testPublisherOfMessages() {
         addBeanClass(BeanReturningAPublisherOfMessages.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -39,10 +41,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testPublisherOfMessagesWithMulti() {
         addBeanClass(BeanProducingMessagesAsMulti.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -55,10 +57,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProducingPayloadsAsMulti() {
         addBeanClass(BeanProducingPayloadAsMulti.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -70,10 +72,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProducingPayloadsAsPublisher() {
         addBeanClass(BeanProducingPayloadAsPublisher.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -85,10 +87,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProducingMessagesAsPublisherBuilder() {
         addBeanClass(BeanProducingMessagesAsPublisherBuilder.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -103,10 +105,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProducingPayloadAsPublisherBuilder() {
         addBeanClass(BeanProducingPayloadAsPublisherBuilder.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -120,10 +122,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProduceCompletionStageOfMessage() {
         addBeanClass(BeanReturningCompletionStageOfMessage.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -143,10 +145,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProduceCompletionStageOfPayload() {
         addBeanClass(BeanReturningCompletionStageOfPayload.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -166,10 +168,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProduceUniOfMessage() {
         addBeanClass(BeanReturningUniOfMessage.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -183,10 +185,10 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testProduceUniOfPayload() {
         addBeanClass(BeanReturningUniOfPayload.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped

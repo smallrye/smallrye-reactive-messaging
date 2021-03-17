@@ -5,7 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.BeanProducingACompletableFuture;

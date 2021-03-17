@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.connectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,15 +14,15 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class InMemoryConnectorTest extends WeldTestBase {
 
-    @Before
+    @BeforeEach
     public void install() {
         Map<String, Object> conf = new HashMap<>();
         conf.put("mp.messaging.incoming.foo.connector", InMemoryConnector.CONNECTOR);
@@ -33,7 +32,7 @@ public class InMemoryConnectorTest extends WeldTestBase {
         installConfig(new MapBasedConfig(conf));
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         releaseConfig();
     }
@@ -123,24 +122,24 @@ public class InMemoryConnectorTest extends WeldTestBase {
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithUnknownSource() {
         addBeanClass(MyBeanReceivingString.class);
         initialize();
         InMemoryConnector bean = container.getBeanManager().createInstance()
                 .select(InMemoryConnector.class, ConnectorLiteral.of(InMemoryConnector.CONNECTOR)).get();
         assertThat(bean).isNotNull();
-        bean.source("unknown");
+        assertThatThrownBy(() -> bean.source("unknown")).isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithUnknownSink() {
         addBeanClass(MyBeanReceivingString.class);
         initialize();
         InMemoryConnector bean = container.getBeanManager().createInstance()
                 .select(InMemoryConnector.class, ConnectorLiteral.of(InMemoryConnector.CONNECTOR)).get();
         assertThat(bean).isNotNull();
-        bean.sink("unknown");
+        assertThatThrownBy(() -> bean.sink("unknown")).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -151,10 +150,14 @@ public class InMemoryConnectorTest extends WeldTestBase {
 
         InMemoryConnector.switchIncomingChannelsToInMemory("a", "b");
         InMemoryConnector.switchOutgoingChannelsToInMemory("x", "y");
-        assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.a.connector", InMemoryConnector.CONNECTOR));
-        assertThat(System.getProperties()).contains(entry("mp.messaging.incoming.b.connector", InMemoryConnector.CONNECTOR));
-        assertThat(System.getProperties()).contains(entry("mp.messaging.outgoing.x.connector", InMemoryConnector.CONNECTOR));
-        assertThat(System.getProperties()).contains(entry("mp.messaging.outgoing.y.connector", InMemoryConnector.CONNECTOR));
+        assertThat(System.getProperties())
+                .contains(entry("mp.messaging.incoming.a.connector", InMemoryConnector.CONNECTOR));
+        assertThat(System.getProperties())
+                .contains(entry("mp.messaging.incoming.b.connector", InMemoryConnector.CONNECTOR));
+        assertThat(System.getProperties())
+                .contains(entry("mp.messaging.outgoing.x.connector", InMemoryConnector.CONNECTOR));
+        assertThat(System.getProperties())
+                .contains(entry("mp.messaging.outgoing.y.connector", InMemoryConnector.CONNECTOR));
 
         InMemoryConnector.clear();
 

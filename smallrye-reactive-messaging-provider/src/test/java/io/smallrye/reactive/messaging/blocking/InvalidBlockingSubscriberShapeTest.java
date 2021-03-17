@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.blocking;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,7 +17,7 @@ import javax.enterprise.inject.spi.DeploymentException;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Uni;
@@ -23,10 +25,10 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 
 public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails {
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testBeanProducingASubscriberOfMessages() {
         addBeanClass(BeanReturningASubscriberOfMessages.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -41,10 +43,10 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testBeanProducingASubscriberOfPayloads() {
         addBeanClass(BeanReturningASubscriberOfPayloads.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -58,10 +60,10 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testThatWeCanProduceSubscriberOfMessage() {
         addBeanClass(BeanReturningASubscriberOfMessagesButDiscarding.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -74,10 +76,10 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testThatWeCanConsumeMessagesFromAMethodReturningACompletionStageOfSomething() {
         addBeanClass(BeanConsumingMessagesAndReturningACompletionStageOfSomething.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -100,10 +102,10 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testThatWeCanConsumePayloadsFromAMethodReturningACompletionStageOfSomething() {
         addBeanClass(BeanConsumingPayloadsAndReturningACompletionStageOfSomething.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -126,10 +128,10 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testThatWeCanConsumeMessagesFromAMethodReturningUniOfSomething() {
         addBeanClass(BeanConsumingMessagesAndReturningUniOfSomething.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped
@@ -146,10 +148,10 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
         }
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testThatWeCanConsumePayloadsFromAMethodReturningUniOfSomething() {
         addBeanClass(BeanConsumingPayloadsAndReturningUniOfSomething.class);
-        initialize();
+        assertThatThrownBy(this::initialize).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped

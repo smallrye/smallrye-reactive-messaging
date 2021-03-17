@@ -1,9 +1,10 @@
 package io.smallrye.reactive.messaging.jms;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.jboss.weld.environment.util.Collections;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class JmsPropertiesBuilderTest {
 
@@ -38,14 +39,16 @@ public class JmsPropertiesBuilderTest {
         assertThat(properties.propertyExists("string")).isTrue();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreationWithNullKey() {
-        JmsProperties.builder().with(null, "foo");
+        assertThatThrownBy(() -> JmsProperties.builder().with(null, "foo"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreationWithNullValue() {
-        JmsProperties.builder().with("hello", null);
+        assertThatThrownBy(() -> JmsProperties.builder().with("hello", null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
 }

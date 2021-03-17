@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
@@ -17,7 +17,7 @@ public class AcknowledgmentTestBase extends WeldTestBaseWithoutTails {
     protected List<String> expected = Collections.emptyList();
     protected List<String> acks = Collections.emptyList();
 
-    @Before
+    @BeforeEach
     public void configure() {
         expected = Arrays.asList("a", "b", "c", "d", "e");
         acks = new ArrayList<>(expected);

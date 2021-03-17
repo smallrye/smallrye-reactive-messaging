@@ -13,8 +13,8 @@ import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.*;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -24,7 +24,7 @@ import io.vertx.core.impl.ConcurrentHashSet;
 
 public class MessageProcessorAckTest extends WeldTestBaseWithoutTails {
 
-    @Before
+    @BeforeEach
     public void deployBase() {
         addBeanClass(EmitterBean.class, Sink.class);
     }

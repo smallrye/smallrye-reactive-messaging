@@ -6,7 +6,7 @@ import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturn
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.POST_PROCESSING_ACKNOWLEDGMENT;
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningVoid.PRE_PROCESSING_ACKNOWLEDGMENT;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SubscriberWithVoidMethodAcknowledgementTest extends AcknowledgmentTestBase {
 

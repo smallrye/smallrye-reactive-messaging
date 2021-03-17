@@ -2,13 +2,13 @@ package io.smallrye.reactive.messaging.decorator;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.MyCollector;
 import io.smallrye.reactive.messaging.WeldTestBase;
@@ -27,7 +27,7 @@ public class DecoratorTest extends WeldTestBase {
                 .map((s) -> s + "-sink")
                 .collect(Collectors.toList());
 
-        await().until(() -> collector.payloads(), hasSize(expected.size()));
+        await().until(collector::payloads, hasSize(expected.size()));
         assertEquals(expected, collector.payloads());
     }
 
