@@ -101,9 +101,9 @@ public static class Consumer {
 
 Messages coming from AMQP contains an instance of {javadoc-base}/io/smallrye/reactive/messaging/amqp/IncomingAmqpMetadata.html[`IncomingAmqpMetadata`] in the metadata.
 
-[source, java]
+[source,java,indent=0]
 ----
-include::example$inbound/AmqpMetadataExample.java[]
+include::example$inbound/AmqpMetadataExample.java[tag=code]
 ----
 
 === Acknowledgement

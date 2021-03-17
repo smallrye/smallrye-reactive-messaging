@@ -9,28 +9,35 @@ import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 /**
- *
- * When implemented by a managed bean annotated with {@link javax.inject.Named} and
- * configured against an inbound connector will be applied as a consumer re-balance listener
+ * When implemented by a managed bean annotated with {@link io.smallrye.common.annotation.Identifier @Identifier}
+ * and configured against an inbound connector, it will be applied as a consumer rebalance listener
  * to that inbound connector's consumer.
+ * <p>
+ * To configure which listener you want to use, set the name in the inbound connector's consumer rebalance listener
+ * attribute. For example:
  *
+ * <pre>
+ * mp.messaging.incoming.example.consumer-rebalance-listener.name=ExampleConsumerRebalanceListener
  *
- * To configure which listener you want to use, set the name in the inbound connector's consumer re-balance listener attribute,
- * ex:
- * {@code
- *  mp.messaging.incoming.example.consumer-rebalance- listener.name=ExampleConsumerRebalanceListener
+ * &#64;Identifier("ExampleConsumerRebalanceListener")
+ * public class ExampleConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
+ *     ...
  * }
- * {@code @Named("ExampleConsumerRebalanceListener")}
+ * </pre>
  *
- * Alternatively, name your listener (using the {@code @Named} annotation) to be the group id used by the connector, ex:
- * {@code
- *  mp.messaging.incoming.example.group.id=my-group
+ * Alternatively, name your listener (using the {@code @Identifier} annotation) to be the group id used by the connector.
+ * For example:
+ *
+ * <pre>
+ * mp.messaging.incoming.example.group.id=my-group
+ *
+ * &#64;Identifier("my-group")
+ * public class MyGroupConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
+ *     ...
  * }
- * {@code @Named("my-group")}
- *
- * Setting the consumer re-balance listener name takes precedence over using the group id.
- *
- * For more details:
+ * </pre>
+ * <p>
+ * Setting the consumer rebalance listener name takes precedence over using the group id.
  *
  * @see org.apache.kafka.clients.consumer.ConsumerRebalanceListener
  */

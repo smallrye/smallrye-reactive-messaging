@@ -23,6 +23,7 @@ import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
@@ -231,7 +232,11 @@ public class KafkaSource<K, V> {
         }
 
         Instance<DeserializationFailureHandler<?>> matching = deserializationFailureHandlers
-                .select(NamedLiteral.of(name));
+                .select(Identifier.Literal.of(name));
+        if (matching.isUnsatisfied()) {
+            // this `if` block should be removed when support for the `@Named` annotation is removed
+            matching = deserializationFailureHandlers.select(NamedLiteral.of(name));
+        }
         if (matching.isUnsatisfied()) {
             throw ex.unableToFindDeserializationFailureHandler(name, configuration.getChannel());
         } else if (matching.stream().count() > 1) {

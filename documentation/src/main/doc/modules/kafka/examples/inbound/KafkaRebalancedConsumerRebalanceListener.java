@@ -1,18 +1,18 @@
 package inbound;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
 @ApplicationScoped
-@Named("rebalanced-example.rebalancer")
+@Identifier("rebalanced-example.rebalancer")
 public class KafkaRebalancedConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
 
     private static final Logger LOGGER = Logger.getLogger(KafkaRebalancedConsumerRebalanceListener.class.getName());
