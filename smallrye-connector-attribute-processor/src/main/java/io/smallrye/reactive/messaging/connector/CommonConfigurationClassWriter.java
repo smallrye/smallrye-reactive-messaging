@@ -43,19 +43,24 @@ public class CommonConfigurationClassWriter {
         JavaFileObject file = environment.getFiler().createSourceFile(className);
         file.delete();
         try (PrintWriter out = new PrintWriter(file.openWriter())) {
-            writePackageDeclaration(packageName, out);
-
-            writeImportStatements(out);
-            out.println("import " + ConfigProvider.class.getName() + ";");
-            out.println("import " + ConnectorFactory.class.getName() + ";");
-
-            writeClassDeclaration(simpleName, connector, out);
-            writeConstructorAndConfigAccessor(simpleName, out);
-            attributes.forEach(ca -> generateGetterForAttribute(ca, connector, out));
-            writeValidateMethod(attributes, out);
-
-            out.println("}"); // End of class.
+            write(attributes, packageName, simpleName, connector, out);
         }
+    }
+
+    void write(List<ConnectorAttribute> attributes, String packageName, String simpleName, String connector,
+            PrintWriter out) {
+        writePackageDeclaration(packageName, out);
+
+        writeImportStatements(out);
+        out.println("import " + ConfigProvider.class.getName() + ";");
+        out.println("import " + ConnectorFactory.class.getName() + ";");
+
+        writeClassDeclaration(simpleName, connector, out);
+        writeConstructorAndConfigAccessor(simpleName, out);
+        attributes.forEach(ca -> generateGetterForAttribute(ca, connector, out));
+        writeValidateMethod(attributes, out);
+
+        out.println("}"); // End of class.
     }
 
     private void writeClassDeclaration(String simpleName, String connector, PrintWriter out) {
