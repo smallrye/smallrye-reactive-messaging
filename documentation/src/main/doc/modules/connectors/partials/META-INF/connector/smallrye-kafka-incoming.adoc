@@ -37,6 +37,10 @@ Type: _boolean_ | false | `true`
 
 Type: _boolean_ | false | `true`
 
+| *kafka-configuration-name* | The name set in `javax.inject.Named` of a bean that provides the default Kafka consumer/producer (`Map<String, Object>`) configuration to use for this channel. The channel configuration can still override any attribute.
+
+Type: _string_ | false | 
+
 | *topics* | A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties
 
 Type: _string_ | false | 

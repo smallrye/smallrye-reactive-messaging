@@ -81,6 +81,10 @@ Type: _long_ | false | `2000`
 
 Type: _boolean_ | false | `false`
 
+| *kafka-configuration-name* | The name set in `javax.inject.Named` of a bean that provides the default Kafka consumer/producer (`Map<String, Object>`) configuration to use for this channel. The channel configuration can still override any attribute.
+
+Type: _string_ | false | 
+
 | *key* | A key to used when writing the record
 
 Type: _string_ | false | 

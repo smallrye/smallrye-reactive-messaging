@@ -3,13 +3,7 @@ package io.smallrye.reactive.messaging.kafka;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.PostConstruct;
@@ -19,6 +13,8 @@ import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.UnsatisfiedResolutionException;
+import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -56,6 +52,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "health-readiness-timeout", type = "long", direction = Direction.INCOMING_AND_OUTGOING, description = "During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.", defaultValue = "2000")
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
+@ConnectorAttribute(name = "kafka-configuration-name", type = "string", direction = Direction.INCOMING_AND_OUTGOING, description = "The name set in `javax.inject.Named` of a bean that provides the default Kafka consumer/producer (`Map<String, Object>`) configuration to use for this channel. The channel configuration can still override any attribute.")
 
 @ConnectorAttribute(name = "topics", type = "string", direction = Direction.INCOMING, description = "A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties")
 @ConnectorAttribute(name = "pattern", type = "boolean", direction = Direction.INCOMING, description = "Indicate that the `topic` property is a regular expression. Must be used with the `topic` property. Cannot be used with the `topics` property", defaultValue = "false")
@@ -124,6 +121,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Named("default-kafka-broker")
     Instance<Map<String, Object>> defaultKafkaConfiguration;
 
+    @Inject
+    Instance<Map<String, Object>> configurations;
+
     private Vertx vertx;
 
     public void terminate(
@@ -142,9 +142,13 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         Config c = config;
+        Map<String, Object> namedConfig = getNamedConfiguration(c);
         if (!defaultKafkaConfiguration.isUnsatisfied()) {
-            c = merge(config, defaultKafkaConfiguration.get());
+            c = merge(config, namedConfig, defaultKafkaConfiguration.get());
+        } else {
+            c = merge(config, namedConfig, Collections.emptyMap());
         }
+
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(c);
         int partitions = ic.getPartitions();
         if (partitions <= 0) {
@@ -191,34 +195,75 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         Config c = config;
+        Map<String, Object> namedConfig = getNamedConfiguration(c);
         if (!defaultKafkaConfiguration.isUnsatisfied()) {
-            c = merge(config, defaultKafkaConfiguration.get());
+            c = merge(config, namedConfig, defaultKafkaConfiguration.get());
+        } else {
+            c = merge(config, namedConfig, Collections.emptyMap());
         }
+
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
+
         KafkaSink sink = new KafkaSink(vertx, oc, kafkaCDIEvents);
         sinks.add(sink);
         return sink.getSink();
     }
 
-    private Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
+    private Map<String, Object> getNamedConfiguration(Config c) {
+        Optional<String> name = c.getOptionalValue("kafka-configuration-name", String.class);
+        Optional<String> channel = c.getOptionalValue("channel-name", String.class);
+        String cn = channel.orElse(null);
+        Map<String, Object> namedConfig = Collections.emptyMap();
+        if (name.isPresent()) {
+            namedConfig = lookupForConfiguration(name.get(), false);
+        } else if (cn != null) {
+            namedConfig = lookupForConfiguration(cn, true);
+        }
+        return namedConfig;
+    }
+
+    private Map<String, Object> lookupForConfiguration(String named, boolean optional) {
+        Instance<Map<String, Object>> instance = configurations.select(NamedLiteral.of(named));
+        if (instance.isUnsatisfied()) {
+            if (!optional) {
+                throw new UnsatisfiedResolutionException("Cannot find the configuration Kafka configuration: " + named);
+            } else {
+                return Collections.emptyMap();
+            }
+        } else {
+            return instance.get();
+        }
+    }
+
+    private Config merge(Config passedCfg, Map<String, Object> namedConfig,
+            Map<String, Object> defaultKafkaCfg) {
+        System.out.println("Merging config with (named) " + namedConfig + " and (default) " + defaultKafkaCfg);
         return new Config() {
+
             @SuppressWarnings("unchecked")
+            private <T> T getFromConfigProviders(String name) {
+                T v = (T) namedConfig.get(name);
+                if (v == null) {
+                    v = (T) defaultKafkaCfg.get(name);
+                }
+                return v;
+            }
+
             @Override
             public <T> T getValue(String propertyName, Class<T> propertyType) {
                 T passedCgfValue = passedCfg.getValue(propertyName, propertyType);
                 if (passedCgfValue == null) {
-                    return (T) defaultKafkaCfg.get(propertyName);
+                    return getFromConfigProviders(propertyName);
                 } else {
                     return passedCgfValue;
                 }
             }
 
-            @SuppressWarnings("unchecked")
             @Override
             public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
                 Optional<T> passedCfgValue = passedCfg.getOptionalValue(propertyName, propertyType);
                 if (!passedCfgValue.isPresent()) {
-                    T defaultValue = (T) defaultKafkaCfg.get(propertyName);
+                    T defaultValue = getFromConfigProviders(propertyName);
                     return Optional.ofNullable(defaultValue);
                 } else {
                     return passedCfgValue;
@@ -227,10 +272,18 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
             @Override
             public Iterable<String> getPropertyNames() {
-                Iterable<String> names = passedCfg.getPropertyNames();
                 Set<String> result = new HashSet<>();
-                names.forEach(result::add);
+
+                // First global
                 result.addAll(defaultKafkaCfg.keySet());
+
+                // Configured name
+                result.addAll(namedConfig.keySet());
+
+                // Channel
+                Iterable<String> names = passedCfg.getPropertyNames();
+                names.forEach(result::add);
+
                 return result;
             }
 

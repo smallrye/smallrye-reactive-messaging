@@ -139,6 +139,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
+        connector.configurations = UnsatisfiedInstance.instance();
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
         connector.kafkaCDIEvents = testEvents;
@@ -179,6 +180,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
         connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
+        connector.configurations = UnsatisfiedInstance.instance();
         connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
         connector.kafkaCDIEvents = new CountKafkaCdiEvents();
