@@ -148,7 +148,7 @@ To achieve this, create a CDI bean implementing the {javadoc-base}/io/smallrye/r
 [source, java]
 ----
 @ApplicationScoped
-@Named("failure-fallback") // Set the name of the failure handler
+@Identifier("failure-fallback") // Set the name of the failure handler
 public class MyDeserializationFailureHandler
     implements DeserializationFailureHandler<JsonObject> { // Specify the expected type
 
@@ -161,7 +161,7 @@ public class MyDeserializationFailureHandler
 }
 ----
 
-The bean must be exposed with the `@Named` qualifier specifying the name of the bean.
+The bean must be exposed with the `@Identifier` qualifier specifying the name of the bean.
 Then, in the connector configuration, specify the following attribute:
 
 * `mp.messaging.incoming.$channel.key-deserialization-failure-handler`: name of the bean handling deserialization failures happening for the record's key

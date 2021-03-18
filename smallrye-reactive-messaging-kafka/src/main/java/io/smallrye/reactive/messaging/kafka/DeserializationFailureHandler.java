@@ -5,7 +5,7 @@ import org.apache.kafka.common.header.Headers;
 /**
  * Bean invoked on Kafka deserialization failure.
  * <p>
- * Implementors must use {@code @Named} to provide a name to the bean.
+ * Implementors must use {@code @Identifier} to provide a name to the bean.
  * This name is then referenced in the channel configuration:
  * {@code mp.messaging.incoming.my-channel.[key|value]-deserialization-failure-handler=name}.
  * <p>
@@ -18,7 +18,7 @@ import org.apache.kafka.common.header.Headers;
 public interface DeserializationFailureHandler<T> {
 
     /**
-     * Handles a deserialization issue for a record's key.
+     * Handles a deserialization issue for a record's key or value.
      *
      * @param topic the topic
      * @param isKey whether the failure happened when deserializing a record's key.

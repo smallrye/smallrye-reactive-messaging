@@ -10,6 +10,7 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
+import org.jboss.logging.annotations.Once;
 
 import io.smallrye.reactive.messaging.wiring.Wiring;
 
@@ -120,4 +121,8 @@ public interface ProviderLogging extends BasicLogger {
     @Message(id = 236, value = "Materialization completed in %d ns")
     void materializationCompleted(long duration);
 
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 237, value = "Use of @javax.inject.Named in Reactive Messaging is deprecated, use @io.smallrye.common.annotation.Identifier instead")
+    @Once
+    void deprecatedNamed();
 }

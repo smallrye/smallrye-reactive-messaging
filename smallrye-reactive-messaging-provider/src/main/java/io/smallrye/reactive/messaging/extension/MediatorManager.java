@@ -41,9 +41,11 @@ public class MediatorManager {
     WorkerPoolRegistry workerPoolRegistry;
 
     @Inject
+    // @Any would only be needed if we wanted to allow implementations with qualifiers
     Instance<PublisherDecorator> decorators;
 
     @Inject
+    // @Any would only be needed if we wanted to allow implementations with qualifiers
     Instance<MessageConverter> converters;
 
     private final List<EmitterConfiguration> emitters = new ArrayList<>();
@@ -56,6 +58,7 @@ public class MediatorManager {
     @Inject
     Wiring wiring;
     @Inject
+    // @Any would only be needed if we wanted to allow implementations with qualifiers
     Instance<ChannelRegistar> registars;
 
     @Inject

@@ -4,14 +4,14 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.TopicPartition;
 
-import io.vertx.kafka.client.common.TopicPartition;
+import io.smallrye.common.annotation.Identifier;
 
 @ApplicationScoped
-@Named("my-group-starting-on-fifth-fail-on-first-attempt")
+@Identifier("my-group-starting-on-fifth-fail-on-first-attempt")
 public class StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListener
         extends StartFromFifthOffsetFromLatestConsumerRebalanceListener {
 
@@ -19,7 +19,7 @@ public class StartFromFifthOffsetFromLatestButFailOnFirstConsumerRebalanceListen
 
     @Override
     public void onPartitionsAssigned(Consumer<?, ?> consumer,
-            Collection<org.apache.kafka.common.TopicPartition> partitions) {
+            Collection<TopicPartition> partitions) {
         super.onPartitionsAssigned(consumer, partitions);
         if (!partitions.isEmpty() && failOnFirstAttempt.getAndSet(false)) {
             throw new IllegalArgumentException("testing failure");
