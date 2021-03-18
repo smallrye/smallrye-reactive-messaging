@@ -511,5 +511,15 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>java16</id>
+      <activation>
+        <jdk>16</jdk>
+      </activation>
+      <properties>
+        <argLine>--illegal-access=permit</argLine>
+      </properties>
+    </profile>
   </profiles>
 </project>
