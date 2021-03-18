@@ -3,21 +3,21 @@ package io.smallrye.reactive.messaging.connectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.WeldTestBase;
 
 public class EnabledConnectorTest extends WeldTestBase {
 
-    @BeforeClass
+    @BeforeAll
     public static void setupConfig() {
         // Explicitly enabled.
         installConfig("src/test/resources/config/dummy-connector-config-enabled.properties");
     }
 
-    @AfterClass
+    @AfterAll
     public static void clear() {
         releaseConfig();
     }

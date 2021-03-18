@@ -7,7 +7,7 @@ import java.util.Optional;
 
 /**
  * Represents Cloud Event metadata
- * See https://github.com/cloudevents/spec/blob/master/spec.md.
+ * See https://github.com/cloudevents/spec/blob/v1.0/spec.md.
  *
  * @param <T> the data type
  */

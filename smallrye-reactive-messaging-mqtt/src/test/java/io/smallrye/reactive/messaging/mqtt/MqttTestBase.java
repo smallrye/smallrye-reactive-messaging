@@ -4,10 +4,10 @@ import java.io.File;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
@@ -24,11 +24,9 @@ import io.smallrye.reactive.messaging.mqtt.hivemq.HiveMQMqttConnector;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.vertx.mutiny.core.Vertx;
-import repeat.RepeatRule;
 
 public class MqttTestBase {
 
-    @ClassRule
     public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6")
             .withExposedPorts(1883)
             .waitingFor(Wait.forLogMessage(".*listen socket on port 1883.*\\n", 2));
@@ -38,10 +36,17 @@ public class MqttTestBase {
     protected Integer port;
     protected MqttUsage usage;
 
-    @Rule
-    public RepeatRule rule = new RepeatRule();
+    @BeforeAll
+    public static void startBroker() {
+        mosquitto.start();
+    }
 
-    @Before
+    @AfterAll
+    public static void stopBroker() {
+        mosquitto.stop();
+    }
+
+    @BeforeEach
     public void setup() {
         System.clearProperty("mqtt-host");
         System.clearProperty("mqtt-port");
@@ -55,7 +60,7 @@ public class MqttTestBase {
         usage = new MqttUsage(address, port);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         System.clearProperty("mqtt-host");
         System.clearProperty("mqtt-port");
@@ -65,7 +70,8 @@ public class MqttTestBase {
         vertx.closeAndAwait();
         usage.close();
 
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
+        SmallRyeConfigProviderResolver.instance()
+                .releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
     }
 
     public static Weld baseWeld(MapBasedConfig config) {

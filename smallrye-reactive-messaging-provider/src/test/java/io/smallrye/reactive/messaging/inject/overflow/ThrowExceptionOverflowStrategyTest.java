@@ -4,21 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
@@ -29,19 +23,20 @@ public class ThrowExceptionOverflowStrategyTest extends WeldTestBaseWithoutTails
 
     private static ExecutorService executor;
 
-    @BeforeClass
+    @BeforeAll
     public static void init() {
         executor = Executors.newFixedThreadPool(2);
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() {
         executor.shutdown();
     }
 
     @Test
     public void testNormal() throws InterruptedException {
-        BeanUsingThrowExceptionOverflowStrategy bean = installInitializeAndGet(BeanUsingThrowExceptionOverflowStrategy.class);
+        BeanUsingThrowExceptionOverflowStrategy bean = installInitializeAndGet(
+                BeanUsingThrowExceptionOverflowStrategy.class);
         bean.emitOne();
 
         await().until(() -> bean.output().size() == 1);
@@ -52,7 +47,8 @@ public class ThrowExceptionOverflowStrategyTest extends WeldTestBaseWithoutTails
 
     @Test
     public void testOverflow() throws InterruptedException, ExecutionException, TimeoutException {
-        BeanUsingThrowExceptionOverflowStrategy bean = installInitializeAndGet(BeanUsingThrowExceptionOverflowStrategy.class);
+        BeanUsingThrowExceptionOverflowStrategy bean = installInitializeAndGet(
+                BeanUsingThrowExceptionOverflowStrategy.class);
         Future<?> future = bean.emit999();
 
         future.get(10, TimeUnit.SECONDS); // Will throw exception if emitter.send() throws an unexpected exception

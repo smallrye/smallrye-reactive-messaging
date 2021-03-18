@@ -9,13 +9,13 @@ import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
-import javax.inject.Named;
 import javax.jms.ConnectionFactory;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -99,7 +99,7 @@ public class NamedFactoryTest extends JmsTestBase {
     public static class BarConnectionFactoryBean {
 
         @Produces
-        @Named("bar")
+        @Identifier("bar")
         ConnectionFactory factory() {
             return new ActiveMQJMSConnectionFactory(
                     "tcp://localhost:61618", // Wrong on purpose
@@ -112,7 +112,7 @@ public class NamedFactoryTest extends JmsTestBase {
     public static class FooConnectionFactoryBean {
 
         @Produces
-        @Named("foo")
+        @Identifier("foo")
         ConnectionFactory factory() {
             return new ActiveMQJMSConnectionFactory(
                     "tcp://localhost:61616",

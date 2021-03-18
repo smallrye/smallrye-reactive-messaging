@@ -14,13 +14,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import repeat.Repeat;
 
 public class MqttSinkTest extends MqttTestBase {
 
@@ -32,7 +32,7 @@ public class MqttSinkTest extends MqttTestBase {
         return vertxMqttFactory;
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
@@ -119,8 +119,7 @@ public class MqttSinkTest extends MqttTestBase {
         assertThat(expected).hasValue(10);
     }
 
-    @Test
-    @Repeat(times = 5)
+    @RepeatedTest(5)
     public void testABeanProducingMessagesSentToMQTT() throws InterruptedException {
         Clients.clear();
         Weld weld = baseWeld(getConfig());

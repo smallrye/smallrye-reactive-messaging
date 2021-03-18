@@ -19,7 +19,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment.Strategy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -151,10 +151,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.hasCaughtNullMessage()).isTrue();
     }
 
-    @Test(expected = DefinitionException.class)
+    @Test
     public void testWithMissingChannel() {
-        // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
+        assertThatThrownBy(() -> {
+            // The error is only thrown when a message is emitted as the subscription can be delayed.
+            installInitializeAndGet(BeanWithMissingChannel.class).emitter().send(Message.of("foo"));
+        }).isInstanceOf(DefinitionException.class);
     }
 
     @Test

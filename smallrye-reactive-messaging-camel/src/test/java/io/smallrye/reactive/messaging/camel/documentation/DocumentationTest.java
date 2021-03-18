@@ -11,9 +11,9 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -24,8 +24,8 @@ public class DocumentationTest extends CamelTestBase {
     private final Path orders = new File("target/orders").toPath();
     private final Path prices = new File("target/prices").toPath();
 
-    @After
-    @Before
+    @AfterEach
+    @BeforeEach
     public void deleteDirectory() {
         File file = orders.toFile();
         File[] files = file.listFiles();

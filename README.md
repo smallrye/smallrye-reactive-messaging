@@ -19,7 +19,7 @@ into [CDI](http://www.cdi-spec.org/) beans,or [JAX-RS](https://github.com/eclips
 
 ## Branches
 
-* master - 2.x development stream. Uses Vert.x 3.x and Microprofile 3.x
+* main - 2.x development stream. Uses Vert.x 3.x and Microprofile 3.x
 * 3.x - 3.x development stream. Users Vert.x 4.x and Microprofile 4.x
 
 ## Getting started

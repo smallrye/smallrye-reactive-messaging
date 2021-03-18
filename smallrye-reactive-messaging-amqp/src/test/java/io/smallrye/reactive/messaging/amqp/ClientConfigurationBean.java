@@ -2,15 +2,15 @@ package io.smallrye.reactive.messaging.amqp;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
-import javax.inject.Named;
 
+import io.smallrye.common.annotation.Identifier;
 import io.vertx.amqp.AmqpClientOptions;
 
 @ApplicationScoped
 public class ClientConfigurationBean {
 
     @Produces
-    @Named("myclientoptions")
+    @Identifier("myclientoptions")
     public AmqpClientOptions options() {
         return new AmqpClientOptions()
                 .setHost(System.getProperty("amqp-host"))

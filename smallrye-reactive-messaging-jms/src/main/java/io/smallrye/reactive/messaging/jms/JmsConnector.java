@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
@@ -31,8 +32,10 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 
 @ApplicationScoped
 @Connector(JmsConnector.CONNECTOR_NAME)
@@ -79,6 +82,7 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
     static final String DEFAULT_THREAD_TTL = "60";
 
     @Inject
+    @Any
     Instance<ConnectionFactory> factories;
 
     @Inject
@@ -157,7 +161,15 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
         if (factoryName == null) {
             iterator = factories.iterator();
         } else {
-            iterator = factories.select(NamedLiteral.of(factoryName)).iterator();
+            Instance<ConnectionFactory> matching = factories.select(Identifier.Literal.of(factoryName));
+            if (matching.isUnsatisfied()) {
+                // this `if` block should be removed when support for the `@Named` annotation is removed
+                matching = factories.select(NamedLiteral.of(factoryName));
+                if (!matching.isUnsatisfied()) {
+                    ProviderLogging.log.deprecatedNamed();
+                }
+            }
+            iterator = matching.iterator();
         }
 
         if (!iterator.hasNext()) {

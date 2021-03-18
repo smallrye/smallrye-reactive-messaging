@@ -4,20 +4,20 @@ import static io.smallrye.reactive.messaging.tck.incoming.Bean.NON_PARALLEL;
 import static io.smallrye.reactive.messaging.tck.incoming.Bean.NON_VOID_METHOD;
 import static io.smallrye.reactive.messaging.tck.incoming.Bean.SYNC_FAILING;
 import static io.smallrye.reactive.messaging.tck.incoming.Bean.VOID_METHOD;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.WeldTestBase;
 import io.smallrye.reactive.messaging.tck.MessagingManager;
 import io.smallrye.reactive.messaging.tck.MockPayload;
 import io.smallrye.reactive.messaging.tck.MockedReceiver;
 
-@Ignore("Work on the TCK")
+@Disabled("Work on the TCK")
 public class IncomingTest extends WeldTestBase {
 
     @Override
@@ -91,7 +91,7 @@ public class IncomingTest extends WeldTestBase {
     }
 
     @Test
-    @Ignore("Discuss retry")
+    @Disabled("Discuss retry")
     public void completionStageMethodShouldRetryMessagesThatFailSynchronously() {
         initialize();
         MessagingManager manager = container.select(MessagingManager.class).get();
@@ -107,7 +107,7 @@ public class IncomingTest extends WeldTestBase {
         // followed by the next message.
         receiver.expectNextMessageWithPayload(msg1);
         receiver.expectNextMessageWithPayload(msg2);
-        assertTrue("Sync was not failed", bean.getSyncFailed().get());
+        assertTrue(bean.getSyncFailed().get());
         receiver.expectNextMessageWithPayload(msg2);
         receiver.expectNextMessageWithPayload(msg3);
     }

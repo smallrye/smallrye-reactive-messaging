@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -113,10 +114,12 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         assertThat(bean.hasCaughtNullPayload()).isTrue();
     }
 
-    @Test(expected = DefinitionException.class)
+    @Test
     public void testWithMissingChannel() {
-        // The error is only thrown when a message is emitted as the subscription can be delayed.
-        installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndAwait("foo");
+        assertThatThrownBy(() -> {
+            // The error is only thrown when a message is emitted as the subscription can be delayed.
+            installInitializeAndGet(BeanWithMissingChannel.class).emitter().sendAndAwait("foo");
+        }).isInstanceOf(DefinitionException.class);
     }
 
     @Test

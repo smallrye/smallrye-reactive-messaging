@@ -148,7 +148,7 @@ To achieve this, create a CDI bean implementing the {javadoc-base}/io/smallrye/r
 [source, java]
 ----
 @ApplicationScoped
-@Named("failure-fallback") // Set the name of the failure handler
+@Identifier("failure-fallback") // Set the name of the failure handler
 public class MyDeserializationFailureHandler
     implements DeserializationFailureHandler<JsonObject> { // Specify the expected type
 
@@ -161,7 +161,7 @@ public class MyDeserializationFailureHandler
 }
 ----
 
-The bean must be exposed with the `@Named` qualifier specifying the name of the bean.
+The bean must be exposed with the `@Identifier` qualifier specifying the name of the bean.
 Then, in the connector configuration, specify the following attribute:
 
 * `mp.messaging.incoming.$channel.key-deserialization-failure-handler`: name of the bean handling deserialization failures happening for the record's key
@@ -181,7 +181,7 @@ If the connector cannot extract the Cloud Event metadata, it sends the Message w
 
 ==== Binary Cloud Events
 
-For `binary` Cloud Events, **all** mandatory Cloud Event attributes must be set in the record header, prefixed by `ce_` (as mandated by the https://github.com/cloudevents/spec/blob/master/kafka-protocol-binding.md[protocol binding]).
+For `binary` Cloud Events, **all** mandatory Cloud Event attributes must be set in the record header, prefixed by `ce_` (as mandated by the https://github.com/cloudevents/spec/blob/v1.0/kafka-protocol-binding.md[protocol binding]).
 The connector considers headers starting with the `ce_` prefix but not listed in the specification as extensions.
 You can access them using the `getExtension` method from `IncomingKafkaCloudEventMetadata`.
 You can retrieve them as `String`.

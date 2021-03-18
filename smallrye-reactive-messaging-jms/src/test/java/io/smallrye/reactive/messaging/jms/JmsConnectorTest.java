@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.jms;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -15,7 +16,7 @@ import javax.jms.DeliveryMode;
 import javax.jms.Queue;
 
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -107,7 +108,7 @@ public class JmsConnectorTest extends JmsTestBase {
         assertThat(bean.list()).isNotEmpty();
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testInvalidSessionMode() {
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
@@ -116,10 +117,12 @@ public class JmsConnectorTest extends JmsTestBase {
         map.put("mp.messaging.incoming.jms.session-mode", "invalid");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
-        deploy(PayloadConsumerBean.class, ProducerBean.class);
+        assertThatThrownBy(() -> deploy(PayloadConsumerBean.class, ProducerBean.class))
+                .isInstanceOf(DeploymentException.class);
+
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testWithInvalidIncomingDestinationType() {
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
@@ -127,10 +130,12 @@ public class JmsConnectorTest extends JmsTestBase {
         map.put("mp.messaging.incoming.jms.destination-type", "invalid");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
-        deploy(PayloadConsumerBean.class, ProducerBean.class);
+        assertThatThrownBy(() -> deploy(PayloadConsumerBean.class, ProducerBean.class))
+                .isInstanceOf(DeploymentException.class);
+
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testWithInvalidOutgoingDestinationType() {
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
@@ -139,7 +144,9 @@ public class JmsConnectorTest extends JmsTestBase {
         map.put("mp.messaging.incoming.jms.destination-type", "queue");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
-        deploy(PayloadConsumerBean.class, ProducerBean.class);
+        assertThatThrownBy(() -> {
+            deploy(PayloadConsumerBean.class, ProducerBean.class);
+        }).isInstanceOf(DeploymentException.class);
     }
 
 }

@@ -10,8 +10,8 @@ import java.util.concurrent.*;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.*;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -19,7 +19,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class AsynchronousMessageProcessorAckTest extends WeldTestBaseWithoutTails {
 
-    @Before
+    @BeforeEach
     public void deployBase() {
         addBeanClass(EmitterBean.class, Sink.class);
     }

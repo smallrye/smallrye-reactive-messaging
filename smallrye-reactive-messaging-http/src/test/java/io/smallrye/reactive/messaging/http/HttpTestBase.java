@@ -11,11 +11,13 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 
@@ -23,18 +25,36 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 
 public class HttpTestBase {
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(8089);
-
     private Weld weld;
     private WeldContainer container;
+    static WireMockServer wireMockServer;
 
-    @Before
+    @BeforeAll
+    public static void startServer() {
+        wireMockServer = new WireMockServer(new WireMockConfiguration().dynamicPort());
+        wireMockServer.start();
+    }
+
+    @AfterAll
+    public static void stopServer() {
+        wireMockServer.stop();
+    }
+
+    @AfterEach
+    public void afterEach() {
+        wireMockServer.resetAll();
+    }
+
+    static String getHost() {
+        return "http://localhost:" + wireMockServer.port();
+    }
+
+    @BeforeEach
     public void init() {
         weld = new Weld();
     }
 
-    @After
+    @AfterEach
     public void cleanUp() {
         weld.shutdown();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
@@ -69,17 +89,17 @@ public class HttpTestBase {
     }
 
     public void awaitForRequest(int amount) {
-        await().until(() -> wireMockRule.getServeEvents().getRequests().size() == amount);
+        await().until(() -> wireMockServer.getServeEvents().getRequests().size() == amount);
     }
 
     public void awaitForRequest(int amount, long timeout) {
         await()
                 .atMost(timeout, TimeUnit.MILLISECONDS)
-                .until(() -> wireMockRule.getServeEvents().getRequests().size() == amount);
+                .until(() -> wireMockServer.getServeEvents().getRequests().size() == amount);
     }
 
     public List<LoggedRequest> requests() {
-        return wireMockRule.getServeEvents().getRequests().stream()
+        return wireMockServer.getServeEvents().getRequests().stream()
                 .map(ServeEvent::getRequest).collect(Collectors.toList());
     }
 

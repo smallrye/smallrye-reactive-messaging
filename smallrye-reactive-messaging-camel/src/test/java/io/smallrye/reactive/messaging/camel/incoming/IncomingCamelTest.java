@@ -9,9 +9,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
 
@@ -19,12 +19,12 @@ public class IncomingCamelTest extends CamelTestBase {
 
     private final Path path = new File("target/values.txt").toPath();
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         Files.deleteIfExists(path);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         Files.deleteIfExists(path);
     }

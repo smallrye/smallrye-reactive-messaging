@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import static io.smallrye.reactive.messaging.ack.SubscriberBeanWithMethodsReturningUni.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SubscriberWithUniMethodAcknowledgementTest extends AcknowledgmentTestBase {
 

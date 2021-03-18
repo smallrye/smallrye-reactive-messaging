@@ -10,11 +10,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.AmbiguousResolutionException;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
-import javax.enterprise.inject.spi.DeploymentException;
 import javax.enterprise.util.TypeLiteral;
-import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
@@ -368,7 +368,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         assertThatThrownBy(() -> new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
-                        .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
+                        .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
     }
 
     @Test
@@ -417,6 +417,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("graceful-shutdown", false)
                 .with("topic", TOPIC)
                 .with("health-enabled", false)
+                .with("tracing-enabled", false)
                 .with("value.deserializer", StringDeserializer.class.getName());
     }
 
@@ -431,7 +432,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     }
 
     @ApplicationScoped
-    @Named("mine")
+    @Identifier("mine")
     public static class NamedRebalanceListener implements KafkaConsumerRebalanceListener {
 
         @Override
@@ -449,7 +450,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     }
 
     @ApplicationScoped
-    @Named("mine")
+    @Identifier("mine")
     public static class SameNameRebalanceListener extends NamedRebalanceListener
             implements KafkaConsumerRebalanceListener {
 

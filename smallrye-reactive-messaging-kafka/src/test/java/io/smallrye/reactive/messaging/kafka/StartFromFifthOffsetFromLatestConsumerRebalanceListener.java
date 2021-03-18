@@ -5,13 +5,14 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.common.annotation.Identifier;
+
 @ApplicationScoped
-@Named("my-group-starting-on-fifth-happy-path")
+@Identifier("my-group-starting-on-fifth-happy-path")
 public class StartFromFifthOffsetFromLatestConsumerRebalanceListener implements KafkaConsumerRebalanceListener {
 
     private final AtomicInteger rebalanceCount = new AtomicInteger();

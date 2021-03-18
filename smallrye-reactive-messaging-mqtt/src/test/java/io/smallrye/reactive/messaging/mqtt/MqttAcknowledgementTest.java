@@ -16,8 +16,9 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -25,7 +26,7 @@ public class MqttAcknowledgementTest extends MqttTestBase {
 
     private WeldContainer container;
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (container != null) {
             container.close();
@@ -33,7 +34,8 @@ public class MqttAcknowledgementTest extends MqttTestBase {
         Clients.clear();
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(10)
     public void testAcknowledgmentWithQoS1AndPayloads() throws InterruptedException {
         Weld weld = baseWeld(getConfig(1));
         weld.addBeanClass(EmitterBean.class);
@@ -51,7 +53,8 @@ public class MqttAcknowledgementTest extends MqttTestBase {
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(10)
     public void testAcknowledgmentWithQoS0AndPayloads() throws InterruptedException {
         Weld weld = baseWeld(getConfig(0));
         weld.addBeanClass(EmitterBean.class);
@@ -69,7 +72,8 @@ public class MqttAcknowledgementTest extends MqttTestBase {
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(10)
     public void testAcknowledgmentWithQoS2AndPayloads() throws InterruptedException {
         Weld weld = baseWeld(getConfig(0));
         weld.addBeanClass(EmitterBean.class);

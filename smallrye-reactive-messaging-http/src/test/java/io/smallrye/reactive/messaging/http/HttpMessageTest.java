@@ -5,22 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.QueryParameter;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 
@@ -28,38 +22,57 @@ import io.vertx.mutiny.core.Vertx;
 
 public class HttpMessageTest {
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(8089);
+    private static WireMockServer wireMockServer;
     private Vertx vertx;
     private HttpSink sink;
 
-    @Before
+    @BeforeAll
+    public static void startServer() {
+        wireMockServer = new WireMockServer(new WireMockConfiguration().dynamicPort());
+        wireMockServer.start();
+    }
+
+    @AfterAll
+    public static void stopServer() {
+        wireMockServer.stop();
+    }
+
+    @AfterEach
+    public void afterEach() {
+        wireMockServer.resetAll();
+    }
+
+    static String getHost() {
+        return "http://localhost:" + wireMockServer.port();
+    }
+
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("url", "http://localhost:8089/items");
+        map.put("url", getHost() + "/items");
         sink = new HttpSink(vertx, new HttpConnectorOutgoingConfiguration(new HttpConnectorConfig("foo", map)));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         vertx.close();
     }
 
     @Test
     public void testHeadersAndUrlAndQuery() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(404)));
 
-        stubFor(post(urlPathMatching("/record?.*"))
+        wireMockServer.stubFor(post(urlPathMatching("/record?.*"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
         String uuid = UUID.randomUUID().toString();
         HttpMessage<String> message = HttpMessage.HttpMessageBuilder.<String> create()
                 .withHeader("X-foo", "value")
-                .withUrl("http://localhost:8089/record")
+                .withUrl(getHost() + "/record")
                 .withQueryParameter("name", "clement")
                 .withPayload(uuid)
                 .build();
@@ -80,18 +93,18 @@ public class HttpMessageTest {
 
     @Test
     public void testHeadersAndUrlAndQueryOnRawMessage() {
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(404)));
 
-        stubFor(post(urlPathMatching("/record?.*"))
+        wireMockServer.stubFor(post(urlPathMatching("/record?.*"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
         String uuid = UUID.randomUUID().toString();
         Message<String> message = Message.of(uuid).withMetadata(Metadata.of(
                 HttpResponseMetadata.builder()
-                        .withUrl("http://localhost:8089/record")
+                        .withUrl(getHost() + "/record")
                         .withHeader("X-foo", "value")
                         .withQueryParameter("name", "clement").build()));
 
@@ -111,15 +124,15 @@ public class HttpMessageTest {
 
     @Test
     public void testWithDefaultURLWithPut() {
-        stubFor(put(urlEqualTo("/items"))
+        wireMockServer.stubFor(put(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(204)));
 
-        stubFor(post(urlEqualTo("/items"))
+        wireMockServer.stubFor(post(urlEqualTo("/items"))
                 .willReturn(aResponse()
                         .withStatus(404)));
 
-        stubFor(post(urlPathMatching("/record?.*"))
+        wireMockServer.stubFor(post(urlPathMatching("/record?.*"))
                 .willReturn(aResponse()
                         .withStatus(404)));
 
@@ -148,11 +161,11 @@ public class HttpMessageTest {
     }
 
     private void awaitForRequest() {
-        await().until(() -> wireMockRule.getServeEvents().getRequests().size() >= 1);
+        await().until(() -> wireMockServer.getServeEvents().getRequests().size() >= 1);
     }
 
     private List<LoggedRequest> requests(String path) {
-        return wireMockRule.getServeEvents().getRequests().stream().map(ServeEvent::getRequest)
+        return wireMockServer.getServeEvents().getRequests().stream().map(ServeEvent::getRequest)
                 .filter(req -> req.getUrl().equalsIgnoreCase(path))
                 .collect(Collectors.toList());
     }

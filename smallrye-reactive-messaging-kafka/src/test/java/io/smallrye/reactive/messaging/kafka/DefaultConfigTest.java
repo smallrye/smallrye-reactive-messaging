@@ -17,7 +17,6 @@ import java.util.stream.StreamSupport;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -29,6 +28,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
@@ -96,7 +96,7 @@ public class DefaultConfigTest extends KafkaTestBase {
 
         @Produces
         @ApplicationScoped
-        @Named("default-kafka-broker")
+        @Identifier("default-kafka-broker")
         public Map<String, Object> createKafkaRuntimeConfig() {
             Map<String, Object> properties = new HashMap<>();
 

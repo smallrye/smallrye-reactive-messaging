@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -16,6 +15,7 @@ import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.Record;
@@ -112,7 +112,7 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
     }
 
     @ApplicationScoped
-    @Named("key-fallback")
+    @Identifier("key-fallback")
     public static class MyKeyDeserializationFailureHandler implements DeserializationFailureHandler<JsonObject> {
 
         @Override
@@ -123,7 +123,7 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
     }
 
     @ApplicationScoped
-    @Named("value-fallback")
+    @Identifier("value-fallback")
     public static class MyValueDeserializationFailureHandler implements DeserializationFailureHandler<JsonObject> {
         @Override
         public JsonObject handleDeserializationFailure(String topic, boolean isKey, String deserializer, byte[] data,
