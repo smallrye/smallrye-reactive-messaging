@@ -35,6 +35,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 
 @ApplicationScoped
 @Connector(JmsConnector.CONNECTOR_NAME)
@@ -164,6 +165,9 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
             if (matching.isUnsatisfied()) {
                 // this `if` block should be removed when support for the `@Named` annotation is removed
                 matching = factories.select(NamedLiteral.of(factoryName));
+                if (!matching.isUnsatisfied()) {
+                    ProviderLogging.log.deprecatedNamed();
+                }
             }
             iterator = matching.iterator();
         }

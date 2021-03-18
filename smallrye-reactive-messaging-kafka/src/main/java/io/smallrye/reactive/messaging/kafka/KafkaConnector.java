@@ -45,6 +45,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -156,6 +157,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             // this `if` block should be removed when support for the `@Named` annotation is removed
             // then, we can add `@Identifier("default-kafka-broker")` back to the injection point, instead of `@Any`
             matching = defaultKafkaConfiguration.select(NamedLiteral.of(DEFAULT_KAFKA_BROKER));
+            if (!matching.isUnsatisfied()) {
+                ProviderLogging.log.deprecatedNamed();
+            }
         }
         if (!matching.isUnsatisfied()) {
             c = merge(config, matching.get());
@@ -210,6 +214,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         if (matching.isUnsatisfied()) {
             // this `if` block should be removed when support for the `@Named` annotation is removed
             matching = defaultKafkaConfiguration.select(NamedLiteral.of(DEFAULT_KAFKA_BROKER));
+            if (!matching.isUnsatisfied()) {
+                ProviderLogging.log.deprecatedNamed();
+            }
         }
         if (!matching.isUnsatisfied()) {
             c = merge(config, defaultKafkaConfiguration.get());
