@@ -29,6 +29,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.*;
 import io.smallrye.reactive.messaging.kafka.fault.*;
@@ -236,6 +237,9 @@ public class KafkaSource<K, V> {
         if (matching.isUnsatisfied()) {
             // this `if` block should be removed when support for the `@Named` annotation is removed
             matching = deserializationFailureHandlers.select(NamedLiteral.of(name));
+            if (!matching.isUnsatisfied()) {
+                ProviderLogging.log.deprecatedNamed();
+            }
         }
         if (matching.isUnsatisfied()) {
             throw ex.unableToFindDeserializationFailureHandler(name, configuration.getChannel());

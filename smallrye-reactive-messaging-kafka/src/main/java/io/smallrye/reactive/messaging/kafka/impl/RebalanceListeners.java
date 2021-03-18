@@ -12,6 +12,7 @@ import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
@@ -114,6 +115,9 @@ public class RebalanceListeners {
                     if (matching.isUnsatisfied()) {
                         // this `if` block should be removed when support for the `@Named` annotation is removed
                         matching = instances.select(NamedLiteral.of(name));
+                        if (!matching.isUnsatisfied()) {
+                            ProviderLogging.log.deprecatedNamed();
+                        }
                     }
                     // We want to fail if a name if set, but no match or too many matches
                     if (matching.isUnsatisfied()) {
@@ -132,6 +136,9 @@ public class RebalanceListeners {
                     if (matching.isUnsatisfied()) {
                         // this `if` block should be removed when support for the `@Named` annotation is removed
                         matching = instances.select(NamedLiteral.of(consumerGroup));
+                        if (!matching.isUnsatisfied()) {
+                            ProviderLogging.log.deprecatedNamed();
+                        }
                     }
                     if (!matching.isUnsatisfied()) {
                         log.loadingConsumerRebalanceListenerFromGroupId(consumerGroup);

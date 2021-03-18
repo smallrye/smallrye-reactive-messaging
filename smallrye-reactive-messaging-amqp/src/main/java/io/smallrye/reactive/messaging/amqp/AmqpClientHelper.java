@@ -9,6 +9,7 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.core.Vertx;
@@ -39,6 +40,9 @@ public class AmqpClientHelper {
         if (options.isUnsatisfied()) {
             // this `if` block should be removed when support for the `@Named` annotation is removed
             options = instance.select(NamedLiteral.of(optionsBeanName));
+            if (!options.isUnsatisfied()) {
+                ProviderLogging.log.deprecatedNamed();
+            }
         }
         if (options.isUnsatisfied()) {
             throw ex.illegalStateFindingBean(AmqpClientOptions.class.getName(), optionsBeanName);
