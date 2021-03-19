@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Named;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -15,7 +16,6 @@ import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.Record;
@@ -26,7 +26,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
 import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
-public class DeserializationFailureHandlerTest extends KafkaTestBase {
+// this entire file should be removed when support for the `@Named` annotation is removed
+
+public class DeprecatedDeserializationFailureHandlerTest extends KafkaTestBase {
 
     static JsonObject fallbackForValue = new JsonObject().put("fallback", "fallback");
     static JsonObject fallbackForKey = new JsonObject().put("fallback", "key");
@@ -112,7 +114,7 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
     }
 
     @ApplicationScoped
-    @Identifier("key-fallback")
+    @Named("key-fallback")
     public static class MyKeyDeserializationFailureHandler implements DeserializationFailureHandler<JsonObject> {
 
         @Override
@@ -123,7 +125,7 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
     }
 
     @ApplicationScoped
-    @Identifier("value-fallback")
+    @Named("value-fallback")
     public static class MyValueDeserializationFailureHandler implements DeserializationFailureHandler<JsonObject> {
         @Override
         public JsonObject handleDeserializationFailure(String topic, boolean isKey, String deserializer, byte[] data,

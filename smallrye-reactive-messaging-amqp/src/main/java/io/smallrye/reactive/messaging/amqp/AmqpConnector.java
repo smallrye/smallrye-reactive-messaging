@@ -16,6 +16,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
+import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
@@ -81,6 +82,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private ExecutionHolder executionHolder;
 
     @Inject
+    @Any
     private Instance<AmqpClientOptions> clientOptions;
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();

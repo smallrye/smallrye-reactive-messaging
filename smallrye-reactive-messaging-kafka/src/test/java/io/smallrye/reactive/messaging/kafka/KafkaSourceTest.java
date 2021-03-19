@@ -20,7 +20,6 @@ import java.util.stream.IntStream;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
-import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -33,6 +32,7 @@ import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -535,7 +535,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         return getBeanManager()
                 .createInstance()
                 .select(ConsumptionConsumerRebalanceListener.class)
-                .select(NamedLiteral.of(ConsumptionConsumerRebalanceListener.class.getSimpleName()))
+                .select(Identifier.Literal.of(ConsumptionConsumerRebalanceListener.class.getSimpleName()))
                 .get();
 
     }
@@ -545,7 +545,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         return getBeanManager()
                 .createInstance()
                 .select(StartFromFifthOffsetFromLatestConsumerRebalanceListener.class)
-                .select(NamedLiteral.of(name))
+                .select(Identifier.Literal.of(name))
                 .get();
 
     }

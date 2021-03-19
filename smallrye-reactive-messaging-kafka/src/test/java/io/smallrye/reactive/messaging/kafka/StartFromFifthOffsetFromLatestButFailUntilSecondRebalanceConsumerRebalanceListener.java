@@ -4,13 +4,14 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.common.annotation.Identifier;
+
 @ApplicationScoped
-@Named("my-group-starting-on-fifth-fail-until-second-rebalance")
+@Identifier("my-group-starting-on-fifth-fail-until-second-rebalance")
 public class StartFromFifthOffsetFromLatestButFailUntilSecondRebalanceConsumerRebalanceListener
         extends StartFromFifthOffsetFromLatestConsumerRebalanceListener {
     private final AtomicBoolean failOnFirstAttempt = new AtomicBoolean(true);

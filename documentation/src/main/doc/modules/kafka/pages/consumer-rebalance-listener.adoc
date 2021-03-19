@@ -2,7 +2,7 @@
 === Consumer Rebalance Listener
 
 To handle offset commit and assigned partitions yourself, you can provide a consumer rebalance listener.
-To achieve this, implement the `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener` interface and exposed it as a `@Named` bean.
+To achieve this, implement the `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener` interface, make the implementing class a bean, and add the `@Identifier` qualifier.
 A usual use case is to store offset in a separate data store to implement exactly-once semantic, or starting the processing at a specific offset.
 
 The listener is invoked every time the consumer topic/partition assignment changes.
@@ -21,9 +21,9 @@ Unlike the `ConsumerRebalanceListener`  from Apache Kafka, the `io.smallrye.reac
 
 ==== Example
 
-In this example we set-up a consumer that always starts on messages from at most 10 minutes ago (of offset 0). First we need to provide
-a bean managed implementation of `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener` annotated with
-`javax.inject.Named`. We then must configure our inbound connector to use this named bean.
+In this example we set-up a consumer that always starts on messages from at most 10 minutes ago (or offset 0). First we need to provide
+a bean that implements the `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener` interface and is annotated with
+`@Identifier`. We then must configure our inbound connector to use this named bean.
 
 [source, java]
 ----
@@ -43,4 +43,4 @@ Or have the listener's name be the same as the group id:
 
 * `mp.messaging.incoming.rebalanced-example.group.id=rebalanced-example.rebalancer`
 
-Setting the consumer re-balance listener's name takes precedence over using the group id.
+Setting the consumer rebalance listener's name takes precedence over using the group id.
