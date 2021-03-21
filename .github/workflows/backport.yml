@@ -13,7 +13,8 @@ jobs:
             - name: Backport
               uses: radcortez/backport-action@main
               with:
-                  github_token: ${{ secrets.GH_API_SECRET }}
+                  github_token: ${{ GITHUB_TOKEN }}
               env:
+                  GITHUB_TOKEN: ${{ secrets.GH_API_SECRET }}
                   GIT_COMMITTER_NAME: ${{ env.GITHUB_ACTOR }}
                   GIT_COMMITTER_EMAIL: noreply@github.com
