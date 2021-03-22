@@ -19,6 +19,30 @@ Type: _boolean_ | false | `true`
 
 Type: _boolean_ | false | `false`
 
+| *ssl.keystore.type* | Set the keystore type
+
+Type: _string_ | false | `pkcs12`
+
+| *ssl.keystore.location* | Set the keystore location
+
+Type: _string_ | false | 
+
+| *ssl.keystore.password* | Set the keystore password
+
+Type: _string_ | false | 
+
+| *ssl.truststore.type* | Set the truststore type
+
+Type: _string_ | false | `pkcs12`
+
+| *ssl.truststore.location* | Set the truststore location
+
+Type: _string_ | false | 
+
+| *ssl.truststore.password* | Set the truststore password
+
+Type: _string_ | false | 
+
 | *keep-alive-seconds* | Set the keep alive timeout in seconds
 
 Type: _int_ | false | `30`
