@@ -16,11 +16,12 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.vertx.mutiny.core.Vertx;
 
-public class TlsMqttTestBase {
+public class MutualTlsMqttTestBase {
 
     public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6")
             .withExposedPorts(8883)
             .withFileSystemBind("src/test/resources/mosquitto-tls", "/mosquitto/config", BindMode.READ_WRITE)
+            .withCommand("/usr/sbin/mosquitto -c /mosquitto/config/mosquitto-mtls.conf")
             .waitingFor(Wait.forLogMessage(".*listen socket on port 8883.*\\n", 2));
 
     Vertx vertx;
@@ -49,6 +50,9 @@ public class TlsMqttTestBase {
         System.setProperty("mqtt-user", "user");
         System.setProperty("mqtt-pwd", "foo");
         Properties ssl = new Properties();
+        ssl.setProperty("com.ibm.ssl.keyStoreType", "JKS");
+        ssl.setProperty("com.ibm.ssl.keyStore", "src/test/resources/mosquitto-tls/client/client.ks");
+        ssl.setProperty("com.ibm.ssl.keyStorePassword", "password");
         ssl.setProperty("com.ibm.ssl.trustStoreType", "JKS");
         ssl.setProperty("com.ibm.ssl.trustStore", "src/test/resources/mosquitto-tls/client/client.ts");
         ssl.setProperty("com.ibm.ssl.trustStorePassword", "password");
