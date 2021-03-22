@@ -302,6 +302,31 @@ public class TypeUtilsTest<B> {
         assertTrue(TypeUtils.isAssignable(fClassType, dClassType));
         aClass.eClass = aClass.fClass;
         assertTrue(TypeUtils.isAssignable(fClassType, eClassType));
+
+        assertTrue(TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0], new Type[0])));
+        assertFalse(TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0], new Type[] {
+                TypeUtilsTest.class.getTypeParameters()[0]
+        })));
+
+        assertFalse(TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0],
+                new Type[] { new WildcardTypeImpl(new Type[0], new Type[0]) })));
+
+        assertThrows(IllegalStateException.class, () -> TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0],
+                new Type[] { new Type() {
+                    @Override
+                    public String getTypeName() {
+                        return "illegal";
+                    }
+                } })));
+
+        assertFalse(TypeUtils.isAssignable(String.class, TypeUtilsTest.class.getTypeParameters()[0]));
+
+        assertThrows(IllegalStateException.class, () -> TypeUtils.isAssignable(String.class, new Type() {
+            @Override
+            public String getTypeName() {
+                return "illegal type";
+            }
+        }));
     }
 
     private void delegateBooleanAssertion(final Type[] types, final int i2, final int i1, final boolean expected) {
@@ -314,6 +339,122 @@ public class TypeUtilsTest<B> {
         } else {
             assertFalse(isAssignable);
         }
+    }
+
+    @Test
+    public void testIsAssignableWithParameterizedType() {
+        assertFalse(TypeUtils.isAssignable(String.class,
+                new ParameterizedTypeImpl(List.class, Object.class, Collections.singletonList(String.class)),
+                Collections.emptyMap()));
+        assertTrue(TypeUtils.isAssignable(null,
+                new ParameterizedTypeImpl(List.class, Object.class, Collections.singletonList(String.class)),
+                Collections.emptyMap()));
+        assertFalse(TypeUtils.isAssignable(String.class, (ParameterizedType) null, Collections.emptyMap()));
+
+        assertFalse(TypeUtils.isAssignable(String.class, new GenericArrayType() {
+            @Override
+            public String getTypeName() {
+                return String.class.getName();
+            }
+
+            @Override
+            public Type getGenericComponentType() {
+                return String.class;
+            }
+        }, Collections.emptyMap()));
+
+        assertTrue(TypeUtils.isAssignable(null, new GenericArrayType() {
+            @Override
+            public String getTypeName() {
+                return String.class.getName();
+            }
+
+            @Override
+            public Type getGenericComponentType() {
+                return String.class;
+            }
+        }, Collections.emptyMap()));
+
+        assertFalse(TypeUtils.isAssignable(String.class, (GenericArrayType) null, Collections.emptyMap()));
+
+        assertFalse(TypeUtils.isAssignable(String.class, new GenericArrayType() {
+            @Override
+            public String getTypeName() {
+                return List.class.getName();
+            }
+
+            @Override
+            public Type getGenericComponentType() {
+                return new WildcardTypeImpl(new Type[0], new Type[0]);
+            }
+        }, Collections.emptyMap()));
+
+        assertFalse(TypeUtils.isAssignable(String.class, new GenericArrayType() {
+            @Override
+            public String getTypeName() {
+                return List.class.getName();
+            }
+
+            @Override
+            public Type getGenericComponentType() {
+                return TypeUtilsTest.class.getTypeParameters()[0];
+            }
+        }, Collections.emptyMap()));
+
+        assertFalse(TypeUtils.isAssignable(TypeUtilsTest.class.getTypeParameters()[0], new GenericArrayType() {
+            @Override
+            public String getTypeName() {
+                return String.class.getName();
+            }
+
+            @Override
+            public Type getGenericComponentType() {
+                return String.class;
+            }
+        }, Collections.emptyMap()));
+
+        assertFalse(TypeUtils.isAssignable(new WildcardTypeImpl(new Type[0], new Type[0]), new GenericArrayType() {
+            @Override
+            public String getTypeName() {
+                return String.class.getName();
+            }
+
+            @Override
+            public Type getGenericComponentType() {
+                return String.class;
+            }
+        }, Collections.emptyMap()));
+
+        assertFalse(TypeUtils.isAssignable(
+                new ParameterizedTypeImpl(List.class, Object.class, Collections.singletonList(String.class)),
+                new GenericArrayType() {
+                    @Override
+                    public String getTypeName() {
+                        return String.class.getName();
+                    }
+
+                    @Override
+                    public Type getGenericComponentType() {
+                        return String.class;
+                    }
+                }, Collections.emptyMap()));
+
+        assertThrows(IllegalStateException.class, () -> TypeUtils.isAssignable(new Type() {
+            @Override
+            public String getTypeName() {
+                return "illegal";
+            }
+        }, new GenericArrayType() {
+            @Override
+            public String getTypeName() {
+                return String.class.getName();
+            }
+
+            @Override
+            public Type getGenericComponentType() {
+                return String.class;
+            }
+        }, Collections.emptyMap()));
     }
 
     @SuppressWarnings("UnusedAssignment")
@@ -448,6 +589,18 @@ public class TypeUtilsTest<B> {
 
     public static <T extends Comparable<? extends T>> T stub3() {
         return null;
+    }
+
+    @Test
+    public void testEquals() {
+        assertFalse(TypeUtils.equals(String.class,
+                new ParameterizedTypeImpl(List.class, List.class, Collections.singletonList(String.class))));
+        assertFalse(TypeUtils.equals(new ParameterizedTypeImpl(List.class, List.class, Collections.singletonList(String.class)),
+                List.class));
+        assertFalse(TypeUtils.equals(String.class, TypeUtilsTest.class.getTypeParameters()[0]));
+
+        assertFalse(TypeUtils.equals(new WildcardTypeImpl(new Type[0], new Type[0]), String.class));
+        assertFalse(TypeUtils.equals((GenericArrayType) () -> String.class, String.class));
     }
 }
 

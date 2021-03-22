@@ -143,7 +143,7 @@ public class TypeUtils {
      * @param typeVarAssigns a map with type variables
      * @return {@code true} if {@code type} is assignable to {@code toType}.
      */
-    private static boolean isAssignable(final Type type, final ParameterizedType toParameterizedType,
+    static boolean isAssignable(final Type type, final ParameterizedType toParameterizedType,
             final Map<TypeVariable<?>, Type> typeVarAssigns) {
         if (type == null) {
             return true;
@@ -233,7 +233,7 @@ public class TypeUtils {
      * @return {@code true} if {@code type} is assignable to
      *         {@code toGenericArrayType}.
      */
-    private static boolean isAssignable(final Type type, final GenericArrayType toGenericArrayType,
+    static boolean isAssignable(final Type type, final GenericArrayType toGenericArrayType,
             final Map<TypeVariable<?>, Type> typeVarAssigns) {
         if (type == null) {
             return true;
@@ -848,111 +848,6 @@ public class TypeUtils {
     }
 
     /**
-     * Get a type representing {@code type} with variable assignments "unrolled."
-     *
-     * @param typeArguments as from {@link TypeUtils#getTypeArguments(Type, Class)}
-     * @param type the type to unroll variable assignments for
-     * @return Type
-     */
-    private static Type unrollVariables(Map<TypeVariable<?>, Type> typeArguments, final Type type) {
-        if (typeArguments == null) {
-            typeArguments = Collections.emptyMap();
-        }
-        if (containsTypeVariables(type)) {
-            if (type instanceof TypeVariable<?>) {
-                return unrollVariables(typeArguments, typeArguments.get(type));
-            }
-            if (type instanceof ParameterizedType) {
-                final ParameterizedType p = (ParameterizedType) type;
-                final Map<TypeVariable<?>, Type> parameterizedTypeArguments;
-                if (p.getOwnerType() == null) {
-                    parameterizedTypeArguments = typeArguments;
-                } else {
-                    parameterizedTypeArguments = new HashMap<>(typeArguments);
-                    parameterizedTypeArguments.putAll(getTypeArguments(p));
-                }
-                final Type[] args = p.getActualTypeArguments();
-                for (int i = 0; i < args.length; i++) {
-                    final Type unrolled = unrollVariables(parameterizedTypeArguments, args[i]);
-                    if (unrolled != null) {
-                        args[i] = unrolled;
-                    }
-                }
-                return parameterizeWithOwner(p.getOwnerType(), (Class<?>) p.getRawType(), args);
-            }
-            if (type instanceof WildcardType) {
-                final WildcardType wild = (WildcardType) type;
-                return new WildcardTypeImpl(unrollBounds(typeArguments, wild.getUpperBounds()),
-                        unrollBounds(typeArguments, wild.getLowerBounds()));
-            }
-        }
-        return type;
-    }
-
-    private static Type[] unrollBounds(final Map<TypeVariable<?>, Type> typeArguments, final Type[] bounds) {
-        Type[] result = bounds;
-        int i = 0;
-        for (; i < result.length; i++) {
-            final Type unrolled = unrollVariables(typeArguments, result[i]);
-            if (unrolled == null) {
-                result = remove(result, i--);
-            } else {
-                result[i] = unrolled;
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Learn, recursively, whether any of the type parameters associated with {@code type} are bound to variables.
-     *
-     * @param type the type to check for type variables
-     * @return boolean
-     */
-    private static boolean containsTypeVariables(final Type type) {
-        if (type instanceof TypeVariable<?>) {
-            return true;
-        }
-        if (type instanceof Class<?>) {
-            return ((Class<?>) type).getTypeParameters().length > 0;
-        }
-        if (type instanceof ParameterizedType) {
-            for (final Type arg : ((ParameterizedType) type).getActualTypeArguments()) {
-                if (containsTypeVariables(arg)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        if (type instanceof WildcardType) {
-            final WildcardType wild = (WildcardType) type;
-            return containsTypeVariables(getImplicitLowerBounds(wild)[0])
-                    || containsTypeVariables(getImplicitUpperBounds(wild)[0]);
-        }
-        return false;
-    }
-
-    private static ParameterizedType parameterizeWithOwner(final Type owner, final Class<?> raw,
-            final Type... typeArguments) {
-        Validation.notNull(raw, msg.isNull("raw class"));
-        final Type useOwner;
-        if (raw.getEnclosingClass() == null) {
-            Validation.isTrue(owner == null, msg.noOwnerAllowed(raw));
-            useOwner = null;
-        } else if (owner == null) {
-            useOwner = raw.getEnclosingClass();
-        } else {
-            Validation.isTrue(isAssignable(owner, raw.getEnclosingClass()), msg.invalidOwnerForParameterized(owner, raw));
-            useOwner = owner;
-        }
-        Validation.noNullElements(typeArguments, "typeArguments");
-        Validation.isTrue(raw.getTypeParameters().length == typeArguments.length,
-                msg.invalidNumberOfTypeParameters(raw.getTypeParameters().length, typeArguments.length));
-
-        return new ParameterizedTypeImpl(raw, useOwner, Arrays.asList(typeArguments));
-    }
-
-    /**
      * Check equality of types.
      *
      * @param t1 the first type
@@ -1198,13 +1093,6 @@ public class TypeUtils {
 
     private static <T> String toString(T object) {
         return object instanceof Type ? toString((Type) object) : object.toString();
-    }
-
-    private static Type[] remove(final Type[] array, final int index) {
-        Validation.notNull(array, "array");
-        List<Type> list = new ArrayList<>(Arrays.asList(array));
-        list.remove(index);
-        return list.toArray(new Type[0]);
     }
 
 }
