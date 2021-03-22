@@ -2,6 +2,10 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import java.util.concurrent.TimeUnit;
 
+import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyCertOptions;
+import io.vertx.core.net.PfxOptions;
+import io.vertx.core.net.TrustOptions;
 import io.vertx.mqtt.MqttClientOptions;
 
 public class MqttHelpers {
@@ -24,6 +28,8 @@ public class MqttHelpers {
         options.setReconnectAttempts(config.getReconnectAttempts());
         options.setReconnectInterval(TimeUnit.SECONDS.toMillis(config.getReconnectIntervalSeconds()));
         options.setSsl(config.getSsl());
+        options.setKeyCertOptions(getKeyCertOptions(config));
+        options.setTrustOptions(getTrustOptions(config));
         options.setTrustAll(config.getTrustAll());
         options.setUsername(config.getUsername().orElse(null));
         options.setWillQoS(config.getWillQos());
@@ -31,4 +37,62 @@ public class MqttHelpers {
         options.setWillRetain(config.getWillRetain());
         return options;
     }
+
+    /**
+     * TODO: PEM Implementation
+     * Create KeyCertOptions value from the configuration.
+     * Attribute Name: ssl.keystore
+     * Description: Set whether keystore type, location and password
+     * Default Value: PfxOptions
+     * 
+     * @return the KeyCertOptions
+     */
+    private static KeyCertOptions getKeyCertOptions(MqttConnectorCommonConfiguration config) {
+
+        if (config.getSsl() && config.getSslKeystoreLocation().isPresent()) {
+            String keyStoreLocation = config.getSslKeystoreLocation().get();
+            String keyStorePassword = config.getSslKeystorePassword().get();
+            // enum? No enum available in Vertx MQTT client
+            if ("jks".equalsIgnoreCase(config.getSslKeystoreType())) {
+                return new JksOptions()
+                        .setPath(keyStoreLocation)
+                        .setPassword(keyStorePassword);
+            }
+            // Default
+            return new PfxOptions()
+                    .setPath(keyStoreLocation)
+                    .setPassword(keyStorePassword);
+        }
+        return null;
+    }
+
+    /**
+     * TODO: PEM Implementation
+     * Gets the truststore value from the configuration.
+     * Attribute Name: ssl.truststore
+     * Description: Set whether keystore type, location and password
+     * Default Value: PfxOptions
+     * 
+     * @return the TrustOptions
+     */
+
+    private static TrustOptions getTrustOptions(MqttConnectorCommonConfiguration config) {
+
+        if (config.getSsl() && config.getSslTruststoreLocation().isPresent()) {
+            String keyStoreLocation = config.getSslTruststoreLocation().get();
+            String keyStorePassword = config.getSslTruststorePassword().get();
+            // enum? No enum available in Vertx MQTT client
+            if ("jks".equalsIgnoreCase(config.getSslTruststoreType())) {
+                return new JksOptions()
+                        .setPath(keyStoreLocation)
+                        .setPassword(keyStorePassword);
+            }
+            // Default
+            return new PfxOptions()
+                    .setPath(keyStoreLocation)
+                    .setPassword(keyStorePassword);
+        }
+        return null;
+    }
+
 }

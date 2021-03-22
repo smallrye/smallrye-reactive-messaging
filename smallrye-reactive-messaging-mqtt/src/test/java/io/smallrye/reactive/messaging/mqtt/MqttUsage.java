@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import static org.awaitility.Awaitility.await;
 
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +39,20 @@ public class MqttUsage {
             MqttConnectOptions options = new MqttConnectOptions();
             options.setUserName(user);
             options.setPassword(pwd.toCharArray());
+            client.connect(options);
+            await().until(client::isConnected);
+        } catch (MqttException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public MqttUsage(String host, int port, String user, String pwd, Properties tls) {
+        try {
+            client = new MqttClient("ssl://" + host + ":" + port, UUID.randomUUID().toString());
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setUserName(user);
+            options.setPassword(pwd.toCharArray());
+            options.setSSLProperties(tls);
             client.connect(options);
             await().until(client::isConnected);
         } catch (MqttException e) {
