@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class TlsMqttSourceTest extends TlsMqttTestBase {
+public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
 
     private WeldContainer container;
 
@@ -31,7 +31,7 @@ public class TlsMqttSourceTest extends TlsMqttTestBase {
     }
 
     @Test
-    public void testTLS() {
+    public void testMutualTLS() {
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = new HashMap<>();
         config.put("topic", topic);
@@ -41,6 +41,9 @@ public class TlsMqttSourceTest extends TlsMqttTestBase {
         config.put("password", "foo");
         config.put("channel-name", topic);
         config.put("ssl", true);
+        config.put("ssl.keystore.type", "jks");
+        config.put("ssl.keystore.location", "mosquitto-tls/client/client.ks");
+        config.put("ssl.keystore.password", "password");
         config.put("ssl.truststore.type", "jks");
         config.put("ssl.truststore.location", "mosquitto-tls/client/client.ts");
         config.put("ssl.truststore.password", "password");
