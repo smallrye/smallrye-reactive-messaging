@@ -58,7 +58,7 @@ public class MediatorConfigurationSupport {
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
-    private boolean isConsumingAPublisherOrAPublisherBuilder(Class[] parameterTypes) {
+    private boolean isConsumingAPublisherOrAPublisherBuilder(Class<?>[] parameterTypes) {
         if (parameterTypes.length >= 1) {
             Class<?> type = parameterTypes[0];
             return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils
