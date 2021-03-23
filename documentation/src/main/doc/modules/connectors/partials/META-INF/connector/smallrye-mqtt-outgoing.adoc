@@ -71,23 +71,23 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `false`
 
-| *ssl.keystore.location* | Set the keystore location
+| *ssl.keystore.location* | Set the keystore location. In case of `pem` type this is the cert path
 
 Type: _string_ | false | 
 
-| *ssl.keystore.password* | Set the keystore password
+| *ssl.keystore.password* | Set the keystore password. In case of `pem` type this is the key path
 
 Type: _string_ | false | 
 
-| *ssl.keystore.type* | Set the keystore type
+| *ssl.keystore.type* | Set the keystore type [`pkcs12`, `jks`, `pem`]
 
 Type: _string_ | false | `pkcs12`
 
-| *ssl.truststore.location* | Set the truststore location
+| *ssl.truststore.location* | Set the truststore location. In case of `pem` type this is the cert path
 
 Type: _string_ | false | 
 
-| *ssl.truststore.password* | Set the truststore password
+| *ssl.truststore.password* | Set the truststore password. In case of `pem` type this is not necessary
 
 Type: _string_ | false | 
 
