@@ -71,8 +71,9 @@ public class MqttHelpers {
                         .setPath(keyStoreLocation)
                         .setPassword(keyStorePassword);
             } else {
-                new IllegalArgumentException("The attribute `ssl.keystore.password` on connector 'smallrye-mqtt' (channel: "
-                        + config.getChannel() + ") must be set for `ssl.keystore.type`" + sslKeystoreType);
+                throw new IllegalArgumentException(
+                        "The attribute `ssl.keystore.password` on connector 'smallrye-mqtt' (channel: "
+                                + config.getChannel() + ") must be set for `ssl.keystore.type`" + sslKeystoreType);
             }
         }
         return null;
@@ -108,8 +109,9 @@ public class MqttHelpers {
                         .setPath(truststoreLocation)
                         .setPassword(truststorePassword);
             } else {
-                new IllegalArgumentException("The attribute `ssl.keystore.password` on connector 'smallrye-mqtt' (channel: "
-                        + config.getChannel() + ") must be set for `ssl.keystore.type`" + truststoreType);
+                throw new IllegalArgumentException(
+                        "The attribute `ssl.keystore.password` on connector 'smallrye-mqtt' (channel: "
+                                + config.getChannel() + ") must be set for `ssl.keystore.type`" + truststoreType);
             }
         }
         return null;
