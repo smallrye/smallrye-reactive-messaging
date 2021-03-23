@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertThrows;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -73,6 +74,28 @@ public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    @Test
+    public void testMutualTLSMissingPassword() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            String topic = UUID.randomUUID().toString();
+            Map<String, Object> config = new HashMap<>();
+            config.put("topic", topic);
+            config.put("host", address);
+            config.put("port", port);
+            config.put("username", "user");
+            config.put("password", "foo");
+            config.put("channel-name", topic);
+            config.put("ssl", true);
+            config.put("ssl.keystore.type", "jks");
+            config.put("ssl.keystore.location", "mosquitto-tls/client/client.ks");
+            config.put("ssl.truststore.type", "jks");
+            config.put("ssl.truststore.location", "mosquitto-tls/client/client.ts");
+
+            new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)));
+        });
+
     }
 
 }
