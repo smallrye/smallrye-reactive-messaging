@@ -14,7 +14,7 @@ public class ProducerBean {
     @Outgoing("queue-one")
     public Multi<Integer> producer() {
         return Multi.createFrom().ticks().every(Duration.ofMillis(10))
-                .onOverflow().buffer(10)
+                .onOverflow().buffer()
                 .map(Long::intValue)
                 .select().first(10);
     }
