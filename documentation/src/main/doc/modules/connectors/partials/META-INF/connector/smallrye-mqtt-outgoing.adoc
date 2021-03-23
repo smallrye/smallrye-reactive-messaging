@@ -71,6 +71,30 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `false`
 
+| *ssl.keystore.location* | Set the keystore location. In case of `pem` type this is the cert path
+
+Type: _string_ | false | 
+
+| *ssl.keystore.password* | Set the keystore password. In case of `pem` type this is the key path
+
+Type: _string_ | false | 
+
+| *ssl.keystore.type* | Set the keystore type [`pkcs12`, `jks`, `pem`]
+
+Type: _string_ | false | `pkcs12`
+
+| *ssl.truststore.location* | Set the truststore location. In case of `pem` type this is the cert path
+
+Type: _string_ | false | 
+
+| *ssl.truststore.password* | Set the truststore password. In case of `pem` type this is not necessary
+
+Type: _string_ | false | 
+
+| *ssl.truststore.type* | Set the truststore type
+
+Type: _string_ | false | `pkcs12`
+
 | *topic* | Set the MQTT topic. If not set, the channel name is used
 
 Type: _string_ | false | 
