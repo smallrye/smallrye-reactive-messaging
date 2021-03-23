@@ -27,6 +27,7 @@ import org.reactivestreams.Subscription;
 import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
+@SuppressWarnings("ReactiveStreamsSubscriberImplementation")
 public class JmsSourceTest extends JmsTestBase {
 
     private JMSContext jms;
@@ -165,7 +166,6 @@ public class JmsSourceTest extends JmsTestBase {
 
         List<IncomingJmsMessage<?>> list = new CopyOnWriteArrayList<>();
         AtomicReference<Subscription> upstream = new AtomicReference<>();
-        //noinspection SubscriberImplementation
         publisher.subscribe(new Subscriber<IncomingJmsMessage<?>>() {
             @Override
             public void onSubscribe(Subscription s) {
@@ -203,7 +203,7 @@ public class JmsSourceTest extends JmsTestBase {
     public void testBroadcast() {
         JmsSource source = new JmsSource(jms,
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig()
-                        .put("channel-name", "queue").put("broadcast", true)),
+                        .with("channel-name", "queue").with("broadcast", true)),
                 null, null);
         PublisherBuilder<IncomingJmsMessage<?>> publisher = source.getSource();
 
