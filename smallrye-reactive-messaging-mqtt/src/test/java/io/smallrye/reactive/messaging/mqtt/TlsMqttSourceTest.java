@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.mqtt;
 
-import static io.smallrye.reactive.messaging.mqtt.MqttSourceTest.getConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -11,7 +10,6 @@ import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -72,13 +70,6 @@ public class TlsMqttSourceTest extends TlsMqttTestBase {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    private ConsumptionBean deploy() {
-        Weld weld = MqttTestBase.baseWeld(getConfig());
-        weld.addBeanClass(ConsumptionBean.class);
-        container = weld.initialize();
-        return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
     }
 
 }
