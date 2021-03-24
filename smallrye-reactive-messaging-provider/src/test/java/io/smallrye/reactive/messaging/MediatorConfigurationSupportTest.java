@@ -3,10 +3,13 @@ package io.smallrye.reactive.messaging;
 import static org.assertj.core.api.Assertions.*;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.inject.spi.DefinitionException;
 
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -18,6 +21,7 @@ import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.annotations.Merge;
 
 @SuppressWarnings("ConstantConditions")
 public class MediatorConfigurationSupportTest {
@@ -393,6 +397,133 @@ public class MediatorConfigurationSupportTest {
         assertThat(output.getProduction()).isEqualTo(MediatorConfiguration.Production.STREAM_OF_PAYLOAD);
         assertThat(output.getIngestedPayloadType()).isEqualTo(null);
         assertThat(output.getUseBuilderTypes()).isFalse();
+    }
+
+    @Test
+    void testDetermineShape() {
+        assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[] { String.class }, null, null)
+                .determineShape(Collections.singletonList("incoming"), "outgoing")).isEqualTo(Shape.PROCESSOR);
+
+        assertThat(
+                new MediatorConfigurationSupport("mymethod", Multi.class, new Class[] { Publisher.class }, null, null)
+                        .determineShape(Collections.singletonList("incoming"), "outgoing")).isEqualTo(Shape.STREAM_TRANSFORMER);
+
+        assertThat(
+                new MediatorConfigurationSupport("mymethod", PublisherBuilder.class, new Class[] { PublisherBuilder.class },
+                        null, null)
+                                .determineShape(Collections.singletonList("incoming"), "outgoing"))
+                                        .isEqualTo(Shape.STREAM_TRANSFORMER);
+
+        assertThat(
+                new MediatorConfigurationSupport("mymethod", PublisherBuilder.class, new Class[] { String.class }, null,
+                        null)
+                                .determineShape(Collections.singletonList("incoming"), "outgoing")).isEqualTo(Shape.PROCESSOR);
+
+        assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[0], null, null)
+                .determineShape(Collections.emptyList(), "outgoing")).isEqualTo(Shape.PUBLISHER);
+
+        assertThat(new MediatorConfigurationSupport("mymethod", Void.class, new Class[] { String.class }, null, null)
+                .determineShape(Collections.singletonList("incoming"), null)).isEqualTo(Shape.SUBSCRIBER);
+    }
+
+    @Test
+    void testProcessSuppliedAcknowledgement() {
+        MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
+                new Class[] { String.class }, null, null);
+
+        assertThat(support
+                .processSuppliedAcknowledgement(Collections.singletonList("hello"), () -> Acknowledgment.Strategy.MANUAL))
+                        .isEqualTo(Acknowledgment.Strategy.MANUAL);
+
+        assertThat(support.processSuppliedAcknowledgement(Collections.singletonList("hello"), () -> null))
+                .isNull();
+
+        assertThat(support.processSuppliedAcknowledgement(Collections.emptyList(), () -> null))
+                .isNull();
+
+        assertThatThrownBy(
+                () -> support.processSuppliedAcknowledgement(Collections.emptyList(), () -> Acknowledgment.Strategy.MANUAL))
+                        .isInstanceOf(DefinitionException.class);
+    }
+
+    @Test
+    void testProcessDefaultAcknowledgement() {
+        MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
+                new Class[] { String.class }, null, null);
+
+        assertThat(support.processDefaultAcknowledgement(Shape.SUBSCRIBER, MediatorConfiguration.Consumption.PAYLOAD,
+                MediatorConfiguration.Production.NONE))
+                        .isEqualTo(Acknowledgment.Strategy.POST_PROCESSING);
+        assertThat(support.processDefaultAcknowledgement(Shape.SUBSCRIBER, MediatorConfiguration.Consumption.MESSAGE,
+                MediatorConfiguration.Production.NONE))
+                        .isEqualTo(Acknowledgment.Strategy.MANUAL);
+
+        assertThat(support.processDefaultAcknowledgement(Shape.PROCESSOR, MediatorConfiguration.Consumption.PAYLOAD,
+                MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD))
+                        .isEqualTo(Acknowledgment.Strategy.POST_PROCESSING);
+        assertThat(support.processDefaultAcknowledgement(Shape.PROCESSOR, MediatorConfiguration.Consumption.MESSAGE,
+                MediatorConfiguration.Production.INDIVIDUAL_MESSAGE))
+                        .isEqualTo(Acknowledgment.Strategy.MANUAL);
+        assertThat(support.processDefaultAcknowledgement(Shape.PROCESSOR, MediatorConfiguration.Consumption.PAYLOAD,
+                MediatorConfiguration.Production.STREAM_OF_MESSAGE))
+                        .isEqualTo(Acknowledgment.Strategy.PRE_PROCESSING);
+        assertThat(support.processDefaultAcknowledgement(Shape.PROCESSOR, MediatorConfiguration.Consumption.PAYLOAD,
+                MediatorConfiguration.Production.STREAM_OF_PAYLOAD))
+                        .isEqualTo(Acknowledgment.Strategy.PRE_PROCESSING);
+
+        assertThat(support.processDefaultAcknowledgement(Shape.STREAM_TRANSFORMER,
+                MediatorConfiguration.Consumption.STREAM_OF_MESSAGE, MediatorConfiguration.Production.STREAM_OF_MESSAGE))
+                        .isEqualTo(Acknowledgment.Strategy.MANUAL);
+        assertThat(support.processDefaultAcknowledgement(Shape.STREAM_TRANSFORMER,
+                MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD, MediatorConfiguration.Production.STREAM_OF_PAYLOAD))
+                        .isEqualTo(Acknowledgment.Strategy.PRE_PROCESSING);
+        assertThat(support.processDefaultAcknowledgement(Shape.STREAM_TRANSFORMER,
+                MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD, MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD))
+                        .isEqualTo(Acknowledgment.Strategy.PRE_PROCESSING);
+    }
+
+    @Test
+    void testProcessMerge() {
+        MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
+                new Class[] { String.class }, null, null);
+
+        assertThat(support.processMerge(Arrays.asList("a", "b"), () -> Merge.Mode.MERGE)).isEqualTo(Merge.Mode.MERGE);
+
+        assertThatThrownBy(() -> support.processMerge(Collections.emptyList(), () -> Merge.Mode.MERGE))
+                .isInstanceOf(DefinitionException.class);
+        assertThatThrownBy(() -> support.processMerge(null, () -> Merge.Mode.MERGE))
+                .isInstanceOf(DefinitionException.class);
+        assertThat(support.processMerge(Collections.emptyList(), () -> null)).isEqualTo(null);
+    }
+
+    @Test
+    void testProcessBroadcast() {
+        MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
+                new Class[] { String.class }, null, null);
+        assertThat(support.processBroadcast("hello", () -> 1)).isEqualTo(1);
+        assertThatThrownBy(() -> support.processBroadcast(null, () -> 1)).isInstanceOf(DefinitionException.class);
+
+        assertThat(support.processBroadcast(null, () -> null)).isNull();
+    }
+
+    @Test
+    void testValidateBlocking() {
+        MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
+                new Class[] { String.class }, null, null);
+
+        support.validateBlocking(
+                new MediatorConfigurationSupport.ValidationOutput(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD,
+                        MediatorConfiguration.Consumption.PAYLOAD, String.class));
+
+        assertThatThrownBy(() -> support.validateBlocking(
+                new MediatorConfigurationSupport.ValidationOutput(MediatorConfiguration.Production.STREAM_OF_PAYLOAD,
+                        MediatorConfiguration.Consumption.PAYLOAD, String.class))).isInstanceOf(DefinitionException.class);
+
+        assertThatThrownBy(() -> support.validateBlocking(
+                new MediatorConfigurationSupport.ValidationOutput(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD,
+                        MediatorConfiguration.Consumption.STREAM_OF_MESSAGE, String.class)))
+                                .isInstanceOf(DefinitionException.class);
+
     }
 
     static class ClassContainingAllSortsOfMethods {
