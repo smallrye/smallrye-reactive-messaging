@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.net.JksOptions;
@@ -46,17 +47,18 @@ public class MqttHelpers {
      * Description: Set whether keystore type, location and password. In case of pem type the location and password are the cert
      * and key path.
      * Default Value: PfxOptions
-     * 
+     *
      * @return the KeyCertOptions
      */
     private static KeyCertOptions getKeyCertOptions(MqttConnectorCommonConfiguration config) {
-
-        if (config.getSsl() && config.getSslKeystoreLocation().isPresent()) {
-            String keyStoreLocation = config.getSslKeystoreLocation().get();
+        Optional<String> sslKeystoreLocation = config.getSslKeystoreLocation();
+        Optional<String> sslKeystorePassword = config.getSslKeystorePassword();
+        if (config.getSsl() && sslKeystoreLocation.isPresent()) {
+            String keyStoreLocation = sslKeystoreLocation.get();
             String sslKeystoreType = config.getSslKeystoreType();
 
-            if (config.getSslKeystorePassword().isPresent()) {
-                String keyStorePassword = config.getSslKeystorePassword().get();
+            if (sslKeystorePassword.isPresent()) {
+                String keyStorePassword = sslKeystorePassword.get();
                 if ("jks".equalsIgnoreCase(sslKeystoreType)) {
                     return new JksOptions()
                             .setPath(keyStoreLocation)
@@ -84,34 +86,37 @@ public class MqttHelpers {
      * Attribute Name: ssl.truststore
      * Description: Set whether keystore type, location and password. In case of pem type the location is the cert path.
      * Default Value: PfxOptions
-     * 
+     *
      * @return the TrustOptions
      */
 
     private static TrustOptions getTrustOptions(MqttConnectorCommonConfiguration config) {
-
-        if (config.getSsl() && config.getSslTruststoreLocation().isPresent()) {
-            String truststoreLocation = config.getSslTruststoreLocation().get();
+        Optional<String> sslTruststoreLocation = config.getSslTruststoreLocation();
+        Optional<String> sslTruststorePassword = config.getSslTruststorePassword();
+        if (config.getSsl() && sslTruststoreLocation.isPresent()) {
+            String truststoreLocation = sslTruststoreLocation.get();
             String truststoreType = config.getSslTruststoreType();
 
             if ("pem".equalsIgnoreCase(truststoreType)) {
                 return new PemTrustOptions()
                         .addCertPath(truststoreLocation);
-            } else if (config.getSslTruststorePassword().isPresent()) {
-                String truststorePassword = config.getSslTruststorePassword().get();
-                if ("jks".equalsIgnoreCase(truststoreType)) {
-                    return new JksOptions()
+            } else {
+                if (sslTruststorePassword.isPresent()) {
+                    String truststorePassword = sslTruststorePassword.get();
+                    if ("jks".equalsIgnoreCase(truststoreType)) {
+                        return new JksOptions()
+                                .setPath(truststoreLocation)
+                                .setPassword(truststorePassword);
+                    }
+                    // Default
+                    return new PfxOptions()
                             .setPath(truststoreLocation)
                             .setPassword(truststorePassword);
+                } else {
+                    throw new IllegalArgumentException(
+                            "The attribute `ssl.keystore.password` on connector 'smallrye-mqtt' (channel: "
+                                    + config.getChannel() + ") must be set for `ssl.keystore.type`" + truststoreType);
                 }
-                // Default
-                return new PfxOptions()
-                        .setPath(truststoreLocation)
-                        .setPassword(truststorePassword);
-            } else {
-                throw new IllegalArgumentException(
-                        "The attribute `ssl.keystore.password` on connector 'smallrye-mqtt' (channel: "
-                                + config.getChannel() + ") must be set for `ssl.keystore.type`" + truststoreType);
             }
         }
         return null;
