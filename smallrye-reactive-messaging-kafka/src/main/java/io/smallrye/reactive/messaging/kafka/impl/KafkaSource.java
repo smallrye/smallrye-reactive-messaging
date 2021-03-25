@@ -53,6 +53,7 @@ public class KafkaSource<K, V> {
     private final boolean isHealthEnabled;
     private final boolean isCloudEventEnabled;
     private final String channel;
+    private volatile boolean subscribed;
     private final KafkaSourceReadinessHealth health;
 
     public KafkaSource(Vertx vertx,
@@ -150,7 +151,7 @@ public class KafkaSource<K, V> {
         failureHandler = createFailureHandler(config, vertx, kafkaConfiguration, kafkaCDIEvents);
         this.consumer = kafkaConsumer;
         if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
-            health = new KafkaSourceReadinessHealth(vertx, configuration, kafkaConfiguration,
+            health = new KafkaSourceReadinessHealth(this, vertx, configuration, kafkaConfiguration,
                     consumer.getDelegate().unwrap(), topics, pattern);
         } else {
             health = null;
@@ -189,6 +190,7 @@ public class KafkaSource<K, V> {
         }
 
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
+                .onCancellation().invoke(() -> subscribed = false)
                 .onSubscribe().call(s -> {
                     this.consumer.exceptionHandler(t -> reportFailure(t, false));
                     if (this.pattern != null) {
@@ -196,6 +198,7 @@ public class KafkaSource<K, V> {
                             if (ar.failed()) {
                                 e.fail(ar.cause());
                             } else {
+                                subscribed = true;
                                 e.complete(null);
                             }
                         };
@@ -206,7 +209,8 @@ public class KafkaSource<K, V> {
                             delegate.subscribe(pattern, ar -> completionHandler.accept(e, ar));
                         });
                     } else {
-                        return this.consumer.subscribe(topics);
+                        return this.consumer.subscribe(topics)
+                                .onItem().invoke(() -> subscribed = true);
                     }
                 })
                 .map(rec -> commitHandler
@@ -449,5 +453,9 @@ public class KafkaSource<K, V> {
      */
     public KafkaConsumer<K, V> getConsumer() {
         return this.consumer;
+    }
+
+    public boolean hasSubscribers() {
+        return subscribed;
     }
 }

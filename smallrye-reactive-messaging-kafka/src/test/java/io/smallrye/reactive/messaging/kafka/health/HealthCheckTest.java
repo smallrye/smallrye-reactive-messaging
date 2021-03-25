@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.health;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,12 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.messaging.*;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
@@ -87,6 +88,41 @@ public class HealthCheckTest extends KafkaTestBase {
         return builder.build();
     }
 
+    private KafkaMapBasedConfig getKafkaSourceConfig(String topic) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.input")
+                .put("value.deserializer", IntegerDeserializer.class.getName())
+                .put("topic", topic)
+                .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        return builder.build();
+    }
+
+    @Test
+    public void testHealthOfApplicationWithChannel() {
+        KafkaMapBasedConfig config = getKafkaSourceConfig(topic);
+        LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
+
+        AtomicInteger expected = new AtomicInteger(0);
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, "key", expected.getAndIncrement()));
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        Multi<Integer> channel = bean.getChannel();
+        channel
+                .select().first(10)
+                .collect().asList()
+                .await().atMost(Duration.ofSeconds(10));
+
+        HealthReport liveness = getHealth().getLiveness();
+        HealthReport readiness = getHealth().getReadiness();
+
+        assertThat(liveness.isOk()).isTrue();
+        assertThat(readiness.isOk()).isTrue();
+        assertThat(liveness.getChannels()).hasSize(1);
+        assertThat(readiness.getChannels()).hasSize(1);
+    }
+
     @ApplicationScoped
     public static class ProducingBean {
 
@@ -107,6 +143,18 @@ public class HealthCheckTest extends KafkaTestBase {
             return Multi.createFrom().range(0, 10);
         }
 
+    }
+
+    @ApplicationScoped
+    public static class LazyConsumingBean {
+
+        @Inject
+        @Channel("input")
+        Multi<Integer> channel;
+
+        public Multi<Integer> getChannel() {
+            return channel;
+        }
     }
 
 }

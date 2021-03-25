@@ -14,6 +14,7 @@ import org.apache.kafka.common.MetricName;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
@@ -25,20 +26,22 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
     private final String channel;
     private final Set<String> topics;
     private final Metric metric;
+    private final KafkaSource<?, ?> source;
 
-    public KafkaSourceReadinessHealth(Vertx vertx, KafkaConnectorIncomingConfiguration config,
+    public KafkaSourceReadinessHealth(KafkaSource<?, ?> source, Vertx vertx, KafkaConnectorIncomingConfiguration config,
             Map<String, String> kafkaConfiguration, Consumer<?, ?> consumer, Set<String> topics, Pattern pattern) {
         super(config.getChannel());
         this.config = config;
         this.channel = config.getChannel();
         this.topics = topics;
         this.pattern = pattern;
-
+        this.source = source;
         if (config.getHealthReadinessTopicVerification()) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
             this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel(), true);
             this.metric = null;
+
         } else {
             this.admin = null;
             Map<MetricName, ? extends Metric> metrics = consumer.metrics();
@@ -48,7 +51,15 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
 
     protected void metricsBasedHealthCheck(HealthReport.HealthReportBuilder builder) {
         if (metric != null) {
-            builder.add(channel, (double) metric.metricValue() >= 1.0);
+            boolean connected = (double) metric.metricValue() >= 1.0;
+            boolean hasSubscribers = source.hasSubscribers();
+            if (connected) {
+                builder.add(channel, true);
+            } else if (!hasSubscribers) {
+                builder.add(channel, true, "no subscription yet, so no connection to the Kafka broker yet");
+            } else {
+                builder.add(channel, false);
+            }
         } else {
             builder.add(channel, true).build();
         }
