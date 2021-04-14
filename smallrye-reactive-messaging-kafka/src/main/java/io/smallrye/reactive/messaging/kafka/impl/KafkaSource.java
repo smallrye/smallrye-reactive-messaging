@@ -92,7 +92,7 @@ public class KafkaSource<K, V> {
         commitHandler = createCommitHandler(vertx, client, consumerGroup, config, commitStrategy);
         failureHandler = createFailureHandler(config, vertx, client.configuration(), kafkaCDIEvents);
         if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
-            health = new KafkaSourceReadinessHealth(vertx, configuration, client.configuration(),
+            health = new KafkaSourceReadinessHealth(this, vertx, configuration, client.configuration(),
                     client.unwrap(), topics, pattern);
         } else {
             health = null;

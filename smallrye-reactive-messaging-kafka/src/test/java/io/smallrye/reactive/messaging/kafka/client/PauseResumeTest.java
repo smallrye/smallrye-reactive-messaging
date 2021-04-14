@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.*;
@@ -40,6 +41,7 @@ public class PauseResumeTest extends WeldTestBase {
     public void initializing() {
         vertx = Vertx.vertx();
         consumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
+        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
     }
 
     @AfterEach
@@ -153,7 +155,7 @@ public class PauseResumeTest extends WeldTestBase {
         await().until(() -> items.size() == 5);
     }
 
-    @RepeatedTest(5)
+    @RepeatedTest(3)
     void testPauseResumeWithBlockingConsumptionAndConcurrency() {
         MapBasedConfig config = commonConfiguration()
                 .with("client.id", UUID.randomUUID().toString());

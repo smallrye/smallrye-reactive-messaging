@@ -22,7 +22,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.inject.Inject;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -249,43 +248,43 @@ public class KafkaSourceTest extends KafkaTestBase {
         }
     }
 
-    @SuppressWarnings({ "rawtypes" })
-    @Test
-    public void testRecoveryAfterMissedHeartbeat() throws InterruptedException {
-        MapBasedConfig config = newCommonConfigForSource()
-                .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
-                .with("value.deserializer", IntegerDeserializer.class.getName())
-                .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000)
-                .with(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 100)
-                .with("retry", true)
-                .with("retry-attempts", 100)
-                .with("retry-max-wait", 30);
-
-        usage.setBootstrapServers(KafkaBrokerExtension.getBootstrapServers());
-
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
-        List<KafkaRecord> messages1 = new ArrayList<>();
-        source.getStream().subscribe().with(messages1::add);
-
-        AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
-
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
-
-        KafkaBrokerExtension.getProxy().setConnectionCut(true);
-        Thread.sleep(6000 + 500); // session timeout + a bit more just in case.
-        KafkaBrokerExtension.getProxy().setConnectionCut(false);
-
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
-
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
-        assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
-    }
+    //    @SuppressWarnings({ "rawtypes" })
+    //    @Test
+    //    public void testRecoveryAfterMissedHeartbeat() throws InterruptedException {
+    //        MapBasedConfig config = newCommonConfigForSource()
+    //                .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
+    //                .with("value.deserializer", IntegerDeserializer.class.getName())
+    //                .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000)
+    //                .with(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 100)
+    //                .with("retry", true)
+    //                .with("retry-attempts", 100)
+    //                .with("retry-max-wait", 30);
+    //
+    //        usage.setBootstrapServers(KafkaBrokerExtension.getBootstrapServers());
+    //
+    //        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+    //        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+    //                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
+    //                UnsatisfiedInstance.instance(), -1);
+    //        List<KafkaRecord> messages1 = new ArrayList<>();
+    //        source.getStream().subscribe().with(messages1::add);
+    //
+    //        AtomicInteger counter = new AtomicInteger();
+    //        new Thread(() -> usage.produceIntegers(10, null,
+    //                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+    //
+    //        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
+    //
+    //        KafkaBrokerExtension.getProxy().setConnectionCut(true);
+    //        Thread.sleep(6000 + 500); // session timeout + a bit more just in case.
+    //        KafkaBrokerExtension.getProxy().setConnectionCut(false);
+    //
+    //        new Thread(() -> usage.produceIntegers(10, null,
+    //                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+    //
+    //        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
+    //        assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
+    //    }
 
     private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener,
             String group) {

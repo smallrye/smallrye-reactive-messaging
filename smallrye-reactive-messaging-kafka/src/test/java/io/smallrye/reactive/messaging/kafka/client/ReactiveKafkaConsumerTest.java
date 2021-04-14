@@ -397,7 +397,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         restartAndCheck(config, groupId, 1);
     }
 
-    @RepeatedTest(3)
+    @Test
     public void testRebalanceWhilePausedAndPendingCommit() throws Exception {
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = createConsumerConfig(groupId)
