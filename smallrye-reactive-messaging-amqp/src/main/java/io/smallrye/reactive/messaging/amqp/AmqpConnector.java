@@ -219,7 +219,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         return ReactiveStreams.<Message<?>> builder()
                 .via(processor)
-                .onError(t -> opened.put(oc.getChannel(), false))
+                .onError(t -> {
+                    log.failureReported(oc.getChannel(), t);
+                    opened.put(oc.getChannel(), false);
+                })
                 .ignore();
     }
 
