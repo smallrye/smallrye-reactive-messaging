@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.health;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +29,7 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
     private final KafkaSource<?, ?> source;
 
     public KafkaSourceReadinessHealth(KafkaSource<?, ?> source, Vertx vertx, KafkaConnectorIncomingConfiguration config,
-            Map<String, String> kafkaConfiguration, Consumer<?, ?> consumer, Set<String> topics, Pattern pattern) {
+            Map<String, ?> kafkaConfiguration, Consumer<?, ?> consumer, Set<String> topics, Pattern pattern) {
         super(config.getChannel());
         this.config = config;
         this.channel = config.getChannel();
@@ -48,17 +46,6 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
             this.admin = null;
             Map<MetricName, ? extends Metric> metrics = consumer.metrics();
             this.metric = getMetric(metrics);
-        }
-    }
-
-    public void close() {
-        if (admin != null) {
-            try {
-                // TODO should be closeAndAwait but because of https://github.com/vert-x3/vertx-kafka-client/issues/192, we discard the result.
-                this.admin.closeAndForget();
-            } catch (Throwable e) {
-                log.exceptionOnClose(e);
-            }
         }
     }
 

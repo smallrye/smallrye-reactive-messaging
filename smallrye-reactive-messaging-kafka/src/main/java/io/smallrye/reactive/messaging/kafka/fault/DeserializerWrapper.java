@@ -57,10 +57,10 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
 
     private final boolean handleKeys;
 
-    private final DeserializationFailureHandler<T> deserializationFailureHandler;
+    private final DeserializationFailureHandler<?> deserializationFailureHandler;
     private final KafkaSource<?, ?> source;
 
-    public DeserializerWrapper(String className, boolean key, DeserializationFailureHandler<T> failureHandler,
+    public DeserializerWrapper(String className, boolean key, DeserializationFailureHandler<?> failureHandler,
             KafkaSource<?, ?> source) {
         this.delegate = createDelegateDeserializer(className);
         this.handleKeys = key;
@@ -124,10 +124,11 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
      * @return an instance of {@code <T>}, {@code null} if the user didn't specify a function (or if the function returned
      *         {@code null}).
      */
+    @SuppressWarnings("unchecked")
     private T tryToRecover(String topic, Headers headers, byte[] data, Exception exception) {
         if (deserializationFailureHandler != null) {
             try {
-                return deserializationFailureHandler.handleDeserializationFailure(topic, this.handleKeys,
+                return (T) deserializationFailureHandler.handleDeserializationFailure(topic, this.handleKeys,
                         delegate.getClass().getName(), data, exception, headers);
             } catch (Exception e) {
                 KafkaLogging.log.deserializationFailureHandlerFailure(deserializationFailureHandler.toString(), e);

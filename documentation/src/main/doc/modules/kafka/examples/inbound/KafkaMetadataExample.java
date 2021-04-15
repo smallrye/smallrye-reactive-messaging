@@ -2,6 +2,7 @@ package inbound;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import java.time.Instant;
@@ -26,7 +27,7 @@ public class KafkaMetadataExample {
             Instant timestamp = metadata.getTimestamp();
 
             // The underlying record
-            KafkaConsumerRecord<String, Double> record = metadata.getRecord();
+            ConsumerRecord<String, Double> record = metadata.getRecord();
 
             // ...
         }

@@ -30,12 +30,14 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
@@ -207,9 +209,10 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @SuppressWarnings({ "rawtypes" })
     @Test
+    @Disabled("working locally, but long")
     public void testRetry() {
         // This test need an individual Kafka container
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer()) {
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
             kafka.start();
             await().until(kafka::isRunning);
             MapBasedConfig config = newCommonConfigForSource()
@@ -245,7 +248,46 @@ public class KafkaSourceTest extends KafkaTestBase {
         }
     }
 
-    private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener, String group) {
+    //    @SuppressWarnings({ "rawtypes" })
+    //    @Test
+    //    public void testRecoveryAfterMissedHeartbeat() throws InterruptedException {
+    //        MapBasedConfig config = newCommonConfigForSource()
+    //                .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
+    //                .with("value.deserializer", IntegerDeserializer.class.getName())
+    //                .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000)
+    //                .with(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 100)
+    //                .with("retry", true)
+    //                .with("retry-attempts", 100)
+    //                .with("retry-max-wait", 30);
+    //
+    //        usage.setBootstrapServers(KafkaBrokerExtension.getBootstrapServers());
+    //
+    //        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+    //        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+    //                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
+    //                UnsatisfiedInstance.instance(), -1);
+    //        List<KafkaRecord> messages1 = new ArrayList<>();
+    //        source.getStream().subscribe().with(messages1::add);
+    //
+    //        AtomicInteger counter = new AtomicInteger();
+    //        new Thread(() -> usage.produceIntegers(10, null,
+    //                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+    //
+    //        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
+    //
+    //        KafkaBrokerExtension.getProxy().setConnectionCut(true);
+    //        Thread.sleep(6000 + 500); // session timeout + a bit more just in case.
+    //        KafkaBrokerExtension.getProxy().setConnectionCut(false);
+    //
+    //        new Thread(() -> usage.produceIntegers(10, null,
+    //                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+    //
+    //        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
+    //        assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
+    //    }
+
+    private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener,
+            String group) {
         KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
         if (group != null) {
             builder.put("group.id", group);

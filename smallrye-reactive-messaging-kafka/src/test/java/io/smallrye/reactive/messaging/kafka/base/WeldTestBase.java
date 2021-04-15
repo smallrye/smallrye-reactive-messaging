@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
 import javax.enterprise.inject.spi.BeanManager;
 
@@ -25,6 +26,7 @@ import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 
@@ -54,6 +56,7 @@ public class WeldTestBase {
 
         weld.addBeanClass(KafkaCDIEvents.class);
         weld.addBeanClass(KafkaConnector.class);
+        weld.addBeanClass(KafkaClientServiceImpl.class);
         weld.disableDiscovery();
     }
 
@@ -117,6 +120,9 @@ public class WeldTestBase {
     }
 
     public boolean isReady() {
+        System.out
+                .println(getHealth().getReadiness().getChannels().stream().map(ci -> ci.getChannel() + " " + ci.isOk()).collect(
+                        Collectors.joining()));
         return getHealth().getReadiness().isOk();
     }
 

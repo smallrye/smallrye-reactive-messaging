@@ -20,12 +20,11 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.*;
 import io.smallrye.reactive.messaging.kafka.fault.DeserializerWrapper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -38,6 +37,11 @@ import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     private KafkaSource<String, String> source;
+
+    @BeforeAll
+    static void initTracer() {
+        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
+    }
 
     @AfterEach
     public void cleanup() {

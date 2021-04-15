@@ -14,6 +14,9 @@ import io.strimzi.StrimziKafkaContainer;
 
 public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
+
+    public static final String KAFKA_VERSION = "latest-kafka-2.7.0";
+
     private static boolean started = false;
     private static StrimziKafkaContainer kafka;
 
@@ -41,10 +44,12 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext
     }
 
     public static void startKafkaBroker() {
-        kafka = new StrimziKafkaContainer();
+        kafka = new StrimziKafkaContainer(KAFKA_VERSION)
+                .withExposedPorts(9092);
         kafka.start();
-        LOGGER.info("Kafka broker started: " + kafka.getBootstrapServers());
+        LOGGER.info("Kafka broker started: " + kafka.getBootstrapServers() + " (" + kafka.getMappedPort(9092) + ")");
         await().until(() -> kafka.isRunning());
+
     }
 
     @AfterAll

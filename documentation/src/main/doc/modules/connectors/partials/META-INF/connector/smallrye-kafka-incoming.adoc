@@ -129,4 +129,12 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `true`
 
+| *poll-timeout* | The polling timeout in milliseconds. When polling records, the poll will wait at most that duration before returning records. Default is 1000ms
+
+Type: _int_ | false | `1000`
+
+| *pause-if-no-requests* | Whether the polling must be paused when the application does not request items and resume when it does. This allows implementing back-pressure based on the application capacity. Note that polling is not stopped, but will not retrieve any records when paused.
+
+Type: _boolean_ | false | `true`
+
 |===

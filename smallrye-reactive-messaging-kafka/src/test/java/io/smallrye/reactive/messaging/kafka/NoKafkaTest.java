@@ -31,6 +31,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.strimzi.StrimziKafkaContainer;
 
+@Disabled("to be checked")
 public class NoKafkaTest extends KafkaTestBase {
 
     private static int port;

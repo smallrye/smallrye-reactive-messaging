@@ -6,6 +6,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
@@ -17,7 +18,6 @@ import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
@@ -27,7 +27,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     private final KafkaFailureHandler onNack;
     private final T payload;
 
-    public IncomingKafkaRecord(KafkaConsumerRecord<K, T> record,
+    public IncomingKafkaRecord(ConsumerRecord<K, T> record,
             KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack,
             boolean cloudEventEnabled,

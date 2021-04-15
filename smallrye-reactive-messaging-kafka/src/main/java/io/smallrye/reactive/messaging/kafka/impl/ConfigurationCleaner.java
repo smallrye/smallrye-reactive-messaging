@@ -1,9 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import io.vertx.core.json.JsonObject;
 
@@ -87,7 +84,7 @@ public class ConfigurationCleaner {
         }
     }
 
-    public static void cleanupConsumerConfiguration(Map<String, String> conf) {
+    public static void cleanupConsumerConfiguration(Map<String, ?> conf) {
         for (String key : COMMON) {
             conf.remove(key);
         }

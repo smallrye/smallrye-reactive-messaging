@@ -5,8 +5,9 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.kafka.common.TopicPartition;
+
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.vertx.kafka.client.common.TopicPartition;
 
 public interface KafkaCommitHandler {
 

@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.health;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -37,17 +35,6 @@ public class KafkaSinkReadinessHealth extends BaseHealth {
             this.admin = null;
             Map<MetricName, ? extends Metric> metrics = producer.metrics();
             this.metric = getMetric(metrics);
-        }
-    }
-
-    public void close() {
-        if (admin != null) {
-            try {
-                // TODO should be closeAndAwait but because of https://github.com/vert-x3/vertx-kafka-client/issues/192, we discard the result.
-                admin.closeAndForget();
-            } catch (Throwable e) {
-                log.exceptionOnClose(e);
-            }
         }
     }
 
