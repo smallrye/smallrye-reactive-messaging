@@ -102,22 +102,15 @@
     <module>smallrye-reactive-messaging-in-memory</module>
     <module>smallrye-reactive-messaging-kafka</module>
     <module>smallrye-reactive-messaging-mqtt</module>
-    <module>smallrye-reactive-messaging-mqtt-server</module>
     <module>smallrye-reactive-messaging-camel</module>
     <module>smallrye-reactive-messaging-amqp</module>
-    <module>smallrye-reactive-messaging-vertx-eventbus</module>
-    <module>smallrye-reactive-messaging-aws-sns</module>
     <module>smallrye-reactive-messaging-jms</module>
-    <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-health</module>
     <module>examples/quickstart</module>
     <module>examples/kafka-quickstart</module>
     <module>examples/kafka-quickstart-kotlin</module>
     <module>examples/mqtt-quickstart</module>
-    <module>examples/mqtt-server-quickstart</module>
     <module>examples/amqp-quickstart</module>
-    <module>examples/awssns-quickstart</module>
-    <module>examples/gcp-pubsub-quickstart</module>
 
     <module>smallrye-connector-attribute-processor</module>
 
