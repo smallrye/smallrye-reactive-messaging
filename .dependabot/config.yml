@@ -4,7 +4,7 @@ update_configs:
     -   package_manager: "java:maven"
         directory: "/"
         update_schedule: "daily"
-        target_branch: "main"
+        target_branch: "2.x"
         default_reviewers:
             - "cescoffier"
         ignored_updates:
@@ -43,11 +43,11 @@ update_configs:
             -   match:
                     dependency_name: "com.google.cloud:libraries-bom"
 
-        # 3.x branch - Vert.x 4.x, smallrye-reactive-converter-api 2.x, MP4
+        # 3.x (main) branch - Vert.x 4.x, smallrye-reactive-converter-api 2.x, MP4
     -   package_manager: "java:maven"
         directory: "/"
         update_schedule: "daily"
-        target_branch: "3.x"
+        target_branch: "main"
         default_reviewers:
             - "cescoffier"
         ignored_updates:
