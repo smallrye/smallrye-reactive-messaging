@@ -221,7 +221,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             }
         }
         if (!matching.isUnsatisfied()) {
-            c = merge(config, defaultKafkaConfiguration.get());
+            c = merge(config, matching.get());
         }
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
         KafkaSink sink = new KafkaSink(vertx, oc, kafkaCDIEvents);
