@@ -1,4 +1,4 @@
-[#JMS-outbound]
+[#jms-outbound]
 == Sending messages to JMS
 
 The JMS Connector can send Reactive Messaging `Messages` as JMS Message.
