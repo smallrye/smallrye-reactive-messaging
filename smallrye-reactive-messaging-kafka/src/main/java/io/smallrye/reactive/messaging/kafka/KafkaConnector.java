@@ -23,6 +23,7 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
+import org.apache.kafka.clients.producer.Producer;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
@@ -106,7 +107,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
 @ConnectorAttribute(name = "close-timeout", type = "int", direction = Direction.OUTGOING, description = "The amount of milliseconds waiting for a graceful shutdown of the Kafka producer", defaultValue = "10000")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
-public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter, KafkaClientService {
+public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
@@ -330,4 +331,11 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 .findFirst().orElse(null);
     }
 
+    @SuppressWarnings("unchecked")
+    public <K, V> Producer<K, V> getProducer(String channel) {
+        return (Producer<K, V>) sinks.stream()
+                .filter(ks -> ks.getChannel().equals(channel))
+                .map(KafkaSink::getProducer)
+                .findFirst().orElse(null);
+    }
 }

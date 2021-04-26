@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -194,6 +195,11 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(readiness.getChannels()).hasSize(1);
         assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
         assertThat(readiness.getChannels().get(0).getChannel()).isEqualTo("output");
+
+        KafkaClientService service = get(KafkaClientService.class);
+        assertThat(service.getProducer("output")).isNotNull();
+        assertThat(service.getProducer("missing")).isNull();
+        assertThatThrownBy(() -> service.getProducer(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
