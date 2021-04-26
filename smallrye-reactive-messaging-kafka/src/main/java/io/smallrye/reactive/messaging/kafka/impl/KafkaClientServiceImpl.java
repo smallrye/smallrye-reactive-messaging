@@ -1,8 +1,11 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import java.util.Objects;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.apache.kafka.clients.producer.Producer;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
 import io.smallrye.reactive.messaging.kafka.KafkaClientService;
@@ -18,6 +21,11 @@ public class KafkaClientServiceImpl implements KafkaClientService {
 
     @Override
     public <K, V> KafkaConsumer<K, V> getConsumer(String channel) {
-        return connector.getConsumer(channel);
+        return connector.getConsumer(Objects.requireNonNull(channel));
+    }
+
+    @Override
+    public <K, V> Producer<K, V> getProducer(String channel) {
+        return connector.getProducer(Objects.requireNonNull(channel));
     }
 }
