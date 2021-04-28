@@ -86,7 +86,7 @@ In this case, you should not configure the topic inside your application configu
 
 For example, you can route to a dynamic topic based on the incoming message:
 
-[source, java]
+[source, java, indent=0]
 ----
 include::example$outbound/KafkaOutboundDynamicTopicExample.java[tag=code]
 ----
@@ -151,6 +151,19 @@ In addition, in _structured_, the connector maps the message's payload to JSON, 
 The record's key can be set in the channel configuration (`key` attribute), in the `OutgoingKafkaRecordMetadata` or using the `partitionkey` Cloud Event attribute.
 
 NOTE: you can disable the Cloud Event support by setting the `cloud-events` attribute to `false`
+
+=== Using `ProducerRecord`
+
+Kafka built-in type https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/producer/ProducerRecord.html[ProducerRecord<K,V>] can also be used for producing messages:
+
+[source, java, indent=0]
+----
+include::example$outbound/KafkaProducerRecordExample.java[tag=code]
+----
+
+WARNING: This is an advanced feature.
+The `ProducerRecord` is sent to Kafka as is.
+Any possible metadata attached through `Message<ProducerRecord<K, V>>` are ignored and lost.
 
 === Configuration Reference
 

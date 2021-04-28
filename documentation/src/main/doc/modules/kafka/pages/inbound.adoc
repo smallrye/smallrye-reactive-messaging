@@ -174,7 +174,7 @@ However, if the handler throws an exception, the application would be marked unh
 === Receiving Cloud Events
 
 The Kafka connector supports https://cloudevents.io/[Cloud Events].
-When the connector detects a _structured_ or _binary_ Cloud Events, it adds a  {javadoc-base}/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html[IncomingKafkaRecordMetadata<K, T>] in the metadata of the Message.
+When the connector detects a _structured_ or _binary_ Cloud Events, it adds a  {javadoc-base}/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html[IncomingKafkaCloudEventMetadata<K, T>] in the metadata of the Message.
 `IncomingKafkaCloudEventMetadata` contains the various (mandatory and optional) Cloud Event attributes.
 
 If the connector cannot extract the Cloud Event metadata, it sends the Message without the metadata.

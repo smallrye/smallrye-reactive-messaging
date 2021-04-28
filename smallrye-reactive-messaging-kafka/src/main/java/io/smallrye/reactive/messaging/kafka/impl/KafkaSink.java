@@ -161,12 +161,13 @@ public class KafkaSink {
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
                         .orElse(null);
 
-                // We encode the outbound record as Cloud Events if:
-                // - cloud events are enabled -> writeCloudEvents
-                // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
-                // - or if the message does not contain this metadata, the type and source are configured on the channel
-
-                if (writeCloudEvents && (ceMetadata != null || mandatoryCloudEventAttributeSet)) {
+                if (message.getPayload() instanceof ProducerRecord) {
+                    record = (ProducerRecord<?, ?>) message.getPayload();
+                } else if (writeCloudEvents && (ceMetadata != null || mandatoryCloudEventAttributeSet)) {
+                    // We encode the outbound record as Cloud Events if:
+                    // - cloud events are enabled -> writeCloudEvents
+                    // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
+                    // - or if the message does not contain this metadata, the type and source are configured on the channel
                     if (writeAsBinaryCloudEvent) {
                         record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, metadata, ceMetadata,
                                 configuration);
