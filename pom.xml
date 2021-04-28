@@ -17,7 +17,7 @@
   <name>SmallRye Reactive Messaging</name>
 
   <description>An implementation of the MicroProfile Reactive Streams Messaging specification</description>
-  <url>http://smallrye.io</url>
+  <url>https://smallrye.io</url>
 
   <inceptionYear>2018</inceptionYear>
   <organization>
@@ -64,7 +64,7 @@
     <camel.version>3.9.0</camel.version>
 
     <microprofile-reactive-messaging.version>1.0</microprofile-reactive-messaging.version>
-    <microprofile-reactive-streams.version>1.0.1</microprofile-reactive-streams.version>
+    <microprofile-reactive-streams.version>2.0</microprofile-reactive-streams.version>
     <microprofile-config.version>2.0</microprofile-config.version>
     <microprofile-metrics-api.version>3.0</microprofile-metrics-api.version>
     <microprofile-health-api.version>3.0</microprofile-health-api.version>
@@ -76,7 +76,7 @@
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>5.0.0</smallrye-fault-tolerance.version>
 
-    <mutiny.version>0.14.0</mutiny.version>
+    <mutiny.version>0.16.0</mutiny.version>
     <artemis.version>2.17.0</artemis.version>
 
     <jboss-log-manager.version>2.1.18.Final</jboss-log-manager.version>
@@ -84,8 +84,7 @@
     <opentelemetry.version>1.1.0</opentelemetry.version>
     <opentelemetry-semver.version>1.1.0-alpha</opentelemetry-semver.version>
 
-    <smallrye-reactive-converter-api.version>2.2.0</smallrye-reactive-converter-api.version>
-    <smallrye-vertx-mutiny-clients.version>2.2.0</smallrye-vertx-mutiny-clients.version>
+    <smallrye-vertx-mutiny-clients.version>2.4.0</smallrye-vertx-mutiny-clients.version>
 
     <testcontainers.version>1.15.3</testcontainers.version>
 
@@ -276,7 +275,7 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-api</artifactId>
-      <version>${smallrye-reactive-converter-api.version}</version>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
@@ -300,19 +299,19 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-rxjava2</artifactId>
-      <version>${smallrye-reactive-converter-api.version}</version>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-reactor</artifactId>
-      <version>${smallrye-reactive-converter-api.version}</version>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-converter-mutiny</artifactId>
-      <version>${smallrye-reactive-converter-api.version}</version>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
