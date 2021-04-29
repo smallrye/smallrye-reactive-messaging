@@ -265,6 +265,10 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         return null;
     }
 
+    public void strict() {
+        this.mediatorConfigurationSupport.strict();
+    }
+
     static class ReflectionGenericTypeAssignable implements MediatorConfigurationSupport.GenericTypeAssignable {
 
         private final Type type;
