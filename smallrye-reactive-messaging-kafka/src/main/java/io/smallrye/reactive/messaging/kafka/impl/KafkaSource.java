@@ -260,7 +260,7 @@ public class KafkaSource<K, V> {
     public void closeQuietly() {
         try {
             if (configuration.getGracefulShutdown()) {
-                Duration pollTimeoutTwice = Duration.ofMillis(configuration.getPollTimeout() * 2);
+                Duration pollTimeoutTwice = Duration.ofMillis(configuration.getPollTimeout() * 2L);
                 if (this.client.runOnPollingThread(c -> {
                     Set<org.apache.kafka.common.TopicPartition> partitions = c.assignment();
                     if (!partitions.isEmpty()) {
