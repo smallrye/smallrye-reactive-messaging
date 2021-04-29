@@ -21,7 +21,6 @@ import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.ProcessingException;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.WeavingException;
-import io.smallrye.reactive.messaging.annotations.Merge;
 
 @MessageBundle(projectCode = "SRMSG", length = 5)
 public interface ProviderExceptions {
@@ -119,15 +118,6 @@ public interface ProviderExceptions {
 
     @Message(id = 29, value = "`%s` is not a valid exception")
     IllegalArgumentException illegalArgumentForException(String val);
-
-    @Message(id = 30, value = "Unknown merge policy for %s: %s")
-    IllegalArgumentException illegalArgumentMergePolicy(String source, Merge.Mode mode);
-
-    @Message(id = 31, value = "MediatorManager was already initialized!")
-    IllegalStateException illegalStateForMediatorManagerAlreadyInitialized();
-
-    @Message(id = 33, value = "Impossible to bind mediators, some mediators are not connected: %s, available publishers: %s, available emitters: %s")
-    WeavingException weavingImposibleToBind(List<String> methodsAsString, Set<String> incomingNames, Set<String> emitterNames);
 
     @Message(id = 34, value = "Insufficient downstream requests to emit item")
     IllegalStateException illegalStateInsufficientDownstreamRequests();
@@ -238,9 +228,6 @@ public interface ProviderExceptions {
     @Message(id = 69, value = "%s not supported")
     IllegalStateException illegalStateForNotSupported(String value);
 
-    @Message(id = 70, value = "No channel found for name: %s, injection point: %s")
-    DeploymentException deploymentNoChannel(String name, InjectionPoint ip);
-
     @Message(id = 71, value = "Invalid channel configuration -  the `connector` attribute must be set for channel `%s`")
     IllegalArgumentException illegalArgumentChannelConnectorConfiguration(String name);
 
@@ -267,4 +254,12 @@ public interface ProviderExceptions {
 
     @Message(id = 79, value = "The config is not of type `%s`")
     IllegalArgumentException configNotOfType(Class<?> type);
+
+    @Message(id = 80, value = "Invalid method annotated with @Incoming: %s - when returning a CompletionStage, you must return a CompletionStage<Void>")
+    DefinitionException definitionCompletionStageOfVoid(String methodAsString);
+
+    @Message(id = 81, value = "Invalid method annotated with @Incoming: %s. The signature is not supported as the produced result would be ignored. "
+            + "The method must return `void`, found %s.")
+    DefinitionException definitionReturnVoid(String methodAsString, String returnType);
+
 }

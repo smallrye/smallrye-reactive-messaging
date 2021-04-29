@@ -66,6 +66,11 @@ public class MediatorManager {
     boolean strictMode;
 
     public <T> void analyze(AnnotatedType<T> annotatedType, Bean<T> bean) {
+
+        if (strictMode) {
+            collected.strict();
+        }
+
         log.scanningType(annotatedType.getJavaClass());
         Set<AnnotatedMethod<? super T>> methods = annotatedType.getMethods();
 
