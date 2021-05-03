@@ -25,6 +25,7 @@ public class SingleSkip {
     public Message<String> processMessage(Message<String> m) {
         String s = m.getPayload();
         if (s.equalsIgnoreCase("skip")) {
+            m.ack();
             return null;
         }
         return m.withPayload(s.toUpperCase());
@@ -47,6 +48,7 @@ public class SingleSkip {
     public Uni<Message<String>> processMessageAsync(Message<String> m) {
         String s = m.getPayload();
         if (s.equalsIgnoreCase("skip")) {
+            m.ack();
             return Uni.createFrom().nullItem();
         }
         return Uni.createFrom().item(m.withPayload(s.toUpperCase()));
