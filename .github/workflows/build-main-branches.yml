@@ -5,7 +5,7 @@ on:
     push:
         branches:
             - main
-            - 3.x
+            - 2.x
         paths-ignore:
             - '.github/**'
 
@@ -38,7 +38,6 @@ jobs:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
               run: |
                   mvn -B clean verify -Dtest-containers=true --file pom.xml
-
     quality:
         needs: build
         runs-on: ubuntu-latest
@@ -66,7 +65,6 @@ jobs:
                         -Dsonar.host.url=https://sonarcloud.io \
                         -Dsonar.login=$SONAR_LOGIN \
                         --fail-at-end
-
     up_to_date_antora:
         runs-on: ubuntu-latest
         steps:

@@ -5,7 +5,7 @@ on:
     pull_request:
         branches:
             - main
-            - 3.x
+            - 2.x
 
 jobs:
     build:
@@ -36,8 +36,6 @@ jobs:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
               run: |
                 mvn -B clean verify -Dtest-containers=true --file pom.xml
-
-
     up_to_date_antora:
         runs-on: ubuntu-latest
         steps:
