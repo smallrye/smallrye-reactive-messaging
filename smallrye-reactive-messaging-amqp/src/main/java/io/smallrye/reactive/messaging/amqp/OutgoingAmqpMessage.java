@@ -82,7 +82,7 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
     }
 
     @Override
-    public CompletionStage<Void> nack(Throwable reason) {
+    public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return CompletableFuture.completedFuture(null);
     }
 

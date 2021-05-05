@@ -198,12 +198,14 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     @Override
     public OutgoingKafkaRecord<K, T> withMetadata(Iterable<Object> metadata) {
+        // TODO this adds the entire provided Iterable<Object> as a single datum in the existing Metadata
         Metadata newMetadata = getMetadata().with(metadata);
         return OutgoingKafkaRecord.from(Message.of(getPayload(), newMetadata, getAck(), getNack()));
     }
 
     @Override
     public OutgoingKafkaRecord<K, T> withMetadata(Metadata metadata) {
+        // TODO this adds the entire provided Metadata as a single datum in the existing Metadata
         Metadata newMetadata = getMetadata().with(metadata);
         return OutgoingKafkaRecord.from(Message.of(getPayload(), newMetadata, getAck(), getNack()));
     }

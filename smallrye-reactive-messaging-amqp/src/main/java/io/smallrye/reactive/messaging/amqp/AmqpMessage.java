@@ -59,7 +59,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     }
 
     @Override
-    public CompletionStage<Void> nack(Throwable reason) {
+    public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return onNack.handle(this, context, reason);
     }
 
