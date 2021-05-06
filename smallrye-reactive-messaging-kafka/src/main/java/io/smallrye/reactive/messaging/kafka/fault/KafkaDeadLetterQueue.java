@@ -100,16 +100,9 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     public <K, V> CompletionStage<Void> handle(
             IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
 
-        OutgoingKafkaRecordMetadata<K> outgoing = null;
-        if (metadata != null) {
-            for (Object item : metadata) {
-                if (item instanceof OutgoingKafkaRecordMetadata) {
-                    outgoing = (OutgoingKafkaRecordMetadata<K>) item;
-                    // more than 1 instance => undefined behavior
-                    break;
-                }
-            }
-        }
+        OutgoingKafkaRecordMetadata<K> outgoing = metadata != null
+                ? metadata.get(OutgoingKafkaRecordMetadata.class).orElse(null)
+                : null;
 
         String topic = this.topic;
         if (outgoing != null && outgoing.getTopic() != null) {
