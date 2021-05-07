@@ -75,6 +75,14 @@ public class ConnectorConfigTest {
         config = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "foo");
     }
 
+    @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_FOO_ATTR", value = "new-value")
+    @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_FOO_AT_TR", value = "another-value")
+    @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_SOME_KEY", value = "another-value-from-connector")
+    @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_SOME_OTHER_KEY", value = "another-value-other")
+    @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR1", value = "should not be used")
+    @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR3", value = "used")
+    @SetEnvironmentVariable(key = "mp_messaging_connector_some_connector_attr4", value = "used")
+    @SetEnvironmentVariable(key = "mp_messaging_connector_SOME_CONNECTOR_mixedcase", value = "should not be used")
     @Test
     public void testPropertyNames() {
 
@@ -105,11 +113,13 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR3", value = "used")
+    @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR4", value = "used-2")
     public void testGetFromEnv() {
         // All uppercase value in env
-        assertThat(config.getOptionalValue("attr3", String.class)).hasValue("used");
+        assertThat(config.getOptionalValue("ATTR3", String.class)).hasValue("used");
         // All lowercase value in env
-        assertThat(config.getOptionalValue("attr4", String.class)).hasValue("used");
+        assertThat(config.getOptionalValue("ATTR4", String.class)).hasValue("used-2");
         // Mixed case value in env should not be found as it does not match the key we're looking for
         // either in its original casing, or after conversion to uppercase.
         assertThat(config.getOptionalValue("mixedcase", String.class)).isEmpty();
