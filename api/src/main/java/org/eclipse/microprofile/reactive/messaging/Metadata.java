@@ -20,17 +20,17 @@ import io.smallrye.common.annotation.Experimental;
 @Experimental("metadata propagation is a SmallRye-specific feature")
 public class Metadata implements Iterable<Object> {
 
-    private final Set<Object> backend;
+    private final Map<Class<?>, Object> backend;
 
-    private static final Metadata EMPTY = new Metadata(Collections.emptySet());
+    private static final Metadata EMPTY = new Metadata(Collections.emptyMap());
 
     /**
      * {@link Metadata} instances must be created using the static factory methods.
      *
      * @param backend the backend, must not be {@code null}, must be immutable.
      */
-    private Metadata(Set<Object> backend) {
-        this.backend = Collections.unmodifiableSet(backend);
+    private Metadata(Map<Class<?>, Object> backend) {
+        this.backend = Collections.unmodifiableMap(backend);
     }
 
     /**
@@ -52,90 +52,77 @@ public class Metadata implements Iterable<Object> {
         if (metadata == null) {
             throw new IllegalArgumentException("`metadata` must not be `null`");
         }
-        return new Metadata(Collections.singleton(metadata));
+
+        return new Metadata(Collections.singletonMap(metadata.getClass(), metadata));
     }
 
     /**
      * Returns an instance of {@link Metadata} containing multiple values.
      *
-     * @param metadata the metadata, must not be {@code null}, must not contain {@code null}. The contained
-     *        metadata must not have the same class.
+     * @param metadata the metadata, must not be {@code null}, must not contain {@code null},
+     *        must not contain multiple objects of the same class
      * @return the new metadata
      */
     public static Metadata of(Object... metadata) {
         if (metadata == null) {
             throw new IllegalArgumentException("`metadata` must not be `null`");
         }
-        Set<Object> set = addMetadataToSet(Arrays.asList(metadata));
-        return new Metadata(set);
-    }
 
-    public static Metadata from(Iterable<Object> iterable) {
-        if (iterable == null) {
-            throw new IllegalArgumentException("`iterable` must not be `null`");
-        }
-        if (iterable instanceof Metadata) {
-            return (Metadata) iterable;
-        }
-        Set<Object> set = addMetadataToSet(iterable);
-
-        if (set.isEmpty()) {
-            return Metadata.empty();
-        }
-        return new Metadata(set);
-    }
-
-    private static Set<Object> addMetadataToSet(Iterable<Object> iterable) {
-        Set<Object> set = new HashSet<>();
-        for (Object meta : iterable) {
-            if (meta == null) {
-                throw new IllegalArgumentException("One of the item is `null`");
-            }
-            // Ensure that the class is not used.
-            if (contains(set, meta)) {
-                throw new IllegalArgumentException("Duplicated metadata detected: " + meta.getClass().getName());
-            }
-            set.add(meta);
-        }
-        return set;
-    }
-
-    private static boolean contains(Set<Object> set, Object meta) {
-        Class<?> clazz = meta.getClass();
-        for (Object o : set) {
-            if (o.getClass().equals(clazz)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void replaceOrAdd(Set<Object> set, Object meta) {
-        Class<?> clazz = meta.getClass();
-        for (Object o : set) {
-            if (o.getClass().equals(clazz)) {
-                set.remove(o);
-                set.add(meta);
-                return;
-            }
-        }
-        set.add(meta);
+        Map<Class<?>, Object> map = createBackingMap(Arrays.asList(metadata));
+        return new Metadata(map);
     }
 
     /**
-     * Creates a new instance of {@link Metadata} with the current entries, plus {@code meta}.
-     * If the current set of metadata contains already an instance of the class of {@code meta}, the value is replaced
+     * Returns an instance of {@link Metadata} containing multiple values.
+     *
+     * @param metadata the metadata, must not be {@code null}, must not contain {@code null},
+     *        must not contain multiple objects of the same class
+     * @return the new metadata
+     */
+    public static Metadata from(Iterable<Object> metadata) {
+        if (metadata == null) {
+            throw new IllegalArgumentException("`metadata` must not be `null`");
+        }
+        if (metadata instanceof Metadata) {
+            return (Metadata) metadata;
+        }
+
+        Map<Class<?>, Object> map = createBackingMap(metadata);
+        if (map.isEmpty()) {
+            return Metadata.empty();
+        }
+        return new Metadata(map);
+    }
+
+    private static Map<Class<?>, Object> createBackingMap(Iterable<Object> metadata) {
+        Map<Class<?>, Object> map = new HashMap<>();
+        for (Object item : metadata) {
+            if (item == null) {
+                throw new IllegalArgumentException("One of the metadata items is `null`");
+            }
+            // Ensure that the class is not used.
+            if (map.containsKey(item.getClass())) {
+                throw new IllegalArgumentException("Duplicate metadata detected: " + item.getClass().getName());
+            }
+            map.put(item.getClass(), item);
+        }
+        return map;
+    }
+
+    /**
+     * Creates a new instance of {@link Metadata} with the current entries, plus {@code item}.
+     * If the current set of metadata contains already an instance of the class of {@code item}, the value is replaced
      * in the returned {@link Metadata}.
      *
-     * @param meta the metadata to be added, must not be {@code null}.
+     * @param item the metadata to be added, must not be {@code null}.
      * @return the new instance of {@link Metadata}
      */
-    public Metadata with(Object meta) {
-        if (meta == null) {
-            throw new IllegalArgumentException("`meta` must not be `null`");
+    public Metadata with(Object item) {
+        if (item == null) {
+            throw new IllegalArgumentException("`item` must not be `null`");
         }
-        Set<Object> copy = new HashSet<>(backend);
-        replaceOrAdd(copy, meta);
+        Map<Class<?>, Object> copy = new HashMap<>(backend);
+        copy.put(item.getClass(), item);
         return new Metadata(copy);
     }
 
@@ -151,11 +138,8 @@ public class Metadata implements Iterable<Object> {
         if (clazz == null) {
             throw new IllegalArgumentException("`clazz` must not be `null`");
         }
-        Set<Object> copy = new LinkedHashSet<>(backend);
-        copy.stream()
-                .filter(o -> o.getClass().equals(clazz))
-                .findAny()
-                .ifPresent(copy::remove);
+        Map<Class<?>, Object> copy = new HashMap<>(backend);
+        copy.remove(clazz);
         return new Metadata(copy);
     }
 
@@ -165,8 +149,21 @@ public class Metadata implements Iterable<Object> {
      * @return the new instance.
      */
     public Metadata copy() {
-        Set<Object> copy = new LinkedHashSet<>(backend);
+        Map<Class<?>, Object> copy = new HashMap<>(backend);
         return new Metadata(copy);
+    }
+
+    /**
+     * Retrieves the metadata associated with given class.
+     *
+     * @param clazz the class of the metadata to retrieve, must not be {@code null}
+     * @return an {@link Optional} containing the associated metadata, empty if none.
+     */
+    public <T> Optional<T> get(Class<T> clazz) {
+        if (clazz == null) {
+            throw new IllegalArgumentException("`clazz` must not be `null`");
+        }
+        return Optional.ofNullable(clazz.cast(backend.get(clazz)));
     }
 
     /**
@@ -174,6 +171,6 @@ public class Metadata implements Iterable<Object> {
      */
     @Override
     public Iterator<Object> iterator() {
-        return backend.iterator();
+        return backend.values().iterator();
     }
 }

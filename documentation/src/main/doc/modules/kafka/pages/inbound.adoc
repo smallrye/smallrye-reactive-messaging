@@ -54,7 +54,7 @@ So you can receive _payloads_ representing records from Kafka using:
 * {javadoc-base}/io/smallrye/reactive/messaging/kafka/Record.html[Record<K,V>] - a pair key/value
 * https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/consumer/ConsumerRecord.html[ConsumerRecord<K,V>] - a structure representing the record with all its metadata
 
-[source, java]
+[source, java, indent=0]
 ----
 include::example$inbound/Converters.java[tags=code]
 ----
@@ -66,7 +66,7 @@ Messages coming from Kafka contains an instance of {javadoc-base}/io/smallrye/re
 `T` is the type of the record's value.
 It provides the key, topic, partitions, headers and so on:
 
-[source, java]
+[source, java, indent=0]
 ----
 include::example$inbound/KafkaMetadataExample.java[tags=code]
 ----
@@ -129,13 +129,29 @@ In the case of `dead-letter-queue`, you can configure the following attributes:
 * `dead-letter-queue.key.serializer`: the serializer used to write the record key on the dead letter queue. By default, it deduces the serializer from the key deserializer.
 * `dead-letter-queue.value.serializer`: the serializer used to write the record value on the dead letter queue. By default, it deduces the serializer from the value deserializer.
 
-The record written on the dead letter queue contains a set of additional headers about the original record:
+The record written on the dead letter topic contains the original record's headers, as well as a set of additional headers about the original record:
 
-* `dead-letter-reason` - the reason of the failure
-* `dead-letter-cause` - the cause of the failure if any
+* `dead-letter-reason` - the reason of the failure (the `Throwable` passed to `nack()`)
+* `dead-letter-cause` - the cause of the failure (the `getCause()` of the `Throwable` passed to `nack()`), if any
 * `dead-letter-topic` - the original topic of the record
 * `dead-letter-partition` - the original partition of the record (integer mapped to String)
 * `dead-letter-offset` - the original offset of the record (long mapped to String)
+
+When using `dead-letter-queue`, it is also possible to change some metadata of the record that is sent to the dead letter topic.
+To do that, use the `Message.nack(Throwable, Metadata)` method:
+
+[source, java, indent=0]
+----
+include::example$inbound/KafkaDeadLetterExample.java[tags=code]
+----
+
+The `Metadata` may contain an instance of `OutgoingKafkaRecordMetadata`.
+If the instance is present, the following properties will be used:
+
+* key; if not present, the original record's key will be used
+* topic; if not present, the configured dead letter topic will be used
+* partition; if not present, partition will be assigned automatically
+* headers; combined with the original record's headers, as well as the `dead-letter-*` headers described above
 
 === Handling deserialization failures
 

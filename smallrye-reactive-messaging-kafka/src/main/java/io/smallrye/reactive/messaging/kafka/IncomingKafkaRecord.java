@@ -134,8 +134,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     }
 
     @Override
-    public CompletionStage<Void> nack(Throwable reason) {
-        return onNack.handle(this, reason);
+    public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
+        return onNack.handle(this, reason, metadata);
     }
 
     public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {

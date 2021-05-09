@@ -4,6 +4,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 
 public class KafkaIgnoreFailure implements KafkaFailureHandler {
@@ -16,7 +18,7 @@ public class KafkaIgnoreFailure implements KafkaFailureHandler {
 
     @Override
     public <K, V> CompletionStage<Void> handle(
-            IncomingKafkaRecord<K, V> record, Throwable reason) {
+            IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
         // We commit the message, log and continue
         log.messageNackedIgnore(channel, reason.getMessage());
         log.messageNackedFullIgnored(reason);

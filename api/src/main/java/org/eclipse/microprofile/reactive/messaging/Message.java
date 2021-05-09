@@ -457,6 +457,22 @@ public interface Message<T> {
      */
     @Experimental("nack support is a SmallRye-only feature")
     default CompletionStage<Void> nack(Throwable reason) {
+        return nack(reason, null);
+    }
+
+    /**
+     * Acknowledge negatively this message.
+     * <code>nack</code> is used to indicate that the processing of a message failed. The reason is passed as parameter.
+     * Additional metadata may be provided that the connector can use when nacking the message. The interpretation
+     * of metadata is connector-specific.
+     *
+     * @param reason the reason of the nack, must not be {@code null}
+     * @param metadata additional nack metadata the connector may use, may be {@code null}
+     * @return a completion stage completed when the message is negative-acknowledgement has completed. If the
+     *         negative acknowledgement fails, the completion stage propagates the failure.
+     */
+    @Experimental("nack support is a SmallRye-only feature; metadata propagation is a SmallRye-specific feature")
+    default CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         if (reason == null) {
             throw new IllegalArgumentException("The reason must not be `null`");
         }

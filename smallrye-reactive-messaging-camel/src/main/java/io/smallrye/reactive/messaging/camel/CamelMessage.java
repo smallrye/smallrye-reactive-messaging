@@ -38,7 +38,7 @@ public class CamelMessage<T> implements Message<T> {
     }
 
     @Override
-    public CompletionStage<Void> nack(Throwable reason) {
+    public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return onNack.handle(this, reason);
     }
 

@@ -11,10 +11,12 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
@@ -96,8 +98,29 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
     @Override
     public <K, V> CompletionStage<Void> handle(
-            IncomingKafkaRecord<K, V> record, Throwable reason) {
-        KafkaProducerRecord<K, V> dead = KafkaProducerRecord.create(topic, record.getKey(), record.getPayload());
+            IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
+
+        OutgoingKafkaRecordMetadata<K> outgoing = metadata != null
+                ? metadata.get(OutgoingKafkaRecordMetadata.class).orElse(null)
+                : null;
+
+        String topic = this.topic;
+        if (outgoing != null && outgoing.getTopic() != null) {
+            topic = outgoing.getTopic();
+        }
+
+        K key = record.getKey();
+        if (outgoing != null && outgoing.getKey() != null) {
+            key = outgoing.getKey();
+        }
+
+        Integer partition = null;
+        if (outgoing != null && outgoing.getPartition() >= 0) {
+            partition = outgoing.getPartition();
+        }
+
+        KafkaProducerRecord<K, V> dead = KafkaProducerRecord.create(topic, key, record.getPayload(), null, partition);
+
         dead.addHeader(DEAD_LETTER_REASON, getThrowableMessage(reason));
         if (reason.getCause() != null) {
             dead.addHeader(DEAD_LETTER_CAUSE, getThrowableMessage(reason.getCause()));
@@ -106,6 +129,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         dead.addHeader(DEAD_LETTER_PARTITION, Integer.toString(record.getPartition()));
         dead.addHeader(DEAD_LETTER_OFFSET, Long.toString(record.getOffset()));
         record.getHeaders().forEach(header -> dead.addHeader(KafkaHeader.header(header.key(), Buffer.buffer(header.value()))));
+        if (outgoing != null && outgoing.getHeaders() != null) {
+            outgoing.getHeaders()
+                    .forEach(header -> dead.addHeader(KafkaHeader.header(header.key(), Buffer.buffer(header.value()))));
+        }
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
                 .onFailure().invoke(t -> source.reportFailure((Throwable) t, true))

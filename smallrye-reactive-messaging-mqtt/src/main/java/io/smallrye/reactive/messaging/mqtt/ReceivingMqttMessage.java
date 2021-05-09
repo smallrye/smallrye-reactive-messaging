@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.mqtt;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
@@ -41,7 +43,7 @@ public class ReceivingMqttMessage implements MqttMessage<byte[]> {
     }
 
     @Override
-    public CompletionStage<Void> nack(Throwable reason) {
+    public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return this.onNack.handle(reason);
     }
 

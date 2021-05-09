@@ -4,6 +4,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 
 public interface KafkaFailureHandler {
@@ -27,7 +29,7 @@ public interface KafkaFailureHandler {
         }
     }
 
-    <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason);
+    <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata);
 
     default void terminate() {
         // do nothing by default

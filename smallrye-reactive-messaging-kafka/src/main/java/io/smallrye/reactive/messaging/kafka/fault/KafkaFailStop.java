@@ -5,6 +5,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 
@@ -20,7 +22,7 @@ public class KafkaFailStop implements KafkaFailureHandler {
 
     @Override
     public <K, V> CompletionStage<Void> handle(
-            IncomingKafkaRecord<K, V> record, Throwable reason) {
+            IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
         // We don't commit, we just fail and stop the client.
         log.messageNackedFailStop(channel);
         CompletableFuture<Void> future = new CompletableFuture<>();
