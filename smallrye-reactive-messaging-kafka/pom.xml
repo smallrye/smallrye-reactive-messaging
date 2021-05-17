@@ -79,7 +79,7 @@
     <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>strimzi-test-container</artifactId>
-      <version>0.22.1</version>
+      <version>0.23.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
