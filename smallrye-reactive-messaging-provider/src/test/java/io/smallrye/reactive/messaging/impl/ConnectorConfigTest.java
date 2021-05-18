@@ -95,7 +95,8 @@ public class ConnectorConfigTest {
 
         Iterable<String> names = config.getPropertyNames();
         assertThat(names)
-                .containsExactlyInAnyOrder("connector", "ATTR1", "attr1", "attr2", "attr.2", "ATTR", "attr", "AT_TR", "at.tr", "at-tr", "key",
+                .containsExactlyInAnyOrder("connector", "ATTR1", "attr1", "attr2", "attr.2", "ATTR", "attr", "AT_TR", "at.tr",
+                        "at-tr", "key",
                         "SOME_KEY", "some-key", "SOME_OTHER_KEY", "ATTR3", "attr4", "channel-name");
 
         assertThat(config.getOptionalValue("connector", String.class)).hasValue("some-connector");
