@@ -20,12 +20,21 @@ class CollectedMediatorMetadata {
 
     private final List<MediatorConfiguration> mediators = new ArrayList<>();
 
+    boolean strict = false;
+
+    void strict() {
+        strict = true;
+    }
+
     void add(Method method, Bean<?> bean) {
         mediators.add(createMediatorConfiguration(method, bean));
     }
 
     private MediatorConfiguration createMediatorConfiguration(Method met, Bean<?> bean) {
         DefaultMediatorConfiguration configuration = new DefaultMediatorConfiguration(met, bean);
+        if (strict) {
+            configuration.strict();
+        }
 
         Incomings incomings = met.getAnnotation(Incomings.class);
         Incoming incoming = met.getAnnotation(Incoming.class);

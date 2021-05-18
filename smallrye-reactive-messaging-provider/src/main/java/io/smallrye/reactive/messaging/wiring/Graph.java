@@ -185,6 +185,7 @@ public class Graph {
                 return false;
             } else if (component instanceof Wiring.InboundConnectorComponent && !component.isDownstreamResolved()) {
                 ProviderLogging.log.connectorWithoutDownstream(component);
+                return false;
             }
         }
 

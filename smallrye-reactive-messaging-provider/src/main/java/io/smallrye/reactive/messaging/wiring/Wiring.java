@@ -65,7 +65,7 @@ public class Wiring {
         }
 
         for (ChannelConfiguration channel : channels) {
-            components.add(new InjectedChannelComponent(channel));
+            components.add(new InjectedChannelComponent(channel, strictMode));
         }
 
         for (EmitterConfiguration emitter : emitters) {
@@ -371,9 +371,11 @@ public class Wiring {
 
         private final String name;
         private final Set<Component> upstreams = new LinkedHashSet<>();
+        private final boolean strict;
 
-        public InjectedChannelComponent(ChannelConfiguration configuration) {
+        public InjectedChannelComponent(ChannelConfiguration configuration, boolean strict) {
             this.name = configuration.channelName;
+            this.strict = strict;
         }
 
         @Override
@@ -383,7 +385,7 @@ public class Wiring {
 
         @Override
         public boolean merge() {
-            return true;
+            return !strict;
         }
 
         @Override
@@ -403,7 +405,9 @@ public class Wiring {
 
         @Override
         public void validate() throws WiringException {
-
+            if (strict && upstreams().size() > 1) {
+                throw new TooManyUpstreamCandidatesException(this);
+            }
         }
     }
 

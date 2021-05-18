@@ -28,6 +28,7 @@ public class MediatorConfigurationSupport {
     private final Class<?>[] parameterTypes;
     private final GenericTypeAssignable returnTypeAssignable;
     private final GenericTypeAssignable firstMethodParamTypeAssignable;
+    private boolean strict;
 
     public MediatorConfigurationSupport(String methodAsString, Class<?> returnType, Class<?>[] parameterTypes,
             GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable) {
@@ -140,10 +141,9 @@ public class MediatorConfigurationSupport {
             if (parameterTypes.length != 1) {
                 throw ex.definitionOnParam("@Incoming", methodAsString, "CompletionStage");
             }
-            // This check must be enabled once the TCK is released.
-            //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
-            //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
-            //            }
+            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
+                throw ex.definitionCompletionStageOfVoid(methodAsString);
+            }
 
             MediatorConfiguration.Consumption consumption;
             Type payloadType;
@@ -165,10 +165,9 @@ public class MediatorConfigurationSupport {
             if (parameterTypes.length != 1) {
                 throw ex.definitionOnParam("@Incoming", methodAsString, "Uni");
             }
-            // This check must be enabled once the TCK is released.
-            //            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
-            //                throw getIncomingError("when returning a CompletionStage, the generic type must be Void`");
-            //            }
+            if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
+                throw ex.definitionCompletionStageOfVoid(methodAsString);
+            }
 
             MediatorConfiguration.Consumption consumption;
             Type payloadType;
@@ -203,12 +202,9 @@ public class MediatorConfigurationSupport {
                 throw ex.unsupportedSynchronousSignature(methodAsString);
             }
 
-            // Must be enabled once we update the tCK.
-            //            if (strict && !(returnType.equals(Void.class) || returnType.equals(Void.TYPE))) {
-            //                throw getIncomingError(
-            //                        "The signature is not supported as the produced result would be ignored. The method must return `void`, found "
-            //                                + returnType);
-            //            }
+            if (strict && !(returnType.equals(Void.class) || returnType.equals(Void.TYPE))) {
+                throw ex.definitionReturnVoid(methodAsString, returnType.getName());
+            }
 
             return new ValidationOutput(production, consumption, param);
         }
@@ -604,6 +600,10 @@ public class MediatorConfigurationSupport {
                 throw ex.definitionBlockingOnlyIndividual(methodAsString);
             }
         }
+    }
+
+    public void strict() {
+        this.strict = true;
     }
 
     public static class ValidationOutput {
