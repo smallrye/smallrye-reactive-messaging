@@ -12,6 +12,6 @@ asciidoc:
         smallrye-config-version: '2.2.0'
         mutiny-version: '0.17.0'
         camel-version: '3.9.0'
-        spec-version: '2.0-RC1'
+        spec-version: '2.0'
         javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/3.3.0-SNAPSHOT/apidocs'
 

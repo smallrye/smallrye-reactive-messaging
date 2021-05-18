@@ -42,7 +42,7 @@ public class KafkaClientReactiveStreamsPublisherTest
     private static final int partitions = 4;
 
     public KafkaClientReactiveStreamsPublisherTest() {
-        super(new TestEnvironment(100));
+        super(new TestEnvironment(500));
     }
 
     public static Vertx vertx;
