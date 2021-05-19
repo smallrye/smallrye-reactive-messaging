@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -106,4 +107,52 @@ public interface KafkaConsumer<K, V> {
      * @return the Uni emitting the set of topic/partition currently assigned to the consumer
      */
     Uni<Set<TopicPartition>> getAssignments();
+
+    /**
+     * Overrides the fetch offset that the consumer will use on the next poll of given topic and partition.
+     * Note that you may lose data if this API is arbitrarily used in the middle of consumption.
+     *
+     * @param partition the topic and partition for which to set the offset
+     * @param offset the new offset
+     * @return a Uni that completes successfully when the offset is set;
+     * it completes with {@code IllegalArgumentException} if the provided offset is negative;
+     * it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this consumer
+     */
+    Uni<Void> seek(TopicPartition partition, long offset);
+
+    /**
+     * Overrides the fetch offset that the consumer will use on the next poll of given topic and partition.
+     * This method allows setting the leaderEpoch along with the desired offset.
+     * Note that you may lose data if this API is arbitrarily used in the middle of consumption.
+     *
+     * @param partition the topic and partition for which to set the offset
+     * @param offsetAndMetadata the new offset, with additional metadata
+     * @return a Uni that completes successfully when the offset is set;
+     * it completes with {@code IllegalArgumentException} if the provided offset is negative;
+     * it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this consumer
+     */
+    Uni<Void> seek(TopicPartition partition, OffsetAndMetadata offsetAndMetadata);
+
+    /**
+     * Seek to the first offset for each of the given partitions.
+     * If no partitions are provided, seek to the first offset for all of the currently assigned partitions.
+     *
+     * @param partitions the partitions for which to set the offset
+     * @return a Uni that completes successfully when the offset is set;
+     * it completes with {@code IllegalArgumentException} if {@code partitions} is {@code null};
+     * it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently assigned to this consumer
+     */
+    Uni<Void> seekToBeginning(Collection<TopicPartition> partitions);
+
+    /**
+     * Seek to the last offset for each of the given partitions.
+     * If no partitions are provided, seek to the last offset for all of the currently assigned partitions.
+     *
+     * @param partitions the partitions for which to set the offset
+     * @return a Uni that completes successfully when the offset is set;
+     * it completes with {@code IllegalArgumentException} if {@code partitions} is {@code null};
+     * it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently assigned to this consumer
+     */
+    Uni<Void> seekToEnd(Collection<TopicPartition> partitions);
+
 }

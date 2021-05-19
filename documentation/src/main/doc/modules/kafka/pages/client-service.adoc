@@ -1,0 +1,24 @@
+[#kafka-client-service]
+=== KafkaClientService
+
+For advanced use cases, SmallRye Reactive Messaging provides a bean of type `KafkaClientService` that you can inject:
+
+[source,java]
+----
+@Inject
+KafkaClientService kafka;
+----
+
+From there, you can obtain an `org.apache.kafka.clients.producer.Producer` and an `io.smallrye.reactive.messaging.kafka.KafkaConsumer`.
+
+The Kafka `Producer` is thread safe and may be used from multiple threads, so SmallRye Reactive Messaging exposes it directly.
+
+The Kafka `Consumer`, on the other hand, is _not_ thread safe.
+For that reason, SmallRye Reactive Messaging runs all Kafka consumption operations on a single thread, called _polling thread_.
+(Just to be clear: each _channel_ has its own polling thread.)
+Access to this polling thread is mediated by the `KafkaConsumer`.
+It exposes common `Consumer` operations with an asynchronous API, so it can be used from arbitrary application threads.
+
+Sometimes, SmallRye Reactive Messaging provides direct access to the Kafka `Consumer`.
+For example, a <<kafka-consumer-rebalance-listener,`KafkaConsumerRebalanceListener`>> methods are always invoked on the polling thread, so they give you direct access to `Consumer`.
+In such case, you should use the synchronous `Consumer` API directly, instead of using the asynchronous `KafkaConsumer` API.
