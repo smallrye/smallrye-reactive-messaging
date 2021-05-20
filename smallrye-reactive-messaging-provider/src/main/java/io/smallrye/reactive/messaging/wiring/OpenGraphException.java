@@ -3,27 +3,22 @@ package io.smallrye.reactive.messaging.wiring;
 import java.util.Set;
 
 public class OpenGraphException extends WiringException {
-    private final Set<Wiring.Component> resolved;
-    private final Set<Wiring.ConsumingComponent> unresolved;
-
-    public OpenGraphException(Set<Wiring.Component> components,
-            Set<Wiring.ConsumingComponent> unresolved) {
-        this.resolved = components;
-        this.unresolved = unresolved;
+    public OpenGraphException(final String message) {
+        super(message);
     }
 
-    @Override
-    public String getMessage() {
+    public static OpenGraphException openGraphException(Set<Wiring.Component> resolved,
+            Set<Wiring.ConsumingComponent> unresolved) {
         StringBuffer message = new StringBuffer(
                 "Some components are not connected to either downstream consumers or upstream producers:\n");
-        this.resolved.stream().filter(component -> !component.isDownstreamResolved())
+        resolved.stream().filter(component -> !component.isDownstreamResolved())
                 .forEach(c -> message.append("\t- ").append(c).append(" has no downstream\n"));
-        this.unresolved.stream().filter(component -> !component.isDownstreamResolved())
+        unresolved.stream().filter(component -> !component.isDownstreamResolved())
                 .forEach(c -> message.append("\t- ").append(c).append(" has no downstream\n"));
-        this.unresolved.stream()
+        unresolved.stream()
                 .filter(c -> c.upstreams().isEmpty())
                 .forEach(c -> message.append("\t- ").append(c).append(" has no upstream\n"));
 
-        return message.toString();
+        return new OpenGraphException(message.toString());
     }
 }

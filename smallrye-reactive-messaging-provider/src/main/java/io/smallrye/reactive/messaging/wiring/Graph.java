@@ -26,7 +26,7 @@ public class Graph {
             log.strictModeEnabled();
         }
         if (strict && !isClosed) {
-            errors.add(new OpenGraphException(this.resolved, unresolved));
+            errors.add(OpenGraphException.openGraphException(this.resolved, unresolved));
         }
 
         detectCycles();
