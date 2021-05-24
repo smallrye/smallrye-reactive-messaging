@@ -336,7 +336,7 @@ URI format and parameters are listed on the component documentation, such as the
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-camel&lt;/artifactId&gt;
-  &lt;version&gt;3.3.0&lt;/version&gt;
+  &lt;version&gt;3.3.1&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -349,7 +349,7 @@ For example, if you want to process files, you would need to add the Camel File 
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;org.apache.camel&lt;/groupId&gt;
   &lt;artifactId&gt;camel-file&lt;/artifactId&gt;
-  &lt;version&gt;3.9.0&lt;/version&gt;
+  &lt;version&gt;3.10.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -487,7 +487,7 @@ As we have seen, the File component produces <code>GenericFile</code>.</p>
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from Camel contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.0/apidocs/io/smallrye/reactive/messaging/camel/IncomingExchangeMetadata.html"><code>IncomingExchangeMetadata</code></a> in the metadata.</p>
+<p>Messages coming from Camel contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.1/apidocs/io/smallrye/reactive/messaging/camel/IncomingExchangeMetadata.html"><code>IncomingExchangeMetadata</code></a> in the metadata.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -704,7 +704,7 @@ Refer to the Camel documentation to check which payload type is supported by the
 <div class="sect2">
 <h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
 <div class="paragraph">
-<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.0/apidocs/apidocs/io/smallrye/reactive/messaging/camel/OutgoingExchangeMetadata.html"><code>OutgoingExchangeMetadata</code></a> to the message metadata.
+<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.1/apidocs/apidocs/io/smallrye/reactive/messaging/camel/OutgoingExchangeMetadata.html"><code>OutgoingExchangeMetadata</code></a> to the message metadata.
 You can then influence how the outbound Camel <code>Exchange</code> is created, for example by adding properties:</p>
 </div>
 <div class="listingblock">
