@@ -417,7 +417,7 @@ So you can receive <em>payloads</em> representing records from Kafka using:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><a href="https://smallrye.io/smallrye-reactive-messaging/3.3.1/apidocs/io/smallrye/reactive/messaging/kafka/Record.html">Record&lt;K,V&gt;</a> - a pair key/value</p>
+<p><a href="https://smallrye.io/smallrye-reactive-messaging/3.3.2/apidocs/io/smallrye/reactive/messaging/kafka/Record.html">Record&lt;K,V&gt;</a> - a pair key/value</p>
 </li>
 <li>
 <p><a href="https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/consumer/ConsumerRecord.html">ConsumerRecord&lt;K,V&gt;</a> - a structure representing the record with all its metadata</p>
@@ -446,7 +446,7 @@ public void consume(ConsumerRecord&lt;String, String&gt; record) {
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.1/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
+<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.2/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
 <code>K</code> is the type of the record&#8217;s key.
 <code>T</code> is the type of the record&#8217;s value.
 It provides the key, topic, partitions, headers and so on:</p>
@@ -650,7 +650,7 @@ However, when a deserialization failure occurs, you can intercept it and provide
 If you don&#8217;t, <code>null</code> will be used as fallback value.</p>
 </div>
 <div class="paragraph">
-<p>To achieve this, create a CDI bean implementing the <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.1/apidocs/io/smallrye/reactive/messaging/kafka/DeserializationFailureHandler.html">DeserializationFailureHandler&lt;T&gt;</a> interface:</p>
+<p>To achieve this, create a CDI bean implementing the <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.2/apidocs/io/smallrye/reactive/messaging/kafka/DeserializationFailureHandler.html">DeserializationFailureHandler&lt;T&gt;</a> interface:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -692,7 +692,7 @@ However, if the handler throws an exception, the application would be marked unh
 <h3 id="_receiving_cloud_events"><a class="anchor" href="#_receiving_cloud_events"></a>Receiving Cloud Events</h3>
 <div class="paragraph">
 <p>The Kafka connector supports <a href="https://cloudevents.io/">Cloud Events</a>.
-When the connector detects a <em>structured</em> or <em>binary</em> Cloud Events, it adds a  <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.1/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html">IncomingKafkaCloudEventMetadata&lt;K, T&gt;</a> in the metadata of the Message.
+When the connector detects a <em>structured</em> or <em>binary</em> Cloud Events, it adds a  <a href="https://smallrye.io/smallrye-reactive-messaging/3.3.2/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html">IncomingKafkaCloudEventMetadata&lt;K, T&gt;</a> in the metadata of the Message.
 <code>IncomingKafkaCloudEventMetadata</code> contains the various (mandatory and optional) Cloud Event attributes.</p>
 </div>
 <div class="paragraph">
