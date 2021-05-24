@@ -41,6 +41,8 @@ import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.tracing.TracingPolicy;
+import io.vertx.kafka.client.common.KafkaClientOptions;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
 
@@ -69,7 +71,14 @@ public class KafkaSink {
         JsonObject kafkaConfiguration = extractProducerConfiguration(config);
 
         Map<String, Object> kafkaConfigurationMap = kafkaConfiguration.getMap();
-        stream = KafkaWriteStream.create(vertx.getDelegate(), kafkaConfigurationMap);
+        isTracingEnabled = config.getTracingEnabled();
+        final KafkaClientOptions clientOptions = KafkaClientOptions.fromMap(kafkaConfigurationMap, true);
+        clientOptions.setConfig(kafkaConfigurationMap);
+        if (isTracingEnabled) {
+            // Disable Vert.x Kafka Client traces, will be handled directly
+            clientOptions.setTracingPolicy(TracingPolicy.IGNORE);
+        }
+        stream = KafkaWriteStream.create(vertx.getDelegate(), clientOptions);
         stream.exceptionHandler(e -> {
             if (config.getTopic().isPresent()) {
                 log.unableToWrite(config.getChannel(), config.getTopic().get(), e);
@@ -88,7 +97,6 @@ public class KafkaSink {
         deliveryTimeoutMs = kafkaConfiguration.getInteger(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, defaultDeliveryTimeoutMs);
         topic = config.getTopic().orElseGet(config::getChannel);
         key = config.getKey().orElse(null);
-        isTracingEnabled = config.getTracingEnabled();
         writeCloudEvents = config.getCloudEvents();
         writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
