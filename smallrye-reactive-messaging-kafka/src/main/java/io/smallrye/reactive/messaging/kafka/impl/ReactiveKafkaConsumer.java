@@ -327,6 +327,34 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         return runOnPollingThread((Function<Consumer<K, V>, Set<TopicPartition>>) Consumer::assignment);
     }
 
+    @Override
+    public Uni<Void> seek(TopicPartition partition, long offset) {
+        return runOnPollingThread(c -> {
+            c.seek(partition, offset);
+        });
+    }
+
+    @Override
+    public Uni<Void> seek(TopicPartition partition, OffsetAndMetadata offsetAndMetadata) {
+        return runOnPollingThread(c -> {
+            c.seek(partition, offsetAndMetadata);
+        });
+    }
+
+    @Override
+    public Uni<Void> seekToBeginning(Collection<TopicPartition> partitions) {
+        return runOnPollingThread(c -> {
+            c.seekToBeginning(partitions);
+        });
+    }
+
+    @Override
+    public Uni<Void> seekToEnd(Collection<TopicPartition> partitions) {
+        return runOnPollingThread(c -> {
+            c.seekToEnd(partitions);
+        });
+    }
+
     boolean isClosed() {
         return closed.get();
     }
