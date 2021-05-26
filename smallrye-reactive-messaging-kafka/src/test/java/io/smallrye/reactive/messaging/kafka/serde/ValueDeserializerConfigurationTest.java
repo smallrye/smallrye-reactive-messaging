@@ -427,7 +427,9 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
 
         assertThatThrownBy(() -> source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1)).isInstanceOf(KafkaException.class)
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1))
+                        .isInstanceOf(KafkaException.class)
+                        .hasCauseInstanceOf(IllegalArgumentException.class)
                         .hasStackTraceContaining("boom");
 
     }

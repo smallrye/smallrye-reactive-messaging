@@ -182,78 +182,47 @@ public class KafkaUsage {
         t.start();
     }
 
-    private void consumeStrings(BooleanSupplier continuation, Runnable completion, Collection<String> topics,
-            Consumer<ConsumerRecord<String, String>> consumerFunction) {
-        Deserializer<String> keyDes = new StringDeserializer();
+    public <K, V> void consumeCount(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K, V>> consumer) {
         String randomId = UUID.randomUUID().toString();
-        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, continuation, null,
-                completion, topics, consumerFunction);
+        AtomicLong readCounter = new AtomicLong();
+        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDeserializer, valueDeserializer,
+                this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), null, completion,
+                Collections.singleton(topicName), (record) -> {
+                    consumer.accept(record);
+                    readCounter.incrementAndGet();
+                });
     }
 
-    private void consumeIntegers(BooleanSupplier continuation, Runnable completion, Collection<String> topics,
-            Consumer<ConsumerRecord<String, Integer>> consumerFunction) {
-        Deserializer<String> keyDes = new StringDeserializer();
-        Deserializer<Integer> valDes = new IntegerDeserializer();
-        String randomId = UUID.randomUUID().toString();
-        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, null,
-                completion, topics, consumerFunction);
-    }
-
-    private void consumeDoubles(BooleanSupplier continuation, Runnable completion, Collection<String> topics,
-            Consumer<ConsumerRecord<String, Double>> consumerFunction) {
-        Deserializer<String> keyDes = new StringDeserializer();
-        Deserializer<Double> valDes = new DoubleDeserializer();
-        String randomId = UUID.randomUUID().toString();
-        this.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, valDes, continuation, null,
-                completion, topics, consumerFunction);
+    public <K, V> void consumeCount(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, BiConsumer<K, V> consumer) {
+        consumeCount(topicName, count, timeout, unit, completion, keyDeserializer, valueDeserializer, record -> {
+            consumer.accept(record.key(), record.value());
+        });
     }
 
     public void consumeStrings(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, String> consumer) {
-        AtomicLong readCounter = new AtomicLong();
-        this.consumeStrings(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion,
-                Collections.singleton(topicName),
-                (record) -> {
-                    consumer.accept(record.key(), record.value());
-                    readCounter.incrementAndGet();
-                });
+        consumeCount(topicName, count, timeout, unit, completion, new StringDeserializer(), new StringDeserializer(),
+                consumer);
     }
 
     public void consumeDoubles(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, Double> consumer) {
-        AtomicLong readCounter = new AtomicLong();
-        this.consumeDoubles(this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit), completion,
-                Collections.singleton(topicName),
-                (record) -> {
-                    consumer.accept(record.key(), record.value());
-                    readCounter.incrementAndGet();
-                });
+        consumeCount(topicName, count, timeout, unit, completion, new StringDeserializer(), new DoubleDeserializer(),
+                consumer);
     }
 
     public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             BiConsumer<String, Integer> consumer) {
-        AtomicLong readCounter = new AtomicLong();
-        this.consumeIntegers(
-                this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit),
-                completion,
-                Collections.singleton(topicName),
-                (record) -> {
-                    consumer.accept(record.key(), record.value());
-                    readCounter.incrementAndGet();
-                });
+        consumeCount(topicName, count, timeout, unit, completion, new StringDeserializer(), new IntegerDeserializer(),
+                consumer);
     }
 
     public void consumeIntegers(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
             Consumer<ConsumerRecord<String, Integer>> consumer) {
-        AtomicLong readCounter = new AtomicLong();
-        this.consumeIntegers(
-                this.continueIfNotExpired(() -> readCounter.get() < (long) count, timeout, unit),
-                completion,
-                Collections.singleton(topicName),
-                (record) -> {
-                    consumer.accept(record);
-                    readCounter.incrementAndGet();
-                });
+        consumeCount(topicName, count, timeout, unit, completion, new StringDeserializer(), new IntegerDeserializer(),
+                consumer);
     }
 
     public void consumeIntegersWithTracing(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,

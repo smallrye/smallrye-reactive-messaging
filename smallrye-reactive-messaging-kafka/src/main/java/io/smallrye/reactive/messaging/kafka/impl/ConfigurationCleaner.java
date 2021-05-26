@@ -75,7 +75,7 @@ public class ConfigurationCleaner {
         return json;
     }
 
-    public static void cleanupProducerConfiguration(Map<String, String> json) {
+    public static void cleanupProducerConfiguration(Map<String, ?> json) {
         for (String key : COMMON) {
             json.remove(key);
         }

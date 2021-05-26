@@ -36,11 +36,16 @@ public class ClientTestBase extends KafkaTestBase {
 
     public Map<String, Object> producerProps() {
         Map<String, Object> props = new HashMap<>();
+        props.put("tracing-enabled", false);
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(requestTimeoutMillis));
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         return props;
+    }
+
+    public MapBasedConfig createProducerConfig() {
+        return new MapBasedConfig(producerProps());
     }
 
     protected MapBasedConfig createConsumerConfig(String groupId) {

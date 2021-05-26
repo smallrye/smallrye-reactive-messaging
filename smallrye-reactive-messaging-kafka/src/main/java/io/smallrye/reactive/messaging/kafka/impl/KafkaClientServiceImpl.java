@@ -5,12 +5,12 @@ import java.util.Objects;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.apache.kafka.clients.producer.Producer;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
 import io.smallrye.reactive.messaging.kafka.KafkaClientService;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 
 @ApplicationScoped
 public class KafkaClientServiceImpl implements KafkaClientService {
@@ -25,7 +25,7 @@ public class KafkaClientServiceImpl implements KafkaClientService {
     }
 
     @Override
-    public <K, V> Producer<K, V> getProducer(String channel) {
+    public <K, V> KafkaProducer<K, V> getProducer(String channel) {
         return connector.getProducer(Objects.requireNonNull(channel));
     }
 }

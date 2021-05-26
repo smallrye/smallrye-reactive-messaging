@@ -4,14 +4,24 @@ import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.errors.*;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.InvalidTopicException;
+import org.apache.kafka.common.errors.OffsetMetadataTooLarge;
+import org.apache.kafka.common.errors.RecordBatchTooLargeException;
+import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.errors.UnknownServerException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -28,27 +38,22 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkReadinessHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.tracing.TracingPolicy;
-import io.vertx.kafka.client.common.KafkaClientOptions;
-import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.mutiny.core.Vertx;
 
 public class KafkaSink {
 
-    private final KafkaWriteStream<?, ?> stream;
+    private final ReactiveKafkaProducer<?, ?> client;
     private final int partition;
     private final String topic;
     private final String key;
@@ -68,33 +73,19 @@ public class KafkaSink {
     private final boolean isHealthEnabled;
 
     public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
-        JsonObject kafkaConfiguration = extractProducerConfiguration(config);
-
-        Map<String, Object> kafkaConfigurationMap = kafkaConfiguration.getMap();
         isTracingEnabled = config.getTracingEnabled();
-        final KafkaClientOptions clientOptions = KafkaClientOptions.fromMap(kafkaConfigurationMap, true);
-        clientOptions.setConfig(kafkaConfigurationMap);
-        if (isTracingEnabled) {
-            // Disable Vert.x Kafka Client traces, will be handled directly
-            clientOptions.setTracingPolicy(TracingPolicy.IGNORE);
-        }
-        stream = KafkaWriteStream.create(vertx.getDelegate(), clientOptions);
-        stream.exceptionHandler(e -> {
-            if (config.getTopic().isPresent()) {
-                log.unableToWrite(config.getChannel(), config.getTopic().get(), e);
-            } else {
-                log.unableToWrite(config.getChannel(), e);
-            }
-        });
+
+        this.client = new ReactiveKafkaProducer<>(config);
 
         // fire producer event (e.g. bind metrics)
-        kafkaCDIEvents.producer().fire(stream.unwrap());
+        kafkaCDIEvents.producer().fire(client.unwrap());
 
         partition = config.getPartition();
         retries = config.getRetries();
         int defaultDeliveryTimeoutMs = (Integer) ProducerConfig.configDef().defaultValues()
                 .get(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG);
-        deliveryTimeoutMs = kafkaConfiguration.getInteger(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, defaultDeliveryTimeoutMs);
+        String deliveryTimeoutString = client.get(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG);
+        deliveryTimeoutMs = deliveryTimeoutString != null ? Integer.parseInt(deliveryTimeoutString) : defaultDeliveryTimeoutMs;
         topic = config.getTopic().orElseGet(config::getChannel);
         key = config.getKey().orElse(null);
         writeCloudEvents = config.getCloudEvents();
@@ -116,7 +107,7 @@ public class KafkaSink {
 
         this.isHealthEnabled = configuration.getHealthEnabled();
         if (isHealthEnabled && this.configuration.getHealthReadinessEnabled()) {
-            this.health = new KafkaSinkReadinessHealth(vertx, config, kafkaConfigurationMap, stream.unwrap());
+            this.health = new KafkaSinkReadinessHealth(vertx, config, client.configuration(), client.unwrap());
         } else {
             this.health = null;
         }
@@ -189,10 +180,13 @@ public class KafkaSink {
                 }
                 log.sendingMessageToTopic(message, actualTopic);
 
-                //noinspection unchecked,rawtypes
-                Uni<Void> uni = Uni.createFrom()
-                        .emitter(
-                                e -> stream.send((ProducerRecord) record, ar -> handleWriteResult(ar, message, record, e)));
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Uni<RecordMetadata> sendUni = client.send((ProducerRecord) record);
+
+                Uni<Void> uni = sendUni.onItem().transformToUni(ignored -> {
+                    log.successfullyToTopic(message, record.topic());
+                    return Uni.createFrom().completionStage(message.ack());
+                });
 
                 if (this.retries == Integer.MAX_VALUE) {
                     uni = uni.onFailure(this::isRecoverable).retry()
@@ -217,24 +211,6 @@ public class KafkaSink {
 
     private boolean isRecoverable(Throwable f) {
         return !NOT_RECOVERABLE.contains(f.getClass());
-    }
-
-    private void handleWriteResult(AsyncResult<?> ar, Message<?> message, ProducerRecord<?, ?> record,
-            UniEmitter<? super Void> emitter) {
-        String actualTopic = record.topic();
-        if (ar.succeeded()) {
-            log.successfullyToTopic(message, actualTopic);
-            message.ack().whenComplete((x, f) -> {
-                if (f != null) {
-                    emitter.fail(f);
-                } else {
-                    emitter.complete(null);
-                }
-            });
-        } else {
-            // Fail, there will be retry.
-            emitter.fail(ar.cause());
-        }
     }
 
     private Optional<OutgoingKafkaRecordMetadata<?>> getOutgoingKafkaRecordMetadata(Message<?> message) {
@@ -333,36 +309,6 @@ public class KafkaSink {
         }
     }
 
-    private JsonObject extractProducerConfiguration(KafkaConnectorOutgoingConfiguration config) {
-        JsonObject kafkaConfiguration = JsonHelper.asJsonObject(config.config());
-
-        // Acks must be a string, even when "1".
-        kafkaConfiguration.put(ProducerConfig.ACKS_CONFIG, config.getAcks());
-
-        if (!kafkaConfiguration.containsKey(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-            log.configServers(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
-            kafkaConfiguration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
-        }
-
-        if (!kafkaConfiguration.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
-            log.keyDeserializerOmitted();
-            kafkaConfiguration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, config.getKeySerializer());
-        }
-
-        if (!kafkaConfiguration.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {
-            String id = "kafka-producer-" + config.getChannel();
-            log.setKafkaProducerClientId(id);
-            kafkaConfiguration.put(ProducerConfig.CLIENT_ID_CONFIG, id);
-        }
-
-        if (!kafkaConfiguration.containsKey(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
-            // If no backoff is set, use 10s, it avoids high load on disconnection.
-            kafkaConfiguration.put(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "10000");
-        }
-
-        return ConfigurationCleaner.cleanupProducerConfiguration(kafkaConfiguration);
-    }
-
     public SubscriberBuilder<? extends Message<?>, Void> getSink() {
         return subscriber;
     }
@@ -397,8 +343,7 @@ public class KafkaSink {
         }
 
         try {
-            // close() blocks forever (Long.MAX).
-            this.stream.unwrap().close(Duration.ofMillis(configuration.getCloseTimeout()));
+            this.client.close();
         } catch (Throwable e) {
             log.errorWhileClosingWriteStream(e);
         }
@@ -412,7 +357,7 @@ public class KafkaSink {
         return configuration.getChannel();
     }
 
-    public Producer<?, ?> getProducer() {
-        return stream.unwrap();
+    public KafkaProducer<?, ?> getProducer() {
+        return client;
     }
 }

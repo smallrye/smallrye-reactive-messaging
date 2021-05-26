@@ -23,7 +23,6 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
-import org.apache.kafka.clients.producer.Producer;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
@@ -332,8 +331,8 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @SuppressWarnings("unchecked")
-    public <K, V> Producer<K, V> getProducer(String channel) {
-        return (Producer<K, V>) sinks.stream()
+    public <K, V> KafkaProducer<K, V> getProducer(String channel) {
+        return (KafkaProducer<K, V>) sinks.stream()
                 .filter(ks -> ks.getChannel().equals(channel))
                 .map(KafkaSink::getProducer)
                 .findFirst().orElse(null);

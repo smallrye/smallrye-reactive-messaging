@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.health;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,14 +23,15 @@ public class KafkaSinkReadinessHealth extends BaseHealth {
     private final String topic;
 
     public KafkaSinkReadinessHealth(Vertx vertx, KafkaConnectorOutgoingConfiguration config,
-            Map<String, Object> kafkaConfiguration, Producer<?, ?> producer) {
+            Map<String, ?> kafkaConfiguration, Producer<?, ?> producer) {
         super(config.getChannel());
         this.topic = config.getTopic().orElse(config.getChannel());
         this.config = config;
 
         if (config.getHealthReadinessTopicVerification()) {
             // Do not create the client if the readiness health checks are disabled
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, kafkaConfiguration, config.getChannel(), true);
+            Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
+            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel(), true);
             this.metric = null;
         } else {
             this.admin = null;
