@@ -71,10 +71,6 @@ Type: _int_ | false | `0`
 
 Type: _int_ | false | `8092`
 
-| *reconnect-attempts* | Set the max reconnect attempts
-
-Type: _int_ | false | `5`
-
 | *reconnect-interval-seconds* | Set the reconnect interval in seconds
 
 Type: _int_ | false | `1`

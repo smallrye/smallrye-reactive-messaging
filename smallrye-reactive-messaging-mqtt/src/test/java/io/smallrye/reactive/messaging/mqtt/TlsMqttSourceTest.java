@@ -48,7 +48,7 @@ public class TlsMqttSourceTest extends TlsMqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isSubscribed);
+        await().until(source::isReady);
         pause();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
