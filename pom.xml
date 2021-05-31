@@ -90,7 +90,7 @@
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>1.10.19</mockito.version>
-    <junit-pioneer.version>1.4.1</junit-pioneer.version>
+    <junit-pioneer.version>1.4.2</junit-pioneer.version>
     <junit-platform-commons.version>1.7.2</junit-platform-commons.version>
 
   </properties>
