@@ -43,7 +43,7 @@ public class MqttSourceTest extends MqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isSubscribed);
+        await().until(source::isReady);
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
                 counter::getAndIncrement)).start();
@@ -69,7 +69,7 @@ public class MqttSourceTest extends MqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isSubscribed);
+        await().until(source::isReady);
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
                 counter::getAndIncrement)).start();
@@ -101,7 +101,7 @@ public class MqttSourceTest extends MqttTestBase {
         stream.forEach(messages1::add).run();
         stream.forEach(messages2::add).run();
 
-        await().until(source::isSubscribed);
+        await().until(source::isReady);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
@@ -142,7 +142,7 @@ public class MqttSourceTest extends MqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isSubscribed);
+        await().until(source::isReady);
         new Thread(() -> usage.produce(topic, 10, null,
                 () -> large)).start();
 

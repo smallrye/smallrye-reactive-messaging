@@ -4,12 +4,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
-import io.vertx.mqtt.MqttClientOptions;
+import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
+import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
+import io.vertx.core.Future;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.mqtt.MqttClient;
-import io.vertx.mutiny.mqtt.messages.MqttConnAckMessage;
 import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class Clients {
@@ -20,64 +19,60 @@ public class Clients {
         // avoid direct instantiation.
     }
 
-    static Uni<MqttClient> getConnectedClient(Vertx vertx, String host, int port, String server,
-            MqttClientOptions options) {
-        String id = host + port + "<" + (server == null ? "" : server)
-                + ">-[" + (options.getClientId() != null ? options.getClientId() : "") + "]";
-        ClientHolder holder = clients.computeIfAbsent(id, key -> {
-            MqttClient client = MqttClient.create(vertx, options);
-            return new ClientHolder(client, host, port, server);
-        });
-        return holder.connect();
-    }
+    static ClientHolder getHolder(Vertx vertx, MqttClientSessionOptions options) {
 
-    static ClientHolder getHolder(Vertx vertx, String host, int port, String server,
-            MqttClientOptions options) {
+        String host = options.getHostname();
+        int port = options.getPort();
+        String clientId = options.getClientId();
+        String server = options.getServerName().orElse(null);
+        String username = options.getUsername();
+        String password = options.getPassword();
 
-        String id = host + port + "<" + (server == null ? "" : server)
-                + ">-[" + (options.getClientId() != null ? options.getClientId() : "") + "]";
+        String id = username + ":" + password + "@"
+                + host + ":"
+                + port
+                + "<" + (server == null ? "" : server)
+                + ">-[" + (clientId != null ? clientId : "") + "]";
         return clients.computeIfAbsent(id, key -> {
-            MqttClient client = MqttClient.create(vertx, options);
-            return new ClientHolder(client, host, port, server);
+            MqttClientSession client = MqttClientSession.create(vertx.getDelegate(), options);
+            return new ClientHolder(client);
         });
     }
 
     /**
-     * Removed all the stored clients.
+     * Remove all the stored clients.
      */
     public static void clear() {
-        clients.forEach((name, holder) -> holder.close());
+        clients.values().forEach(ClientHolder::close);
         clients.clear();
     }
 
     public static class ClientHolder {
 
-        private final MqttClient client;
-        private final Uni<MqttConnAckMessage> connection;
+        private final MqttClientSession client;
         private final BroadcastProcessor<MqttPublishMessage> messages;
 
-        public ClientHolder(MqttClient client, String host, int port, String server) {
+        public ClientHolder(MqttClientSession client) {
             this.client = client;
-            this.connection = client.connect(port, host, server).memoize().indefinitely();
             messages = BroadcastProcessor.create();
-            client.publishHandler(messages::onNext);
-            client.closeHandler(messages::onComplete);
+            client.messageHandler(m -> messages.onNext(MqttPublishMessage.newInstance(m)));
             client.exceptionHandler(messages::onError);
         }
 
-        public Uni<MqttClient> connect() {
-            return connection
-                    .map(ignored -> client);
+        public Future<Void> start() {
+            return client.start();
         }
 
-        public void close() {
-            if (client.isConnected()) {
-                client.disconnectAndAwait();
-            }
+        public Future<Void> close() {
+            return client.stop();
         }
 
         public Multi<MqttPublishMessage> stream() {
             return messages;
+        }
+
+        public MqttClientSession getClient() {
+            return client;
         }
     }
 
