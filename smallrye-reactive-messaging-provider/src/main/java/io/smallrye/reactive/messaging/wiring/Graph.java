@@ -206,7 +206,7 @@ public class Graph {
                 throw new CycleException(component, downstream);
             } else {
                 traces.add(downstream);
-                detectCycles(traces, downstream);
+                detectCycles(new HashSet<>(traces), downstream);
             }
         }
     }
