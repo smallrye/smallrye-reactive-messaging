@@ -115,8 +115,9 @@ public interface KafkaConsumer<K, V> {
      * @param partition the topic and partition for which to set the offset
      * @param offset the new offset
      * @return a Uni that completes successfully when the offset is set;
-     * it completes with {@code IllegalArgumentException} if the provided offset is negative;
-     * it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this consumer
+     *         it completes with {@code IllegalArgumentException} if the provided offset is negative;
+     *         it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this
+     *         consumer
      */
     Uni<Void> seek(TopicPartition partition, long offset);
 
@@ -128,8 +129,9 @@ public interface KafkaConsumer<K, V> {
      * @param partition the topic and partition for which to set the offset
      * @param offsetAndMetadata the new offset, with additional metadata
      * @return a Uni that completes successfully when the offset is set;
-     * it completes with {@code IllegalArgumentException} if the provided offset is negative;
-     * it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this consumer
+     *         it completes with {@code IllegalArgumentException} if the provided offset is negative;
+     *         it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this
+     *         consumer
      */
     Uni<Void> seek(TopicPartition partition, OffsetAndMetadata offsetAndMetadata);
 
@@ -139,8 +141,9 @@ public interface KafkaConsumer<K, V> {
      *
      * @param partitions the partitions for which to set the offset
      * @return a Uni that completes successfully when the offset is set;
-     * it completes with {@code IllegalArgumentException} if {@code partitions} is {@code null};
-     * it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently assigned to this consumer
+     *         it completes with {@code IllegalArgumentException} if {@code partitions} is {@code null};
+     *         it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently
+     *         assigned to this consumer
      */
     Uni<Void> seekToBeginning(Collection<TopicPartition> partitions);
 
@@ -150,8 +153,9 @@ public interface KafkaConsumer<K, V> {
      *
      * @param partitions the partitions for which to set the offset
      * @return a Uni that completes successfully when the offset is set;
-     * it completes with {@code IllegalArgumentException} if {@code partitions} is {@code null};
-     * it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently assigned to this consumer
+     *         it completes with {@code IllegalArgumentException} if {@code partitions} is {@code null};
+     *         it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently
+     *         assigned to this consumer
      */
     Uni<Void> seekToEnd(Collection<TopicPartition> partitions);
 

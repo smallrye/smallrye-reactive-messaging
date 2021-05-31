@@ -55,6 +55,8 @@ The payload is converted to the AMQP Message _body_.
 | Any other class | The payload is converted to JSON (using a Json Mapper). The result is wrapped into AMQP Data using a **binary** content. The `content-type` is set to `application/json`
 |===
 
+If the message payload cannot be serialized to JSON, the message is _nacked_.
+
 === Outbound Metadata
 
 When sending `Messages`, you can add an instance of {javadoc-base}/apidocs/io/smallrye/reactive/messaging/amqp/OutgoingAmqpMetadata.html[`OutgoingAmqpMetadata`] to influence how the message is going to sent to AMQP.

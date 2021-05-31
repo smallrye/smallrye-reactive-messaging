@@ -1,9 +1,12 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+import static org.awaitility.Awaitility.await;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -67,7 +70,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
         AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
@@ -99,12 +103,14 @@ public class AmqpSinkTest extends AmqpTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
         AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic, server.actualPort());
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic,
+                server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
@@ -130,11 +136,13 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingString() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(UUID.randomUUID().toString(),
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(
+                UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -154,12 +162,14 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(payloadsReceived).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
     }
 
-    private MockServer setupMockServerForTypeTest(List<org.apache.qpid.proton.message.Message> messages, CountDownLatch latch)
+    private MockServer setupMockServerForTypeTest(List<org.apache.qpid.proton.message.Message> messages,
+            CountDownLatch latch)
             throws Exception {
         return setupMockServerForTypeTest(messages, latch, new AtomicReference<String>());
     }
 
-    private MockServer setupMockServerForTypeTest(List<org.apache.qpid.proton.message.Message> messages, CountDownLatch latch,
+    private MockServer setupMockServerForTypeTest(List<org.apache.qpid.proton.message.Message> messages,
+            CountDownLatch latch,
             AtomicReference<String> attachAddress) throws Exception {
         return new MockServer(executionHolder.vertx().getDelegate(), serverConnection -> {
             serverConnection.openHandler(serverSender -> {
@@ -206,7 +216,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingObject() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -242,12 +253,77 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(count.get()).isEqualTo(msgCount);
     }
 
+    /**
+     * Extension of Person that cannot be serialized to JSON.
+     */
+    public static class Bad extends Person {
+
+        public Person getPerson() {
+            return this;
+        }
+
+    }
+
+    @Test
+    @Timeout(30)
+    public void testSinkUsingObjectThatCannotBeSerialized() throws Exception {
+        int msgCount = 10;
+        AtomicInteger nack = new AtomicInteger();
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount / 2);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
+        //noinspection unchecked
+        Multi.createFrom().range(0, 10)
+                .map(i -> {
+                    Person p;
+                    if (i % 2 == 0) {
+                        p = new Person();
+                        p.setName(HELLO + i);
+                    } else {
+                        p = new Bad();
+                        p.setName(HELLO + i);
+                    }
+                    return p;
+                })
+                .map(p -> Message.of(p, () -> CompletableFuture.completedFuture(null), e -> {
+                    nack.incrementAndGet();
+                    return CompletableFuture.completedFuture(null);
+                }))
+                .subscribe((Subscriber<? super Message<Person>>) sink.build());
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+        await().until(() -> nack.get() == 5);
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getContentType()).isEqualTo("application/json");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(Data.class);
+            Binary bin = ((Data) body).getValue();
+            byte[] bytes = Binary.copy(bin).getArray();
+            JsonObject json = Buffer.buffer(bytes).toJsonObject();
+            Person p = json.mapTo(Person.class);
+            assertThat(p.getName()).startsWith("hello-");
+            count.incrementAndGet();
+        });
+
+        assertThat(count.get()).isEqualTo(msgCount / 2);
+        assertThat(nack).hasValue(5);
+    }
+
     @Test
     @Timeout(30)
     public void testSinkUsingJsonObject() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -284,7 +360,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingJsonArray() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -322,7 +399,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingList() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -364,7 +442,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingVertxBuffer() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -400,7 +479,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingMutinyBuffer() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -436,7 +516,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingByteArray() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -473,7 +554,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         int msgCount = 10;
         String address = "sink";
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
         AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
@@ -513,7 +595,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testABeanProducingMessagesSentToAMQPWithOutboundMetadata() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
         AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
@@ -554,7 +637,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         int msgCount = 10;
         String address = "sink-foo";
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
         AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
@@ -576,7 +660,8 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         List<Object> payloadsReceived = new ArrayList<>(msgCount);
         messagesReceived.forEach(msg -> {
-            assertThat(msg.getAddress()).isEqualTo(address); // Matches the one from the config, not metadata, due to not using an anonymous sender
+            assertThat(msg.getAddress()).isEqualTo(
+                    address); // Matches the one from the config, not metadata, due to not using an anonymous sender
             assertThat(msg.getSubject()).isEqualTo("metadata-subject");
 
             Section body = msg.getBody();
@@ -596,7 +681,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingAmqpMessage() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -636,7 +722,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingAmqpMessageWithNonAnonymousSender() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
         AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
@@ -660,7 +747,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         messagesReceived.forEach(msg -> {
             assertThat(msg.getContentType()).isNull();
             assertThat(msg.getSubject()).isEqualTo("foo");
-            assertThat(msg.getAddress()).isEqualTo(address); // Matches the one from the config, not message, due to not using an anonymous sender
+            assertThat(msg.getAddress()).isEqualTo(
+                    address); // Matches the one from the config, not message, due to not using an anonymous sender
 
             Section body = msg.getBody();
             assertThat(body).isInstanceOf(AmqpValue.class);
@@ -682,7 +770,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingProtonMessage() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -726,7 +815,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingMutinyMessage() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -768,7 +858,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingMutinyMessageViaBuilder() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -811,7 +902,8 @@ public class AmqpSinkTest extends AmqpTestBase {
     public void testSinkUsingVertxAmqpClientMessage() throws Exception {
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -856,12 +948,14 @@ public class AmqpSinkTest extends AmqpTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
         AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkUsingChannelName(topic, server.actualPort());
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkUsingChannelName(topic,
+                server.actualPort());
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -896,7 +990,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         String address = UUID.randomUUID().toString();
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -972,11 +1067,13 @@ public class AmqpSinkTest extends AmqpTestBase {
         String address = UUID.randomUUID().toString();
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address, server.actualPort(),
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address,
+                server.actualPort(),
                 3000);
 
         //noinspection unchecked
@@ -1048,11 +1145,13 @@ public class AmqpSinkTest extends AmqpTestBase {
         String address = UUID.randomUUID().toString();
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address, server.actualPort(),
+        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address,
+                server.actualPort(),
                 3000);
 
         //noinspection unchecked
@@ -1125,7 +1224,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         String address = UUID.randomUUID().toString();
         int msgCount = 10;
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
-        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections.synchronizedList(new ArrayList<>(msgCount));
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
@@ -1200,7 +1300,8 @@ public class AmqpSinkTest extends AmqpTestBase {
         return getSubscriberBuilder(config);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkUsingChannelName(String topic, int port) {
+    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkUsingChannelName(String topic,
+            int port) {
         Map<String, Object> config = createBaseConfig(topic, port);
         // We dont add the address config element, relying on the channel name instead
 

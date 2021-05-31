@@ -115,14 +115,24 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         Subscriber<? super Message<?>> subscriber = this.downstream.get();
 
         retrieveSender
-                .onItem().transformToUni(
-                        sender -> send(sender, message, durable, ttl, configuredAddress, useAnonymousSender, configuration)
-                                .onItem().transform(m -> Tuple2.of(sender, m)))
+                .onItem().transformToUni(sender -> {
+                    try {
+                        return send(sender, message, durable, ttl, configuredAddress, useAnonymousSender, configuration)
+                                .onItem().transform(m -> Tuple2.of(sender, m));
+                    } catch (Exception e) {
+                        // Message can be sent - nacking and skipping.
+                        message.nack(e);
+                        log.serializationFailure(configuration.getChannel(), e);
+                        return Uni.createFrom().nullItem();
+                    }
+                })
                 .subscribe().with(
                         tuple -> {
-                            subscriber.onNext(tuple.getItem2());
-                            if (requested.decrementAndGet() == 0) { // no more credit, request more
-                                onNoMoreCredit(tuple.getItem1());
+                            if (tuple != null) { // Serialization issue
+                                subscriber.onNext(tuple.getItem2());
+                                if (requested.decrementAndGet() == 0) { // no more credit, request more
+                                    onNoMoreCredit(tuple.getItem1());
+                                }
                             }
                         },
                         subscriber::onError);

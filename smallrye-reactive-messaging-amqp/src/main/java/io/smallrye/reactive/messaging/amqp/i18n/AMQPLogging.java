@@ -127,4 +127,8 @@ public interface AMQPLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 16227, value = "A message sent to channel `%s` has been nacked, ignoring the message and marking the AMQP message as modified with `delivery-failed` and `undeliverable-here`")
     void nackedModifiedFailedMessageAndUndeliverableHere(String channel);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 16228, value = "Unable to serialize message on channel `%s`, message has been nacked")
+    void serializationFailure(String channel, @Cause Throwable reason);
 }
