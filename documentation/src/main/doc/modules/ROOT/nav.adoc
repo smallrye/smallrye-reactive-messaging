@@ -33,6 +33,8 @@
 *** xref:kafka:kafka.adoc#kafka-outbound[Writing Kafka Records]
 *** xref:kafka:kafka.adoc#kafka-health[Health Check]
 *** xref:kafka:kafka.adoc#kafka-avro-configuration[Using Avro]
+*** xref:kafka:kafka.adoc#kafka-client-service[Accessing the Kafka client]
+*** xref:kafka:kafka.adoc#kafka-kerberos[Kerberos authentication]
 
 ** xref:amqp:amqp.adoc[AMQP]
 *** xref:amqp:amqp.adoc#amqp-installation[Using the connector]
