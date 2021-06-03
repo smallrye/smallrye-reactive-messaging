@@ -60,7 +60,7 @@
     <vertx.version>4.1.0</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
-    <weld.version>3.1.7.Final</weld.version>
+    <weld.version>3.1.7.SP1</weld.version>
     <camel.version>3.10.0</camel.version>
 
     <microprofile-reactive-messaging.version>2.0</microprofile-reactive-messaging.version>
@@ -287,7 +287,13 @@
     <dependency>
       <groupId>org.jboss.weld.se</groupId>
       <artifactId>weld-se-core</artifactId>
-      <version>${version.weld.core}</version>
+      <version>${weld.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.weld</groupId>
+      <artifactId>weld-core-impl</artifactId>
+      <version>${weld.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

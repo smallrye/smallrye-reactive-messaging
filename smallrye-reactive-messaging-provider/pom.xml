@@ -75,5 +75,6 @@
       <artifactId>jboss-logmanager</artifactId>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 </project>
