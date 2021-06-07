@@ -101,7 +101,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     /**
      * New partitions are assigned.
-     * This method is called from the Kafka pool thread.
+     * This method is called from the Kafka poll thread.
      *
      * @param partitions the list of partitions that are now assigned to the consumer
      *        (may include partitions previously assigned to the consumer)

@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -27,7 +28,8 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
 public class PerformanceProducerTest extends KafkaTestBase {
 
-    private static final int COUNT = 100000;
+    private static final int COUNT = 100_000;
+    private static final int TIMEOUT_IN_MINUTES = 1;
 
     @Test
     public void testDefault() throws InterruptedException {
@@ -51,12 +53,12 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long begin = System.currentTimeMillis();
         bean.run();
         await()
-                .atMost(Duration.ofMinutes(1))
-                .until(() -> bean.list().size() == COUNT);
+                .atMost(Duration.ofMinutes(TIMEOUT_IN_MINUTES))
+                .until(() -> bean.count() == COUNT);
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(1, TimeUnit.MINUTES);
+        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -70,7 +72,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, 1, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
+        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
             received.add(v);
         });
 
@@ -86,12 +88,12 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long begin = System.currentTimeMillis();
         bean.run();
         await()
-                .atMost(Duration.ofMinutes(1))
-                .until(() -> bean.list().size() == COUNT);
+                .atMost(Duration.ofMinutes(TIMEOUT_IN_MINUTES))
+                .until(() -> bean.count() == COUNT);
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(1, TimeUnit.MINUTES);
+        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -105,7 +107,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, 1, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
+        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
             received.add(v);
         });
 
@@ -122,12 +124,12 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long begin = System.currentTimeMillis();
         bean.run();
         await()
-                .atMost(Duration.ofMinutes(1))
-                .until(() -> bean.list().size() == COUNT);
+                .atMost(Duration.ofMinutes(TIMEOUT_IN_MINUTES))
+                .until(() -> bean.count() == COUNT);
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(1, TimeUnit.MINUTES);
+        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -141,7 +143,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, 1, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
+        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
             received.add(v);
         });
 
@@ -159,12 +161,12 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long begin = System.currentTimeMillis();
         bean.run();
         await()
-                .atMost(Duration.ofMinutes(1))
-                .until(() -> bean.list().size() == COUNT);
+                .atMost(Duration.ofMinutes(TIMEOUT_IN_MINUTES))
+                .until(() -> bean.count() == COUNT);
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(1, TimeUnit.MINUTES);
+        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -178,7 +180,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, 1, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
+        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
             received.add(v);
         });
 
@@ -195,12 +197,12 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long begin = System.currentTimeMillis();
         bean.run();
         await()
-                .atMost(Duration.ofMinutes(1))
-                .until(() -> bean.list().size() == COUNT);
+                .atMost(Duration.ofMinutes(TIMEOUT_IN_MINUTES))
+                .until(() -> bean.count() == COUNT);
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(1, TimeUnit.MINUTES);
+        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -211,7 +213,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
     @ApplicationScoped
     public static class GeneratorBean {
 
-        private final List<Integer> acked = Collections.synchronizedList(new ArrayList<>());
+        private final LongAdder counter = new LongAdder();
 
         @Inject
         @Channel("kafka")
@@ -222,15 +224,15 @@ public class PerformanceProducerTest extends KafkaTestBase {
             for (int i = 0; i < COUNT; i++) {
                 int v = i;
                 Message<Integer> message = Message.of(v, () -> {
-                    acked.add(v);
+                    counter.increment();
                     return CompletableFuture.completedFuture(null);
                 });
                 emitter.send(message);
             }
         }
 
-        public List<Integer> list() {
-            return acked;
+        public long count() {
+            return counter.sum();
         }
 
     }

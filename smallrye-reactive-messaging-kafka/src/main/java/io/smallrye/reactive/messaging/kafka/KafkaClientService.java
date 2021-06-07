@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import org.apache.kafka.clients.producer.Producer;
-
 import io.smallrye.common.annotation.Experimental;
 
 @Experimental("experimental api")
@@ -27,12 +25,20 @@ public interface KafkaClientService {
 
     /**
      * Gets the managed Kafka Producer for the given channel.
+     * This method returns the reactive producer.
+     * <p>
+     * Be aware that most actions require to be run on the Kafka sending thread.
+     * You can schedule actions using:
+     * <p>
+     * {@code getProducer(channel).runOnSendingThread(c -> { ... })}
+     * <p>
+     * You can retrieve the <em>low-level</em> client using the {@link KafkaProducer#unwrap()} method.
      *
      * @param channel the channel, must not be {@code null}
      * @param <K> the type of the key
      * @param <V> the type of the value
      * @return the producer, {@code null} if not found
      */
-    <K, V> Producer<K, V> getProducer(String channel);
+    <K, V> KafkaProducer<K, V> getProducer(String channel);
 
 }

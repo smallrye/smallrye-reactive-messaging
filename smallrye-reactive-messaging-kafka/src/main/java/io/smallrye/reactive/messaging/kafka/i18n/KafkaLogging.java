@@ -210,4 +210,7 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18247, value = "Resuming Kafka consumption for channel %s")
     void resumingChannel(String channel);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18248, value = "Key serializer omitted, using String as default")
+    void keySerializerOmitted();
 }

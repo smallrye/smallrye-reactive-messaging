@@ -24,7 +24,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
-import java.util.stream.StreamSupport;
 
 import io.smallrye.common.annotation.Experimental;
 
@@ -411,10 +410,16 @@ public interface Message<T> {
         if (clazz == null) {
             throw new IllegalArgumentException("`clazz` must not be `null`");
         }
-        return StreamSupport.stream(getMetadata().spliterator(), false)
-                .filter(clazz::isInstance)
-                .map(x -> (M) x) // casting is safe here as we checked the type before.
-                .findAny();
+        // TODO we really should do `getMetadata().get(clazz)`, because it's more intuitive, corresponds
+        //  closer to the documentation, and performs a bit better, but it would be a breaking change,
+        //  as `Message.getMetadata(Class)` returns any metadata item that is a _subtype_ of given class,
+        //  while `Metadata.get(Class)` returns a metadata item that is _exactly_ of given class
+        for (Object item : getMetadata()) {
+            if (clazz.isInstance(item)) {
+                return Optional.of((M) item);
+            }
+        }
+        return Optional.empty();
     }
 
     /**

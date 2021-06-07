@@ -56,4 +56,6 @@ public interface KafkaExceptions {
     @Message(id = 18012, value = "Unable to select the DeserializationFailureHandler named `%s` for channel `%s` - too many matches (%d)")
     AmbiguousResolutionException unableToFindDeserializationFailureHandler(String name, String channel, int count);
 
+    @Message(id = 18013, value = "Cannot configure the Kafka producer for channel `%s` - the `mp.messaging.outgoing.%s.value.serializer` property is missing")
+    IllegalArgumentException missingValueSerializer(String channel, String channelAgain);
 }

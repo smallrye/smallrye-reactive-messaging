@@ -27,9 +27,9 @@ public interface KafkaConsumer<K, V> {
      * <p>
      * The action is a function taking as parameter the {@link Consumer} and that returns a result (potentially {@code null}).
      * The produced {@link Uni} emits the returned result when the action completes. If the action throws an exception,
-     * the produced using emits the exception as failure.
+     * the produced {@code Uni} emits the exception as failure.
      * <p>
-     * If the action does not return a result, use {@link #runOnPollingThread(Consumer)}.
+     * If the action does not return a result, use {@link #runOnPollingThread(java.util.function.Consumer)}.
      *
      * @param action the action to execute, must not be {@code null}
      * @param <R> the type of result, can be {@code Void}
@@ -42,7 +42,7 @@ public interface KafkaConsumer<K, V> {
      * <p>
      * The action is a consumer receiving the {@link Consumer}.
      * The produced {@link Uni} emits {@code null} when the action completes. If the action throws an exception,
-     * the produced using emits the exception as failure.
+     * the produced {@code Uni} emits the exception as failure.
      *
      * @param action the action, must not be {@code null}
      * @return the Uni emitting {@code null} or the failure when the action completes.
