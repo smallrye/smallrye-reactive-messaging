@@ -32,6 +32,35 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
     static JsonObject fallbackForKey = new JsonObject().put("fallback", "key");
 
     @Test
+    void testWhenNoFailureHandlerIsSet() {
+        MapBasedConfig config = new MapBasedConfig()
+                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
+                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.kafka.graceful-shutdown", false)
+                .with("mp.messaging.incoming.kafka.topic", topic)
+                .with("mp.messaging.incoming.kafka.auto.offset.reset", "earliest")
+                .with("mp.messaging.incoming.kafka.health-enabled", false)
+                .with("mp.messaging.incoming.kafka.value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("mp.messaging.incoming.kafka.key.deserializer", JsonObjectDeserializer.class.getName());
+
+        addBeans(RecordConverter.class);
+        MySink sink = runApplication(config, MySink.class);
+
+        // Fail for value
+        JsonObject key = new JsonObject().put("key", "key");
+        usage
+                .produce(UUID.randomUUID().toString(), 1, new JsonObjectSerializer(), new DoubleSerializer(),
+                        null, () -> new ProducerRecord<>(topic, key, 698745231.56));
+        await().until(() -> sink.list().size() == 1);
+
+        assertThat(sink.list().get(0)).isInstanceOf(Record.class)
+                .satisfies(rec -> {
+                    assertThat(rec.value()).isNull();
+                    assertThat(rec.key()).isEqualTo(key);
+                });
+    }
+
+    @Test
     public void testWhenBothValueAndKeyFailureHandlerAreSetToTheSameHandler() {
         MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
