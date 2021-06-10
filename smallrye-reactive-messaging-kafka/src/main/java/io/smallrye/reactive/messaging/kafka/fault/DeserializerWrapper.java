@@ -116,6 +116,7 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
 
     /**
      * If the user has specified a handler function - use it.
+     * Otherwise log the deserialization exception and recover to {@code null}
      *
      * @param topic the topic
      * @param headers the header, can be {@code null}
@@ -134,6 +135,8 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
                 KafkaLogging.log.deserializationFailureHandlerFailure(deserializationFailureHandler.toString(), e);
                 source.reportFailure(e, true);
             }
+        } else {
+            KafkaLogging.log.unableToDeserializeMessage(topic, exception);
         }
         return null;
     }

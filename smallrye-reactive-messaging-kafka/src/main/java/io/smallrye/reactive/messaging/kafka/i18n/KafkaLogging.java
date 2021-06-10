@@ -213,4 +213,8 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18248, value = "Key serializer omitted, using String as default")
     void keySerializerOmitted();
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18249, value = "Unable to recover from the deserialization failure (topic: %s), configure a DeserializationFailureHandler to recover from errors.")
+    void unableToDeserializeMessage(String topic, @Cause Throwable t);
 }
