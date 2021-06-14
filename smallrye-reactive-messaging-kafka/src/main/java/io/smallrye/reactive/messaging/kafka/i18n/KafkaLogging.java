@@ -202,11 +202,11 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18245, value = "There are still %d unprocessed messages after the closing timeout")
     void messageStillUnprocessedAfterTimeout(long unprocessed);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18246, value = "Pausing Kafka consumption for channel %s - not enough downstream requests")
     void pausingChannel(String channel);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18247, value = "Resuming Kafka consumption for channel %s")
     void resumingChannel(String channel);
 
