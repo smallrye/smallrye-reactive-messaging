@@ -130,7 +130,7 @@
         <!-- NOTE: this modify the source tree, so every time there is an update, the new file must be committed and pushed -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.2.0</version>
         <executions>
           <execution>
             <id>extract-generated-documentation</id>
