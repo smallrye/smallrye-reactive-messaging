@@ -13,6 +13,7 @@ import javax.enterprise.inject.Instance;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
 
 import io.opentelemetry.api.trace.Span;
@@ -262,7 +263,7 @@ public class KafkaSource<K, V> {
             if (configuration.getGracefulShutdown()) {
                 Duration pollTimeoutTwice = Duration.ofMillis(configuration.getPollTimeout() * 2L);
                 if (this.client.runOnPollingThread(c -> {
-                    Set<org.apache.kafka.common.TopicPartition> partitions = c.assignment();
+                    Set<TopicPartition> partitions = c.assignment();
                     if (!partitions.isEmpty()) {
                         log.pauseAllPartitionOnTermination();
                         c.pause(partitions);

@@ -271,4 +271,103 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                     assertFalse(healthReportBuilder.build().isOk());
                 });
     }
+
+    @Test
+    public void testSourceWithThrottledAndRebalance() {
+        createTopic(topic, 2);
+        MapBasedConfig config1 = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", "test-source-with-throttled-latest-processed-commit")
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("commit-strategy", "throttled")
+                .with("throttled.unprocessed-record-max-age.ms", 1);
+
+        MapBasedConfig config2 = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", "test-source-with-throttled-latest-processed-commit")
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("commit-strategy", "throttled")
+                .with("throttled.unprocessed-record-max-age.ms", 1);
+
+        KafkaConnectorIncomingConfiguration ic1 = new KafkaConnectorIncomingConfiguration(config1);
+        KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config2);
+        source = new KafkaSource<>(vertx,
+                "test-source-with-throttled-latest-processed-commit", ic1,
+                UnsatisfiedInstance.instance(),
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), -1);
+
+        KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
+                "test-source-with-throttled-latest-processed-commit", ic2,
+                UnsatisfiedInstance.instance(),
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), -1);
+
+        List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());
+        source.getStream().subscribe().with(m -> {
+            m.ack();
+            messages1.add(m);
+        });
+
+        await().until(() -> source.getConsumer().getAssignments().await().indefinitely().size() == 2);
+
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(10000, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
+
+        List<Message<?>> messages2 = Collections.synchronizedList(new ArrayList<>());
+        source2.getStream().subscribe().with(m -> {
+            m.ack();
+            messages2.add(m);
+        });
+
+        await().until(() -> source2.getConsumer().getAssignments().await().indefinitely().size() == 1
+                && source.getConsumer().getAssignments().await().indefinitely().size() == 1);
+
+        new Thread(() -> usage.produceIntegers(10000, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()))).start();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() + messages2.size() >= 10000);
+
+        MapBasedConfig configForAdmin = config1.copy().with("client.id", "test-admin");
+        admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    TopicPartition tp1 = new TopicPartition(topic, 0);
+                    TopicPartition tp2 = new TopicPartition(topic, 1);
+                    CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
+                    admin
+                            .listConsumerGroupOffsets("test-source-with-throttled-latest-processed-commit",
+                                    new ListConsumerGroupOffsetsOptions()
+                                            .topicPartitions(Arrays.asList(tp1, tp2)),
+                                    a -> {
+                                        if (a.failed()) {
+                                            future.completeExceptionally(a.cause());
+                                        } else {
+                                            future.complete(a.result());
+                                        }
+                                    });
+
+                    Map<TopicPartition, OffsetAndMetadata> result = future.get();
+                    assertNotNull(result.get(tp1));
+                    assertNotNull(result.get(tp2));
+                    assertEquals(result.get(tp1).getOffset() + result.get(tp2).getOffset(), 20000);
+                });
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    HealthReport.HealthReportBuilder healthReportBuilder = HealthReport.builder();
+                    source.isAlive(healthReportBuilder);
+                    HealthReport build = healthReportBuilder.build();
+                    boolean ok = build.isOk();
+                    if (!ok) {
+                        build.getChannels().forEach(ci -> System.out.println(ci.getChannel() + " - " + ci.getMessage()));
+                    }
+                    assertTrue(ok);
+                });
+
+        source2.closeQuietly();
+    }
 }

@@ -36,12 +36,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -57,10 +54,12 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
     private MockConsumer<String, String> consumer;
 
     private KafkaSource<String, String> source;
+    private KafkaSource<String, String> source2;
 
     @BeforeEach
     public void initializing() {
         vertx = Vertx.vertx();
+        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
         consumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
     }
 
@@ -68,6 +67,9 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
     void closing() {
         if (source != null) {
             source.closeQuietly();
+        }
+        if (source2 != null) {
+            source2.closeQuietly();
         }
         vertx.closeAndAwait();
     }
@@ -179,6 +181,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
         consumer.updateBeginningOffsets(Collections.singletonMap(tp, 0L));
 
         consumer.schedulePollTask(() -> {
+            source.getCommitHandler().partitionsAssigned(Collections.singleton(tp));
             consumer.rebalance(Collections.singletonList(new TopicPartition(TOPIC, 0)));
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 0, "k", "v0"));
         });
@@ -246,6 +249,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
 
         consumer.schedulePollTask(() -> {
             consumer.rebalance(offsets.keySet());
+            source.getCommitHandler().partitionsAssigned(offsets.keySet());
             for (int i = 0; i < 500; i++) {
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i));
@@ -323,6 +327,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
 
         consumer.schedulePollTask(() -> {
             consumer.rebalance(offsets.keySet());
+            source.getCommitHandler().partitionsAssigned(offsets.keySet());
             for (int i = 0; i < 500; i++) {
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i));

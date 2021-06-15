@@ -229,6 +229,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         consumer.schedulePollTask(() -> {
             consumer.rebalance(offsets.keySet());
+            source.getCommitHandler().partitionsAssigned(offsets.keySet());
             for (int i = 0; i < 500; i++) {
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i));
@@ -266,7 +267,6 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .atMost(Duration.ofMinutes(1))
                 .untilAsserted(() -> {
                     Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(offsets.keySet());
-                    System.out.println("committed: " + committed.get(p0) + " / " + committed.get(p1));
                     assertThat(committed.get(p0)).isNotNull();
                     assertThat(committed.get(p0).offset()).isEqualTo(1500);
                     assertThat(committed.get(p1)).isNotNull();
@@ -309,6 +309,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         consumer.schedulePollTask(() -> {
             consumer.rebalance(offsets.keySet());
+            source.getCommitHandler().partitionsAssigned(offsets.keySet());
             for (int i = 0; i < 500; i++) {
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i));
