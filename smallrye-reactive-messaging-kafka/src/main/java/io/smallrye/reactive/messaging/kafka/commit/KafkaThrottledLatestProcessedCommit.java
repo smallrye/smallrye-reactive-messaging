@@ -47,6 +47,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
     private volatile long timerId = -1;
+    private final Collection<TopicPartition> assignments = new CopyOnWriteArrayList<>();
 
     private KafkaThrottledLatestProcessedCommit(
             String groupId,
@@ -110,7 +111,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     public void partitionsAssigned(Collection<TopicPartition> partitions) {
         runOnContextAndAwait(() -> {
             stopFlushAndCheckHealthTimer();
-
+            assignments.addAll(partitions);
             if (!partitions.isEmpty() || !offsetStores.isEmpty()) {
                 startFlushAndCheckHealthTimer();
             }
@@ -123,11 +124,13 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * Revoked partitions.
      * This method is called from the Kafka pool thread.
      *
-     * @param partitions The list of partitions that were assigned to the consumer on the last rebalance
+     * @param partitions The list of partitions that were assigned to the consumer and now need to be revoked
+     *        (may not include all currently assigned partitions).
      */
     @Override
     public void partitionsRevoked(Collection<TopicPartition> partitions) {
         runOnContextAndAwait(() -> {
+            assignments.removeAll(partitions);
             stopFlushAndCheckHealthTimer();
             return null;
         });
@@ -193,7 +196,6 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     @Override
     public <K, V> IncomingKafkaRecord<K, V> received(IncomingKafkaRecord<K, V> record) {
         TopicPartition recordsTopicPartition = getTopicPartition(record);
-
         offsetStores
                 .computeIfAbsent(recordsTopicPartition, k -> new OffsetStore(k, unprocessedRecordMaxAge))
                 .received(record.getOffset());
@@ -366,7 +368,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
 
         boolean hasTooManyMessagesWithoutAck() {
-            if (receivedOffsets.isEmpty()) {
+            if (receivedOffsets.isEmpty() || !isStillAssigned()) {
                 return false;
             }
             OffsetReceivedAt peek = receivedOffsets.peek();
@@ -376,6 +378,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 return true;
             }
             return false;
+        }
+
+        private boolean isStillAssigned() {
+            // If the topic/partition is not assigned to us already, the store will be cleared eventually.
+            return assignments.contains(topicPartition);
         }
 
         long getUnprocessedCount() {
