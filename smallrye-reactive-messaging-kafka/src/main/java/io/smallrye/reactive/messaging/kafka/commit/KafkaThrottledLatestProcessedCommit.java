@@ -47,7 +47,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
     private volatile long timerId = -1;
-    private final Collection<TopicPartition> assignments = new CopyOnWriteArrayList<>();
+    private final Collection<TopicPartition> assignments = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private KafkaThrottledLatestProcessedCommit(
             String groupId,
