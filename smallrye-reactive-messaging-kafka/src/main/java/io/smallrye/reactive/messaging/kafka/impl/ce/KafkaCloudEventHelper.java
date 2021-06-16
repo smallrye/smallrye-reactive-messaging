@@ -27,8 +27,8 @@ import io.smallrye.reactive.messaging.ce.impl.BaseCloudEventMetadata;
 import io.smallrye.reactive.messaging.ce.impl.DefaultIncomingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
-import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
 

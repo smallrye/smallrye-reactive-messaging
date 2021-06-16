@@ -19,17 +19,30 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     private final Supplier<CompletionStage<Void>> ack;
     private final Function<Throwable, CompletionStage<Void>> nack;
     private final Metadata metadata;
-    private final OutgoingKafkaRecordMetadata<K> kafkaMetadata;
+    // TODO Use a normal import once OutgoingKafkaRecordMetadata in this package has been removed
+    private final io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> kafkaMetadata;
 
     public OutgoingKafkaRecord(String topic, K key, T value, Instant timestamp, int partition, Headers headers,
             Supplier<CompletionStage<Void>> ack, Function<Throwable, CompletionStage<Void>> nack, Metadata existingMetadata) {
-        kafkaMetadata = new OutgoingKafkaRecordMetadata<>(topic, key,
-                partition, timestamp, headers);
+        kafkaMetadata = io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.<K> builder()
+                .withTopic(topic)
+                .withKey(key)
+                .withTimestamp(timestamp)
+                .withPartition(partition)
+                .withHeaders(headers)
+                .build();
+        OutgoingKafkaRecordMetadata<K> deprecatedMetadata = new OutgoingKafkaRecordMetadata<>(topic, key, partition, timestamp,
+                headers);
+
+        Metadata metadata;
         if (existingMetadata != null) {
-            this.metadata = Metadata.from(existingMetadata).with(kafkaMetadata);
+            metadata = Metadata.from(existingMetadata).with(kafkaMetadata);
         } else {
-            this.metadata = Metadata.of(kafkaMetadata);
+            metadata = Metadata.of(kafkaMetadata);
         }
+        // Add the deprecated metadata while the two exist side by side
+        this.metadata = Metadata.from(metadata).with(deprecatedMetadata);
+
         this.value = value;
         this.ack = ack;
         this.nack = nack;
