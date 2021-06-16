@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.kafka.impl;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 import javax.enterprise.inject.Instance;
@@ -18,9 +17,6 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
-import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 public class RebalanceListeners {
 
@@ -118,25 +114,4 @@ public class RebalanceListeners {
                 });
     }
 
-    /**
-     * HACK - inject the listener using reflection to replace the one set by vert.x
-     *
-     * @param consumer the consumer
-     * @param listener the listener
-     */
-    @SuppressWarnings("rawtypes")
-    public static void inject(KafkaConsumer<?, ?> consumer, ConsumerRebalanceListener listener) {
-        KafkaReadStream readStream = consumer.getDelegate().asStream();
-        if (readStream instanceof KafkaReadStreamImpl) {
-            try {
-                Field field = readStream.getClass().getDeclaredField("rebalanceListener");
-                field.setAccessible(true);
-                field.set(readStream, listener);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Cannot inject rebalance listener", e);
-            }
-        } else {
-            throw new IllegalArgumentException("Cannot inject rebalance listener - not a Kafka Read Stream");
-        }
-    }
 }
