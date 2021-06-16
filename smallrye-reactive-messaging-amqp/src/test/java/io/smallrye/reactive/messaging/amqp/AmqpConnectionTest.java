@@ -65,7 +65,8 @@ public class AmqpConnectionTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.messages-in.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.messages-in.host", serverDnsHost)
                 .put("mp.messaging.incoming.messages-in.port", server.actualPort())
-                .put("mp.messaging.incoming.messages-in.virtual-host", virtualHostname);
+                .put("mp.messaging.incoming.messages-in.virtual-host", virtualHostname)
+                .put("mp.messaging.incoming.messages-in.tracing-enabled", false);
         config.write();
 
         container = weld.initialize();

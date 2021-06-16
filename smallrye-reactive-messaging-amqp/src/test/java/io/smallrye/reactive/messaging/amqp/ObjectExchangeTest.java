@@ -47,12 +47,14 @@ public class ObjectExchangeTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.to-amqp.durable", false)
                 .put("mp.messaging.outgoing.to-amqp.host", host)
                 .put("mp.messaging.outgoing.to-amqp.port", port)
+                .put("mp.messaging.outgoing.to-amqp.tracing-enabled", false)
 
                 .put("mp.messaging.incoming.from-amqp.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.from-amqp.address", "prices")
                 .put("mp.messaging.incoming.from-amqp.durable", true)
                 .put("mp.messaging.incoming.from-amqp.host", host)
                 .put("mp.messaging.incoming.from-amqp.port", port)
+                .put("mp.messaging.incoming.from-amqp.tracing-enabled", false)
 
                 .put("amqp-username", username)
                 .put("amqp-password", password)

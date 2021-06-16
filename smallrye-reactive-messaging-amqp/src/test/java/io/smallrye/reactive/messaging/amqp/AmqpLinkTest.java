@@ -78,7 +78,8 @@ public class AmqpLinkTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.people-in.address", address)
                 .put("mp.messaging.incoming.people-in.link-name", subscriptionName)
                 .put("mp.messaging.incoming.people-in.host", "localhost")
-                .put("mp.messaging.incoming.people-in.port", server.actualPort());
+                .put("mp.messaging.incoming.people-in.port", server.actualPort())
+                .put("mp.messaging.incoming.people-in.tracing-enabled", false);
         if (durable) {
             config.put("mp.messaging.incoming.people-in.durable", true);
         }

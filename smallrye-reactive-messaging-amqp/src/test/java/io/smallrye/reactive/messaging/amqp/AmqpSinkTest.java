@@ -568,6 +568,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.sink.host", "localhost")
                 .put("mp.messaging.outgoing.sink.port", server.actualPort())
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();
@@ -609,6 +610,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.sink.host", "localhost")
                 .put("mp.messaging.outgoing.sink.port", server.actualPort())
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();
@@ -652,6 +654,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .put("mp.messaging.outgoing.sink.host", "localhost")
                 .put("mp.messaging.outgoing.sink.port", server.actualPort())
                 .put("mp.messaging.outgoing.sink.use-anonymous-sender", false)
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();

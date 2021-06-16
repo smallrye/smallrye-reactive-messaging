@@ -228,6 +228,7 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", "localhost")
                 .put("mp.messaging.incoming.data.port", server.actualPort())
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
         ConsumptionBean bean = deploy();

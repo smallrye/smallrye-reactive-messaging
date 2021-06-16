@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
@@ -29,9 +30,17 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.amqp.fault.*;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
@@ -62,6 +71,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "address", direction = INCOMING_AND_OUTGOING, description = "The AMQP address. If not set, the channel name is used", type = "string")
 @ConnectorAttribute(name = "link-name", direction = INCOMING_AND_OUTGOING, description = "The name of the link. If not set, the channel name is used.", type = "string")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
+@ConnectorAttribute(name = "tracing-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
 
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
@@ -77,6 +87,8 @@ import io.vertx.mutiny.core.Vertx;
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     static final String CONNECTOR_NAME = "smallrye-amqp";
+
+    static Tracer TRACER;
 
     @Inject
     private ExecutionHolder executionHolder;
@@ -98,11 +110,17 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         // used for proxies
     }
 
+    @PostConstruct
+    void init() {
+        TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.amqp");
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver,
             ConnectionHolder holder,
             String address,
-            AmqpFailureHandler onNack) {
+            AmqpFailureHandler onNack,
+            Boolean tracingEnabled) {
         log.receiverListeningAddress(address);
 
         // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
@@ -115,8 +133,13 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         return Multi.createFrom().deferred(
                 () -> {
-                    Multi<? extends Message<?>> stream = receiver.toMulti()
-                            .map(m -> new AmqpMessage<>(m, holder.getContext(), onNack));
+                    Multi<AmqpMessage<?>> stream = receiver.toMulti()
+                            .map(m -> new AmqpMessage<>(m, holder.getContext(), onNack, tracingEnabled));
+
+                    if (tracingEnabled) {
+                        stream = stream.onItem().invoke(this::incomingTrace);
+                    }
+
                     return Multi.createBy().merging().streams(stream, processor);
                 });
     }
@@ -144,7 +167,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         .setDurable(durable)
                         .setLinkName(link)))
                 .onItem().invoke(r -> opened.put(ic.getChannel(), true))
-                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, onNack));
+                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, onNack, ic.getTracingEnabled()));
 
         Integer interval = ic.getReconnectInterval();
         Integer attempts = ic.getReconnectAttempts();
@@ -289,5 +312,31 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         log.failureReported(channel, reason);
         opened.put(channel, false);
         terminate(null);
+    }
+
+    private void incomingTrace(AmqpMessage<?> message) {
+        TracingMetadata tracingMetadata = TracingMetadata.fromMessage(message).orElse(TracingMetadata.empty());
+
+        final SpanBuilder spanBuilder = TRACER.spanBuilder(message.getAddress() + " receive")
+                .setSpanKind(SpanKind.CONSUMER);
+
+        // Handle possible parent span
+        final Context parentSpanContext = tracingMetadata.getPreviousContext();
+        if (parentSpanContext != null) {
+            spanBuilder.setParent(parentSpanContext);
+        } else {
+            spanBuilder.setNoParent();
+        }
+
+        final Span span = spanBuilder.startSpan();
+
+        // Set Span attributes
+        span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "AMQP 1.0");
+        span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, message.getAddress());
+        span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "queue");
+
+        message.injectTracingMetadata(tracingMetadata.withSpan(span));
+
+        span.end();
     }
 }

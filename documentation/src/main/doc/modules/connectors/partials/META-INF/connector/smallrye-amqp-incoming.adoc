@@ -81,6 +81,10 @@ _(amqp-client-options-name)_ | The name of the AMQP Client Option bean used to c
 
 Type: _string_ | false | 
 
+| *tracing-enabled* | Whether tracing is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
 | *broadcast* | Whether the received AMQP messages must be dispatched to multiple _subscribers_
 
 Type: _boolean_ | false | `false`

@@ -61,6 +61,7 @@ public class AmqpWithConverterTest extends AmqpTestBase {
                 .with("mp.messaging.incoming.in.host", "localhost")
                 .with("mp.messaging.incoming.in.port", server.actualPort())
                 .with("mp.messaging.incoming.in.address", address)
+                .with("mp.messaging.incoming.in.tracing-enabled", false)
                 .write();
         weld.addBeanClasses(DummyConverter.class, MyApp.class);
         container = weld.initialize();

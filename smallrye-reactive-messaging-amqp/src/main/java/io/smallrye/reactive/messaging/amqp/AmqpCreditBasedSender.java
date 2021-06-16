@@ -15,9 +15,19 @@ import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
+import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.amqp.tracing.HeaderInjectAdapter;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
@@ -36,6 +46,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final long ttl;
     private final boolean useAnonymousSender;
     private final String configuredAddress;
+    private final boolean tracingEnabled;
 
     public AmqpCreditBasedSender(AmqpConnector connector, ConnectionHolder holder,
             AmqpConnectorOutgoingConfiguration configuration, Uni<AmqpSender> retrieveSender) {
@@ -47,6 +58,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         this.ttl = configuration.getTtl();
         this.useAnonymousSender = configuration.getUseAnonymousSender();
         this.configuredAddress = configuration.getAddress().orElseGet(configuration::getChannel);
+        this.tracingEnabled = configuration.getTracingEnabled();
     }
 
     @Override
@@ -229,6 +241,8 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             amqp.getDelegate().unwrap().setAddress(actualAddress);
         }
 
+        createOutgoingTrace(msg, amqp);
+
         log.sendingMessageToAddress(actualAddress);
         return sender.sendWithAck(amqp)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
@@ -240,6 +254,49 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                     }
                 })
                 .onItem().transform(x -> msg);
+    }
+
+    private void createOutgoingTrace(Message<?> msg, io.vertx.mutiny.amqp.AmqpMessage amqp) {
+        if (tracingEnabled) {
+            Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(msg);
+
+            final SpanBuilder spanBuilder = AmqpConnector.TRACER.spanBuilder(amqp.address() + " send")
+                    .setSpanKind(SpanKind.PRODUCER);
+
+            if (tracingMetadata.isPresent()) {
+                // Handle possible parent span
+                final Context parentSpanContext = tracingMetadata.get().getPreviousContext();
+                if (parentSpanContext != null) {
+                    spanBuilder.setParent(parentSpanContext);
+                } else {
+                    spanBuilder.setNoParent();
+                }
+
+                // Handle possible adjacent spans
+                final SpanContext incomingSpan = tracingMetadata.get().getCurrentSpanContext();
+                if (incomingSpan != null && incomingSpan.isValid()) {
+                    spanBuilder.addLink(incomingSpan);
+                }
+            } else {
+                spanBuilder.setNoParent();
+            }
+
+            final Span span = spanBuilder.startSpan();
+            Scope scope = span.makeCurrent();
+
+            // Set Span attributes
+            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "AMQP 1.0");
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, amqp.address());
+            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "queue");
+            span.setAttribute(SemanticAttributes.MESSAGING_PROTOCOL, "AMQP");
+            span.setAttribute(SemanticAttributes.MESSAGING_PROTOCOL_VERSION, "1.0");
+
+            // Set span onto headers
+            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
+                    .inject(Context.current(), amqp, HeaderInjectAdapter.SETTER);
+            span.end();
+            scope.close();
+        }
     }
 
     private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,

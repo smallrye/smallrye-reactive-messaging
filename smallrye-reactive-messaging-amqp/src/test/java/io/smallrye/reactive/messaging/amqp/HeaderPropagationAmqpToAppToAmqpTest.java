@@ -55,6 +55,7 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.amqp.durable", true)
                 .put("mp.messaging.outgoing.amqp.host", host)
                 .put("mp.messaging.outgoing.amqp.port", port)
+                .put("mp.messaging.outgoing.amqp.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
 
@@ -62,6 +63,7 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.incoming.source.address", source)
                 .put("mp.messaging.incoming.source.host", host)
                 .put("mp.messaging.incoming.source.port", port)
+                .put("mp.messaging.incoming.source.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();

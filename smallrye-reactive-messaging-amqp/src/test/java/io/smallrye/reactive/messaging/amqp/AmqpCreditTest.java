@@ -71,6 +71,7 @@ public class AmqpCreditTest extends AmqpTestBase {
         config.put("name", "the name");
         config.put("host", "localhost");
         config.put("port", port);
+        config.put("tracing-enabled", false);
 
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
