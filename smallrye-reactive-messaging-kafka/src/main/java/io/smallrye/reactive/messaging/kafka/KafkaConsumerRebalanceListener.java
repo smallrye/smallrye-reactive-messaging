@@ -5,8 +5,6 @@ import java.util.Collection;
 
 import org.apache.kafka.clients.consumer.Consumer;
 
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 
 /**
  * When implemented by a managed bean annotated with {@link io.smallrye.common.annotation.Identifier @Identifier}
