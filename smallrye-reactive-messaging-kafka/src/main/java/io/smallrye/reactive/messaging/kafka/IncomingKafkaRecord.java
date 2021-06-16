@@ -22,7 +22,8 @@ import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     private Metadata metadata;
-    private final IncomingKafkaRecordMetadata<K, T> kafkaMetadata;
+    // TODO add as a normal import once we have removed IncomingKafkaRecordMetadata in this package
+    private final io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T> kafkaMetadata;
     private final KafkaCommitHandler commitHandler;
     private final KafkaFailureHandler onNack;
     private final T payload;
@@ -33,10 +34,15 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             boolean cloudEventEnabled,
             boolean tracingEnabled) {
         this.commitHandler = commitHandler;
-        this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record);
+        this.kafkaMetadata = new io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<>(record);
+        // TODO remove this duplication once we have removed IncomingKafkaRecordMetadata from this package
+        // Duplicate the metadata so old and new copies can both be found
+        IncomingKafkaRecordMetadata<K, T> deprecatedKafkaMetadata = new IncomingKafkaRecordMetadata<>(
+                record);
 
         ArrayList<Object> meta = new ArrayList<>();
         meta.add(this.kafkaMetadata);
+        meta.add(deprecatedKafkaMetadata);
         T payload = null;
         boolean payloadSet = false;
         if (cloudEventEnabled) {
