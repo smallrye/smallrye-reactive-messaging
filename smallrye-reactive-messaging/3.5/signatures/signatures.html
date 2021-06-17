@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.0-beta.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="3.5">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#converters">Converting messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-avro-configuration">Using Avro</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-client-service">Accessing the Kafka client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-kerberos">Kerberos authentication</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#mqtt-server:mqtt-server.adoc">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">3.5</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">3.5</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">SmallRye Reactive Messaging</a></li>
+    <li><a href="../model/model.html">Development Model</a></li>
+    <li><a href="signatures.html">Method signatures</a></li>
+  </ul>
+</nav>
+</div>
+<article class="doc">
+<div class="sect1">
+<h2 id="_supported_signatures"><a class="anchor" href="#_supported_signatures"></a>Supported signatures</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The following tables list the supported method signatures and indicate the various supported features.
+For instance, they indicate the default and available acknowledgement strategies (when applicable).</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-even stretch">
+<caption class="title">Table 1. Method signatures to generate data</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signature</th>
+<th class="tableblock halign-left valign-top">Invocation time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing Publisher&lt;Message&lt;O&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing Publisher&lt;O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing Multi&lt;Message&lt;O&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing Multi&lt;O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing PublisherBuilder&lt;Message&lt;O&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing PublisherBuilder&lt;O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing Message&lt;O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every downstream request, sequentially</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing O method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every downstream request, sequentially</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing CompletionStage&lt;Message&lt;O&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every downstream request, sequentially (After the completion of the last returned CompletionStage)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing CompletionStage&lt;O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every downstream request, , sequentially (After the completion of the last returned CompletionStage)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing Uni&lt;Message&lt;O&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every downstream request, sequentially (After the completion of the last returned Uni)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing Uni&lt;O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every downstream request, , sequentially (After the completion of the last returned Uni)</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stripes-even stretch">
+<caption class="title">Table 2. Method signatures to consume data</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 20%;">
+<col style="width: 30%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signature</th>
+<th class="tableblock halign-left valign-top">Invocation time</th>
+<th class="tableblock halign-left valign-top">Supported Acknowledgement Strategies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Incoming void method(I p)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming payload (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>POST_PROCESSING</mark>, NONE, PRE_PROCESSING</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Incoming
+CompletionStage&lt;?&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming message (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Incoming CompletionStage&lt;?&gt; method(I p)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming payload (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>POST_PROCESSING</mark>, PRE_PROCESSING, NONE</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Incoming Uni&lt;?&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming message (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Incoming Uni&lt;?&gt; method(I p)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming payload (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>POST_PROCESSING</mark>, PRE_PROCESSING, NONE</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Incoming Subscriber&lt;Message&lt;I&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, POST_PROCESSING, NONE, PRE_PROCESSING</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Incoming Subscriber&lt;I&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>POST_PROCESSING</mark>, NONE, PRE_PROCESSING</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stripes-even stretch">
+<caption class="title">Table 3. Method signatures to process data</caption>
+<colgroup>
+<col style="width: 45.4545%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1819%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signature</th>
+<th class="tableblock halign-left valign-top">Invocation time</th>
+<th class="tableblock halign-left valign-top">Supported Acknowledgement Strategies</th>
+<th class="tableblock halign-left valign-top">Metadata Propagation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Message&lt;O&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming message (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+O method(I payload)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming payload (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>POST_PROCESSING</mark>,  NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">automatic</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+CompletionStage&lt;Message&lt;O&gt;&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming message (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+CompletionStage&lt;O&gt; method(I payload)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming payload (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>POST_PROCESSING</mark>,  NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">automatic</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Uni&lt;Message&lt;O&gt;&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming message (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Uni&lt;O&gt; method(I payload)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called for every incoming payload (sequentially)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>POST_PROCESSING</mark>,  NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">automatic</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Processor&lt;Message&lt;I&gt;, Message&lt;O&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, PRE_PROCESSING, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Processor&lt;I, O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>PRE_PROCESSING</mark>, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">not supported</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+ProcessorBuilder&lt;Message&lt;I&gt;, Message&lt;O&gt;&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, PRE_PROCESSING, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+ProcessorBuilder&lt;I, O&gt; method()</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>PRE_PROCESSING</mark>, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">not supported</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Publisher&lt;Message&lt;O&gt;&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, PRE_PROCESSING, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Publisher&lt;O&gt; method(I payload)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>PRE_PROCESSING</mark>, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">automatic</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Multi&lt;Message&lt;O&gt;&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, PRE_PROCESSING, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Multi&lt;O&gt; method(I payload)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>PRE_PROCESSING</mark>, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">automatic</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+PublisherBuilder&lt;Message&lt;O&gt;&gt; method(Message&lt;I&gt; msg)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, PRE_PROCESSING, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+PublisherBuilder&lt;O&gt; method(I payload)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>PRE_PROCESSING</mark>, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">automatic</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stripes-even stretch">
+<caption class="title">Table 4. Method signatures to manipulate streams</caption>
+<colgroup>
+<col style="width: 45.4545%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1819%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signature</th>
+<th class="tableblock halign-left valign-top">Invocation time</th>
+<th class="tableblock halign-left valign-top">Supported Acknowledgement Strategies</th>
+<th class="tableblock halign-left valign-top">Metadata Propagation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Publisher&lt;Message&lt;O&gt;&gt; method(Publisher&lt;Message&lt;I&gt;&gt; pub)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Publisher&lt;O&gt; method(Publisher&lt;I&gt; pub)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>PRE_PROCESSING</mark>, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">not supported</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Multi&lt;Message&lt;O&gt;&gt; method(Multi&lt;Message&lt;I&gt;&gt; pub)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+Multi&lt;O&gt; method(Multi&lt;I&gt; pub)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>PRE_PROCESSING</mark>, NONE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">not supported</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+PublisherBuilder&lt;Message&lt;O&gt;&gt; method(PublisherBuilder&lt;Message&lt;I&gt;&gt; pub)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><mark>MANUAL</mark>, NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">manual</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">@Outgoing @Incoming
+PublisherBuilder&lt;O&gt; method(PublisherBuilder&lt;I&gt; pub)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Called once at <em>assembly</em> time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">NONE, PRE_PROCESSING</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">not supported</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+When processing <code>Message</code>, it is often required to <em>chain</em> the incoming <code>Message</code> to enable post-processing acknowledgement and metadata propagation.
+Use the <code>with</code> (like <code>withPayload</code>) methods from the incoming message, so it copies the metadata and ack/nack methods.
+It returns a new <code>Message</code> with the right content.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
