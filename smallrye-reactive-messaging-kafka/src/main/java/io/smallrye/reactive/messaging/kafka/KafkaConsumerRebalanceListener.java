@@ -5,7 +5,6 @@ import java.util.Collection;
 
 import org.apache.kafka.clients.consumer.Consumer;
 
-
 /**
  * When implemented by a managed bean annotated with {@link io.smallrye.common.annotation.Identifier @Identifier}
  * and configured against an inbound connector, it will be applied as a consumer rebalance listener
