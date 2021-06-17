@@ -75,6 +75,10 @@ _(amqp-sni-server-name)_ | If set, explicitly override the hostname to use for t
 
 Type: _string_ | false | 
 
+| *tracing-enabled* | Whether tracing is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
 | *ttl* | The time-to-live of the send AMQP messages. 0 to disable the TTL
 
 Type: _long_ | false | `0`

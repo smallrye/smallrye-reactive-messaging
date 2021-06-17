@@ -49,6 +49,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.port", port)
                 .put("mp.messaging.outgoing.sink.durable", false)
                 .put("mp.messaging.outgoing.sink.use-anonymous-sender", false)
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .write();
@@ -67,6 +68,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .write();

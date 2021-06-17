@@ -54,6 +54,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
@@ -74,6 +75,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("mp.messaging.outgoing.sink.client-options-name", "dummyoptionsnonexistent")
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
@@ -96,6 +98,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.host", host)
                 .put("mp.messaging.outgoing.sink.port", port)
                 .put("mp.messaging.outgoing.sink.durable", false)
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
@@ -118,6 +121,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.sink.host", host)
                 .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
@@ -142,6 +146,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.host", host)
                 .put("mp.messaging.outgoing.sink.port", port)
                 .put("mp.messaging.outgoing.sink.durable", false)
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
@@ -169,6 +174,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.host", host)
                 .put("mp.messaging.outgoing.sink.port", port)
                 .put("mp.messaging.outgoing.sink.durable", false)
+                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("amqp-client-options-name", "myclientoptions")

@@ -59,6 +59,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("amqp-username", username)
                 .with("amqp-password", password)
                 .with("mp.messaging.incoming.data.client-options-name", "myclientoptions")
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
         assertThatThrownBy(() -> container = weld.initialize())
@@ -81,6 +82,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("amqp-username", username)
                 .with("amqp-password", password)
                 .with("mp.messaging.incoming.data.client-options-name", "dummyoptionsnonexistent")
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
         assertThatThrownBy(() -> container = weld.initialize())
@@ -102,6 +104,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("amqp-username", username)
                 .with("amqp-password", password)
                 .with("mp.messaging.incoming.data.client-options-name", "myclientoptions")
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();
@@ -130,6 +133,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.host", host)
                 .with("mp.messaging.incoming.data.port", port)
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .with("amqp-username", username)
                 .with("amqp-password", password)
                 .with("amqp-client-options-name", "myclientoptions")
@@ -161,6 +165,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("amqp-client-options-name", "myclientoptions")
@@ -183,6 +188,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
                 .put("amqp-username", username)
                 .put("amqp-password", password)
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")

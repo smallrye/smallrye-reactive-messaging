@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -14,7 +15,10 @@ import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
+import io.smallrye.reactive.messaging.amqp.tracing.HeaderExtractAdapter;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -23,7 +27,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
 
     protected static final String APPLICATION_JSON = "application/json";
     protected final io.vertx.amqp.AmqpMessage message;
-    protected final Metadata metadata;
+    protected Metadata metadata;
     protected final IncomingAmqpMetadata amqpMetadata;
     private final Context context;
     protected final AmqpFailureHandler onNack;
@@ -33,16 +37,34 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         return new AmqpMessageBuilder<>();
     }
 
-    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate, Context context, AmqpFailureHandler onNack) {
-        this(delegate.getDelegate(), context, onNack);
+    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate, Context context, AmqpFailureHandler onNack,
+            Boolean tracingEnabled) {
+        this(delegate.getDelegate(), context, onNack, tracingEnabled);
     }
 
-    public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack) {
+    public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack, Boolean tracingEnabled) {
         this.message = msg;
         this.context = context;
         this.amqpMetadata = new IncomingAmqpMetadata(this.message);
-        this.metadata = Metadata.of(amqpMetadata);
         this.onNack = onNack;
+
+        ArrayList<Object> meta = new ArrayList<>();
+        meta.add(amqpMetadata);
+
+        if (tracingEnabled) {
+            TracingMetadata tracingMetadata = TracingMetadata.empty();
+            if (msg.applicationProperties() != null) {
+                // Read tracing headers
+                io.opentelemetry.context.Context otelContext = GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
+                        .extract(io.opentelemetry.context.Context.current(), msg.applicationProperties(),
+                                HeaderExtractAdapter.GETTER);
+                tracingMetadata = TracingMetadata.withPrevious(otelContext);
+            }
+
+            meta.add(tracingMetadata);
+        }
+
+        this.metadata = Metadata.from(meta);
     }
 
     @Override
@@ -190,5 +212,9 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     @Override
     public Function<Throwable, CompletionStage<Void>> getNack() {
         return this::nack;
+    }
+
+    public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
+        metadata = metadata.with(tracingMetadata);
     }
 }

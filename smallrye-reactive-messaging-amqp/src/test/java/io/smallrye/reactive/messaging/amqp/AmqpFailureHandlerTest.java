@@ -330,6 +330,7 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
         config.put("mp.messaging.incoming.amqp.connector", AmqpConnector.CONNECTOR_NAME);
         config.put("mp.messaging.incoming.amqp.host", "localhost");
         config.put("mp.messaging.incoming.amqp.port", port);
+        config.put("mp.messaging.incoming.amqp.tracing-enabled", false);
 
         return config;
     }
