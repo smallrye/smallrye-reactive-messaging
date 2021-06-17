@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -18,14 +17,12 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -42,13 +39,12 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 
-public class TracingPropagationTest extends AmqpBrokerTestBase {
+public class TracingAmqpToAppWithParentTest extends AmqpBrokerTestBase {
 
     private InMemorySpanExporter testExporter;
     private SpanProcessor spanProcessor;
@@ -94,129 +90,6 @@ public class TracingPropagationTest extends AmqpBrokerTestBase {
     @AfterAll
     static void shutdown() {
         GlobalOpenTelemetry.resetForTest();
-    }
-
-    @SuppressWarnings("ConstantConditions")
-    @Test
-    public void testFromAppToAmqp() {
-        List<Integer> payloads = new CopyOnWriteArrayList<>();
-        List<Context> contexts = new CopyOnWriteArrayList<>();
-        usage.consumeIntegersWithTracing("amqp",
-                payloads::add,
-                contexts::add);
-
-        weld.addBeanClass(MyAppGeneratingData.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.amqp.durable", false)
-                .put("mp.messaging.outgoing.amqp.host", host)
-                .put("mp.messaging.outgoing.amqp.port", port)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .write();
-
-        container = weld.initialize();
-
-        await().until(() -> payloads.size() >= 10);
-        assertThat(payloads).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-
-        assertThat(contexts).hasSize(10);
-        assertThat(contexts).doesNotContainNull().doesNotHaveDuplicates();
-
-        List<String> spanIds = contexts.stream()
-                .map(context -> Span.fromContextOrNull(context).getSpanContext().getSpanId())
-                .collect(Collectors.toList());
-        assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
-
-        List<String> traceIds = contexts.stream()
-                .map(context -> Span.fromContextOrNull(context).getSpanContext().getTraceId())
-                .collect(Collectors.toList());
-        assertThat(traceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
-
-        for (SpanData data : testExporter.getFinishedSpanItems()) {
-            assertThat(data.getSpanId()).isIn(spanIds);
-            assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
-            assertThat(data.getTraceId()).isIn(traceIds);
-            assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
-        }
-    }
-
-    @Test
-    public void testFromAmqpToAppToAmqp() {
-        List<Integer> payloads = new CopyOnWriteArrayList<>();
-        List<Context> receivedContexts = new CopyOnWriteArrayList<>();
-        usage.consumeIntegersWithTracing("result-topic",
-                payloads::add,
-                receivedContexts::add);
-
-        weld.addBeanClass(MyAppProcessingData.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.outgoing.result-topic.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.result-topic.durable", false)
-                .put("mp.messaging.outgoing.result-topic.host", host)
-                .put("mp.messaging.outgoing.result-topic.port", port)
-
-                .put("mp.messaging.incoming.parent-topic.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.parent-topic.host", host)
-                .put("mp.messaging.incoming.parent-topic.port", port)
-
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .write();
-
-        container = weld.initialize();
-
-        AtomicInteger count = new AtomicInteger();
-        List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
-        usage.produce("parent-topic", 10, () -> AmqpMessage.create()
-                .durable(false)
-                .ttl(10000)
-                .withIntegerAsBody(count.getAndIncrement())
-                .applicationProperties(createTracingSpan(producedSpanContexts, "parent-topic"))
-                .build());
-
-        await().atMost(Duration.ofMinutes(5)).until(() -> payloads.size() >= 10);
-        assertThat(payloads).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-
-        List<String> producedTraceIds = producedSpanContexts.stream()
-                .map(SpanContext::getTraceId)
-                .collect(Collectors.toList());
-        assertThat(producedTraceIds).hasSize(10);
-
-        assertThat(receivedContexts).hasSize(10);
-        assertThat(receivedContexts).doesNotContainNull().doesNotHaveDuplicates();
-
-        List<String> receivedSpanIds = receivedContexts.stream()
-                .map(context -> Span.fromContextOrNull(context).getSpanContext().getSpanId())
-                .collect(Collectors.toList());
-        assertThat(receivedSpanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
-
-        List<String> receivedTraceIds = receivedContexts.stream()
-                .map(context -> Span.fromContextOrNull(context).getSpanContext().getTraceId())
-                .collect(Collectors.toList());
-        assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
-        assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
-
-        List<String> receivedParentSpanIds = new ArrayList<>();
-
-        await().atMost(Duration.ofMinutes(2)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
-
-        for (SpanData data : testExporter.getFinishedSpanItems()) {
-            if (data.getKind().equals(SpanKind.CONSUMER)) {
-                // Need to skip the spans created during @Incoming processing
-                continue;
-            }
-            assertThat(data.getSpanId()).isIn(receivedSpanIds);
-            assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
-            assertThat(data.getTraceId()).isIn(producedTraceIds);
-            assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
-            receivedParentSpanIds.add(data.getParentSpanId());
-        }
-
-        assertThat(producedSpanContexts.stream()
-                .map(SpanContext::getSpanId)).containsExactlyElementsOf(receivedParentSpanIds);
     }
 
     @Test
@@ -295,48 +168,6 @@ public class TracingPropagationTest extends AmqpBrokerTestBase {
         }
     }
 
-    @Test
-    public void testFromAmqpToAppWithNoParent() {
-        weld.addBeanClass(MyAppReceivingData.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.incoming.stuff.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.stuff.host", host)
-                .put("mp.messaging.incoming.stuff.port", port)
-                .put("mp.messaging.incoming.stuff.address", "no-parent-stuff")
-
-                .put("amqp-username", username)
-                .put("amqp-password", password)
-                .write();
-
-        container = weld.initialize();
-        MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
-
-        AtomicInteger count = new AtomicInteger();
-
-        usage.produce("no-parent-stuff", 10, count::getAndIncrement);
-
-        await().until(() -> bean.list().size() >= 10);
-        assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-
-        assertThat(bean.tracing()).hasSizeGreaterThanOrEqualTo(10);
-        assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
-        List<String> spanIds = new ArrayList<>();
-
-        for (TracingMetadata tracing : bean.tracing()) {
-            spanIds.add(tracing.getCurrentSpanContext().getSpanId());
-            assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNull();
-        }
-
-        assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSizeGreaterThanOrEqualTo(10);
-
-        for (SpanData data : testExporter.getFinishedSpanItems()) {
-            assertThat(data.getSpanId()).isIn(spanIds);
-            assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
-            assertThat(data.getKind()).isEqualByComparingTo(SpanKind.CONSUMER);
-        }
-    }
-
     private JsonObject createTracingSpan(List<SpanContext> spanContexts, String topic) {
         Properties properties = new Properties();
         final Span span = AmqpConnector.TRACER.spanBuilder(topic).setSpanKind(SpanKind.PRODUCER).startSpan();
@@ -350,25 +181,6 @@ public class TracingPropagationTest extends AmqpBrokerTestBase {
                 });
         spanContexts.add(span.getSpanContext());
         return JsonObject.mapFrom(properties);
-    }
-
-    @ApplicationScoped
-    public static class MyAppGeneratingData {
-
-        @Outgoing("amqp")
-        public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
-        }
-    }
-
-    @ApplicationScoped
-    public static class MyAppProcessingData {
-
-        @Incoming("parent-topic")
-        @Outgoing("result-topic")
-        public Message<Integer> processMessage(Message<Integer> input) {
-            return input.withPayload(input.getPayload() + 1);
-        }
     }
 
     @ApplicationScoped
