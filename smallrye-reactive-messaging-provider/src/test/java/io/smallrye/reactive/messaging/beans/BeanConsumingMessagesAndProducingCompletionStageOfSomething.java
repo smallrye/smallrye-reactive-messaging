@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.beans;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -9,12 +10,12 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 @ApplicationScoped
-public class BeanProducingACompletableFutureOfMessage {
+public class BeanConsumingMessagesAndProducingCompletionStageOfSomething {
 
     @Incoming("count")
     @Outgoing("sink")
-    public CompletableFuture<Message<String>> process(Message<Integer> value) {
-        return CompletableFuture.supplyAsync(() -> Integer.toString(value.getPayload() + 1))
-                .thenApply(Message::of);
+    CompletionStage<String> process(Message<Integer> value) {
+        return CompletableFuture.supplyAsync(() -> Integer.toString(value.getPayload() + 1));
     }
+
 }
