@@ -135,6 +135,8 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
             if (metadata.getExchangePattern() != null) {
                 exchange.setPattern(metadata.getExchangePattern());
             }
+
+            metadata.getHeaders().forEach(exchange.getIn()::setHeader);
         }
 
         exchange.getIn().setBody(message.getPayload());

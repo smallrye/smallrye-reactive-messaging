@@ -70,6 +70,7 @@ public class CamelSinkTest extends CamelTestBase {
         BeanWithCamelSinkUsingRegularRoute bean = container.getBeanManager()
                 .createInstance().select(BeanWithCamelSinkUsingRegularRoute.class).get();
         assertThat(bean.getList()).hasSize(4).allSatisfy(map -> assertThat(map).contains(entry("key", "value")));
+        assertThat(bean.getHeaders()).hasSize(4).allSatisfy(map -> assertThat(map).contains(entry("headerKey", "headerValue")));
     }
 
     private MapBasedConfig getConfigUsingRoute() {
