@@ -106,6 +106,8 @@ public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
 
         container = weld.initialize();
 
+        await().until(() -> isAmqpConnectorReady(container));
+
         await().until(() -> payloads.size() >= 10);
         assertThat(payloads).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 

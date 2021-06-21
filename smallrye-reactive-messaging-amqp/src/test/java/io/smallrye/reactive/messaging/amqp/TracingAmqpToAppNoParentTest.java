@@ -100,6 +100,8 @@ public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
         container = weld.initialize();
         MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
 
+        await().until(() -> isAmqpConnectorReady(container));
+
         AtomicInteger count = new AtomicInteger();
 
         usage.produce("no-parent-stuff", 10, count::getAndIncrement);
