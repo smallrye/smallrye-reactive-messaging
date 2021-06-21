@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka;
 
 import java.nio.charset.Charset;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -50,9 +51,20 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     @SuppressWarnings("unchecked")
     public static <K, T> OutgoingKafkaRecord<K, T> from(Message<T> message) {
-        OutgoingKafkaRecordMetadata<K> kafkaMetadata = message
-                .getMetadata(OutgoingKafkaRecordMetadata.class)
-                .orElse(new OutgoingKafkaRecordMetadata<>(null, null, -1, null, null));
+        // TODO Use a normal import once we've removed the legacy version of OutgoingKafkaRecordMetadata in this package
+        // Also this block should work to obtain the metadata once we've removed the legacy version
+        // io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> md =
+        //     message.getMetadata(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.class)
+        //     .orElse(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.builder().build());
+
+        Optional<io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata> md = message
+                .getMetadata(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.class);
+        if (!md.isPresent()) {
+            md = message.getMetadata(OutgoingKafkaRecordMetadata.class);
+        }
+        io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> kafkaMetadata = md.orElse(
+                io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.builder().build());
+        // TODO - delete the above once we remove the legacy metadata
 
         return new OutgoingKafkaRecord<>(kafkaMetadata.getTopic(), kafkaMetadata.getKey(), message.getPayload(),
                 kafkaMetadata.getTimestamp(), kafkaMetadata.getPartition(),

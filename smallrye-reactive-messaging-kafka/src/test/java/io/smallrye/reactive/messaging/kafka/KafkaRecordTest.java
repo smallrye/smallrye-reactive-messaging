@@ -10,6 +10,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.api.KafkaMetadataUtil;
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+
 public class KafkaRecordTest {
 
     @Test
@@ -22,13 +25,15 @@ public class KafkaRecordTest {
         assertThat(message.getPartition()).isEqualTo(-1);
         assertThat(message.getTimestamp()).isNull();
 
-        OutgoingKafkaRecordMetadata<?> metadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
+        OutgoingKafkaRecordMetadata<?> metadata = message
+                .getMetadata(OutgoingKafkaRecordMetadata.class)
                 .orElseThrow(() -> new AssertionError("Metadata expected"));
         assertThat(metadata.getPartition()).isEqualTo(-1);
         assertThat(metadata.getKey()).isEqualTo("foo");
         assertThat(metadata.getTopic()).isNull();
         assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isEmpty();
+        LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test
@@ -41,6 +46,24 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isNull();
         assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isNull();
+        // TODO - we don't have duplicate metadata when the Message API is used directly
+        // KafkaTestBase.tempCompareLegacyAndApiMetadata(metadata, message);
+    }
+
+    @Test
+    public void testCreationOfMessageAndAttachMetadataViaAPI() {
+        Message<String> message = Message.of("bar");
+        message = KafkaMetadataUtil.writeOutgoingKafkaMetadata(message,
+                OutgoingKafkaRecordMetadata.<String> builder().withKey("boo").build());
+        OutgoingKafkaRecordMetadata<?> metadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
+                .orElseThrow(() -> new AssertionError("Metadata expected"));
+        assertThat(metadata.getPartition()).isEqualTo(-1);
+        assertThat(metadata.getKey()).isEqualTo("boo");
+        assertThat(metadata.getTopic()).isNull();
+        assertThat(metadata.getTimestamp()).isNull();
+        assertThat(metadata.getHeaders()).isNull();
+        // TODO - we don't have duplicate metadata when the Message API is used directly
+        // KafkaTestBase.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test
@@ -60,6 +83,7 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isEqualTo("topic");
         assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isEmpty();
+        LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test
@@ -80,6 +104,7 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isEqualTo("topic");
         assertThat(metadata.getTimestamp()).isEqualTo(timestamp);
         assertThat(metadata.getHeaders()).isEmpty();
+        LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test

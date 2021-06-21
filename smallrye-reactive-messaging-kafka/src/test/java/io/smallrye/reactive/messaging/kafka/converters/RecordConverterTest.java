@@ -17,9 +17,9 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
@@ -32,6 +32,35 @@ class RecordConverterTest extends KafkaTestBase {
         assertThat(converter.canConvert(Message.of("foo"), Record.class)).isFalse();
 
         IncomingKafkaRecordMetadata<String, String> metadata = mock(IncomingKafkaRecordMetadata.class);
+        when(metadata.getKey()).thenReturn("key");
+        Message<String> message = Message.of("foo").addMetadata(metadata);
+        assertThat(converter.canConvert(message, Record.class)).isTrue();
+        assertThat(converter.convert(message, Record.class)).satisfies(m -> {
+            assertThat(m.getPayload()).isInstanceOf(Record.class);
+            assertThat(((Record<String, String>) m.getPayload()).key()).isEqualTo("key");
+            assertThat(((Record<String, String>) m.getPayload()).value()).isEqualTo("foo");
+        });
+
+        assertThat(converter.canConvert(message, KafkaRecord.class)).isFalse();
+
+        when(metadata.getKey()).thenReturn(null);
+        message = Message.of("foo").addMetadata(metadata);
+        assertThat(converter.canConvert(message, Record.class)).isTrue();
+        assertThat(converter.convert(message, Record.class)).satisfies(m -> {
+            assertThat(m.getPayload()).isInstanceOf(Record.class);
+            assertThat(((Record<String, String>) m.getPayload()).key()).isNull();
+            assertThat(((Record<String, String>) m.getPayload()).value()).isEqualTo("foo");
+        });
+    }
+
+    // TODO Delete once we got rid of the legacy metadata
+    @Test
+    public void testConverterLegacy() {
+        RecordConverter converter = new RecordConverter();
+        assertThat(converter.canConvert(Message.of("foo"), Record.class)).isFalse();
+
+        io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata<String, String> metadata = mock(
+                io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata.class);
         when(metadata.getKey()).thenReturn("key");
         Message<String> message = Message.of("foo").addMetadata(metadata);
         assertThat(converter.canConvert(message, Record.class)).isTrue();

@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.tuples.Tuple3;
 import io.smallrye.reactive.messaging.MessageConverter;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 

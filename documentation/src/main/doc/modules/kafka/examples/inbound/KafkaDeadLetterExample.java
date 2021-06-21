@@ -1,16 +1,16 @@
 package inbound;
 
-import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
-import io.smallrye.reactive.messaging.kafka.Record;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletionStage;
+
+import javax.enterprise.context.ApplicationScoped;
+
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
-import javax.enterprise.context.ApplicationScoped;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletionStage;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 
 @ApplicationScoped
 public class KafkaDeadLetterExample {

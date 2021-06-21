@@ -11,6 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.*;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 
 @ApplicationScoped
 public class ProducingMessageWithHeaderBean {
@@ -26,8 +27,9 @@ public class ProducingMessageWithHeaderBean {
                 new RecordHeader("count", Integer.toString(counter.incrementAndGet()).getBytes()));
         return Message.of(
                 input.getPayload() + 1,
-                Metadata.of(OutgoingKafkaRecordMetadata.builder().withKey(Integer.toString(input.getPayload()))
-                        .withHeaders(list).build()),
+                Metadata.of(
+                        OutgoingKafkaRecordMetadata.builder().withKey(Integer.toString(input.getPayload()))
+                                .withHeaders(list).build()),
                 input::ack);
     }
 

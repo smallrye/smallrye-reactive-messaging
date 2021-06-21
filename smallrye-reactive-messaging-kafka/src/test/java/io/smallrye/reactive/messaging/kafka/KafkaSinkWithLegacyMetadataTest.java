@@ -33,13 +33,18 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class KafkaSinkTest extends KafkaTestBase {
+/**
+ * Duplicate of {@link KafkaSinkTest} - delete once we remove the legacy
+ * {@link io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata}
+ * <p/>
+ * Tests not using metadata have been removed
+ */
+public class KafkaSinkWithLegacyMetadataTest extends KafkaTestBase {
 
     private KafkaSink sink;
 
@@ -138,6 +143,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     private MapBasedConfig getKafkaSinkConfigForProducingBean() {
         KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output")
+                .put("topic", topic)
                 .put("value.serializer", IntegerSerializer.class.getName());
         return builder.build();
     }
@@ -178,7 +184,7 @@ public class KafkaSinkTest extends KafkaTestBase {
 
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers("output", 10, 10, TimeUnit.SECONDS,
+        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
                 latch::countDown,
                 (k, v) -> expected.getAndIncrement());
 
@@ -644,5 +650,4 @@ public class KafkaSinkTest extends KafkaTestBase {
         }
 
     }
-
 }
