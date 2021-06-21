@@ -16,7 +16,8 @@ public class BeanWithCamelSinkUsingRegularEndpoint {
     public Publisher<Message<String>> source() {
         return ReactiveStreams.of("a", "b", "c", "d")
                 .map(String::toUpperCase)
-                .map(m -> Message.of(m).addMetadata(new OutgoingExchangeMetadata().putProperty("key", "value")))
+                .map(m -> Message.of(m).addMetadata(
+                        new OutgoingExchangeMetadata().putProperty("key", "value").putHeader("headerKey", "headerValue")))
                 .buildRs();
     }
 

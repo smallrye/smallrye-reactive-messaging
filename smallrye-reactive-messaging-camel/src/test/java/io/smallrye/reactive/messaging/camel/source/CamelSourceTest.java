@@ -81,6 +81,7 @@ public class CamelSourceTest extends CamelTestBase {
         await().until(() -> bean.list().size() == 3);
         assertThat(bean.list()).contains("A", "B", "C");
         assertThat(bean.props()).containsExactly("value", "value", "value");
+        assertThat(bean.headers()).containsExactly("headerValue", "headerValue", "headerValue");
     }
 
     private MapBasedConfig getConfigUsingRS() {

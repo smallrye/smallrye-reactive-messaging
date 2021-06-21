@@ -18,12 +18,14 @@ import io.smallrye.reactive.messaging.camel.OutgoingExchangeMetadata;
 public class BeanWithCamelSinkUsingRegularRoute extends RouteBuilder {
 
     private List<Map<String, Object>> props = new CopyOnWriteArrayList<>();
+    private List<Map<String, Object>> headers = new CopyOnWriteArrayList<>();
 
     @Outgoing("data")
     public Publisher<Message<String>> source() {
         return ReactiveStreams.of("a", "b", "c", "d")
                 .map(String::toUpperCase)
-                .map(m -> Message.of(m).addMetadata(new OutgoingExchangeMetadata().putProperty("key", "value")))
+                .map(m -> Message.of(m).addMetadata(
+                        new OutgoingExchangeMetadata().putProperty("key", "value").putHeader("headerKey", "headerValue")))
                 .buildRs();
     }
 
@@ -31,10 +33,15 @@ public class BeanWithCamelSinkUsingRegularRoute extends RouteBuilder {
     public void configure() {
         from("seda:in")
                 .process(exchange -> props.add(exchange.getProperties()))
+                .process(exchange -> headers.add(exchange.getIn().getHeaders()))
                 .to("file:./target?fileName=values.txt&fileExist=append");
     }
 
     public List<Map<String, Object>> getList() {
         return props;
+    }
+
+    public List<Map<String, Object>> getHeaders() {
+        return headers;
     }
 }
