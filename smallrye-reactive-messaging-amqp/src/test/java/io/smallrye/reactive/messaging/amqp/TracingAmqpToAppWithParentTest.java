@@ -108,6 +108,8 @@ public class TracingAmqpToAppWithParentTest extends AmqpBrokerTestBase {
         container = weld.initialize();
         MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
 
+        await().until(() -> isAmqpConnectorReady(container));
+
         AtomicInteger count = new AtomicInteger();
         List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
 

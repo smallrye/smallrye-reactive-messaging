@@ -118,6 +118,8 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
 
         container = weld.initialize();
 
+        await().until(() -> isAmqpConnectorReady(container));
+
         AtomicInteger count = new AtomicInteger();
         List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
         usage.produce("parent-topic", 10, () -> AmqpMessage.create()
