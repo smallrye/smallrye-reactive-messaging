@@ -34,7 +34,6 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-@Disabled("See https://github.com/smallrye/smallrye-reactive-messaging/issues/1268")
 public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
 
     private InMemorySpanExporter testExporter;
@@ -88,10 +87,9 @@ public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
         weld.addBeanClass(MyAppReceivingData.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.incoming.stuff.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.stuff.host", host)
-                .put("mp.messaging.incoming.stuff.port", port)
-                .put("mp.messaging.incoming.stuff.address", "no-parent-stuff")
+                .put("mp.messaging.incoming.no-parent-stuff.connector", AmqpConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.no-parent-stuff.host", host)
+                .put("mp.messaging.incoming.no-parent-stuff.port", port)
 
                 .put("amqp-username", username)
                 .put("amqp-password", password)
@@ -130,7 +128,7 @@ public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
         private final List<TracingMetadata> tracingMetadata = new ArrayList<>();
         private final List<Integer> results = new CopyOnWriteArrayList<>();
 
-        @Incoming("stuff")
+        @Incoming("no-parent-stuff")
         public CompletionStage<Void> consume(Message<Integer> input) {
             results.add(input.getPayload());
             tracingMetadata.add(input.getMetadata(TracingMetadata.class).orElse(TracingMetadata.empty()));
