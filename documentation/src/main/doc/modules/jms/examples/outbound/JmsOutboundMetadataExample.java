@@ -1,11 +1,9 @@
 package outbound;
 
-import io.smallrye.reactive.messaging.jms.JmsProperties;
-import io.smallrye.reactive.messaging.jms.JmsPropertiesBuilder;
-import io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata;
-import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
-import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Message;
+
+import io.smallrye.reactive.messaging.jms.JmsProperties;
+import io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata;
 
 public class JmsOutboundMetadataExample {
 
