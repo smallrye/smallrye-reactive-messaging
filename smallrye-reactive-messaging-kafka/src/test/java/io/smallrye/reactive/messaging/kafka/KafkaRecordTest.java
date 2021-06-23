@@ -46,8 +46,6 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isNull();
         assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isNull();
-        // TODO - we don't have duplicate metadata when the Message API is used directly
-        // KafkaTestBase.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test
@@ -62,8 +60,6 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isNull();
         assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isNull();
-        // TODO - we don't have duplicate metadata when the Message API is used directly
-        // KafkaTestBase.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test
