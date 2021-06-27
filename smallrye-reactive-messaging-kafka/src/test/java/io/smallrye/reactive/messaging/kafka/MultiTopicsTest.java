@@ -21,6 +21,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
@@ -64,7 +65,9 @@ public class MultiTopicsTest extends KafkaTestBase {
         AtomicInteger top2 = new AtomicInteger();
         AtomicInteger top3 = new AtomicInteger();
         bean.getMessages().forEach(message -> {
-            IncomingKafkaRecordMetadata record = message.getMetadata(IncomingKafkaRecordMetadata.class).orElse(null);
+            // TODO Import normally once the deprecateed copy in this package has gone
+            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata record = message
+                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class).orElse(null);
             assertThat(record).isNotNull();
             String topic = record.getTopic();
             if (topic.equals(topic1)) {
@@ -77,6 +80,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
+            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1).hasValue(3);
@@ -116,7 +120,8 @@ public class MultiTopicsTest extends KafkaTestBase {
         AtomicInteger top2 = new AtomicInteger();
         AtomicInteger top3 = new AtomicInteger();
         bean.getMessages().forEach(message -> {
-            IncomingKafkaRecordMetadata record = message.getMetadata(IncomingKafkaRecordMetadata.class).orElse(null);
+            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata record = message
+                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class).orElse(null);
             assertThat(record).isNotNull();
             String topic = record.getTopic();
             if (topic.equals(topic1)) {
@@ -128,6 +133,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
+            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1).hasValue(3);
@@ -189,6 +195,7 @@ public class MultiTopicsTest extends KafkaTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
+            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1).hasValue(3);

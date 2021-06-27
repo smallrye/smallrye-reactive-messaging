@@ -1,11 +1,11 @@
 package inbound;
 
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
+import java.time.Instant;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import java.time.Instant;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 
 public class KafkaMetadataExample {
 

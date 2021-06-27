@@ -32,7 +32,6 @@ import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.testng.Assert;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
@@ -47,7 +46,13 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.strimzi.StrimziKafkaContainer;
 
-public class KafkaSourceTest extends KafkaTestBase {
+/**
+ * Duplicate of {@link KafkaSourceTest} - delete once we remove the legacy
+ * {@link io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata}
+ * <p/>
+ * Tests not using metadata have been removed
+ */
+public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
 
     KafkaSource<String, Integer> source;
     KafkaConnector connector;
@@ -297,10 +302,10 @@ public class KafkaSourceTest extends KafkaTestBase {
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", "data");
+        builder.put("topic", "legacy-data");
         if (partitions > 0) {
             builder.put("partitions", Integer.toString(partitions));
-            builder.put("topic", "data-" + partitions);
+            builder.put("topic", "legacy-data-" + partitions);
         }
         if (withConsumerRebalanceListener != null) {
             builder.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
@@ -315,7 +320,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         builder.put("value.deserializer", IntegerDeserializer.class.getName());
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", "data-starting-on-fifth-" + suffix);
+        builder.put("topic", "legacy-data-starting-on-fifth-" + suffix);
         if (shorterTimeouts) {
             builder.put("max.poll.interval.ms", "2000");
         }
@@ -330,14 +335,14 @@ public class KafkaSourceTest extends KafkaTestBase {
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("data", counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>("legacy-data", counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         List<KafkaRecord<String, Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            assertThat(m.getTopic()).isEqualTo("data");
+            assertThat(m.getTopic()).isEqualTo("legacy-data");
             assertThat(m.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(m.getPartition()).isGreaterThan(-1);
         });
@@ -359,8 +364,8 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesMultiThread() {
-        MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, "my-group")
-                .with("mp.messaging.incoming.data.topic", topic), MultiThreadConsumer.class);
+        KafkaSourceTest.MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, "my-group")
+                .with("mp.messaging.incoming.data.topic", topic), KafkaSourceTest.MultiThreadConsumer.class);
         List<Integer> list = bean.getItems();
         assertThat(list).isEmpty();
         bean.run();
@@ -373,21 +378,21 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
-        createTopic("data-2", 2);
+        createTopic("legacy-data-2", 2);
         ConsumptionBean bean = run(
                 myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("data-2", counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>("legacy-data-2", counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsOnly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         List<KafkaRecord<String, Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            assertThat(m.getTopic()).isEqualTo("data-2");
+            assertThat(m.getTopic()).isEqualTo("legacy-data-2");
             assertThat(m.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(m.getPartition()).isGreaterThan(-1);
         });
@@ -397,7 +402,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         for (int i = 0; i < 2; i++) {
             TopicPartition partition = consumptionConsumerRebalanceListener.getAssigned().get(i);
             assertThat(partition).isNotNull();
-            assertThat(partition.topic()).isEqualTo("data-2");
+            assertThat(partition.topic()).isEqualTo("legacy-data-2");
         }
     }
 
@@ -413,7 +418,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
         new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
-                () -> new ProducerRecord<>("data-starting-on-fifth-happy-path", counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>("legacy-data-starting-on-fifth-happy-path", counter.getAndIncrement()))).start();
 
         await()
                 .atMost(2, TimeUnit.MINUTES)
@@ -437,7 +442,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
         new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
-                () -> new ProducerRecord<>("data-starting-on-fifth-fail-on-first-attempt", counter.getAndIncrement())))
+                () -> new ProducerRecord<>("legacy-data-starting-on-fifth-fail-on-first-attempt", counter.getAndIncrement())))
                         .start();
 
         await()
@@ -467,7 +472,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
         new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
-                () -> new ProducerRecord<>("data-starting-on-fifth-fail-until-second-rebalance",
+                () -> new ProducerRecord<>("legacy-data-starting-on-fifth-fail-until-second-rebalance",
                         counter.getAndIncrement())))
                                 .start();
 
@@ -532,23 +537,22 @@ public class KafkaSourceTest extends KafkaTestBase {
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("data", counter.getAndIncrement()))).start();
+                () -> new ProducerRecord<>("legacy-data", counter.getAndIncrement()))).start();
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         List<Message<Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            // TODO Import normally once the deprecateed copy in this package has gone
-            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<String, Integer> metadata = m
-                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class)
+            IncomingKafkaRecordMetadata<String, Integer> metadata = m
+                    .getMetadata(IncomingKafkaRecordMetadata.class)
                     .orElseThrow(() -> new AssertionError("Metadata expected"));
-            assertThat(metadata.getTopic()).isEqualTo("data");
+            assertThat(metadata.getTopic()).isEqualTo("legacy-data");
             assertThat(metadata.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(metadata.getPartition()).isGreaterThan(-1);
             assertThat(metadata.getOffset()).isGreaterThan(-1);
-            Assert.assertSame(metadata, KafkaMetadataUtil.readIncomingKafkaMetadata(m).get());
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, m);
+
+            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(KafkaMetadataUtil.readIncomingKafkaMetadata(m).get(), m);
         });
 
         HealthReport liveness = getHealth().getLiveness();
@@ -655,5 +659,4 @@ public class KafkaSourceTest extends KafkaTestBase {
             return threads;
         }
     }
-
 }

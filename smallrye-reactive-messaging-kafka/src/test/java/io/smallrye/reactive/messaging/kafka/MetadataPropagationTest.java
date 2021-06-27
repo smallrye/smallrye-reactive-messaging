@@ -83,8 +83,9 @@ public class MetadataPropagationTest extends KafkaTestBase {
         assertThat(bean.getMetadata()).contains(bean.getOriginal());
         AtomicBoolean foundMetadata = new AtomicBoolean(false);
         for (Object object : bean.getMetadata()) {
-            if (object instanceof IncomingKafkaRecordMetadata) {
-                IncomingKafkaRecordMetadata incomingMetadata = (IncomingKafkaRecordMetadata) object;
+            // TODO Import normally once the deprecated copy in this package has gone
+            if (object instanceof io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata) {
+                io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata incomingMetadata = (io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata) object;
                 assertThat(incomingMetadata.getKey()).isEqualTo("a-key");
                 assertThat(incomingMetadata.getTopic()).isEqualTo(topic);
                 foundMetadata.compareAndSet(false, true);

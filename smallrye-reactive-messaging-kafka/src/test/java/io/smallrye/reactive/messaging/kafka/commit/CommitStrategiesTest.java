@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -334,6 +335,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                     count = count + 1;
                 }
             }
+            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
         }
 
         AtomicReference<HealthReport> report = new AtomicReference<>();

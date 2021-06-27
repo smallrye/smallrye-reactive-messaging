@@ -8,7 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.MessageConverter;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 
 /**
  * Convert an incoming Kafka message into a {@link ConsumerRecord}.

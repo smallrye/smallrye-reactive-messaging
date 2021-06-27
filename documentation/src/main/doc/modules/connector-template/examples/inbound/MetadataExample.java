@@ -1,6 +1,6 @@
 package inbound;
 
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
 

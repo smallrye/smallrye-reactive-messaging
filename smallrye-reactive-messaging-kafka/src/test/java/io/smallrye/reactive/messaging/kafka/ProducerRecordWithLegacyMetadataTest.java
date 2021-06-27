@@ -26,12 +26,15 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.ConsumerRecordConverter;
 
-public class ProducerRecordTest extends KafkaTestBase {
+/**
+ * Duplicate of {@link ProducerRecordTest} - delete once we remove the legacy
+ * {@link io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata}
+ */
+public class ProducerRecordWithLegacyMetadataTest extends KafkaTestBase {
     private static final String TOPIC_NAME_BASE = "ProducerRecord-" + UUID.randomUUID() + "-";
 
     @Test

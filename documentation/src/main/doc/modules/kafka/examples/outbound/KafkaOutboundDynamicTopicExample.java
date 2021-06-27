@@ -1,8 +1,8 @@
 package outbound;
 
-import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
-import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Message;
+
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 
 public class KafkaOutboundDynamicTopicExample {
 
