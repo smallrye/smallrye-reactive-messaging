@@ -31,8 +31,8 @@ public class KafkaMetadataUtil {
      * @return a clone of {@msg} with the {@link OutgoingKafkaRecordMetadata} added
      * @throws NullPointerException if {@code msg} or {@code outgoingKafkaRecordMetadata} are {@code null}
      */
-    public static <T> Message<T> writeOutgoingKafkaMetadata(Message<T> msg,
-            OutgoingKafkaRecordMetadata<T> outgoingKafkaRecordMetadata) {
+    public static <T, K> Message<T> writeOutgoingKafkaMetadata(Message<T> msg,
+            OutgoingKafkaRecordMetadata<K> outgoingKafkaRecordMetadata) {
         return msg.addMetadata(outgoingKafkaRecordMetadata);
     }
 }
