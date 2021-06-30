@@ -1,16 +1,15 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.tuples.Tuple2;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.vertx.mutiny.core.Vertx;
+import static io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.getBootstrapServers;
+import static io.smallrye.reactive.messaging.kafka.base.TopicHelpers.createNewTopic;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -22,15 +21,17 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.TestEnvironment;
 import org.reactivestreams.tck.junit5.PublisherVerification;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.getBootstrapServers;
-import static io.smallrye.reactive.messaging.kafka.base.TopicHelpers.createNewTopic;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.tuples.Tuple2;
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
+import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.mutiny.core.Vertx;
 
 @ExtendWith(KafkaBrokerExtension.class)
 public class KafkaClientReactiveStreamsPublisherTest
