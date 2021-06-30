@@ -1,26 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
-import static io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.getBootstrapServers;
-import static io.smallrye.reactive.messaging.kafka.base.TopicHelpers.createNewTopic;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.tck.TestEnvironment;
-import org.reactivestreams.tck.junit5.PublisherVerification;
-
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
@@ -32,6 +11,26 @@ import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.tck.TestEnvironment;
+import org.reactivestreams.tck.junit5.PublisherVerification;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.getBootstrapServers;
+import static io.smallrye.reactive.messaging.kafka.base.TopicHelpers.createNewTopic;
 
 @ExtendWith(KafkaBrokerExtension.class)
 public class KafkaClientReactiveStreamsPublisherTest
@@ -42,7 +41,7 @@ public class KafkaClientReactiveStreamsPublisherTest
     private static final int partitions = 4;
 
     public KafkaClientReactiveStreamsPublisherTest() {
-        super(new TestEnvironment(500));
+        super(new TestEnvironment(750));
     }
 
     public static Vertx vertx;
@@ -99,7 +98,8 @@ public class KafkaClientReactiveStreamsPublisherTest
 
         return Multi.createBy().combining().streams(multi, range).asTuple()
                 .map(Tuple2::getItem1)
-                .invoke(IncomingKafkaRecord::ack);
+                .invoke(IncomingKafkaRecord::ack)
+                .onFailure().invoke(t -> System.out.println("Failure detected: " + t));
     }
 
     protected MapBasedConfig createConsumerConfig(String groupId) {
