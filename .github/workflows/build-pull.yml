@@ -35,7 +35,7 @@ jobs:
               env:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
               run: |
-                mvn -B clean verify -Dtest-containers=true --file pom.xml
+                  mvn -s .github/ci-maven-settings.xml -B clean verify -Dtest-containers=true --file pom.xml
 
 
     up_to_date_antora:
@@ -50,6 +50,6 @@ jobs:
             - name: Build with Maven
               # Fail the build is the antora.yaml becomes out of date
               run: |
-                mvn -B install -DskipTests
-                mvn -B -pl documentation scm:check-local-modification \
+                  mvn -s .github/ci-maven-settings.xml -B install -DskipTests
+                  mvn -s .github/ci-maven-settings.xml -B -pl documentation scm:check-local-modification \
                     -Dincludes=src/main/doc/antora.yml
