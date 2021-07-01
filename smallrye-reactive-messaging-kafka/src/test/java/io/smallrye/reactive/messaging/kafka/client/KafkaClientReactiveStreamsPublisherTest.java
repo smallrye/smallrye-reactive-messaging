@@ -42,7 +42,7 @@ public class KafkaClientReactiveStreamsPublisherTest
     private static final int partitions = 4;
 
     public KafkaClientReactiveStreamsPublisherTest() {
-        super(new TestEnvironment(500));
+        super(new TestEnvironment(750));
     }
 
     public static Vertx vertx;
@@ -99,7 +99,8 @@ public class KafkaClientReactiveStreamsPublisherTest
 
         return Multi.createBy().combining().streams(multi, range).asTuple()
                 .map(Tuple2::getItem1)
-                .invoke(IncomingKafkaRecord::ack);
+                .invoke(IncomingKafkaRecord::ack)
+                .onFailure().invoke(t -> System.out.println("Failure detected: " + t));
     }
 
     protected MapBasedConfig createConsumerConfig(String groupId) {

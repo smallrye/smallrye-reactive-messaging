@@ -186,7 +186,7 @@ public class KafkaSource<K, V> {
     }
 
     public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {
-        if (isTracingEnabled) {
+        if (isTracingEnabled && TRACER != null) {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
             final SpanBuilder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
