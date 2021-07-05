@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka;
+package io.smallrye.reactive.messaging.kafka.config;
 
 import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +17,7 @@ import java.util.stream.StreamSupport;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -28,14 +29,16 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.common.annotation.Identifier;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+
+// this entire file should be removed when support for the `@Named` annotation is removed
 
 /**
  * Test that the config can be retrieved from a Map produced using the {@code default-kafka-broker} name
  */
-public class DefaultConfigTest extends KafkaTestBase {
+public class DeprecatedDefaultConfigTest extends KafkaTestBase {
 
     @Test
     public void testFromKafkaToAppToKafka() {
@@ -96,7 +99,7 @@ public class DefaultConfigTest extends KafkaTestBase {
 
         @Produces
         @ApplicationScoped
-        @Identifier("default-kafka-broker")
+        @Named("default-kafka-broker")
         public Map<String, Object> createKafkaRuntimeConfig() {
             Map<String, Object> properties = new HashMap<>();
 
