@@ -40,7 +40,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
     @Test
     public void testThatWhenNotSetKeySerializerIsString() {
         MapBasedConfig config = commonConsumerConfiguration();
-        sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
+        sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
 
         List<Tuple2<String, String>> list = new ArrayList<>();
         usage.consumeStrings(topic, 4, 10, TimeUnit.SECONDS, () -> {
@@ -75,7 +75,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
                 .with("value.serializer", JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
-        sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
+        sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
@@ -93,7 +93,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
                 .with("value.serializer", JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
-        sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
+        sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
@@ -111,8 +111,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
                 .without("value.serializer");
 
         assertThatThrownBy(() -> {
-            sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config),
-                    CountKafkaCdiEvents.noCdiEvents);
+            sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
         }).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("value.serializer");
 
     }
@@ -123,8 +122,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
                 .with("value.serializer", BrokenSerializerFailingDuringConfig.class.getName());
 
         assertThatThrownBy(() -> {
-            sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config),
-                    CountKafkaCdiEvents.noCdiEvents);
+            sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents);
         }).isInstanceOf(KafkaException.class)
                 .hasCauseInstanceOf(IllegalStateException.class)
                 .hasStackTraceContaining("boom");

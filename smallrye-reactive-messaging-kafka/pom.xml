@@ -15,11 +15,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-mutiny-vertx-kafka-client</artifactId>
-      <version>${smallrye-vertx-mutiny-clients.version}</version>
-    </dependency>
-    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
@@ -45,6 +40,12 @@
       <artifactId>opentelemetry-semconv</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-mutiny-vertx-kafka-client</artifactId>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>

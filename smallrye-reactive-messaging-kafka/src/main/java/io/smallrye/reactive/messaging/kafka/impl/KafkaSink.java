@@ -48,7 +48,6 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkReadinessHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
-import io.vertx.mutiny.core.Vertx;
 
 public class KafkaSink {
 
@@ -71,7 +70,7 @@ public class KafkaSink {
     private final KafkaSinkReadinessHealth health;
     private final boolean isHealthEnabled;
 
-    public KafkaSink(Vertx vertx, KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
+    public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
         isTracingEnabled = config.getTracingEnabled();
 
         this.client = new ReactiveKafkaProducer<>(config);
@@ -106,7 +105,7 @@ public class KafkaSink {
 
         this.isHealthEnabled = configuration.getHealthEnabled();
         if (isHealthEnabled && this.configuration.getHealthReadinessEnabled()) {
-            this.health = new KafkaSinkReadinessHealth(vertx, config, client.configuration(), client.unwrap());
+            this.health = new KafkaSinkReadinessHealth(config, client.configuration(), client.unwrap());
         } else {
             this.health = null;
         }

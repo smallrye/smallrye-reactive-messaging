@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -33,20 +32,27 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private Producer<K, V> producer;
-    private final KafkaConnectorOutgoingConfiguration configuration;
 
     private final ExecutorService kafkaWorker;
+
     private final Map<String, Object> kafkaConfiguration;
+    private final String channel;
+    private final int closetimeout;
 
     public ReactiveKafkaProducer(KafkaConnectorOutgoingConfiguration config) {
-        this.configuration = config;
-        kafkaConfiguration = getKafkaProducerConfiguration(configuration);
+        this(getKafkaProducerConfiguration(config), config.getChannel(), config.getCloseTimeout());
+    }
+
+    public ReactiveKafkaProducer(Map<String, Object> kafkaConfiguration, String channel, int closeTimeout) {
+        this.kafkaConfiguration = kafkaConfiguration;
+        this.channel = channel;
+        this.closetimeout = closeTimeout;
 
         String keySerializerCN = (String) kafkaConfiguration.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG);
         String valueSerializerCN = (String) kafkaConfiguration.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG);
 
         if (valueSerializerCN == null) {
-            throw ex.missingValueSerializer(config.getChannel(), config.getChannel());
+            throw ex.missingValueSerializer(this.channel, this.channel);
         }
 
         Serializer<K> keySerializer = createSerializer(keySerializerCN);
@@ -96,9 +102,9 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
             producer.send(record, (metadata, exception) -> {
                 if (exception != null) {
                     if (record.topic() != null) {
-                        log.unableToWrite(configuration.getChannel(), record.topic(), exception);
+                        log.unableToWrite(this.channel, record.topic(), exception);
                     } else {
-                        log.unableToWrite(configuration.getChannel(), exception);
+                        log.unableToWrite(this.channel, exception);
                     }
                     em.fail(exception);
                 } else {
@@ -122,7 +128,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         });
     }
 
-    private Map<String, Object> getKafkaProducerConfiguration(KafkaConnectorOutgoingConfiguration configuration) {
+    private static Map<String, Object> getKafkaProducerConfiguration(KafkaConnectorOutgoingConfiguration configuration) {
         Map<String, Object> map = new HashMap<>();
         JsonHelper.asJsonObject(configuration.config())
                 .forEach(e -> map.put(e.getKey(), e.getValue().toString()));
@@ -171,7 +177,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
 
     public void close() {
         if (closed.compareAndSet(false, true)) {
-            int timeout = configuration.getCloseTimeout();
+            int timeout = this.closetimeout;
             Uni<Void> uni = runOnSendingThread(p -> {
                 p.close(Duration.ofMillis(timeout));
             }).onItem().invoke(kafkaWorker::shutdown);

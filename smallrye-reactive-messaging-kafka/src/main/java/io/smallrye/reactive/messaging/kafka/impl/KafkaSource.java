@@ -91,9 +91,9 @@ public class KafkaSource<K, V> {
                         : KafkaCommitHandler.Strategy.THROTTLED.name());
 
         commitHandler = createCommitHandler(vertx, client, consumerGroup, config, commitStrategy);
-        failureHandler = createFailureHandler(config, vertx, client.configuration(), kafkaCDIEvents);
+        failureHandler = createFailureHandler(config, client.configuration(), kafkaCDIEvents);
         if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
-            health = new KafkaSourceReadinessHealth(this, vertx, configuration, client.configuration(),
+            health = new KafkaSourceReadinessHealth(this, configuration, client.configuration(),
                     client.unwrap(), topics, pattern);
         } else {
             health = null;
@@ -218,7 +218,7 @@ public class KafkaSource<K, V> {
         }
     }
 
-    private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config, Vertx vertx,
+    private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config,
             Map<String, ?> kafkaConfiguration, KafkaCDIEvents kafkaCDIEvents) {
         String strategy = config.getFailureStrategy();
         KafkaFailureHandler.Strategy actualStrategy = KafkaFailureHandler.Strategy.from(strategy);
@@ -228,7 +228,7 @@ public class KafkaSource<K, V> {
             case IGNORE:
                 return new KafkaIgnoreFailure(config.getChannel());
             case DEAD_LETTER_QUEUE:
-                return KafkaDeadLetterQueue.create(vertx, kafkaConfiguration, config, this, kafkaCDIEvents);
+                return KafkaDeadLetterQueue.create(kafkaConfiguration, config, this, kafkaCDIEvents);
             default:
                 throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }

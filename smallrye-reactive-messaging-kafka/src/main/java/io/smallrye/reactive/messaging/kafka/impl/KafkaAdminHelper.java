@@ -6,8 +6,7 @@ import java.util.Map;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
+import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 
 public class KafkaAdminHelper {
 
@@ -15,8 +14,8 @@ public class KafkaAdminHelper {
         // avoid direct instantiation
     }
 
-    public static KafkaAdminClient createAdminClient(Vertx vertx,
-            Map<String, Object> kafkaConfigurationMap, String channel, boolean incoming) {
+    public static KafkaAdmin createAdminClient(Map<String, Object> kafkaConfigurationMap, String channel,
+            boolean incoming) {
         Map<String, String> copy = new HashMap<>();
         for (Map.Entry<String, Object> entry : kafkaConfigurationMap.entrySet()) {
             if (AdminClientConfig.configNames().contains(entry.getKey())) {
@@ -40,6 +39,6 @@ public class KafkaAdminHelper {
         }
         copy.put(AdminClientConfig.CLIENT_ID_CONFIG, name);
 
-        return KafkaAdminClient.create(vertx, copy);
+        return new ReactiveKafkaAdminClient(copy);
     }
 }

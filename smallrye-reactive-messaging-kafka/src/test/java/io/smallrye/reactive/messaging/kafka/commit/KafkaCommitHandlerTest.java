@@ -7,13 +7,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
@@ -29,15 +34,11 @@ import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.vertx.kafka.admin.KafkaAdminClient;
-import io.vertx.kafka.admin.ListConsumerGroupOffsetsOptions;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.kafka.client.consumer.OffsetAndMetadata;
 
 @SuppressWarnings("unchecked")
 public class KafkaCommitHandlerTest extends KafkaTestBase {
 
-    KafkaAdminClient admin;
+    Admin admin;
     private KafkaSource<String, Integer> source;
 
     @AfterEach
@@ -88,27 +89,20 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         ackFuture.get(10, TimeUnit.SECONDS);
 
         MapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
-        admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(configForAdmin.getMap(), topic, true).unwrap();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
                     TopicPartition topicPartition = new TopicPartition(topic, 0);
-                    CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-                    admin
+                    Future<Map<TopicPartition, OffsetAndMetadata>> future = admin
                             .listConsumerGroupOffsets("test-source-with-auto-commit-enabled",
                                     new ListConsumerGroupOffsetsOptions()
-                                            .topicPartitions(Collections.singletonList(topicPartition)),
-                                    a -> {
-                                        if (a.failed()) {
-                                            future.completeExceptionally(a.cause());
-                                        } else {
-                                            future.complete(a.result());
-                                        }
-                                    });
+                                            .topicPartitions(Collections.singletonList(topicPartition)))
+                            .partitionsToOffsetAndMetadata();
 
                     Map<TopicPartition, OffsetAndMetadata> result = future.get();
                     assertNotNull(result.get(topicPartition));
-                    assertEquals(10L, result.get(topicPartition).getOffset());
+                    assertEquals(10L, result.get(topicPartition).offset());
                 });
     }
 
@@ -141,24 +135,17 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         ackFuture.get(2, TimeUnit.MINUTES);
 
         TopicPartition topicPartition = new TopicPartition(topic, 0);
-        CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
         MapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
-        admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
-        admin
+        admin = KafkaAdminHelper.createAdminClient(configForAdmin.getMap(), topic, true).unwrap();
+        Future<Map<TopicPartition, OffsetAndMetadata>> future = admin
                 .listConsumerGroupOffsets("test-source-with-auto-commit-disabled",
                         new ListConsumerGroupOffsetsOptions()
-                                .topicPartitions(Collections.singletonList(topicPartition)),
-                        a -> {
-                            if (a.failed()) {
-                                future.completeExceptionally(a.cause());
-                            } else {
-                                future.complete(a.result());
-                            }
-                        });
+                                .topicPartitions(Collections.singletonList(topicPartition)))
+                .partitionsToOffsetAndMetadata();
 
         Map<TopicPartition, OffsetAndMetadata> result = future.get();
         assertNotNull(result.get(topicPartition));
-        assertEquals(10L, result.get(topicPartition).getOffset());
+        assertEquals(10L, result.get(topicPartition).offset());
     }
 
     @Test
@@ -189,7 +176,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .collect(Collectors.toList())).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
         MapBasedConfig configForAdmin = config.copy().with("client.id", "test-admin");
-        admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(configForAdmin.getMap(), topic, true).unwrap();
         await().atMost(2, TimeUnit.MINUTES)
                 .ignoreExceptions()
                 .untilAsserted(() -> {
@@ -198,22 +185,15 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                             .forEach(Message::ack);
 
                     TopicPartition topicPartition = new TopicPartition(topic, 0);
-                    CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-                    admin
+                    Future<Map<TopicPartition, OffsetAndMetadata>> future = admin
                             .listConsumerGroupOffsets("test-source-with-throttled-latest-processed-commit",
                                     new ListConsumerGroupOffsetsOptions()
-                                            .topicPartitions(Collections.singletonList(topicPartition)),
-                                    a -> {
-                                        if (a.failed()) {
-                                            future.completeExceptionally(a.cause());
-                                        } else {
-                                            future.complete(a.result());
-                                        }
-                                    });
+                                            .topicPartitions(Collections.singletonList(topicPartition)))
+                            .partitionsToOffsetAndMetadata();
 
                     Map<TopicPartition, OffsetAndMetadata> result = future.get();
                     assertNotNull(result.get(topicPartition));
-                    assertEquals(10L, result.get(topicPartition).getOffset());
+                    assertEquals(10L, result.get(topicPartition).offset());
                 });
 
         await().atMost(2, TimeUnit.MINUTES)
@@ -332,28 +312,21 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() + messages2.size() >= 10000);
 
         MapBasedConfig configForAdmin = config1.copy().with("client.id", "test-admin");
-        admin = KafkaAdminHelper.createAdminClient(vertx, configForAdmin.getMap(), topic, true).getDelegate();
+        admin = KafkaAdminHelper.createAdminClient(configForAdmin.getMap(), topic, true).unwrap();
         await().atMost(2, TimeUnit.MINUTES)
                 .untilAsserted(() -> {
                     TopicPartition tp1 = new TopicPartition(topic, 0);
                     TopicPartition tp2 = new TopicPartition(topic, 1);
-                    CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> future = new CompletableFuture<>();
-                    admin
+                    Future<Map<TopicPartition, OffsetAndMetadata>> future = admin
                             .listConsumerGroupOffsets("test-source-with-throttled-latest-processed-commit",
                                     new ListConsumerGroupOffsetsOptions()
-                                            .topicPartitions(Arrays.asList(tp1, tp2)),
-                                    a -> {
-                                        if (a.failed()) {
-                                            future.completeExceptionally(a.cause());
-                                        } else {
-                                            future.complete(a.result());
-                                        }
-                                    });
+                                            .topicPartitions(Arrays.asList(tp1, tp2)))
+                            .partitionsToOffsetAndMetadata();
 
                     Map<TopicPartition, OffsetAndMetadata> result = future.get();
                     assertNotNull(result.get(tp1));
                     assertNotNull(result.get(tp2));
-                    assertEquals(result.get(tp1).getOffset() + result.get(tp2).getOffset(), 20000);
+                    assertEquals(result.get(tp1).offset() + result.get(tp2).offset(), 20000);
                 });
 
         await().atMost(2, TimeUnit.MINUTES)

@@ -10,19 +10,18 @@ import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
 public class KafkaSinkReadinessHealth extends BaseHealth {
 
     private final KafkaConnectorOutgoingConfiguration config;
-    private final KafkaAdminClient admin;
+    private final KafkaAdmin admin;
     private final Metric metric;
     private final String topic;
 
-    public KafkaSinkReadinessHealth(Vertx vertx, KafkaConnectorOutgoingConfiguration config,
+    public KafkaSinkReadinessHealth(KafkaConnectorOutgoingConfiguration config,
             Map<String, ?> kafkaConfiguration, Producer<?, ?> producer) {
         super(config.getChannel());
         this.topic = config.getTopic().orElse(config.getChannel());
@@ -31,7 +30,7 @@ public class KafkaSinkReadinessHealth extends BaseHealth {
         if (config.getHealthReadinessTopicVerification()) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel(), true);
+            this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
             this.metric = null;
         } else {
             this.admin = null;
@@ -41,7 +40,7 @@ public class KafkaSinkReadinessHealth extends BaseHealth {
     }
 
     @Override
-    public KafkaAdminClient getAdmin() {
+    public KafkaAdmin getAdmin() {
         return admin;
     }
 
