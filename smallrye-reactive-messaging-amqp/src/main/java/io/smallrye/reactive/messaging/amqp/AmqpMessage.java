@@ -56,7 +56,7 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
             if (msg.applicationProperties() != null) {
                 // Read tracing headers
                 io.opentelemetry.context.Context otelContext = GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                        .extract(io.opentelemetry.context.Context.current(), msg.applicationProperties(),
+                        .extract(io.opentelemetry.context.Context.root(), msg.applicationProperties(),
                                 HeaderExtractAdapter.GETTER);
                 tracingMetadata = TracingMetadata.withPrevious(otelContext);
             }

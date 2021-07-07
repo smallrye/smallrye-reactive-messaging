@@ -132,7 +132,7 @@ public class TracingAmqpToAppWithParentTest extends AmqpBrokerTestBase {
         assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
 
         List<String> receivedTraceIds = bean.tracing().stream()
-                .map(tracingMetadata -> tracingMetadata.getCurrentSpanContext().getTraceId())
+                .map(tracingMetadata -> Span.fromContext(tracingMetadata.getCurrentContext()).getSpanContext().getTraceId())
                 .collect(Collectors.toList());
         assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
         assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
@@ -140,15 +140,15 @@ public class TracingAmqpToAppWithParentTest extends AmqpBrokerTestBase {
         List<String> spanIds = new ArrayList<>();
 
         for (TracingMetadata tracing : bean.tracing()) {
-            spanIds.add(tracing.getCurrentSpanContext().getSpanId());
+            spanIds.add(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getSpanId());
 
             assertThat(tracing.getPreviousContext()).isNotNull();
             Span previousSpan = Span.fromContextOrNull(tracing.getPreviousContext());
             assertThat(previousSpan).isNotNull();
             assertThat(previousSpan.getSpanContext().getTraceId())
-                    .isEqualTo(tracing.getCurrentSpanContext().getTraceId());
+                    .isEqualTo(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getTraceId());
             assertThat(previousSpan.getSpanContext().getSpanId())
-                    .isNotEqualTo(tracing.getCurrentSpanContext().getSpanId());
+                    .isNotEqualTo(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getSpanId());
         }
 
         assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSizeGreaterThanOrEqualTo(10);

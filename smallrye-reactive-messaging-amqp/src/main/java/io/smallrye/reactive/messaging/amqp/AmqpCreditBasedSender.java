@@ -18,7 +18,6 @@ import org.reactivestreams.Subscription;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
@@ -265,17 +264,11 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
             if (tracingMetadata.isPresent()) {
                 // Handle possible parent span
-                final Context parentSpanContext = tracingMetadata.get().getPreviousContext();
+                final Context parentSpanContext = tracingMetadata.get().getCurrentContext();
                 if (parentSpanContext != null) {
                     spanBuilder.setParent(parentSpanContext);
                 } else {
                     spanBuilder.setNoParent();
-                }
-
-                // Handle possible adjacent spans
-                final SpanContext incomingSpan = tracingMetadata.get().getCurrentSpanContext();
-                if (incomingSpan != null && incomingSpan.isValid()) {
-                    spanBuilder.addLink(incomingSpan);
                 }
             } else {
                 spanBuilder.setNoParent();

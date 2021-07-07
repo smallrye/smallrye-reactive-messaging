@@ -6,7 +6,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
 import io.smallrye.common.annotation.Experimental;
 
@@ -14,14 +13,14 @@ import io.smallrye.common.annotation.Experimental;
 public class TracingMetadata {
     private static final TracingMetadata EMPTY = new TracingMetadata(null);
 
-    private final SpanContext currentSpanContext;
+    private final Context currentSpanContext;
     private final Context previousSpanContext;
 
-    private TracingMetadata(SpanContext spanContext) {
+    private TracingMetadata(Context spanContext) {
         this(spanContext, null);
     }
 
-    private TracingMetadata(SpanContext spanContext, Context previousSpanContext) {
+    private TracingMetadata(Context spanContext, Context previousSpanContext) {
         this.currentSpanContext = spanContext;
         this.previousSpanContext = previousSpanContext;
     }
@@ -55,12 +54,12 @@ public class TracingMetadata {
 
     public TracingMetadata withSpan(Span span) {
         if (span != null) {
-            return new TracingMetadata(span.getSpanContext(), previousSpanContext);
+            return new TracingMetadata(Context.root().with(span), previousSpanContext);
         }
         return this;
     }
 
-    public SpanContext getCurrentSpanContext() {
+    public Context getCurrentContext() {
         return currentSpanContext;
     }
 
