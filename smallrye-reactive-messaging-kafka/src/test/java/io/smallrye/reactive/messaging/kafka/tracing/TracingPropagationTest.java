@@ -136,7 +136,7 @@ public class TracingPropagationTest extends KafkaTestBase {
         usage.consumeIntegersWithTracing("result-topic", 10, 1, TimeUnit.MINUTES, null,
                 (key, value) -> messages.add(entry(key, value)),
                 receivedContexts::add);
-        runApplication(getKafkaSinkConfigForMyAppProcessingData(), MyAppProcessingData.class);
+        MyAppProcessingData bean = runApplication(getKafkaSinkConfigForMyAppProcessingData(), MyAppProcessingData.class);
 
         AtomicInteger count = new AtomicInteger();
         List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
@@ -171,12 +171,24 @@ public class TracingPropagationTest extends KafkaTestBase {
         assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
         assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
 
-        List<String> receivedParentSpanIds = new ArrayList<>();
+        assertThat(bean.tracing()).hasSizeGreaterThanOrEqualTo(10);
+        assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
+        List<String> spanIds = new ArrayList<>();
+
+        for (TracingMetadata tracing : bean.tracing()) {
+            Span span = Span.fromContext(tracing.getCurrentContext());
+            spanIds.add(span.getSpanContext().getSpanId());
+            assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNotNull();
+        }
 
         await().atMost(Duration.ofMinutes(2)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
 
+        List<String> outgoingParentIds = new ArrayList<>();
+        List<String> incomingParentIds = new ArrayList<>();
+
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             if (data.getKind().equals(SpanKind.CONSUMER)) {
+                incomingParentIds.add(data.getParentSpanId());
                 // Need to skip the spans created during @Incoming processing
                 continue;
             }
@@ -184,11 +196,16 @@ public class TracingPropagationTest extends KafkaTestBase {
             assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
             assertThat(data.getTraceId()).isIn(producedTraceIds);
             assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
-            receivedParentSpanIds.add(data.getParentSpanId());
+            outgoingParentIds.add(data.getParentSpanId());
         }
 
+        // Assert span created on Kafka record is the parent of consumer span we create
         assertThat(producedSpanContexts.stream()
-                .map(SpanContext::getSpanId)).containsExactlyElementsOf(receivedParentSpanIds);
+                .map(SpanContext::getSpanId)).containsExactlyElementsOf(incomingParentIds);
+
+        // Assert consumer span is the parent of the producer span we received in Kafka
+        assertThat(spanIds.stream())
+                .containsExactlyElementsOf(outgoingParentIds);
     }
 
     @Test
@@ -215,7 +232,7 @@ public class TracingPropagationTest extends KafkaTestBase {
         assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
 
         List<String> receivedTraceIds = bean.tracing().stream()
-                .map(tracingMetadata -> tracingMetadata.getCurrentSpanContext().getTraceId())
+                .map(tracingMetadata -> Span.fromContext(tracingMetadata.getCurrentContext()).getSpanContext().getTraceId())
                 .collect(Collectors.toList());
         assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
         assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
@@ -223,15 +240,15 @@ public class TracingPropagationTest extends KafkaTestBase {
         List<String> spanIds = new ArrayList<>();
 
         for (TracingMetadata tracing : bean.tracing()) {
-            spanIds.add(tracing.getCurrentSpanContext().getSpanId());
+            spanIds.add(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getSpanId());
 
             assertThat(tracing.getPreviousContext()).isNotNull();
             Span previousSpan = Span.fromContextOrNull(tracing.getPreviousContext());
             assertThat(previousSpan).isNotNull();
             assertThat(previousSpan.getSpanContext().getTraceId())
-                    .isEqualTo(tracing.getCurrentSpanContext().getTraceId());
+                    .isEqualTo(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getTraceId());
             assertThat(previousSpan.getSpanContext().getSpanId())
-                    .isNotEqualTo(tracing.getCurrentSpanContext().getSpanId());
+                    .isNotEqualTo(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getSpanId());
         }
 
         assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSizeGreaterThanOrEqualTo(10);
@@ -271,7 +288,7 @@ public class TracingPropagationTest extends KafkaTestBase {
         List<String> spanIds = new ArrayList<>();
 
         for (TracingMetadata tracing : bean.tracing()) {
-            spanIds.add(tracing.getCurrentSpanContext().getSpanId());
+            spanIds.add(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getSpanId());
             assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNull();
         }
 
@@ -344,11 +361,17 @@ public class TracingPropagationTest extends KafkaTestBase {
 
     @ApplicationScoped
     public static class MyAppProcessingData {
+        private final List<TracingMetadata> tracingMetadata = new ArrayList<>();
 
         @Incoming("source")
         @Outgoing("kafka")
         public Message<Integer> processMessage(Message<Integer> input) {
+            tracingMetadata.add(input.getMetadata(TracingMetadata.class).orElse(TracingMetadata.empty()));
             return input.withPayload(input.getPayload() + 1);
+        }
+
+        public List<TracingMetadata> tracing() {
+            return tracingMetadata;
         }
     }
 

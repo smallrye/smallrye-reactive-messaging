@@ -335,6 +335,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, message.getAddress());
         span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "queue");
 
+        // Make available as parent for subsequent spans inside message processing
+        span.makeCurrent();
+
         message.injectTracingMetadata(tracingMetadata.withSpan(span));
 
         span.end();

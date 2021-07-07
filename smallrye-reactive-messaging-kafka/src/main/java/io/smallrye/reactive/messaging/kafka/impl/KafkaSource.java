@@ -209,6 +209,9 @@ public class KafkaSource<K, V> {
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
 
+            // Make available as parent for subsequent spans inside message processing
+            span.makeCurrent();
+
             kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
 
             span.end();

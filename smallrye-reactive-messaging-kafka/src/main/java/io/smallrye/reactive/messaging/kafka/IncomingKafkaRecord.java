@@ -69,7 +69,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             if (record.headers() != null) {
                 // Read tracing headers
                 Context context = GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                        .extract(Context.current(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
+                        .extract(Context.root(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
                 tracingMetadata = TracingMetadata.withPrevious(context);
             }
 

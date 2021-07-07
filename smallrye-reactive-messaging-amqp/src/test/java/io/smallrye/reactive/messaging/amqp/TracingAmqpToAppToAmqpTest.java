@@ -40,6 +40,7 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
@@ -117,6 +118,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                 .write();
 
         container = weld.initialize();
+        MyAppProcessingData bean = container.getBeanManager().createInstance().select(MyAppProcessingData.class).get();
 
         await().until(() -> isAmqpConnectorReady(container));
 
@@ -153,10 +155,24 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
 
         List<String> receivedParentSpanIds = new ArrayList<>();
 
+        assertThat(bean.tracing()).hasSizeGreaterThanOrEqualTo(10);
+        assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
+        List<String> spanIds = new ArrayList<>();
+
+        for (TracingMetadata tracing : bean.tracing()) {
+            Span span = Span.fromContext(tracing.getCurrentContext());
+            spanIds.add(span.getSpanContext().getSpanId());
+            assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNotNull();
+        }
+
         await().atMost(Duration.ofMinutes(2)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
+
+        List<String> outgoingParentIds = new ArrayList<>();
+        List<String> incomingParentIds = new ArrayList<>();
 
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             if (data.getKind().equals(SpanKind.CONSUMER)) {
+                incomingParentIds.add(data.getParentSpanId());
                 // Need to skip the spans created during @Incoming processing
                 continue;
             }
@@ -164,11 +180,16 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
             assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
             assertThat(data.getTraceId()).isIn(producedTraceIds);
             assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
-            receivedParentSpanIds.add(data.getParentSpanId());
+            outgoingParentIds.add(data.getParentSpanId());
         }
 
+        // Assert span created on AMQP record is the parent of consumer span we create
         assertThat(producedSpanContexts.stream()
-                .map(SpanContext::getSpanId)).containsExactlyElementsOf(receivedParentSpanIds);
+                .map(SpanContext::getSpanId)).containsExactlyElementsOf(incomingParentIds);
+
+        // Assert consumer span is the parent of the producer span we received in AMQP
+        assertThat(spanIds.stream())
+                .containsExactlyElementsOf(outgoingParentIds);
     }
 
     private JsonObject createTracingSpan(List<SpanContext> spanContexts, String topic) {
@@ -188,11 +209,17 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
 
     @ApplicationScoped
     public static class MyAppProcessingData {
+        private final List<TracingMetadata> tracingMetadata = new ArrayList<>();
 
         @Incoming("parent-topic")
         @Outgoing("result-topic")
         public Message<Integer> processMessage(Message<Integer> input) {
+            tracingMetadata.add(input.getMetadata(TracingMetadata.class).orElse(TracingMetadata.empty()));
             return input.withPayload(input.getPayload() + 1);
+        }
+
+        public List<TracingMetadata> tracing() {
+            return tracingMetadata;
         }
     }
 

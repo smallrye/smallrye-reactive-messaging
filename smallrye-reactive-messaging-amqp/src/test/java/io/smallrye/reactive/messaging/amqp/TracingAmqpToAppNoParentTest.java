@@ -114,7 +114,7 @@ public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
         List<String> spanIds = new ArrayList<>();
 
         for (TracingMetadata tracing : bean.tracing()) {
-            spanIds.add(tracing.getCurrentSpanContext().getSpanId());
+            spanIds.add(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getSpanId());
             assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNull();
         }
 
