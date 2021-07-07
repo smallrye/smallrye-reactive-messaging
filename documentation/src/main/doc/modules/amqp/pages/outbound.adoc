@@ -101,6 +101,9 @@ include::connectors:partial$META-INF/connector/smallrye-amqp-outgoing.adoc[]
 
 You can also pass any property supported by the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP client] as attribute.
 
+
+=== Using existing destinations
+
 To use an existing _address_ or _queue_, you need to configure the `address`, `container-id` and, optionally, the `link-name` attributes.
 For example, if you have an Apache Artemis broker configured with:
 
@@ -135,3 +138,21 @@ mp.messaging.outgoing.people-out.address=people
 mp.messaging.outgoing.people-out.container-id=people
 mp.messaging.outgoing.people-out.link-name=people
 ----
+
+To use a `MULTICAST` queue, you need to provide the _FQQN_ (Fully-qualified queue name) instead of just the name of the queue:
+
+[source, properties]
+----
+mp.messaging.outgoing.people-out.connector=smallrye-amqp
+mp.messaging.outgoing.people-out.durable=true
+mp.messaging.outgoing.people-out.address=foo
+mp.messaging.outgoing.people-out.container-id=foo
+
+mp.messaging.incoming.people-out.connector=smallrye-amqp
+mp.messaging.incoming.people-out.durable=true
+mp.messaging.incoming.people-out.address=foo::bar # Note the syntax: address-name::queue-name
+mp.messaging.incoming.people-out.container-id=bar
+mp.messaging.incoming.people-out.link-name=people
+----
+
+More details about the AMQP Address model can be found on https://activemq.apache.org/components/artemis/documentation/2.0.0/address-model.html[the Artemis documentation].
