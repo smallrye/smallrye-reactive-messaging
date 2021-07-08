@@ -153,6 +153,50 @@ If the instance is present, the following properties will be used:
 * partition; if not present, partition will be assigned automatically
 * headers; combined with the original record's headers, as well as the `dead-letter-*` headers described above
 
+=== Retrying processing
+
+You can combine Reactive Messaging with https://github.com/smallrye/smallrye-fault-tolerance[SmallRye Fault Tolerance], and retry processing when it fails:
+
+[source,java]
+----
+@Incoming("kafka")
+@Outgoing("processed")
+@Retry(delay = 10, maxRetries = 5)
+public String process(String v) {
+   // ... retry if this method throws an exception
+}
+----
+
+You can configure the delay, the number of retries, the jitter...
+
+If your method returns a `Uni`, you need to add the `@NonBlocking` annotation:
+
+[source,java]
+----
+@Incoming("kafka")
+@Outgoing("processed")
+@Retry(delay = 10, maxRetries = 5)
+@NonBlocking
+public Uni<String> process(String v) {
+   // ... retry if this method throws an exception or the returned Uni produce a failure
+}
+----
+
+The incoming messages are acknowledged only once the processing completes successfully.
+So, it commits the offset after the successful processing.
+If after the retries the processing still failed, the message is _nacked_ and the failure strategy is applied.
+
+You can also use `@Retry` on methods only consuming incoming messages:
+
+[source,java]
+----
+@Incoming("kafka")
+@Retry(delay = 10, maxRetries = 5)
+public void consume(String v) {
+   // ... retry if this method throws an exception
+}
+----
+
 === Handling deserialization failures
 
 Because deserialization happens before creating a `Message`, the failure strategy presented above cannot be applied.
