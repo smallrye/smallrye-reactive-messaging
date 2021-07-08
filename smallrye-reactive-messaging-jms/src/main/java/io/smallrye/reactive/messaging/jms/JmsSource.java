@@ -1,30 +1,23 @@
 package io.smallrye.reactive.messaging.jms;
 
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
-import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
-
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.jms.Destination;
-import javax.jms.IllegalStateRuntimeException;
-import javax.jms.JMSConsumer;
-import javax.jms.JMSContext;
-import javax.jms.Message;
-import javax.jms.Topic;
-import javax.json.bind.Jsonb;
-
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.reactive.messaging.json.JsonMapping;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.helpers.Subscriptions;
+import javax.jms.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 class JmsSource {
 
@@ -32,7 +25,7 @@ class JmsSource {
 
     private final JmsPublisher publisher;
 
-    JmsSource(JMSContext context, JmsConnectorIncomingConfiguration config, Jsonb json, Executor executor) {
+    JmsSource(JMSContext context, JmsConnectorIncomingConfiguration config, JsonMapping jsonMapping, Executor executor) {
         String name = config.getDestination().orElseGet(config::getChannel);
         String selector = config.getSelector().orElse(null);
         boolean nolocal = config.getNoLocal();
@@ -54,11 +47,11 @@ class JmsSource {
         publisher = new JmsPublisher(consumer);
 
         if (!broadcast) {
-            source = ReactiveStreams.fromPublisher(publisher).map(m -> new IncomingJmsMessage<>(m, executor, json));
+            source = ReactiveStreams.fromPublisher(publisher).map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping));
         } else {
             source = ReactiveStreams.fromPublisher(
                     Multi.createFrom().publisher(publisher)
-                            .map(m -> new IncomingJmsMessage<>(m, executor, json))
+                            .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
                             .broadcast().toAllSubscribers());
         }
     }

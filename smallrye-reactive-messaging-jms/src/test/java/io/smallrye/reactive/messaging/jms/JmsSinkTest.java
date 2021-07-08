@@ -1,18 +1,9 @@
 package io.smallrye.reactive.messaging.jms;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.jms.*;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-
+import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.support.JmsTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.CompletionSubscriber;
@@ -20,16 +11,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.mutiny.helpers.Subscriptions;
-import io.smallrye.reactive.messaging.jms.support.JmsTestBase;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import javax.jms.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 @SuppressWarnings("ConstantConditions")
 public class JmsSinkTest extends JmsTestBase {
 
     private JMSContext jms;
     private ActiveMQJMSConnectionFactory factory;
-    private Jsonb json;
+    private JsonMapping jsonMapping;
     private ExecutorService executor;
     private CompletionSubscriber<org.eclipse.microprofile.reactive.messaging.Message<?>, Void> subscriber;
 
@@ -39,15 +36,14 @@ public class JmsSinkTest extends JmsTestBase {
                 "tcp://localhost:61616",
                 null, null);
         jms = factory.createContext();
-        json = JsonbBuilder.create();
+        jsonMapping = new TestMapping();
         executor = Executors.newFixedThreadPool(3);
     }
 
     @AfterEach
-    public void close() throws Exception {
+    public void close() {
         jms.close();
         factory.close();
-        json.close();
         executor.shutdown();
     }
 
@@ -56,7 +52,7 @@ public class JmsSinkTest extends JmsTestBase {
         MapBasedConfig config = new MapBasedConfig()
                 .with("destination", "queue-one")
                 .with("channel-name", "jms");
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -75,7 +71,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("destination", "my-topic")
                 .with("destination-type", "topic")
                 .with("channel-name", "jms");
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client1 = new MyJmsClient(jms.createTopic("my-topic"));
         MyJmsClient client2 = new MyJmsClient(jms.createTopic("my-topic"));
         subscriber = sink.getSink().build();
@@ -98,7 +94,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("delivery-delay", 1500L)
                 .with("delivery-mode", "non_persistent")
                 .with("channel-name", "jms");
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -122,7 +118,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("disable-message-id", true)
                 .with("disable-message-timestamp", true)
                 .with("channel-name", "jms");
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -146,7 +142,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("priority", 5)
                 .with("ttl", 1000L)
                 .with("channel-name", "jms");
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -168,7 +164,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("destination", "queue-one")
                 .with("reply-to", "my-response")
                 .with("channel-name", "jms");
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -192,7 +188,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("reply-to", "my-response")
                 .with("reply-to-destination-type", "topic")
                 .with("channel-name", "jms");
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
@@ -215,7 +211,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("reply-to", "my-response")
                 .with("reply-to-destination-type", "invalid")
                 .with("channel-name", "jms");
-        assertThatThrownBy(() -> new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor))
+        assertThatThrownBy(() -> new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -226,7 +222,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("destination", "queue-one")
                 .with("channel-name", "jms")
                 .with("ttl", 10000L);
-        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), json, executor);
+        JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
