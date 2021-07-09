@@ -8,7 +8,7 @@ import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
+import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 
 public abstract class BaseHealth {
 
@@ -21,7 +21,7 @@ public abstract class BaseHealth {
     }
 
     public void close() {
-        KafkaAdminClient admin = getAdmin();
+        KafkaAdmin admin = getAdmin();
         if (admin != null) {
             try {
                 admin.closeAndAwait();
@@ -32,7 +32,7 @@ public abstract class BaseHealth {
     }
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
-        KafkaAdminClient admin = getAdmin();
+        KafkaAdmin admin = getAdmin();
         if (admin != null) {
             adminBasedHealthCheck(builder);
         } else {
@@ -55,5 +55,5 @@ public abstract class BaseHealth {
 
     protected abstract void adminBasedHealthCheck(HealthReport.HealthReportBuilder builder);
 
-    public abstract KafkaAdminClient getAdmin();
+    public abstract KafkaAdmin getAdmin();
 }

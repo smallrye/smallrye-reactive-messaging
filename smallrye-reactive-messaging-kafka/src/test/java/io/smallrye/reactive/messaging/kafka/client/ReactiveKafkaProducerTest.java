@@ -165,7 +165,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 .put("channel-name", "test-" + ThreadLocalRandom.current().nextInt())
                 .put("topic", topic);
 
-        KafkaSink sink = new KafkaSink(vertx, new KafkaConnectorOutgoingConfiguration(config),
+        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
                 CountKafkaCdiEvents.noCdiEvents);
         this.sinks.add(sink);
         return sink;

@@ -12,15 +12,14 @@ import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.kafka.admin.KafkaAdminClient;
 
 public class KafkaSourceReadinessHealth extends BaseHealth {
 
-    private final KafkaAdminClient admin;
+    private final KafkaAdmin admin;
     private final KafkaConnectorIncomingConfiguration config;
     private final Pattern pattern;
     private final String channel;
@@ -28,7 +27,7 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
     private final Metric metric;
     private final KafkaSource<?, ?> source;
 
-    public KafkaSourceReadinessHealth(KafkaSource<?, ?> source, Vertx vertx, KafkaConnectorIncomingConfiguration config,
+    public KafkaSourceReadinessHealth(KafkaSource<?, ?> source, KafkaConnectorIncomingConfiguration config,
             Map<String, ?> kafkaConfiguration, Consumer<?, ?> consumer, Set<String> topics, Pattern pattern) {
         super(config.getChannel());
         this.config = config;
@@ -39,7 +38,7 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
         if (config.getHealthReadinessTopicVerification()) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-            this.admin = KafkaAdminHelper.createAdminClient(vertx, adminConfiguration, config.getChannel(), true);
+            this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
             this.metric = null;
 
         } else {
@@ -94,7 +93,7 @@ public class KafkaSourceReadinessHealth extends BaseHealth {
     }
 
     @Override
-    public KafkaAdminClient getAdmin() {
+    public KafkaAdmin getAdmin() {
         return admin;
     }
 }

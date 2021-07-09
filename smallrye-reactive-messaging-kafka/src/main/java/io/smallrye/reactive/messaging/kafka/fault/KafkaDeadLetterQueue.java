@@ -2,14 +2,18 @@ package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
@@ -19,11 +23,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
-import io.vertx.mutiny.kafka.client.producer.KafkaHeader;
-import io.vertx.mutiny.kafka.client.producer.KafkaProducer;
-import io.vertx.mutiny.kafka.client.producer.KafkaProducerRecord;
+import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class KafkaDeadLetterQueue implements KafkaFailureHandler {
@@ -35,20 +35,19 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     public static final String DEAD_LETTER_PARTITION = "dead-letter-partition";
 
     private final String channel;
-    private final KafkaProducer producer;
+    private final ReactiveKafkaProducer producer;
     private final String topic;
     private final KafkaSource<?, ?> source;
 
-    public KafkaDeadLetterQueue(String channel, String topic, KafkaProducer producer, KafkaSource<?, ?> source) {
+    public KafkaDeadLetterQueue(String channel, String topic, ReactiveKafkaProducer producer, KafkaSource<?, ?> source) {
         this.channel = channel;
         this.topic = topic;
         this.producer = producer;
         this.source = source;
     }
 
-    public static KafkaFailureHandler create(Vertx vertx,
-            Map<String, ?> kafkaConfiguration, KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source,
-            KafkaCDIEvents kafkaCDIEvents) {
+    public static KafkaFailureHandler create(Map<String, ?> kafkaConfiguration,
+            KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source, KafkaCDIEvents kafkaCDIEvents) {
         Map<String, String> deadQueueProducerConfig = new HashMap<>();
         kafkaConfiguration.forEach((key, value) -> deadQueueProducerConfig.put(key, (String) value));
         String keyDeserializer = deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
@@ -70,11 +69,11 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                 deadQueueProducerConfig.get(KEY_SERIALIZER_CLASS_CONFIG),
                 deadQueueProducerConfig.get(VALUE_SERIALIZER_CLASS_CONFIG));
 
-        KafkaProducer<Object, Object> producer = io.vertx.mutiny.kafka.client.producer.KafkaProducer
-                .create(vertx, deadQueueProducerConfig);
+        ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer(deadQueueProducerConfig,
+                deadQueueTopic, 10000);
 
         // fire producer event (e.g. bind metrics)
-        kafkaCDIEvents.producer().fire(producer.getDelegate().unwrap());
+        kafkaCDIEvents.producer().fire(producer.unwrap());
 
         return new KafkaDeadLetterQueue(conf.getChannel(), deadQueueTopic, producer, source);
 
@@ -97,8 +96,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     }
 
     @Override
-    public <K, V> CompletionStage<Void> handle(
-            IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
+    public <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
 
         OutgoingKafkaRecordMetadata<K> outgoing = metadata != null
                 ? metadata.get(OutgoingKafkaRecordMetadata.class).orElse(null)
@@ -119,19 +117,18 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
             partition = outgoing.getPartition();
         }
 
-        KafkaProducerRecord<K, V> dead = KafkaProducerRecord.create(topic, key, record.getPayload(), null, partition);
+        ProducerRecord<K, V> dead = new ProducerRecord<>(topic, partition, key, record.getPayload());
 
-        dead.addHeader(DEAD_LETTER_REASON, getThrowableMessage(reason));
+        addHeader(dead, DEAD_LETTER_REASON, getThrowableMessage(reason));
         if (reason.getCause() != null) {
-            dead.addHeader(DEAD_LETTER_CAUSE, getThrowableMessage(reason.getCause()));
+            addHeader(dead, DEAD_LETTER_CAUSE, getThrowableMessage(reason.getCause()));
         }
-        dead.addHeader(DEAD_LETTER_TOPIC, record.getTopic());
-        dead.addHeader(DEAD_LETTER_PARTITION, Integer.toString(record.getPartition()));
-        dead.addHeader(DEAD_LETTER_OFFSET, Long.toString(record.getOffset()));
-        record.getHeaders().forEach(header -> dead.addHeader(KafkaHeader.header(header.key(), Buffer.buffer(header.value()))));
+        addHeader(dead, DEAD_LETTER_TOPIC, record.getTopic());
+        addHeader(dead, DEAD_LETTER_PARTITION, Integer.toString(record.getPartition()));
+        addHeader(dead, DEAD_LETTER_OFFSET, Long.toString(record.getOffset()));
+        record.getHeaders().forEach(header -> dead.headers().add(header));
         if (outgoing != null && outgoing.getHeaders() != null) {
-            outgoing.getHeaders()
-                    .forEach(header -> dead.addHeader(KafkaHeader.header(header.key(), Buffer.buffer(header.value()))));
+            outgoing.getHeaders().forEach(header -> dead.headers().add(header));
         }
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
@@ -141,8 +138,12 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                 .thenCompose(m -> record.ack());
     }
 
+    void addHeader(ProducerRecord<?, ?> record, String key, String value) {
+        record.headers().add(key, value.getBytes(StandardCharsets.UTF_8));
+    }
+
     @Override
     public void terminate() {
-        producer.closeAndAwait();
+        producer.close();
     }
 }
