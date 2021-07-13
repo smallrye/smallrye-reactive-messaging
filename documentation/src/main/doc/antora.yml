@@ -9,7 +9,7 @@ asciidoc:
         version: '3.7'
         project-version: '3.7.0-SNAPSHOT'
         weld-version: '3.1.7.SP1'
-        smallrye-config-version: '2.4.1'
+        smallrye-config-version: '2.4.2'
         mutiny-version: '0.18.1'
         camel-version: '3.11.0'
         spec-version: '2.0'
