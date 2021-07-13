@@ -1,14 +1,14 @@
 = JMS
 
-The JMS connector adds support for https://en.wikipedia.org/wiki/Java_Message_Service[Java Message Service] to Reactive Messaging.
-It is designed to integrate with _JavaEE/JakartaEE_ applications that are sending or receiving JMS Messages.
+The JMS connector adds support for https://en.wikipedia.org/wiki/Jakarta_Messaging[Jakarta Messaging] to Reactive Messaging.
+It is designed to integrate with _JakartaEE_ applications that are sending or receiving Jakarta Messaging Messages.
 
 == Introduction
 
-The Java Message Service (JMS) API is a Java message-oriented middleware API for sending messages between two or more clients.
-JMS is a part of the Java Platform, Enterprise Edition (Java EE / JakartaEE)
-It is a messaging standard that allows application components based on Java EE to create, send, receive, and read messages.
-It allows the communication between different components of a distributed application to be loosely coupled, reliable, and asynchronous.
+Jakarta Messaging is a Java Message Oriented Middleware API for sending messages between two or more clients. It is a
+programming model to handle the producer-consumer messaging problem. It is a messaging standard that allows application
+components based on Jakarta EE to create, send, receive, and read messages. It allows the communication between
+different components of a distributed application to be loosely coupled, reliable, and asynchronous.
 
 include::installation.adoc[]
 include::inbound.adoc[]
