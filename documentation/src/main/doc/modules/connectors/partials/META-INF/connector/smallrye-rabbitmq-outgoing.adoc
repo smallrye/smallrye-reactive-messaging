@@ -1,0 +1,130 @@
+.Outgoing Attributes of the 'smallrye-rabbitmq' connector
+[cols="25, 30, 15, 20",options="header"]
+|===
+|Attribute (_alias_) | Description | Mandatory | Default
+
+| *automatic-recovery-enabled* | Whether automatic connection recovery is enabled
+
+Type: _boolean_ | false | `false`
+
+| *automatic-recovery-on-initial-connection* | Whether automatic recovery on initial connections is enabled
+
+Type: _boolean_ | false | `true`
+
+| *connection-timeout* | The TCP connection timeout (ms); 0 is interpreted as no timeout
+
+Type: _int_ | false | `60000`
+
+| *default-routing-key* | The default routing key to use when sending messages to the exchange
+
+Type: _string_ | false | ``
+
+| *default-ttl* | If specified, the time (ms) sent messages can remain in queues undelivered before they are dead
+
+Type: _long_ | false | 
+
+| *exchange.auto-delete* | Whether the exchange should be deleted after use
+
+Type: _boolean_ | false | `false`
+
+| *exchange.declare* | Whether to declare the exchange; set to false if the exchange is expected to be set up independently
+
+Type: _boolean_ | false | `true`
+
+| *exchange.durable* | Whether the exchange is durable
+
+Type: _boolean_ | false | `true`
+
+| *exchange.name* | The exchange that messages are published to or consumed from. If not set, the channel name is used
+
+Type: _string_ | false | 
+
+| *exchange.type* | The exchange type: direct, fanout, headers or topic (default)
+
+Type: _string_ | false | `topic`
+
+| *handshake-timeout* | The AMQP 0-9-1 protocol handshake timeout (ms)
+
+Type: _int_ | false | `10000`
+
+| *host*
+
+_(rabbitmq-host)_ | The broker hostname
+
+Type: _string_ | false | `localhost`
+
+| *include-properties* | Whether to include properties when a broker message is passed on the event bus
+
+Type: _boolean_ | false | `false`
+
+| *max-inflight-messages* | The maximum number of messages to be written to RabbitMQ concurrently; must be a positive number
+
+Type: _long_ | false | `1024`
+
+| *max-outgoing-internal-queue-size* | The maximum size of the outgoing internal queue
+
+Type: _int_ | false | 
+
+| *network-recovery-interval* | How long (ms) will automatic recovery wait before attempting to reconnect
+
+Type: _int_ | false | `5000`
+
+| *password*
+
+_(rabbitmq-password)_ | The password used to authenticate to the broker
+
+Type: _string_ | false | 
+
+| *port*
+
+_(rabbitmq-port)_ | The broker port
+
+Type: _int_ | false | `5672`
+
+| *reconnect-attempts*
+
+_(rabbitmq-reconnect-attempts)_ | The number of reconnection attempts
+
+Type: _int_ | false | `100`
+
+| *reconnect-interval*
+
+_(rabbitmq-reconnect-interval)_ | The interval (in seconds) between two reconnection attempts
+
+Type: _int_ | false | `10`
+
+| *requested-channel-max* | The initially requested maximum channel number
+
+Type: _int_ | false | `2047`
+
+| *requested-heartbeat* | The initially requested heartbeat interval (seconds), zero for none
+
+Type: _int_ | false | `60`
+
+| *tracing.attribute-headers* | A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true
+
+Type: _string_ | false | ``
+
+| *tracing.enabled* | Whether tracing is enabled (default) or disabled
+
+Type: _boolean_ | false | `true`
+
+| *use-nio* | Whether usage of NIO Sockets is enabled
+
+Type: _boolean_ | false | `false`
+
+| *user* | The AMQP user name to use when connecting to the broker
+
+Type: _string_ | false | `guest`
+
+| *username*
+
+_(rabbitmq-username)_ | The username used to authenticate to the broker
+
+Type: _string_ | false | 
+
+| *virtual-host* | The virtual host to use when connecting to the broker
+
+Type: _string_ | false | `/`
+
+|===

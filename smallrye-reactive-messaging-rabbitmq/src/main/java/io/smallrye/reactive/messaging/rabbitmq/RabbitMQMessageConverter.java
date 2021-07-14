@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -88,8 +87,13 @@ public class RabbitMQMessageConverter {
             // has been specified.
             final String expiration = (null != sourceProperties.getExpiration()) ? sourceProperties.getExpiration()
                     : defaultTtl.map(String::valueOf).orElse(null);
+
+            // If not already specified, figure out the content type from the message payload
+            final String contentType = (sourceProperties.getContentType() != null) ? sourceProperties.getContentType()
+                    : getDefaultContentTypeForPayload(message.getPayload());
+
             properties = new AMQP.BasicProperties.Builder()
-                    .contentType(sourceProperties.getContentType())
+                    .contentType(contentType)
                     .contentEncoding(sourceProperties.getContentEncoding())
                     .headers(sourceHeaders)
                     .deliveryMode(sourceProperties.getDeliveryMode())
@@ -105,37 +109,12 @@ public class RabbitMQMessageConverter {
                     .build();
         } else {
             // Getting here means we have to work a little harder
-            String contentType;
-            final Object payload = message.getPayload();
-
-            if (isPrimitive(payload.getClass())) {
-                // Anything representable a string is rendered as a String
-                body = Buffer.buffer(payload.toString());
-                contentType = HttpHeaderValues.TEXT_PLAIN.toString();
-            } else if (payload instanceof Buffer) {
-                body = (Buffer) payload;
-                contentType = HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
-            } else if (payload instanceof io.vertx.core.buffer.Buffer) {
-                body = Buffer.buffer(((io.vertx.core.buffer.Buffer) payload).getBytes());
-                contentType = HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
-            } else if (payload instanceof byte[]) {
-                body = Buffer.buffer((byte[]) payload);
-                contentType = HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
-            } else if (payload instanceof JsonObject) {
-                body = Buffer.buffer(((JsonObject) payload).encode());
-                contentType = HttpHeaderValues.APPLICATION_JSON.toString();
-            } else if (payload instanceof JsonArray) {
-                body = Buffer.buffer(((JsonArray) payload).encode());
-                contentType = HttpHeaderValues.APPLICATION_JSON.toString();
-            } else {
-                // Other objects are serialized to JSON
-                body = Buffer.buffer(Json.encode(payload));
-                contentType = HttpHeaderValues.APPLICATION_JSON.toString();
-            }
+            final String defaultContentType = getDefaultContentTypeForPayload(message.getPayload());
+            body = getBodyFromPayload(message.getPayload());
 
             final OutgoingRabbitMQMetadata metadata = message.getMetadata(OutgoingRabbitMQMetadata.class)
                     .orElse(new OutgoingRabbitMQMetadata.Builder()
-                            .withContentType(contentType)
+                            .withContentType(defaultContentType)
                             .withExpiration(defaultTtl.map(String::valueOf).orElse(null))
                             .build());
 
@@ -146,9 +125,14 @@ public class RabbitMQMessageConverter {
                         attributeHeaders);
             }
 
-            final ZonedDateTime timestamp = metadata.getTimestamp();
+            final Date timestamp = (metadata.getTimestamp() != null) ? Date.from(metadata.getTimestamp().toInstant()) : null;
+
+            // If not already specified, use the default content type for the message payload
+            final String contentType = (metadata.getContentType() != null) ? metadata.getContentType()
+                    : defaultContentType;
+
             properties = new AMQP.BasicProperties.Builder()
-                    .contentType(metadata.getContentType())
+                    .contentType(contentType)
                     .contentEncoding(metadata.getContentEncoding())
                     .headers(metadata.getHeaders())
                     .deliveryMode(metadata.getDeliveryMode())
@@ -157,7 +141,7 @@ public class RabbitMQMessageConverter {
                     .replyTo(metadata.getReplyTo())
                     .expiration(metadata.getExpiration())
                     .messageId(metadata.getMessageId())
-                    .timestamp((timestamp != null) ? Date.from(timestamp.toInstant()) : null)
+                    .timestamp(timestamp)
                     .type(metadata.getType())
                     .userId(metadata.getUserId())
                     .appId(metadata.getAppId())
@@ -166,6 +150,58 @@ public class RabbitMQMessageConverter {
         }
 
         return new OutgoingRabbitMQMessage(routingKey, body, properties);
+    }
+
+    /**
+     * Returns a {@link Buffer} containing the supplied payload.
+     *
+     * @param payload the payload
+     * @return a buffer encapsulation of the payload
+     */
+    private static Buffer getBodyFromPayload(final Object payload) {
+        if (isPrimitive(payload.getClass())) {
+            // Anything representable as a string is rendered as a String
+            return Buffer.buffer(payload.toString());
+        } else if (payload instanceof Buffer) {
+            return (Buffer) payload;
+        } else if (payload instanceof io.vertx.core.buffer.Buffer) {
+            return Buffer.buffer(((io.vertx.core.buffer.Buffer) payload).getBytes());
+        } else if (payload instanceof byte[]) {
+            return Buffer.buffer((byte[]) payload);
+        } else if (payload instanceof JsonObject) {
+            return Buffer.buffer(((JsonObject) payload).encode());
+        } else if (payload instanceof JsonArray) {
+            return Buffer.buffer(((JsonArray) payload).encode());
+        } else {
+            // Other objects are serialized to JSON
+            return Buffer.buffer(Json.encode(payload));
+        }
+    }
+
+    /**
+     * Returns the default content type based on the class of the payload.
+     *
+     * @param payload the payload
+     * @return the default content typ
+     */
+    private static String getDefaultContentTypeForPayload(final Object payload) {
+        if (isPrimitive(payload.getClass())) {
+            // Anything representable a string is rendered as a String
+            return HttpHeaderValues.TEXT_PLAIN.toString();
+        } else if (payload instanceof Buffer) {
+            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
+        } else if (payload instanceof io.vertx.core.buffer.Buffer) {
+            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
+        } else if (payload instanceof byte[]) {
+            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
+        } else if (payload instanceof JsonObject) {
+            return HttpHeaderValues.APPLICATION_JSON.toString();
+        } else if (payload instanceof JsonArray) {
+            return HttpHeaderValues.APPLICATION_JSON.toString();
+        } else {
+            // Other objects are serialized to JSON
+            return HttpHeaderValues.APPLICATION_JSON.toString();
+        }
     }
 
     private static Optional<RabbitMQMessage> getRabbitMQMessage(final Message<?> message) {

@@ -208,6 +208,9 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
      * <p>
      * A {@link Publisher} can send less than is requested if the stream ends but
      * then must emit either {@link Subscriber#onError(Throwable)} or {@link Subscriber#onComplete()}.
+     * <p>
+     * <strong>Note that this method is expected to be called only once on a given sender.</strong>
+     * </p>
      *
      * @param l the strictly positive number of elements to requests to the upstream {@link Publisher}
      */

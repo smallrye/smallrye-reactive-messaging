@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>3.6.0</version>
+    <version>3.7.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-rabbitmq</artifactId>
@@ -18,7 +18,7 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
-      <version>${project.parent.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
@@ -37,14 +37,14 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>test-common</artifactId>
-      <version>${project.parent.version}</version>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-connector-attribute-processor</artifactId>
-      <version>${project.parent.version}</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
 

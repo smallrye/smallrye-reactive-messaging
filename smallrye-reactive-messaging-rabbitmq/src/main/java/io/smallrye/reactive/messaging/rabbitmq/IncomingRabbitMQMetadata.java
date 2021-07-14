@@ -25,7 +25,7 @@ public class IncomingRabbitMQMetadata {
 
     /**
      * Constructor.
-     * 
+     *
      * @param message the underlying {@link RabbitMQMessage}
      */
     IncomingRabbitMQMetadata(RabbitMQMessage message) {
@@ -41,7 +41,7 @@ public class IncomingRabbitMQMetadata {
 
     /**
      * Recursive function to root out {@link LongString} values in arbitrary depth nested lists.
-     * 
+     *
      * @param v the value to map
      * @return the mapped value, with any embedded {@link LongString} values transformed to their
      *         regular {@link String} equivalents
@@ -58,26 +58,26 @@ public class IncomingRabbitMQMetadata {
 
     /**
      * Retrieves the header value cast to the required type.
-     * 
+     *
      * @param header the name of the header
      * @param type the required type
      * @param <T> the type
-     * @return the cast header value, which may be null if the header is not present
+     * @return the cast header value, which may be empty if the header is not present
      * @throws IllegalArgumentException if the header value could not be cast as required
      */
     @SuppressWarnings("unused")
     @Nullable
-    public <T> T getHeader(final String header, final Class<T> type) {
+    public <T> Optional<T> getHeader(final String header, final Class<T> type) {
         final Object value = this.headers.get(header);
         if (value == null) {
-            return null;
+            return Optional.empty();
         }
         if (!type.isAssignableFrom(value.getClass())) {
             throw new IllegalArgumentException("Incorrect type specified for header '" +
                     header + "'. Expected [" + type + "] but actual type is [" + value.getClass() + "]");
         }
         //noinspection unchecked
-        return (T) value;
+        return Optional.of((T) value);
     }
 
     /**
@@ -128,7 +128,7 @@ public class IncomingRabbitMQMetadata {
      * with respect to the supplied {@link ZoneId}.
      * <p>
      * Stored in the message properties.
-     * 
+     *
      * @param zoneId the {@link ZoneId} representing the time zone in which the timestamp is to be interpreted
      * @return an {@link Optional} containing the date and time, which may be empty if no timestamp was received
      */
