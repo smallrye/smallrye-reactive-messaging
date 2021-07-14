@@ -152,7 +152,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
                 })
                 .subscribe().with(
                         tuple -> {
-                            if (tuple != null) { // Serialization issue
+                            if (tuple != null) {
                                 subscriber.onNext(tuple.getItem2());
 
                                 if (inflights != Long.MAX_VALUE) {
