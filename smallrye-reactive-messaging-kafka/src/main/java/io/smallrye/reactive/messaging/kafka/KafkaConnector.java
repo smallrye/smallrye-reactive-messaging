@@ -93,6 +93,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "graceful-shutdown", type = "boolean", direction = Direction.INCOMING, description = "Whether or not a graceful shutdown should be attempted when the application terminates.", defaultValue = "true")
 @ConnectorAttribute(name = "poll-timeout", type = "int", direction = Direction.INCOMING, description = "The polling timeout in milliseconds. When polling records, the poll will wait at most that duration before returning records. Default is 1000ms", defaultValue = "1000")
 @ConnectorAttribute(name = "pause-if-no-requests", type = "boolean", direction = Direction.INCOMING, description = "Whether the polling must be paused when the application does not request items and resume when it does. This allows implementing back-pressure based on the application capacity. Note that polling is not stopped, but will not retrieve any records when paused.", defaultValue = "true")
+@ConnectorAttribute(name = "batch", type = "boolean", direction = Direction.INCOMING, description = "Whether the Kafka records are consumed in batch", defaultValue = "false")
+@ConnectorAttribute(name = "max-queue-size-factor", type = "int", direction = Direction.INCOMING, description = "Multiplier factor to determine maximum number of records queued for processing, using `max.poll.records` * `max-queue-size-factor`. Defaults to 2. In `batch` mode `max.poll.records` is considered `1`.", defaultValue = "2")
 
 @ConnectorAttribute(name = "key.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringSerializer")
 @ConnectorAttribute(name = "value.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the payload", mandatory = true)
@@ -111,8 +113,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = Direction.OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute` into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
 @ConnectorAttribute(name = "close-timeout", type = "int", direction = Direction.OUTGOING, description = "The amount of milliseconds waiting for a graceful shutdown of the Kafka producer", defaultValue = "10000")
-@ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
-@ConnectorAttribute(name = "propagate-record-key", direction = OUTGOING, description = "Propagate incoming record key to the outgoing record", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "merge", direction = Direction.OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "propagate-record-key", direction = Direction.OUTGOING, description = "Propagate incoming record key to the outgoing record", type = "boolean", defaultValue = "false")
 public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
@@ -198,23 +200,34 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             sources.add(source);
 
             boolean broadcast = ic.getBroadcast();
-            if (broadcast) {
-                return ReactiveStreams.fromPublisher(source.getStream().broadcast().toAllSubscribers());
+            Multi<? extends Message<?>> stream;
+            if (!ic.getBatch()) {
+                stream = source.getStream();
             } else {
-                return ReactiveStreams.fromPublisher(source.getStream());
+                stream = source.getBatchStream();
+            }
+            if (broadcast) {
+                return ReactiveStreams.fromPublisher(stream.broadcast().toAllSubscribers());
+            } else {
+                return ReactiveStreams.fromPublisher(stream);
             }
         }
 
         // create an instance of source per partitions.
-        List<Publisher<IncomingKafkaRecord<Object, Object>>> streams = new ArrayList<>();
+        List<Publisher<? extends Message<?>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
                     kafkaCDIEvents, deserializationFailureHandlers, i);
             sources.add(source);
-            streams.add(source.getStream());
+            if (!ic.getBatch()) {
+                streams.add(source.getStream());
+            } else {
+                streams.add(source.getBatchStream());
+            }
         }
 
-        Multi<IncomingKafkaRecord<Object, Object>> multi = Multi.createBy().merging().streams(streams);
+        // TODO
+        Multi<? extends Message<?>> multi = Multi.createBy().merging().streams(streams.toArray(new Publisher[0]));
         boolean broadcast = ic.getBroadcast();
         if (broadcast) {
             return ReactiveStreams.fromPublisher(multi.broadcast().toAllSubscribers());

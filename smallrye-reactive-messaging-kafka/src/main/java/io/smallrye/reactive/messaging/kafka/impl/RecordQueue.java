@@ -5,7 +5,8 @@ import java.util.Collection;
 
 /**
  * Stores the records coming from Kafka.
- * Only a few operations are supported: {@link #addAll(Iterable)}, {@link #clear()}, {@link #size()} and {@link #poll()}.
+ * Only a few operations are supported: {@link #offer(Object)}, {@link #addAll(Iterable)}, {@link #clear()},
+ * {@link #size()} and {@link #poll()}.
  * <p>
  * The access is guarded by the monitor lock.
  */
@@ -35,7 +36,9 @@ public class RecordQueue<T> extends ArrayDeque<T> {
 
     @Override
     public boolean offer(T item) {
-        throw new UnsupportedOperationException();
+        synchronized (this) {
+            return super.offer(item);
+        }
     }
 
     @Override

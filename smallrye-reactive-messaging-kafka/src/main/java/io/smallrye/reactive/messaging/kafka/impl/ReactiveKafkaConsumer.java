@@ -48,6 +48,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
 
     private final ScheduledExecutorService kafkaWorker;
     private final KafkaRecordStream<K, V> stream;
+    private final KafkaRecordBatchStream<K, V> batchStream;
     private final Map<String, Object> kafkaConfiguration;
 
     public ReactiveKafkaConsumer(KafkaConnectorIncomingConfiguration config,
@@ -79,6 +80,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         kafkaWorker = Executors.newSingleThreadScheduledExecutor(KafkaPollingThread::new);
         consumer = new KafkaConsumer<>(kafkaConfiguration, keyDeserializer, valueDeserializer);
         stream = new KafkaRecordStream<>(this, config, source.getContext().getDelegate());
+        batchStream = new KafkaRecordBatchStream<>(this, config, source.getContext().getDelegate());
     }
 
     public void setRebalanceListener() {
@@ -174,6 +176,20 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
             c.subscribe(topics, rebalanceListener);
         })
                 .onItem().transformToMulti(v -> stream);
+    }
+
+    Multi<ConsumerRecords<K, V>> subscribeBatch(Set<String> topics) {
+        return runOnPollingThread(c -> {
+            c.subscribe(topics, rebalanceListener);
+        })
+                .onItem().transformToMulti(v -> batchStream);
+    }
+
+    Multi<ConsumerRecords<K, V>> subscribeBatch(Pattern topics) {
+        return runOnPollingThread(c -> {
+            c.subscribe(topics, rebalanceListener);
+        })
+                .onItem().transformToMulti(v -> batchStream);
     }
 
     @Override

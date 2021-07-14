@@ -49,6 +49,7 @@ public class ConfigurationCleaner {
             "retry-attempts",
             "retry-max-wait",
             "broadcast",
+            "batch",
             "failure-strategy",
             "commit-strategy",
             "throttled.unprocessed-record-max-age.ms",
