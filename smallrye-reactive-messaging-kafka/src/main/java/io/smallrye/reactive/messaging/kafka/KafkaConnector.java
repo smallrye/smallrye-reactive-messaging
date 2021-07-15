@@ -286,6 +286,24 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @Override
+    public HealthReport getStartup() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        if (sources.isEmpty() && sinks.isEmpty()) {
+            return builder.add("kafka-connector", false).build();
+        }
+
+        for (KafkaSource<?, ?> source : sources) {
+            source.isStarted(builder);
+        }
+
+        for (KafkaSink sink : sinks) {
+            sink.isStarted(builder);
+        }
+
+        return builder.build();
+    }
+
+    @Override
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         if (sources.isEmpty() && sinks.isEmpty()) {

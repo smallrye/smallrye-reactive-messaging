@@ -37,6 +37,13 @@ public class HealthCenter {
         return builder.build();
     }
 
+    public HealthReport getStartup() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        reporters.forEach(r -> r.getStartup().getChannels().forEach(builder::add));
+        failures.forEach(rf -> builder.add(rf.source, false, rf.failure.getMessage()));
+        return builder.build();
+    }
+
     public void report(String source, Throwable cause) {
         failures.add(new ReportedFailure(source, cause));
     }
