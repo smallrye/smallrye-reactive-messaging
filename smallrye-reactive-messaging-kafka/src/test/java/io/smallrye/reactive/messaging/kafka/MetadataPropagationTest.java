@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -66,6 +67,71 @@ public class MetadataPropagationTest extends KafkaTestBase {
         });
     }
 
+    @Test
+    public void testFromKafkaToAppToKafkaForwardKey() {
+        String topicIn = UUID.randomUUID().toString();
+        LinkedHashMap<String, String> messages = new LinkedHashMap<>();
+        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null, messages::put);
+        runApplication(getKafkaSinkConfigForAppProcessingDataForwardKey(topic, topicIn), MyAppForwardingKey.class);
+
+        AtomicInteger count = new AtomicInteger();
+        usage.produceIntegers(10, null, () -> {
+            int c = count.getAndIncrement();
+            return new ProducerRecord<>(topicIn, String.valueOf(c), c);
+        });
+
+        await().until(() -> messages.size() >= 10);
+
+        assertThat(messages).containsKeys("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(messages).containsValues("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+    }
+
+    @Test
+    public void testFromKafkaToAppToKafkaForwardKeyReturningMessage() {
+        String topicIn = UUID.randomUUID().toString();
+        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
+        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null,
+                (k, v) -> messages.add(entry(k, v)));
+        runApplication(getKafkaSinkConfigForAppProcessingDataForwardKey(topic, topicIn),
+                MyAppForwardingKeyReturningMessage.class);
+
+        AtomicInteger count = new AtomicInteger();
+        usage.produceIntegers(10, null, () -> {
+            int c = count.getAndIncrement();
+            return new ProducerRecord<>(topicIn, String.valueOf(c), c);
+        });
+
+        await().until(() -> messages.size() >= 10);
+
+        assertThat(messages).extracting(Map.Entry::getKey)
+                .containsExactly("even", "1", "even", "3", "even", "5", "even", "7", "even", "9");
+        assertThat(messages).extracting(Map.Entry::getValue)
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+    }
+
+    @Test
+    public void testFromKafkaToAppToKafkaForwardKeyIncomingRecordKeyNull() {
+        String topicIn = UUID.randomUUID().toString();
+        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
+        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null,
+                (k, v) -> messages.add(entry(k, v)));
+        runApplication(getKafkaSinkConfigForAppProcessingDataForwardKey(topic, topicIn),
+                MyAppForwardingKeyReturningMessage.class);
+
+        AtomicInteger count = new AtomicInteger();
+        usage.produceIntegers(10, null, () -> {
+            int c = count.getAndIncrement();
+            return new ProducerRecord<>(topicIn, null, c);
+        });
+
+        await().until(() -> messages.size() >= 10);
+
+        assertThat(messages).extracting(Map.Entry::getKey)
+                .containsExactly("even", "even", "even", "even", "even", "even", "even", "even", "even", "even");
+        assertThat(messages).extracting(Map.Entry::getValue)
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+    }
+
     @SuppressWarnings("rawtypes")
     @Test
     public void testFromKafkaToAppWithMetadata() {
@@ -107,6 +173,28 @@ public class MetadataPropagationTest extends KafkaTestBase {
         builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
         builder.put("mp.messaging.outgoing.kafka.bootstrap.servers", getBootstrapServers());
         builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
+
+        builder.put("mp.messaging.incoming.source.value.deserializer", IntegerDeserializer.class.getName());
+        builder.put("mp.messaging.incoming.source.key.deserializer", StringDeserializer.class.getName());
+        builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
+        builder.put("mp.messaging.incoming.source.bootstrap.servers", getBootstrapServers());
+        builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
+        builder.put("mp.messaging.incoming.source.graceful-shutdown", false);
+        builder.put("mp.messaging.incoming.source.topic", topicIn);
+        builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
+
+        return builder.build();
+    }
+
+    private KafkaMapBasedConfig getKafkaSinkConfigForAppProcessingDataForwardKey(String topicOut, String topicIn) {
+        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
+        builder.put("mp.messaging.outgoing.kafka.value.serializer", StringSerializer.class.getName());
+        builder.put("mp.messaging.outgoing.kafka.key.serializer", StringSerializer.class.getName());
+        builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
+        builder.put("mp.messaging.outgoing.kafka.bootstrap.servers", getBootstrapServers());
+        builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
+        builder.put("mp.messaging.outgoing.kafka.propagate-record-key", true);
+        builder.put("mp.messaging.outgoing.kafka.key", "even");
 
         builder.put("mp.messaging.incoming.source.value.deserializer", IntegerDeserializer.class.getName());
         builder.put("mp.messaging.incoming.source.key.deserializer", StringDeserializer.class.getName());
@@ -218,4 +306,34 @@ public class MetadataPropagationTest extends KafkaTestBase {
             return value;
         }
     }
+
+    @ApplicationScoped
+    public static class MyAppForwardingKey {
+
+        @Incoming("source")
+        @Outgoing("kafka")
+        public String processMessage(Message<Integer> input) {
+            return Integer.toString(input.getPayload() + 1);
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class MyAppForwardingKeyReturningMessage {
+
+        @Incoming("source")
+        @Outgoing("kafka")
+        public Message<String> processMessage(Message<Integer> input) {
+            Integer payload = input.getPayload();
+            if (payload % 2 != 0) {
+                // if not even then return the input message with new payload
+                return KafkaRecord.from(input).withPayload(Integer.toString(payload + 1));
+            } else {
+                // if even return new record with null key
+                return KafkaRecord.of(null, Integer.toString(payload + 1));
+            }
+        }
+
+    }
+
 }
