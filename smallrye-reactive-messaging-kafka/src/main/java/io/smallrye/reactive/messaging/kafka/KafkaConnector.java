@@ -57,8 +57,11 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "topic", type = "string", direction = Direction.INCOMING_AND_OUTGOING, description = "The consumed / populated Kafka topic. If neither this property nor the `topics` properties are set, the channel name is used")
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "health-readiness-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether readiness health reporting is enabled (default) or disabled", defaultValue = "true")
-@ConnectorAttribute(name = "health-readiness-topic-verification", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection.", defaultValue = "false")
-@ConnectorAttribute(name = "health-readiness-timeout", type = "long", direction = Direction.INCOMING_AND_OUTGOING, description = "During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.", defaultValue = "2000")
+@ConnectorAttribute(name = "health-readiness-topic-verification", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection. Deprecated: Use 'health-topic-verification-enabled' instead.", deprecated = true)
+@ConnectorAttribute(name = "health-readiness-timeout", type = "long", direction = Direction.INCOMING_AND_OUTGOING, description = "During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready. Deprecated: Use 'health-topic-verification-timeout' instead.", deprecated = true)
+@ConnectorAttribute(name = "health-topic-verification-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether the startup and readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin client connection.", defaultValue = "false")
+@ConnectorAttribute(name = "health-topic-verification-timeout", type = "long", direction = Direction.INCOMING_AND_OUTGOING, description = "During the startup and readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.", defaultValue = "2000")
+
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
 
@@ -167,6 +170,13 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             c = merge(config, matching.get());
         }
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(c);
+        // log deprecated config
+        if (ic.getHealthReadinessTopicVerification().isPresent()) {
+            log.deprecatedConfig("health-readiness-topic-verification", "health-topic-verification-enabled");
+        }
+        if (ic.getHealthReadinessTimeout().isPresent()) {
+            log.deprecatedConfig("health-readiness-timeout", "health-topic-verification-timeout");
+        }
         int partitions = ic.getPartitions();
         if (partitions <= 0) {
             throw new IllegalArgumentException("`partitions` must be greater than 0");
@@ -224,6 +234,13 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             c = merge(config, matching.get());
         }
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
+        // log deprecated config
+        if (oc.getHealthReadinessTopicVerification().isPresent()) {
+            log.deprecatedConfig("health-readiness-topic-verification", "health-topic-verification-enabled");
+        }
+        if (oc.getHealthReadinessTimeout().isPresent()) {
+            log.deprecatedConfig("health-readiness-timeout", "health-topic-verification-timeout");
+        }
         KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents);
         sinks.add(sink);
         return sink.getSink();

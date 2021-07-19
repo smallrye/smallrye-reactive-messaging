@@ -62,7 +62,7 @@ public class HealthCheckTest extends KafkaTestBase {
     void testHealthOfApplicationWithOutgoingTopicUsingTopicVerification() {
         createTopic("output", 1);
         KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean()
-                .put("health-readiness-topic-verification", true)
+                .put("health-topic-verification-enabled", true)
                 .build();
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);

@@ -32,7 +32,7 @@ public class KafkaSourceHealth extends BaseHealth {
         this.channel = config.getChannel();
         this.source = source;
         this.client = client;
-        if (config.getHealthReadinessTopicVerification()) {
+        if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(client.configuration());
             this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
@@ -70,8 +70,9 @@ public class KafkaSourceHealth extends BaseHealth {
     @Override
     protected void clientBasedStartupCheck(HealthReport.HealthReportBuilder builder) {
         try {
+            long timeout = config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout());
             admin.listTopics()
-                    .await().atMost(Duration.ofMillis(config.getHealthReadinessTimeout()));
+                    .await().atMost(Duration.ofMillis(timeout));
             builder.add(channel, true);
         } catch (Exception failed) {
             builder.add(channel, false, "Failed to get response from broker for channel "
@@ -83,8 +84,9 @@ public class KafkaSourceHealth extends BaseHealth {
         if (source.hasSubscribers()) {
             Set<TopicPartition> partitions;
             try {
+                long timeout = config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout());
                 partitions = client.getAssignments()
-                        .await().atMost(Duration.ofMillis(config.getHealthReadinessTimeout()));
+                        .await().atMost(Duration.ofMillis(timeout));
                 if (partitions.isEmpty()) {
                     builder.add(channel, false, "No partition assignments for channel " + channel);
                 } else {

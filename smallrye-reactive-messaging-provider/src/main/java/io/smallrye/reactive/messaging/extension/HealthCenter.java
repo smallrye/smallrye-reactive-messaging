@@ -40,7 +40,7 @@ public class HealthCenter {
     public HealthReport getStartup() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         reporters.forEach(r -> r.getStartup().getChannels().forEach(builder::add));
-        failures.forEach(rf -> builder.add(rf.source, false, rf.failure.getMessage()));
+        // failures do not contribute to the startup probe when app is running
         return builder.build();
     }
 

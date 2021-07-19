@@ -27,7 +27,7 @@ public class KafkaSinkHealth extends BaseHealth {
         this.topic = config.getTopic().orElse(config.getChannel());
         this.config = config;
 
-        if (config.getHealthReadinessTopicVerification()) {
+        if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
             this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
@@ -60,8 +60,9 @@ public class KafkaSinkHealth extends BaseHealth {
     @Override
     protected void clientBasedStartupCheck(HealthReport.HealthReportBuilder builder) {
         try {
+            long timeout = config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout());
             admin.listTopics()
-                    .await().atMost(Duration.ofMillis(config.getHealthReadinessTimeout()));
+                    .await().atMost(Duration.ofMillis(timeout));
             builder.add(channel, true);
         } catch (Exception failed) {
             builder.add(channel, false, "Failed to get response from broker for channel "
@@ -72,8 +73,9 @@ public class KafkaSinkHealth extends BaseHealth {
     protected void clientBasedReadinessCheck(HealthReport.HealthReportBuilder builder) {
         Set<String> topics;
         try {
+            long timeout = config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout());
             topics = admin.listTopics()
-                    .await().atMost(Duration.ofMillis(config.getHealthReadinessTimeout()));
+                    .await().atMost(Duration.ofMillis(timeout));
             if (topics.contains(topic)) {
                 builder.add(channel, true);
             } else {
