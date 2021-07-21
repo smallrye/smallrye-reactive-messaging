@@ -44,6 +44,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkReadinessHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
@@ -264,6 +265,13 @@ public class KafkaSink {
         // Then, check if the message payload is a record
         if (message.getPayload() instanceof Record) {
             return ((Record) message.getPayload()).key();
+        }
+
+        // Then, check if the message contains incoming metadata from which we can propagate the key
+        if (configuration.getPropagateRecordKey()) {
+            return message.getMetadata(IncomingKafkaRecordMetadata.class)
+                    .map(IncomingKafkaRecordMetadata::getKey)
+                    .orElse(key);
         }
 
         // Finally, check the configuration

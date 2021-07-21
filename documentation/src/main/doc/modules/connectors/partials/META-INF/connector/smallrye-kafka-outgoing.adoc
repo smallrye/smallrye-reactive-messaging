@@ -101,6 +101,10 @@ Type: _boolean_ | false | `false`
 
 Type: _int_ | false | `-1`
 
+| *propagate-record-key* | Propagate incoming record key to the outgoing record
+
+Type: _boolean_ | false | `false`
+
 | *retries* | If set to a positive number, the connector will try to resend any record that was not delivered successfully (with a potentially transient error) until the number of retries is reached. If set to 0, retries are disabled. If not set, the connector tries to resend any record that failed to be delivered (because of a potentially transient error) during an amount of time configured by `delivery.timeout.ms`.
 
 Type: _long_ | false | `2147483647`
