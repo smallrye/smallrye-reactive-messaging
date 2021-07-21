@@ -1,9 +1,9 @@
-package io.smallrye.reactive.messaging.jms.support;
-
-import java.nio.file.Paths;
+package io.smallrye.reactive.messaging.support;
 
 import org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ;
 import org.apache.commons.io.FileUtils;
+
+import java.nio.file.Paths;
 
 class ArtemisHolder {
 

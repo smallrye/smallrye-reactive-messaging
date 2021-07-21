@@ -1,23 +1,18 @@
 package io.smallrye.reactive.messaging.jms;
 
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
-import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
+import io.smallrye.reactive.messaging.json.JsonMapping;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import javax.jms.*;
+import java.lang.IllegalStateException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
-import javax.jms.BytesMessage;
-import javax.jms.DeliveryMode;
-import javax.jms.Destination;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.JMSProducer;
-import javax.json.bind.Jsonb;
-
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 class JmsSink {
 
@@ -25,15 +20,15 @@ class JmsSink {
     private final Destination destination;
     private final SubscriberBuilder<Message<?>, Void> sink;
     private final JMSContext context;
-    private final Jsonb json;
+    private final JsonMapping jsonMapping;
     private final Executor executor;
 
-    JmsSink(JMSContext context, JmsConnectorOutgoingConfiguration config, Jsonb jsonb, Executor executor) {
+    JmsSink(JMSContext context, JmsConnectorOutgoingConfiguration config, JsonMapping jsonMapping, Executor executor) {
         String name = config.getDestination().orElseGet(config::getChannel);
 
         this.destination = getDestination(context, name, config.getDestinationType());
         this.context = context;
-        this.json = jsonb;
+        this.jsonMapping = jsonMapping;
         this.executor = executor;
 
         producer = context.createProducer();
@@ -96,7 +91,7 @@ class JmsSink {
             o.writeBytes((byte[]) payload);
             outgoing = o;
         } else {
-            outgoing = context.createTextMessage(json.toJson(payload));
+            outgoing = context.createTextMessage(jsonMapping.toJson(payload));
             outgoing.setJMSType(payload.getClass().getName());
             outgoing.setStringProperty("_classname", payload.getClass().getName());
         }
