@@ -119,10 +119,15 @@ public class WeldTestBase {
         return container.getBeanManager().createInstance().select(HealthCenter.class).get();
     }
 
+    public boolean isStarted() {
+        return getHealth().getStartup().isOk();
+    }
+
     public boolean isReady() {
         System.out
-                .println(getHealth().getReadiness().getChannels().stream().map(ci -> ci.getChannel() + " " + ci.isOk()).collect(
-                        Collectors.joining()));
+                .println(getHealth().getReadiness().getChannels().stream()
+                        .map(ci -> ci.getChannel() + " " + ci.isOk() + " " + ci.getMessage())
+                        .collect(Collectors.joining()));
         return getHealth().getReadiness().isOk();
     }
 

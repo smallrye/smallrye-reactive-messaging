@@ -217,4 +217,8 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18249, value = "Unable to recover from the deserialization failure (topic: %s), configure a DeserializationFailureHandler to recover from errors.")
     void unableToDeserializeMessage(String topic, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18250, value = "The configuration property '%s' is deprecated and is replaced by '%s'.")
+    void deprecatedConfig(String deprecated, String replace);
 }

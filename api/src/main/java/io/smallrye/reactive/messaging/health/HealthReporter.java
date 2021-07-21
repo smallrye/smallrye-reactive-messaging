@@ -13,4 +13,8 @@ public interface HealthReporter {
         return HealthReport.OK_INSTANCE;
     }
 
+    default HealthReport getStartup() {
+        return HealthReport.OK_INSTANCE;
+    }
+
 }

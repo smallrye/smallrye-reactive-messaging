@@ -30,7 +30,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
-import io.smallrye.reactive.messaging.kafka.health.KafkaSourceReadinessHealth;
+import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
 import io.vertx.mutiny.core.Vertx;
 
 public class KafkaSource<K, V> {
@@ -45,7 +45,7 @@ public class KafkaSource<K, V> {
     private final boolean isCloudEventEnabled;
     private final String channel;
     private volatile boolean subscribed;
-    private final KafkaSourceReadinessHealth health;
+    private final KafkaSourceHealth health;
 
     private final String group;
     private final int index;
@@ -92,9 +92,8 @@ public class KafkaSource<K, V> {
 
         commitHandler = createCommitHandler(vertx, client, consumerGroup, config, commitStrategy);
         failureHandler = createFailureHandler(config, client.configuration(), kafkaCDIEvents);
-        if (configuration.getHealthEnabled() && configuration.getHealthReadinessEnabled()) {
-            health = new KafkaSourceReadinessHealth(this, configuration, client.configuration(),
-                    client.unwrap(), topics, pattern);
+        if (configuration.getHealthEnabled()) {
+            health = new KafkaSourceHealth(this, configuration, client);
         } else {
             health = null;
         }
@@ -114,9 +113,11 @@ public class KafkaSource<K, V> {
 
         Multi<ConsumerRecord<K, V>> multi;
         if (pattern != null) {
-            multi = client.subscribe(pattern);
+            multi = client.subscribe(pattern)
+                    .onSubscription().invoke(() -> subscribed = true);
         } else {
-            multi = client.subscribe(topics);
+            multi = client.subscribe(topics)
+                    .onSubscription().invoke(() -> subscribed = true);
         }
 
         multi = multi.onFailure().invoke(t -> {
@@ -326,8 +327,16 @@ public class KafkaSource<K, V> {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (health != null) {
+        if (health != null && configuration.getHealthReadinessEnabled()) {
             health.isReady(builder);
+        }
+        // If health is disable do not add anything to the builder.
+    }
+
+    public void isStarted(HealthReport.HealthReportBuilder builder) {
+        // This method must not be called from the event loop.
+        if (health != null) {
+            health.isStarted(builder);
         }
         // If health is disable do not add anything to the builder.
     }

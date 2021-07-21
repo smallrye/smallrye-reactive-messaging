@@ -14,7 +14,10 @@ public class ConfigurationCleaner {
 
             "health-enabled",
             "health-readiness-enabled",
+            "health-readiness-topic-verification",
             "health-readiness-timeout",
+            "health-topic-verification-enabled",
+            "health-topic-verification-timeout",
 
             "tracing-enabled",
             "cloud-events");
@@ -56,6 +59,7 @@ public class ConfigurationCleaner {
             "consumer-rebalance-listener.name",
             "key-deserialization-failure-handler",
             "value-deserialization-failure-handler",
+            "graceful-shutdown",
 
             // Remove most common attributes, may have been configured from the default config
             "key.serializer",
