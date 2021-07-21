@@ -354,7 +354,7 @@ Each record consists of a <em>key</em>, a <em>value</em>, and a <em>timestamp</e
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.smallrye.reactive&lt;/groupId&gt;
   &lt;artifactId&gt;smallrye-reactive-messaging-kafka&lt;/artifactId&gt;
-  &lt;version&gt;3.7.0&lt;/version&gt;
+  &lt;version&gt;3.7.1&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -501,7 +501,7 @@ So you can receive <em>payloads</em> representing records from Kafka using:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><a href="https://smallrye.io/smallrye-reactive-messaging/3.7.0/apidocs/io/smallrye/reactive/messaging/kafka/Record.html">Record&lt;K,V&gt;</a> - a pair key/value</p>
+<p><a href="https://smallrye.io/smallrye-reactive-messaging/3.7.1/apidocs/io/smallrye/reactive/messaging/kafka/Record.html">Record&lt;K,V&gt;</a> - a pair key/value</p>
 </li>
 <li>
 <p><a href="https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/consumer/ConsumerRecord.html">ConsumerRecord&lt;K,V&gt;</a> - a structure representing the record with all its metadata</p>
@@ -530,7 +530,7 @@ public void consume(ConsumerRecord&lt;String, String&gt; record) {
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.0/apidocs/io/smallrye/reactive/messaging/kafka/api/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
+<p>Messages coming from Kafka contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.1/apidocs/io/smallrye/reactive/messaging/kafka/api/IncomingKafkaRecordMetadata.html">IncomingKafkaRecordMetadata&lt;K, T&gt;</a> in the metadata.
 <code>K</code> is the type of the record&#8217;s key.
 <code>T</code> is the type of the record&#8217;s value.
 It provides the key, topic, partitions, headers and so on:</p>
@@ -784,7 +784,7 @@ However, when a deserialization failure occurs, you can intercept it and provide
 If you don&#8217;t, <code>null</code> will be used as fallback value.</p>
 </div>
 <div class="paragraph">
-<p>To achieve this, create a CDI bean implementing the <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.0/apidocs/io/smallrye/reactive/messaging/kafka/DeserializationFailureHandler.html">DeserializationFailureHandler&lt;T&gt;</a> interface:</p>
+<p>To achieve this, create a CDI bean implementing the <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.1/apidocs/io/smallrye/reactive/messaging/kafka/DeserializationFailureHandler.html">DeserializationFailureHandler&lt;T&gt;</a> interface:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -826,7 +826,7 @@ However, if the handler throws an exception, the application would be marked unh
 <h3 id="_receiving_cloud_events"><a class="anchor" href="#_receiving_cloud_events"></a>Receiving Cloud Events</h3>
 <div class="paragraph">
 <p>The Kafka connector supports <a href="https://cloudevents.io/">Cloud Events</a>.
-When the connector detects a <em>structured</em> or <em>binary</em> Cloud Events, it adds a  <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.0/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html">IncomingKafkaCloudEventMetadata&lt;K, T&gt;</a> in the metadata of the Message.
+When the connector detects a <em>structured</em> or <em>binary</em> Cloud Events, it adds a  <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.1/apidocs/io/smallrye/reactive/messaging/kafka/IncomingKafkaCloudEventMetadata.html">IncomingKafkaCloudEventMetadata&lt;K, T&gt;</a> in the metadata of the Message.
 <code>IncomingKafkaCloudEventMetadata</code> contains the various (mandatory and optional) Cloud Event attributes.</p>
 </div>
 <div class="paragraph">
@@ -1420,7 +1420,7 @@ You need to configure the:</p>
 <h3 id="_sending_keyvalue_pairs"><a class="anchor" href="#_sending_keyvalue_pairs"></a>Sending key/value pairs</h3>
 <div class="paragraph">
 <p>In the Kafka world, it&#8217;s often necessary to send <em>records</em>, i.e. a key/value pair.
-The connector provides the <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.0/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/Record.html"><code>io.smallrye.reactive.messaging.kafka.Record</code></a> class that you can use to send a pair:</p>
+The connector provides the <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.1/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/Record.html"><code>io.smallrye.reactive.messaging.kafka.Record</code></a> class that you can use to send a pair:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1444,7 +1444,7 @@ It is also possible to create a record with a <code>null</code> key AND a <code>
 <div class="sect2">
 <h3 id="_outbound_metadata"><a class="anchor" href="#_outbound_metadata"></a>Outbound Metadata</h3>
 <div class="paragraph">
-<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.0/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/api/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
+<p>When sending <code>Messages</code>, you can add an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.7.1/apidocs/apidocs/io/smallrye/reactive/messaging/kafka/api/OutgoingKafkaRecordMetadata.html"><code>OutgoingKafkaRecordMetadata</code></a> to influence how the message is going to written to Kafka.
 For example, you can add Kafka headers, configure the record key&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
