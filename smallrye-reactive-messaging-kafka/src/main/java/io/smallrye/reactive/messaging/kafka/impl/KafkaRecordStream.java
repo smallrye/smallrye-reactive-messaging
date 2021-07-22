@@ -4,11 +4,11 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.reactivestreams.Subscription;
@@ -66,8 +66,7 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
          */
         private final Uni<ConsumerRecords<K, V>> pollUni;
 
-        // TODO Make sure we don't enqueue too much, especially if req == Long.MAX
-        private final Queue<ConsumerRecord<K, V>> queue;
+        private final RecordQueue<ConsumerRecord<K, V>> queue;
         private final long retries;
 
         /**
@@ -82,14 +81,15 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
             this.client = client;
             this.pauseResumeEnabled = config.getPauseIfNoRequests();
             this.downstream = subscriber;
-            this.queue = new ConcurrentLinkedDeque<>();
+            int batchSize = config.config().getOptionalValue(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, Integer.class).orElse(500);
+            this.queue = new RecordQueue<>(2 * batchSize);
             this.retries = config.getRetryAttempts() == -1 ? Long.MAX_VALUE : config.getRetryAttempts();
             this.pollUni = client.poll()
                     .onItem().transform(cr -> {
                         if (cr.isEmpty()) {
                             return null;
                         }
-                        cr.forEach(queue::offer);
+                        queue.addAll(cr);
                         return cr;
                     })
                     .plug(m -> {
@@ -182,12 +182,13 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
                 emitted = 0;
 
                 if (pauseResumeEnabled) {
-                    if (requests <= queue.size() && paused.compareAndSet(false, true)) {
+                    int size = q.size();
+                    if (requests <= size && paused.compareAndSet(false, true)) {
                         log.pausingChannel(config.getChannel());
                         client.pause()
                                 .subscribe().with(x -> {
                                 }, this::report);
-                    } else if (requests > queue.size() && paused.compareAndSet(true, false)) {
+                    } else if (requests > size && paused.compareAndSet(true, false)) {
                         log.resumingChannel(config.getChannel());
                         client.resume()
                                 .subscribe().with(x -> {
