@@ -79,6 +79,24 @@ For example, you can add Kafka headers, configure the record key...
 include::example$outbound/KafkaOutboundMetadataExample.java[tag=code]
 ----
 
+=== Propagating Record Key
+
+When processing messages, you can propagate incoming record key to the outgoing record.
+
+Consider the following example method, which consumes messages from the channel `in`,
+transforms the payload, and writes the result to the channel `out`.
+
+[source, java]
+----
+include::example$outbound/KafkaPriceProcessor.java[tag=code]
+----
+
+Enabled with `mp.messaging.outgoing.[channel-name].propagate-record-key=true` configuration,
+record key propagation produces the outgoing record with the same _key_ as the incoming record.
+
+If the outgoing record already contains a _key_, it *won't be overridden* by the incoming record key.
+If the incoming record does have a _null_ key, the `mp.messaging.outgoing.[channel-name].key` property is used.
+
 === Dynamic topic names
 
 Sometimes it is desirable to select the destination of a message dynamically.
