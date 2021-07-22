@@ -46,7 +46,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
-import io.smallrye.reactive.messaging.kafka.health.KafkaSinkReadinessHealth;
+import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
 
@@ -68,7 +68,7 @@ public class KafkaSink {
     private final boolean writeCloudEvents;
     private final boolean mandatoryCloudEventAttributeSet;
     private final boolean isTracingEnabled;
-    private final KafkaSinkReadinessHealth health;
+    private final KafkaSinkHealth health;
     private final boolean isHealthEnabled;
 
     public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
@@ -105,8 +105,8 @@ public class KafkaSink {
         }
 
         this.isHealthEnabled = configuration.getHealthEnabled();
-        if (isHealthEnabled && this.configuration.getHealthReadinessEnabled()) {
-            this.health = new KafkaSinkReadinessHealth(config, client.configuration(), client.unwrap());
+        if (isHealthEnabled) {
+            this.health = new KafkaSinkHealth(config, client.configuration(), client.unwrap());
         } else {
             this.health = null;
         }
@@ -338,8 +338,16 @@ public class KafkaSink {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (health != null) {
+        if (health != null && this.configuration.getHealthReadinessEnabled()) {
             health.isReady(builder);
+        }
+        // If health is disable do not add anything to the builder.
+    }
+
+    public void isStarted(HealthReport.HealthReportBuilder builder) {
+        // This method must not be called from the event loop.
+        if (health != null) {
+            health.isStarted(builder);
         }
         // If health is disable do not add anything to the builder.
     }

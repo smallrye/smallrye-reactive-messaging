@@ -31,12 +31,21 @@ public abstract class BaseHealth {
         }
     }
 
+    public void isStarted(HealthReport.HealthReportBuilder builder) {
+        KafkaAdmin admin = getAdmin();
+        if (admin != null) {
+            clientBasedStartupCheck(builder);
+        } else {
+            metricsBasedStartupCheck(builder);
+        }
+    }
+
     public void isReady(HealthReport.HealthReportBuilder builder) {
         KafkaAdmin admin = getAdmin();
         if (admin != null) {
-            adminBasedHealthCheck(builder);
+            clientBasedReadinessCheck(builder);
         } else {
-            metricsBasedHealthCheck(builder);
+            metricsBasedReadinessCheck(builder);
         }
     }
 
@@ -51,9 +60,13 @@ public abstract class BaseHealth {
         return metric;
     }
 
-    protected abstract void metricsBasedHealthCheck(HealthReport.HealthReportBuilder builder);
+    protected abstract void metricsBasedStartupCheck(HealthReport.HealthReportBuilder builder);
 
-    protected abstract void adminBasedHealthCheck(HealthReport.HealthReportBuilder builder);
+    protected abstract void metricsBasedReadinessCheck(HealthReport.HealthReportBuilder builder);
+
+    protected abstract void clientBasedStartupCheck(HealthReport.HealthReportBuilder builder);
+
+    protected abstract void clientBasedReadinessCheck(HealthReport.HealthReportBuilder builder);
 
     public abstract KafkaAdmin getAdmin();
 }

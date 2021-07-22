@@ -21,11 +21,19 @@ Type: _boolean_ | false | `true`
 
 Type: _boolean_ | false | `true`
 
-| *health-readiness-topic-verification* | Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection.
+| *health-readiness-topic-verification* | _deprecated_ - Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection. Deprecated: Use 'health-topic-verification-enabled' instead.
+
+Type: _boolean_ | false | 
+
+| *health-readiness-timeout* | _deprecated_ - During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready. Deprecated: Use 'health-topic-verification-timeout' instead.
+
+Type: _long_ | false | 
+
+| *health-topic-verification-enabled* | Whether the startup and readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin client connection.
 
 Type: _boolean_ | false | `false`
 
-| *health-readiness-timeout* | During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.
+| *health-topic-verification-timeout* | During the startup and readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.
 
 Type: _long_ | false | `2000`
 
