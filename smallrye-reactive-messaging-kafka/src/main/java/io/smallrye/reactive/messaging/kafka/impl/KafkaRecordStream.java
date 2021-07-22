@@ -66,9 +66,17 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
          */
         private final Uni<ConsumerRecords<K, V>> pollUni;
 
-        // TODO Make sure we don't enqueue too much, especially if req == Long.MAX
         private final Queue<ConsumerRecord<K, V>> queue;
         private final long retries;
+
+        /**
+         * Store the size of the queue.
+         * Calling {@code .size()} on the queue traverses the queue, which is slow.
+         * So, we maintain the size:
+         * - add 1 for each poll records (from the kafka polling thread)
+         * - subtract the emitted records (from the Vert.x context)
+         */
+        private final AtomicLong size;
 
         /**
          * {@code true} if the subscription has been cancelled.
@@ -82,6 +90,7 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
             this.client = client;
             this.pauseResumeEnabled = config.getPauseIfNoRequests();
             this.downstream = subscriber;
+            this.size = new AtomicLong(0);
             this.queue = new ConcurrentLinkedDeque<>();
             this.retries = config.getRetryAttempts() == -1 ? Long.MAX_VALUE : config.getRetryAttempts();
             this.pollUni = client.poll()
@@ -89,7 +98,10 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
                         if (cr.isEmpty()) {
                             return null;
                         }
-                        cr.forEach(queue::offer);
+                        for (ConsumerRecord<K, V> rec : cr) {
+                            queue.offer(rec);
+                        }
+                        size.addAndGet(cr.count());
                         return cr;
                     })
                     .plug(m -> {
@@ -178,16 +190,17 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
                     emitted++;
                 }
 
+                long s = size.addAndGet(-emitted);
                 requests = requested.addAndGet(-emitted);
                 emitted = 0;
 
                 if (pauseResumeEnabled) {
-                    if (requests <= queue.size() && paused.compareAndSet(false, true)) {
+                    if (requests <= s && paused.compareAndSet(false, true)) {
                         log.pausingChannel(config.getChannel());
                         client.pause()
                                 .subscribe().with(x -> {
                                 }, this::report);
-                    } else if (requests > queue.size() && paused.compareAndSet(true, false)) {
+                    } else if (requests > s && paused.compareAndSet(true, false)) {
                         log.resumingChannel(config.getChannel());
                         client.resume()
                                 .subscribe().with(x -> {
