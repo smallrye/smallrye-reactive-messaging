@@ -211,7 +211,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .with("group.id", "test-source-with-throttled-latest-processed-commit-without-acking")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
-                .with("max.poll.records", "16")
+                .with("max.poll.records", 16)
                 .with("throttled.unprocessed-record-max-age.ms", 100);
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);

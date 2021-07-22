@@ -4,11 +4,11 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.reactivestreams.Subscription;
@@ -66,17 +66,8 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
          */
         private final Uni<ConsumerRecords<K, V>> pollUni;
 
-        private final Queue<ConsumerRecord<K, V>> queue;
+        private final RecordQueue<ConsumerRecord<K, V>> queue;
         private final long retries;
-
-        /**
-         * Store the size of the queue.
-         * Calling {@code .size()} on the queue traverses the queue, which is slow.
-         * So, we maintain the size:
-         * - add 1 for each poll records (from the kafka polling thread)
-         * - subtract the emitted records (from the Vert.x context)
-         */
-        private final AtomicLong size;
 
         /**
          * {@code true} if the subscription has been cancelled.
@@ -90,18 +81,15 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
             this.client = client;
             this.pauseResumeEnabled = config.getPauseIfNoRequests();
             this.downstream = subscriber;
-            this.size = new AtomicLong(0);
-            this.queue = new ConcurrentLinkedDeque<>();
+            int batchSize = config.config().getOptionalValue(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, Integer.class).orElse(500);
+            this.queue = new RecordQueue<>(2 * batchSize);
             this.retries = config.getRetryAttempts() == -1 ? Long.MAX_VALUE : config.getRetryAttempts();
             this.pollUni = client.poll()
                     .onItem().transform(cr -> {
                         if (cr.isEmpty()) {
                             return null;
                         }
-                        for (ConsumerRecord<K, V> rec : cr) {
-                            queue.offer(rec);
-                        }
-                        size.addAndGet(cr.count());
+                        queue.addAll(cr);
                         return cr;
                     })
                     .plug(m -> {
@@ -190,17 +178,17 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
                     emitted++;
                 }
 
-                long s = size.addAndGet(-emitted);
                 requests = requested.addAndGet(-emitted);
                 emitted = 0;
 
                 if (pauseResumeEnabled) {
-                    if (requests <= s && paused.compareAndSet(false, true)) {
+                    int size = q.size();
+                    if (requests <= size && paused.compareAndSet(false, true)) {
                         log.pausingChannel(config.getChannel());
                         client.pause()
                                 .subscribe().with(x -> {
                                 }, this::report);
-                    } else if (requests > s && paused.compareAndSet(true, false)) {
+                    } else if (requests > size && paused.compareAndSet(true, false)) {
                         log.resumingChannel(config.getChannel());
                         client.resume()
                                 .subscribe().with(x -> {
