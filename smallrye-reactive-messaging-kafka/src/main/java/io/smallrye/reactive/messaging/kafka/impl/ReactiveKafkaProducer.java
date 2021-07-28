@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.kafka.impl;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -179,7 +181,14 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         if (closed.compareAndSet(false, true)) {
             int timeout = this.closetimeout;
             Uni<Void> uni = runOnSendingThread(p -> {
-                p.close(Duration.ofMillis(timeout));
+                if (System.getSecurityManager() == null) {
+                    p.close(Duration.ofMillis(timeout));
+                } else {
+                    AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                        p.close(Duration.ofMillis(timeout));
+                        return null;
+                    });
+                }
             }).onItem().invoke(kafkaWorker::shutdown);
 
             if (Context.isOnEventLoopThread()) {

@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.kafka.impl;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -77,6 +79,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         pollTimeout = Duration.ofMillis(config.getPollTimeout());
 
         kafkaWorker = Executors.newSingleThreadScheduledExecutor(KafkaPollingThread::new);
+
         consumer = new KafkaConsumer<>(kafkaConfiguration, keyDeserializer, valueDeserializer);
         stream = new KafkaRecordStream<>(this, config, source.getContext().getDelegate());
     }
@@ -124,7 +127,16 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     Uni<ConsumerRecords<K, V>> poll() {
         if (polling.compareAndSet(false, true)) {
             return runOnPollingThread(c -> {
-                return c.poll(pollTimeout);
+                if (System.getSecurityManager() == null) {
+                    return c.poll(pollTimeout);
+                } else {
+                    return AccessController.doPrivileged(new PrivilegedAction<ConsumerRecords<K, V>>() {
+                        @Override
+                        public ConsumerRecords<K, V> run() {
+                            return c.poll(pollTimeout);
+                        }
+                    });
+                }
             })
                     .eventually(() -> polling.set(false))
                     .onFailure(WakeupException.class).recoverWithItem((ConsumerRecords<K, V>) ConsumerRecords.EMPTY);
@@ -291,7 +303,14 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
                 .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class).orElse(1000);
         if (closed.compareAndSet(false, true)) {
             Uni<Void> uni = runOnPollingThread(c -> {
-                c.close(Duration.ofMillis(timeout));
+                if (System.getSecurityManager() == null) {
+                    c.close(Duration.ofMillis(timeout));
+                } else {
+                    AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                        c.close(Duration.ofMillis(timeout));
+                        return null;
+                    });
+                }
             })
                     .onItem().invoke(kafkaWorker::shutdown);
             // Interrupt polling
