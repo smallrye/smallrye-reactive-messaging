@@ -8,8 +8,6 @@ import java.util.Collection;
  * Only a few operations are supported: {@link #addAll(Iterable)}, {@link #clear()}, {@link #size()} and {@link #poll()}.
  * <p>
  * The access is guarded by the monitor lock.
- * <p>
- * Ths initial capacity is 2 * batch size.
  */
 public class RecordQueue<T> extends ArrayDeque<T> {
 

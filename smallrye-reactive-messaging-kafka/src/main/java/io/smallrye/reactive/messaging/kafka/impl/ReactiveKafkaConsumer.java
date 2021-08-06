@@ -123,9 +123,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     @SuppressWarnings("unchecked")
     Uni<ConsumerRecords<K, V>> poll() {
         if (polling.compareAndSet(false, true)) {
-            return runOnPollingThread(c -> {
-                return c.poll(pollTimeout);
-            })
+            return runOnPollingThread(c -> paused.get() ? c.poll(Duration.ZERO) : c.poll(pollTimeout))
                     .eventually(() -> polling.set(false))
                     .onFailure(WakeupException.class).recoverWithItem((ConsumerRecords<K, V>) ConsumerRecords.EMPTY);
         } else {

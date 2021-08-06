@@ -203,12 +203,12 @@ public interface KafkaLogging extends BasicLogger {
     void messageStillUnprocessedAfterTimeout(long unprocessed);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 18246, value = "Pausing Kafka consumption for channel %s - not enough downstream requests")
-    void pausingChannel(String channel);
+    @Message(id = 18246, value = "Pausing Kafka consumption for channel %s, queue size %s is more than %s")
+    void pausingChannel(String channel, int queueSize, int maxQueueSize);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 18247, value = "Resuming Kafka consumption for channel %s")
-    void resumingChannel(String channel);
+    @Message(id = 18247, value = "Resuming Kafka consumption for channel %s, queue size %s is less than %s")
+    void resumingChannel(String channel, int queueSize, int halfMaxQueueSize);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18248, value = "Key serializer omitted, using String as default")
