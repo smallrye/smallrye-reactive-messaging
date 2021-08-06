@@ -92,7 +92,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
         sendMessages(10, 45);
         await().until(() -> subscriber.getItems().size() == 55);
-        await().until(() -> !source.getConsumer().paused().await().indefinitely().isEmpty());
+        await().until(() -> source.getConsumer().paused().await().indefinitely().isEmpty());
 
         waitForCommits(source, 55);
     }
@@ -397,13 +397,14 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         restartAndCheck(config, groupId, 1);
     }
 
-    @Test
+    @RepeatedTest(10)
     public void testRebalanceWhilePausedAndPendingCommit() throws Exception {
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = createConsumerConfig(groupId)
                 .put("topic", topic);
         MapBasedConfig config2 = createConsumerConfig(groupId)
-                .put("topic", topic);
+                .with(ConsumerConfig.CLIENT_ID_CONFIG, "consumer-" + groupId + "-2")
+                .with("topic", topic);
 
         List<IncomingKafkaRecord<Integer, String>> list = new CopyOnWriteArrayList<>();
         List<IncomingKafkaRecord<Integer, String>> list2 = new CopyOnWriteArrayList<>();
@@ -435,9 +436,10 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         await().until(() -> !source2.getConsumer().getAssignments().await().indefinitely().isEmpty());
 
         // Verify rebalance
-        Set<TopicPartition> assignedToSource1 = source.getConsumer().getAssignments().await().indefinitely();
+        await().until(() -> Uni.combine().all()
+                .unis(source.getConsumer().getAssignments(), source2.getConsumer().getAssignments())
+                .combinedWith((tp1, tp2) -> tp1.size() + tp2.size()).await().indefinitely() == partitions);
         Set<TopicPartition> assignedToSource2 = source2.getConsumer().getAssignments().await().indefinitely();
-        assertThat(assignedToSource1.size() + assignedToSource2.size()).isEqualTo(partitions);
 
         subscriber.request(100);
         await().until(() -> list.size() >= 100);

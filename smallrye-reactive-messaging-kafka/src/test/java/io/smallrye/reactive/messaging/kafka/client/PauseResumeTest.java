@@ -10,6 +10,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.util.TypeLiteral;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.MockConsumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
@@ -55,6 +57,7 @@ public class PauseResumeTest extends WeldTestBase {
     @Test
     void testPauseResumeWithRequests() {
         MapBasedConfig config = commonConfiguration()
+                .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1)
                 .with("client.id", UUID.randomUUID().toString());
         source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
@@ -80,15 +83,20 @@ public class PauseResumeTest extends WeldTestBase {
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 2, "k", "v2"));
         });
 
+        // two messages in the buffer, first one is delivered
         await().until(() -> subscriber.getItems().size() == 1);
 
+        // 2 >= 2 (maxBufferSize) -> paused
         await().until(() -> !consumer.paused().isEmpty());
 
+        // request 1, delivered one more record
         subscriber.request(1);
         await().until(() -> subscriber.getItems().size() == 2);
 
-        await().until(() -> !consumer.paused().isEmpty());
+        // 1 <= 1 (halfBufferSize) -> resumed
+        await().until(() -> consumer.paused().isEmpty());
 
+        // request 1, delivered last record
         subscriber.request(1);
         await().until(() -> subscriber.getItems().size() == 3);
 
@@ -97,17 +105,217 @@ public class PauseResumeTest extends WeldTestBase {
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 4, "k", "v1"));
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 5, "k", "v2"));
         });
+        // 2 messages in the buffer
 
+        // 2 >= 2 (maxBufferSize) -> paused
         await().until(() -> !consumer.paused().isEmpty());
 
         subscriber.request(2);
         await().until(() -> subscriber.getItems().size() == 5);
 
+        // 1 <= 1 (halfBufferSize) -> resumed
+        await().until(() -> consumer.paused().isEmpty());
+    }
+
+    @Test
+    void testPauseResumeBuffer() {
+        MapBasedConfig config = commonConfiguration()
+                .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
+                .with("client.id", UUID.randomUUID().toString());
+        source = new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+        injectMockConsumer(source, consumer);
+
+        AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
+                .subscribe().withSubscriber(AssertSubscriber.create(1));
+
+        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
+        TopicPartition tp1 = new TopicPartition(TOPIC, 1);
+        TopicPartition tp2 = new TopicPartition(TOPIC, 2);
+        Map<TopicPartition, Long> beginning = new HashMap<>();
+        beginning.put(tp0, 0L);
+        beginning.put(tp1, 0L);
+        beginning.put(tp2, 0L);
+        consumer.updateBeginningOffsets(beginning);
+
+        // Push 20
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Arrays.asList(tp0, tp1, tp2));
+            for (int i = 0; i < 20; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
+            }
+        });
+
+        // Received first
+        await().until(() -> subscriber.getItems().size() == 1);
+
+        // Await pause
+        await().until(() -> !consumer.paused().isEmpty());
+
+        // Push 5
+        consumer.schedulePollTask(() -> {
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "k", "v" + i));
+            }
+        });
+
+        // Pull 10
+        subscriber.request(10);
+
+        // Await resume
+        await().until(() -> consumer.paused().isEmpty());
+
+        // Received items
+        await().until(() -> subscriber.getItems().size() == 11);
+
+        // Push 10
+        consumer.schedulePollTask(() -> {
+            for (int i = 0; i < 10; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 2, i, "k", "v" + i));
+            }
+        });
+
+        // Await pause
+        await().until(() -> !consumer.paused().isEmpty());
+    }
+
+    @Test
+    void testRebalanceDuringPaused() {
+        MapBasedConfig config = commonConfiguration()
+                .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
+                .with("client.id", UUID.randomUUID().toString());
+        source = new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+        injectMockConsumer(source, consumer);
+
+        AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
+                .subscribe().withSubscriber(AssertSubscriber.create(1));
+
+        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
+        TopicPartition tp1 = new TopicPartition(TOPIC, 1);
+        TopicPartition tp2 = new TopicPartition(TOPIC, 2);
+        TopicPartition tp3 = new TopicPartition(TOPIC, 3);
+        Map<TopicPartition, Long> beginning = new HashMap<>();
+        beginning.put(tp0, 0L);
+        beginning.put(tp1, 0L);
+        beginning.put(tp2, 0L);
+        beginning.put(tp3, 0L);
+        consumer.updateBeginningOffsets(beginning);
+
+        // Push 20
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Arrays.asList(tp0, tp1, tp2, tp3));
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "k", "v" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 2, i, "k", "v" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 3, i, "k", "v" + i));
+            }
+        });
+
+        // Received first
+        await().until(() -> subscriber.getItems().size() == 1);
+
+        // Await pause
+        await().until(() -> !consumer.paused().isEmpty());
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Arrays.asList(tp0, tp1));
+            for (int i = 5; i < 15; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "k", "v" + i));
+            }
+        });
+
+        // Pull 30
+        subscriber.request(30);
+
+        // Await resume
+        await().until(() -> !resumedPartitions(consumer).isEmpty());
+
+        // Received all
+        await().until(() -> subscriber.getItems().size() >= 31);
+
+    }
+
+    @Test
+    void testRebalanceDuringPausedWithDifferentPartitions() {
+        MapBasedConfig config = commonConfiguration()
+                .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
+                .with("client.id", UUID.randomUUID().toString());
+        source = new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+        injectMockConsumer(source, consumer);
+
+        AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
+                .subscribe().withSubscriber(AssertSubscriber.create(1));
+
+        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
+        TopicPartition tp1 = new TopicPartition(TOPIC, 1);
+        TopicPartition tp2 = new TopicPartition(TOPIC, 2);
+        TopicPartition tp3 = new TopicPartition(TOPIC, 3);
+
+        Map<TopicPartition, Long> beginning = new HashMap<>();
+        beginning.put(tp0, 0L);
+        beginning.put(tp1, 0L);
+        beginning.put(tp2, 0L);
+        beginning.put(tp3, 0L);
+        consumer.updateBeginningOffsets(beginning);
+
+        // Push 20
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Arrays.asList(tp0, tp1));
+            for (int i = 0; i < 10; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "0v" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "k", "1v" + i));
+            }
+        });
+
+        // Received first
+        await().until(() -> subscriber.getItems().size() == 1);
+
+        // Await pause
+        await().until(() -> !consumer.paused().isEmpty());
+
+        // Still paused
+        await().until(() -> !consumer.paused().isEmpty());
+
+        // Rebalance with different partitions
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Arrays.asList(tp2, tp3));
+        });
+        // Push 20
+        consumer.schedulePollTask(() -> {
+            for (int i = 0; i < 10; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 2, i, "k", "2v" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 3, i, "k", "3v" + i));
+            }
+        });
+
+        // Pull 40
+        subscriber.request(40);
+
+        // Await resume
+        await().until(() -> !resumedPartitions(consumer).isEmpty());
+
+        // Received all
+        await().until(() -> subscriber.getItems().size() == 40);
+
+    }
+
+    Set<TopicPartition> resumedPartitions(Consumer<?, ?> consumer) {
+        HashSet<TopicPartition> tps = new HashSet<>(consumer.assignment());
+        tps.removeAll(consumer.paused());
+        return tps;
     }
 
     @Test
     void testPauseResumeWithBlockingConsumption() {
         MapBasedConfig config = commonConfiguration()
+                .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 2)
                 .with("client.id", UUID.randomUUID().toString());
         source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
@@ -144,9 +352,7 @@ public class PauseResumeTest extends WeldTestBase {
             }
         });
 
-        await()
-                .pollInterval(Duration.ofMillis(10))
-                .until(() -> !consumer.paused().isEmpty());
+        await().until(() -> !consumer.paused().isEmpty());
 
         // It may await until everything is consumed, but the goal is to verify it resumed.
         await()

@@ -1,17 +1,20 @@
 package io.smallrye.reactive.messaging.kafka.perf;
 
+import static io.smallrye.reactive.messaging.kafka.base.PerfTestUtils.generateRandomPayload;
+
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -40,7 +43,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
  * The test stops when an external consumers has received all the records written by the application.
  */
 @Disabled
-public class EndToEndPerfTest extends KafkaTestBase {
+public class EndToEndPayloadPerfTest extends KafkaTestBase {
 
     public static final int COUNT = 50_000;
     public static String input_topic = UUID.randomUUID().toString();
@@ -49,10 +52,9 @@ public class EndToEndPerfTest extends KafkaTestBase {
     @BeforeAll
     static void insertRecords() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        AtomicLong count = new AtomicLong();
         KafkaUsage usage = new KafkaUsage();
-        usage.produceStrings(COUNT, latch::countDown,
-                () -> new ProducerRecord<>(input_topic, "key", Long.toString(count.getAndIncrement())));
+        usage.produce("payload-producer", COUNT, new StringSerializer(), new ByteArraySerializer(), latch::countDown,
+                () -> new ProducerRecord<>(input_topic, "key", generateRandomPayload(10000))); // 10kb
         latch.await();
     }
 
@@ -66,12 +68,12 @@ public class EndToEndPerfTest extends KafkaTestBase {
                 .with("mp.messaging.incoming.in.cloud-events", false)
                 .with("mp.messaging.incoming.in.auto.offset.reset", "earliest")
                 .with("mp.messaging.incoming.in.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.in.value.deserializer", StringDeserializer.class.getName())
+                .with("mp.messaging.incoming.in.value.deserializer", ByteArrayDeserializer.class.getName())
                 .with("mp.messaging.incoming.in.key.deserializer", StringDeserializer.class.getName())
 
                 .with("mp.messaging.outgoing.out.connector", KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.out.topic", output_topic)
-                .with("mp.messaging.outgoing.out.value.serializer", StringSerializer.class.getName())
+                .with("mp.messaging.outgoing.out.value.serializer", ByteArraySerializer.class.getName())
                 .with("mp.messaging.outgoing.out.key.serializer", StringSerializer.class.getName())
                 .with("mp.messaging.outgoing.out.bootstrap.servers", getBootstrapServers());
     }
@@ -80,13 +82,13 @@ public class EndToEndPerfTest extends KafkaTestBase {
         Properties properties = new Properties();
         properties.put("bootstrap.servers", getBootstrapServers());
         properties.put("group.id", UUID.randomUUID().toString());
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties, new StringDeserializer(),
-                new StringDeserializer());
+        KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties, new StringDeserializer(),
+                new ByteArrayDeserializer());
         consumer.subscribe(Collections.singletonList(output_topic));
         boolean done = false;
         long received = 0;
         while (!done) {
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+            ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(1000));
             received = received + records.count();
             if (received == COUNT) {
                 done = true;
@@ -98,8 +100,8 @@ public class EndToEndPerfTest extends KafkaTestBase {
     public static class MyNoopProcessor {
         @Incoming("in")
         @Outgoing("out")
-        public Record<String, String> transform(Record<String, String> record) {
-            return Record.of(record.key(), "hello-" + record.value());
+        public Record<String, byte[]> transform(Record<String, byte[]> record) {
+            return Record.of(record.key(), record.value());
         }
 
     }
@@ -109,9 +111,9 @@ public class EndToEndPerfTest extends KafkaTestBase {
         @Incoming("in")
         @Outgoing("out")
         @Blocking
-        public Record<String, String> transform(Record<String, String> record) {
+        public Record<String, byte[]> transform(Record<String, byte[]> record) {
             PerfTestUtils.consumeCPU(1_000_000);
-            return Record.of(record.key(), "hello-" + record.value());
+            return Record.of(record.key(), record.value());
         }
 
     }
@@ -120,7 +122,7 @@ public class EndToEndPerfTest extends KafkaTestBase {
     public static class MyHardWorkerProcessor {
         @Incoming("in")
         @Outgoing("out")
-        public Uni<Message<String>> transform(Message<String> message) {
+        public Uni<Message<byte[]>> transform(Message<byte[]> message) {
             return Uni.createFrom().item(message)
                     .onItem().invoke(() -> PerfTestUtils.consumeCPU(1_000_000))
                     .map(KafkaRecord::from);
