@@ -7,7 +7,6 @@ import java.util.*;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
 
@@ -21,10 +20,10 @@ import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 public class RebalanceListeners {
 
     static ConsumerRebalanceListener createRebalanceListener(
+            ReactiveKafkaConsumer<?, ?> reactiveKafkaConsumer,
             KafkaConnectorIncomingConfiguration config,
             String consumerGroup,
             Instance<KafkaConsumerRebalanceListener> instances,
-            Consumer<?, ?> consumer,
             KafkaCommitHandler commitHandler) {
         Optional<KafkaConsumerRebalanceListener> rebalanceListener = findMatchingListener(config, consumerGroup, instances);
 
@@ -36,7 +35,7 @@ public class RebalanceListeners {
                     log.executingConsumerRevokedRebalanceListener(consumerGroup);
                     // TODO Why don't we call the commit handler?
                     try {
-                        listener.onPartitionsRevoked(consumer, partitions);
+                        listener.onPartitionsRevoked(reactiveKafkaConsumer.unwrap(), partitions);
                         log.executedConsumerRevokedRebalanceListener(consumerGroup);
                     } catch (RuntimeException e) {
                         log.unableToExecuteConsumerRevokedRebalanceListener(consumerGroup, e);
@@ -46,9 +45,12 @@ public class RebalanceListeners {
 
                 @Override
                 public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                    if (reactiveKafkaConsumer.isPaused()) {
+                        reactiveKafkaConsumer.unwrap().pause(partitions);
+                    }
                     commitHandler.partitionsAssigned(partitions);
                     try {
-                        listener.onPartitionsAssigned(consumer, partitions);
+                        listener.onPartitionsAssigned(reactiveKafkaConsumer.unwrap(), partitions);
                         log.executedConsumerAssignedRebalanceListener(consumerGroup);
                     } catch (RuntimeException e) {
                         log.reEnablingConsumerForGroup(consumerGroup);
@@ -65,6 +67,9 @@ public class RebalanceListeners {
 
                 @Override
                 public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                    if (reactiveKafkaConsumer.isPaused()) {
+                        reactiveKafkaConsumer.unwrap().pause(partitions);
+                    }
                     commitHandler.partitionsAssigned(partitions);
                 }
             };

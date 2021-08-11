@@ -83,12 +83,17 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
 
     public void setRebalanceListener() {
         try {
-            rebalanceListener = RebalanceListeners.createRebalanceListener(configuration, source.getConsumerGroup(),
-                    source.getConsumerRebalanceListeners(), consumer, source.getCommitHandler());
+            rebalanceListener = RebalanceListeners.createRebalanceListener(this, configuration, source.getConsumerGroup(),
+                    source.getConsumerRebalanceListeners(), source.getCommitHandler());
         } catch (Exception e) {
             close();
             throw e;
         }
+    }
+
+    // Visible to use for rebalance on MockConsumer which doesn't call listeners
+    public ConsumerRebalanceListener getRebalanceListener() {
+        return this.rebalanceListener;
     }
 
     @Override
@@ -175,8 +180,8 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> resume() {
         if (paused.get()) {
             return runOnPollingThread(c -> {
-                Set<TopicPartition> paused = c.paused();
-                consumer.resume(paused);
+                Set<TopicPartition> assignment = c.assignment();
+                consumer.resume(assignment);
             }).invoke(() -> paused.set(false));
         } else {
             return Uni.createFrom().voidItem();
@@ -355,5 +360,9 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
 
     boolean isClosed() {
         return closed.get();
+    }
+
+    boolean isPaused() {
+        return paused.get();
     }
 }

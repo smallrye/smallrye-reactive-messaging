@@ -286,6 +286,8 @@ public class PauseResumeTest extends WeldTestBase {
         // Rebalance with different partitions
         consumer.schedulePollTask(() -> {
             consumer.rebalance(Arrays.asList(tp2, tp3));
+            source.getConsumer().getRebalanceListener().onPartitionsRevoked(Arrays.asList(tp0, tp1));
+            source.getConsumer().getRebalanceListener().onPartitionsAssigned(Arrays.asList(tp2, tp3));
         });
         // Push 20
         consumer.schedulePollTask(() -> {
@@ -294,6 +296,9 @@ public class PauseResumeTest extends WeldTestBase {
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 3, i, "k", "3v" + i));
             }
         });
+
+        // Still paused
+        await().until(() -> resumedPartitions(consumer).isEmpty());
 
         // Pull 40
         subscriber.request(40);
