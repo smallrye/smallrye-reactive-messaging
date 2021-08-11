@@ -200,6 +200,8 @@ public class MediatorManager {
         }
 
         graph.materialize(registry);
+
+        health.markInitialized();
     }
 
 }

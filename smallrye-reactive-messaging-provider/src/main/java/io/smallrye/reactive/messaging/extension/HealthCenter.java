@@ -23,23 +23,41 @@ public class HealthCenter {
 
     List<ReportedFailure> failures = new CopyOnWriteArrayList<>();
 
+    private volatile boolean initialized = false;
+
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        reporters.forEach(r -> r.getReadiness().getChannels().forEach(builder::add));
-        failures.forEach(rf -> builder.add(rf.source, false, rf.failure.getMessage()));
+        for (HealthReporter r : reporters) {
+            for (HealthReport.ChannelInfo channelInfo : r.getReadiness().getChannels()) {
+                builder.add(channelInfo);
+            }
+        }
+        for (ReportedFailure rf : failures) {
+            builder.add(rf.source, false, rf.failure.getMessage());
+        }
         return builder.build();
     }
 
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        reporters.forEach(r -> r.getLiveness().getChannels().forEach(builder::add));
-        failures.forEach(rf -> builder.add(rf.source, false, rf.failure.getMessage()));
+        for (HealthReporter r : reporters) {
+            for (HealthReport.ChannelInfo channelInfo : r.getLiveness().getChannels()) {
+                builder.add(channelInfo);
+            }
+        }
+        for (ReportedFailure rf : failures) {
+            builder.add(rf.source, false, rf.failure.getMessage());
+        }
         return builder.build();
     }
 
     public HealthReport getStartup() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        reporters.forEach(r -> r.getStartup().getChannels().forEach(builder::add));
+        for (HealthReporter r : reporters) {
+            for (HealthReport.ChannelInfo channelInfo : r.getStartup().getChannels()) {
+                builder.add(channelInfo);
+            }
+        }
         // failures do not contribute to the startup probe when app is running
         return builder.build();
     }
@@ -50,6 +68,14 @@ public class HealthCenter {
 
     public void reportApplicationFailure(String method, Throwable cause) {
         failures.add(new ReportedFailure("application-" + method, cause));
+    }
+
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    public void markInitialized() {
+        this.initialized = true;
     }
 
     public static class ReportedFailure {

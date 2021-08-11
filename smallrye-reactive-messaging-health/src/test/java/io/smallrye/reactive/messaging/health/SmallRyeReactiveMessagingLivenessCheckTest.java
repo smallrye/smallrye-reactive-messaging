@@ -23,17 +23,21 @@ public class SmallRyeReactiveMessagingLivenessCheckTest {
         initializer.addBeanClasses(HealthCenter.class, MyReporterA.class, MyReporterB.class,
                 SmallRyeReactiveMessagingLivenessCheck.class);
         SeContainer container = initializer.initialize();
-        SmallRyeReactiveMessagingLivenessCheck check = container.getBeanManager().createInstance()
-                .select(SmallRyeReactiveMessagingLivenessCheck.class, Liveness.Literal.INSTANCE).get();
+
+        SmallRyeReactiveMessagingLivenessCheck check = container.select(SmallRyeReactiveMessagingLivenessCheck.class,
+                Liveness.Literal.INSTANCE).get();
+
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
+
+        HealthCenter healthCenter = container.select(HealthCenter.class).get();
+        healthCenter.markInitialized();
 
         assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
         assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK]"));
 
-        MyReporterA a = container.getBeanManager().createInstance()
-                .select(MyReporterA.class, ConnectorLiteral.of("connector-a")).get();
+        MyReporterA a = container.select(MyReporterA.class, ConnectorLiteral.of("connector-a")).get();
 
-        MyReporterB b = container.getBeanManager().createInstance()
-                .select(MyReporterB.class, ConnectorLiteral.of("connector-b")).get();
+        MyReporterB b = container.select(MyReporterB.class, ConnectorLiteral.of("connector-b")).get();
 
         a.toggle();
 
@@ -50,8 +54,14 @@ public class SmallRyeReactiveMessagingLivenessCheckTest {
         SeContainerInitializer initializer = SeContainerInitializer.newInstance().disableDiscovery();
         initializer.addBeanClasses(HealthCenter.class, SmallRyeReactiveMessagingLivenessCheck.class);
         SeContainer container = initializer.initialize();
-        SmallRyeReactiveMessagingLivenessCheck check = container.getBeanManager().createInstance()
-                .select(SmallRyeReactiveMessagingLivenessCheck.class, Liveness.Literal.INSTANCE).get();
+
+        SmallRyeReactiveMessagingLivenessCheck check = container.select(SmallRyeReactiveMessagingLivenessCheck.class,
+                Liveness.Literal.INSTANCE).get();
+
+        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
+
+        HealthCenter healthCenter = container.select(HealthCenter.class).get();
+        healthCenter.markInitialized();
 
         assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
         assertThat(check.call().getData()).isEmpty();

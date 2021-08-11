@@ -333,7 +333,7 @@ public class KafkaSink {
                 builder.add(configuration.getChannel(), true);
             }
         }
-        // If health is disable do not add anything to the builder.
+        // If health is disabled, do not add anything to the builder.
     }
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
@@ -341,7 +341,7 @@ public class KafkaSink {
         if (health != null && this.configuration.getHealthReadinessEnabled()) {
             health.isReady(builder);
         }
-        // If health is disable do not add anything to the builder.
+        // If health is disabled, do not add anything to the builder.
     }
 
     public void isStarted(HealthReport.HealthReportBuilder builder) {
@@ -349,7 +349,7 @@ public class KafkaSink {
         if (health != null) {
             health.isStarted(builder);
         }
-        // If health is disable do not add anything to the builder.
+        // If health is disabled, do not add anything to the builder.
     }
 
     public void closeQuietly() {

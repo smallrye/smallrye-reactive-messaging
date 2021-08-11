@@ -8,24 +8,24 @@ import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.se.SeContainerInitializer;
 
 import org.eclipse.microprofile.health.HealthCheckResponse;
-import org.eclipse.microprofile.health.Readiness;
+import org.eclipse.microprofile.health.Startup;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.extension.HealthCenter;
 
-public class SmallRyeReactiveMessagingReadinessCheckTest {
+public class SmallRyeReactiveMessagingStartupCheckTest {
 
     @Test
-    public void testWithTwoConnectors() {
+    public void testWithOneConnector() {
         SeContainerInitializer initializer = SeContainerInitializer.newInstance().disableDiscovery();
-        initializer.addBeanClasses(HealthCenter.class, MyReporterA.class, MyReporterB.class,
-                SmallRyeReactiveMessagingReadinessCheck.class);
+        initializer.addBeanClasses(HealthCenter.class, MyReporterA.class,
+                SmallRyeReactiveMessagingStartupCheck.class);
         SeContainer container = initializer.initialize();
 
-        SmallRyeReactiveMessagingReadinessCheck check = container.select(SmallRyeReactiveMessagingReadinessCheck.class,
-                Readiness.Literal.INSTANCE).get();
+        SmallRyeReactiveMessagingStartupCheck check = container.select(SmallRyeReactiveMessagingStartupCheck.class,
+                Startup.Literal.INSTANCE).get();
 
         assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
 
@@ -33,35 +33,29 @@ public class SmallRyeReactiveMessagingReadinessCheckTest {
         healthCenter.markInitialized();
 
         assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
-        assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK] - test"));
+        assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK]"));
 
         MyReporterA a = container.select(MyReporterA.class, ConnectorLiteral.of("connector-a")).get();
-
-        MyReporterB b = container.select(MyReporterB.class, ConnectorLiteral.of("connector-b")).get();
 
         a.toggle();
 
         assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
-
-        b.toggle();
-
-        assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
-        assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[KO] - test"));
+        assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[KO]"));
 
         a.toggle();
 
         assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.UP);
-        assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK] - test"));
+        assertThat(check.call().getData().orElse(null)).containsExactly(entry("my-channel", "[OK]"));
     }
 
     @Test
     public void testWithNoConnector() {
         SeContainerInitializer initializer = SeContainerInitializer.newInstance().disableDiscovery();
-        initializer.addBeanClasses(HealthCenter.class, SmallRyeReactiveMessagingReadinessCheck.class);
+        initializer.addBeanClasses(HealthCenter.class, SmallRyeReactiveMessagingStartupCheck.class);
         SeContainer container = initializer.initialize();
 
-        SmallRyeReactiveMessagingReadinessCheck check = container.select(SmallRyeReactiveMessagingReadinessCheck.class,
-                Readiness.Literal.INSTANCE).get();
+        SmallRyeReactiveMessagingStartupCheck check = container.select(SmallRyeReactiveMessagingStartupCheck.class,
+                Startup.Literal.INSTANCE).get();
 
         assertThat(check.call().getStatus()).isEqualTo(HealthCheckResponse.Status.DOWN);
 
@@ -79,23 +73,7 @@ public class SmallRyeReactiveMessagingReadinessCheckTest {
         boolean ok = true;
 
         @Override
-        public HealthReport getReadiness() {
-            return HealthReport.builder().add("my-channel", ok, "test").build();
-        }
-
-        public void toggle() {
-            ok = !ok;
-        }
-    }
-
-    @ApplicationScoped
-    @Connector("connector-b")
-    private static class MyReporterB implements HealthReporter {
-
-        boolean ok = true;
-
-        @Override
-        public HealthReport getLiveness() {
+        public HealthReport getStartup() {
             return HealthReport.builder().add("my-channel", ok).build();
         }
 

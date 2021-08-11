@@ -16,6 +16,10 @@ public class SmallRyeReactiveMessagingLivenessCheck implements HealthCheck {
 
     @Override
     public HealthCheckResponse call() {
+        if (!health.isInitialized()) {
+            return HealthChecks.NOT_YET_INITIALIZED;
+        }
+
         HealthReport report = health.getLiveness();
         return HealthChecks.getHealthCheck(report, "liveness check");
     }

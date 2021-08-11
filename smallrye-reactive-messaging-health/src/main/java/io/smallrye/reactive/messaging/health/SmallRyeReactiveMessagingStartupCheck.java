@@ -18,6 +18,10 @@ public class SmallRyeReactiveMessagingStartupCheck implements HealthCheck {
 
     @Override
     public HealthCheckResponse call() {
+        if (!health.isInitialized()) {
+            return HealthChecks.NOT_YET_INITIALIZED;
+        }
+
         HealthReport report = health.getStartup();
         return HealthChecks.getHealthCheck(report, "startup check");
     }
