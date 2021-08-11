@@ -1,5 +1,5 @@
 [#kafka-kerberos]
-=== Kerberos authentication
+== Kerberos authentication
 
 When using https://en.wikipedia.org/wiki/Kerberos_(protocol)[Kerberos] authentication, you need to configure the connector with:
 
