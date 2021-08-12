@@ -322,7 +322,7 @@ public class KafkaSource<K, V> {
             }
         }
 
-        // If health is disable do not add anything to the builder.
+        // If health is disabled, do not add anything to the builder.
     }
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
@@ -330,7 +330,7 @@ public class KafkaSource<K, V> {
         if (health != null && configuration.getHealthReadinessEnabled()) {
             health.isReady(builder);
         }
-        // If health is disable do not add anything to the builder.
+        // If health is disabled, do not add anything to the builder.
     }
 
     public void isStarted(HealthReport.HealthReportBuilder builder) {
@@ -338,7 +338,7 @@ public class KafkaSource<K, V> {
         if (health != null) {
             health.isStarted(builder);
         }
-        // If health is disable do not add anything to the builder.
+        // If health is disabled, do not add anything to the builder.
     }
 
     /**
