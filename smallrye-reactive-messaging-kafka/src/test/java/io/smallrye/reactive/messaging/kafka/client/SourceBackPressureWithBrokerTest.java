@@ -53,7 +53,7 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
 
         await().until(() -> bean.request(8));
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() == 10);
-        await().until(() -> !consumer.paused().await().atMost(Duration.ofSeconds(3)).isEmpty());
+        await().until(() -> consumer.paused().await().atMost(Duration.ofSeconds(3)).isEmpty());
     }
 
     @Test
@@ -79,7 +79,7 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         await().until(() -> bean.request(3));
         await().until(() -> bean.request(5));
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() == 10);
-        await().until(() -> consumer.paused().await().atMost(Duration.ofSeconds(3)).size() > 0);
+        await().until(() -> consumer.paused().await().atMost(Duration.ofSeconds(3)).isEmpty());
 
         bean.request(Long.MAX_VALUE);
         await()
@@ -117,6 +117,7 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         builder.put("enable.auto.commit", "false");
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
+        builder.put("max.poll.records", 1);
 
         return builder.build();
     }
