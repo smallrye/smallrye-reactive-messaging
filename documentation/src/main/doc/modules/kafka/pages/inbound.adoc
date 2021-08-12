@@ -272,11 +272,17 @@ If the record is a structured Cloud Event, the created Message's payload is the 
 
 The `partitionkey` attribute is mapped to the record's key if any.
 
+include::consumer-rebalance-listener.adoc[]
 
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-kafka-incoming.adoc[]
 
-You can also pass any property supported by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client] as attribute.
+You can also pass any property supported by the underlying https://kafka.apache.org/documentation/#consumerconfigs[Kafka consumer].
 
-include::consumer-rebalance-listener.adoc[]
+For example, to configure the `max.poll.records` property, use:
+
+[source,properties]
+----
+mp.messaging.incoming.[channel].max.poll.records=1000
+----

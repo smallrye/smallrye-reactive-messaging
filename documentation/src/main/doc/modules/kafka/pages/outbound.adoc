@@ -187,4 +187,11 @@ Any possible metadata attached through `Message<ProducerRecord<K, V>>` are ignor
 
 include::connectors:partial$META-INF/connector/smallrye-kafka-outgoing.adoc[]
 
-You can also pass any property supported by the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka client].
+You can also pass any property supported by the underlying https://kafka.apache.org/documentation/#producerconfigs[Kafka producer].
+
+For example, to configure the `batch.size` property, use:
+
+[source,properties]
+----
+mp.messaging.outgoing.[channel].batch.size=32768
+----

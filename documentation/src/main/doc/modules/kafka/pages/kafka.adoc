@@ -3,8 +3,6 @@
 The Kafka connector adds support for Kafka to Reactive Messaging.
 With it you can receive Kafka Records as well as write `message` into Kafka.
 
-The Kafka Connector is based on the https://vertx.io/docs/vertx-kafka-client/java/[Vert.x Kafka Client].
-
 == Introduction
 
 https://kafka.apache.org/[Apache Kafka] is a popular distributed streaming platform.
@@ -25,6 +23,5 @@ include::outbound.adoc[]
 include::default-configuration.adoc[]
 include::avro-configuration.adoc[]
 include::health.adoc[]
-include::consumer-rebalance-listener.adoc[]
 include::client-service.adoc[]
 include::kerberos.adoc[]

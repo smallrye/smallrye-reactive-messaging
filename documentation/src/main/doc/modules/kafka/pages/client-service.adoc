@@ -1,5 +1,5 @@
 [#kafka-client-service]
-=== KafkaClientService
+== KafkaClientService
 
 For advanced use cases, SmallRye Reactive Messaging provides a bean of type `KafkaClientService` that you can inject:
 
