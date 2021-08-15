@@ -15,10 +15,16 @@ jobs:
         strategy:
             matrix:
                 java: [
-                    { 'version': '8', 'source': 'releases' },
-                    { 'version': '11', 'source': 'releases' },
-                    { 'version': '15', 'source': 'releases' },
-                    { 'version': '16', 'source': 'nightly', 'opts': '--illegal-access=permit' }  # required for kotlin on java 16
+                    {'version': '8'},
+                    {'version': '11'},
+                    {
+                        'version': '16',
+                        'opts': '--illegal-access=permit' # required for kotlin
+                    },
+                    {
+                        'version': '17-ea',
+                        'opts': '--illegal-access=permit' # required for kotlin
+                    }
                 ]
         name: Build with Java ${{ matrix.java.version }}
         steps:
@@ -29,15 +35,16 @@ jobs:
                   restore-keys: |
                       maven-
             - uses: actions/checkout@v2
-            - uses: AdoptOpenJDK/install-jdk@v1
+            - uses: actions/setup-java@v2
               with:
-                  version: ${{ matrix.java.version }}
-                  source: ${{ matrix.java.source }}
+                  java-version: ${{ matrix.java.version }}
+                  distribution: adopt
             - name: Build with Maven
               env:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
               run: |
-                  mvn -s .github/ci-maven-settings.xml -B clean verify -Dtest-containers=true --file pom.xml
+                  mvn -s .github/ci-maven-settings.xml -B \
+                    clean verify -Dtest-containers=true
 
     quality:
         needs: build
@@ -45,21 +52,22 @@ jobs:
         steps:
             - uses: actions/cache@v2
               with:
-                path: ~/.m2/repository
-                key: maven-${{ hashFiles('**/pom.xml') }}
-                restore-keys: |
-                    maven-
+                  path: ~/.m2/repository
+                  key: maven-${{ hashFiles('**/pom.xml') }}
+                  restore-keys: |
+                      maven-
             - uses: actions/checkout@v2
-            - uses: AdoptOpenJDK/install-jdk@v1
+            - uses: actions/setup-java@v2
               with:
-                version: 11
-                source: 'releases'
+                  java-version: 11
+                  distribution: adopt
             - name: Coverage and Sonar
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   SONAR_TOKEN: ${{ secrets.SONAR_LOGIN }}
               run: |
-                  mvn -s .github/ci-maven-settings.xml -B clean verify sonar:sonar -Pcoverage \
+                    mvn -s .github/ci-maven-settings.xml -B \
+                        clean verify sonar:sonar -Pcoverage \
                         -Dsonar.projectKey=smallrye_smallrye-reactive-messaging \
                         -Dsonar.projectName="SmallRye Reactive Messaging" \
                         -Dsonar.organization=smallrye \
@@ -71,13 +79,13 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - uses: AdoptOpenJDK/install-jdk@v1
+            - uses: actions/setup-java@v2
               with:
-                  version: 11
-                  source: 'releases'
+                  java-version: 11
+                  distribution: adopt
             - name: Build with Maven
-              # Fail the build is the antora.yaml becomes out of date
-              run: |
+              run: | # Fail the build is the antora.yaml becomes out of date
                   mvn -s .github/ci-maven-settings.xml -B install -DskipTests
-                  mvn -s .github/ci-maven-settings.xml -B -pl documentation scm:check-local-modification \
+                  mvn -s .github/ci-maven-settings.xml -B \
+                     -pl documentation scm:check-local-modification \
                      -Dincludes=src/main/doc/antora.yml
