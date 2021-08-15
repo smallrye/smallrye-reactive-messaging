@@ -18,6 +18,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 
 import io.smallrye.common.annotation.NonBlocking;
 import io.smallrye.faulttolerance.FaultToleranceExtension;
@@ -26,6 +28,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
+@DisabledOnJre(value = JRE.JAVA_17, disabledReason = "To be investigated")
 public class RetryTest extends KafkaTestBase {
 
     @Test

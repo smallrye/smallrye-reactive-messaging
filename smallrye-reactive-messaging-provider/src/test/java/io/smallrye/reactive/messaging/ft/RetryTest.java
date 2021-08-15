@@ -17,12 +17,15 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 
 import io.smallrye.faulttolerance.FaultToleranceExtension;
 import io.smallrye.metrics.MetricRegistries;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
+@DisabledOnJre(value = JRE.JAVA_17, disabledReason = "To be investigated")
 public class RetryTest extends WeldTestBaseWithoutTails {
 
     @BeforeEach
