@@ -210,6 +210,14 @@ public class KafkaSource<K, V> {
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
             span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
 
+            final String groupId = client.get(ConsumerConfig.GROUP_ID_CONFIG);
+            final String clientId = client.get(ConsumerConfig.CLIENT_ID_CONFIG);
+            span.setAttribute("messaging.consumer_id", constructConsumerId(groupId, clientId));
+            span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP, groupId);
+            if (!clientId.isEmpty()) {
+                span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID, clientId);
+            }
+
             // Make available as parent for subsequent spans inside message processing
             span.makeCurrent();
 
@@ -217,6 +225,14 @@ public class KafkaSource<K, V> {
 
             span.end();
         }
+    }
+
+    private String constructConsumerId(String groupId, String clientId) {
+        String consumerId = groupId;
+        if (!clientId.isEmpty()) {
+            consumerId += " - " + clientId;
+        }
+        return consumerId;
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config,

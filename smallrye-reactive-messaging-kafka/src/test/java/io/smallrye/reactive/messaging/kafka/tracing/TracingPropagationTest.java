@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
@@ -46,6 +47,7 @@ import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
@@ -189,6 +191,8 @@ public class TracingPropagationTest extends KafkaTestBase {
         for (SpanData data : testExporter.getFinishedSpanItems()) {
             if (data.getKind().equals(SpanKind.CONSUMER)) {
                 incomingParentIds.add(data.getParentSpanId());
+                assertThat(data.getAttributes().get(SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP)).isNotNull();
+                assertThat(data.getAttributes().get(AttributeKey.stringKey("messaging.consumer_id"))).isNotNull();
                 // Need to skip the spans created during @Incoming processing
                 continue;
             }
