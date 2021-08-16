@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging;
 
+import static io.smallrye.reactive.messaging.MediatorConfiguration.Production.STREAM_OF_MESSAGE;
+import static io.smallrye.reactive.messaging.MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
 import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.i18n.ProviderMessages.msg;
 
@@ -29,6 +31,17 @@ public class ProcessorMediator extends AbstractMediator {
         super(configuration);
         if (configuration.shape() != Shape.PROCESSOR) {
             throw ex.illegalArgumentForProcessorShape(configuration.shape());
+        }
+
+        // IMPORTANT When returning a Multi, Publisher or a PublisherBuilder, you can't mix payloads and messages.
+        if (configuration.production() == STREAM_OF_MESSAGE
+                && configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
+            throw ex.definitionProduceMessageStreamAndConsumePayload(configuration.methodAsString());
+        }
+
+        if (configuration.production() == STREAM_OF_PAYLOAD
+                && configuration.consumption() == MediatorConfiguration.Consumption.MESSAGE) {
+            throw ex.definitionProducePayloadStreamAndConsumeMessage(configuration.methodAsString());
         }
     }
 
@@ -72,6 +85,7 @@ public class ProcessorMediator extends AbstractMediator {
         // 11. CompletionStage<O> method(I payload)
         // 12. CompletionStage<Message<O>> method(Message<I> msg)
 
+        // IMPORTANT When returning a Publisher or a PublisherBuilder, you can't mix payloads and messages
         switch (configuration.production()) {
             case STREAM_OF_MESSAGE:
                 // Case 1, 3, 5, 7

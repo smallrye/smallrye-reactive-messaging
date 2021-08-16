@@ -262,4 +262,15 @@ public interface ProviderExceptions {
             + "The method must return `void`, found %s.")
     DefinitionException definitionReturnVoid(String methodAsString, String returnType);
 
+    @Message(id = 82, value = "Invalid method signature for %s - method returning a Multi<Message<O>>, Publisher<Message<O>> or a PublisherBuilder<Message<O>> cannot consume an individual payload. You must consume a Message<I> instead and handle the acknowledgement.")
+    DefinitionException definitionProduceMessageStreamAndConsumePayload(String methodAsString);
+
+    @Message(id = 83, value = "Invalid method signature for %s - method returning a Multi<O>, Publisher<O> or a PublisherBuilder<O> cannot consume an individual message. You must consume a payload instead or return a Publisher<Message<O>> or a PublisherBuilder<Message<O>>.")
+    DefinitionException definitionProducePayloadStreamAndConsumeMessage(String methodAsString);
+
+    @Message(id = 84, value = "Invalid method signature for %s - method returning a Multi<O>, Publisher<O> or a PublisherBuilder<O> cannot consume a Publisher<Message<I>> or a Multi<Message<I>>. You must consume a Multi<I> or a Publisher<I> instead.")
+    DefinitionException definitionProducePayloadStreamAndConsumeMessageStream(String messageAsString);
+
+    @Message(id = 85, value = "Invalid method signature for %s - method returning a Multi<Message<O>>, Publisher<Message<O>> or a PublisherBuilder<Message<O>> cannot consume a Publisher<I> or a Multi<I>. You must consume a Multi<Message<I>> or a Publisher<Message<I>> instead and handle the acknowledgement.")
+    DefinitionException definitionProduceMessageStreamAndConsumePayloadStream(String messageAsString);
 }
