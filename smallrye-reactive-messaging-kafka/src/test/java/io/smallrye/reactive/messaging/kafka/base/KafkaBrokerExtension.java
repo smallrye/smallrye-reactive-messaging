@@ -15,7 +15,7 @@ import io.strimzi.StrimziKafkaContainer;
 public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
-    public static final String KAFKA_VERSION = "latest-kafka-2.7.0";
+    public static final String KAFKA_VERSION = "latest-kafka-2.8.0";
 
     private static boolean started = false;
     private static StrimziKafkaContainer kafka;
