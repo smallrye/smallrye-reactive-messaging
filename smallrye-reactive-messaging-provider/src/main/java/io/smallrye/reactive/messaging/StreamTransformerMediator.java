@@ -23,6 +23,17 @@ public class StreamTransformerMediator extends AbstractMediator {
 
     public StreamTransformerMediator(MediatorConfiguration configuration) {
         super(configuration);
+
+        // We can't mix payloads and messages
+        if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
+                && configuration.production() == MediatorConfiguration.Production.STREAM_OF_PAYLOAD) {
+            throw ex.definitionProducePayloadStreamAndConsumeMessageStream(configuration.methodAsString());
+        }
+
+        if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD
+                && configuration.production() == MediatorConfiguration.Production.STREAM_OF_MESSAGE) {
+            throw ex.definitionProduceMessageStreamAndConsumePayloadStream(configuration.methodAsString());
+        }
     }
 
     @Override
