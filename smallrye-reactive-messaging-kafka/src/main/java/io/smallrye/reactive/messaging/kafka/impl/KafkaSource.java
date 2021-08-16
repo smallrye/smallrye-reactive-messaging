@@ -171,7 +171,6 @@ public class KafkaSource<K, V> {
             log.failureReportedDuringRebalance(topics, failure);
             return;
         }
-
         log.failureReported(topics, failure);
         // Don't keep all the failures, there are only there for reporting.
         if (failures.size() == 10) {

@@ -133,6 +133,10 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
+| *fail-on-deserialization-failure* | When no deserialization failure handler is set and a deserialization failure happens, report the failure and mark the application as unhealthy. If set to `false` and a deserialization failure happens, a `null` value is forwarded.
+
+Type: _boolean_ | false | `true`
+
 | *graceful-shutdown* | Whether or not a graceful shutdown should be attempted when the application terminates.
 
 Type: _boolean_ | false | `true`

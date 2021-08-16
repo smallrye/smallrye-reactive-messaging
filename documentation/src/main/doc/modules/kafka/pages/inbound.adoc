@@ -201,8 +201,6 @@ public void consume(String v) {
 
 Because deserialization happens before creating a `Message`, the failure strategy presented above cannot be applied.
 However, when a deserialization failure occurs, you can intercept it and provide a fallback value.
-If you don't, `null` will be used as fallback value.
-
 To achieve this, create a CDI bean implementing the {javadoc-base}/io/smallrye/reactive/messaging/kafka/DeserializationFailureHandler.html[DeserializationFailureHandler<T>] interface:
 
 [source, java]
@@ -228,8 +226,11 @@ Then, in the connector configuration, specify the following attribute:
 * `mp.messaging.incoming.$channel.value-deserialization-failure-handler`: name of the bean handling deserialization failures happening for the record's value,
 
 The handler is called with the record's topic, a boolean indicating whether the failure happened on a key, the class name of the deserializer that throws the exception, the corrupted data, the exception, and the records headers augmented with headers describing the failure (which ease the write to a dead letter).
-The handler can return `null` (which would be as if there were no handlers).
-However, if the handler throws an exception, the application would be marked unhealthy.
+The handler can return `null`.
+
+If you don't configure a deserialization failure handlers and a deserialization failure happens, the application is marked unhealthy.
+You can also ignore the failure, which will log the exception and produce a `null` value.
+To enable this behavior, set the `mp.messaging.incoming.$channel.fail-on-deserialization-failure` attribute to `false`.
 
 === Receiving Cloud Events
 

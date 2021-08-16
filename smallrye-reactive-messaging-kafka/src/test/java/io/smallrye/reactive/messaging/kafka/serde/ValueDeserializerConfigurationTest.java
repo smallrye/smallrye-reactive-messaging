@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.*;
 import io.smallrye.reactive.messaging.kafka.fault.DeserializerWrapper;
@@ -101,7 +102,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
     @Test
     public void testValueDeserializationFailureWithDeserializerSet() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName());
+                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("fail-on-deserialization-failure", false);
         source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -135,6 +137,30 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         assertThat(record.getKey()).isEqualTo("hello-2");
         assertThat(record.getPartition()).isEqualTo(0);
         list.get(1).ack().toCompletableFuture().join();
+    }
+
+    @Test
+    public void testValueDeserializationFailureWithDeserializerSetWithFatalFailureOnDeserializationFailure() {
+        MapBasedConfig config = commonConsumerConfiguration()
+                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("health-enabled", true);
+        source = new KafkaSource<>(vertx, "my-group",
+                new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream()
+                .subscribe().with(list::add);
+
+        usage
+                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new DoubleSerializer(),
+                        null, () -> new ProducerRecord<>(topic, null, 6945231.56));
+
+        await().until(() -> {
+            HealthReport.HealthReportBuilder builder = HealthReport.builder();
+            source.isAlive(builder);
+            return !builder.build().isOk();
+        });
     }
 
     @Test
