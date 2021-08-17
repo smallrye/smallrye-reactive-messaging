@@ -7,11 +7,11 @@ nav:
 asciidoc:
     attributes:
         version: '3.9'
-        project-version: '3.9.0-SNAPSHOT'
+        project-version: '3.9.0'
         weld-version: '3.1.8.Final'
         smallrye-config-version: '2.4.3'
         mutiny-version: '0.18.1'
         camel-version: '3.11.1'
         spec-version: '2.0'
-        javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/3.9.0-SNAPSHOT/apidocs'
+        javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/3.9.0/apidocs'
 
