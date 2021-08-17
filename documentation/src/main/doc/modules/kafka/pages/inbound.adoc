@@ -280,7 +280,7 @@ include::consumer-rebalance-listener.adoc[]
 By default, incoming methods receive each Kafka record individually.
 Under the hood, Kafka consumer clients poll the broker constantly and receive records in batches, presented inside the `ConsumerRecords` container.
 
-In *batch* mode, your application can receive all the records returned by the consumer *poll*.
+In *batch* mode, your application can receive all the records returned by the consumer *poll* in one go.
 
 To achieve this you need to set `mp.messaging.incoming.$channel.batch=true` *and* specify a compatible container type to receive all the data:
 
@@ -289,16 +289,16 @@ To achieve this you need to set `mp.messaging.incoming.$channel.batch=true` *and
 include::example$inbound/KafkaRecordBatchPayloadExample.java[tags=code]
 ----
 
-The incoming method can also receive `Message<List<Payload>`, `KafkaBatchRecords<Payload>` `ConsumerRecords<Key, Payload>` types. These types give access :
+The incoming method can also receive `Message<List<Payload>`, `KafkaBatchRecords<Payload>` `ConsumerRecords<Key, Payload>` types, They give access to record details such as offset or timestamp :
 
 [source, java, indent=0]
 ----
 include::example$inbound/KafkaRecordBatchExample.java[tags=code]
 ----
 
-Note that the successful processing of the incoming batch record will commit the latest offsets for each partition received inside the batch. The configured commit strategy will be applied for these records only.
+Note that the successful processing of the incoming record batch will commit the latest offsets for each partition received inside the batch. The configured commit strategy will be applied for these records only.
 
-Conversely, if the processing error throws an exception, all messages are _nacked_, applying the failure strategy for all the records inside the batch.
+Conversely, if the processing throws an exception, all messages are _nacked_, applying the failure strategy for all the records inside the batch.
 
 === Configuration Reference
 

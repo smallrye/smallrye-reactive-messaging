@@ -17,7 +17,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
  */
 public interface KafkaRecordBatch<K, T> extends Message<List<T>>, Iterable<KafkaRecord<K, T>> {
     /**
-     * @return list of records contained in this batch message
+     * @return list of records contained in this message batch
      */
     List<KafkaRecord<K, T>> getRecords();
 

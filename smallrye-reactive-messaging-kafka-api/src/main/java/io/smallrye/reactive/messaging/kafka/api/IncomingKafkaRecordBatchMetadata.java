@@ -30,14 +30,14 @@ public class IncomingKafkaRecordBatchMetadata<K, T> {
     }
 
     /**
-     * @return the number of records for all topics
+     * @return the total number of records for all topic partitions
      */
     public int count() {
         return records.count();
     }
 
     /**
-     * @return the set of topic partitions with data in this batch record
+     * @return the set of topic partitions with data in this record batch
      */
     public Set<TopicPartition> partitions() {
         return records.partitions();
