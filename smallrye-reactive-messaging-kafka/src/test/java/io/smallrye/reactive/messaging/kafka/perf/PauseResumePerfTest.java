@@ -26,7 +26,6 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -43,7 +42,6 @@ public class PauseResumePerfTest extends KafkaTestBase {
     static void insertRecords() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicLong count = new AtomicLong();
-        KafkaUsage usage = new KafkaUsage();
         usage.produceStrings(COUNT, latch::countDown,
                 () -> new ProducerRecord<>(topic, "key", Long.toString(count.getAndIncrement())));
         expected = new ArrayList<>();

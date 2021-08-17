@@ -18,7 +18,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -33,7 +32,7 @@ public class ConfigWithDotsTest extends KafkaTestBase {
         MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.incoming.\"tc.payments.domain_event.job_created\".graceful-shutdown", false)
                 .with("mp.messaging.incoming.\"tc.payments.domain_event.job_created\".bootstrap.servers",
-                        KafkaBrokerExtension.getBootstrapServers())
+                        usage.getBootstrapServers())
                 .with("mp.messaging.incoming.\"tc.payments.domain_event.job_created\".connector",
                         KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.\"tc.payments.domain_event.job_created\".value.deserializer",

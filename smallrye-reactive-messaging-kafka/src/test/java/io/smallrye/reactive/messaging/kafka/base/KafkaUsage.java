@@ -1,9 +1,14 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
+import static org.junit.Assert.assertTrue;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -13,12 +18,19 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.KafkaAdminClient;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -41,8 +53,8 @@ public class KafkaUsage {
     private final static Logger LOGGER = Logger.getLogger(KafkaUsage.class);
     private String brokers;
 
-    public KafkaUsage() {
-        this.brokers = KafkaTestBase.getBootstrapServers();
+    public KafkaUsage(String bootstrapServers) {
+        this.brokers = bootstrapServers;
     }
 
     public Properties getConsumerProperties(String groupId, String clientId, OffsetResetStrategy autoOffsetReset) {
@@ -249,6 +261,46 @@ public class KafkaUsage {
                 return continuation.getAsBoolean() && System.currentTimeMillis() <= this.stopTime;
             }
         };
+    }
+
+    public String createNewTopic(String newTopic, int partitions) {
+        try (
+                AdminClient adminClient = KafkaAdminClient.create(
+                        Collections.singletonMap(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, this.getBootstrapServers()))) {
+            adminClient.createTopics(Collections.singletonList(new NewTopic(newTopic, partitions, (short) 1)))
+                    .all()
+                    .get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        waitForTopic(newTopic);
+        return newTopic;
+    }
+
+    private void waitForTopic(String topic) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, this.getBootstrapServers());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+        props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 1000);
+        try (KafkaProducer<byte[], byte[]> producer = new KafkaProducer<>(props)) {
+            int maxRetries = 10;
+            boolean done = false;
+            for (int i = 0; i < maxRetries && !done; i++) {
+                List<PartitionInfo> partitionInfo = producer.partitionsFor(topic);
+                done = !partitionInfo.isEmpty();
+                for (PartitionInfo info : partitionInfo) {
+                    if (info.leader() == null || info.leader().id() < 0) {
+                        done = false;
+                    }
+                }
+            }
+            assertTrue("Timed out waiting for topic", done);
+        }
+    }
+
+    public String getBootstrapServers() {
+        return this.brokers;
     }
 
     public void setBootstrapServers(String bootstrapServers) {

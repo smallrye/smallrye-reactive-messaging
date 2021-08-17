@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 
 public class PerformanceBatchConsumerTest extends KafkaTestBase {
 
@@ -37,7 +36,6 @@ public class PerformanceBatchConsumerTest extends KafkaTestBase {
     static void insertRecords() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicLong count = new AtomicLong();
-        KafkaUsage usage = new KafkaUsage();
         usage.produceStrings(COUNT, latch::countDown,
                 () -> new ProducerRecord<>(topic, "key", Long.toString(count.getAndIncrement())));
         expected = new ArrayList<>();

@@ -28,7 +28,6 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -50,7 +49,6 @@ public class EndToEndPerfTest extends KafkaTestBase {
     static void insertRecords() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicLong count = new AtomicLong();
-        KafkaUsage usage = new KafkaUsage();
         usage.produceStrings(COUNT, latch::countDown,
                 () -> new ProducerRecord<>(input_topic, "key", Long.toString(count.getAndIncrement())));
         latch.await();

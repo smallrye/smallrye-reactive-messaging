@@ -20,6 +20,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,15 +33,19 @@ public class KafkaTestBase extends WeldTestBase {
     public static final int KAFKA_PORT = 9092;
 
     public Vertx vertx;
-    public KafkaUsage usage;
+    public static KafkaUsage usage;
     public AdminClient adminClient;
 
     public String topic;
 
+    @BeforeAll
+    static void initUsage(@KafkaBootstrapServers String bootstrapServers) {
+        usage = new KafkaUsage(bootstrapServers);
+    }
+
     @BeforeEach
     public void createVertxAndInitUsage() {
         vertx = Vertx.vertx();
-        usage = new KafkaUsage();
     }
 
     @BeforeEach
@@ -79,7 +84,10 @@ public class KafkaTestBase extends WeldTestBase {
     }
 
     public static String getBootstrapServers() {
-        return KafkaBrokerExtension.getBootstrapServers();
+        if (usage != null) {
+            return usage.getBootstrapServers();
+        }
+        return null;
     }
 
     public void createTopic(String topic, int partition) {

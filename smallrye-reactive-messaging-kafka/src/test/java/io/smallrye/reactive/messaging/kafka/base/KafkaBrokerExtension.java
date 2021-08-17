@@ -9,10 +9,14 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
 
 import io.strimzi.StrimziKafkaContainer;
 
-public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
+public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
     public static final String KAFKA_VERSION = "latest-kafka-2.8.0";
@@ -36,13 +40,6 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext
         stopKafkaBroker();
     }
 
-    public static String getBootstrapServers() {
-        if (kafka != null) {
-            return kafka.getBootstrapServers();
-        }
-        return null;
-    }
-
     public static void startKafkaBroker() {
         kafka = new StrimziKafkaContainer(KAFKA_VERSION)
                 .withExposedPorts(9092);
@@ -64,4 +61,19 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext
         }
     }
 
+    @Override
+    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
+            throws ParameterResolutionException {
+        return parameterContext.isAnnotated(KafkaBootstrapServers.class)
+                && parameterContext.getParameter().getType().equals(String.class);
+    }
+
+    @Override
+    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
+            throws ParameterResolutionException {
+        if (kafka != null) {
+            return kafka.getBootstrapServers();
+        }
+        return null;
+    }
 }

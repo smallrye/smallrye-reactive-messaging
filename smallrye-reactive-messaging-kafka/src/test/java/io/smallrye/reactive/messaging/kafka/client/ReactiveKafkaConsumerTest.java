@@ -31,7 +31,6 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
-import io.smallrye.reactive.messaging.kafka.base.TopicHelpers;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
@@ -52,7 +51,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
     @BeforeEach
     public void init() {
-        topic = TopicHelpers.createNewTopic("test-" + UUID.randomUUID().toString(), partitions);
+        topic = usage.createNewTopic("test-" + UUID.randomUUID().toString(), partitions);
         resetMessages();
     }
 

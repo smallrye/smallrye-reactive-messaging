@@ -1,12 +1,12 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeoutException;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -18,29 +18,24 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.strimzi.StrimziKafkaContainer;
+import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 
-public class KafkaNackOnExpirationTimeFailureTest extends KafkaTestBase {
+public class KafkaNackOnExpirationTimeFailureTest extends WeldTestBase {
 
     private static String servers;
 
     @BeforeAll
-    public static void getFreePort() {
-        StrimziKafkaContainer kafka = new StrimziKafkaContainer();
-        kafka.start();
-        await().until(kafka::isRunning);
-        servers = kafka.getBootstrapServers();
-        kafka.close();
-        await().until(() -> !kafka.isRunning());
-
+    public static void setRandomBootstrapServers() throws IOException {
+        try (ServerSocket s = new ServerSocket(0)) {
+            servers = String.format("PLAINTEXT://%s:%s", s.getInetAddress().getHostAddress(), s.getLocalPort());
+        }
     }
 
     @Test
-    public void testExpiresAfterDeliveryTimeout() {
-        usage.setBootstrapServers(servers);
+    public void testExpiresAfterDeliveryTimeout() throws IOException {
         // TODO TOO LONG!
         MyEmitter application = runApplication(KafkaMapBasedConfig.builder()
+                .put("bootstrap.servers", servers)
                 .put("mp.messaging.outgoing.out.connector", "smallrye-kafka")
                 .put("mp.messaging.outgoing.out.bootstrap.servers", servers)
                 .put("mp.messaging.outgoing.out.topic", "wrong-topic")

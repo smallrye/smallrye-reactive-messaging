@@ -21,7 +21,6 @@ import org.junit.jupiter.api.condition.JRE;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -36,7 +35,7 @@ public class ConfigOverrideFromEnvTest extends KafkaTestBase {
         MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.incoming.my-channel.graceful-shutdown", false)
                 .with("mp.messaging.incoming.my-channel.topic", "should not be used")
-                .with("mp.messaging.incoming.my-channel.bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
+                .with("mp.messaging.incoming.my-channel.bootstrap.servers", usage.getBootstrapServers())
                 .with("mp.messaging.incoming.my-channel.connector",
                         KafkaConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.my-channel.value.deserializer",

@@ -8,8 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.TopicHelpers;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 
 @Disabled("too long")
 public class HighLatencyTest extends ClientTestBase {
@@ -23,7 +21,7 @@ public class HighLatencyTest extends ClientTestBase {
 
     @BeforeEach
     public void init() {
-        topic = TopicHelpers.createNewTopic("test-" + UUID.randomUUID().toString(), partitions);
+        topic = usage.createNewTopic("test-" + UUID.randomUUID().toString(), partitions);
         resetMessages();
     }
 

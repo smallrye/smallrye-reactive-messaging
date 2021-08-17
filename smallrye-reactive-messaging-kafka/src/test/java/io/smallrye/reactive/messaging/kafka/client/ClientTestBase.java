@@ -26,7 +26,6 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.TopicHelpers;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ClientTestBase extends KafkaTestBase {
@@ -157,7 +156,7 @@ public class ClientTestBase extends KafkaTestBase {
 
     protected String createNewTopicWithPrefix(String prefix) {
         String newTopic = prefix + "-" + System.nanoTime();
-        TopicHelpers.createNewTopic(newTopic, partitions);
+        usage.createNewTopic(newTopic, partitions);
         resetMessages();
         return newTopic;
     }

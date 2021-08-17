@@ -1,8 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
-import static io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.getBootstrapServers;
-import static io.smallrye.reactive.messaging.kafka.base.TopicHelpers.createNewTopic;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +23,7 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.base.KafkaBootstrapServers;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
@@ -52,9 +50,9 @@ public class KafkaClientReactiveStreamsPublisherTest
     public static String topic;
 
     @BeforeAll
-    public static void init() {
-        topic = createNewTopic("tck-" + UUID.randomUUID().toString(), partitions);
-        usage = new KafkaUsage();
+    public static void init(@KafkaBootstrapServers String bootstrapServers) {
+        usage = new KafkaUsage(bootstrapServers);
+        topic = usage.createNewTopic("tck-" + UUID.randomUUID(), partitions);
         vertx = Vertx.vertx();
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -105,7 +103,7 @@ public class KafkaClientReactiveStreamsPublisherTest
 
     protected MapBasedConfig createConsumerConfig(String groupId) {
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, usage.getBootstrapServers());
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, String.valueOf(12000));
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, String.valueOf(1000));
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
