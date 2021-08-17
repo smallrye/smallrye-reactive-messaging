@@ -36,7 +36,7 @@ jobs:
             - uses: actions/setup-java@v2
               with:
                   java-version: ${{ matrix.java.version }}
-                  distribution: adopt
+                  distribution: temurin
             - name: Build with Maven
               env:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
@@ -53,7 +53,7 @@ jobs:
             - uses: actions/setup-java@v2
               with:
                   java-version: 11
-                  distribution: adopt
+                  distribution: temurin
             - name: Build with Maven
               run: | # Fail the build is the antora.yaml becomes out of date
                   mvn -s .github/ci-maven-settings.xml -B install -DskipTests
