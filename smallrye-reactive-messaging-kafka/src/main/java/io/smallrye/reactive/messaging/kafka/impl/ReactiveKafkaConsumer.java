@@ -66,9 +66,9 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         }
 
         Deserializer<K> keyDeserializer = new DeserializerWrapper<>(keyDeserializerCN, true,
-                getDeserializationHandler(true, failureHandlers), source);
+                getDeserializationHandler(true, failureHandlers), source, config.getFailOnDeserializationFailure());
         Deserializer<V> valueDeserializer = new DeserializerWrapper<>(valueDeserializerCN, false,
-                getDeserializationHandler(false, failureHandlers), source);
+                getDeserializationHandler(false, failureHandlers), source, config.getFailOnDeserializationFailure());
 
         // Configure the underlying deserializers
         keyDeserializer.configure(kafkaConfiguration, true);

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
@@ -87,6 +88,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
 @ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
+@ConnectorAttribute(name = "fail-on-deserialization-failure", type = "boolean", direction = INCOMING, description = "When no deserialization failure handler is set and a deserialization failure happens, report the failure and mark the application as unhealthy. If set to `false` and a deserialization failure happens, a `null` value is forwarded.", defaultValue = "true")
 @ConnectorAttribute(name = "graceful-shutdown", type = "boolean", direction = Direction.INCOMING, description = "Whether or not a graceful shutdown should be attempted when the application terminates.", defaultValue = "true")
 @ConnectorAttribute(name = "poll-timeout", type = "int", direction = Direction.INCOMING, description = "The polling timeout in milliseconds. When polling records, the poll will wait at most that duration before returning records. Default is 1000ms", defaultValue = "1000")
 @ConnectorAttribute(name = "pause-if-no-requests", type = "boolean", direction = Direction.INCOMING, description = "Whether the polling must be paused when the application does not request items and resume when it does. This allows implementing back-pressure based on the application capacity. Note that polling is not stopped, but will not retrieve any records when paused.", defaultValue = "true")

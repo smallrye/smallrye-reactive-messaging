@@ -117,7 +117,8 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
     @Test
     public void testKeyDeserializationFailureWithDeserializerSet() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("key.deserializer", JsonObjectDeserializer.class.getName());
+                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("fail-on-deserialization-failure", false);
         source = new KafkaSource<>(vertx, "my-group",
                 new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);

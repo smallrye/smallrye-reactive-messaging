@@ -59,6 +59,7 @@ public class ConfigurationCleaner {
             "consumer-rebalance-listener.name",
             "key-deserialization-failure-handler",
             "value-deserialization-failure-handler",
+            "fail-on-deserialization-failure",
             "graceful-shutdown",
 
             // Remove most common attributes, may have been configured from the default config

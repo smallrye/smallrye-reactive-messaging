@@ -59,13 +59,15 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
 
     private final DeserializationFailureHandler<?> deserializationFailureHandler;
     private final KafkaSource<?, ?> source;
+    private final boolean failOnDeserializationErrorWithoutHandler;
 
     public DeserializerWrapper(String className, boolean key, DeserializationFailureHandler<?> failureHandler,
-            KafkaSource<?, ?> source) {
+            KafkaSource<?, ?> source, boolean failByDefault) {
         this.delegate = createDelegateDeserializer(className);
         this.handleKeys = key;
         this.deserializationFailureHandler = failureHandler;
         this.source = source;
+        this.failOnDeserializationErrorWithoutHandler = failByDefault;
     }
 
     /**
@@ -116,7 +118,9 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
 
     /**
      * If the user has specified a handler function - use it.
-     * Otherwise log the deserialization exception and recover to {@code null}
+     * Otherwise, the outcome depends on the {@code fail-on-deserialization-failure} attribute.
+     * If {@code fail-on-deserialization-failure} is set to {@code true} (default), this method throws a {@link KafkaException}.
+     * If set to {@code false}, it recovers with {@code null}.
      *
      * @param topic the topic
      * @param headers the header, can be {@code null}
@@ -137,6 +141,13 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
             }
         } else {
             KafkaLogging.log.unableToDeserializeMessage(topic, exception);
+            if (failOnDeserializationErrorWithoutHandler) {
+                source.reportFailure(exception, true);
+                if (exception instanceof KafkaException) {
+                    throw (KafkaException) exception;
+                }
+                throw new KafkaException(exception);
+            }
         }
         return null;
     }
