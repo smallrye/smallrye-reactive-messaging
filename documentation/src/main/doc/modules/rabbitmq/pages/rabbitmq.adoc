@@ -20,6 +20,7 @@ include::installation.adoc[]
 include::inbound.adoc[]
 include::outbound.adoc[]
 include::health.adoc[]
+include::cloud.adoc[]
 
 
 

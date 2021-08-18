@@ -32,3 +32,5 @@ mp.messaging.outgoing.generated-price.use-anonymous-sender=false
 ----
 
 As a consequence, it's not possible to change the destination dynamically (using message metadata) when using RabbitMQ.
+
+Alternatively, you can use the xref:rabbitmq:rabbitmq.adoc[RabbitMQ connector].
