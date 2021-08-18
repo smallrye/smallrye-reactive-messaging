@@ -50,6 +50,7 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.JksOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.mutiny.rabbitmq.RabbitMQConsumer;
@@ -66,6 +67,10 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "password", direction = INCOMING_AND_OUTGOING, description = "The password used to authenticate to the broker", type = "string", alias = "rabbitmq-password")
 @ConnectorAttribute(name = "host", direction = INCOMING_AND_OUTGOING, description = "The broker hostname", type = "string", alias = "rabbitmq-host", defaultValue = "localhost")
 @ConnectorAttribute(name = "port", direction = INCOMING_AND_OUTGOING, description = "The broker port", type = "int", alias = "rabbitmq-port", defaultValue = "5672")
+@ConnectorAttribute(name = "ssl", direction = INCOMING_AND_OUTGOING, description = "Whether or not the connection should use SSL", type = "boolean", alias = "rabbitmq-ssl", defaultValue = "false")
+@ConnectorAttribute(name = "trust-all", direction = INCOMING_AND_OUTGOING, description = "Whether to skip trust certificate verification", type = "boolean", alias = "rabbitmq-trust-all", defaultValue = "false")
+@ConnectorAttribute(name = "trust-store-path", direction = INCOMING_AND_OUTGOING, description = "The path to a JKS trust store", type = "string", alias = "rabbitmq-trust-store-path")
+@ConnectorAttribute(name = "trust-store-password", direction = INCOMING_AND_OUTGOING, description = "The password of the JKS trust store", type = "string", alias = "rabbitmq-trust-store-password")
 @ConnectorAttribute(name = "connection-timeout", direction = INCOMING_AND_OUTGOING, description = "The TCP connection timeout (ms); 0 is interpreted as no timeout", type = "int", defaultValue = "60000")
 @ConnectorAttribute(name = "handshake-timeout", direction = INCOMING_AND_OUTGOING, description = "The AMQP 0-9-1 protocol handshake timeout (ms)", type = "int", defaultValue = "10000")
 @ConnectorAttribute(name = "automatic-recovery-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether automatic connection recovery is enabled", type = "boolean", defaultValue = "false")
@@ -78,7 +83,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "requested-channel-max", direction = INCOMING_AND_OUTGOING, description = "The initially requested maximum channel number", type = "int", defaultValue = "2047")
 @ConnectorAttribute(name = "requested-heartbeat", direction = INCOMING_AND_OUTGOING, description = "The initially requested heartbeat interval (seconds), zero for none", type = "int", defaultValue = "60")
 @ConnectorAttribute(name = "use-nio", direction = INCOMING_AND_OUTGOING, description = "Whether usage of NIO Sockets is enabled", type = "boolean", defaultValue = "false")
-@ConnectorAttribute(name = "virtual-host", direction = INCOMING_AND_OUTGOING, description = "The virtual host to use when connecting to the broker", type = "string", defaultValue = "/")
+@ConnectorAttribute(name = "virtual-host", direction = INCOMING_AND_OUTGOING, description = "The virtual host to use when connecting to the broker", type = "string", defaultValue = "/", alias = "rabbitmq-virtual-host")
 
 // Exchange
 @ConnectorAttribute(name = "exchange.name", direction = INCOMING_AND_OUTGOING, description = "The exchange that messages are published to or consumed from. If not set, the channel name is used", type = "string")
@@ -229,12 +234,18 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                         .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize().orElse(Integer.MAX_VALUE))
                         .setKeepMostRecent(ic.getKeepMostRecent())))
                 .onItem().transformToMulti(consumer -> getStreamOfMessages(consumer, holder, ic, onNack, onAck))
-                // Retry on failure.
-                .onFailure().invoke(log::retrieveMessagesRetrying)
-                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
-                .onFailure().invoke(t -> {
-                    incomingChannelStatus.put(ic.getChannel(), ChannelStatus.NOT_CONNECTED);
-                    log.retrieveMessagesNoMoreRetrying(t);
+                .plug(m -> {
+                    if (attempts > 0) {
+                        return m
+                                // Retry on failure.
+                                .onFailure().invoke(log::retrieveMessagesRetrying)
+                                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
+                                .onFailure().invoke(t -> {
+                                    incomingChannelStatus.put(ic.getChannel(), ChannelStatus.NOT_CONNECTED);
+                                    log.retrieveMessagesNoMoreRetrying(t);
+                                });
+                    }
+                    return m;
                 });
 
         if (Boolean.TRUE.equals(ic.getBroadcast())) {
@@ -287,6 +298,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         final RabbitMQOptions rabbitMQClientConfig = new RabbitMQOptions()
                 .setHost(config.getHost())
                 .setPort(config.getPort())
+                .setSsl(config.getSsl())
+                .setTrustAll(config.getTrustAll())
                 .setAutomaticRecoveryEnabled(config.getAutomaticRecoveryEnabled())
                 .setAutomaticRecoveryOnInitialConnection(config.getAutomaticRecoveryOnInitialConnection())
                 .setReconnectAttempts(config.getReconnectAttempts())
@@ -300,6 +313,14 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                 .setRequestedHeartbeat(config.getRequestedHeartbeat())
                 .setUseNio(config.getUseNio())
                 .setVirtualHost(config.getVirtualHost());
+
+        // JKS TrustStore
+        if (config.getTrustStorePath().isPresent()) {
+            JksOptions jks = new JksOptions();
+            jks.setPath(config.getTrustStorePath().get());
+            config.getTrustStorePassword().ifPresent(jks::setPassword);
+            rabbitMQClientConfig.setTrustStoreOptions(jks);
+        }
 
         config.getUsername().ifPresent(rabbitMQClientConfig::setUser);
         config.getPassword().ifPresent(rabbitMQClientConfig::setPassword);
@@ -425,7 +446,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
         subscriptions.forEach(Subscription::cancel);
-        clients.forEach(RabbitMQClient::stop);
+        clients.forEach(RabbitMQClient::stopAndAwait);
         clients.clear();
     }
 

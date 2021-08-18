@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +33,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     @AfterEach
     public void cleanup() {
         if (container != null) {
+            container.select(RabbitMQConnector.class, ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME)).get()
+                    .terminate(null);
             container.shutdown();
         }
 
@@ -66,6 +69,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
         container = weld.initialize();
@@ -121,6 +125,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
         container = weld.initialize();
@@ -226,6 +231,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
         container = weld.initialize();
@@ -337,6 +343,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
         container = weld.initialize();
@@ -365,6 +372,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.tracing-enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
         weld.addBeanClass(ConsumptionBean.class);
