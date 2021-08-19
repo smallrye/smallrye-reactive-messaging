@@ -1,15 +1,18 @@
 package io.smallrye.reactive.messaging.jms;
 
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import io.smallrye.common.annotation.Identifier;
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.json.JsonMapping;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -20,22 +23,13 @@ import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSContext;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.*;
 
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-
-import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
-import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 @ApplicationScoped
 @Connector(JmsConnector.CONNECTOR_NAME)
@@ -86,7 +80,7 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
     Instance<ConnectionFactory> factories;
 
     @Inject
-    Instance<Jsonb> jsonb;
+    Instance<JsonMapping> jsonMapper;
 
     @Inject
     @ConfigProperty(name = "smallrye.jms.threads.max-pool-size", defaultValue = DEFAULT_MAX_POOL_SIZE)
@@ -97,17 +91,23 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
     int ttl;
 
     private ExecutorService executor;
-    private Jsonb json;
+    private JsonMapping jsonMapping;
     private final List<JmsSource> sources = new CopyOnWriteArrayList<>();
     private final List<JMSContext> contexts = new CopyOnWriteArrayList<>();
 
     @PostConstruct
     public void init() {
         this.executor = new ThreadPoolExecutor(0, maxPoolSize, ttl, TimeUnit.SECONDS, new SynchronousQueue<>());
-        if (jsonb.isUnsatisfied()) {
-            this.json = JsonbBuilder.create();
+        if (jsonMapper.isUnsatisfied()) {
+            log.warn(
+                    "Please add one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");
+        } else if (jsonMapper.isAmbiguous()) {
+            // FIXME: is it sensible? Quarkus should not allow for starting with ambiguous providers available.
+            log.warn(
+                    "Please select only one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");
+            this.jsonMapping = jsonMapper.stream().findFirst().get();
         } else {
-            this.json = jsonb.get();
+            this.jsonMapping = jsonMapper.get();
         }
 
     }
@@ -124,7 +124,7 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
         JmsConnectorIncomingConfiguration ic = new JmsConnectorIncomingConfiguration(config);
         JMSContext context = createJmsContext(ic);
         contexts.add(context);
-        JmsSource source = new JmsSource(context, ic, json, executor);
+        JmsSource source = new JmsSource(context, ic, jsonMapping, executor);
         sources.add(source);
         return source.getSource();
     }
@@ -145,7 +145,7 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
         JmsConnectorOutgoingConfiguration oc = new JmsConnectorOutgoingConfiguration(config);
         JMSContext context = createJmsContext(oc);
         contexts.add(context);
-        return new JmsSink(context, oc, json, executor).getSink();
+        return new JmsSink(context, oc, jsonMapping, executor).getSink();
     }
 
     private ConnectionFactory pickTheFactory(String factoryName) {

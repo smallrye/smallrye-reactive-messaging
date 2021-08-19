@@ -1,10 +1,4 @@
-package io.smallrye.reactive.messaging.jms.support;
-
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+package io.smallrye.reactive.messaging.support;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
@@ -18,8 +12,14 @@ import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
+import io.smallrye.reactive.messaging.jms.TestMapping;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 public class JmsTestBase {
 
@@ -84,6 +84,7 @@ public class JmsTestBase {
         weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(JmsConnector.class);
+        weld.addBeanClass(TestMapping.class);
         weld.disableDiscovery();
         return weld;
     }

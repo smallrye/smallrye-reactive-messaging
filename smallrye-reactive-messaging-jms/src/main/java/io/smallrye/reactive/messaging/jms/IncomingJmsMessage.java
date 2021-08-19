@@ -1,29 +1,28 @@
 package io.smallrye.reactive.messaging.jms;
 
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import io.smallrye.reactive.messaging.json.JsonMapping;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import javax.jms.JMSException;
+import javax.jms.Message;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.json.bind.Jsonb;
-
-import org.eclipse.microprofile.reactive.messaging.Metadata;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 
 public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
     private final Message delegate;
     private final Executor executor;
     private final Class<T> clazz;
-    private final Jsonb json;
+    private final JsonMapping jsonMapping;
     private final IncomingJmsMessageMetadata jmsMetadata;
     private final Metadata metadata;
 
-    IncomingJmsMessage(Message message, Executor executor, Jsonb json) {
+    IncomingJmsMessage(Message message, Executor executor, JsonMapping jsonMapping) {
         this.delegate = message;
-        this.json = json;
+        this.jsonMapping = jsonMapping;
         this.executor = executor;
         String cn = null;
         try {
@@ -98,7 +97,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
             return (T) value;
         }
 
-        return json.fromJson(value, clazz);
+        return jsonMapping.fromJson(value, clazz);
 
     }
 

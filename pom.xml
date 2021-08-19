@@ -96,6 +96,8 @@
     <junit-pioneer.version>1.4.2</junit-pioneer.version>
     <junit-platform-commons.version>1.7.2</junit-platform-commons.version>
 
+    <jackson.version>2.11.4</jackson.version>
+    <yasson.version>1.0.8</yasson.version>
   </properties>
 
   <modules>
@@ -108,6 +110,8 @@
     <module>smallrye-reactive-messaging-camel</module>
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-jms</module>
+    <module>smallrye-reactive-messaging-jsonb</module>
+    <module>smallrye-reactive-messaging-jackson</module>
     <module>smallrye-reactive-messaging-health</module>
     <module>smallrye-reactive-messaging-rabbitmq</module>
     <module>examples/quickstart</module>
