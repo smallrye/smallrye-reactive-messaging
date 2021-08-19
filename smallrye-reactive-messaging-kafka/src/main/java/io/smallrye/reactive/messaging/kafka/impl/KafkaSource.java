@@ -31,6 +31,8 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
+import io.vertx.core.impl.EventLoopContext;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
 
 public class KafkaSource<K, V> {
@@ -52,7 +54,7 @@ public class KafkaSource<K, V> {
     private final Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
     private final Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
     private final ReactiveKafkaConsumer<K, V> client;
-    private final io.vertx.mutiny.core.Context context;
+    private final EventLoopContext context;
 
     public KafkaSource(Vertx vertx,
             String consumerGroup,
@@ -81,7 +83,10 @@ public class KafkaSource<K, V> {
         }
 
         configuration = config;
-        context = vertx.getOrCreateContext();
+        // We cannot use vertx.getOrCreate context as it would retrieve the same one everytime.
+        // It associates the context with the caller thread which will always be the same.
+        // So, we force the creation of different event loop context.
+        context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
         client = new ReactiveKafkaConsumer<>(config, this);
 
         String commitStrategy = config
@@ -107,7 +112,7 @@ public class KafkaSource<K, V> {
         kafkaCDIEvents.consumer().fire(client.unwrap());
 
         if (commitHandler instanceof ContextHolder) {
-            ((ContextHolder) commitHandler).capture(context.getDelegate());
+            ((ContextHolder) commitHandler).capture(context);
         }
         this.client.setRebalanceListener();
 
@@ -386,7 +391,7 @@ public class KafkaSource<K, V> {
     }
 
     io.vertx.mutiny.core.Context getContext() {
-        return context;
+        return new io.vertx.mutiny.core.Context(context);
     }
 
     public String getChannel() {
