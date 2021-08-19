@@ -6,6 +6,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.MetricRegistry.Type;
@@ -15,6 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
 import io.smallrye.reactive.messaging.PublisherDecorator;
+import org.reactivestreams.Publisher;
 
 @ApplicationScoped
 public class MetricDecorator implements PublisherDecorator {
@@ -29,10 +31,10 @@ public class MetricDecorator implements PublisherDecorator {
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> publisher,
-            String channelName) {
+    public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher,
+                                                    String channelName) {
         if (registry != null) {
-            return publisher.peek(incrementCount(channelName));
+            return publisher.invoke(incrementCount(channelName));
         } else {
             return publisher;
         }

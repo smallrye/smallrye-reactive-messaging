@@ -52,7 +52,7 @@ public abstract class AbstractEmitter<T> {
 
         if (config.broadcast) {
             publisher = (Multi<Message<? extends T>>) BroadcastHelper
-                    .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting).buildRs();
+                    .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting);
         } else {
             publisher = tempPublisher;
         }

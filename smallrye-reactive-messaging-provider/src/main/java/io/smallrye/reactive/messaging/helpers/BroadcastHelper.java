@@ -23,14 +23,13 @@ public class BroadcastHelper {
      *        A value of 0 means any number of subscribers will trigger the broadcast.
      * @return The wrapped {@code Publisher} in a new {@code PublisherBuilder}
      */
-    public static PublisherBuilder<? extends Message<?>> broadcastPublisher(Publisher<? extends Message<?>> publisher,
+    public static Multi<? extends Message<?>> broadcastPublisher(Multi<? extends Message<?>> publisher,
             int numberOfSubscriberBeforeConnecting) {
-        Multi<? extends Message<?>> broadcastPublisher = Multi.createFrom().publisher(publisher);
         if (numberOfSubscriberBeforeConnecting != 0) {
-            return ReactiveStreams.fromPublisher(broadcastPublisher
-                    .broadcast().toAtLeast(numberOfSubscriberBeforeConnecting));
+            return publisher
+                    .broadcast().toAtLeast(numberOfSubscriberBeforeConnecting);
         } else {
-            return ReactiveStreams.fromPublisher(broadcastPublisher.broadcast().toAllSubscribers());
+            return publisher.broadcast().toAllSubscribers();
         }
     }
 }

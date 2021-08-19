@@ -9,11 +9,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -22,8 +23,8 @@ import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
 public class SubscriberMediator extends AbstractMediator {
 
-    private PublisherBuilder<? extends Message<?>> source;
-    private SubscriberBuilder<Message<?>, Void> subscriber;
+    private Multi<? extends Message<?>> source;
+    private Subscriber<Message<?>> subscriber;
     /**
      * Keep track of the subscription to cancel it once the scope is terminated.
      */
@@ -73,7 +74,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     @Override
-    public SubscriberBuilder<Message<?>, Void> getComputedSubscriber() {
+    public Subscriber<Message<?>> getComputedSubscriber() {
         return subscriber;
     }
 
@@ -83,7 +84,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     @Override
-    public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
+    public void connectToUpstream(Multi<? extends Message<?>> publisher) {
         this.source = convert(publisher);
     }
 
@@ -94,7 +95,7 @@ public class SubscriberMediator extends AbstractMediator {
         assert this.subscriber != null;
 
         AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
-        Subscriber<Message<?>> delegate = this.subscriber.build();
+        Subscriber<Message<?>> delegate = this.subscriber;
         Subscriber<Message<?>> delegating = new Subscriber<Message<?>>() {
             @Override
             public void onSubscribe(Subscription s) {
@@ -135,7 +136,7 @@ public class SubscriberMediator extends AbstractMediator {
             }
         };
 
-        this.source.buildRs().subscribe(delegating);
+        this.source.subscribe(delegating);
         // Check if a synchronous error has been caught
         Throwable throwable = syncErrorCatcher.get();
         if (throwable != null) {
@@ -144,6 +145,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private void processMethodReturningVoid() {
+        // TODO Remove the usage of SubscriberBuilder
         if (configuration.isBlocking()) {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
@@ -151,7 +153,7 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItemOrFailure().transformToUni(handleInvocationResult(m))
                             .subscribeAsCompletionStage())
                     .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
-                    .ignore();
+                    .ignore().build();
         } else {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
@@ -159,7 +161,7 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItemOrFailure().transformToUni(handleInvocationResult(m))
                             .subscribeAsCompletionStage())
                     .onError(this::reportFailure)
-                    .ignore();
+                    .ignore().build();
         }
     }
 
@@ -185,6 +187,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private void processMethodReturningACompletionStage() {
+        // TODO Remove the usage of SubscriberBuilder
         boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
         if (configuration.isBlocking()) {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
@@ -199,7 +202,8 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItemOrFailure().transformToUni(handleInvocationResult(message))
                             .subscribeAsCompletionStage())
                     .onError(this::reportFailure)
-                    .ignore();
+                    .ignore()
+                    .build();
         } else {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
@@ -215,7 +219,8 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItemOrFailure().transformToUni(handleInvocationResult(message))
                             .subscribeAsCompletionStage())
                     .onError(this::reportFailure)
-                    .ignore();
+                    .ignore()
+                    .build();
         }
     }
 
@@ -226,7 +231,7 @@ public class SubscriberMediator extends AbstractMediator {
 
     private void processMethodReturningAUni() {
         boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
-
+        // TODO Remove the usage of SubscriberBuilder
         if (configuration.isBlocking()) {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
@@ -240,7 +245,8 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItemOrFailure().transformToUni(handleInvocationResult(message))
                             .subscribeAsCompletionStage())
                     .onError(this::reportFailure)
-                    .ignore();
+                    .ignore()
+                    .build();
         } else {
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
@@ -254,7 +260,8 @@ public class SubscriberMediator extends AbstractMediator {
                             .onItemOrFailure().transformToUni(handleInvocationResult(message))
                             .subscribeAsCompletionStage())
                     .onError(this::reportFailure)
-                    .ignore();
+                    .ignore()
+                    .build();
         }
     }
 
@@ -294,9 +301,8 @@ public class SubscriberMediator extends AbstractMediator {
 
             this.subscriber = ReactiveStreams.<Message<?>> builder()
                     .flatMapCompletionStage(this::handlePreProcessingAck)
-                    .to(wrapper);
-            //                    .onError(this::reportFailure)
-            //                    .ignore();
+                    .to(wrapper)
+                    .build();
         } else {
             Subscriber<Message<?>> sub;
             if (result instanceof Subscriber) {
@@ -309,7 +315,8 @@ public class SubscriberMediator extends AbstractMediator {
                     .flatMapCompletionStage(this::handlePreProcessingAck)
                     .via(new SubscriberWrapper<>(casted, Function.identity(), null))
                     .onError(this::reportFailure)
-                    .ignore();
+                    .ignore()
+                    .build();
         }
     }
 }

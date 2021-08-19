@@ -17,10 +17,12 @@ import java.util.stream.Collectors;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.Prioritized;
 
+import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
@@ -61,7 +63,7 @@ public abstract class AbstractMediator {
         // Do nothing by default.
     }
 
-    public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
+    public void connectToUpstream(Multi<? extends Message<?>> publisher) {
         // Do nothing by default.
     }
 
@@ -132,7 +134,7 @@ public abstract class AbstractMediator {
         }
     }
 
-    public PublisherBuilder<? extends Message<?>> getStream() {
+    public Multi<? extends Message<?>> getStream() {
         return null;
     }
 
@@ -144,7 +146,7 @@ public abstract class AbstractMediator {
         return configuration.methodAsString();
     }
 
-    public SubscriberBuilder<Message<?>, Void> getComputedSubscriber() {
+    public Subscriber<Message<?>> getComputedSubscriber() {
         return null;
     }
 
@@ -161,7 +163,7 @@ public abstract class AbstractMediator {
         return CompletableFuture.completedFuture(message);
     }
 
-    public PublisherBuilder<? extends Message<?>> decorate(PublisherBuilder<? extends Message<?>> input) {
+    public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> input) {
         if (input == null) {
             return null;
         }
@@ -171,7 +173,7 @@ public abstract class AbstractMediator {
         }
 
         if (configuration.getBroadcast()) {
-            return BroadcastHelper.broadcastPublisher(input.buildRs(), configuration.getNumberOfSubscriberBeforeConnecting());
+            return BroadcastHelper.broadcastPublisher(input, configuration.getNumberOfSubscriberBeforeConnecting());
         } else {
             return input;
         }
@@ -181,7 +183,7 @@ public abstract class AbstractMediator {
         this.health = health;
     }
 
-    public PublisherBuilder<? extends Message<?>> convert(PublisherBuilder<? extends Message<?>> upstream) {
+    public Multi<? extends Message<?>> convert(Multi<? extends Message<?>> upstream) {
         final Type injectedPayloadType = configuration.getIngestedPayloadType();
         if (injectedPayloadType != null) {
             return upstream

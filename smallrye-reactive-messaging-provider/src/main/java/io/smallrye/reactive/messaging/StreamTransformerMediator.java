@@ -7,6 +7,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.helpers.MultiUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -17,9 +20,9 @@ import io.smallrye.reactive.converters.Registry;
 
 public class StreamTransformerMediator extends AbstractMediator {
 
-    Function<PublisherBuilder<? extends Message<?>>, PublisherBuilder<? extends Message<?>>> function;
+    Function<Multi<? extends Message<?>>, Multi<? extends Message<?>>> function;
 
-    private PublisherBuilder<? extends Message<?>> publisher;
+    private Multi<? extends Message<?>> publisher;
 
     public StreamTransformerMediator(MediatorConfiguration configuration) {
         super(configuration);
@@ -37,13 +40,14 @@ public class StreamTransformerMediator extends AbstractMediator {
     }
 
     @Override
-    public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
+    public void connectToUpstream(Multi<? extends Message<?>> publisher) {
         Objects.requireNonNull(function);
-        this.publisher = decorate(function.apply(convert(publisher)));
+        Multi<? extends Message<?>> converted = convert(publisher);
+        this.publisher = decorate(function.apply(converted));
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getStream() {
+    public Multi<? extends Message<?>> getStream() {
         Objects.requireNonNull(publisher);
         return publisher;
     }
@@ -88,59 +92,57 @@ public class StreamTransformerMediator extends AbstractMediator {
     }
 
     private void processMethodConsumingAPublisherBuilderOfMessages() {
-        function = publisher -> {
-            PublisherBuilder<Message<?>> prependedWithAck = publisher
-                    .flatMapCompletionStage(managePreProcessingAck());
+        function = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            PublisherBuilder<? extends Message<?>> argument = ReactiveStreams.fromPublisher(multi);
+            PublisherBuilder<Message<?>> result = invoke(argument);
+            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
+            return Multi.createFrom().publisher(result.buildRs());
+        };
+    }
 
-            PublisherBuilder<Message<?>> builder = invoke(prependedWithAck);
-            Objects.requireNonNull(builder, msg.methodReturnedNull(configuration.methodAsString()));
-            return builder;
+    private void processMethodConsumingAPublisherOfMessages() {
+        function = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            Publisher<? extends Message<?>> argument = convertToDesiredPublisherType(multi);
+            Publisher<Message<?>> result = invoke(argument);
+            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
+            return Multi.createFrom().publisher(result);
         };
     }
 
     @SuppressWarnings("unchecked")
-    private void processMethodConsumingAPublisherOfMessages() {
-        function = publisher -> {
-            Publisher<Message<?>> prependedWithAck = publisher
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .buildRs();
-            Class<?> parameterType = configuration.getParameterTypes()[0];
-            Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
-            if (converter.isPresent()) {
-                prependedWithAck = (Publisher<Message<?>>) converter.get().fromPublisher(prependedWithAck);
-            }
-            Publisher<Message<?>> result = invoke(prependedWithAck);
-            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return ReactiveStreams.fromPublisher(result);
-        };
+    private <T> Publisher<T> convertToDesiredPublisherType(Multi<T> multi) {
+        Class<?> parameterType = configuration.getParameterTypes()[0];
+        Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
+        Publisher<T> argument = multi;
+        if (converter.isPresent()) {
+            argument = (Publisher<T>) converter.get().fromPublisher(multi);
+        }
+        return argument;
     }
 
     private void processMethodConsumingAPublisherBuilderOfPayload() {
-        function = builder -> {
-            PublisherBuilder<Object> unwrapped = builder
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .map(Message::getPayload);
-            PublisherBuilder<Object> result = invoke(unwrapped);
+        function = upstream -> {
+            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transform(Message::getPayload);
+            PublisherBuilder<?> argument = ReactiveStreams.fromPublisher(multi);
+            PublisherBuilder<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return result.map(o -> (Message<?>) Message.of(o));
+            return Multi.createFrom().publisher(result.buildRs())
+                    .onItem().transform(Message::of);
         };
     }
 
     private void processMethodConsumingAPublisherOfPayload() {
-        function = builder -> {
-            Publisher<?> stream = builder
-                    .flatMapCompletionStage(managePreProcessingAck())
-                    .map(Message::getPayload).buildRs();
-            // Ability to inject Publisher implementation in method getting a Publisher.
-            Class<?> parameterType = configuration.getParameterTypes()[0];
-            Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
-            if (converter.isPresent()) {
-                stream = (Publisher<?>) converter.get().fromPublisher(stream);
-            }
-            Publisher<Object> result = invoke(stream);
+        function = upstream -> {
+            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transform(Message::getPayload);
+            Publisher<?> argument = convertToDesiredPublisherType(multi);
+            Publisher<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return ReactiveStreams.fromPublisher(result)
-                    .map(o -> (Message<?>) Message.of(o));
+            return Multi.createFrom().publisher(result)
+                    .onItem().transform(Message::of);
         };
     }
 

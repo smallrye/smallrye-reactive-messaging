@@ -17,6 +17,7 @@ import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 
+import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.*;
@@ -26,6 +27,8 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.PublisherDecorator;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
 /**
  * Look for stream factories and get instances.
@@ -150,7 +153,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createPublisherBuilder(channel, config),
+                    registry.register(channel, createPublisher(channel, config),
                             config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
                 } else {
                     log.incomingChannelDisabled(channel);
@@ -161,7 +164,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createSubscriberBuilder(channel, config),
+                    registry.register(channel, createSubscriber(channel, config),
                             config.getOptionalValue(ConnectorConfig.MERGE_PROPERTY, Boolean.class).orElse(false));
                 } else {
                     log.outgoingChannelDisabled(channel);
@@ -179,31 +182,35 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         return config.getValue("connector", String.class);
     }
 
-    private PublisherBuilder<? extends Message<?>> createPublisherBuilder(String name, Config config) {
+    private Publisher<? extends Message<?>> createPublisher(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
+
+        // TODO Introduce a new factory returning the Publisher directly.
 
         // Look for the factory and throw an exception if missing
         IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
                 .stream().findFirst().orElseThrow(() -> ex.illegalArgumentUnknownConnector(name));
 
-        PublisherBuilder<? extends Message<?>> publisher = mySourceFactory.getPublisherBuilder(config);
+        Publisher<? extends Message<?>> publisher = mySourceFactory.getPublisherBuilder(config).buildRs();
 
         for (PublisherDecorator decorator : publisherDecoratorInstance) {
-            publisher = decorator.decorate(publisher, name);
+            publisher = decorator.decorate(Multi.createFrom().publisher(publisher), name);
         }
 
         return publisher;
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createSubscriberBuilder(String name, Config config) {
+    private Subscriber<? extends Message<?>> createSubscriber(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
+
+        // TODO Introduce a new factory returning the Subscriber directly.
 
         // Look for the factory and throw an exception if missing
         OutgoingConnectorFactory mySinkFactory = outgoingConnectorFactories.select(ConnectorLiteral.of(connector))
                 .stream().findFirst().orElseThrow(() -> ex.illegalArgumentUnknownConnector(name));
 
-        return mySinkFactory.getSubscriberBuilder(config);
+        return mySinkFactory.getSubscriberBuilder(config).build();
     }
 }

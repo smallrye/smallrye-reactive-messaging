@@ -8,9 +8,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
@@ -345,18 +343,16 @@ public class Wiring {
         @SuppressWarnings({ "unchecked", "rawtypes" })
         @Override
         public void materialize(ChannelRegistry registry) {
-            List<PublisherBuilder<? extends Message<?>>> publishers = registry.getPublishers(name);
+            List<Publisher<? extends Message<?>>> publishers = registry.getPublishers(name);
             Multi<? extends Message<?>> merged;
             if (publishers.size() == 1) {
-                merged = Multi.createFrom().publisher(publishers.get(0).buildRs());
+                merged = Multi.createFrom().publisher(publishers.get(0));
             } else {
-                merged = Multi.createBy().merging()
-                        .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                merged = Multi.createBy().merging().streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             }
             // TODO Improve this.
-            SubscriberBuilder<? extends Message<?>, Void> connector = registry.getSubscribers(name).get(0);
-            Subscriber subscriber = connector.build();
-            merged.subscribe().withSubscriber(subscriber);
+            Subscriber connector = registry.getSubscribers(name).get(0);
+            merged.subscribe().withSubscriber(connector);
         }
 
         @Override
@@ -462,7 +458,7 @@ public class Wiring {
                 publisher = emitter.getPublisher();
                 registry.register(configuration.name, emitter);
             }
-            registry.register(configuration.name, ReactiveStreams.fromPublisher(publisher));
+            registry.register(configuration.name, publisher, broadcast());
         }
 
         private int getDefaultBufferSize() {
@@ -517,7 +513,7 @@ public class Wiring {
         @Override
         public void materialize(ChannelRegistry registry) {
             AbstractMediator mediator = manager.createMediator(configuration);
-            registry.register(configuration.getOutgoing(), mediator.getStream());
+            registry.register(configuration.getOutgoing(), mediator.getStream(), broadcast());
         }
 
         @Override
@@ -579,27 +575,27 @@ public class Wiring {
             boolean one = configuration.getMerge() == Merge.Mode.ONE;
 
             Multi<? extends Message<?>> aggregates;
-            List<PublisherBuilder<? extends Message<?>>> publishers = new ArrayList<>();
+            List<Publisher<? extends Message<?>>> publishers = new ArrayList<>();
             for (String channel : configuration.getIncoming()) {
                 publishers.addAll(registry.getPublishers(channel));
             }
 
             if (publishers.size() == 1) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0).buildRs());
+                aggregates = Multi.createFrom().publisher(publishers.get(0));
             } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
-                        .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             } else if (one) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0).buildRs());
+                aggregates = Multi.createFrom().publisher(publishers.get(0));
             } else {
                 aggregates = Multi.createBy().merging()
-                        .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             }
 
-            mediator.connectToUpstream(ReactiveStreams.fromPublisher(aggregates));
+            mediator.connectToUpstream(aggregates);
 
-            SubscriberBuilder<Message<?>, Void> subscriber = mediator.getComputedSubscriber();
-            incomings().forEach(s -> registry.register(s, subscriber));
+            Subscriber<Message<?>> subscriber = mediator.getComputedSubscriber();
+            incomings().forEach(s -> registry.register(s, subscriber, merge()));
 
             mediator.run();
         }
@@ -724,25 +720,25 @@ public class Wiring {
             boolean one = configuration.getMerge() == Merge.Mode.ONE;
 
             Multi<? extends Message<?>> aggregates;
-            List<PublisherBuilder<? extends Message<?>>> publishers = new ArrayList<>();
+            List<Publisher<? extends Message<?>>> publishers = new ArrayList<>();
             for (String channel : configuration.getIncoming()) {
                 publishers.addAll(registry.getPublishers(channel));
             }
             if (publishers.size() == 1) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0).buildRs());
+                aggregates = Multi.createFrom().publisher(publishers.get(0));
             } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
-                        .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             } else if (one) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0).buildRs());
+                aggregates = Multi.createFrom().publisher(publishers.get(0));
             } else {
                 aggregates = Multi.createBy().merging()
-                        .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             }
 
-            mediator.connectToUpstream(ReactiveStreams.fromPublisher(aggregates));
+            mediator.connectToUpstream(aggregates);
 
-            registry.register(getOutgoingChannel(), mediator.getStream());
+            registry.register(getOutgoingChannel(), mediator.getStream(), merge());
         }
 
         @Override

@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import io.smallrye.reactive.messaging.helpers.MultiUtils;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
@@ -24,8 +25,12 @@ import io.smallrye.reactive.messaging.helpers.ClassUtils;
 
 public class ProcessorMediator extends AbstractMediator {
 
+    // TODO Rework class to not use RSO - instead of processor, we can use plug.
+
     private Processor<Message<?>, ? extends Message<?>> processor;
-    private PublisherBuilder<? extends Message<?>> publisher;
+
+    private Function<Multi<? extends Message<?>>, Multi<? extends Message<?>>> mapper;
+    private Multi<? extends Message<?>> publisher;
 
     public ProcessorMediator(MediatorConfiguration configuration) {
         super(configuration);
@@ -46,13 +51,22 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     @Override
-    public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
-        assert processor != null;
-        this.publisher = decorate(convert(publisher).via(processor));
+    public void connectToUpstream(Multi<? extends Message<?>> publisher) {
+        assert processor != null || mapper != null;
+
+        if (mapper != null) {
+            this.publisher = decorate(publisher.plug(m -> mapper.apply(convert(m))));
+        } else {
+            this.publisher = decorate(Multi.createFrom().deferred(() -> {
+                Multi<? extends Message<?>> multi = Multi.createFrom().publisher(processor);
+                Multi.createFrom().publisher(convert(publisher)).subscribe().withSubscriber(processor);
+                return multi;
+            }));
+        }
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getStream() {
+    public Multi<? extends Message<?>> getStream() {
         return Objects.requireNonNull(publisher);
     }
 
@@ -164,114 +178,128 @@ public class ProcessorMediator extends AbstractMediator {
 
     @SuppressWarnings("unchecked")
     private void processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .map(msg -> (PublisherBuilder<Message<?>>) invoke(msg))
-                .flatMap(Function.identity())
-                .buildRs();
+        this.mapper = upstream ->
+                MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToMultiAndConcatenate(msg -> ((PublisherBuilder<Message<?>>) invoke(msg)).buildRs());
+//
+//
+//        this.processor = ReactiveStreams.<Message<?>> builder()
+//                .flatMapCompletionStage(managePreProcessingAck())
+//                .map(msg -> (PublisherBuilder<Message<?>>) invoke(msg))
+//                .flatMap(Function.identity())
+//                .buildRs();
     }
 
     @SuppressWarnings("unchecked")
     private void processMethodReturningAPublisherOfMessageAndConsumingMessages() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .map(msg -> (Publisher<Message<?>>) invoke(msg))
-                .flatMapRsPublisher(Function.identity())
-                .buildRs();
+        this.mapper = upstream ->
+                MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToMultiAndConcatenate(msg -> ((Publisher<Message<?>>) invoke(msg)));
+
+//        this.processor = ReactiveStreams.<Message<?>> builder()
+//                .flatMapCompletionStage(managePreProcessingAck())
+//                .map(msg -> (Publisher<Message<?>>) invoke(msg))
+//                .flatMapRsPublisher(Function.identity())
+//                .buildRs();
     }
 
     private void processMethodReturningAProcessorBuilderOfMessages() {
         ProcessorBuilder<Message<?>, Message<?>> builder = Objects.requireNonNull(invoke(),
                 msg.methodReturnedNull(configuration.methodAsString()));
 
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .via(builder)
-                .buildRs();
+        this.mapper = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            // TODO Add a via to MultiUtils
+            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(builder).buildRs());
+        };
     }
 
     private void processMethodReturningAProcessorOfMessages() {
         Processor<Message<?>, Message<?>> result = Objects.requireNonNull(invoke(),
                 msg.methodReturnedNull(configuration.methodAsString()));
 
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(msg -> {
-                    if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
-                        return msg.ack().thenApply((x -> msg));
-                    } else {
-                        return CompletableFuture.completedFuture(msg);
-                    }
-                })
-                .via(result)
-                .buildRs();
+        this.mapper = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            // TODO Add a via to MultiUtils
+            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(result).buildRs());
+        };
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void processMethodReturningAProcessorOfPayloads() {
         Processor returnedProcessor = invoke();
-
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .map(Message::getPayload)
-                .via(returnedProcessor)
-                .map(Message::of)
-                .buildRs();
+        Objects.requireNonNull(returnedProcessor, msg.methodReturnedNull(configuration.methodAsString()));
+        this.mapper = upstream -> {
+            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transform(Message::getPayload);
+            // TODO Add a via to MultiUtils
+            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(returnedProcessor).buildRs())
+                    .onItem().transform(Message::of);
+        };
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void processMethodReturningAProcessorBuilderOfPayloads() {
         ProcessorBuilder returnedProcessorBuilder = invoke();
         Objects.requireNonNull(returnedProcessorBuilder, msg.methodReturnedNull(configuration.methodAsString()));
 
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .map(Message::getPayload)
-                .via(returnedProcessorBuilder)
-                .map(Message::of)
-                .buildRs();
+        this.mapper = upstream -> {
+            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transform(Message::getPayload);
+            // TODO Add a via to MultiUtils
+            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(returnedProcessorBuilder).buildRs())
+                    .onItem().transform(Message::of);
+        };
     }
 
     private void processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .flatMap(message -> {
-                    PublisherBuilder<?> pb = invoke(message.getPayload());
-                    return pb.map(payload -> Message.of(payload, message.getMetadata()));
-                    // TODO We can handle post-acknowledgement here.
-                })
-                .buildRs();
+        this.mapper = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            return multi.onItem().transformToMultiAndConcatenate(message -> {
+                PublisherBuilder<?> pb = invoke(message.getPayload());
+                return Multi.createFrom().publisher(pb.buildRs())
+                        .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                // TODO We can handle post-acknowledgement here. -> onCompletion
+            });
+        };
     }
 
     private void processMethodReturningAPublisherOfPayloadsAndConsumingPayloads() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(managePreProcessingAck())
-                .flatMap(message -> {
-                    Publisher<?> pub = invoke(message.getPayload());
-                    return ReactiveStreams.fromPublisher(pub)
-                            .map(payload -> Message.of(payload, message.getMetadata()));
-                    // TODO We can handle post-acknowledgement here.
-                })
-                .buildRs();
+        this.mapper = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            return multi.onItem().transformToMultiAndConcatenate(message -> {
+                Publisher<?> pub = invoke(message.getPayload());
+                return Multi.createFrom().publisher(pub)
+                        .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                // TODO We can handle post-acknowledgement here. -> onCompletion
+            });
+        };
     }
 
     private void processMethodReturningIndividualMessageAndConsumingIndividualItem() {
-        // Item can be message or payload
+        // Item can be a message or a payload
         if (configuration.isBlocking()) {
-            this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                            .onItem().transformToUni(x -> invokeBlocking(withPayloadOrMessage(message)))
-                            .onItem().transform(x -> (Message<?>) x)
-                            .onItemOrFailure().<Message<Object>> transformToUni(this::handlePostInvocationWithMessage)
-                            .onItem().transformToMulti(this::handleSkip))
-                    .buildRs();
+            this.mapper = upstream -> {
+                Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+                return multi
+                        .onItem().transformToMultiAndConcatenate(message ->
+                                invokeBlocking(withPayloadOrMessage(message))
+                                        .onItem().transform(o -> (Message<?>) o)
+                                        .onItemOrFailure().transformToUni(this::handlePostInvocationWithMessage)
+                                        .onItem().transformToMulti(this::handleSkip)
+                        );
+            };
         } else {
-            this.processor = ReactiveStreams.<Message<?>> builder()
-                    .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                            .onItem().transform(x -> invoke(withPayloadOrMessage(message)))
-                            .onItem().transform(x -> (Message<?>) x)
-                            .onItemOrFailure().<Message<Object>> transformToUni(this::handlePostInvocationWithMessage)
-                            .onItem().transformToMulti(this::handleSkip))
-                    .buildRs();
+            this.mapper = upstream -> {
+                Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+                return multi
+                        .onItem().transformToMultiAndConcatenate(message ->
+                                Uni.createFrom().item(() -> invoke(withPayloadOrMessage(message)))
+                                        .onItem().transform(o -> (Message<?>) o)
+                                        .onItemOrFailure().transformToUni(this::handlePostInvocationWithMessage)
+                                        .onItem().transformToMulti(this::handleSkip)
+                        );
+            };
         }
     }
 
@@ -282,19 +310,19 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningIndividualPayloadAndConsumingIndividualItem() {
         // Item can be message or payload.
         if (configuration.isBlocking()) {
-            this.processor = ReactiveStreams.<Message<?>> builder()
+            this.processor = ReactiveStreams.<Message<?>>builder()
                     .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
                             .onItem().transformToUni(x -> (Uni<?>) invokeBlocking(withPayloadOrMessage(message)))
                             .onItemOrFailure()
-                            .<Message<Object>> transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
+                            .<Message<Object>>transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
                             .onItem().transformToMulti(this::handleSkip))
                     .buildRs();
         } else {
-            this.processor = ReactiveStreams.<Message<?>> builder()
+            this.processor = ReactiveStreams.<Message<?>>builder()
                     .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
                             .onItem().transform(input -> invoke(withPayloadOrMessage(message)))
                             .onItemOrFailure()
-                            .<Message<Object>> transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
+                            .<Message<Object>>transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
                             .onItem().transformToMulti(this::handleSkip))
                     .buildRs();
         }
@@ -334,7 +362,7 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     private Uni<? extends Message<Object>> handlePostInvocationWithMessage(Message<?> res,
-            Throwable fail) {
+                                                                           Throwable fail) {
         if (fail != null) {
             throw ex.processingException(getMethodAsString(), fail);
         } else if (res != null) {
@@ -346,7 +374,7 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualItem() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
+        this.processor = ReactiveStreams.<Message<?>>builder()
                 .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
                         .onItem()
                         .transformToUni(x -> Uni.createFrom()
@@ -358,7 +386,7 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     private void processMethodReturningAUniOfMessageAndConsumingIndividualItem() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
+        this.processor = ReactiveStreams.<Message<?>>builder()
                 .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
                         .onItem().transformToUni(x -> invoke(withPayloadOrMessage(message)))
                         .onItemOrFailure()
@@ -368,7 +396,7 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualItem() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
+        this.processor = ReactiveStreams.<Message<?>>builder()
                 .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
                         .onItem()
                         .transformToUni(x -> Uni.createFrom()
@@ -379,7 +407,7 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     private void processMethodReturningAUniOfPayloadAndConsumingIndividualItem() {
-        this.processor = ReactiveStreams.<Message<?>> builder()
+        this.processor = ReactiveStreams.<Message<?>>builder()
                 .flatMapRsPublisher(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
                         .onItem().transformToUni(x -> invoke(withPayloadOrMessage(message)))
                         .onItemOrFailure().transformToUni((res, fail) -> handlePostInvocation(message, res, fail))
