@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.reactive.messaging.json.JsonMapping;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+
+import io.smallrye.reactive.messaging.json.JsonMapping;
 
 @ApplicationScoped
 public class TestMapping implements JsonMapping {

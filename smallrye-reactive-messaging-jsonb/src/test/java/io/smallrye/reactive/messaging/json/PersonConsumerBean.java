@@ -1,11 +1,12 @@
 package io.smallrye.reactive.messaging.json;
 
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-
-import javax.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @ApplicationScoped
 public class PersonConsumerBean {

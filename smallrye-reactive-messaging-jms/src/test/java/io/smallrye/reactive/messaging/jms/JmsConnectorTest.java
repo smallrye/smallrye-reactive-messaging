@@ -1,19 +1,21 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.reactive.messaging.support.JmsTestBase;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
+
+import java.time.Duration;
+import java.util.*;
 
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.jms.DeliveryMode;
 import javax.jms.Queue;
-import java.time.Duration;
-import java.util.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.jupiter.api.Test;
+
+import io.smallrye.reactive.messaging.support.JmsTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class JmsConnectorTest extends JmsTestBase {
 

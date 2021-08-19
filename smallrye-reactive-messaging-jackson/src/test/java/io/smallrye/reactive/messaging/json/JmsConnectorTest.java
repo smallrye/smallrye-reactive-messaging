@@ -1,16 +1,17 @@
 package io.smallrye.reactive.messaging.json;
 
-import io.smallrye.reactive.messaging.jms.JmsConnector;
-import io.smallrye.reactive.messaging.support.JmsTestBase;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.jupiter.api.Test;
+
+import io.smallrye.reactive.messaging.jms.JmsConnector;
+import io.smallrye.reactive.messaging.support.JmsTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class JmsConnectorTest extends JmsTestBase {
 

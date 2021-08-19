@@ -1,9 +1,20 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.support.JmsTestBase;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.awaitility.Awaitility.await;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.jms.*;
+
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -14,19 +25,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.jms.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.awaitility.Awaitility.await;
+import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.support.JmsTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class HeaderPropagationTest extends JmsTestBase {
 

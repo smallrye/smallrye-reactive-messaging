@@ -1,16 +1,18 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.reactive.messaging.json.JsonMapping;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import javax.jms.JMSException;
+import javax.jms.Message;
+
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
+import io.smallrye.reactive.messaging.json.JsonMapping;
 
 public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
     private final Message delegate;

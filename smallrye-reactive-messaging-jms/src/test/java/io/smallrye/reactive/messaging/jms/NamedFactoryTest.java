@@ -1,21 +1,23 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.support.JmsTestBase;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.jms.ConnectionFactory;
-import java.util.HashMap;
-import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.jupiter.api.Test;
+
+import io.smallrye.common.annotation.Identifier;
+import io.smallrye.reactive.messaging.support.JmsTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class NamedFactoryTest extends JmsTestBase {
 

@@ -1,5 +1,11 @@
 package io.smallrye.reactive.messaging.support;
 
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.MediatorFactory;
@@ -16,11 +22,6 @@ import io.smallrye.reactive.messaging.json.JsonBMapping;
 import io.smallrye.reactive.messaging.json.JsonBProvider;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 
 /**
  * FIXME?: make the original class reusable?

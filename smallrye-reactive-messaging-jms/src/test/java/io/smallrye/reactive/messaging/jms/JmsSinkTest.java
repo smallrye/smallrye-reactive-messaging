@@ -1,9 +1,16 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.mutiny.helpers.Subscriptions;
-import io.smallrye.reactive.messaging.json.JsonMapping;
-import io.smallrye.reactive.messaging.support.JmsTestBase;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.jms.*;
+
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.CompletionSubscriber;
@@ -11,15 +18,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.jms.*;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
+import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.support.JmsTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @SuppressWarnings("ConstantConditions")
 public class JmsSinkTest extends JmsTestBase {

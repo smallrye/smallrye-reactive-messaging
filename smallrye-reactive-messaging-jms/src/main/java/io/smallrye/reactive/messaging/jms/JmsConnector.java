@@ -1,18 +1,12 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
-import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
-import io.smallrye.reactive.messaging.json.JsonMapping;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -23,13 +17,21 @@ import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSContext;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.*;
 
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
-import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
+import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
+import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+
+import io.smallrye.common.annotation.Identifier;
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import io.smallrye.reactive.messaging.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.json.JsonMapping;
 
 @ApplicationScoped
 @Connector(JmsConnector.CONNECTOR_NAME)

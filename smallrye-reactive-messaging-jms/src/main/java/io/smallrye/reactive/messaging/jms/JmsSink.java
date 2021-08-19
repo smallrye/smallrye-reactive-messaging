@@ -1,18 +1,20 @@
 package io.smallrye.reactive.messaging.jms;
 
-import io.smallrye.reactive.messaging.json.JsonMapping;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
-import javax.jms.*;
 import java.lang.IllegalStateException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
-import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
+import javax.jms.*;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+
+import io.smallrye.reactive.messaging.json.JsonMapping;
 
 class JmsSink {
 
