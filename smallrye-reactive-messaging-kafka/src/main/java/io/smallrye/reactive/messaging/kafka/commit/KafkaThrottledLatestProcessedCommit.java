@@ -264,9 +264,9 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     /**
      * Always called from the event loop.
      *
-     * @param timerId the timer id.
+     * @param ignored the timer id.
      */
-    private void flushAndCheckHealth(long timerId) {
+    private void flushAndCheckHealth(long ignored) {
         Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
 
         if (!offsetsMapping.isEmpty()) {
