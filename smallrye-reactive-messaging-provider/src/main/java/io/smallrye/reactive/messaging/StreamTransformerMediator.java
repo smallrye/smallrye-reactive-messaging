@@ -7,16 +7,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.helpers.MultiUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.converters.ReactiveTypeConverter;
 import io.smallrye.reactive.converters.Registry;
+import io.smallrye.reactive.messaging.helpers.MultiUtils;
 
 public class StreamTransformerMediator extends AbstractMediator {
 

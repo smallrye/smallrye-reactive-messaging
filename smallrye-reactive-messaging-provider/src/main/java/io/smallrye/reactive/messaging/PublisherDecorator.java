@@ -1,9 +1,8 @@
 package io.smallrye.reactive.messaging;
 
-import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.reactivestreams.Publisher;
+
+import io.smallrye.mutiny.Multi;
 
 /**
  * SPI to allow extension of publishers (Multi) included in the final graph

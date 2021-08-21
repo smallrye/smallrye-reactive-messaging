@@ -6,8 +6,6 @@ import java.util.Set;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
@@ -15,7 +13,6 @@ public interface ChannelRegistry {
 
     Publisher<? extends Message<?>> register(String name, Publisher<? extends Message<?>> stream,
             boolean broadcast);
-
 
     Subscriber<? extends Message<?>> register(String name,
             Subscriber<? extends Message<?>> subscriber, boolean merge);

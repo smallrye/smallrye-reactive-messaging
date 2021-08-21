@@ -4,10 +4,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 
 @ApplicationScoped
@@ -17,7 +16,7 @@ public class CountingDecorator implements PublisherDecorator {
 
     @Override
     public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher,
-                                                String channelName) {
+            String channelName) {
         return publisher.invoke(m -> messageCount.incrementAndGet());
     }
 

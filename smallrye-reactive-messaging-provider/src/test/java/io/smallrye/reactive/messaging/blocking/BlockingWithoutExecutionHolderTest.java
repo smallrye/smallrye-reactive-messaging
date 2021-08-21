@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.blocking;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -25,8 +26,8 @@ import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
-import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.smallrye.testing.logging.LogCapture;
@@ -48,8 +49,8 @@ public class BlockingWithoutExecutionHolderTest extends WeldTestBaseWithoutTails
                 WorkerPoolRegistry.class,
                 InternalChannelRegistry.class,
                 ChannelProducer.class,
+                ConnectorFactories.class,
                 ConfiguredChannelFactory.class,
-                LegacyConfiguredChannelFactory.class,
                 MetricDecorator.class,
                 HealthCenter.class,
                 // Messaging provider
@@ -67,11 +68,12 @@ public class BlockingWithoutExecutionHolderTest extends WeldTestBaseWithoutTails
     @Test
     public void testBlockingWithoutExecutionHolder() {
         addBeanClass(MyApplication.class);
-        initialize();
+
+        assertThatThrownBy(this::initialize).hasStackTraceContaining("@Blocking disabled");
 
         assertThat(logCapture.records()).isNotNull()
                 .filteredOn(r -> r.getMessage().contains("SRMSG00200"))
-                .hasSize(3)
+                .hasSize(1)
                 .allSatisfy(r -> assertThat(r.getMessage())
                         .contains(
                                 "io.smallrye.reactive.messaging.blocking.BlockingWithoutExecutionHolderTest$MyApplication#consume has thrown an exception"));

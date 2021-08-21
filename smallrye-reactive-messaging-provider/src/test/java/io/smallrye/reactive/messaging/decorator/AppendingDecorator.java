@@ -2,10 +2,9 @@ package io.smallrye.reactive.messaging.decorator;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 
 @ApplicationScoped
@@ -13,7 +12,7 @@ public class AppendingDecorator implements PublisherDecorator {
 
     @Override
     public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher,
-                                                String channelName) {
+            String channelName) {
         return publisher.map(m -> this.appendString(m, channelName));
     }
 

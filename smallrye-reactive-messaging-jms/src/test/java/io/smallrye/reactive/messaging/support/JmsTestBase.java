@@ -16,6 +16,7 @@ import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.TestMapping;
@@ -77,6 +78,7 @@ public class JmsTestBase {
         weld.addBeanClass(MediatorFactory.class);
         weld.addBeanClass(MediatorManager.class);
         weld.addBeanClass(InternalChannelRegistry.class);
+        weld.addBeanClass(ConnectorFactories.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(ChannelProducer.class);
         weld.addBeanClass(ExecutionHolder.class);

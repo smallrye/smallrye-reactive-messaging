@@ -7,13 +7,13 @@ import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.helpers.MultiUtils;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.helpers.MultiUtils;
 
 public class PublisherMediator extends AbstractMediator {
 
@@ -48,7 +48,7 @@ public class PublisherMediator extends AbstractMediator {
 
     @Override
     protected <T> Uni<T> invokeBlocking(Object... args) {
-        return super.<T>invokeBlocking(args)
+        return super.<T> invokeBlocking(args)
                 .onItem().invoke(item -> {
                     // The item must not be null.
                     if (item == null) {
@@ -122,8 +122,8 @@ public class PublisherMediator extends AbstractMediator {
     private void produceIndividualMessages() {
         if (configuration.isBlocking()) {
             this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
-                            .onItem().transformToUniAndConcatenate(u -> u)
-                            .onItem().transform(o -> (Message<?>) o));
+                    .onItem().transformToUniAndConcatenate(u -> u)
+                    .onItem().transform(o -> (Message<?>) o));
         } else {
             this.publisher = decorate(MultiUtils.createFromGenerator(() -> {
                 Message<?> message = invoke();
@@ -145,22 +145,22 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     private void produceIndividualCompletionStageOfMessages() {
-        this.publisher = decorate(MultiUtils.<CompletionStage<Message<?>>>createFromGenerator(this::invoke)
-                    .onItem().transformToUniAndConcatenate(cs -> Uni.createFrom().completionStage(cs)));
+        this.publisher = decorate(MultiUtils.<CompletionStage<Message<?>>> createFromGenerator(this::invoke)
+                .onItem().transformToUniAndConcatenate(cs -> Uni.createFrom().completionStage(cs)));
     }
 
     private <P> void produceIndividualCompletionStageOfPayloads() {
-        this.publisher = decorate(MultiUtils.<CompletionStage<P>>createFromGenerator(this::invoke)
+        this.publisher = decorate(MultiUtils.<CompletionStage<P>> createFromGenerator(this::invoke)
                 .onItem().transformToUniAndConcatenate(cs -> Uni.createFrom().completionStage(cs).map(Message::of)));
     }
 
     private void produceIndividualUniOfMessages() {
-        this.publisher = decorate(MultiUtils.<Uni<Message<?>>>createFromGenerator(this::invoke)
+        this.publisher = decorate(MultiUtils.<Uni<Message<?>>> createFromGenerator(this::invoke)
                 .onItem().transformToUniAndConcatenate(Function.identity()));
     }
 
     private void produceIndividualUniOfPayloads() {
-        this.publisher = decorate(MultiUtils.<Uni<?>>createFromGenerator(this::invoke)
+        this.publisher = decorate(MultiUtils.<Uni<?>> createFromGenerator(this::invoke)
                 .onItem().transformToUniAndConcatenate(u -> u.map(Message::of)));
     }
 }

@@ -8,9 +8,6 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
@@ -28,7 +25,6 @@ public class InternalChannelRegistry implements ChannelRegistry {
 
     private final Map<String, Emitter<?>> emitters = new HashMap<>();
     private final Map<String, MutinyEmitter<?>> mutinyEmitters = new HashMap<>();
-
 
     @Override
     public Publisher<? extends Message<?>> register(String name,
