@@ -74,6 +74,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
         <configuration>
           <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
           <annotationProcessors>
@@ -86,17 +87,6 @@
           </annotationProcessors>
         </configuration>
       </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <!-- Tests that require test-containers
-                 Enable with -Dtest-containers or -Ptest-containers -->
-            <exclude>**/RabbitMQTest.java</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
-
     </plugins>
   </build>
 

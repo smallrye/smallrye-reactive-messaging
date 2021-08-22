@@ -49,7 +49,6 @@ public class RabbitMQUsage {
     private final static Logger LOGGER = Logger.getLogger(RabbitMQUsage.class);
     private final RabbitMQClient client;
     private final RabbitMQOptions options;
-    private final Vertx vertx;
     private final int managementPort;
 
     /**
@@ -64,7 +63,6 @@ public class RabbitMQUsage {
      */
     public RabbitMQUsage(final Vertx vertx, final String host, final int port, final int managementPort, final String user,
             final String pwd) {
-        this.vertx = vertx;
         this.managementPort = managementPort;
         this.options = new RabbitMQOptions().setHost(host).setPort(port).setUser(user).setPassword(pwd);
         this.client = RabbitMQClient.create(new Vertx(vertx.getDelegate()), options);
@@ -99,7 +97,7 @@ public class RabbitMQUsage {
                                         LOGGER.infof("Producer sent message %s", payload);
                                         done.countDown();
                                     },
-                                    ex -> ex.printStackTrace());
+                                    Throwable::printStackTrace);
                 }
             } catch (Exception e) {
                 LOGGER.error("Unable to send message", e);
@@ -214,7 +212,7 @@ public class RabbitMQUsage {
     /**
      * Returns the RabbitMQ JSON representation of the bindings between the
      * named exchange and queue..
-     * 
+     *
      * @param exchangeName the name of the exchange
      * @param queueName the name of the queue
      * @return a {@link JsonArray} of binding descriptions

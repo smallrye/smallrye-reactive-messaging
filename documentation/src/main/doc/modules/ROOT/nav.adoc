@@ -62,6 +62,13 @@
 *** xref:mqtt:mqtt.adoc#mqtt-outbound[Sending MQTT Messages]
 *** xref:mqtt-server:mqtt-server.adoc#[Exposing an MQTT server]
 
+** xref:rabbitmq:rabbitmq.adoc[RabbitMQ]
+*** xref:rabbitmq:rabbitmq.adoc#rabbitmq-installation[Using the connector]
+*** xref:rabbitmq:rabbitmq.adoc#rabbitmq-inbound[Receiving Messages from RabbitMQ]
+*** xref:rabbitmq:rabbitmq.adoc#rabbitmq-outbound[Sending Messages to RabbitMQ]
+*** xref:rabbitmq:rabbitmq.adoc#rabbitmq-health[Health Check]
+*** xref:rabbitmq:rabbitmq.adoc#rabbitmq-cloud[Connecting to managed instances]
+
 * xref:emitter/emitter.adoc[Emitters and Channels]
 ** xref:emitter/emitter.adoc#emitter-payloads[Sending payloads]
 ** xref:emitter/emitter.adoc#emitter-messages[Sending messages]
