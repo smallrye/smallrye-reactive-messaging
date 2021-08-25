@@ -102,7 +102,7 @@ It delegates the offset commit to the Kafka client.
 This strategy provides _at-least-once delivery_ if the channel processes the message without performing any asynchronous operations and when `enable.auto.commit` is set to `true`.
 However, if the processing failed between two commits, messages received after the commit and before the failure will be re-processed.
 
-IMPORTANT: The Kafka connector disables the Kafka _auto commit_ is not explicitly enabled.
+IMPORTANT: The Kafka connector disables the Kafka _auto commit_ if not explicitly enabled.
 This behavior differs from the traditional Kafka consumer.
 
 If high-throughout is important for you, and not limited by the downstream, we recommend to either:
