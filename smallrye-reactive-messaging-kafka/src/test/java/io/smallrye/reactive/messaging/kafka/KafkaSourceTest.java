@@ -355,6 +355,7 @@ public class KafkaSourceTest extends KafkaTestBase {
         assertThat(service.getConsumer("data")).isNotNull();
         assertThat(service.getConsumer("missing")).isNull();
         assertThatThrownBy(() -> service.getConsumer(null)).isInstanceOf(NullPointerException.class);
+        assertThat(service.getConsumerChannels()).containsExactly("data");
     }
 
     @Test

@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
@@ -356,5 +357,13 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 .filter(ks -> ks.getChannel().equals(channel))
                 .map(KafkaSink::getProducer)
                 .findFirst().orElse(null);
+    }
+
+    public Set<String> getConsumerChannels() {
+        return sources.stream().map(s -> s.getChannel()).collect(Collectors.toSet());
+    }
+
+    public Set<String> getProducerChannels() {
+        return sinks.stream().map(s -> s.getChannel()).collect(Collectors.toSet());
     }
 }

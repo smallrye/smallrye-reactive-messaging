@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
 import java.util.Objects;
+import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -28,4 +29,15 @@ public class KafkaClientServiceImpl implements KafkaClientService {
     public <K, V> KafkaProducer<K, V> getProducer(String channel) {
         return connector.getProducer(Objects.requireNonNull(channel));
     }
+
+    @Override
+    public Set<String> getConsumerChannels() {
+        return connector.getConsumerChannels();
+    }
+
+    @Override
+    public Set<String> getProducerChannels() {
+        return connector.getProducerChannels();
+    }
+
 }

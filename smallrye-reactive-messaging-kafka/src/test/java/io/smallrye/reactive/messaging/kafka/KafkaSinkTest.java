@@ -201,6 +201,7 @@ public class KafkaSinkTest extends KafkaTestBase {
         assertThat(service.getProducer("output")).isNotNull();
         assertThat(service.getProducer("missing")).isNull();
         assertThatThrownBy(() -> service.getProducer(null)).isInstanceOf(NullPointerException.class);
+        assertThat(service.getProducerChannels()).containsExactly("output");
     }
 
     @Test
