@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.util.Set;
+
 import io.smallrye.common.annotation.Experimental;
 
 @Experimental("experimental api")
@@ -40,5 +42,19 @@ public interface KafkaClientService {
      * @return the producer, {@code null} if not found
      */
     <K, V> KafkaProducer<K, V> getProducer(String channel);
+
+    /**
+     * Get the names of all the Kafka incoming channels managed by this connector.
+     *
+     * @return the names of the Kafka consumer incoming channels.
+     */
+    Set<String> getConsumerChannels();
+
+    /**
+     * Get the names of all the Kafka outgoing channels managed by this connector.
+     *
+     * @return the names of the Kafka producer outgoing channels.
+     */
+    Set<String> getProducerChannels();
 
 }
