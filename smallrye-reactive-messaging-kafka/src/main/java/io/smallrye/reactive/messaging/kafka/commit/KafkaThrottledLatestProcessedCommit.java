@@ -115,7 +115,6 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             if (!partitions.isEmpty() || !offsetStores.isEmpty()) {
                 startFlushAndCheckHealthTimer();
             }
-
             return null;
         });
     }
@@ -129,28 +128,26 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      */
     @Override
     public void partitionsRevoked(Collection<TopicPartition> partitions) {
-        runOnContextAndAwait(() -> {
-            assignments.removeAll(partitions);
+        Tuple2<Map<TopicPartition, OffsetAndMetadata>, Boolean> result = runOnContextAndAwait(() -> {
             stopFlushAndCheckHealthTimer();
-            return null;
-        });
-
-        // Remove all handled partitions that are not in the given list of partitions
-        Callable<Tuple2<Map<TopicPartition, OffsetAndMetadata>, Boolean>> task = () -> {
+            assignments.removeAll(partitions);
+            // Remove all handled partitions that are not in the given list of partitions
             Map<TopicPartition, OffsetAndMetadata> toCommit = new HashMap<>();
             for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
-                if (partitions.contains(partition)) {
+                if (!assignments.contains(partition)) { // revoked partition - remove and compute last commit
                     OffsetStore store = offsetStores.remove(partition);
-                    long largestOffset = store.clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
-                    if (largestOffset > -1) {
-                        toCommit.put(partition, new OffsetAndMetadata(largestOffset + 1L, null));
+                    if (store != null) {
+
+                        long largestOffset = store.clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
+                        if (largestOffset > -1) {
+                            toCommit.put(partition, new OffsetAndMetadata(largestOffset + 1L, null));
+                            log.partitionRevokedCollectingRecordsToCommit(partition, largestOffset + 1);
+                        }
                     }
                 }
             }
             return Tuple2.of(toCommit, !offsetStores.isEmpty());
-        };
-
-        Tuple2<Map<TopicPartition, OffsetAndMetadata>, Boolean> result = runOnContextAndAwait(task);
+        });
 
         if (!result.getItem1().isEmpty()) {
             // We are on the polling thread, we can use synchronous (blocking) commit
@@ -178,10 +175,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * Must be called form the event loop.
      */
     private void startFlushAndCheckHealthTimer() {
-        timerId = vertx.setTimer(autoCommitInterval, x -> {
-            runOnContext(() -> this.flushAndCheckHealth(x));
-        });
-
+        timerId = vertx.setTimer(autoCommitInterval, x -> runOnContext(() -> this.flushAndCheckHealth(x)));
     }
 
     /**
@@ -214,12 +208,13 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      */
     private Map<TopicPartition, Long> clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping() {
         Map<TopicPartition, Long> offsetsMapping = new HashMap<>();
-
-        for (Map.Entry<TopicPartition, OffsetStore> entry : offsetStores.entrySet()) {
-            long offset = entry.getValue()
-                    .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
-            if (offset > -1) {
-                offsetsMapping.put(entry.getKey(), offset);
+        for (Map.Entry<TopicPartition, OffsetStore> entry : new HashSet<>(offsetStores.entrySet())) {
+            if (assignments.contains(entry.getKey())) {
+                long offset = entry.getValue()
+                        .clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset();
+                if (offset > -1) {
+                    offsetsMapping.put(entry.getKey(), offset);
+                }
             }
         }
 
@@ -253,7 +248,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             if (store != null) {
                 store.processed(record.getOffset());
             } else {
-                log.messageAckedForRevokedTopicPartition(record.getOffset(), groupId, topicPartition.toString());
+                log.acknowledgementFromRevokedTopicPartition(
+                        record.getOffset(), topicPartition, groupId, assignments);
             }
             future.complete(null);
         });
@@ -266,14 +262,22 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      *
      * @param ignored the timer id.
      */
+    @SuppressWarnings("unused")
     private void flushAndCheckHealth(long ignored) {
         Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
 
         if (!offsetsMapping.isEmpty()) {
             Map<TopicPartition, OffsetAndMetadata> offsets = getOffsets(offsetsMapping);
-            // TODO Log commit failure.
-            consumer.commit(offsets).subscribe().with(a -> this.startFlushAndCheckHealthTimer(),
-                    f -> this.startFlushAndCheckHealthTimer());
+            consumer.commit(offsets)
+                    .subscribe().with(
+                            a -> {
+                                log.committed(offsets);
+                                this.startFlushAndCheckHealthTimer();
+                            },
+                            f -> {
+                                log.failedToCommit(offsets, f);
+                                this.startFlushAndCheckHealthTimer();
+                            });
         } else {
             this.startFlushAndCheckHealthTimer();
         }
@@ -281,12 +285,17 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         if (this.unprocessedRecordMaxAge > 0) {
             for (OffsetStore store : offsetStores.values()) {
                 if (store.hasTooManyMessagesWithoutAck()) {
-                    long lastOffset = store.getLastCommittedOffset();
-                    String topic = store.topicPartition.topic();
-                    int partition = store.topicPartition.partition();
-                    TooManyMessagesWithoutAckException exception = new TooManyMessagesWithoutAckException(topic, partition,
-                            lastOffset);
-                    this.source.reportFailure(exception, true);
+                    OffsetReceivedAt received = store.receivedOffsets.peek();
+                    if (received != null) {
+                        long lastOffset = store.getLastCommittedOffset();
+                        TooManyMessagesWithoutAckException exception = new TooManyMessagesWithoutAckException(
+                                store.topicPartition,
+                                received.offset,
+                                received.offset / 1000,
+                                store.receivedOffsets.size(),
+                                lastOffset);
+                        this.source.reportFailure(exception, true);
+                    }
                 }
             }
         }
@@ -327,6 +336,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         OffsetStore(TopicPartition topicPartition, int unprocessedRecordMaxAge) {
             this.topicPartition = topicPartition;
             this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
+            // TODO We should capture the initial position instead of considering -1;
         }
 
         long getLastCommittedOffset() {
@@ -334,8 +344,12 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
 
         void received(long offset) {
-            this.receivedOffsets.offer(OffsetReceivedAt.received(offset));
-            unProcessedTotal.incrementAndGet();
+            if (offset >= lastCommitted) {
+                this.receivedOffsets.offer(OffsetReceivedAt.received(offset));
+                unProcessedTotal.incrementAndGet();
+            } else {
+                log.receivedOutdatedOffset(topicPartition, offset, lastCommitted);
+            }
         }
 
         void processed(long offset) {
@@ -348,6 +362,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         long clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset() {
             if (!processedOffsets.isEmpty()) {
                 long largestSequentialProcessedOffset = -1;
+
                 while (!receivedOffsets.isEmpty()) {
                     if (!processedOffsets.remove(receivedOffsets.peek().getOffset())) {
                         break;
@@ -364,6 +379,18 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                     return largestSequentialProcessedOffset;
                 }
             }
+
+            // Cleanup if needed
+            for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
+                if (!assignments.contains(partition)) {
+                    log.removingPartitionFromStore(partition, assignments);
+                    offsetStores.remove(partition);
+                }
+            }
+
+            // Remove received offset from previous assignments if any
+            receivedOffsets.removeIf(o -> o.getOffset() < lastCommitted);
+
             return -1;
         }
 
@@ -372,9 +399,15 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 return false;
             }
             OffsetReceivedAt peek = receivedOffsets.peek();
-            long time = peek == null ? 0 : (System.currentTimeMillis() - peek.getReceivedAt());
-            if (time > unprocessedRecordMaxAge) {
-                log.receivedTooManyMessagesWithoutAcking(topicPartition.toString(), unProcessedTotal.get(), lastCommitted);
+            if (peek == null) {
+                return false;
+            }
+            long time = System.currentTimeMillis() - peek.getReceivedAt();
+            long lag = receivedOffsets.size();
+            boolean waitedTooLong = time > unprocessedRecordMaxAge;
+            if (waitedTooLong) {
+                log.waitingForAckForTooLong(peek.getOffset(), topicPartition, time, unprocessedRecordMaxAge,
+                        lag, lastCommitted);
                 return true;
             }
             return false;
@@ -391,9 +424,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     }
 
     public static class TooManyMessagesWithoutAckException extends NoStackTraceThrowable {
-        public TooManyMessagesWithoutAckException(String topic, int partition, long lastOffset) {
-            super("Too Many Messages without acknowledgement in topic " + topic + " (partition:" + partition
-                    + "), last committed offset is " + lastOffset);
+        public TooManyMessagesWithoutAckException(TopicPartition topic, long offset, long time, long queueSize,
+                long lastCommittedOffset) {
+            super(String.format("The record %d from topic/partition '%s' has waited for %s seconds to be acknowledged. " +
+                    "At the moment %d messages from this partition are awaiting acknowledgement. The last committed " +
+                    "offset for this partition was %d.", offset, topic, time, queueSize, lastCommittedOffset));
         }
     }
 

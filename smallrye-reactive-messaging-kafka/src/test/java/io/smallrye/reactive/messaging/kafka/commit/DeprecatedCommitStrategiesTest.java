@@ -372,7 +372,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
 
         HealthReport r = report.get();
         String message = r.getChannels().get(0).getMessage();
-        assertThat(message).contains("my-topic", "partition:1", "9");
+        assertThat(message).contains("my-topic-1", "9");
     }
 
     @Test

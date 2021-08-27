@@ -1,7 +1,11 @@
 package io.smallrye.reactive.messaging.kafka.i18n;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
@@ -143,12 +147,13 @@ public interface KafkaLogging extends BasicLogger {
     void configuredPattern(String channel, String pattern);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 18231, value = "The amount of received messages without acking is too high for topic partition '%s', "
-            + "amount %d. The last committed offset was %d. It means that the Kafka connector received Kafka Records that "
-            + "have neither be acked nor nacked in a timely fashion. The connector accumulates records in memory, but that "
-            + "buffer reached its maximum capacity or the deadline for ack/nack expired. The connector cannot commit as "
-            + "a record processing has not completed.")
-    void receivedTooManyMessagesWithoutAcking(String topicPartition, long amount, long lastCommittedOffset);
+    @Message(id = 18231, value = "The record %d from topic-partition '%s' has waited for %s seconds to be acknowledged." +
+            " This waiting time is greater than the configured threshold (%d ms). At the moment %d messages from this" +
+            " partition are awaiting acknowledgement. The last committed offset for this partition was %d. This error" +
+            " is due to a potential issue in the application which does not acknowledged the records in a timely fashion." +
+            " The connector cannot commit as a record processing has not completed.")
+    void waitingForAckForTooLong(long offset, TopicPartition topicPartition, long delay, long configInMs, long queueSize,
+            long lastCommittedOffset);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18232, value = "Will commit for group '%s' every %d milliseconds.")
@@ -178,9 +183,11 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18238, value = "Setting client.id for Kafka consumer to %s")
     void setKafkaConsumerClientId(String name);
 
-    @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 18239, value = "Acked record %d on group '%s' was ignored because the topic partition '%s' was revoked for this instance. Record will likely be processed again.")
-    void messageAckedForRevokedTopicPartition(long offset, String groupId, String topicPartition);
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18239, value = "Received acknowledgement for record %d on '%s' (consumer group: '%s'). Ignoring it " +
+            "because the partition is not assigned to the consume anymore. Record will likely be processed again. Current assignments are %s.")
+    void acknowledgementFromRevokedTopicPartition(long offset, TopicPartition topicPartition, String groupId,
+            Collection<TopicPartition> assignments);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18240, value = "'%s' commit strategy used for channel '%s'")
@@ -191,7 +198,7 @@ public interface KafkaLogging extends BasicLogger {
     void deserializationFailureHandlerFailure(String instance, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 18243, value = "Shutting down - Pausing all topic/partitions")
+    @Message(id = 18243, value = "Shutting down - Pausing all topic-partitions")
     void pauseAllPartitionOnTermination();
 
     @LogMessage(level = Logger.Level.DEBUG)
@@ -221,4 +228,24 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18250, value = "The configuration property '%s' is deprecated and is replaced by '%s'.")
     void deprecatedConfig(String deprecated, String replace);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18251, value = "Committed %s")
+    void committed(Map<TopicPartition, OffsetAndMetadata> offsets);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18252, value = "Failed to commit %s, it will be re-attempted")
+    void failedToCommit(Map<TopicPartition, OffsetAndMetadata> offsets, @Cause Throwable failure);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18253, value = "Removing topic-partition '%s' from the store - the partition is not assigned to the consumer anymore. Current assignments are: %s")
+    void removingPartitionFromStore(TopicPartition tp, Collection<TopicPartition> assignments);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18254, value = "Topic-partition '%s' has been revoked - going to commit offset %d")
+    void partitionRevokedCollectingRecordsToCommit(TopicPartition partition, long commit);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18255, value = "Received a record from topic-partition '%s' at offset %d, while the last committed offset is %d - Ignoring record")
+    void receivedOutdatedOffset(TopicPartition topicPartition, long offset, long lastCommitted);
 }
