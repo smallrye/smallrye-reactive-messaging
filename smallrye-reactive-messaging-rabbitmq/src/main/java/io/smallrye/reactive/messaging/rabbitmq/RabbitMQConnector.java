@@ -7,10 +7,7 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static java.time.Duration.ofSeconds;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -315,9 +312,10 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                 .setVirtualHost(config.getVirtualHost());
 
         // JKS TrustStore
-        if (config.getTrustStorePath().isPresent()) {
+        Optional<String> trustStorePath = config.getTrustStorePath();
+        if (trustStorePath.isPresent()) {
             JksOptions jks = new JksOptions();
-            jks.setPath(config.getTrustStorePath().get());
+            jks.setPath(trustStorePath.get());
             config.getTrustStorePassword().ifPresent(jks::setPassword);
             rabbitMQClientConfig.setTrustStoreOptions(jks);
         }

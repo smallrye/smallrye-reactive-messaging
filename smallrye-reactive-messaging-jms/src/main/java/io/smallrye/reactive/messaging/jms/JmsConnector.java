@@ -104,10 +104,10 @@ public class JmsConnector implements IncomingConnectorFactory, OutgoingConnector
             log.warn(
                     "Please add one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");
         } else if (jsonMapper.isAmbiguous()) {
-            // FIXME: is it sensible? Quarkus should not allow for starting with ambiguous providers available.
             log.warn(
                     "Please select only one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");
-            this.jsonMapping = jsonMapper.stream().findFirst().get();
+            this.jsonMapping = jsonMapper.stream().findFirst()
+                    .orElseThrow(() -> new RuntimeException("Unable to find JSON Mapper"));
         } else {
             this.jsonMapping = jsonMapper.get();
         }
