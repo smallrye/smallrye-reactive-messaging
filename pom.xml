@@ -63,7 +63,7 @@
     <weld.version>3.1.8.Final</weld.version>
     <camel.version>3.11.1</camel.version>
 
-    <microprofile-reactive-messaging.version>2.0</microprofile-reactive-messaging.version>
+    <microprofile-reactive-messaging.version>2.0.1-RC2</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>2.0</microprofile-reactive-streams.version>
     <microprofile-config.version>2.0</microprofile-config.version>
     <microprofile-metrics-api.version>3.0</microprofile-metrics-api.version>
