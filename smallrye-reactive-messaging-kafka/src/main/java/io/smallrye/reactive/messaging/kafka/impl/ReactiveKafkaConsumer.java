@@ -216,12 +216,28 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
             map.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         }
 
-        if (!map.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
-            String name = "kafka-consumer-" + configuration.getChannel();
-            if (index != -1) {
-                name += "-" + index;
+        // Consumer id generation:
+        // 1. If we don't have an index and no client id set in the config, add one
+        // 2. If we don't have an index and a client id set in the config, use it
+        // 3. If we have an index and no client id set in the config, add one suffixed with the index
+        // 4. If we have an index and a client id set in the config, suffix the index
+
+        if (index == -1) {
+            map.computeIfAbsent(ConsumerConfig.CLIENT_ID_CONFIG, k -> {
+                // Case 1
+                return "kafka-consumer-" + configuration.getChannel();
+            });
+            // Case 2 - nothing to do
+        } else {
+            String configuredClientId = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
+            if (configuredClientId == null) {
+                // Case 3
+                configuredClientId = "kafka-consumer-" + configuration.getChannel() + "-" + index;
+            } else {
+                // Case 4
+                configuredClientId = configuredClientId + "-" + index;
             }
-            map.put(ConsumerConfig.CLIENT_ID_CONFIG, name);
+            map.put(ConsumerConfig.CLIENT_ID_CONFIG, configuredClientId);
         }
 
         ConfigurationCleaner.cleanupConsumerConfiguration(map);
