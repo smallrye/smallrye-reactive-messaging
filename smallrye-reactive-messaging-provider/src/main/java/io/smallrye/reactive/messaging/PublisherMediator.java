@@ -121,9 +121,15 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceIndividualMessages() {
         if (configuration.isBlocking()) {
-            this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
-                    .onItem().transformToUniAndConcatenate(u -> u)
-                    .onItem().transform(o -> (Message<?>) o));
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndConcatenate(u -> u)
+                        .onItem().transform(o -> (Message<?>) o));
+            } else {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndMerge(u -> u)
+                        .onItem().transform(o -> (Message<?>) o));
+            }
         } else {
             this.publisher = decorate(MultiUtils.createFromGenerator(() -> {
                 Message<?> message = invoke();
@@ -135,9 +141,15 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceIndividualPayloads() {
         if (configuration.isBlocking()) {
-            this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
-                    .onItem().transformToUniAndConcatenate(u -> u)
-                    .onItem().transform(Message::of));
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndConcatenate(u -> u)
+                        .onItem().transform(Message::of));
+            } else {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndMerge(u -> u)
+                        .onItem().transform(Message::of));
+            }
         } else {
             this.publisher = decorate(MultiUtils.createFromGenerator(this::invoke)
                     .onItem().transform(Message::of));

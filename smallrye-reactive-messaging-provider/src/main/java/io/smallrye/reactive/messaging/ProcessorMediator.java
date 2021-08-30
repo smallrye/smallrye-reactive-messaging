@@ -251,14 +251,26 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningIndividualMessageAndConsumingIndividualItem() {
         // Item can be a message or a payload
         if (configuration.isBlocking()) {
-            this.mapper = upstream -> {
-                Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-                return multi
-                        .onItem().transformToMultiAndConcatenate(message -> invokeBlocking(withPayloadOrMessage(message))
-                                .onItem().transform(o -> (Message<?>) o)
-                                .onItemOrFailure().transformToUni(this::handlePostInvocationWithMessage)
-                                .onItem().transformToMulti(this::handleSkip));
-            };
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.mapper = upstream -> {
+                    Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+                    return multi
+                            .onItem().transformToMultiAndConcatenate(message -> invokeBlocking(withPayloadOrMessage(message))
+                                    .onItemOrFailure()
+                                    .transformToUni((o, t) -> this.handlePostInvocationWithMessage((Message<?>) o, t))
+                                    .onItem().transformToMulti(this::handleSkip));
+                };
+            } else {
+                this.mapper = upstream -> {
+                    Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+                    return multi
+                            .onItem().transformToMultiAndMerge(message -> invokeBlocking(withPayloadOrMessage(message))
+                                    .onItemOrFailure()
+                                    .transformToUni((o, t) -> this.handlePostInvocationWithMessage((Message<?>) o, t))
+                                    .onItem().transformToMulti(this::handleSkip));
+                };
+            }
+
         } else {
             this.mapper = upstream -> {
                 Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
@@ -279,10 +291,17 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningIndividualPayloadAndConsumingIndividualItem() {
         // Item can be message or payload.
         if (configuration.isBlocking()) {
-            this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                    .onItem().transformToMultiAndConcatenate(message -> invokeBlocking(withPayloadOrMessage(message))
-                            .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
-                            .onItem().transformToMulti(this::handleSkip));
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToMultiAndConcatenate(message -> invokeBlocking(withPayloadOrMessage(message))
+                                .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
+                                .onItem().transformToMulti(this::handleSkip));
+            } else {
+                this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToMultiAndMerge(message -> invokeBlocking(withPayloadOrMessage(message))
+                                .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
+                                .onItem().transformToMulti(this::handleSkip));
+            }
 
         } else {
             this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
