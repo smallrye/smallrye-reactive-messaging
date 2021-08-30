@@ -3,101 +3,101 @@
 |===
 |Attribute (_alias_) | Description | Mandatory | Default
 
-| *username*
+| [.no-hyphens]#*username*#
 
-_(amqp-username)_ | The username used to authenticate to the broker
-
-Type: _string_ | false | 
-
-| *password*
-
-_(amqp-password)_ | The password used to authenticate to the broker
+[.no-hyphens]#_(amqp-username)_# | The username used to authenticate to the broker
 
 Type: _string_ | false | 
 
-| *host*
+| [.no-hyphens]#*password*#
 
-_(amqp-host)_ | The broker hostname
+[.no-hyphens]#_(amqp-password)_# | The password used to authenticate to the broker
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*host*#
+
+[.no-hyphens]#_(amqp-host)_# | The broker hostname
 
 Type: _string_ | false | `localhost`
 
-| *port*
+| [.no-hyphens]#*port*#
 
-_(amqp-port)_ | The broker port
+[.no-hyphens]#_(amqp-port)_# | The broker port
 
 Type: _int_ | false | `5672`
 
-| *use-ssl*
+| [.no-hyphens]#*use-ssl*#
 
-_(amqp-use-ssl)_ | Whether the AMQP connection uses SSL/TLS
+[.no-hyphens]#_(amqp-use-ssl)_# | Whether the AMQP connection uses SSL/TLS
 
 Type: _boolean_ | false | `false`
 
-| *virtual-host*
+| [.no-hyphens]#*virtual-host*#
 
-_(amqp-virtual-host)_ | If set, configure the hostname value used for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
-
-Type: _string_ | false | 
-
-| *sni-server-name*
-
-_(amqp-sni-server-name)_ | If set, explicitly override the hostname to use for the TLS SNI server name
+[.no-hyphens]#_(amqp-virtual-host)_# | If set, configure the hostname value used for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
 
 Type: _string_ | false | 
 
-| *reconnect-attempts*
+| [.no-hyphens]#*sni-server-name*#
 
-_(amqp-reconnect-attempts)_ | The number of reconnection attempts
+[.no-hyphens]#_(amqp-sni-server-name)_# | If set, explicitly override the hostname to use for the TLS SNI server name
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*reconnect-attempts*#
+
+[.no-hyphens]#_(amqp-reconnect-attempts)_# | The number of reconnection attempts
 
 Type: _int_ | false | `100`
 
-| *reconnect-interval*
+| [.no-hyphens]#*reconnect-interval*#
 
-_(amqp-reconnect-interval)_ | The interval in second between two reconnection attempts
+[.no-hyphens]#_(amqp-reconnect-interval)_# | The interval in second between two reconnection attempts
 
 Type: _int_ | false | `10`
 
-| *connect-timeout*
+| [.no-hyphens]#*connect-timeout*#
 
-_(amqp-connect-timeout)_ | The connection timeout in milliseconds
+[.no-hyphens]#_(amqp-connect-timeout)_# | The connection timeout in milliseconds
 
 Type: _int_ | false | `1000`
 
-| *container-id* | The AMQP container id
+| [.no-hyphens]#*container-id*# | The AMQP container id
 
 Type: _string_ | false | 
 
-| *address* | The AMQP address. If not set, the channel name is used
+| [.no-hyphens]#*address*# | The AMQP address. If not set, the channel name is used
 
 Type: _string_ | false | 
 
-| *link-name* | The name of the link. If not set, the channel name is used.
+| [.no-hyphens]#*link-name*# | The name of the link. If not set, the channel name is used.
 
 Type: _string_ | false | 
 
-| *client-options-name*
+| [.no-hyphens]#*client-options-name*#
 
-_(amqp-client-options-name)_ | The name of the AMQP Client Option bean used to customize the AMQP client configuration
+[.no-hyphens]#_(amqp-client-options-name)_# | The name of the AMQP Client Option bean used to customize the AMQP client configuration
 
 Type: _string_ | false | 
 
-| *tracing-enabled* | Whether tracing is enabled (default) or disabled
+| [.no-hyphens]#*tracing-enabled*# | Whether tracing is enabled (default) or disabled
 
 Type: _boolean_ | false | `true`
 
-| *broadcast* | Whether the received AMQP messages must be dispatched to multiple _subscribers_
+| [.no-hyphens]#*broadcast*# | Whether the received AMQP messages must be dispatched to multiple _subscribers_
 
 Type: _boolean_ | false | `false`
 
-| *durable* | Whether AMQP subscription is durable
+| [.no-hyphens]#*durable*# | Whether AMQP subscription is durable
 
 Type: _boolean_ | false | `false`
 
-| *auto-acknowledgement* | Whether the received AMQP messages must be acknowledged when received
+| [.no-hyphens]#*auto-acknowledgement*# | Whether the received AMQP messages must be acknowledged when received
 
 Type: _boolean_ | false | `false`
 
-| *failure-strategy* | Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Accepted values are `fail` (default), `accept`, `release`, `reject`, `modified-failed`, `modified-failed-undeliverable-here`
+| [.no-hyphens]#*failure-strategy*# | Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Accepted values are `fail` (default), `accept`, `release`, `reject`, `modified-failed`, `modified-failed-undeliverable-here`
 
 Type: _string_ | false | `fail`
 
