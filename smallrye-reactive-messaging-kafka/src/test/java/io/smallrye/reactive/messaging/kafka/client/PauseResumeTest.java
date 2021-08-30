@@ -17,10 +17,7 @@ import org.apache.kafka.clients.consumer.MockConsumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.mutiny.Uni;
@@ -241,6 +238,7 @@ public class PauseResumeTest extends WeldTestBase {
     }
 
     @Test
+    @Disabled("See https://github.com/smallrye/smallrye-reactive-messaging/issues/1389")
     void testRebalanceDuringPausedWithDifferentPartitions() {
         MapBasedConfig config = commonConfiguration()
                 .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
