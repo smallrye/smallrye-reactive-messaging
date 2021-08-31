@@ -381,4 +381,14 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     boolean isPaused() {
         return paused.get();
     }
+
+    public Uni<Long> getLastCommittedOffset(TopicPartition topicPartition) {
+        return runOnPollingThread(c -> {
+            OffsetAndMetadata committed = c.committed(Collections.singleton(topicPartition)).get(topicPartition);
+            if (committed == null) {
+                return -1L;
+            }
+            return committed.offset();
+        });
+    }
 }

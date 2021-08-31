@@ -175,6 +175,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         list.get(0).ack().toCompletableFuture().join();
 
         await().untilAsserted(() -> {
+            System.out.println(consumer.position(tp));
             Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp));
             assertThat(committed.get(tp)).isNotNull();
             assertThat(committed.get(tp).offset()).isEqualTo(1);
