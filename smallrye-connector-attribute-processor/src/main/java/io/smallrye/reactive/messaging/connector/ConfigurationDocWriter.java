@@ -92,9 +92,9 @@ public class ConfigurationDocWriter {
     }
 
     private void generateLine(ConnectorAttribute att, PrintWriter out) {
-        String name = "*" + att.name() + "*";
+        String name = "[.no-hyphens]#*" + att.name() + "*#";
         if (hasAlias(att)) {
-            name += "\n\n_(" + att.alias() + ")_";
+            name += "\n\n[.no-hyphens]#_(" + att.alias() + ")_#";
         }
         out.println(String.format("| %s | %s | %s | %s",
                 name, getDescription(att) + "\n\nType: _" + att.type() + "_", att.mandatory(),

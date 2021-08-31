@@ -3,209 +3,209 @@
 |===
 |Attribute (_alias_) | Description | Mandatory | Default
 
-| *username*
+| [.no-hyphens]#*username*#
 
-_(rabbitmq-username)_ | The username used to authenticate to the broker
-
-Type: _string_ | false | 
-
-| *password*
-
-_(rabbitmq-password)_ | The password used to authenticate to the broker
+[.no-hyphens]#_(rabbitmq-username)_# | The username used to authenticate to the broker
 
 Type: _string_ | false | 
 
-| *host*
+| [.no-hyphens]#*password*#
 
-_(rabbitmq-host)_ | The broker hostname
+[.no-hyphens]#_(rabbitmq-password)_# | The password used to authenticate to the broker
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*host*#
+
+[.no-hyphens]#_(rabbitmq-host)_# | The broker hostname
 
 Type: _string_ | false | `localhost`
 
-| *port*
+| [.no-hyphens]#*port*#
 
-_(rabbitmq-port)_ | The broker port
+[.no-hyphens]#_(rabbitmq-port)_# | The broker port
 
 Type: _int_ | false | `5672`
 
-| *ssl*
+| [.no-hyphens]#*ssl*#
 
-_(rabbitmq-ssl)_ | Whether or not the connection should use SSL
-
-Type: _boolean_ | false | `false`
-
-| *trust-all*
-
-_(rabbitmq-trust-all)_ | Whether to skip trust certificate verification
+[.no-hyphens]#_(rabbitmq-ssl)_# | Whether or not the connection should use SSL
 
 Type: _boolean_ | false | `false`
 
-| *trust-store-path*
+| [.no-hyphens]#*trust-all*#
 
-_(rabbitmq-trust-store-path)_ | The path to a JKS trust store
+[.no-hyphens]#_(rabbitmq-trust-all)_# | Whether to skip trust certificate verification
+
+Type: _boolean_ | false | `false`
+
+| [.no-hyphens]#*trust-store-path*#
+
+[.no-hyphens]#_(rabbitmq-trust-store-path)_# | The path to a JKS trust store
 
 Type: _string_ | false | 
 
-| *trust-store-password*
+| [.no-hyphens]#*trust-store-password*#
 
-_(rabbitmq-trust-store-password)_ | The password of the JKS trust store
+[.no-hyphens]#_(rabbitmq-trust-store-password)_# | The password of the JKS trust store
 
 Type: _string_ | false | 
 
-| *connection-timeout* | The TCP connection timeout (ms); 0 is interpreted as no timeout
+| [.no-hyphens]#*connection-timeout*# | The TCP connection timeout (ms); 0 is interpreted as no timeout
 
 Type: _int_ | false | `60000`
 
-| *handshake-timeout* | The AMQP 0-9-1 protocol handshake timeout (ms)
+| [.no-hyphens]#*handshake-timeout*# | The AMQP 0-9-1 protocol handshake timeout (ms)
 
 Type: _int_ | false | `10000`
 
-| *automatic-recovery-enabled* | Whether automatic connection recovery is enabled
+| [.no-hyphens]#*automatic-recovery-enabled*# | Whether automatic connection recovery is enabled
 
 Type: _boolean_ | false | `false`
 
-| *automatic-recovery-on-initial-connection* | Whether automatic recovery on initial connections is enabled
+| [.no-hyphens]#*automatic-recovery-on-initial-connection*# | Whether automatic recovery on initial connections is enabled
 
 Type: _boolean_ | false | `true`
 
-| *reconnect-attempts*
+| [.no-hyphens]#*reconnect-attempts*#
 
-_(rabbitmq-reconnect-attempts)_ | The number of reconnection attempts
+[.no-hyphens]#_(rabbitmq-reconnect-attempts)_# | The number of reconnection attempts
 
 Type: _int_ | false | `100`
 
-| *reconnect-interval*
+| [.no-hyphens]#*reconnect-interval*#
 
-_(rabbitmq-reconnect-interval)_ | The interval (in seconds) between two reconnection attempts
+[.no-hyphens]#_(rabbitmq-reconnect-interval)_# | The interval (in seconds) between two reconnection attempts
 
 Type: _int_ | false | `10`
 
-| *network-recovery-interval* | How long (ms) will automatic recovery wait before attempting to reconnect
+| [.no-hyphens]#*network-recovery-interval*# | How long (ms) will automatic recovery wait before attempting to reconnect
 
 Type: _int_ | false | `5000`
 
-| *user* | The AMQP user name to use when connecting to the broker
+| [.no-hyphens]#*user*# | The AMQP user name to use when connecting to the broker
 
 Type: _string_ | false | `guest`
 
-| *include-properties* | Whether to include properties when a broker message is passed on the event bus
+| [.no-hyphens]#*include-properties*# | Whether to include properties when a broker message is passed on the event bus
 
 Type: _boolean_ | false | `false`
 
-| *requested-channel-max* | The initially requested maximum channel number
+| [.no-hyphens]#*requested-channel-max*# | The initially requested maximum channel number
 
 Type: _int_ | false | `2047`
 
-| *requested-heartbeat* | The initially requested heartbeat interval (seconds), zero for none
+| [.no-hyphens]#*requested-heartbeat*# | The initially requested heartbeat interval (seconds), zero for none
 
 Type: _int_ | false | `60`
 
-| *use-nio* | Whether usage of NIO Sockets is enabled
+| [.no-hyphens]#*use-nio*# | Whether usage of NIO Sockets is enabled
 
 Type: _boolean_ | false | `false`
 
-| *virtual-host*
+| [.no-hyphens]#*virtual-host*#
 
-_(rabbitmq-virtual-host)_ | The virtual host to use when connecting to the broker
+[.no-hyphens]#_(rabbitmq-virtual-host)_# | The virtual host to use when connecting to the broker
 
 Type: _string_ | false | `/`
 
-| *exchange.name* | The exchange that messages are published to or consumed from. If not set, the channel name is used
+| [.no-hyphens]#*exchange.name*# | The exchange that messages are published to or consumed from. If not set, the channel name is used
 
 Type: _string_ | false | 
 
-| *exchange.durable* | Whether the exchange is durable
+| [.no-hyphens]#*exchange.durable*# | Whether the exchange is durable
 
 Type: _boolean_ | false | `true`
 
-| *exchange.auto-delete* | Whether the exchange should be deleted after use
+| [.no-hyphens]#*exchange.auto-delete*# | Whether the exchange should be deleted after use
 
 Type: _boolean_ | false | `false`
 
-| *exchange.type* | The exchange type: direct, fanout, headers or topic (default)
+| [.no-hyphens]#*exchange.type*# | The exchange type: direct, fanout, headers or topic (default)
 
 Type: _string_ | false | `topic`
 
-| *exchange.declare* | Whether to declare the exchange; set to false if the exchange is expected to be set up independently
+| [.no-hyphens]#*exchange.declare*# | Whether to declare the exchange; set to false if the exchange is expected to be set up independently
 
 Type: _boolean_ | false | `true`
 
-| *tracing.enabled* | Whether tracing is enabled (default) or disabled
+| [.no-hyphens]#*tracing.enabled*# | Whether tracing is enabled (default) or disabled
 
 Type: _boolean_ | false | `true`
 
-| *tracing.attribute-headers* | A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true
+| [.no-hyphens]#*tracing.attribute-headers*# | A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true
 
 Type: _string_ | false | ``
 
-| *queue.name* | The queue from which messages are consumed.
+| [.no-hyphens]#*queue.name*# | The queue from which messages are consumed.
 
 Type: _string_ | true | 
 
-| *queue.durable* | Whether the queue is durable
+| [.no-hyphens]#*queue.durable*# | Whether the queue is durable
 
 Type: _boolean_ | false | `true`
 
-| *queue.exclusive* | Whether the queue is for exclusive use
+| [.no-hyphens]#*queue.exclusive*# | Whether the queue is for exclusive use
 
 Type: _boolean_ | false | `false`
 
-| *queue.auto-delete* | Whether the queue should be deleted after use
+| [.no-hyphens]#*queue.auto-delete*# | Whether the queue should be deleted after use
 
 Type: _boolean_ | false | `false`
 
-| *queue.declare* | Whether to declare the queue and binding; set to false if these are expected to be set up independently
+| [.no-hyphens]#*queue.declare*# | Whether to declare the queue and binding; set to false if these are expected to be set up independently
 
 Type: _boolean_ | false | `true`
 
-| *queue.ttl* | If specified, the time (ms) for which a message can remain in the queue undelivered before it is dead
+| [.no-hyphens]#*queue.ttl*# | If specified, the time (ms) for which a message can remain in the queue undelivered before it is dead
 
 Type: _long_ | false | 
 
-| *max-incoming-internal-queue-size* | The maximum size of the incoming internal queue
+| [.no-hyphens]#*max-incoming-internal-queue-size*# | The maximum size of the incoming internal queue
 
 Type: _int_ | false | 
 
-| *auto-bind-dlq* | Whether to automatically declare the DLQ and bind it to the binder DLX
+| [.no-hyphens]#*auto-bind-dlq*# | Whether to automatically declare the DLQ and bind it to the binder DLX
 
 Type: _boolean_ | false | `false`
 
-| *dead-letter-queue-name* | The name of the DLQ; if not supplied will default to the queue name with '.dlq' appended
+| [.no-hyphens]#*dead-letter-queue-name*# | The name of the DLQ; if not supplied will default to the queue name with '.dlq' appended
 
 Type: _string_ | false | 
 
-| *dead-letter-exchange* | A DLX to assign to the queue. Relevant only if auto-bind-dlq is true
+| [.no-hyphens]#*dead-letter-exchange*# | A DLX to assign to the queue. Relevant only if auto-bind-dlq is true
 
 Type: _string_ | false | `DLX`
 
-| *dead-letter-exchange-type* | The type of the DLX to assign to the queue. Relevant only if auto-bind-dlq is true
+| [.no-hyphens]#*dead-letter-exchange-type*# | The type of the DLX to assign to the queue. Relevant only if auto-bind-dlq is true
 
 Type: _string_ | false | `direct`
 
-| *dead-letter-routing-key* | A dead letter routing key to assign to the queue; if not supplied will default to the queue name
+| [.no-hyphens]#*dead-letter-routing-key*# | A dead letter routing key to assign to the queue; if not supplied will default to the queue name
 
 Type: _string_ | false | 
 
-| *dlx.declare* | Whether to declare the dead letter exchange binding. Relevant only if auto-bind-dlq is true; set to false if these are expected to be set up independently
+| [.no-hyphens]#*dlx.declare*# | Whether to declare the dead letter exchange binding. Relevant only if auto-bind-dlq is true; set to false if these are expected to be set up independently
 
 Type: _boolean_ | false | `false`
 
-| *failure-strategy* | The failure strategy to apply when a RabbitMQ message is nacked. Accepted values are `fail`, `accept`, `reject` (default)
+| [.no-hyphens]#*failure-strategy*# | The failure strategy to apply when a RabbitMQ message is nacked. Accepted values are `fail`, `accept`, `reject` (default)
 
 Type: _string_ | false | `reject`
 
-| *broadcast* | Whether the received RabbitMQ messages must be dispatched to multiple _subscribers_
+| [.no-hyphens]#*broadcast*# | Whether the received RabbitMQ messages must be dispatched to multiple _subscribers_
 
 Type: _boolean_ | false | `false`
 
-| *auto-acknowledgement* | Whether the received RabbitMQ messages must be acknowledged when received; if true then delivery constitutes acknowledgement
+| [.no-hyphens]#*auto-acknowledgement*# | Whether the received RabbitMQ messages must be acknowledged when received; if true then delivery constitutes acknowledgement
 
 Type: _boolean_ | false | `false`
 
-| *keep-most-recent* | Whether to discard old messages instead of recent ones
+| [.no-hyphens]#*keep-most-recent*# | Whether to discard old messages instead of recent ones
 
 Type: _boolean_ | false | `false`
 
-| *routing-keys* | A comma-separated list of routing keys to bind the queue to the exchange
+| [.no-hyphens]#*routing-keys*# | A comma-separated list of routing keys to bind the queue to the exchange
 
 Type: _string_ | false | `#`
 

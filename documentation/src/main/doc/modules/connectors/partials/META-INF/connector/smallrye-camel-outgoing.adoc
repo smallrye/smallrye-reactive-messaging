@@ -3,11 +3,11 @@
 |===
 |Attribute (_alias_) | Description | Mandatory | Default
 
-| *endpoint-uri* | The URI of the Camel endpoint (read from or written to)
+| [.no-hyphens]#*endpoint-uri*# | The URI of the Camel endpoint (read from or written to)
 
 Type: _string_ | true | 
 
-| *merge* | Whether the connector should allow multiple upstreams
+| [.no-hyphens]#*merge*# | Whether the connector should allow multiple upstreams
 
 Type: _boolean_ | false | `false`
 
