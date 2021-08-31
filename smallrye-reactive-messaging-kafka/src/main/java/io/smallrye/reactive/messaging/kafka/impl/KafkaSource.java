@@ -131,10 +131,12 @@ public class KafkaSource<K, V> {
         });
 
         Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
-                .map(rec -> commitHandler
-                        .received(
-                                new IncomingKafkaRecord<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
-                                        isTracingEnabled)));
+                .onItem().transformToUniAndConcatenate(rec -> {
+                    IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, commitHandler, failureHandler,
+                            isCloudEventEnabled,
+                            isTracingEnabled);
+                    return commitHandler.received(record);
+                });
 
         if (config.getTracingEnabled()) {
             incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);

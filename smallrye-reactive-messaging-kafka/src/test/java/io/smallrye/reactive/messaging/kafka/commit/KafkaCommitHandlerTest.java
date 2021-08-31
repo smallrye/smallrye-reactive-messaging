@@ -153,6 +153,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
+                .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
                 .with("throttled.unprocessed-record-max-age.ms", 100);
@@ -292,8 +293,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         await().until(() -> source.getConsumer().getAssignments().await().indefinitely().size() == 2);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10000, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()))).start();
+        usage.produceIntegers(10000, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
@@ -306,24 +307,17 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         await().until(() -> source2.getConsumer().getAssignments().await().indefinitely().size() == 1
                 && source.getConsumer().getAssignments().await().indefinitely().size() == 1);
 
-        new Thread(() -> usage.produceIntegers(10000, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()))).start();
+        usage.produceIntegers(10000, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() + messages2.size() >= 10000);
 
-        MapBasedConfig configForAdmin = config1.copy().with("client.id", "test-admin");
-        admin = KafkaAdminHelper.createAdminClient(configForAdmin.getMap(), topic, true).unwrap();
         await().atMost(2, TimeUnit.MINUTES)
                 .untilAsserted(() -> {
                     TopicPartition tp1 = new TopicPartition(topic, 0);
                     TopicPartition tp2 = new TopicPartition(topic, 1);
-                    Future<Map<TopicPartition, OffsetAndMetadata>> future = admin
-                            .listConsumerGroupOffsets("test-source-with-throttled-latest-processed-commit",
-                                    new ListConsumerGroupOffsetsOptions()
-                                            .topicPartitions(Arrays.asList(tp1, tp2)))
-                            .partitionsToOffsetAndMetadata();
-
-                    Map<TopicPartition, OffsetAndMetadata> result = future.get();
+                    Map<TopicPartition, OffsetAndMetadata> result = listConsumerGroupOffsets(
+                            "test-source-with-throttled-latest-processed-commit", Arrays.asList(tp1, tp2));
                     assertNotNull(result.get(tp1));
                     assertNotNull(result.get(tp2));
                     assertEquals(result.get(tp1).offset() + result.get(tp2).offset(), 20000);
@@ -342,5 +336,92 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 });
 
         source2.closeQuietly();
+    }
+
+    @Test
+    void testSourceWithThrottledAndRebalanceWithPartitionsConfig() {
+        createTopic(topic, 4);
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceIntegers(10000, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
+
+        MapBasedConfig config1 = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", "test-source-with-throttled-latest-processed-commit")
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("partitions", 2)
+                .with("commit-strategy", "throttled")
+                .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100)
+                .with("throttled.unprocessed-record-max-age.ms", 1000);
+
+        MapBasedConfig config2 = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", "test-source-with-throttled-latest-processed-commit")
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("partitions", 2)
+                .with("commit-strategy", "throttled")
+                .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100)
+                .with("throttled.unprocessed-record-max-age.ms", 1000);
+
+        KafkaConnectorIncomingConfiguration ic1 = new KafkaConnectorIncomingConfiguration(config1);
+        KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config2);
+        source = new KafkaSource<>(vertx,
+                "test-source-with-throttled-latest-processed-commit", ic1,
+                UnsatisfiedInstance.instance(),
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), -1);
+
+        KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
+                "test-source-with-throttled-latest-processed-commit", ic2,
+                UnsatisfiedInstance.instance(),
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), -1);
+
+        // start source1
+        List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());
+        source.getStream().subscribe().with(m -> {
+            m.ack();
+            messages1.add(m);
+        });
+
+        // wait for initial assignment
+        await().atMost(1, TimeUnit.MINUTES)
+                .until(() -> source.getConsumer().getAssignments().await().indefinitely().size() >= 2);
+
+        // source1 starts receiving messages
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
+
+        // start source2
+        List<Message<?>> messages2 = Collections.synchronizedList(new ArrayList<>());
+        source2.getStream().subscribe().with(m -> {
+            m.ack();
+            messages2.add(m);
+        });
+
+        // wait for rebalance
+        await().until(() -> {
+            int sourceAssignments = source.getConsumer().getAssignments().await().indefinitely().size();
+            int source2Assignments = source2.getConsumer().getAssignments().await().indefinitely().size();
+            return sourceAssignments >= 1 && source2Assignments >= 1 && sourceAssignments + source2Assignments == 4;
+        });
+
+        usage.produceIntegers(10000, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
+
+        // source 2 starts receiving messages
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 4000);
+
+        Set<TopicPartition> source2Partitions = source2.getConsumer().getAssignments().await().indefinitely();
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> offsets = listConsumerGroupOffsets(
+                    "test-source-with-throttled-latest-processed-commit", new ArrayList<>(source2Partitions));
+            assertThat(offsets).isNotNull();
+        });
+        // quit source2
+        source2.closeQuietly();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() + messages2.size() >= 20000);
+
     }
 }

@@ -229,7 +229,7 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18250, value = "The configuration property '%s' is deprecated and is replaced by '%s'.")
     void deprecatedConfig(String deprecated, String replace);
 
-    @LogMessage(level = Logger.Level.DEBUG)
+    @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18251, value = "Committed %s")
     void committed(Map<TopicPartition, OffsetAndMetadata> offsets);
 
@@ -248,4 +248,8 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18255, value = "Received a record from topic-partition '%s' at offset %d, while the last committed offset is %d - Ignoring record")
     void receivedOutdatedOffset(TopicPartition topicPartition, long offset, long lastCommitted);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18256, value = "Initialize record store for topic-partition '%s' at position %d.")
+    void initializeStoreAtPosition(TopicPartition topicPartition, long position);
 }

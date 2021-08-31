@@ -10,6 +10,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
@@ -185,20 +186,36 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * @param record the record
      * @param <K> the key
      * @param <V> the value
-     * @return the record
+     * @return the record emitted once everything has been done
      */
     @Override
-    public <K, V> IncomingKafkaRecord<K, V> received(IncomingKafkaRecord<K, V> record) {
+    public <K, V> Uni<IncomingKafkaRecord<K, V>> received(IncomingKafkaRecord<K, V> record) {
         TopicPartition recordsTopicPartition = getTopicPartition(record);
-        offsetStores
-                .computeIfAbsent(recordsTopicPartition, k -> new OffsetStore(k, unprocessedRecordMaxAge))
-                .received(record.getOffset());
 
-        if (timerId < 0) {
-            startFlushAndCheckHealthTimer();
+        OffsetStore offsetStore = offsetStores.get(recordsTopicPartition);
+        Uni<OffsetStore> uni;
+        if (offsetStore == null) {
+            uni = consumer.committed(recordsTopicPartition)
+                    .emitOn(runnable -> context.runOnContext(x -> runnable.run())) // Switch back to event loop
+                    .onItem().transform(offsets -> {
+                        OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
+                        OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
+                                lastCommitted == null ? -1 : lastCommitted.offset() - 1);
+                        offsetStores.put(recordsTopicPartition, store);
+                        return store;
+                    });
+        } else {
+            uni = Uni.createFrom().item(offsetStore);
         }
 
-        return record;
+        return uni
+                .onItem().invoke(store -> {
+                    store.received(record.getOffset());
+                    if (timerId < 0) {
+                        startFlushAndCheckHealthTimer();
+                    }
+                })
+                .onItem().transform(x -> record);
     }
 
     /**
@@ -265,7 +282,6 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     @SuppressWarnings("unused")
     private void flushAndCheckHealth(long ignored) {
         Map<TopicPartition, Long> offsetsMapping = clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping();
-
         if (!offsetsMapping.isEmpty()) {
             Map<TopicPartition, OffsetAndMetadata> offsets = getOffsets(offsetsMapping);
             consumer.commit(offsets)
@@ -288,7 +304,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 if (millis != -1) {
                     OffsetReceivedAt received = store.receivedOffsets.peek();
                     if (received != null) {
-                        long lastOffset = store.getLastCommittedOffset();
+                        long lastOffset = store.getLastProcessedOffset();
                         TooManyMessagesWithoutAckException exception = new TooManyMessagesWithoutAckException(
                                 store.topicPartition,
                                 received.offset,
@@ -332,24 +348,25 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         private final Set<Long> processedOffsets = new HashSet<>();
         private final int unprocessedRecordMaxAge;
         private final AtomicLong unProcessedTotal = new AtomicLong();
-        private long lastCommitted = -1;
+        private long lastProcessedOffset;
 
-        OffsetStore(TopicPartition topicPartition, int unprocessedRecordMaxAge) {
+        OffsetStore(TopicPartition topicPartition, int unprocessedRecordMaxAge, long lastProcessedOffset) {
             this.topicPartition = topicPartition;
             this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
-            // TODO We should capture the initial position instead of considering -1;
+            log.initializeStoreAtPosition(topicPartition, lastProcessedOffset);
+            this.lastProcessedOffset = lastProcessedOffset;
         }
 
-        long getLastCommittedOffset() {
-            return lastCommitted;
+        long getLastProcessedOffset() {
+            return lastProcessedOffset;
         }
 
         void received(long offset) {
-            if (offset >= lastCommitted) {
+            if (offset >= lastProcessedOffset) {
                 this.receivedOffsets.offer(OffsetReceivedAt.received(offset));
                 unProcessedTotal.incrementAndGet();
             } else {
-                log.receivedOutdatedOffset(topicPartition, offset, lastCommitted);
+                log.receivedOutdatedOffset(topicPartition, offset, lastProcessedOffset);
             }
         }
 
@@ -376,23 +393,21 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 }
 
                 if (largestSequentialProcessedOffset > -1) {
-                    lastCommitted = largestSequentialProcessedOffset;
+                    lastProcessedOffset = largestSequentialProcessedOffset;
+                    removeReceivedOffsetsFromLastProcessedOffset();
                     return largestSequentialProcessedOffset;
                 }
             }
 
-            // Cleanup if needed
-            for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
-                if (!assignments.contains(partition)) {
-                    log.removingPartitionFromStore(partition, assignments);
-                    offsetStores.remove(partition);
-                }
-            }
-
-            // Remove received offset from previous assignments if any
-            receivedOffsets.removeIf(o -> o.getOffset() < lastCommitted);
+            cleanupPartitionOffsetStore();
+            removeReceivedOffsetsFromLastProcessedOffset();
 
             return -1;
+        }
+
+        private void removeReceivedOffsetsFromLastProcessedOffset() {
+            // Remove received offset from previous assignments if any
+            receivedOffsets.removeIf(o -> o.getOffset() <= lastProcessedOffset);
         }
 
         long hasTooManyMessagesWithoutAck() {
@@ -408,7 +423,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             boolean waitedTooLong = elapsed > unprocessedRecordMaxAge;
             if (waitedTooLong) {
                 log.waitingForAckForTooLong(peek.getOffset(), topicPartition, elapsed / 1000, unprocessedRecordMaxAge,
-                        lag, lastCommitted);
+                        lag, lastProcessedOffset);
                 return elapsed;
             }
             return -1;
@@ -424,10 +439,19 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
     }
 
+    private void cleanupPartitionOffsetStore() {
+        for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
+            if (!assignments.contains(partition)) {
+                log.removingPartitionFromStore(partition, assignments);
+                offsetStores.remove(partition);
+            }
+        }
+    }
+
     public static class TooManyMessagesWithoutAckException extends NoStackTraceThrowable {
         public TooManyMessagesWithoutAckException(TopicPartition topic, long offset, long time, long queueSize,
                 long lastCommittedOffset) {
-            super(String.format("The record %d from topic/partition '%s' has waited for %s seconds to be acknowledged. " +
+            super(String.format("The record %d from topic/partition '%s' has waited for %d seconds to be acknowledged. " +
                     "At the moment %d messages from this partition are awaiting acknowledgement. The last committed " +
                     "offset for this partition was %d.", offset, topic, time, queueSize, lastCommittedOffset));
         }
