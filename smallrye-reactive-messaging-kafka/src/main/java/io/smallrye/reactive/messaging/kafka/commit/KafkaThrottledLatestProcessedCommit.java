@@ -284,14 +284,15 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         if (this.unprocessedRecordMaxAge > 0) {
             for (OffsetStore store : offsetStores.values()) {
-                if (store.hasTooManyMessagesWithoutAck()) {
+                long millis = store.hasTooManyMessagesWithoutAck();
+                if (millis != -1) {
                     OffsetReceivedAt received = store.receivedOffsets.peek();
                     if (received != null) {
                         long lastOffset = store.getLastCommittedOffset();
                         TooManyMessagesWithoutAckException exception = new TooManyMessagesWithoutAckException(
                                 store.topicPartition,
                                 received.offset,
-                                received.offset / 1000,
+                                millis / 1000,
                                 store.receivedOffsets.size(),
                                 lastOffset);
                         this.source.reportFailure(exception, true);
@@ -394,23 +395,23 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             return -1;
         }
 
-        boolean hasTooManyMessagesWithoutAck() {
+        long hasTooManyMessagesWithoutAck() {
             if (receivedOffsets.isEmpty() || !isStillAssigned()) {
-                return false;
+                return -1;
             }
             OffsetReceivedAt peek = receivedOffsets.peek();
             if (peek == null) {
-                return false;
+                return -1;
             }
-            long time = System.currentTimeMillis() - peek.getReceivedAt();
+            long elapsed = System.currentTimeMillis() - peek.getReceivedAt();
             long lag = receivedOffsets.size();
-            boolean waitedTooLong = time > unprocessedRecordMaxAge;
+            boolean waitedTooLong = elapsed > unprocessedRecordMaxAge;
             if (waitedTooLong) {
-                log.waitingForAckForTooLong(peek.getOffset(), topicPartition, time, unprocessedRecordMaxAge,
+                log.waitingForAckForTooLong(peek.getOffset(), topicPartition, elapsed / 1000, unprocessedRecordMaxAge,
                         lag, lastCommitted);
-                return true;
+                return elapsed;
             }
-            return false;
+            return -1;
         }
 
         private boolean isStillAssigned() {
