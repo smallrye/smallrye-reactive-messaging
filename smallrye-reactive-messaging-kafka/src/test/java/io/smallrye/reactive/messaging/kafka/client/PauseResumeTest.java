@@ -237,8 +237,7 @@ public class PauseResumeTest extends WeldTestBase {
 
     }
 
-    @Test
-    @Disabled("See https://github.com/smallrye/smallrye-reactive-messaging/issues/1389")
+    @RepeatedTest(3)
     void testRebalanceDuringPausedWithDifferentPartitions() {
         MapBasedConfig config = commonConfiguration()
                 .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
@@ -278,15 +277,16 @@ public class PauseResumeTest extends WeldTestBase {
         // Await pause
         await().until(() -> !consumer.paused().isEmpty());
 
-        // Still paused
-        await().until(() -> !consumer.paused().isEmpty());
-
         // Rebalance with different partitions
         consumer.schedulePollTask(() -> {
             consumer.rebalance(Arrays.asList(tp2, tp3));
             source.getConsumer().getRebalanceListener().onPartitionsRevoked(Arrays.asList(tp0, tp1));
             source.getConsumer().getRebalanceListener().onPartitionsAssigned(Arrays.asList(tp2, tp3));
         });
+
+        // No resumed partitions after rebalance
+        await().until(() -> resumedPartitions(consumer).isEmpty());
+
         // Push 20
         consumer.schedulePollTask(() -> {
             for (int i = 0; i < 10; i++) {
