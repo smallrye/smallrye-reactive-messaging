@@ -195,3 +195,11 @@ For example, to configure the `batch.size` property, use:
 ----
 mp.messaging.outgoing.[channel].batch.size=32768
 ----
+
+Some producer client properties are configured to sensible default values:
+
+If not set, `reconnect.backoff.max.ms` is set to `10000` to avoid high load on disconnection.
+
+If not set, `key.serializer` is set to `org.apache.kafka.common.serialization.StringSerializer`.
+
+If not set, producer `client.id` is generated as `kafka-producer-[channel]`.
