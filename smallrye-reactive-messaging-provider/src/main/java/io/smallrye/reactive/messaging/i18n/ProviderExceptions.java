@@ -110,8 +110,10 @@ public interface ProviderExceptions {
     @Message(id = 26, value = "The emitter encountered a failure while emitting")
     IllegalStateException illegalStateForEmitterWhileEmitting(@Cause Throwable throwable);
 
-    @Message(id = 27, value = "No subscriber found for the channel %s")
-    IllegalStateException illegalStateForNoSubscriber(String name);
+    @Message(id = 27, value = "Cannot send a message, there is no subscriber found for the channel '%s'. " +
+            "Before calling `send`, you can verify there is a subscriber and demands using `emitter.hasRequests()`. " +
+            "Alternatively, you can add `@OnOverflow(OnOverflow.Strategy.DROP)` on the emitter.")
+    IllegalStateException noEmitterForChannel(String name);
 
     @Message(id = 28, value = "The subscription to %s has been cancelled")
     IllegalStateException illegalStateForCancelledSubscriber(String name);

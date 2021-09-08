@@ -99,6 +99,25 @@ emitted by the emitter are ignored.
 * `OnOverflow.Strategy.LATEST` - keeps only the latest value, dropping any previous value if the downstream can't keep up.
 * `OnOverflow.Strategy.NONE` - ignore the back-pressure signals letting the downstream consumer to implement a strategy.
 
+=== Defensive emission
+
+Having an emitter injected into your code does not guarantee that someone is ready to consume the message.
+For example, a subscriber may be connecting to a remote broker.
+If there are no subscribers, using the `send` method will throw an exception.
+
+The `emitter.hasRequests()` method indicates that a subscriber subscribes to the channel and requested items.
+So, you can wrap your emission with:
+
+[source, java]
+----
+if (emitter.hasRequests()) {
+    emitter.send("hello");
+}
+----
+
+If you use the `OnOverflow.Strategy.DROP`, you can use the `send` method even with no subscribers nor demands.
+The message will be nacked immediately.
+
 [#streams]
 == Retrieving channels
 

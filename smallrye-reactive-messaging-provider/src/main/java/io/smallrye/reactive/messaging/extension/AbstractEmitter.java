@@ -13,18 +13,23 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.helpers.BroadcastHelper;
+import io.smallrye.reactive.messaging.helpers.NoStackTraceException;
 
 public abstract class AbstractEmitter<T> {
+    public static final NoStackTraceException NO_SUBSCRIBER_EXCEPTION = new NoStackTraceException(
+            "Unable to process message - no subscriber");
     protected final AtomicReference<MultiEmitter<? super Message<? extends T>>> internal = new AtomicReference<>();
     protected final Multi<Message<? extends T>> publisher;
 
     protected final String name;
 
     protected final AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
+    private final OnOverflow.Strategy overflow;
 
     @SuppressWarnings("unchecked")
     public AbstractEmitter(EmitterConfiguration config, long defaultBufferSize) {
         this.name = config.name;
+        this.overflow = config.overflowBufferStrategy;
         if (defaultBufferSize <= 0) {
             throw ex.illegalArgumentForDefaultBuffer();
         }
@@ -54,14 +59,20 @@ public abstract class AbstractEmitter<T> {
     }
 
     public synchronized void complete() {
-        verify(internal, name).complete();
+        MultiEmitter<? super Message<? extends T>> emitter = verify();
+        if (emitter != null) {
+            emitter.complete();
+        }
     }
 
     public synchronized void error(Exception e) {
         if (e == null) {
             throw ex.illegalArgumentForException("null");
         }
-        verify(internal, name).fail(e);
+        MultiEmitter<? super Message<? extends T>> emitter = verify();
+        if (emitter != null) {
+            emitter.fail(e);
+        }
     }
 
     public synchronized boolean isCancelled() {
@@ -120,15 +131,11 @@ public abstract class AbstractEmitter<T> {
         int size = (int) defaultBufferSize;
         return stream
                 .onOverflow().buffer(size - 2)
-                .onFailure().invoke(t -> synchronousFailure.set(t));
+                .onFailure().invoke(synchronousFailure::set);
     }
 
     public Publisher<Message<? extends T>> getPublisher() {
         return publisher;
-    }
-
-    boolean isSubscribed() {
-        return internal.get() != null;
     }
 
     protected synchronized void emit(Message<? extends T> message) {
@@ -136,7 +143,15 @@ public abstract class AbstractEmitter<T> {
             throw ex.illegalArgumentForNullValue();
         }
 
-        MultiEmitter<? super Message<? extends T>> emitter = verify(internal, name);
+        MultiEmitter<? super Message<? extends T>> emitter = verify();
+        if (emitter == null) {
+            if (overflow == OnOverflow.Strategy.DROP) {
+                // There are no subscribers, but because we use the DROP strategy, just ignore the event.
+                // However, nack the message, so the sender can be aware of the rejection.
+                message.nack(NO_SUBSCRIBER_EXCEPTION);
+            }
+            return;
+        }
         if (synchronousFailure.get() != null) {
             throw ex.incomingNotFoundForEmitter(synchronousFailure.get());
         }
@@ -149,12 +164,15 @@ public abstract class AbstractEmitter<T> {
         }
     }
 
-    static <T> MultiEmitter<? super Message<? extends T>> verify(
-            AtomicReference<MultiEmitter<? super Message<? extends T>>> reference,
-            String name) {
-        MultiEmitter<? super Message<? extends T>> emitter = reference.get();
+    protected MultiEmitter<? super Message<? extends T>> verify() {
+        MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         if (emitter == null) {
-            throw ex.illegalStateForNoSubscriber(name);
+            if (overflow == OnOverflow.Strategy.DROP) {
+                // Just ignore the signal in this case, the message would have been dropped anyway.
+                return null;
+            } else {
+                throw ex.noEmitterForChannel(name);
+            }
         }
         if (emitter.isCancelled()) {
             throw ex.illegalStateForCancelledSubscriber(name);
