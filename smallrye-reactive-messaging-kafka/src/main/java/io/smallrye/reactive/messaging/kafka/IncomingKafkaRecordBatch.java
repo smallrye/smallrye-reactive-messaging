@@ -32,16 +32,11 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         List<IncomingKafkaRecord<K, T>> incomingRecords = new ArrayList<>();
         Map<TopicPartition, IncomingKafkaRecord<K, T>> latestOffsetRecords = new HashMap<>();
         for (TopicPartition partition : records.partitions()) {
-            IncomingKafkaRecord<K, T> latestOffsetRecord = null;
             for (ConsumerRecord<K, T> record : records.records(partition)) {
                 IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, commitHandler, onNack,
                         cloudEventEnabled, tracingEnabled);
                 incomingRecords.add(rec);
                 latestOffsetRecords.put(partition, rec);
-                latestOffsetRecord = rec;
-            }
-            if (latestOffsetRecord != null) {
-                commitHandler.received(latestOffsetRecord);
             }
         }
         this.incomingRecords = Collections.unmodifiableList(incomingRecords);

@@ -23,6 +23,7 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
@@ -161,8 +162,11 @@ public class KafkaSource<K, V> {
             });
 
             Multi<IncomingKafkaRecordBatch<K, V>> incomingMulti = multi
-                    .map(rec -> new IncomingKafkaRecordBatch<>(rec, commitHandler, failureHandler, isCloudEventEnabled,
-                            isTracingEnabled));
+                    .onItem().transformToUniAndConcatenate(rec -> {
+                        IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, commitHandler,
+                                failureHandler, isCloudEventEnabled, isTracingEnabled);
+                        return receiveBatchRecord(batch);
+                    });
             if (config.getTracingEnabled()) {
                 incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
             }
@@ -276,6 +280,22 @@ public class KafkaSource<K, V> {
                 incomingTrace(kafkaRecord);
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Uni<IncomingKafkaRecordBatch<K, V>> receiveBatchRecord(IncomingKafkaRecordBatch<K, V> batch) {
+        List<Uni<IncomingKafkaRecord<K, V>>> records = new ArrayList<>();
+        for (KafkaRecord<K, V> record : batch.getLatestOffsetRecords().values()) {
+            IncomingKafkaRecord<K, V> kafkaRecord = record.unwrap(IncomingKafkaRecord.class);
+            records.add(commitHandler.received(kafkaRecord));
+        }
+        if (records.size() == 0) {
+            return Uni.createFrom().item(batch);
+        }
+        if (records.size() == 1) {
+            return records.get(0).onItem().transform(ignored -> batch);
+        }
+        return Uni.combine().all().unis(records).combinedWith(ignored -> batch);
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config,

@@ -86,32 +86,6 @@ public class KafkaRecordBatchTest {
     }
 
     @Test
-    void testCommitHandlerReceivedCalledAtConstruction() {
-        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records,
-                commitHandler, onNack, false, false);
-
-        verify(commitHandler, times(2)).received(captor.capture());
-        List<IncomingKafkaRecord<String, Integer>> receivedValues = captor.getAllValues();
-
-        assertThat(receivedValues).hasSize(2).map(IncomingKafkaRecord::getPayload).containsExactlyInAnyOrder(5, 6);
-
-        assertThat(batchRecords.getLatestOffsetRecords().get(new TopicPartition("t", 1))).isNotNull()
-                .satisfies(record -> {
-                    assertThat(record.getMetadata(IncomingKafkaRecordMetadata.class)).isPresent().get()
-                            .extracting(IncomingKafkaRecordMetadata::getOffset).isEqualTo(3L);
-                    assertThat(record.getPayload()).isEqualTo(6);
-                    assertThat(record).isIn(receivedValues);
-                });
-        assertThat(batchRecords.getLatestOffsetRecords().get(new TopicPartition("t", 2))).isNotNull()
-                .satisfies(record -> {
-                    assertThat(record.getMetadata(IncomingKafkaRecordMetadata.class)).isPresent().get()
-                            .extracting(IncomingKafkaRecordMetadata::getOffset).isEqualTo(7L);
-                    assertThat(record.getPayload()).isEqualTo(5);
-                    assertThat(record).isIn(receivedValues);
-                });
-    }
-
-    @Test
     void testAckLatestOffsetRecords() {
         IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records,
                 commitHandler, null, false, false);

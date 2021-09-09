@@ -141,7 +141,8 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         consumer.updateBeginningOffsets(Collections.singletonMap(tp, 0L));
 
         consumer.schedulePollTask(() -> {
-            consumer.rebalance(Collections.singletonList(new TopicPartition(TOPIC, 0)));
+            consumer.rebalance(Collections.singletonList(tp));
+            source.getCommitHandler().partitionsAssigned(Collections.singletonList(tp));
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 0, "k", "v0"));
         });
 
@@ -323,7 +324,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         source.isAlive(builder);
         String message = builder.build().getChannels().get(0).getMessage();
-        assertThat(message).contains("my-topic", "partition:0", "partition:1");
+        assertThat(message).contains("my-topic-0", "my-topic-1");
     }
 
     @Test
@@ -349,7 +350,9 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         consumer.updateBeginningOffsets(offsets);
 
         consumer.schedulePollTask(() -> {
-            consumer.rebalance(Collections.singletonList(new TopicPartition(TOPIC, 0)));
+            TopicPartition tp = new TopicPartition(TOPIC, 0);
+            consumer.rebalance(Collections.singletonList(tp));
+            source.getCommitHandler().partitionsAssigned(Collections.singletonList(tp));
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 0, "k", "v"));
         });
 
