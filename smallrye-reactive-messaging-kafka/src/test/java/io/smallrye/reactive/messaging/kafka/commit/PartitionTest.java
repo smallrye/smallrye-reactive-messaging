@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,7 +29,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 public class PartitionTest extends KafkaTestBase {
 
     @Test
-    public void testWithPartitions() {
+    public void testWithPartitions() throws InterruptedException {
         createTopic(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
@@ -46,11 +47,14 @@ public class PartitionTest extends KafkaTestBase {
         AtomicInteger count = new AtomicInteger();
         int expected = 3000;
         Random random = new Random();
-        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), null, () -> {
+        CountDownLatch latch = new CountDownLatch(1);
+        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), latch::countDown, () -> {
             int value = count.getAndIncrement();
             int p = random.nextInt(3);
             return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(value));
         });
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
 
         await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -70,7 +74,7 @@ public class PartitionTest extends KafkaTestBase {
     }
 
     @Test
-    public void testWithMoreConsumersThanPartitions() {
+    public void testWithMoreConsumersThanPartitions() throws InterruptedException {
         createTopic(topic, 3);
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = new MapBasedConfig()
@@ -87,11 +91,14 @@ public class PartitionTest extends KafkaTestBase {
         AtomicInteger count = new AtomicInteger();
         int expected = 3000;
         Random random = new Random();
-        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), null, () -> {
+        CountDownLatch latch = new CountDownLatch(1);
+        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), latch::countDown, () -> {
             int value = count.getAndIncrement();
             int p = random.nextInt(3);
             return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(value));
         });
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
 
         await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -111,7 +118,7 @@ public class PartitionTest extends KafkaTestBase {
     }
 
     @Test
-    public void testWithMorePartitionsThanConsumers() {
+    public void testWithMorePartitionsThanConsumers() throws InterruptedException {
         createTopic(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
@@ -129,11 +136,14 @@ public class PartitionTest extends KafkaTestBase {
         AtomicInteger count = new AtomicInteger();
         int expected = 3000;
         Random random = new Random();
-        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), null, () -> {
+        CountDownLatch latch = new CountDownLatch(1);
+        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), latch::countDown, () -> {
             int value = count.getAndIncrement();
             int p = random.nextInt(3);
             return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(value));
         });
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
 
         await()
                 .atMost(30, TimeUnit.SECONDS)

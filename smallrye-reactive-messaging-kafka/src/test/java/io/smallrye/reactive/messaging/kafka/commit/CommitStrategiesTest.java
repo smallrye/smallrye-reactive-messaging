@@ -164,6 +164,8 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         consumer.schedulePollTask(() -> {
             consumer.rebalance(Collections.singletonList(new TopicPartition(TOPIC, 0)));
+            // The mock consumer does not call the rebalance callback - we must do it explicitly
+            source.getCommitHandler().partitionsAssigned(Collections.singletonList(new TopicPartition(TOPIC, 0)));
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 0, "k", "v0"));
         });
 
@@ -349,7 +351,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         HealthReport r = report.get();
         String message = r.getChannels().get(0).getMessage();
-        assertThat(message).contains("my-topic", "partition:1", "9");
+        assertThat(message).contains("my-topic-1", "9");
     }
 
     @Test

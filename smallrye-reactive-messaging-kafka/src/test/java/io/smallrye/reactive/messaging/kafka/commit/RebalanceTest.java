@@ -110,7 +110,7 @@ public class RebalanceTest extends WeldTestBase {
                         new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i),
                         source.getCommitHandler(),
                         null, false, false);
-                source.getCommitHandler().received(r);
+                source.getCommitHandler().received(r).subscribeAsCompletionStage();
             }
         });
 

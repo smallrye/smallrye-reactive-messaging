@@ -101,7 +101,7 @@ Type: _string_ | false | `fail`
 
 Type: _string_ | false | 
 
-| [.no-hyphens]#*throttled.unprocessed-record-max-age.ms*# | While using the `throttled` commit-strategy, specify the max age in milliseconds that an unprocessed message can be before the connector is marked as unhealthy.
+| [.no-hyphens]#*throttled.unprocessed-record-max-age.ms*# | While using the `throttled` commit-strategy, specify the max age in milliseconds that an unprocessed message can be before the connector is marked as unhealthy. Setting this attribute to 0 disables this monitoring.
 
 Type: _int_ | false | `60000`
 

@@ -71,8 +71,8 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         await().until(() -> bean.request(2));
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()));
 
         await().until(() -> list.size() == 2);
         await().until(() -> consumer.paused().await().atMost(Duration.ofSeconds(3)).size() > 0);
@@ -97,12 +97,10 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         List<String> list = bean.list();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(5, null,
-                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()))).start();
+        usage.produceStrings(5, null,
+                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 2);
-
-        await().until(() -> !consumer.paused().await().atMost(Duration.ofSeconds(3)).isEmpty());
 
         await()
                 .pollInterval(Duration.ofMillis(10))

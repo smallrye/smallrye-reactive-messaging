@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,9 +61,11 @@ public class HealthCheckTest extends KafkaTestBase {
 
     @Test
     void testHealthOfApplicationWithOutgoingTopicUsingTopicVerification() {
-        createTopic("output", 1);
+        String outputTopic = UUID.randomUUID().toString();
+        createTopic(outputTopic, 1);
         KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean()
                 .put("health-topic-verification-enabled", true)
+                .put("topic", outputTopic)
                 .build();
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
@@ -172,17 +175,20 @@ public class HealthCheckTest extends KafkaTestBase {
     }
 
     @Test
-    public void testHealthOfApplicationWithChannel() {
+    public void testHealthOfApplicationWithChannel() throws InterruptedException {
         KafkaMapBasedConfig config = getKafkaSourceConfig(topic).build();
         LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
 
         AtomicInteger expected = new AtomicInteger(0);
-        usage.produceIntegers(10, null,
+        CountDownLatch latch = new CountDownLatch(1);
+        usage.produceIntegers(10, latch::countDown,
                 () -> new ProducerRecord<>(topic, "key", expected.getAndIncrement()));
 
         await().until(this::isStarted);
         await().until(this::isReady);
         await().until(this::isAlive);
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
 
         Multi<Integer> channel = bean.getChannel();
         channel

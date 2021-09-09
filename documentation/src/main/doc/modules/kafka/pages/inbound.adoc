@@ -287,3 +287,14 @@ For example, to configure the `max.poll.records` property, use:
 ----
 mp.messaging.incoming.[channel].max.poll.records=1000
 ----
+
+Some consumer client properties are configured to sensible default values:
+
+If not set, `reconnect.backoff.max.ms` is set to `10000` to avoid high load on disconnection.
+
+If not set, `key.deserializer` is set to `org.apache.kafka.common.serialization.StringDeserializer`.
+
+The consumer `client.id` is configured according to the number of clients to create using `mp.messaging.incoming.[channel].partitions` property.
+
+- If a `client.id` is provided, it is used as-is or suffixed with client index if `partitions` property is set.
+- If a `client.id` is not provided, it is generated as `kafka-consumer-[channel][-index]`.

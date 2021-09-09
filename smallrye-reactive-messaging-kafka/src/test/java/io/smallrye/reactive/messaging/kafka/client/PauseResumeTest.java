@@ -83,9 +83,6 @@ public class PauseResumeTest extends WeldTestBase {
         // two messages in the buffer, first one is delivered
         await().until(() -> subscriber.getItems().size() == 1);
 
-        // 2 >= 2 (maxBufferSize) -> paused
-        await().until(() -> !consumer.paused().isEmpty());
-
         // request 1, delivered one more record
         subscriber.request(1);
         await().until(() -> subscriber.getItems().size() == 2);
