@@ -23,10 +23,11 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
             throw ex.illegalArgumentForNullValue();
         }
 
-        return Uni.createFrom().emitter(e -> emit(Message.of(payload, Metadata.empty(), () -> {
-            e.complete(null);
-            return CompletableFuture.completedFuture(null);
-        },
+        return Uni.createFrom().emitter(e -> emit(Message.of(payload, Metadata.empty(),
+                () -> {
+                    e.complete(null);
+                    return CompletableFuture.completedFuture(null);
+                },
                 reason -> {
                     e.fail(reason);
                     return CompletableFuture.completedFuture(null);
@@ -49,7 +50,16 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
         if (msg == null) {
             throw ex.illegalArgumentForNullValue();
         }
-        Uni.createFrom().emitter(e -> emit(msg)).subscribe().with(x -> {
+        Uni.createFrom().emitter(e -> {
+            try {
+                emit(msg);
+            } catch (Exception t) {
+                // Capture synchronous exception and nack the message.
+                msg.nack(t);
+                throw t;
+            }
+        }).subscribe().with(x -> {
+            // Do nothing.
         }, ProviderLogging.log::failureEmittingMessage);
     }
 }
