@@ -4,10 +4,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -21,11 +26,20 @@ import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.*;
 import io.smallrye.reactive.messaging.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.impl.ConnectorConfig;
 
 @ApplicationScoped
 public class Wiring {
 
     public static final int DEFAULT_BUFFER_SIZE = 128;
+
+    /**
+     * Property enabling / disabling the ability to automatically wire unresolved upstream and downstream to a connector.
+     * Even when enabled, it only uses the connector when there is only one connector available (so no ambiguity).
+     */
+    @Inject
+    @ConfigProperty(name = "smallrye.messaging.wiring.auto-wire-to-connector", defaultValue = "false")
+    boolean autoWireToSingleConnector;
 
     @Inject
     @ConfigProperty(name = "mp.messaging.emitter.default-buffer-size", defaultValue = "128")
@@ -39,11 +53,23 @@ public class Wiring {
     @Inject
     MediatorManager manager;
 
+    @Inject
+    BeanManager beanManager;
+
+    @Inject
+    @Any
+    Instance<IncomingConnectorFactory> incomings;
+
+    @Inject
+    @Any
+    Instance<OutgoingConnectorFactory> outgoings;
+
     private final List<Component> components;
 
     private Graph graph;
 
     private boolean strictMode;
+    private ChannelRegistry registry;
 
     public Wiring() {
         components = new ArrayList<>();
@@ -53,6 +79,7 @@ public class Wiring {
             List<ChannelConfiguration> channels,
             List<MediatorConfiguration> mediators) {
         this.strictMode = strictMode;
+        this.registry = registry;
 
         for (MediatorConfiguration mediator : mediators) {
             if (mediator.getOutgoing() != null && !mediator.getIncoming().isEmpty()) {
@@ -115,7 +142,7 @@ public class Wiring {
             }
 
             resolved.addAll(resolvedDuringThisTurn);
-            unresolved.removeAll(resolvedDuringThisTurn);
+            resolvedDuringThisTurn.forEach(unresolved::remove);
 
             doneOrStale = resolvedDuringThisTurn.isEmpty() || unresolved.isEmpty();
 
@@ -146,9 +173,14 @@ public class Wiring {
                 }
             }
         }
+
         if (!newlyResolved.isEmpty()) {
-            unresolved.removeAll(newlyResolved);
+            newlyResolved.forEach(unresolved::remove);
             resolved.addAll(newlyResolved);
+        }
+
+        if (autoWireToSingleConnector) {
+            handleSingleConnectorSituation(resolved, unresolved);
         }
 
         graph = new Graph(strictMode, resolved, unresolved);
@@ -156,6 +188,80 @@ public class Wiring {
         ProviderLogging.log.completedGraphResolution(duration);
         return graph;
 
+    }
+
+    /**
+     * In the case there is a single connector, bind all unresolved components to this connector.
+     * For missing outgoing, bind all pending outgoing to the outgoing connector.
+     *
+     * @param resolved the list of resolved component
+     * @param unresolved the list of unresolved components, empty if there is a single incoming connector as we connect
+     *        all components to this one.
+     */
+    private void handleSingleConnectorSituation(Set<Component> resolved, Set<ConsumingComponent> unresolved) {
+        ProviderLogging.log.connectorAutoWiringEnabled();
+        // if we are in a single "connector" situation, try to see if we can use them
+        // we do it in two steps: first incoming, then outgoing
+        //
+        String singleIncomingConnector = getSingleConnector(IncomingConnectorFactory.class);
+        String singleOutgoingConnector = getSingleConnector(OutgoingConnectorFactory.class);
+
+        if (singleIncomingConnector != null) {
+            for (ConsumingComponent c : unresolved) {
+                // For each unresolved channel, we use the connector
+                // For multi-incomings, we only resolve the first one.
+                // To satisfy the graph, we need to register the connector in the registry, bind the component and the
+                // connector and add the component to the resolved list.
+                String channel = c.incomings().get(0);
+                InboundConnectorComponent icc = new InboundConnectorComponent(channel, false);
+
+                IncomingConnectorFactory connector = incomings
+                        .select(IncomingConnectorFactory.class, ConnectorLiteral.of(singleIncomingConnector)).get();
+                ConnectorConfig config = new ConnectorConfig(ConnectorFactory.INCOMING_PREFIX, ConfigProvider.getConfig(),
+                        channel, singleIncomingConnector);
+                registry.register(channel, connector.getPublisherBuilder(config));
+                ProviderLogging.log.connectorAutoWiringIncomingChannel(channel, c.toString(), singleIncomingConnector);
+                bind(c, icc);
+                resolved.add(c);
+                resolved.add(icc);
+                components.add(icc);
+            }
+
+            unresolved.clear();
+        }
+        if (singleOutgoingConnector != null) {
+            List<Component> toBeAddedToResolved = new ArrayList<>();
+            for (Component c : components) {
+                if (c.outgoing().isPresent() && !c.isDownstreamResolved()) {
+                    String channel = c.outgoing().orElseThrow(() -> new NoSuchElementException("No outgoing channel for " + c));
+                    OutgoingConnectorComponent occ = new OutgoingConnectorComponent(channel, false);
+                    OutgoingConnectorFactory connector = outgoings
+                            .select(OutgoingConnectorFactory.class, ConnectorLiteral.of(singleOutgoingConnector)).get();
+                    ConnectorConfig config = new ConnectorConfig(ConnectorFactory.OUTGOING_PREFIX, ConfigProvider.getConfig(),
+                            channel, singleOutgoingConnector);
+                    registry.register(channel, connector.getSubscriberBuilder(config));
+                    ProviderLogging.log.connectorAutoWiringOutgoingChannel(channel, c.toString(), singleIncomingConnector);
+                    bind(occ, c);
+                    resolved.add(c);
+                    toBeAddedToResolved.add(occ);
+                }
+            }
+            resolved.addAll(toBeAddedToResolved);
+            components.addAll(toBeAddedToResolved);
+        }
+    }
+
+    private String getSingleConnector(Class<?> clazz) {
+        List<String> factories = beanManager.getBeans(clazz, Any.Literal.INSTANCE).stream()
+                .flatMap(b -> b.getQualifiers().stream())
+                .filter(a -> a instanceof Connector)
+                .map(a -> ((Connector) a).value())
+                .collect(Collectors.toList());
+        if (factories.size() == 1) {
+            return factories.get(0);
+        }
+        ProviderLogging.log.disablingConnectorAutoWiring(factories.size(), clazz.getName());
+        return null;
     }
 
     public Graph getGraph() {
@@ -353,7 +459,6 @@ public class Wiring {
                 merged = Multi.createBy().merging()
                         .streams(publishers.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
             }
-            // TODO Improve this.
             SubscriberBuilder<? extends Message<?>, Void> connector = registry.getSubscribers(name).get(0);
             Subscriber subscriber = connector.build();
             merged.subscribe().withSubscriber(subscriber);

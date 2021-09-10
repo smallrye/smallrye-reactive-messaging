@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.annotation.Annotation;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.connectors.MyDummyConnector;
 import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.extension.HealthCenter;
@@ -102,8 +102,6 @@ public class WeldTestBaseWithoutTails {
                 LegacyConfiguredChannelFactory.class,
                 MetricDecorator.class,
                 HealthCenter.class,
-                // Messaging provider
-                MyDummyConnector.class,
 
                 // SmallRye config
                 io.smallrye.config.inject.ConfigProducer.class);
@@ -166,5 +164,9 @@ public class WeldTestBaseWithoutTails {
 
     protected <T> T get(Class<T> c) {
         return container.getBeanManager().createInstance().select(c).get();
+    }
+
+    protected <T> T get(Class<T> c, Annotation... qualifiers) {
+        return container.getBeanManager().createInstance().select(c, qualifiers).get();
     }
 }

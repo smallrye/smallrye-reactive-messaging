@@ -25,7 +25,7 @@ public class EnabledConnectorTest extends WeldTestBase {
     @Test
     public void test() {
         initializer.addBeanClasses(DummyBean.class);
-
+        initializer.addBeanClasses(MyDummyConnector.class);
         initialize();
 
         assertThat(registry(container).getPublishers("dummy.source")).isNotEmpty();

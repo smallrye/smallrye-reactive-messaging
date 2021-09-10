@@ -129,4 +129,20 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 238, value = "No ExecutionHolder, disabling @Blocking support")
     void noExecutionHolderDisablingBlockingSupport();
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 239, value = "Auto-wiring to single connector enabled")
+    void connectorAutoWiringEnabled();
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 240, value = "Auto-wiring channel '%s' (consumed by %s) to connector %s")
+    void connectorAutoWiringIncomingChannel(String channel, String component, String singleIncomingConnector);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 241, value = "Auto-wiring channel '%s' (produced by %s) to connector %s")
+    void connectorAutoWiringOutgoingChannel(String channel, String component, String singleIncomingConnector);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 242, value = "Disabling auto-wiring to connector, %d connector implementing '%s' found")
+    void disablingConnectorAutoWiring(int size, String cn);
 }

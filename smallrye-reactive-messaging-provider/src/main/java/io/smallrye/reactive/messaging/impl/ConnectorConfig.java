@@ -39,7 +39,7 @@ public class ConnectorConfig implements Config {
     private final String name;
     private final String connector;
 
-    protected ConnectorConfig(String prefix, Config overall, String channel) {
+    public ConnectorConfig(String prefix, Config overall, String channel) {
         this.prefix = Objects.requireNonNull(prefix, msg.prefixMustNotBeSet());
         this.overall = Objects.requireNonNull(overall, msg.configMustNotBeSet());
         this.name = Objects.requireNonNull(channel, msg.channelMustNotBeSet());
@@ -48,6 +48,22 @@ public class ConnectorConfig implements Config {
         this.connector = value
                 .orElseGet(() -> overall.getOptionalValue(channelKey("type"), String.class) // Legacy
                         .orElseThrow(() -> ex.illegalArgumentChannelConnectorConfiguration(name)));
+
+        // Detect invalid channel-name attribute
+        for (String key : overall.getPropertyNames()) {
+            if ((channelKey(CHANNEL_NAME_ATTRIBUTE)).equalsIgnoreCase(key)) {
+                throw ex.illegalArgumentInvalidChannelConfiguration(name);
+            }
+        }
+    }
+
+    public ConnectorConfig(String prefix, Config overall, String channel, String connectorName) {
+        this.prefix = Objects.requireNonNull(prefix, msg.prefixMustNotBeSet());
+        this.overall = Objects.requireNonNull(overall, msg.configMustNotBeSet());
+        this.name = Objects.requireNonNull(channel, msg.channelMustNotBeSet());
+
+        Optional<String> value = overall.getOptionalValue(channelKey(CONNECTOR_ATTRIBUTE), String.class);
+        this.connector = connectorName;
 
         // Detect invalid channel-name attribute
         for (String key : overall.getPropertyNames()) {
