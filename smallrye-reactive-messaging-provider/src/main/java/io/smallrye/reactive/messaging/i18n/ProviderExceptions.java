@@ -227,9 +227,6 @@ public interface ProviderExceptions {
     @Message(id = 68, value = "The operation %s has returned null")
     NullPointerException nullPointerOnInvokeBlocking(String methodAsString);
 
-    @Message(id = 69, value = "%s not supported")
-    IllegalStateException illegalStateForNotSupported(String value);
-
     @Message(id = 71, value = "Invalid channel configuration -  the `connector` attribute must be set for channel `%s`")
     IllegalArgumentException illegalArgumentChannelConnectorConfiguration(String name);
 
@@ -275,4 +272,10 @@ public interface ProviderExceptions {
 
     @Message(id = 85, value = "Invalid method signature for %s - method returning a Multi<Message<O>>, Publisher<Message<O>> or a PublisherBuilder<Message<O>> cannot consume a Publisher<I> or a Multi<I>. You must consume a Multi<Message<I>> or a Publisher<Message<I>> instead and handle the acknowledgement.")
     DefinitionException definitionProduceMessageStreamAndConsumePayloadStream(String messageAsString);
+
+    @Message(id = 86, value = "Multiple beans expose the connector %s : %s, %s")
+    DeploymentException multipleBeanDeclaration(String connector, String bean1, String bean2);
+
+    @Message(id = 87, value = "The bean %s implements a connector interface but does not use the @Connector qualifier")
+    DefinitionException missingConnectorQualifier(String clazz);
 }

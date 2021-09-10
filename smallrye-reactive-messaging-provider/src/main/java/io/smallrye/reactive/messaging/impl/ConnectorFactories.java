@@ -16,6 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.i18n.ProviderExceptions;
 
 @ApplicationScoped
 public class ConnectorFactories {
@@ -65,9 +66,7 @@ public class ConnectorFactories {
     private <T> void addToMap(Map<String, T> map, String key, T instance) {
         T old = map.put(key, instance);
         if (old != null) {
-            // TODO Extract
-            throw new DeploymentException("Multiple beans exposes use the same connector name: " + key + " : "
-                    + old.getClass().getName() + ", " + instance.getClass().getName());
+            throw ProviderExceptions.ex.multipleBeanDeclaration(key, old.getClass().getName(), instance.getClass().getName());
         }
     }
 
@@ -82,7 +81,7 @@ public class ConnectorFactories {
     /**
      * Extracts the connector qualifier on the given bean and return the {@code value}.
      * If the bean does not have a connector qualifier, throws a {@link DefinitionException}.
-     * 
+     *
      * @param bean the bean
      * @return the connector value
      */
@@ -90,9 +89,7 @@ public class ConnectorFactories {
         return bean.getQualifiers().stream()
                 .filter(a -> a.annotationType().equals(Connector.class))
                 .map(annotation -> ((Connector) annotation).value())
-                // TODO Extract
-                .findAny().orElseThrow(() -> new DefinitionException("The bean " + bean.getBeanClass().getName()
-                        + " implement a connector interface but does not use the @Connector qualifier"));
+                .findAny().orElseThrow(() -> ProviderExceptions.ex.missingConnectorQualifier(bean.getBeanClass().getName()));
     }
 
     public Map<String, InboundConnector> getInboundConnectors() {

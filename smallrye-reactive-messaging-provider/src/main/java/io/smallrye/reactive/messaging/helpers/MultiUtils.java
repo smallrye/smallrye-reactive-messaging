@@ -17,23 +17,21 @@ public class MultiUtils {
         return Multi.createFrom().items(Stream.generate(supplier));
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static Multi<? extends Message<?>> handlePreProcessingAcknowledgement(Multi<? extends Message<?>> multi,
             MediatorConfiguration configuration) {
-        return multi.plug(stream -> {
-            if (configuration.getAcknowledgment() == Acknowledgment.Strategy.PRE_PROCESSING) {
-                return (Multi) stream
-                        .onItem().transformToUniAndConcatenate(message -> {
-                            CompletionStage<Void> ack = message.ack();
-                            if (ack != null) {
-                                return Uni.createFrom().completionStage(ack).map(x -> message);
-                            } else {
-                                return Uni.createFrom().item(message);
-                            }
-                        });
-            }
-            return stream;
-        });
+        if (configuration.getAcknowledgment() != Acknowledgment.Strategy.PRE_PROCESSING) {
+            return multi;
+        }
+        return multi.plug(stream -> (Multi) stream
+                .onItem().transformToUniAndConcatenate(message -> {
+                    CompletionStage<Void> ack = message.ack();
+                    if (ack != null) {
+                        return Uni.createFrom().completionStage(ack).map(x -> message);
+                    } else {
+                        return Uni.createFrom().item(message);
+                    }
+                }));
     }
 
 }
