@@ -13,6 +13,7 @@ import javax.enterprise.inject.Instance;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
 
@@ -22,6 +23,7 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
@@ -37,6 +39,7 @@ import io.vertx.mutiny.core.Vertx;
 
 public class KafkaSource<K, V> {
     private final Multi<IncomingKafkaRecord<K, V>> stream;
+    private final Multi<IncomingKafkaRecordBatch<K, V>> batchStream;
     private final KafkaFailureHandler failureHandler;
     private final KafkaCommitHandler commitHandler;
     private final KafkaConnectorIncomingConfiguration configuration;
@@ -116,34 +119,62 @@ public class KafkaSource<K, V> {
         }
         this.client.setRebalanceListener();
 
-        Multi<ConsumerRecord<K, V>> multi;
-        if (pattern != null) {
-            multi = client.subscribe(pattern)
-                    .onSubscription().invoke(() -> subscribed = true);
+        if (!config.getBatch()) {
+            Multi<ConsumerRecord<K, V>> multi;
+            if (pattern != null) {
+                multi = client.subscribe(pattern)
+                        .onSubscription().invoke(() -> subscribed = true);
+            } else {
+                multi = client.subscribe(topics)
+                        .onSubscription().invoke(() -> subscribed = true);
+            }
+
+            multi = multi.onFailure().invoke(t -> {
+                log.unableToReadRecord(topics, t);
+                reportFailure(t, false);
+            });
+
+            Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
+                    .onItem().transformToUniAndConcatenate(rec -> {
+                        IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, commitHandler,
+                                failureHandler, isCloudEventEnabled, isTracingEnabled);
+                        return commitHandler.received(record);
+                    });
+
+            if (config.getTracingEnabled()) {
+                incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
+            }
+            this.stream = incomingMulti
+                    .onFailure().invoke(t -> reportFailure(t, false));
+            this.batchStream = null;
         } else {
-            multi = client.subscribe(topics)
-                    .onSubscription().invoke(() -> subscribed = true);
+            Multi<ConsumerRecords<K, V>> multi;
+            if (pattern != null) {
+                multi = client.subscribeBatch(pattern)
+                        .onSubscription().invoke(() -> subscribed = true);
+            } else {
+                multi = client.subscribeBatch(topics)
+                        .onSubscription().invoke(() -> subscribed = true);
+            }
+            multi = multi.onFailure().invoke(t -> {
+                log.unableToReadRecord(topics, t);
+                reportFailure(t, false);
+            });
+
+            Multi<IncomingKafkaRecordBatch<K, V>> incomingMulti = multi
+                    .onItem().transformToUniAndConcatenate(rec -> {
+                        IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, commitHandler,
+                                failureHandler, isCloudEventEnabled, isTracingEnabled);
+                        return receiveBatchRecord(batch);
+                    });
+            if (config.getTracingEnabled()) {
+                incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
+            }
+            this.batchStream = incomingMulti
+                    .onFailure().invoke(t -> reportFailure(t, false));
+            this.stream = null;
         }
 
-        multi = multi.onFailure().invoke(t -> {
-            log.unableToReadRecord(topics, t);
-            reportFailure(t, false);
-        });
-
-        Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
-                .onItem().transformToUniAndConcatenate(rec -> {
-                    IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, commitHandler, failureHandler,
-                            isCloudEventEnabled,
-                            isTracingEnabled);
-                    return commitHandler.received(record);
-                });
-
-        if (config.getTracingEnabled()) {
-            incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
-        }
-
-        this.stream = incomingMulti
-                .onFailure().invoke(t -> reportFailure(t, false));
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
@@ -192,7 +223,7 @@ public class KafkaSource<K, V> {
         }
     }
 
-    public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {
+    public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord, boolean insideBatch) {
         if (isTracingEnabled && TRACER != null) {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
@@ -224,8 +255,10 @@ public class KafkaSource<K, V> {
                 span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID, clientId);
             }
 
-            // Make available as parent for subsequent spans inside message processing
-            span.makeCurrent();
+            if (!insideBatch) {
+                // Make available as parent for subsequent spans inside message processing
+                span.makeCurrent();
+            }
 
             kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
 
@@ -239,6 +272,32 @@ public class KafkaSource<K, V> {
             consumerId += " - " + clientId;
         }
         return consumerId;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void incomingTrace(IncomingKafkaRecordBatch<K, V> kafkaBatchRecord) {
+        if (isTracingEnabled && TRACER != null) {
+            for (KafkaRecord<K, V> record : kafkaBatchRecord.getRecords()) {
+                IncomingKafkaRecord<K, V> kafkaRecord = record.unwrap(IncomingKafkaRecord.class);
+                incomingTrace(kafkaRecord, true);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Uni<IncomingKafkaRecordBatch<K, V>> receiveBatchRecord(IncomingKafkaRecordBatch<K, V> batch) {
+        List<Uni<IncomingKafkaRecord<K, V>>> records = new ArrayList<>();
+        for (KafkaRecord<K, V> record : batch.getLatestOffsetRecords().values()) {
+            IncomingKafkaRecord<K, V> kafkaRecord = record.unwrap(IncomingKafkaRecord.class);
+            records.add(commitHandler.received(kafkaRecord));
+        }
+        if (records.size() == 0) {
+            return Uni.createFrom().item(batch);
+        }
+        if (records.size() == 1) {
+            return records.get(0).onItem().transform(ignored -> batch);
+        }
+        return Uni.combine().all().unis(records).combinedWith(ignored -> batch);
     }
 
     private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config,
@@ -282,6 +341,10 @@ public class KafkaSource<K, V> {
 
     public Multi<IncomingKafkaRecord<K, V>> getStream() {
         return stream;
+    }
+
+    public Multi<IncomingKafkaRecordBatch<K, V>> getBatchStream() {
+        return batchStream;
     }
 
     public void closeQuietly() {

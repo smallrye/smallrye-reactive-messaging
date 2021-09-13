@@ -12,13 +12,10 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.*;
@@ -913,36 +910,6 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         sendMessages(startIndex, count);
         waitForMessages(latch);
         checkConsumedMessages(startIndex, count);
-    }
-
-    private void sendMessages(int startIndex, int count) throws Exception {
-        sendMessages(IntStream.range(0, count).mapToObj(i -> createProducerRecord(startIndex + i, true)));
-    }
-
-    private void sendMessages(int startIndex, int count, String broker) throws Exception {
-        sendMessages(IntStream.range(0, count).mapToObj(i -> new ProducerRecord<>(topic, 0, i, "Message " + i)), broker);
-    }
-
-    private void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records) throws Exception {
-        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(producerProps())) {
-            List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
-
-            for (Future<?> future : futures) {
-                future.get(5, TimeUnit.SECONDS);
-            }
-        }
-    }
-
-    private void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records, String broker) throws Exception {
-        Map<String, Object> configs = producerProps();
-        System.out.println("Sending to broker " + broker);
-        configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, broker);
-        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(configs)) {
-            List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
-            for (Future<?> future : futures) {
-                future.get(5, TimeUnit.SECONDS);
-            }
-        }
     }
 
     public KafkaSource<Integer, String> createSource() {

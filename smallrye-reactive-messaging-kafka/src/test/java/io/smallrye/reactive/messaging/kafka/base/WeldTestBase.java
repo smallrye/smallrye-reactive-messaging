@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
 import java.util.HashMap;
-import java.util.stream.Collectors;
 
 import javax.enterprise.inject.spi.BeanManager;
 
@@ -124,10 +123,6 @@ public class WeldTestBase {
     }
 
     public boolean isReady() {
-        System.out
-                .println(getHealth().getReadiness().getChannels().stream()
-                        .map(ci -> ci.getChannel() + " " + ci.isOk() + " " + ci.getMessage())
-                        .collect(Collectors.joining()));
         return getHealth().getReadiness().isOk();
     }
 

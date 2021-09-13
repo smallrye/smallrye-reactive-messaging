@@ -275,6 +275,31 @@ The `partitionkey` attribute is mapped to the record's key if any.
 
 include::consumer-rebalance-listener.adoc[]
 
+=== Receiving Kafka Records in Batches
+
+By default, incoming methods receive each Kafka record individually.
+Under the hood, Kafka consumer clients poll the broker constantly and receive records in batches, presented inside the `ConsumerRecords` container.
+
+In *batch* mode, your application can receive all the records returned by the consumer *poll* in one go.
+
+To achieve this you need to set `mp.messaging.incoming.$channel.batch=true` *and* specify a compatible container type to receive all the data:
+
+[source, java, indent=0]
+----
+include::example$inbound/KafkaRecordBatchPayloadExample.java[tags=code]
+----
+
+The incoming method can also receive `Message<List<Payload>`, `KafkaBatchRecords<Payload>` `ConsumerRecords<Key, Payload>` types, They give access to record details such as offset or timestamp :
+
+[source, java, indent=0]
+----
+include::example$inbound/KafkaRecordBatchExample.java[tags=code]
+----
+
+Note that the successful processing of the incoming record batch will commit the latest offsets for each partition received inside the batch. The configured commit strategy will be applied for these records only.
+
+Conversely, if the processing throws an exception, all messages are _nacked_, applying the failure strategy for all the records inside the batch.
+
 === Configuration Reference
 
 include::connectors:partial$META-INF/connector/smallrye-kafka-incoming.adoc[]

@@ -6,8 +6,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -17,6 +23,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.TopicHelpers;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -33,6 +41,36 @@ public class ClientTestBase extends KafkaTestBase {
 
     private final List<List<Integer>> expectedMessages = new ArrayList<>(partitions);
     protected final List<List<Integer>> receivedMessages = new ArrayList<>(partitions);
+
+    void sendMessages(int startIndex, int count) throws Exception {
+        sendMessages(IntStream.range(0, count).mapToObj(i -> createProducerRecord(startIndex + i, true)));
+    }
+
+    void sendMessages(int startIndex, int count, String broker) throws Exception {
+        sendMessages(IntStream.range(0, count).mapToObj(i -> new ProducerRecord<>(topic, 0, i, "Message " + i)), broker);
+    }
+
+    void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records) throws Exception {
+        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(producerProps())) {
+            List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
+
+            for (Future<?> future : futures) {
+                future.get(5, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records, String broker) throws Exception {
+        Map<String, Object> configs = producerProps();
+        System.out.println("Sending to broker " + broker);
+        configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, broker);
+        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(configs)) {
+            List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
+            for (Future<?> future : futures) {
+                future.get(5, TimeUnit.SECONDS);
+            }
+        }
+    }
 
     public Map<String, Object> producerProps() {
         Map<String, Object> props = new HashMap<>();
@@ -77,6 +115,12 @@ public class ClientTestBase extends KafkaTestBase {
 
     protected void onReceive(IncomingKafkaRecord<Integer, String> record) {
         receivedMessages.get(record.getPartition()).add(record.getKey());
+    }
+
+    protected void onReceive(IncomingKafkaRecordBatch<Integer, String> record) {
+        for (KafkaRecord<Integer, String> kafkaRecord : record) {
+            receivedMessages.get(kafkaRecord.getPartition()).add(kafkaRecord.getKey());
+        }
     }
 
     protected void checkConsumedMessages() {

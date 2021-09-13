@@ -149,4 +149,12 @@ Type: _int_ | false | `1000`
 
 Type: _boolean_ | false | `true`
 
+| [.no-hyphens]#*batch*# | Whether the Kafka records are consumed in batch. The channel injection point must consume a compatible type, such as `List<Payload>` or `KafkaRecordBatch<Payload>`.
+
+Type: _boolean_ | false | `false`
+
+| [.no-hyphens]#*max-queue-size-factor*# | Multiplier factor to determine maximum number of records queued for processing, using `max.poll.records` * `max-queue-size-factor`. Defaults to 2. In `batch` mode `max.poll.records` is considered `1`.
+
+Type: _int_ | false | `2`
+
 |===

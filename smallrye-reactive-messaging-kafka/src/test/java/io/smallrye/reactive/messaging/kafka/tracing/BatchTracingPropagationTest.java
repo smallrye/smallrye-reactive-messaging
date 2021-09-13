@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,6 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -33,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
@@ -47,14 +44,15 @@ import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-public class TracingPropagationTest extends KafkaTestBase {
+public class BatchTracingPropagationTest extends KafkaTestBase {
 
     private InMemorySpanExporter testExporter;
     private SpanProcessor spanProcessor;
@@ -129,91 +127,6 @@ public class TracingPropagationTest extends KafkaTestBase {
             assertThat(data.getTraceId()).isIn(traceIds);
             assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
         }
-    }
-
-    @Test
-    public void testFromKafkaToAppToKafka() {
-        List<Map.Entry<String, Integer>> messages = new CopyOnWriteArrayList<>();
-        List<Context> receivedContexts = new CopyOnWriteArrayList<>();
-        String resultTopic = topic + "-result";
-        String parentTopic = topic + "-parent";
-
-        usage.consumeIntegersWithTracing(resultTopic, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)),
-                receivedContexts::add);
-        MyAppProcessingData bean = runApplication(getKafkaSinkConfigForMyAppProcessingData(resultTopic, parentTopic),
-                MyAppProcessingData.class);
-
-        AtomicInteger count = new AtomicInteger();
-        List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(parentTopic, null, null, "a-key", count.getAndIncrement(),
-                        createTracingSpan(producedSpanContexts, parentTopic)));
-
-        await().atMost(Duration.ofMinutes(5)).until(() -> messages.size() >= 10);
-        List<Integer> values = new ArrayList<>();
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getValue()).isNotNull();
-            values.add(entry.getValue());
-        });
-        assertThat(values).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-
-        List<String> producedTraceIds = producedSpanContexts.stream()
-                .map(SpanContext::getTraceId)
-                .collect(Collectors.toList());
-        assertThat(producedTraceIds).hasSize(10);
-
-        assertThat(receivedContexts).hasSize(10);
-        assertThat(receivedContexts).doesNotContainNull().doesNotHaveDuplicates();
-
-        List<String> receivedSpanIds = receivedContexts.stream()
-                .map(context -> Span.fromContextOrNull(context).getSpanContext().getSpanId())
-                .collect(Collectors.toList());
-        assertThat(receivedSpanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
-
-        List<String> receivedTraceIds = receivedContexts.stream()
-                .map(context -> Span.fromContextOrNull(context).getSpanContext().getTraceId())
-                .collect(Collectors.toList());
-        assertThat(receivedTraceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
-        assertThat(receivedTraceIds).containsExactlyInAnyOrderElementsOf(producedTraceIds);
-
-        assertThat(bean.tracing()).hasSizeGreaterThanOrEqualTo(10);
-        assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
-        List<String> spanIds = new ArrayList<>();
-
-        for (TracingMetadata tracing : bean.tracing()) {
-            Span span = Span.fromContext(tracing.getCurrentContext());
-            spanIds.add(span.getSpanContext().getSpanId());
-            assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNotNull();
-        }
-
-        await().atMost(Duration.ofMinutes(2)).until(() -> testExporter.getFinishedSpanItems().size() >= 10);
-
-        List<String> outgoingParentIds = new ArrayList<>();
-        List<String> incomingParentIds = new ArrayList<>();
-
-        for (SpanData data : testExporter.getFinishedSpanItems()) {
-            if (data.getKind().equals(SpanKind.CONSUMER)) {
-                incomingParentIds.add(data.getParentSpanId());
-                assertThat(data.getAttributes().get(SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP)).isNotNull();
-                assertThat(data.getAttributes().get(AttributeKey.stringKey("messaging.consumer_id"))).isNotNull();
-                // Need to skip the spans created during @Incoming processing
-                continue;
-            }
-            assertThat(data.getSpanId()).isIn(receivedSpanIds);
-            assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
-            assertThat(data.getTraceId()).isIn(producedTraceIds);
-            assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
-            outgoingParentIds.add(data.getParentSpanId());
-        }
-
-        // Assert span created on Kafka record is the parent of consumer span we create
-        assertThat(producedSpanContexts.stream()
-                .map(SpanContext::getSpanId)).containsExactlyElementsOf(incomingParentIds);
-
-        // Assert consumer span is the parent of the producer span we received in Kafka
-        assertThat(spanIds.stream())
-                .containsExactlyElementsOf(outgoingParentIds);
     }
 
     @Test
@@ -330,24 +243,8 @@ public class TracingPropagationTest extends KafkaTestBase {
         KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
         builder.put("value.serializer", IntegerSerializer.class.getName());
         builder.put("topic", topic);
+        builder.put("batch", true);
         return builder.build();
-    }
-
-    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String resultTopic, String parentTopic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("topic", resultTopic);
-
-        Map<String, Object> config = builder.build().getMap();
-
-        builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.source", true);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("key.deserializer", StringDeserializer.class.getName());
-        builder.put("topic", parentTopic);
-        builder.put("auto.offset.reset", "earliest");
-
-        config.putAll(builder.build().getMap());
-        return new KafkaMapBasedConfig(config);
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForMyAppReceivingData(String topic) {
@@ -356,6 +253,7 @@ public class TracingPropagationTest extends KafkaTestBase {
         builder.put("key.deserializer", StringDeserializer.class.getName());
         builder.put("topic", topic);
         builder.put("auto.offset.reset", "earliest");
+        builder.put("batch", true);
 
         return builder.build();
     }
@@ -370,31 +268,17 @@ public class TracingPropagationTest extends KafkaTestBase {
     }
 
     @ApplicationScoped
-    public static class MyAppProcessingData {
-        private final List<TracingMetadata> tracingMetadata = new ArrayList<>();
-
-        @Incoming("source")
-        @Outgoing("kafka")
-        public Message<Integer> processMessage(Message<Integer> input) {
-            tracingMetadata.add(input.getMetadata(TracingMetadata.class).orElse(TracingMetadata.empty()));
-            return input.withPayload(input.getPayload() + 1);
-        }
-
-        public List<TracingMetadata> tracing() {
-            return tracingMetadata;
-        }
-    }
-
-    @ApplicationScoped
     public static class MyAppReceivingData {
         private final List<TracingMetadata> tracingMetadata = new ArrayList<>();
         private final List<Integer> results = new CopyOnWriteArrayList<>();
 
         @Incoming("stuff")
-        public CompletionStage<Void> consume(Message<Integer> input) {
-            results.add(input.getPayload());
-            tracingMetadata.add(input.getMetadata(TracingMetadata.class).orElse(TracingMetadata.empty()));
-            return input.ack();
+        public CompletionStage<Void> consume(KafkaRecordBatch<String, Integer> batchInput) {
+            results.addAll(batchInput.getPayload());
+            for (KafkaRecord<String, Integer> record : batchInput) {
+                tracingMetadata.add(record.getMetadata(TracingMetadata.class).orElse(TracingMetadata.empty()));
+            }
+            return batchInput.ack();
         }
 
         public List<Integer> list() {
