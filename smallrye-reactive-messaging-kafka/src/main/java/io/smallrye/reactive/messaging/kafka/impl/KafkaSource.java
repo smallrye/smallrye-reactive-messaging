@@ -142,7 +142,7 @@ public class KafkaSource<K, V> {
                     });
 
             if (config.getTracingEnabled()) {
-                incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
+                incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
             }
             this.stream = incomingMulti
                     .onFailure().invoke(t -> reportFailure(t, false));
@@ -223,7 +223,7 @@ public class KafkaSource<K, V> {
         }
     }
 
-    public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord) {
+    public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord, boolean insideBatch) {
         if (isTracingEnabled && TRACER != null) {
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
 
@@ -255,8 +255,10 @@ public class KafkaSource<K, V> {
                 span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID, clientId);
             }
 
-            // Make available as parent for subsequent spans inside message processing
-            span.makeCurrent();
+            if (!insideBatch) {
+                // Make available as parent for subsequent spans inside message processing
+                span.makeCurrent();
+            }
 
             kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
 
@@ -277,7 +279,7 @@ public class KafkaSource<K, V> {
         if (isTracingEnabled && TRACER != null) {
             for (KafkaRecord<K, V> record : kafkaBatchRecord.getRecords()) {
                 IncomingKafkaRecord<K, V> kafkaRecord = record.unwrap(IncomingKafkaRecord.class);
-                incomingTrace(kafkaRecord);
+                incomingTrace(kafkaRecord, true);
             }
         }
     }
