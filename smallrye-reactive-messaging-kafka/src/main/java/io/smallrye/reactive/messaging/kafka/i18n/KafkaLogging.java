@@ -229,7 +229,7 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18250, value = "The configuration property '%s' is deprecated and is replaced by '%s'.")
     void deprecatedConfig(String deprecated, String replace);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18251, value = "Committed %s")
     void committed(Map<TopicPartition, OffsetAndMetadata> offsets);
 

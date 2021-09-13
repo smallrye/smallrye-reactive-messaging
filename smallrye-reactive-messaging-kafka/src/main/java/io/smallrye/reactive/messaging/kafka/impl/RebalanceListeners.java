@@ -33,8 +33,9 @@ public class RebalanceListeners {
                 @Override
                 public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
                     log.executingConsumerRevokedRebalanceListener(consumerGroup);
-                    // TODO Why don't we call the commit handler?
                     try {
+                        reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
+                        commitHandler.partitionsRevoked(partitions);
                         listener.onPartitionsRevoked(reactiveKafkaConsumer.unwrap(), partitions);
                         log.executedConsumerRevokedRebalanceListener(consumerGroup);
                     } catch (RuntimeException e) {
@@ -45,11 +46,11 @@ public class RebalanceListeners {
 
                 @Override
                 public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                    if (reactiveKafkaConsumer.isPaused()) {
-                        reactiveKafkaConsumer.unwrap().pause(partitions);
-                    }
-                    commitHandler.partitionsAssigned(partitions);
                     try {
+                        if (reactiveKafkaConsumer.isPaused()) {
+                            reactiveKafkaConsumer.unwrap().pause(partitions);
+                        }
+                        commitHandler.partitionsAssigned(partitions);
                         listener.onPartitionsAssigned(reactiveKafkaConsumer.unwrap(), partitions);
                         log.executedConsumerAssignedRebalanceListener(consumerGroup);
                     } catch (RuntimeException e) {
@@ -62,6 +63,7 @@ public class RebalanceListeners {
             return new ConsumerRebalanceListener() {
                 @Override
                 public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                    reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
                     commitHandler.partitionsRevoked(partitions);
                 }
 

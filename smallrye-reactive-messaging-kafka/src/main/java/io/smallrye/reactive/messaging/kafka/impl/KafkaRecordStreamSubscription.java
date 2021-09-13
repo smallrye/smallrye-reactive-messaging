@@ -237,4 +237,8 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
         }
         return false;
     }
+
+    RecordQueue<T> getQueue() {
+        return queue;
+    }
 }
