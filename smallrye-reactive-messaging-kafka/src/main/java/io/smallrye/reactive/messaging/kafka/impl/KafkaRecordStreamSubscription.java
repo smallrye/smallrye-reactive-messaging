@@ -3,9 +3,12 @@ package io.smallrye.reactive.messaging.kafka.impl;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.UnaryOperator;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.reactivestreams.Subscription;
@@ -19,7 +22,7 @@ import io.vertx.core.Context;
 /**
  * A {@link Subscription} which, on {@link #request(long)}, polls {@link ConsumerRecords} from the given consumer client
  * and emits records downstream.
- *
+ * <p>
  * It uses an internal queue to store records received but not yet emitted downstream.
  * The given enqueue function can flatten the polled {@link ConsumerRecords} into individual records or enqueue it as-is.
  *
@@ -238,7 +241,26 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
         return false;
     }
 
-    RecordQueue<T> getQueue() {
-        return queue;
+    /**
+     * Uses a mapping function to replaces all items in the queue.
+     * If the mapping function returns null item will simply be removed
+     * from the queue.
+     *
+     * Order is preserved.
+     *
+     * @param mapFunction
+     */
+    void rewriteQueue(UnaryOperator<T> mapFunction) {
+        ArrayDeque<T> replacementQueue = new ArrayDeque<>();
+        synchronized (queue) {
+            queue
+                    .stream()
+                    .map(mapFunction)
+                    .filter(Objects::nonNull)
+                    .forEach(replacementQueue::offer);
+
+            queue.clear();
+            queue.addAll((Iterable<T>) replacementQueue);
+        }
     }
 }

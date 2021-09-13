@@ -398,7 +398,8 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         return paused.get();
     }
 
-    void removeFromQueueRecordsFromTopicPartitions(Collection<TopicPartition> partitions) {
-        this.stream.removeFromQueueRecordsFromTopicPartitions(partitions);
+    void removeFromQueueRecordsFromTopicPartitions(Collection<TopicPartition> revokedPartitions) {
+        this.stream.removeFromQueueRecordsFromTopicPartitions(revokedPartitions);
+        this.batchStream.removeFromQueueRecordsFromTopicPartitions(revokedPartitions);
     }
 }

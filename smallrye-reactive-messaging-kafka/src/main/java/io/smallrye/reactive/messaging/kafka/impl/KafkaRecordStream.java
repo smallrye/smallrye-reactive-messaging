@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,7 +23,8 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
     private final ReactiveKafkaConsumer<K, V> client;
     private final KafkaConnectorIncomingConfiguration config;
     private final Context context;
-    private final Set<KafkaRecordStreamSubscription> subscriptions = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<KafkaRecordStreamSubscription<K, V, ConsumerRecord<K, V>>> subscriptions = Collections
+            .newSetFromMap(new ConcurrentHashMap<>());
 
     public KafkaRecordStream(ReactiveKafkaConsumer<K, V> client,
             KafkaConnectorIncomingConfiguration config, Context context) {
@@ -44,27 +44,33 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
         subscriber.onSubscribe(subscription);
     }
 
-    void removeFromQueueRecordsFromTopicPartitions(Collection<TopicPartition> partitions) {
-        subscriptions
-                .forEach(s -> this.removeFromQueue(s.getQueue(), partitions));
-    }
-
-    private void removeFromQueue(RecordQueue<ConsumerRecord<K, V>> queue, Collection<TopicPartition> partitions) {
+    void removeFromQueueRecordsFromTopicPartitions(Collection<TopicPartition> revokedPartitions) {
+        if (revokedPartitions.isEmpty()) {
+            return;
+        }
         Map<String, Set<Integer>> revoked = new HashMap<>();
-        partitions
+        revokedPartitions
                 .forEach(topicPartition -> revoked
                         .computeIfAbsent(topicPartition.topic(), t -> new HashSet<>())
                         .add(topicPartition.partition()));
 
-        synchronized (queue) {
-            Iterator<ConsumerRecord<K, V>> iterator = queue.iterator();
-            while (iterator.hasNext()) {
-                ConsumerRecord<K, V> cr = iterator.next();
-                Set<Integer> revokedPartitions = revoked.get(cr.topic());
-                if (revokedPartitions != null && revokedPartitions.contains(cr.partition())) {
-                    iterator.remove();
-                }
-            }
-        }
+        subscriptions
+                .forEach(s -> this.removeFromQueue(s, revoked));
+    }
+
+    private void removeFromQueue(
+            KafkaRecordStreamSubscription<K, V, ConsumerRecord<K, V>> subscription,
+            Map<String, Set<Integer>> revoked) {
+        subscription
+                .rewriteQueue(
+                        cr -> {
+                            Set<Integer> revokedPartitions = revoked.get(cr.topic());
+                            if (revokedPartitions != null && revokedPartitions.contains(cr.partition())) {
+                                // remove from the queue
+                                return null;
+                            } else {
+                                return cr;
+                            }
+                        });
     }
 }
