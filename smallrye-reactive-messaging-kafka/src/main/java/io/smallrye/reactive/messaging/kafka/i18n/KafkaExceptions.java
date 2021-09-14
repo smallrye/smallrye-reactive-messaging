@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.i18n;
 
+import java.util.NoSuchElementException;
+
 import javax.enterprise.inject.AmbiguousResolutionException;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 
@@ -58,4 +60,10 @@ public interface KafkaExceptions {
 
     @Message(id = 18013, value = "Cannot configure the Kafka producer for channel `%s` - the `mp.messaging.outgoing.%s.value.serializer` property is missing")
     IllegalArgumentException missingValueSerializer(String channel, String channelAgain);
+
+    @Message(id = 18014, value = "The config property '%s' is required but it could not be found in any config source")
+    NoSuchElementException missingProperty(String propertyName);
+
+    @Message(id = 18015, value = "Cannot convert property '%s' of type %s to %s")
+    NoSuchElementException cannotConvertProperty(String propertyName, Class<?> type, Class<?> targetType);
 }
