@@ -4,13 +4,7 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -49,6 +43,7 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
@@ -264,14 +259,26 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         return sink.getSink();
     }
 
-    private Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
+    protected static Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
         return new Config() {
             @SuppressWarnings("unchecked")
             @Override
             public <T> T getValue(String propertyName, Class<T> propertyType) {
-                T passedCgfValue = passedCfg.getValue(propertyName, propertyType);
+                T passedCgfValue = passedCfg.getOptionalValue(propertyName, propertyType).orElse(null);
                 if (passedCgfValue == null) {
-                    return (T) defaultKafkaCfg.get(propertyName);
+                    Object o = defaultKafkaCfg.get(propertyName);
+                    if (o == null) {
+                        throw KafkaExceptions.ex.missingProperty(propertyName);
+                    }
+                    if (propertyType.isInstance(o)) {
+                        return (T) o;
+                    }
+                    if (o instanceof String) {
+                        Optional<Converter<T>> converter = passedCfg.getConverter(propertyType);
+                        return converter.map(conv -> conv.convert(o.toString()))
+                                .orElseThrow(() -> new NoSuchElementException(propertyName));
+                    }
+                    throw KafkaExceptions.ex.cannotConvertProperty(propertyName, o.getClass(), propertyType);
                 } else {
                     return passedCgfValue;
                 }
@@ -287,8 +294,18 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
                 Optional<T> passedCfgValue = passedCfg.getOptionalValue(propertyName, propertyType);
                 if (!passedCfgValue.isPresent()) {
-                    T defaultValue = (T) defaultKafkaCfg.get(propertyName);
-                    return Optional.ofNullable(defaultValue);
+                    Object o = defaultKafkaCfg.get(propertyName);
+                    if (o == null) {
+                        return Optional.empty();
+                    }
+                    if (propertyType.isInstance(o)) {
+                        return Optional.of((T) o);
+                    }
+                    if (o instanceof String) {
+                        Optional<Converter<T>> converter = passedCfg.getConverter(propertyType);
+                        return converter.map(conv -> conv.convert(o.toString()));
+                    }
+                    return Optional.empty();
                 } else {
                     return passedCfgValue;
                 }
