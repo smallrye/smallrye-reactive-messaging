@@ -99,7 +99,7 @@ However, it reduces the risk of duplicates.
 * `ignore` performs no commit.
 This strategy is the default strategy when the consumer is explicitly configured with `enable.auto.commit` to `true`.
 It delegates the offset commit to the Kafka client.
-When `enable.auto.commit` is `true` this strategy DOES NOT guarantee at-least-once delivery.
+When `enable.auto.commit` is `true` this strategy **DOES NOT** guarantee at-least-once delivery.
 However, if the processing failed between two commits, messages received after the commit and before the failure will be re-processed.
 
 IMPORTANT: The Kafka connector disables the Kafka _auto commit_ if not explicitly enabled.
