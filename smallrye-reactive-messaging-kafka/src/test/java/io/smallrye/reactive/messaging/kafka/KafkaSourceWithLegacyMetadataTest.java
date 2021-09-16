@@ -148,7 +148,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
 
         connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
-        connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
+        connector.configurations = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
         connector.kafkaCDIEvents = testEvents;
         connector.init();
@@ -188,7 +188,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
 
         connector = new KafkaConnector();
         connector.executionHolder = new ExecutionHolder(vertx);
-        connector.defaultKafkaConfiguration = UnsatisfiedInstance.instance();
+        connector.configurations = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
         connector.kafkaCDIEvents = new CountKafkaCdiEvents();
         connector.init();

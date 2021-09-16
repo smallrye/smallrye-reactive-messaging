@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.*;
@@ -16,13 +15,9 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigValue;
-import org.eclipse.microprofile.config.spi.ConfigSource;
-import org.eclipse.microprofile.config.spi.Converter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
@@ -34,16 +29,14 @@ import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
-import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
-import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
+import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.mutiny.core.Vertx;
@@ -61,6 +54,7 @@ import io.vertx.mutiny.core.Vertx;
 
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
+@ConnectorAttribute(name = "kafka-configuration", type = "string", direction = Direction.INCOMING_AND_OUTGOING, description = "Identifier of a CDI bean that provides the default Kafka consumer/producer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.")
 
 @ConnectorAttribute(name = "topics", type = "string", direction = Direction.INCOMING, description = "A comma-separating list of topics to be consumed. Cannot be used with the `topic` or `pattern` properties")
 @ConnectorAttribute(name = "pattern", type = "boolean", direction = Direction.INCOMING, description = "Indicate that the `topic` property is a regular expression. Must be used with the `topic` property. Cannot be used with the `topics` property", defaultValue = "false")
@@ -116,8 +110,6 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     public static Tracer TRACER;
 
-    private static final String DEFAULT_KAFKA_BROKER = "default-kafka-broker";
-
     @Inject
     ExecutionHolder executionHolder;
 
@@ -137,7 +129,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Inject
     @Any
-    Instance<Map<String, Object>> defaultKafkaConfiguration;
+    Instance<Map<String, Object>> configurations;
 
     private Vertx vertx;
 
@@ -156,21 +148,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        Config c = config;
+        Config channelConfiguration = ConfigHelper.retrieveChannelConfiguration(configurations, config);
 
-        Instance<Map<String, Object>> matching = defaultKafkaConfiguration.select(Identifier.Literal.of(DEFAULT_KAFKA_BROKER));
-        if (matching.isUnsatisfied()) {
-            // this `if` block should be removed when support for the `@Named` annotation is removed
-            // then, we can add `@Identifier("default-kafka-broker")` back to the injection point, instead of `@Any`
-            matching = defaultKafkaConfiguration.select(NamedLiteral.of(DEFAULT_KAFKA_BROKER));
-            if (!matching.isUnsatisfied()) {
-                ProviderLogging.log.deprecatedNamed();
-            }
-        }
-        if (!matching.isUnsatisfied()) {
-            c = merge(config, matching.get());
-        }
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(c);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(channelConfiguration);
         // log deprecated config
         if (ic.getHealthReadinessTopicVerification().isPresent()) {
             log.deprecatedConfig("health-readiness-topic-verification", "health-topic-verification-enabled");
@@ -234,19 +214,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        Config c = config;
-        Instance<Map<String, Object>> matching = defaultKafkaConfiguration.select(Identifier.Literal.of(DEFAULT_KAFKA_BROKER));
-        if (matching.isUnsatisfied()) {
-            // this `if` block should be removed when support for the `@Named` annotation is removed
-            matching = defaultKafkaConfiguration.select(NamedLiteral.of(DEFAULT_KAFKA_BROKER));
-            if (!matching.isUnsatisfied()) {
-                ProviderLogging.log.deprecatedNamed();
-            }
-        }
-        if (!matching.isUnsatisfied()) {
-            c = merge(config, matching.get());
-        }
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(c);
+        Config channelConfiguration = ConfigHelper.retrieveChannelConfiguration(configurations, config);
+
+        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(channelConfiguration);
         // log deprecated config
         if (oc.getHealthReadinessTopicVerification().isPresent()) {
             log.deprecatedConfig("health-readiness-topic-verification", "health-topic-verification-enabled");
@@ -257,84 +227,6 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents);
         sinks.add(sink);
         return sink.getSink();
-    }
-
-    protected static Config merge(Config passedCfg, Map<String, Object> defaultKafkaCfg) {
-        return new Config() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public <T> T getValue(String propertyName, Class<T> propertyType) {
-                T passedCgfValue = passedCfg.getOptionalValue(propertyName, propertyType).orElse(null);
-                if (passedCgfValue == null) {
-                    Object o = defaultKafkaCfg.get(propertyName);
-                    if (o == null) {
-                        throw KafkaExceptions.ex.missingProperty(propertyName);
-                    }
-                    if (propertyType.isInstance(o)) {
-                        return (T) o;
-                    }
-                    if (o instanceof String) {
-                        Optional<Converter<T>> converter = passedCfg.getConverter(propertyType);
-                        return converter.map(conv -> conv.convert(o.toString()))
-                                .orElseThrow(() -> new NoSuchElementException(propertyName));
-                    }
-                    throw KafkaExceptions.ex.cannotConvertProperty(propertyName, o.getClass(), propertyType);
-                } else {
-                    return passedCgfValue;
-                }
-            }
-
-            @Override
-            public ConfigValue getConfigValue(String propertyName) {
-                return passedCfg.getConfigValue(propertyName);
-            }
-
-            @SuppressWarnings("unchecked")
-            @Override
-            public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-                Optional<T> passedCfgValue = passedCfg.getOptionalValue(propertyName, propertyType);
-                if (!passedCfgValue.isPresent()) {
-                    Object o = defaultKafkaCfg.get(propertyName);
-                    if (o == null) {
-                        return Optional.empty();
-                    }
-                    if (propertyType.isInstance(o)) {
-                        return Optional.of((T) o);
-                    }
-                    if (o instanceof String) {
-                        Optional<Converter<T>> converter = passedCfg.getConverter(propertyType);
-                        return converter.map(conv -> conv.convert(o.toString()));
-                    }
-                    return Optional.empty();
-                } else {
-                    return passedCfgValue;
-                }
-            }
-
-            @Override
-            public Iterable<String> getPropertyNames() {
-                Iterable<String> names = passedCfg.getPropertyNames();
-                Set<String> result = new HashSet<>();
-                names.forEach(result::add);
-                result.addAll(defaultKafkaCfg.keySet());
-                return result;
-            }
-
-            @Override
-            public Iterable<ConfigSource> getConfigSources() {
-                return passedCfg.getConfigSources();
-            }
-
-            @Override
-            public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
-                return passedCfg.getConverter(forType);
-            }
-
-            @Override
-            public <T> T unwrap(Class<T> type) {
-                return passedCfg.unwrap(type);
-            }
-        };
     }
 
     @Override
