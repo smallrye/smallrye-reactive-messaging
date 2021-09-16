@@ -281,28 +281,14 @@ public class PauseResumeTest extends WeldTestBase {
             source.getConsumer().getRebalanceListener().onPartitionsAssigned(Arrays.asList(tp2, tp3));
         });
 
-        // No resumed partitions after rebalance
-        await().until(() -> resumedPartitions(consumer).isEmpty());
-
-        // Push 20
-        consumer.schedulePollTask(() -> {
-            for (int i = 0; i < 10; i++) {
-                consumer.addRecord(new ConsumerRecord<>(TOPIC, 2, i, "k", "2v" + i));
-                consumer.addRecord(new ConsumerRecord<>(TOPIC, 3, i, "k", "3v" + i));
-            }
-        });
-
-        // Still paused
-        await().until(() -> resumedPartitions(consumer).isEmpty());
-
-        // Pull 40
-        subscriber.request(40);
-
-        // Await resume
+        // Should resume after rebalance since records from revoked partitions are expunged
         await().until(() -> !resumedPartitions(consumer).isEmpty());
 
-        // Received all
-        await().until(() -> subscriber.getItems().size() == 40);
+        // Pull 20
+        subscriber.request(20);
+
+        // Should not receive all from revoked partitions
+        await().until(() -> subscriber.getItems().size() != 20);
 
     }
 

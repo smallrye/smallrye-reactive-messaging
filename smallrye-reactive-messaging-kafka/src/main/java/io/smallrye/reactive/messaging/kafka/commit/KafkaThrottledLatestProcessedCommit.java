@@ -224,6 +224,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * @return the map of partition -> offset that can be committed.
      */
     private Map<TopicPartition, Long> clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffsetMapping() {
+        cleanupPartitionOffsetStore();
+
         Map<TopicPartition, Long> offsetsMapping = new HashMap<>();
         for (Map.Entry<TopicPartition, OffsetStore> entry : new HashSet<>(offsetStores.entrySet())) {
             if (assignments.contains(entry.getKey())) {
@@ -362,7 +364,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
 
         void received(long offset) {
-            if (offset >= lastProcessedOffset) {
+            if (offset > lastProcessedOffset) {
                 this.receivedOffsets.offer(OffsetReceivedAt.received(offset));
                 unProcessedTotal.incrementAndGet();
             } else {
@@ -399,7 +401,6 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 }
             }
 
-            cleanupPartitionOffsetStore();
             removeReceivedOffsetsFromLastProcessedOffset();
 
             return -1;

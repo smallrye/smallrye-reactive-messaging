@@ -10,8 +10,7 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
  *
  * This handler is the default when `enable.auto.commit` is `true`.
  *
- * When `enable.auto.commit` is `true` this strategy provides at-least-once delivery
- * if the channel processes the message without performing any asynchronous processing.
+ * When `enable.auto.commit` is `true` this strategy DOES NOT guarantee at-least-once delivery.
  *
  * To use set `commit-strategy` to `ignore`.
  */

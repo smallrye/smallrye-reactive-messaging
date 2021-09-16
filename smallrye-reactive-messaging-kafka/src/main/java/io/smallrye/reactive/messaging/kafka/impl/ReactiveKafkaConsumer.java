@@ -397,4 +397,9 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     boolean isPaused() {
         return paused.get();
     }
+
+    void removeFromQueueRecordsFromTopicPartitions(Collection<TopicPartition> revokedPartitions) {
+        this.stream.removeFromQueueRecordsFromTopicPartitions(revokedPartitions);
+        this.batchStream.removeFromQueueRecordsFromTopicPartitions(revokedPartitions);
+    }
 }
