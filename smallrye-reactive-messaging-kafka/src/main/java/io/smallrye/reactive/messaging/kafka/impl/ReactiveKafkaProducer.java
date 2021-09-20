@@ -32,6 +32,7 @@ import io.vertx.core.Context;
 public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V> {
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final String clientId;
 
     private Producer<K, V> producer;
 
@@ -45,10 +46,15 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         this(getKafkaProducerConfiguration(config), config.getChannel(), config.getCloseTimeout());
     }
 
+    public String getClientId() {
+        return clientId;
+    }
+
     public ReactiveKafkaProducer(Map<String, Object> kafkaConfiguration, String channel, int closeTimeout) {
         this.kafkaConfiguration = kafkaConfiguration;
         this.channel = channel;
         this.closetimeout = closeTimeout;
+        this.clientId = kafkaConfiguration.get(ProducerConfig.CLIENT_ID_CONFIG).toString();
 
         String keySerializerCN = (String) kafkaConfiguration.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG);
         String valueSerializerCN = (String) kafkaConfiguration.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG);
@@ -148,11 +154,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
             map.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, configuration.getKeySerializer());
         }
 
-        if (!map.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {
-            String id = "kafka-producer-" + configuration.getChannel();
-            log.setKafkaProducerClientId(id);
-            map.put(ProducerConfig.CLIENT_ID_CONFIG, id);
-        }
+        map.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "kafka-producer-" + configuration.getChannel());
 
         if (!map.containsKey(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
             // If no backoff is set, use 10s, it avoids high load on disconnection.

@@ -124,6 +124,9 @@ public class KafkaSink {
                     reportFailure(f);
                 })
                 .ignore();
+
+        log.connectedToKafka(client.getClientId(), config.getBootstrapServers(), topic);
+
     }
 
     private synchronized void reportFailure(Throwable failure) {
