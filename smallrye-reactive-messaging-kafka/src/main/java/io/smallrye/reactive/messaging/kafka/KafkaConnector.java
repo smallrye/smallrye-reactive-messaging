@@ -173,7 +173,6 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
                     kafkaCDIEvents, deserializationFailureHandlers, -1);
             sources.add(source);
-
             boolean broadcast = ic.getBroadcast();
             Multi<? extends Message<?>> stream;
             if (!ic.getBatch()) {

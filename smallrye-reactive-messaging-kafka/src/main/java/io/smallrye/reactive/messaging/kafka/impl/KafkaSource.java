@@ -122,12 +122,17 @@ public class KafkaSource<K, V> {
         if (!config.getBatch()) {
             Multi<ConsumerRecord<K, V>> multi;
             if (pattern != null) {
-                multi = client.subscribe(pattern)
-                        .onSubscription().invoke(() -> subscribed = true);
+                multi = client.subscribe(pattern);
             } else {
-                multi = client.subscribe(topics)
-                        .onSubscription().invoke(() -> subscribed = true);
+                multi = client.subscribe(topics);
             }
+
+            multi = multi.onSubscription().invoke(() -> {
+                subscribed = true;
+                final String groupId = client.get(ConsumerConfig.GROUP_ID_CONFIG);
+                final String clientId = client.get(ConsumerConfig.CLIENT_ID_CONFIG);
+                log.connectedToKafka(clientId, config.getBootstrapServers(), groupId, topics);
+            });
 
             multi = multi.onFailure().invoke(t -> {
                 log.unableToReadRecord(topics, t);
@@ -150,12 +155,16 @@ public class KafkaSource<K, V> {
         } else {
             Multi<ConsumerRecords<K, V>> multi;
             if (pattern != null) {
-                multi = client.subscribeBatch(pattern)
-                        .onSubscription().invoke(() -> subscribed = true);
+                multi = client.subscribeBatch(pattern);
             } else {
-                multi = client.subscribeBatch(topics)
-                        .onSubscription().invoke(() -> subscribed = true);
+                multi = client.subscribeBatch(topics);
             }
+            multi = multi.onSubscription().invoke(() -> {
+                subscribed = true;
+                final String groupId = client.get(ConsumerConfig.GROUP_ID_CONFIG);
+                final String clientId = client.get(ConsumerConfig.CLIENT_ID_CONFIG);
+                log.connectedToKafka(clientId, config.getBootstrapServers(), groupId, topics);
+            });
             multi = multi.onFailure().invoke(t -> {
                 log.unableToReadRecord(topics, t);
                 reportFailure(t, false);
@@ -175,6 +184,10 @@ public class KafkaSource<K, V> {
             this.stream = null;
         }
 
+    }
+
+    public Set<String> getSubscribedTopics() {
+        return topics;
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {

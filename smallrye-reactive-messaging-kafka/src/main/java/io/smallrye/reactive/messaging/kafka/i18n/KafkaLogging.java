@@ -56,7 +56,7 @@ public interface KafkaLogging extends BasicLogger {
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18209, value = "Sending message %s to Kafka topic '%s'")
-    void sendingMessageToTopic(org.eclipse.microprofile.reactive.messaging.Message message, String topic);
+    void sendingMessageToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18210, value = "Unable to send a record to Kafka ")
@@ -64,11 +64,11 @@ public interface KafkaLogging extends BasicLogger {
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18211, value = "Message %s sent successfully to Kafka topic '%s'")
-    void successfullyToTopic(org.eclipse.microprofile.reactive.messaging.Message message, String topic);
+    void successfullyToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18212, value = "Message %s was not sent to Kafka topic '%s' - nacking message")
-    void nackingMessage(org.eclipse.microprofile.reactive.messaging.Message message, String topic, @Cause Throwable t);
+    void nackingMessage(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18213, value = "Setting %s to %s")
@@ -103,16 +103,8 @@ public interface KafkaLogging extends BasicLogger {
     void loadingConsumerRebalanceListenerFromGroupId(String consumerGroup);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 18221, value = "Unable to execute consumer assigned re-balance listener for group '%s'. The consumer has been paused. Will retry until the consumer session times out in which case will resume to force a new re-balance attempt.")
-    void unableToExecuteConsumerAssignedRebalanceListener(String consumerGroup, @Cause Throwable t);
-
-    @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18222, value = "Unable to execute consumer revoked re-balance listener for group '%s'")
     void unableToExecuteConsumerRevokedRebalanceListener(String consumerGroup, @Cause Throwable t);
-
-    @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18223, value = "Executing consumer assigned re-balance listener for group '%s'")
-    void executingConsumerAssignedRebalanceListener(String consumerGroup);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18224, value = "Executing consumer revoked re-balance listener for group '%s'")
@@ -155,7 +147,7 @@ public interface KafkaLogging extends BasicLogger {
     void waitingForAckForTooLong(long offset, TopicPartition topicPartition, long delay, long configInMs, long queueSize,
             long lastCommittedOffset);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18232, value = "Will commit for group '%s' every %d milliseconds.")
     void settingCommitInterval(String group, long commitInterval);
 
@@ -163,7 +155,7 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18233, value = "Invalid value serializer to write a structured Cloud Event. Found %d, expected the org.apache.kafka.common.serialization.StringSerializer")
     void invalidValueSerializerForStructuredCloudEvent(String serializer);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18234, value = "Auto-commit disabled for channel %s")
     void disableAutoCommit(String channel);
 
@@ -171,17 +163,13 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18235, value = "Will not health check throttled commit strategy for group '%s'.")
     void disableThrottledCommitStrategyHealthCheck(String group);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18236, value = "Will mark throttled commit strategy for group '%s' as unhealthy if records go more than %d milliseconds without being processed.")
     void setThrottledCommitStrategyReceivedRecordMaxAge(String group, long unprocessedRecordMaxAge);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18237, value = "Setting client.id for Kafka producer to %s")
     void setKafkaProducerClientId(String name);
-
-    @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 18238, value = "Setting client.id for Kafka consumer to %s")
-    void setKafkaConsumerClientId(String name);
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18239, value = "Received acknowledgement for record %d on '%s' (consumer group: '%s'). Ignoring it " +
@@ -189,7 +177,7 @@ public interface KafkaLogging extends BasicLogger {
     void acknowledgementFromRevokedTopicPartition(long offset, TopicPartition topicPartition, String groupId,
             Collection<TopicPartition> assignments);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18240, value = "'%s' commit strategy used for channel '%s'")
     void commitStrategyForChannel(String strategy, String channel);
 
@@ -217,7 +205,7 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18247, value = "Resuming Kafka consumption for channel %s, queue size %s is less than %s")
     void resumingChannel(String channel, int queueSize, int halfMaxQueueSize);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18248, value = "Key serializer omitted, using String as default")
     void keySerializerOmitted();
 
@@ -252,4 +240,12 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18256, value = "Initialize record store for topic-partition '%s' at position %d.")
     void initializeStoreAtPosition(TopicPartition topicPartition, long position);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18257, value = "Kafka consumer %s, connected to Kafka brokers '%s', belongs to the '%s' consumer group and is configured to poll records from %s")
+    void connectedToKafka(String id, String bootstrapServers, String consumerGroup, Set<String> topics);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18258, value = "Kafka producer %s, connected to Kafka brokers '%s', is configured to write records to '%s'")
+    void connectedToKafka(String id, String bootstrapServers, String topic);
 }
