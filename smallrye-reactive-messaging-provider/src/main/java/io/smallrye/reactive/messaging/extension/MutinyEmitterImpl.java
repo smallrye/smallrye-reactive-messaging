@@ -11,6 +11,8 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.Cancellable;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.i18n.ProviderLogging;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
 
 public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEmitter<T> {
     public MutinyEmitterImpl(EmitterConfiguration config, long defaultBufferSize) {
@@ -23,7 +25,10 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
             throw ex.illegalArgumentForNullValue();
         }
 
-        return Uni.createFrom().emitter(e -> emit(Message.of(payload, Metadata.empty(),
+        // If we are running on a Vert.x I/O thread, we need to capture the context to switch back
+        // during the emission.
+        Context context = Vertx.currentContext();
+        Uni<Void> uni = Uni.createFrom().emitter(e -> emit(Message.of(payload, Metadata.empty(),
                 () -> {
                     e.complete(null);
                     return CompletableFuture.completedFuture(null);
@@ -32,6 +37,10 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
                     e.fail(reason);
                     return CompletableFuture.completedFuture(null);
                 })));
+        if (context != null) {
+            uni = uni.emitOn(runnable -> context.runOnContext(x -> runnable.run()));
+        }
+        return uni;
     }
 
     @Override

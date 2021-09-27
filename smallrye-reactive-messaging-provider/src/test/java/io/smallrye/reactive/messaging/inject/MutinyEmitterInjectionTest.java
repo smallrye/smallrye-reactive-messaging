@@ -7,10 +7,7 @@ import static org.awaitility.Awaitility.await;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,8 +34,10 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
 import io.smallrye.reactive.messaging.extension.MutinyEmitterImpl;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
+import io.vertx.core.impl.VertxInternal;
 
-@SuppressWarnings("ConstantConditions")
 public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @Test
@@ -57,9 +56,12 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         bean.run();
         List<Uni<Void>> unis = bean.getUnis();
         assertThat(bean.emitter()).isNotNull();
-        assertThat(unis.get(0).subscribeAsCompletionStage().isDone()).isTrue();
-        assertThat(unis.get(1).subscribeAsCompletionStage().isDone()).isTrue();
+        unis.get(0).subscribeAsCompletionStage().join();
+        unis.get(1).subscribeAsCompletionStage().join();
         assertThat(unis.get(2).subscribeAsCompletionStage().isDone()).isFalse();
+        assertThatThrownBy(() -> unis.get(2).subscribeAsCompletionStage().get(10, TimeUnit.MILLISECONDS))
+                .isInstanceOf(TimeoutException.class);
+
         bean.emitter().complete();
 
         await().until(() -> bean.list().size() == 3);
@@ -106,6 +108,28 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).containsExactly("A", "B", "C");
         assertThat(bean.emitter().isCancelled()).isTrue();
         assertThat(bean.emitter().hasRequests()).isFalse();
+    }
+
+    @Test
+    public void testWithPayloadsAndAckComingBackOnSameEventLoop() {
+        final MyBeanEmittingPayloadsWithAck bean = installInitializeAndGet(MyBeanEmittingPayloadsWithAck.class);
+        List<Uni<Void>> unis = new CopyOnWriteArrayList<>();
+        assertThat(bean.emitter()).isNotNull();
+        Vertx vertx = Vertx.vertx();
+        Context context = vertx.getOrCreateContext();
+
+        context.runOnContext(x -> unis.add(bean.emitter().send("a")));
+        AtomicReference<Context> reference = new AtomicReference<>();
+        await().until(() -> unis.size() == 1);
+        unis.get(0).invoke(x -> reference.set(Vertx.currentContext())).await().indefinitely();
+        assertThat(reference.get()).isEqualTo(context);
+
+        context = ((VertxInternal) vertx).createEventLoopContext();
+        context.runOnContext(x -> unis.add(bean.emitter().send("b")));
+        await().until(() -> unis.size() == 2);
+        unis.get(1).invoke(x -> reference.set(Vertx.currentContext())).await().indefinitely();
+        assertThat(reference.get()).isEqualTo(context);
+
     }
 
     @Test
@@ -321,7 +345,8 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
             list.add(s.getPayload());
 
             if (!"c".equals(s.getPayload())) {
-                return s.ack();
+                // Required to verify the event loop switch
+                return CompletableFuture.runAsync(s::ack);
             } else {
                 return new CompletableFuture<>();
             }
