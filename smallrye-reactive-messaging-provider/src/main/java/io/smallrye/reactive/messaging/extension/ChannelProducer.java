@@ -52,9 +52,9 @@ public class ChannelProducer {
     <T> Multi<T> produceMulti(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
         if (TypeUtils.isAssignable(first, Message.class)) {
-            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)));
+            return cast(getPublisher(injectionPoint));
         } else {
-            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint))
+            return cast(getPublisher(injectionPoint)
                     .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
                     .onItem().transform(Message::getPayload)
                     .broadcast().toAllSubscribers());
