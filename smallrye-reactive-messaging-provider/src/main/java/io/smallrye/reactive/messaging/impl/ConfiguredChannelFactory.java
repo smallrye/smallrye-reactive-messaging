@@ -5,27 +5,26 @@ import static io.smallrye.reactive.messaging.i18n.ProviderLogging.log;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.BeanAttributes;
-import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.*;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.PublisherDecorator;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
 
 /**
  * Look for stream factories and get instances.
@@ -33,59 +32,43 @@ import io.smallrye.reactive.messaging.PublisherDecorator;
 @ApplicationScoped
 public class ConfiguredChannelFactory implements ChannelRegistar {
 
-    private final Instance<IncomingConnectorFactory> incomingConnectorFactories;
-    private final Instance<OutgoingConnectorFactory> outgoingConnectorFactories;
-
     protected final Config config;
     protected final ChannelRegistry registry;
+    private final ConnectorFactories factories;
 
     @Inject
     private Instance<PublisherDecorator> publisherDecoratorInstance;
 
     // CDI requirement for normal scoped beans
     protected ConfiguredChannelFactory() {
-        this.incomingConnectorFactories = null;
-        this.outgoingConnectorFactories = null;
         this.config = null;
         this.registry = null;
+        this.factories = null;
     }
 
     @Inject
-    public ConfiguredChannelFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
-            @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
-            Instance<Config> config, @Any Instance<ChannelRegistry> registry,
-            BeanManager beanManager) {
+    public ConfiguredChannelFactory(ConnectorFactories factories,
+            Instance<Config> config,
+            @Any Instance<ChannelRegistry> registry) {
 
-        this(incomingConnectorFactories, outgoingConnectorFactories, config, registry, beanManager, true);
+        this(factories, config, registry, true);
     }
 
-    ConfiguredChannelFactory(@Any Instance<IncomingConnectorFactory> incomingConnectorFactories,
-            @Any Instance<OutgoingConnectorFactory> outgoingConnectorFactories,
+    ConfiguredChannelFactory(ConnectorFactories factories,
             Instance<Config> config, @Any Instance<ChannelRegistry> registry,
-            BeanManager beanManager, boolean logConnectors) {
+            boolean logConnectors) {
         this.registry = registry.get();
+        this.factories = factories;
         if (config.isUnsatisfied()) {
-            this.incomingConnectorFactories = null;
-            this.outgoingConnectorFactories = null;
             this.config = null;
         } else {
-            this.incomingConnectorFactories = incomingConnectorFactories;
-            this.outgoingConnectorFactories = outgoingConnectorFactories;
             if (logConnectors) {
-                log.foundIncomingConnectors(getConnectors(beanManager, IncomingConnectorFactory.class));
-                log.foundOutgoingConnectors(getConnectors(beanManager, OutgoingConnectorFactory.class));
+                log.foundIncomingConnectors(factories.getInboundConnectors().keySet());
+                log.foundOutgoingConnectors(factories.getOutboundConnectors().keySet());
             }
             this.config = config.stream().findFirst()
                     .orElseThrow(ex::illegalStateRetrieveConfig);
         }
-    }
-
-    private List<String> getConnectors(BeanManager beanManager, Class<?> clazz) {
-        return beanManager.getBeans(clazz, Any.Literal.INSTANCE).stream()
-                .map(BeanAttributes::getQualifiers)
-                .flatMap(set -> set.stream().filter(a -> a.annotationType().equals(Connector.class)))
-                .map(annotation -> ((Connector) annotation).value())
-                .collect(Collectors.toList());
     }
 
     static Map<String, ConnectorConfig> extractConfigurationFor(String prefix, Config root) {
@@ -150,7 +133,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createPublisherBuilder(channel, config),
+                    registry.register(channel, createPublisher(channel, config),
                             config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
                 } else {
                     log.incomingChannelDisabled(channel);
@@ -161,7 +144,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createSubscriberBuilder(channel, config),
+                    registry.register(channel, createSubscriber(channel, config),
                             config.getOptionalValue(ConnectorConfig.MERGE_PROPERTY, Boolean.class).orElse(false));
                 } else {
                     log.outgoingChannelDisabled(channel);
@@ -179,31 +162,33 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         return config.getValue("connector", String.class);
     }
 
-    private PublisherBuilder<? extends Message<?>> createPublisherBuilder(String name, Config config) {
+    private Publisher<? extends Message<?>> createPublisher(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
 
-        // Look for the factory and throw an exception if missing
-        IncomingConnectorFactory mySourceFactory = incomingConnectorFactories.select(ConnectorLiteral.of(connector))
-                .stream().findFirst().orElseThrow(() -> ex.illegalArgumentUnknownConnector(name));
+        InboundConnector inboundConnector = factories.getInboundConnectors().get(connector);
+        if (inboundConnector == null) {
+            throw ex.illegalArgumentUnknownConnector(name);
+        }
 
-        PublisherBuilder<? extends Message<?>> publisher = mySourceFactory.getPublisherBuilder(config);
+        Publisher<? extends Message<?>> publisher = inboundConnector.getPublisher(config);
 
         for (PublisherDecorator decorator : publisherDecoratorInstance) {
-            publisher = decorator.decorate(publisher, name);
+            publisher = decorator.decorate(Multi.createFrom().publisher(publisher), name);
         }
 
         return publisher;
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createSubscriberBuilder(String name, Config config) {
+    private Subscriber<? extends Message<?>> createSubscriber(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
 
-        // Look for the factory and throw an exception if missing
-        OutgoingConnectorFactory mySinkFactory = outgoingConnectorFactories.select(ConnectorLiteral.of(connector))
-                .stream().findFirst().orElseThrow(() -> ex.illegalArgumentUnknownConnector(name));
+        OutboundConnector outboundConnector = factories.getOutboundConnectors().get(connector);
+        if (outboundConnector == null) {
+            throw ex.illegalArgumentUnknownConnector(name);
+        }
 
-        return mySinkFactory.getSubscriberBuilder(config);
+        return outboundConnector.getSubscriber(config);
     }
 }

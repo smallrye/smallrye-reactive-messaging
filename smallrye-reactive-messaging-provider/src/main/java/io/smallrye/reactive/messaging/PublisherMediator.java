@@ -9,14 +9,15 @@ import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.helpers.MultiUtils;
 
 public class PublisherMediator extends AbstractMediator {
 
-    private PublisherBuilder<? extends Message<?>> publisher;
+    private Multi<? extends Message<?>> publisher;
 
     // Supported signatures:
     // 1. Publisher<Message<O>> method()
@@ -36,13 +37,12 @@ public class PublisherMediator extends AbstractMediator {
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getStream() {
+    public Multi<? extends Message<?>> getStream() {
         return Objects.requireNonNull(publisher);
     }
 
     @Override
     public boolean isConnected() {
-        // Easy, not expecting anything
         return true;
     }
 
@@ -102,35 +102,36 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceAPublisherBuilderOfMessages() {
         PublisherBuilder<Message<?>> builder = invoke();
-        setPublisher(builder);
-    }
-
-    private void setPublisher(PublisherBuilder<Message<?>> publisher) {
-        // no conversion for publisher.
-        this.publisher = decorate(publisher);
+        this.publisher = decorate(Multi.createFrom().publisher(builder.buildRs()));
     }
 
     private <P> void produceAPublisherBuilderOfPayloads() {
         PublisherBuilder<P> builder = invoke();
-        setPublisher(builder.map(Message::of));
+        this.publisher = decorate(Multi.createFrom().publisher(builder.map(Message::of).buildRs()));
     }
 
     private void produceAPublisherOfMessages() {
-        setPublisher(ReactiveStreams.fromPublisher(invoke()));
+        this.publisher = Multi.createFrom().publisher(invoke());
     }
 
     private <P> void produceAPublisherOfPayloads() {
         Publisher<P> pub = invoke();
-        setPublisher(ReactiveStreams.fromPublisher(pub).map(Message::of));
+        this.publisher = decorate(Multi.createFrom().publisher(pub).map(Message::of));
     }
 
-    private <T> void produceIndividualMessages() {
+    private void produceIndividualMessages() {
         if (configuration.isBlocking()) {
-            setPublisher(ReactiveStreams.<Uni<T>> generate(this::invokeBlocking)
-                    .flatMapCompletionStage(Uni::subscribeAsCompletionStage)
-                    .map(message -> (Message<?>) message));
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndConcatenate(u -> u)
+                        .onItem().transform(o -> (Message<?>) o));
+            } else {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndMerge(u -> u)
+                        .onItem().transform(o -> (Message<?>) o));
+            }
         } else {
-            setPublisher(ReactiveStreams.generate(() -> {
+            this.publisher = decorate(MultiUtils.createFromGenerator(() -> {
                 Message<?> message = invoke();
                 Objects.requireNonNull(message, msg.methodReturnedNull(configuration.methodAsString()));
                 return message;
@@ -138,42 +139,40 @@ public class PublisherMediator extends AbstractMediator {
         }
     }
 
-    private <T> void produceIndividualPayloads() {
+    private void produceIndividualPayloads() {
         if (configuration.isBlocking()) {
-            setPublisher(ReactiveStreams.<Uni<T>> generate(this::invokeBlocking)
-                    .flatMapCompletionStage(Uni::subscribeAsCompletionStage)
-                    .map(Message::of));
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndConcatenate(u -> u)
+                        .onItem().transform(Message::of));
+            } else {
+                this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
+                        .onItem().transformToUniAndMerge(u -> u)
+                        .onItem().transform(Message::of));
+            }
         } else {
-            setPublisher(ReactiveStreams.<T> generate(this::invoke)
-                    .map(Message::of));
+            this.publisher = decorate(MultiUtils.createFromGenerator(this::invoke)
+                    .onItem().transform(Message::of));
         }
     }
 
     private void produceIndividualCompletionStageOfMessages() {
-        setPublisher(ReactiveStreams.<CompletionStage<Message<?>>> generate(this::invoke)
-                .flatMapCompletionStage(Function.identity()));
+        this.publisher = decorate(MultiUtils.<CompletionStage<Message<?>>> createFromGenerator(this::invoke)
+                .onItem().transformToUniAndConcatenate(cs -> Uni.createFrom().completionStage(cs)));
     }
 
     private <P> void produceIndividualCompletionStageOfPayloads() {
-        setPublisher(ReactiveStreams.<CompletionStage<P>> generate(this::invoke)
-                .flatMapCompletionStage(Function.identity())
-                .map(Message::of));
+        this.publisher = decorate(MultiUtils.<CompletionStage<P>> createFromGenerator(this::invoke)
+                .onItem().transformToUniAndConcatenate(cs -> Uni.createFrom().completionStage(cs).map(Message::of)));
     }
 
     private void produceIndividualUniOfMessages() {
-        setPublisher(ReactiveStreams.<CompletionStage<Message<?>>> generate(() -> {
-            Uni<Message<?>> uni = this.invoke();
-            return uni.subscribeAsCompletionStage();
-        })
-                .flatMapCompletionStage(Function.identity()));
+        this.publisher = decorate(MultiUtils.<Uni<Message<?>>> createFromGenerator(this::invoke)
+                .onItem().transformToUniAndConcatenate(Function.identity()));
     }
 
-    private <P> void produceIndividualUniOfPayloads() {
-        setPublisher(ReactiveStreams.<CompletionStage<P>> generate(() -> {
-            Uni<P> uni = this.invoke();
-            return uni.subscribeAsCompletionStage();
-        })
-                .flatMapCompletionStage(Function.identity())
-                .map(Message::of));
+    private void produceIndividualUniOfPayloads() {
+        this.publisher = decorate(MultiUtils.<Uni<?>> createFromGenerator(this::invoke)
+                .onItem().transformToUniAndConcatenate(u -> u.map(Message::of)));
     }
 }

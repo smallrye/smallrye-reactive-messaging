@@ -52,9 +52,9 @@ public class ChannelProducer {
     <T> Multi<T> produceMulti(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
         if (TypeUtils.isAssignable(first, Message.class)) {
-            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint)));
+            return cast(getPublisher(injectionPoint));
         } else {
-            return cast(Multi.createFrom().publisher(getPublisher(injectionPoint))
+            return cast(getPublisher(injectionPoint)
                     .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
                     .onItem().transform(Message::getPayload)
                     .broadcast().toAllSubscribers());
@@ -160,14 +160,14 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
 
         return Multi.createFrom().deferred(() -> {
-            List<PublisherBuilder<? extends Message<?>>> list = channelRegistry.getPublishers(name);
+            List<Publisher<? extends Message<?>>> list = channelRegistry.getPublishers(name);
             if (list.isEmpty()) {
                 throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
             } else if (list.size() == 1) {
-                return Multi.createFrom().publisher(list.get(0).buildRs());
+                return Multi.createFrom().publisher(list.get(0));
             } else {
                 return Multi.createBy().merging()
-                        .streams(list.stream().map(PublisherBuilder::buildRs).collect(Collectors.toList()));
+                        .streams(list.stream().map(p -> p).collect(Collectors.toList()));
             }
         });
     }

@@ -28,8 +28,8 @@ import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.extension.MediatorManager;
 import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
-import io.smallrye.reactive.messaging.impl.LegacyConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 
@@ -99,7 +99,7 @@ public class WeldTestBaseWithoutTails {
                 InternalChannelRegistry.class,
                 ChannelProducer.class,
                 ConfiguredChannelFactory.class,
-                LegacyConfiguredChannelFactory.class,
+                ConnectorFactories.class,
                 MetricDecorator.class,
                 HealthCenter.class,
                 // Messaging provider

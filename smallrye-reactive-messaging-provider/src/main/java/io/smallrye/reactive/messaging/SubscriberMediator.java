@@ -11,19 +11,23 @@ import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.helpers.ClassUtils;
+import io.smallrye.reactive.messaging.helpers.IgnoringSubscriber;
+import io.smallrye.reactive.messaging.helpers.MultiUtils;
 
 public class SubscriberMediator extends AbstractMediator {
 
-    private PublisherBuilder<? extends Message<?>> source;
-    private SubscriberBuilder<Message<?>, Void> subscriber;
+    private Multi<? extends Message<?>> source;
+    private Subscriber<Message<?>> subscriber;
+
+    private Function<Multi<? extends Message<?>>, Multi<? extends Message<?>>> function;
+
     /**
      * Keep track of the subscription to cancel it once the scope is terminated.
      */
@@ -73,7 +77,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     @Override
-    public SubscriberBuilder<Message<?>, Void> getComputedSubscriber() {
+    public Subscriber<Message<?>> getComputedSubscriber() {
         return subscriber;
     }
 
@@ -83,7 +87,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     @Override
-    public void connectToUpstream(PublisherBuilder<? extends Message<?>> publisher) {
+    public void connectToUpstream(Multi<? extends Message<?>> publisher) {
         this.source = convert(publisher);
     }
 
@@ -91,10 +95,11 @@ public class SubscriberMediator extends AbstractMediator {
     @Override
     public void run() {
         assert this.source != null;
+        assert this.function != null;
         assert this.subscriber != null;
 
         AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
-        Subscriber<Message<?>> delegate = this.subscriber.build();
+        Subscriber<Message<?>> delegate = this.subscriber;
         Subscriber<Message<?>> delegating = new Subscriber<Message<?>>() {
             @Override
             public void onSubscribe(Subscription s) {
@@ -135,7 +140,7 @@ public class SubscriberMediator extends AbstractMediator {
             }
         };
 
-        this.source.buildRs().subscribe(delegating);
+        function.apply(this.source).subscribe(delegating);
         // Check if a synchronous error has been caught
         Throwable throwable = syncErrorCatcher.get();
         if (throwable != null) {
@@ -144,22 +149,26 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private void processMethodReturningVoid() {
+        this.subscriber = IgnoringSubscriber.INSTANCE;
         if (configuration.isBlocking()) {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
-                            .onItem().transformToUni(msg -> invokeBlocking(msg.getPayload()))
-                            .onItemOrFailure().transformToUni(handleInvocationResult(m))
-                            .subscribeAsCompletionStage())
-                    .onError(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure))
-                    .ignore();
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToUniAndConcatenate(msg -> invokeBlocking(msg.getPayload())
+                                .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
+                        .onFailure()
+                        .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
+            } else {
+                this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToUniAndMerge(msg -> invokeBlocking(msg.getPayload())
+                                .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
+                        .onFailure()
+                        .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
+            }
         } else {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(m -> Uni.createFrom().completionStage(handlePreProcessingAck(m))
-                            .onItem().transform(msg -> invoke(msg.getPayload()))
-                            .onItemOrFailure().transformToUni(handleInvocationResult(m))
-                            .subscribeAsCompletionStage())
-                    .onError(this::reportFailure)
-                    .ignore();
+            this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transformToUniAndConcatenate(msg -> Uni.createFrom().item(() -> invoke(msg.getPayload()))
+                            .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
+                    .onFailure().invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
         }
     }
 
@@ -185,38 +194,41 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private void processMethodReturningACompletionStage() {
+        this.subscriber = IgnoringSubscriber.INSTANCE;
         boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
         if (configuration.isBlocking()) {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                            .onItem().transformToUni(msg -> {
-                                if (invokeWithPayload) {
-                                    return invokeBlocking(message.getPayload());
-                                } else {
-                                    return invokeBlocking(message);
-                                }
-                            })
-                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
-                            .subscribeAsCompletionStage())
-                    .onError(this::reportFailure)
-                    .ignore();
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToUniAndConcatenate(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onFailure().invoke(this::reportFailure);
+            } else {
+                this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToUniAndMerge(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onFailure().invoke(this::reportFailure);
+            }
         } else {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                            .onItem().transformToUni(m -> {
-                                CompletionStage<?> stage;
-                                if (invokeWithPayload) {
-                                    stage = invoke(message.getPayload());
-                                } else {
-                                    stage = invoke(message);
-                                }
-                                return Uni.createFrom().completionStage(stage.thenApply(x -> message));
-                            })
-                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
-                            .subscribeAsCompletionStage())
-                    .onError(this::reportFailure)
-                    .ignore();
+            this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transformToUniAndConcatenate(msg -> {
+                        Uni<?> uni;
+                        if (invokeWithPayload) {
+                            uni = Uni.createFrom().completionStage(() -> invoke(msg.getPayload()));
+                        } else {
+                            uni = Uni.createFrom().completionStage(() -> invoke(msg));
+                        }
+                        return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
+                    })
+                    .onFailure().invoke(this::reportFailure);
         }
+    }
+
+    private Uni<? extends Message<?>> invokeBlockingAndHandleOutcome(boolean invokeWithPayload, Message<?> msg) {
+        Uni<?> uni;
+        if (invokeWithPayload) {
+            uni = invokeBlocking(msg.getPayload());
+        } else {
+            uni = invokeBlocking(msg);
+        }
+        return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
     }
 
     private void reportFailure(Throwable failure) {
@@ -225,36 +237,30 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private void processMethodReturningAUni() {
+        this.subscriber = IgnoringSubscriber.INSTANCE;
         boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
-
         if (configuration.isBlocking()) {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                            .onItem().transformToUni(x -> {
-                                if (invokeWithPayload) {
-                                    return invokeBlocking(message.getPayload());
-                                } else {
-                                    return invokeBlocking(message);
-                                }
-                            })
-                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
-                            .subscribeAsCompletionStage())
-                    .onError(this::reportFailure)
-                    .ignore();
+            if (configuration.isBlockingExecutionOrdered()) {
+                this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToUniAndConcatenate(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onFailure().invoke(this::reportFailure);
+            } else {
+                this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .onItem().transformToUniAndMerge(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onFailure().invoke(this::reportFailure);
+            }
         } else {
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(message -> Uni.createFrom().completionStage(handlePreProcessingAck(message))
-                            .onItem().transformToUni(x -> {
-                                if (invokeWithPayload) {
-                                    return invoke(message.getPayload());
-                                } else {
-                                    return invoke(message);
-                                }
-                            })
-                            .onItemOrFailure().transformToUni(handleInvocationResult(message))
-                            .subscribeAsCompletionStage())
-                    .onError(this::reportFailure)
-                    .ignore();
+            this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transformToUniAndConcatenate(msg -> {
+                        Uni<?> uni;
+                        if (invokeWithPayload) {
+                            uni = invoke(msg.getPayload());
+                        } else {
+                            uni = invoke(msg);
+                        }
+                        return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
+                    })
+                    .onFailure().invoke(this::reportFailure);
         }
     }
 
@@ -292,11 +298,8 @@ public class SubscriberMediator extends AbstractMediator {
                         }
                     });
 
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(this::handlePreProcessingAck)
-                    .to(wrapper);
-            //                    .onError(this::reportFailure)
-            //                    .ignore();
+            this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            this.subscriber = wrapper;
         } else {
             Subscriber<Message<?>> sub;
             if (result instanceof Subscriber) {
@@ -304,12 +307,8 @@ public class SubscriberMediator extends AbstractMediator {
             } else {
                 sub = ((SubscriberBuilder<Message<?>, Void>) result).build();
             }
-            Subscriber<Message<?>> casted = sub;
-            this.subscriber = ReactiveStreams.<Message<?>> builder()
-                    .flatMapCompletionStage(this::handlePreProcessingAck)
-                    .via(new SubscriberWrapper<>(casted, Function.identity(), null))
-                    .onError(this::reportFailure)
-                    .ignore();
+            this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            this.subscriber = sub;
         }
     }
 }

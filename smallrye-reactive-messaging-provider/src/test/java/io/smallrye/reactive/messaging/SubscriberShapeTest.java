@@ -13,8 +13,8 @@ import javax.enterprise.inject.spi.DeploymentException;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.*;
@@ -151,7 +151,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
     private void assertThatSubscriberWasPublished(SeContainer container) {
         assertThat(registry(container).getOutgoingNames()).contains("subscriber");
-        List<SubscriberBuilder<? extends Message<?>, Void>> subscriber = registry(container).getSubscribers("subscriber");
+        List<Subscriber<? extends Message<?>>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
     }
 }

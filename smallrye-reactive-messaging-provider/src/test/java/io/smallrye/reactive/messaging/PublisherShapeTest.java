@@ -12,11 +12,12 @@ import javax.enterprise.inject.se.SeContainer;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.*;
 
 public class PublisherShapeTest extends WeldTestBaseWithoutTails {
@@ -128,7 +129,7 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
         addBeanClass(InfiniteSubscriber.class);
         initialize();
 
-        List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
+        List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
         InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
         await().until(() -> subscriber.list().size() == 4);
@@ -141,7 +142,7 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
         addBeanClass(InfiniteSubscriber.class);
         initialize();
 
-        List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
+        List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
         InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
         await().until(() -> subscriber.list().size() == 4);
@@ -154,7 +155,7 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
         addBeanClass(InfiniteSubscriber.class);
         initialize();
 
-        List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
+        List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
         InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
         await().until(() -> subscriber.list().size() == 4);
@@ -168,7 +169,7 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
         addBeanClass(InfiniteSubscriber.class);
         initialize();
 
-        List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
+        List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
 
         InfiniteSubscriber subscriber = get(InfiniteSubscriber.class);
@@ -205,11 +206,12 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
 
     private void assertThatProducerWasPublished(SeContainer container) {
         assertThat(registry(container).getIncomingNames()).contains("producer");
-        List<PublisherBuilder<? extends Message<?>>> producer = registry(container).getPublishers("producer");
+        List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("producer");
         assertThat(producer).isNotEmpty();
-        List<String> list = producer.get(0).map(Message::getPayload)
+        List<String> list = Multi.createFrom().publisher(producer.get(0)).map(Message::getPayload)
                 .map(i -> (String) i)
-                .toList().run().toCompletableFuture().join();
+                .collect().asList()
+                .await().indefinitely();
         assertThat(list).containsExactly("a", "b", "c");
     }
 

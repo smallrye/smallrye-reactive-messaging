@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.i18n;
 
-import java.util.List;
+import java.util.Set;
 
 import javax.enterprise.inject.spi.Bean;
 
@@ -79,11 +79,11 @@ public interface ProviderLogging extends BasicLogger {
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 226, value = "Found incoming connectors: %s")
-    void foundIncomingConnectors(List<String> connectors);
+    void foundIncomingConnectors(Set<String> connectors);
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 227, value = "Found outgoing connectors: %s")
-    void foundOutgoingConnectors(List<String> connectors);
+    void foundOutgoingConnectors(Set<String> connectors);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 228, value = "No MicroProfile Config found, skipping")
