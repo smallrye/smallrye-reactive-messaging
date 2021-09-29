@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.4">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="3.1">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="#converters">Converting messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-avro-configuration">Using Avro</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-client-service">Accessing the Kafka client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-kerberos">Kerberos authentication</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../mqtt/mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../mqtt/mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#mqtt-server:mqtt-server.adoc">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html">RabbitMQ</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-inbound">Receiving Messages from RabbitMQ</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-outbound">Sending Messages to RabbitMQ</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-cloud">Connecting to managed instances</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">3.1</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">3.1</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">SmallRye Reactive Messaging</a></li>
+    <li><a href="model.html">Development Model</a></li>
+  </ul>
+</nav>
+</div>
+<article class="doc">
+<h1 class="page">Development Model and Annotations</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Reactive Messaging proposes a CDI-based programming model to implement event-driven applications.
+Following the CDI principles, <em>beans</em> are forming the main building block of your application.
+Reactive Messaging provides a set of annotations and types to implement beans that generate, consume or process messages.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="overview"><a class="anchor" href="#overview"></a>A brief overview of the annotations</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Reactive Messaging provides two main annotations:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://smallrye.io/smallrye-reactive-messaging/3.10.0/apidocs/org/eclipse/microprofile/reactive/messaging/Incoming.html"><code>org.eclipse.microprofile.reactive.messaging.Incoming</code></a> - indicates the consumed channel</p>
+</li>
+<li>
+<p><a href="https://smallrye.io/smallrye-reactive-messaging/3.10.0/apidocs/org/eclipse/microprofile/reactive/messaging/Outgoing.html"><code>org.eclipse.microprofile.reactive.messaging.Outgoing</code></a> - indicates the populated channel</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These annotations are used on <mark>methods</mark>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package beans;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class MessageProcessingBean {
+
+    @Incoming("consumed-channel")
+    @Outgoing("populated-channel")
+    public Message&lt;String&gt; process(Message&lt;String&gt; in) {
+        // Process the payload
+        String payload = in.getPayload().toUpperCase();
+        // Create a new message from `in` and just update the payload
+        return in.withPayload(payload);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Reactive Messaging beans can either be in the <em>application</em> scope (<code>@ApplicationScoped</code>) or dependent scope (<code>@Dependent</code>).
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Manipulating messages can be cumbersome.
+When you are only interested by the payload, you can use the following syntax:
+The following code is equivalent to the snippet from above:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package beans;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class PayloadProcessingBean {
+
+    @Incoming("consumed-channel")
+    @Outgoing("populated-channel")
+    public String process(String in) {
+        return in.toUpperCase();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+You should not call methods annotated with <code>@Incoming</code> and/or <code>@Outgoing</code> directly from your code.
+They are invoked by the framework.
+Having user code invoking them would not have the expected outcome.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>SmallRye Reactive Messaging automatically binds matching <code>@Outgoing</code> to <code>@Incoming</code> to form a chain:</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="../_images/chain.png" alt="chain">
+</div>
+</div>
+<div class="paragraph">
+<p>If we consider the following code:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("source")
+public Multi&lt;String&gt; generate() {
+    return Multi.createFrom().items("Hello", "from", "reactive", "messaging");
+}
+
+@Incoming("source")
+@Outgoing("sink")
+public String process(String in) {
+    return in.toUpperCase();
+}
+
+@Incoming("sink")
+public void consume(String processed) {
+    System.out.println(processed);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It would generate the following chain:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">generate --&gt; [ source ] --&gt; process --&gt; [ sink ] --&gt; consume</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Methods annotated with <code>@Incoming</code> or <code>@Outgoing</code> don&#8217;t have to be in the same <em>bean</em> (<em>class</em>). You can distribute them
+among a set of beans. Remote interactions are also possible when using connectors.</p>
+</div>
+<div class="paragraph">
+<p>Methods annotated with:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>only <code>@Outgoing</code> are used to generate messages or payloads</p>
+</li>
+<li>
+<p>only <code>@Incoming</code> are used to consume messages or payloads</p>
+</li>
+<li>
+<p>both <code>@Incoming</code> and <code>@Outgoing</code> are used to process messages or payloads; or transform the stream
+== Creating Messages</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Messages are envelopes around payload.
+They are the vehicle.
+While manipulating payload is convenient, messages let you add metadata, handle acknowledgement&#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p>Creating <code>Messages</code> is done using the <code>Message</code> interface directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Create a simple message wrapping a payload
+Message&lt;Price&gt; m1 = Message.of(price);
+
+// Create a message with metadata
+Message&lt;Price&gt; m2 = Message.of(price, Metadata.of(new PriceMetadata()));
+
+// Create a message with several metadata
+Message&lt;Price&gt; m3 = Message.of(price,
+    Metadata.of(new PriceMetadata(), new MyMetadata()));
+
+// Create a message with an acknowledgement callback
+Message&lt;Price&gt; m4 = Message.of(price, () -&gt; {
+    // Called when the message is acknowledged by the next consumer.
+    return CompletableFuture.completedFuture(null);
+});
+
+// Create a message with both metadata and acknowledgement callback
+Message&lt;Price&gt; m5 = Message.of(price,
+    Metadata.of(new PriceMetadata()),
+    () -&gt; {
+        // Called when the message is acknowledged by the next consumer.
+        return CompletableFuture.completedFuture(null);
+    });</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can also create new instance of <code>Message</code> from an existing one:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Create a new message with a new payload but with the same metadata
+Message&lt;Price&gt; m1 = message.withPayload(new Price(12.4));
+
+// Create a new message with a new payload and add another metadata
+Message&lt;Price&gt; m2 = message
+    .withPayload(new Price(15.0))
+    .withMetadata(Metadata.of(new PriceMetadata()));
+
+// Create a new message with a new payload and a custom acknowledgement
+Message&lt;Price&gt; m3 = message
+    .withPayload(new Price(15.0))
+    .withAck(() -&gt;
+        // acknowledge the incoming message
+        message.ack()
+            .thenAccept(x -&gt; {
+                // do something
+            }));</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Acknowledgement?</div>
+<div class="paragraph">
+<p>Acknowledgement is an important part of messaging system.
+This will be covered in the <a href="../acknowledgement/acknowledgement.html" class="page">acknowledgement</a> section.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Connector Metadata</div>
+<div class="paragraph">
+<p>Most connectors are providing metadata to let you extract technical details about the message, but also customize the outbound dispatching.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="generating-messages"><a class="anchor" href="#generating-messages"></a>Generating Messages</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To produce messages to a channel, you need to use the <code>@Outgoing</code> annotation.
+This annotation takes a single parameter: the name of the populated channel.</p>
+</div>
+<div class="sect2">
+<h3 id="_generating_messages_synchronously"><a class="anchor" href="#_generating_messages_synchronously"></a>Generating messages synchronously</h3>
+<div class="paragraph">
+<p>You can generate messages synchronously.
+In this case, the method is called for every <em>request</em> from the downstream:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public Message&lt;Integer&gt; generateMessagesSynchronously() {
+    return Message.of(counter.getAndIncrement());
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">Requests?</div>
+<div class="paragraph">
+<p>Reactive Messaging connects components to build a reactive stream.
+In a reactive stream, the emissions are controlled by the consumer (downstream) indicating to the publisher (upstream) how many items it can consume.
+With this protocol, the consumers are never flooded.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_messages_using_completionstage"><a class="anchor" href="#_generating_messages_using_completionstage"></a>Generating messages using CompletionStage</h3>
+<div class="paragraph">
+<p>You can also return a <code>CompletionStage</code> / <code>CompletableFuture</code>.
+In this case, Reactive Messaging waits until the <code>CompletionStage</code> gets completed before calling it again.</p>
+</div>
+<div class="paragraph">
+<p>For instance, this signature is useful to poll messages from a source using an asynchronous client:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public CompletionStage&lt;Message&lt;Price&gt;&gt; generateMessagesAsCompletionStage() {
+    return asyncClient.poll()
+        .thenApply(Message::of);
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_messages_using_uni"><a class="anchor" href="#_generating_messages_using_uni"></a>Generating messages using Uni</h3>
+<div class="paragraph">
+<p>You can also return a <a href="https://smallrye.io/smallrye-mutiny/#_uni_and_multi">Uni</a> instance.
+In this case, Reactive Messaging waits until the <code>Uni</code> emits its item before calling it again.</p>
+</div>
+<div class="paragraph">
+<p>This signature is useful when integrating asynchronous clients providing a Mutiny API.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public Uni&lt;Message&lt;Integer&gt;&gt; generateMessagesAsync() {
+    return Uni.createFrom().item(() -&gt; Message.of(counter.getAndIncrement()));
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_reactive_streams_of_messages"><a class="anchor" href="#_generating_reactive_streams_of_messages"></a>Generating Reactive Streams of messages</h3>
+<div class="paragraph">
+<p>Instead of producing the message one by one, you can return the stream directly.
+If you have a data source producing Reactive Streams <code>Publisher</code> (or sub-types), this is the signature you are looking for:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public Publisher&lt;Message&lt;String&gt;&gt; generateMessageStream() {
+    Multi&lt;String&gt; multi = reactiveClient.getStream();
+    return multi.map(Message::of);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this case, the method is called once to retrieve the <code>Publisher</code>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="generating-payloads"><a class="anchor" href="#generating-payloads"></a>Generating Payloads</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Instead of <code>Message</code>, you can produce <em>payloads</em>.
+In this case, Reactive Messaging produces a simple message from the <em>payload</em> using <code>Message.of</code>.</p>
+</div>
+<div class="sect2">
+<h3 id="_generating_payload_synchronously"><a class="anchor" href="#_generating_payload_synchronously"></a>Generating payload synchronously</h3>
+<div class="paragraph">
+<p>You can produce <em>payloads</em> synchronously.
+The framework calls the method upon request and create <code>Messages</code> around the produced payloads.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public Integer generatePayloadsSynchronously() {
+    return counter.getAndIncrement();
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_payload_using_completionstage"><a class="anchor" href="#_generating_payload_using_completionstage"></a>Generating payload using CompletionStage</h3>
+<div class="paragraph">
+<p>You can also return <code>CompletionStage</code> or <code>CompletableFuture</code>.
+For example, if you have an asynchronous client returning <code>CompletionStage</code>, you can use it as follows, to poll the data one by one:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public CompletionStage&lt;Price&gt; generatePayloadsAsCompletionStage() {
+    return asyncClient.poll();
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_payload_by_producing_unis"><a class="anchor" href="#_generating_payload_by_producing_unis"></a>Generating payload by producing Unis</h3>
+<div class="paragraph">
+<p>You can also return a <code>Uni</code> if you have a client using Mutiny types:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public Uni&lt;Integer&gt; generatePayloadsAsync() {
+    return Uni.createFrom().item(() -&gt; counter.getAndIncrement());
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_generating_reactive_streams_of_payloads"><a class="anchor" href="#_generating_reactive_streams_of_payloads"></a>Generating Reactive Streams of payloads</h3>
+<div class="paragraph">
+<p>Finally, you can return a <code>Publisher</code> (or a sub-type):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("my-channel")
+public Multi&lt;String&gt; generatePayloadsStream() {
+    Multi&lt;String&gt; multi = reactiveClient.getStream();
+    return multi;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this case, Reactive Messaging calls the method only once to retrieve the <code>Publisher</code>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="consuming-messages"><a class="anchor" href="#consuming-messages"></a>Consuming Messages</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To consume messages from a channel, you need to use the <code>@Incoming</code> annotation.
+This annotation takes a single parameter: the name of the consumed channel.</p>
+</div>
+<div class="paragraph">
+<p>Because <code>Messages</code> must be acknowledged, consuming messages requires returning <em>asynchronous results</em> that would complete when the incoming message get acknowledged.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can receive the <code>Message</code>, process it and return the acknowledgement as result:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("my-channel")
+public CompletionStage&lt;Void&gt; consumeMessage(Message&lt;Price&gt; message) {
+    handle(message.getPayload());
+    return message.ack();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can also return a <code>Uni</code> if you need to implement more complicated processing:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("my-channel")
+public Uni&lt;Void&gt; consumeMessageUni(Message&lt;Price&gt; message) {
+    return Uni.createFrom().item(message)
+        .onItem().invoke(m -&gt; handle(m.getPayload()))
+        .onItem().transformToUni(x -&gt; Uni.createFrom().completionStage(message.ack()));
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="consuming-payloads"><a class="anchor" href="#consuming-payloads"></a>Consuming Payloads</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Unlike consuming messages, consuming payloads support both synchronous and asynchronous consumption.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can consume a payload as follow:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("my-channel")
+public void consumePayload(Price payload) {
+    // do something
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this case, you don&#8217;t need to deal with the acknowledgement yourself.
+The framework acknowledges the incoming message (that wrapped the payload) once your method returns successfully.</p>
+</div>
+<div class="paragraph">
+<p>If you need to achieve asynchronous actions, you can return a <code>CompletionStage</code> or a <code>Uni</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("my-channel")
+public CompletionStage&lt;Void&gt; consumePayloadCS(Price payload) {
+    CompletionStage&lt;Void&gt; cs = handleAsync(payload);
+    return cs;
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("my-channel")
+public Uni&lt;Void&gt; consumePayloadUni(Price payload) {
+    return Uni.createFrom().item(payload)
+        .onItem().invoke(this::handle)
+        .onItem().ignore().andContinueWithNull();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In these 2 cases, the framework acknowledges the incoming message when the returned construct gets <em>completed</em>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="processing-messages"><a class="anchor" href="#processing-messages"></a>Processing Messages</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You can process <code>Message</code> both synchronously or asynchronously.
+This later case is useful when you need to execute an asynchronous action during your processing such as invoking a remote service.</p>
+</div>
+<div class="paragraph">
+<p>Do process <code>Messages</code> synchronously uses:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Message&lt;String&gt; processMessage(Message&lt;Integer&gt; in) {
+    return in.withPayload(Integer.toString(in.getPayload()));
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This method transforms the <code>int</code> payload to a <code>String</code>, and wraps it into a <code>Message</code>.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="title">Using <code>Message.withX</code> methods</div>
+<div class="paragraph">
+<p>You may be surprised by the usage of <code>Message.withX</code> methods.
+It allows metadata propagation as the metadata would be copied from the incoming message and so dispatched to the next method.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>You can also process <code>Messages</code> asynchronously:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public CompletionStage&lt;Message&lt;String&gt;&gt; processMessageCS(Message&lt;Integer&gt; in) {
+    CompletionStage&lt;String&gt; cs = invokeService(in.getPayload());
+    return cs.thenApply(in::withPayload);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or using Mutiny:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Uni&lt;Message&lt;String&gt;&gt; processMessageUni(Message&lt;String&gt; in) {
+    return invokeService(in.getPayload())
+        .map(in::withPayload);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In general, you want to create the new <code>Message</code> from the incoming one.
+It enables metadata propagation and post-acknowledgement.
+For this, use the <code>withX</code> method from the <code>Message</code> class returning a new <code>Message</code> instance but copy the <em>content</em> (metadata, ack/nack&#8230;&#8203;).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="processing-payloads"><a class="anchor" href="#processing-payloads"></a>Processing payloads</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If you don&#8217;t need to manipulate the envelope, you can process payload directly either synchronously or asynchronously:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public String processPayload(int in) {
+    return Integer.toString(in);
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public CompletionStage&lt;String&gt; processPayloadCS(int in) {
+    return invokeService(in);
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Uni&lt;String&gt; processPayload(String in) {
+    return invokeService(in);
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="title">What about metadata?</div>
+<div class="paragraph">
+<p>With these methods, the metadata are automatically propagated.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="processing-streams"><a class="anchor" href="#processing-streams"></a>Processing streams</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The previous processing method were taking single <code>Message</code> or payload.
+Sometimes you need more advanced manipulation.
+For this, SmallRye Reactive Messaging lets you process the stream of <code>Message</code> or the stream of payloads directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Multi&lt;Message&lt;String&gt;&gt; processMessageStream(Multi&lt;Message&lt;Integer&gt;&gt; stream) {
+    return
+        stream
+            .onItem().transformToUni(message -&gt;
+            invokeService(message.getPayload())
+                .onFailure().recoverWithItem("fallback")
+                .onItem().transform(message::withPayload)
+        )
+            .concatenate();
+
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out")
+public Multi&lt;String&gt; processPayloadStream(Multi&lt;Integer&gt; stream) {
+    return
+        stream
+            .onItem().transformToUni(payload -&gt;
+            invokeService(payload)
+                .onFailure().recoverWithItem("fallback")
+        )
+            .concatenate();
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can receive either a (Reactive Streams) <code>Publisher</code>, a <code>PublisherBuilder</code> or (Mutiny) <code>Multi</code>.
+You can return any sub-class of <code>Publisher</code> or a <code>Publisher</code> directly.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>These signatures do not support metadata propagation.
+In the case of a stream of <code>Message</code>, you need to propagate the metadata manually.
+In the case of a stream of payload, propagation is not supported, and incoming metadata are lost.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="skipping"><a class="anchor" href="#skipping"></a>Skipping messages</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Sometimes you receive a message and don&#8217;t want to produce an output message.
+To handle this, you have several choices:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>for method processing single message or payload, producing <code>null</code> would produced an ignored message (not forwarded)</p>
+</li>
+<li>
+<p>for method processing streams, you can generate an <em>empty</em> stream.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The next snippet illustrates the first approach:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Skip when processing payload synchronously - returning `null`
+@Incoming("in")
+@Outgoing("out")
+public String processPayload(String s) {
+    if (s.equalsIgnoreCase("skip")) {
+        return null;
+    }
+    return s.toUpperCase();
+}
+
+// Skip when processing message synchronously - returning `null`
+@Incoming("in")
+@Outgoing("out")
+public Message&lt;String&gt; processMessage(Message&lt;String&gt; m) {
+    String s = m.getPayload();
+    if (s.equalsIgnoreCase("skip")) {
+        m.ack();
+        return null;
+    }
+    return m.withPayload(s.toUpperCase());
+}
+
+// Skip when processing payload asynchronously - returning a `Uni` with a `null` value
+@Incoming("in")
+@Outgoing("out")
+public Uni&lt;String&gt; processPayloadAsync(String s) {
+    if (s.equalsIgnoreCase("skip")) {
+        // Important, you must not return `null`, but a `null` content
+        return Uni.createFrom().nullItem();
+    }
+    return Uni.createFrom().item(s.toUpperCase());
+}
+
+// Skip when processing message asynchronously - returning a `Uni` with a `null` value
+@Incoming("in")
+@Outgoing("out")
+public Uni&lt;Message&lt;String&gt;&gt; processMessageAsync(Message&lt;String&gt; m) {
+    String s = m.getPayload();
+    if (s.equalsIgnoreCase("skip")) {
+        m.ack();
+        return Uni.createFrom().nullItem();
+    }
+    return Uni.createFrom().item(m.withPayload(s.toUpperCase()));
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The second approach consists in emitted an <em>empty</em> <code>Multi</code> (or <code>Publisher</code>):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Incoming("in")
+@Outgoing("out-1")
+public Multi&lt;String&gt; processPayload(String s) {
+    if (s.equalsIgnoreCase("skip")) {
+        return Multi.createFrom().empty();
+    }
+    return Multi.createFrom().item(s.toUpperCase());
+}
+
+@Incoming("in")
+@Outgoing("out-2")
+public Multi&lt;Message&lt;String&gt;&gt; processMessage(Message&lt;String&gt; m) {
+    String s = m.getPayload();
+    if (s.equalsIgnoreCase("skip")) {
+        return Multi.createFrom().empty();
+    }
+    return Multi.createFrom().item(m.withPayload(s.toUpperCase()));
+}
+
+@Incoming("in")
+@Outgoing("out-3")
+public Multi&lt;String&gt; processPayloadStream(Multi&lt;String&gt; stream) {
+    return stream
+        .select().where(s -&gt; !s.equalsIgnoreCase("skip"))
+        .onItem().transform(String::toUpperCase);
+}
+
+@Incoming("in")
+@Outgoing("out-4")
+public Multi&lt;Message&lt;String&gt;&gt; processMessageStream(Multi&lt;Message&lt;String&gt;&gt; stream) {
+    return stream
+        .select().where(m -&gt; !m.getPayload().equalsIgnoreCase("skip"))
+        .onItem().transform(m -&gt; m.withPayload(m.getPayload().toUpperCase()));
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="converters"><a class="anchor" href="#converters"></a>Message Converters</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>SmallRye Reactive Messaging supports <em>message converters</em>, allowing to transform an incoming message into a version accepted by the method.
+If the incoming messages or payload does not match the invoked method&#8217;s expectation, SmallRye Reactive Messaging looks for a suitable converter.
+If found, it converts the incoming message with this converter.</p>
+</div>
+<div class="paragraph">
+<p>Converters can have multiple purposes, but the main use case is about transforming the message&#8217;s payload:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ApplicationScoped
+public class MyConverter implements MessageConverter {
+    @Override
+    public boolean canConvert(Message&lt;?&gt; in, Type target) {
+        // Checks whether this converter can be used to convert the incoming message into a message
+        // containing a payload of the type `target`.
+        return in.getPayload().getClass().equals(String.class)  &amp;&amp; target.equals(Person.class);
+    }
+
+    @Override
+    public Message&lt;?&gt; convert(Message&lt;?&gt; in, Type target) {
+        // Convert the incoming message into the new message.
+        // It's important to build the new message **from** the received one.
+        return in.withPayload(new Person((String) in.getPayload()));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To provide a converter, implement a bean exposing the <code>MessageConverter</code> interface.
+The <code>canConvert</code> method is called during the lookup and verifies if it can handle the conversion.
+The <code>target</code> type is the expected payload type.
+If the converter returns <code>true</code> to <code>canConvert</code>, SmallRye Reactive Messaging calls the <code>convert</code> method to proceed to the conversion.</p>
+</div>
+<div class="paragraph">
+<p>The previous converter can be used in application like the following, to convert <code>Message&lt;String&gt;</code> to <code>Message&lt;Person&gt;</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Outgoing("persons")
+public Multi&lt;String&gt; source() {
+    return Multi.createFrom().items("Neo", "Morpheus", "Trinity");
+}
+
+// The messages need to be converted as they are emitted as Message&lt;String&gt;
+// and consumed as Message&lt;Person&gt;
+@Incoming("persons")
+public void consume(Person p) {
+    // ...
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Converters work for all supported method signatures.
+However, the signature must be well-formed to allow the extraction of the expected payload type.
+Wildcards and raw types do not support conversion.
+If the expected payload type cannot be extracted, or no converter fits, the message is passed as received.</p>
+</div>
+<div class="paragraph">
+<p>If multiple suitable converters are present, implementations should override the <code>getPriority</code> method returning the priority.
+The default priority is <code>100</code>.
+The converter lookup invokes converters with higher priority first.</p>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
