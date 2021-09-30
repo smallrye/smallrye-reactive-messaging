@@ -24,6 +24,12 @@ public class ConnectorFactories {
     private final Map<String, InboundConnector> inbound;
     private final Map<String, OutboundConnector> outbound;
 
+    // CDI requirement for normal scoped beans
+    protected ConnectorFactories() {
+        this.inbound = null;
+        this.outbound = null;
+    }
+
     @Inject
     public ConnectorFactories(
             @Any Instance<InboundConnector> inc,
@@ -55,7 +61,7 @@ public class ConnectorFactories {
                     addToMap(outbound, connector, instance);
                 });
 
-        beanManager.getBeans(IncomingConnectorFactory.class, Any.Literal.INSTANCE)
+        beanManager.getBeans(OutgoingConnectorFactory.class, Any.Literal.INSTANCE)
                 .forEach(bean -> {
                     String connector = extractConnector(bean);
                     OutboundConnector instance = wrap(outFactories.select(ConnectorLiteral.of(connector)).get());
