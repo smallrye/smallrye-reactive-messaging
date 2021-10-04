@@ -43,9 +43,10 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final AtomicBoolean once = new AtomicBoolean();
     private final boolean durable;
     private final long ttl;
-    private final boolean useAnonymousSender;
     private final String configuredAddress;
     private final boolean tracingEnabled;
+
+    private volatile boolean isAnonymous;
 
     public AmqpCreditBasedSender(AmqpConnector connector, ConnectionHolder holder,
             AmqpConnectorOutgoingConfiguration configuration, Uni<AmqpSender> retrieveSender) {
@@ -55,7 +56,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         this.configuration = configuration;
         this.durable = configuration.getDurable();
         this.ttl = configuration.getTtl();
-        this.useAnonymousSender = configuration.getUseAnonymousSender();
         this.configuredAddress = configuration.getAddress().orElseGet(configuration::getChannel);
         this.tracingEnabled = configuration.getTracingEnabled();
     }
@@ -75,6 +75,8 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private Uni<AmqpSender> getSenderAndCredits() {
         return retrieveSender
                 .onItem().call(sender -> {
+                    isAnonymous = configuration.getUseAnonymousSender()
+                            .orElseGet(() -> ConnectionHolder.supportAnonymousRelay(sender.connection()));
                     CompletableFuture<Void> future = new CompletableFuture<>();
                     holder.getContext().runOnContext(() -> {
                         setCreditsAndRequest(sender);
@@ -128,7 +130,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         retrieveSender
                 .onItem().transformToUni(sender -> {
                     try {
-                        return send(sender, message, durable, ttl, configuredAddress, useAnonymousSender, configuration)
+                        return send(sender, message, durable, ttl, configuredAddress, isAnonymous, configuration)
                                 .onItem().transform(m -> Tuple2.of(sender, m));
                     } catch (Exception e) {
                         // Message can be sent - nacking and skipping.

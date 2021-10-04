@@ -4,12 +4,18 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static java.time.Duration.ofSeconds;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import org.apache.qpid.proton.amqp.Symbol;
 
 import io.smallrye.mutiny.Uni;
+import io.vertx.amqp.impl.AmqpConnectionImpl;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpConnection;
 import io.vertx.mutiny.core.Context;
@@ -39,6 +45,28 @@ public class ConnectionHolder {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Retrieves the underlying connection capabilities.
+     * Must be called from the appropriate context.
+     * 
+     * @return the list of capability
+     */
+    public static List<String> capabilities(AmqpConnection connection) {
+        Symbol[] capabilities = ((AmqpConnectionImpl) connection.getDelegate()).unwrap().getRemoteOfferedCapabilities();
+        return Arrays.stream(capabilities).map(Symbol::toString).collect(Collectors.toList());
+    }
+
+    /**
+     * Checks whether the given connection support anonymous relay (and so can create an anonymous sender).
+     * Must be called from the appropriate context.
+     * 
+     * @param connection the connection
+     * @return true if the connection offers the anynymous relay capability
+     */
+    public static boolean supportAnonymousRelay(AmqpConnection connection) {
+        return capabilities(connection).contains("ANONYMOUS-RELAY");
     }
 
     public Vertx getVertx() {

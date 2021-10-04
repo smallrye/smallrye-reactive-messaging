@@ -22,15 +22,14 @@ mp.messaging.incoming.prices.durable=false
 To send messages to RabbitMQ:
 
 * set the destination `address` (anonymous sender are not supported)
-* set `use-anonymous-sender` to `false`
 
 [source, properties]
 ----
 mp.messaging.outgoing.generated-price.connector=smallrye-amqp
 mp.messaging.outgoing.generated-price.address=prices
-mp.messaging.outgoing.generated-price.use-anonymous-sender=false
 ----
 
-As a consequence, it's not possible to change the destination dynamically (using message metadata) when using RabbitMQ.
+It's not possible to change the destination dynamically (using message metadata) when using RabbitMQ.
+The connector automatically detects that the broker does not support anonymous sender (See http://docs.oasis-open.org/amqp/anonterm/v1.0/anonterm-v1.0.html).
 
 Alternatively, you can use the xref:rabbitmq:rabbitmq.adoc[RabbitMQ connector].

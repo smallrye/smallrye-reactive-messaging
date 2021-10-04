@@ -83,9 +83,9 @@ Type: _boolean_ | false | `true`
 
 Type: _long_ | false | `0`
 
-| [.no-hyphens]#*use-anonymous-sender*# | Whether or not the connector should use an anonymous sender.
+| [.no-hyphens]#*use-anonymous-sender*# | Whether or not the connector should use an anonymous sender. Default value is `true` if the broker supports it, `false` otherwise. If not supported, it is not possible to dynamically change the destination address.
 
-Type: _boolean_ | false | `true`
+Type: _boolean_ | false | 
 
 | [.no-hyphens]#*use-ssl*#
 

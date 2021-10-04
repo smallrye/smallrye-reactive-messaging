@@ -81,7 +81,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
 @ConnectorAttribute(name = "credit-retrieval-period", direction = OUTGOING, description = "The period (in milliseconds) between two attempts to retrieve the credits granted by the broker. This time is used when the sender run out of credits.", type = "int", defaultValue = "2000")
-@ConnectorAttribute(name = "use-anonymous-sender", direction = OUTGOING, description = "Whether or not the connector should use an anonymous sender.", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "use-anonymous-sender", direction = OUTGOING, description = "Whether or not the connector should use an anonymous sender. Default value is `true` if the broker supports it, `false` otherwise. If not supported, it is not possible to dynamically change the destination address.", type = "boolean")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
@@ -191,7 +191,6 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
         String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
-        boolean useAnonymousSender = oc.getUseAnonymousSender();
 
         opened.put(oc.getChannel(), false);
 
@@ -211,7 +210,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
                     return holder.getOrEstablishConnection()
                             .onItem().transformToUni(connection -> {
-                                if (useAnonymousSender) {
+                                boolean anonymous = oc.getUseAnonymousSender()
+                                        .orElseGet(() -> ConnectionHolder.supportAnonymousRelay(connection));
+
+                                if (anonymous) {
                                     return connection.createAnonymousSender();
                                 } else {
                                     return connection.createSender(configuredAddress,

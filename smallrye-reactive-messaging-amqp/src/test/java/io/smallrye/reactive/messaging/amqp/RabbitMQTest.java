@@ -43,15 +43,42 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
         weld.addBeanClass(ProducingBean.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "sink")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", host)
-                .put("mp.messaging.outgoing.sink.port", port)
-                .put("mp.messaging.outgoing.sink.durable", false)
-                .put("mp.messaging.outgoing.sink.use-anonymous-sender", false)
-                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
+                .with("mp.messaging.outgoing.sink.address", "sink")
+                .with("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.host", host)
+                .with("mp.messaging.outgoing.sink.port", port)
+                .with("mp.messaging.outgoing.sink.durable", false)
+                .with("mp.messaging.outgoing.sink.use-anonymous-sender", false)
+                .with("mp.messaging.outgoing.sink.tracing-enabled", false)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+    }
+
+    @Test
+    public void testSendingMessagesToRabbitMQWithNotAnonymousDetection() throws InterruptedException {
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consumeIntegers("sink-not-anonymous",
+                v -> latch.countDown());
+
+        weld.addBeanClass(ProducingBean.class);
+
+        new MapBasedConfig()
+                .with("mp.messaging.outgoing.sink.address", "sink-not-anonymous")
+                .with("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.host", host)
+                .with("mp.messaging.outgoing.sink.port", port)
+                .with("mp.messaging.outgoing.sink.durable", false)
+                .with("mp.messaging.outgoing.sink.tracing-enabled", false)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
                 .write();
 
         container = weld.initialize();
