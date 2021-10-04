@@ -86,6 +86,26 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                 });
     }
 
+    public Uni<Boolean> isConnected() {
+        return isConnected(true);
+    }
+
+    public int getHealthTimeout() {
+        return configuration.getHealthTimeout();
+    }
+
+    private Uni<Boolean> isConnected(boolean attemptConnection) {
+        return holder.isConnected()
+                .chain(ok -> {
+                    if (!ok && attemptConnection) {
+                        // Retry connection, this normally happen during the "send" call
+                        return holder.getOrEstablishConnection()
+                                .chain(x -> isConnected(false));
+                    }
+                    return Uni.createFrom().item(ok);
+                });
+    }
+
     @Override
     public void onSubscribe(Subscription subscription) {
         if (this.upstream.compareAndSet(null, subscription)) {
@@ -317,4 +337,5 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                 })
                 .orElse(configuredAddress);
     }
+
 }

@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
 import static java.time.Duration.ofSeconds;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,6 +73,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "link-name", direction = INCOMING_AND_OUTGOING, description = "The name of the link. If not set, the channel name is used.", type = "string")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
 @ConnectorAttribute(name = "tracing-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "health-timeout", direction = INCOMING_AND_OUTGOING, description = "The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.", type = "int", defaultValue = "3")
 
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
@@ -98,9 +100,32 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Instance<AmqpClientOptions> clientOptions;
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
-    private final List<AmqpCreditBasedSender> processors = new CopyOnWriteArrayList<>();
 
+    /**
+     * Tracks the processor used to send messages to AMQP.
+     * The map is used for cleanup and health checks.
+     */
+    private final Map<String, AmqpCreditBasedSender> processors = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks the state of the AMQP connection.
+     * The boolean is set to {@code true} when the connection with the AMQP broker is established, and set to
+     * {@code false} once the connection is lost and retry attempts have failed.
+     * This map is used for health check:
+     *
+     * <ul>
+     * <li>liveness: failed if opened is set to false for a channel</li>
+     * </li>readiness: failed if opened is set to false for a channel</li>
+     * </ul>
+     *
+     */
     private final Map<String, Boolean> opened = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks the consumer connection holder.
+     * This map is used for cleanup and health checks.
+     */
+    private final Map<String, ConnectionHolder> holders = new ConcurrentHashMap<>();
 
     void setup(ExecutionHolder executionHolder) {
         this.executionHolder = executionHolder;
@@ -158,6 +183,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions);
         String link = ic.getLinkName().orElseGet(ic::getChannel);
         ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
+        holders.put(ic.getChannel(), holder);
 
         AmqpFailureHandler onNack = createFailureHandler(ic);
 
@@ -240,7 +266,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 holder,
                 oc,
                 getSender);
-        processors.add(processor);
+        processors.put(oc.getChannel(), processor);
 
         return ReactiveStreams.<Message<?>> builder()
                 .via(processor)
@@ -253,7 +279,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
-        processors.forEach(AmqpCreditBasedSender::cancel);
+        processors.values().forEach(AmqpCreditBasedSender::cancel);
         clients.forEach(AmqpClient::closeAndForget);
         clients.clear();
     }
@@ -292,12 +318,45 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         return clients;
     }
 
+    /**
+     * Readiness verify that we have an established connection with the broker.
+     * If the connection is disconnected, readiness is set to false.
+     * However, liveness may still be true because of the retry.
+     *
+     * @return the report
+     */
     @Override
     public HealthReport getReadiness() {
-        return getHealth();
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        for (Map.Entry<String, ConnectionHolder> holder : holders.entrySet()) {
+            try {
+                builder.add(holder.getKey(), holder.getValue().isConnected().await()
+                        .atMost(Duration.ofSeconds(holder.getValue().getHealthTimeout())));
+            } catch (Exception e) {
+                builder.add(holder.getKey(), false, e.getMessage());
+            }
+        }
+
+        for (Map.Entry<String, AmqpCreditBasedSender> sender : processors.entrySet()) {
+            try {
+                builder.add(sender.getKey(), sender.getValue().isConnected().await()
+                        .atMost(Duration.ofSeconds(sender.getValue().getHealthTimeout())));
+            } catch (Exception e) {
+                builder.add(sender.getKey(), false, e.getMessage());
+            }
+        }
+
+        return builder.build();
     }
 
-    private HealthReport getHealth() {
+    /**
+     * Liveness checks if a connection is established with the broker.
+     * Liveness is set to false after all the retry attempt have been re-attempted.
+     *
+     * @return the report
+     */
+    @Override
+    public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         for (Map.Entry<String, Boolean> entry : opened.entrySet()) {
             builder.add(entry.getKey(), entry.getValue());
@@ -306,8 +365,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    public HealthReport getLiveness() {
-        return getHealth();
+    public HealthReport getStartup() {
+        return getLiveness();
     }
 
     public void reportFailure(String channel, Throwable reason) {

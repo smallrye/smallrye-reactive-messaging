@@ -47,10 +47,25 @@ public class ConnectionHolder {
         }
     }
 
+    public Uni<Boolean> isConnected() {
+        CurrentConnection connection = holder.get();
+        if (connection == null) {
+            return Uni.createFrom().item(false);
+        }
+
+        AmqpConnection underlying = connection.connection;
+        if (underlying == null) {
+            return Uni.createFrom().item(false);
+        }
+
+        return Uni.createFrom().item(() -> !underlying.isDisconnected())
+                .runSubscriptionOn(connection.context::runOnContext);
+    }
+
     /**
      * Retrieves the underlying connection capabilities.
      * Must be called from the appropriate context.
-     * 
+     *
      * @return the list of capability
      */
     public static List<String> capabilities(AmqpConnection connection) {
@@ -61,7 +76,7 @@ public class ConnectionHolder {
     /**
      * Checks whether the given connection support anonymous relay (and so can create an anonymous sender).
      * Must be called from the appropriate context.
-     * 
+     *
      * @param connection the connection
      * @return true if the connection offers the anynymous relay capability
      */
@@ -71,6 +86,10 @@ public class ConnectionHolder {
 
     public Vertx getVertx() {
         return vertx;
+    }
+
+    public int getHealthTimeout() {
+        return configuration.getHealthTimeout();
     }
 
     private static class CurrentConnection {
@@ -136,8 +155,7 @@ public class ConnectionHolder {
                                 }
                                 return conn;
                             })
-                            .onFailure()
-                            .invoke(log::unableToConnectToBroker)
+                            .onFailure().invoke(log::unableToConnectToBroker)
                             .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
                             .onFailure().invoke(t -> {
                                 holder.set(null);

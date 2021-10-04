@@ -31,6 +31,10 @@ Type: _int_ | false | `2000`
 
 Type: _boolean_ | false | `false`
 
+| [.no-hyphens]#*health-timeout*# | The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.
+
+Type: _int_ | false | `3`
+
 | [.no-hyphens]#*host*#
 
 [.no-hyphens]#_(amqp-host)_# | The broker hostname
