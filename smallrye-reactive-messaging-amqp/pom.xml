@@ -124,6 +124,11 @@
           </excludes>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.jboss.jandex</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+      </plugin>
     </plugins>
   </build>
 
@@ -154,8 +159,8 @@
           <plugin>
             <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
-               <excludes combine.self="override">
-               </excludes>
+              <excludes combine.self="override">
+              </excludes>
             </configuration>
           </plugin>
         </plugins>

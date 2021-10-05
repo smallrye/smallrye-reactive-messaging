@@ -45,6 +45,15 @@
       </dependency>
     </dependencies>
 
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>org.jboss.jandex</groupId>
+          <artifactId>jandex-maven-plugin</artifactId>
+        </plugin>
+      </plugins>
+    </build>
+
     <profiles>
         <profile>
             <id>coverage</id>
