@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * This class should not be used directly. Instead, multiple {@link ConnectorAttribute} should be used on the
  * class annotated with {@link org.eclipse.microprofile.reactive.messaging.spi.Connector}.
  */
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface ConnectorAttributes {
 

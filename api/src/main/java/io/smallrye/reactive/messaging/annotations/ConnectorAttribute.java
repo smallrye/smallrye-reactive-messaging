@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 /**
  * Annotation used to declare an attribute on the connector.
  */
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Target(TYPE)
 @Repeatable(ConnectorAttributes.class)
 public @interface ConnectorAttribute {
