@@ -15,9 +15,11 @@ import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 
 public class ConnectionHolder {
+
     private final RabbitMQClient client;
     private final RabbitMQConnectorCommonConfiguration configuration;
-    private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
+    private final AtomicReference<CurrentConnection> connectionHolder = new AtomicReference<>();
+    private final Uni<RabbitMQClient> connector;
 
     private final Vertx vertx;
 
@@ -27,6 +29,37 @@ public class ConnectionHolder {
         this.client = client;
         this.configuration = configuration;
         this.vertx = vertx;
+        this.connector = Uni.createFrom().voidItem()
+                .onItem().transformToUni(unused -> {
+                    log.establishingConnection(configuration.getChannel());
+                    return client.start()
+                            .onSubscription().invoke(() -> log.connectionEstablished(configuration.getChannel()))
+                            .onItem().transform(ignored -> {
+                                connectionHolder.set(new CurrentConnection(client, Vertx.currentContext()));
+
+                                // handle the case we are already disconnected.
+                                if (!client.isConnected() || connectionHolder.get() == null) {
+                                    // Throwing the exception would trigger a retry.
+                                    connectionHolder.set(null);
+                                    throw ex.illegalStateConnectionDisconnected();
+                                }
+
+                                return client;
+                            })
+                            .onFailure().invoke(ex -> log.unableToConnectToBroker(ex))
+                            .onFailure().invoke(t -> {
+                                connectionHolder.set(null);
+                                log.unableToRecoverFromConnectionDisruption(t);
+                            });
+                })
+                .memoize().until(() -> {
+                    CurrentConnection connection = connectionHolder.get();
+                    if (connection == null) {
+                        return true;
+                    }
+                    return !connection.connection.isConnected();
+                });
+
     }
 
     public static CompletionStage<Void> runOnContext(Context context, Runnable runnable) {
@@ -43,7 +76,8 @@ public class ConnectionHolder {
         return future;
     }
 
-    public static CompletionStage<Void> runOnContextAndReportFailure(Context context, Throwable reason, Runnable runnable) {
+    public static CompletionStage<Void> runOnContextAndReportFailure(Context context, Throwable reason,
+            Runnable runnable) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         if (Vertx.currentContext() == context) {
             runnable.run();
@@ -58,7 +92,7 @@ public class ConnectionHolder {
     }
 
     public Context getContext() {
-        CurrentConnection connection = holder.get();
+        CurrentConnection connection = connectionHolder.get();
         if (connection != null) {
             return connection.context;
         } else {
@@ -84,47 +118,11 @@ public class ConnectionHolder {
     }
 
     public Uni<RabbitMQClient> getOrEstablishConnection() {
-        return Uni.createFrom().item(() -> {
-            final CurrentConnection connection = holder.get();
-            if (connection != null && connection.connection != null && connection.connection.isConnected()) {
-                return connection.connection;
-            } else {
-                return null;
-            }
-        })
-                .onItem().ifNull().switchTo(() -> {
-                    // we don't have a connection, try to connect.
-                    CurrentConnection reference = holder.get();
-
-                    if (reference != null && reference.connection != null && reference.connection.isConnected()) {
-                        RabbitMQClient connection = reference.connection;
-                        return Uni.createFrom().item(connection);
-                    }
-
-                    log.establishingConnection(configuration.getChannel());
-                    return client.start()
-                            .onSubscribe().invoke(() -> log.connectionEstablished(configuration.getChannel()))
-                            .onItem().transform(ignored -> {
-                                holder.set(new CurrentConnection(client, Vertx.currentContext()));
-
-                                // handle the case we are already disconnected.
-                                if (!client.isConnected() || holder.get() == null) {
-                                    // Throwing the exception would trigger a retry.
-                                    holder.set(null);
-                                    throw ex.illegalStateConnectionDisconnected();
-                                }
-
-                                return client;
-                            })
-                            .onFailure().invoke(ex -> log.unableToConnectToBroker(ex))
-                            .onFailure().invoke(t -> {
-                                holder.set(null);
-                                log.unableToRecoverFromConnectionDisruption(t);
-                            });
-                });
+        return connector;
     }
 
     private static class CurrentConnection {
+
         final RabbitMQClient connection;
         final Context context;
 
