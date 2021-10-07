@@ -56,11 +56,4 @@ public class AmqpBroker {
         }
     }
 
-    public static void restartBroker() {
-        if (instance != null) {
-            instance.stop();
-        }
-        new AmqpBroker().start();
-    }
-
 }

@@ -85,6 +85,10 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `true`
 
+| [.no-hyphens]#*health-timeout*# | The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.
+
+Type: _int_ | false | `3`
+
 | [.no-hyphens]#*broadcast*# | Whether the received AMQP messages must be dispatched to multiple _subscribers_
 
 Type: _boolean_ | false | `false`
