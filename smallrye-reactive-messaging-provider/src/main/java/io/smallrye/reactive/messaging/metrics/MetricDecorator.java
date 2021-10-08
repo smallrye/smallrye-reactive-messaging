@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.metrics;
 
 import java.util.function.Consumer;
 
-import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
@@ -16,7 +15,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 
-@ApplicationScoped
 public class MetricDecorator implements PublisherDecorator {
 
     private MetricRegistry registry;

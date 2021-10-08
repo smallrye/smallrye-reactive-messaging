@@ -30,6 +30,12 @@
       <artifactId>microprofile-metrics-api</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <version>${micrometer.version}</version>
+      <optional>true</optional>
+    </dependency>
 
     <dependency>
       <groupId>io.reactivex.rxjava2</groupId>

@@ -76,6 +76,8 @@
     <smallrye-testing.version>0.1.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>5.2.1</smallrye-fault-tolerance.version>
 
+    <micrometer.version>1.7.4</micrometer.version>
+
     <mutiny.version>0.18.1</mutiny.version>
     <artemis.version>2.18.0</artemis.version>
 
@@ -166,6 +168,12 @@
         <version>${microprofile-metrics-api.version}</version>
         <scope>provided</scope>
       </dependency>
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-core</artifactId>
+        <version>${micrometer.version}</version>
+        <optional>true</optional>
+      </dependency>
 
       <dependency>
         <groupId>io.smallrye.config</groupId>
@@ -194,6 +202,7 @@
         <groupId>io.smallrye</groupId>
         <artifactId>smallrye-metrics</artifactId>
         <version>${smallrye-metrics.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <dependency>
