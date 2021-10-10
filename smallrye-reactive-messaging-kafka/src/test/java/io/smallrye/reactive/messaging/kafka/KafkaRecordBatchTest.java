@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,7 +42,7 @@ public class KafkaRecordBatchTest {
 
     @BeforeEach
     void setupRecords() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(commitHandler.handle(any())).thenReturn(CompletableFuture.completedFuture(null));
         when(onNack.handle(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
 
