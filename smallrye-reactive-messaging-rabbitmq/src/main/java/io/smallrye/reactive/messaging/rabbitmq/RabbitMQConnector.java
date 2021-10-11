@@ -10,7 +10,6 @@ import static java.time.Duration.ofSeconds;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -350,47 +349,31 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         // Create a client
         final RabbitMQClient client = createClient(new RabbitMQConnectorCommonConfiguration(config));
 
-        // This will hold our publisher, assuming we can get hold of one
-        final AtomicReference<RabbitMQPublisher> sender = new AtomicReference<>();
-
         final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
-        final Uni<RabbitMQPublisher> getSender = Uni.createFrom().item(sender.get())
-                .onItem().ifNull().switchTo(() -> {
-
-                    // If we already have a sender, use it.
-                    RabbitMQPublisher current = sender.get();
-                    if (current != null && client.isConnected()) {
-                        return Uni.createFrom().item(current);
-                    }
-
-                    return holder.getOrEstablishConnection()
-                            // Once connected, ensure we create the exchange to which messages are to be sent
-                            .onItem().call(connection -> establishExchange(connection, oc))
-                            // Once exchange exists, create ourselves a publisher
-                            .onItem()
-                            .transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
-                                    new RabbitMQPublisherOptions()
-                                            .setReconnectAttempts(oc.getReconnectAttempts())
-                                            .setReconnectInterval(oc.getReconnectInterval())
-                                            .setMaxInternalQueueSize(
-                                                    oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE)))))
-                            // Start the publisher
-                            .onItem().call(RabbitMQPublisher::start)
-                            .invoke(s -> {
-                                // Make a note of the publisher and add the channel in the opened state
-                                sender.set(s);
-                                outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.CONNECTED);
-                            });
+        final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
+                // Once connected, ensure we create the exchange to which messages are to be sent
+                .onItem().call(connection -> {
+                    return establishExchange(connection, oc);
                 })
-                // If the downstream cancels or on failure, drop the sender.
-                .onFailure().invoke(t -> {
-                    sender.set(null);
-                    outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED);
+                // Once exchange exists, create ourselves a publisher
+                .onItem().transformToUni(connection -> {
+                    return Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
+                            new RabbitMQPublisherOptions()
+                                    .setReconnectAttempts(oc.getReconnectAttempts())
+                                    .setReconnectInterval(oc.getReconnectInterval())
+                                    .setMaxInternalQueueSize(
+                                            oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE))));
                 })
-                .onCancellation().invoke(() -> {
-                    sender.set(null);
-                    outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED);
-                });
+                // Start the publisher
+                .onItem().call(RabbitMQPublisher::start)
+                .invoke(s -> {
+                    // Add the channel in the opened state
+                    outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.CONNECTED);
+                })
+                .onFailure().invoke(t -> outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED))
+                .onFailure().recoverWithNull()
+                .memoize().indefinitely()
+                .onCancellation().invoke(() -> outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED));
 
         // Set up a sender based on the publisher we established above
         final RabbitMQMessageSender processor = new RabbitMQMessageSender(
