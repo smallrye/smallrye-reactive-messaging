@@ -196,4 +196,39 @@ public class IncomingRabbitMQMetadata {
     public Optional<String> getCorrelationId() {
         return Optional.ofNullable(message.properties().getCorrelationId());
     }
+
+    /**
+     * The exchange the message was delivered to.
+     * <p>
+     * Stored in the message envelope.
+     *
+     * @return the name of the message's exchange.
+     */
+    public String getExchange() {
+        return message.envelope().getExchange();
+    }
+
+    /**
+     * The routing key for the exchange the message was delivered to.
+     * <p>
+     * Stored in the message envelope.
+     *
+     * @return the message's routing key.
+     */
+    public String getRoutingKey() {
+        return message.envelope().getRoutingKey();
+    }
+
+    /**
+     * This is a hint as to whether this message may have been delivered before (but not acknowledged). If the
+     * flag is not set, the message definitely has not been delivered before.
+     * If it is set, it may have been delivered before.
+     * <p>
+     * Stored in the message envelope.
+     *
+     * @return the message's redelivery flag.
+     */
+    public boolean isRedeliver() {
+        return message.envelope().isRedeliver();
+    }
 }
