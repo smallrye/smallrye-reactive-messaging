@@ -2,7 +2,9 @@ package io.smallrye.reactive.messaging.camel.outgoing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.apache.camel.Exchange;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
@@ -10,6 +12,10 @@ import io.smallrye.reactive.messaging.camel.CamelTestBase;
 public class OutgoingCamelTest extends CamelTestBase {
 
     private static final String DESTINATION = "seda:camel";
+
+    private static final String HEADER_KEY = "headerKey";
+
+    private static final String HEADER_VALUE = "headerValue";
 
     @Test
     public void testWithABeanDeclaringACamelPublisher() {
@@ -101,4 +107,15 @@ public class OutgoingCamelTest extends CamelTestBase {
         assertThat(bean.values()).contains("a", "b", "c", "d");
     }
 
+    @Test
+    void testWithBeanDeclaringASimpleProcessorThatForwardIncomingHeaders() {
+        addClasses(BeanWithSimpleCamelProcessor.class);
+        initialize();
+        BeanWithSimpleCamelProcessor bean = bean(BeanWithSimpleCamelProcessor.class);
+
+        camelContext().createProducerTemplate().sendBodyAndHeader(DESTINATION, "a", HEADER_KEY, HEADER_VALUE);
+        Exchange exchange = camelContext().createConsumerTemplate().receive(DESTINATION, 5000);
+
+        assertEquals(HEADER_VALUE, exchange.getIn().getHeader(HEADER_KEY));
+    }
 }
