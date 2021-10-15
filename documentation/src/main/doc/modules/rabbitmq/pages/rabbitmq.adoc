@@ -19,6 +19,7 @@ The *AMQP connector* supports the AMQP 1.0 protocol, which is very different fro
 include::installation.adoc[]
 include::inbound.adoc[]
 include::outbound.adoc[]
+include::client-customization.adoc[]
 include::health.adoc[]
 include::cloud.adoc[]
 
