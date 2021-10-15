@@ -2,7 +2,6 @@ package generation;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import messages.MessageExamples;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;

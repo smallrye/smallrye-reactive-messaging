@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
@@ -17,7 +18,6 @@ import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 public class ConnectionHolder {
 
     private final RabbitMQClient client;
-    private final RabbitMQConnectorCommonConfiguration configuration;
     private final AtomicReference<CurrentConnection> connectionHolder = new AtomicReference<>();
     private final Uni<RabbitMQClient> connector;
 
@@ -27,7 +27,6 @@ public class ConnectionHolder {
             RabbitMQConnectorCommonConfiguration configuration,
             Vertx vertx) {
         this.client = client;
-        this.configuration = configuration;
         this.vertx = vertx;
         this.connector = Uni.createFrom().voidItem()
                 .onItem().transformToUni(unused -> {
@@ -46,7 +45,7 @@ public class ConnectionHolder {
 
                                 return client;
                             })
-                            .onFailure().invoke(ex -> log.unableToConnectToBroker(ex))
+                            .onFailure().invoke(log::unableToConnectToBroker)
                             .onFailure().invoke(t -> {
                                 connectionHolder.set(null);
                                 log.unableToRecoverFromConnectionDisruption(t);
@@ -100,6 +99,7 @@ public class ConnectionHolder {
         }
     }
 
+    @CheckReturnValue
     public Uni<Void> getAck(final long deliveryTag) {
         return client.basicAck(deliveryTag, false);
     }
@@ -117,6 +117,7 @@ public class ConnectionHolder {
         // As RabbitMQClient doesn't have a failure callback mechanism, there isn't much we can do here
     }
 
+    @CheckReturnValue
     public Uni<RabbitMQClient> getOrEstablishConnection() {
         return connector;
     }

@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.serde;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.assertj.core.api.Assertions.fail;
 import static org.awaitility.Awaitility.await;
 
 import java.util.ArrayList;

@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.Cancellable;
 import io.smallrye.reactive.messaging.MutinyEmitter;
@@ -20,6 +21,7 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> send(T payload) {
         if (payload == null) {
             throw ex.illegalArgumentForNullValue();

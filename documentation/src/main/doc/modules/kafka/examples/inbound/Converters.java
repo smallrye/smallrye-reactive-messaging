@@ -3,10 +3,8 @@ package inbound;
 import io.smallrye.reactive.messaging.kafka.Record;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Message;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.concurrent.CompletionStage;
 
 @ApplicationScoped
 public class Converters {

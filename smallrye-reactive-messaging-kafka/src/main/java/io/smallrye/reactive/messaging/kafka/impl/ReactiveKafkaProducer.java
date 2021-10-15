@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -24,6 +25,7 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.utils.Utils;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
@@ -91,12 +93,14 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public <T> Uni<T> runOnSendingThread(Function<Producer<K, V>, T> action) {
         return Uni.createFrom().item(() -> action.apply(producer))
                 .runSubscriptionOn(kafkaWorker);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> runOnSendingThread(java.util.function.Consumer<Producer<K, V>> action) {
         return Uni.createFrom().<Void> item(() -> {
             action.accept(producer);
@@ -105,6 +109,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<RecordMetadata> send(ProducerRecord<K, V> record) {
         return Uni.createFrom().<RecordMetadata> emitter(em -> {
             producer.send(record, (metadata, exception) -> {
@@ -123,13 +128,13 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> flush() {
-        return runOnSendingThread(producer -> {
-            producer.flush();
-        });
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::flush);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<List<PartitionInfo>> partitionsFor(String topic) {
         return runOnSendingThread(producer -> {
             return producer.partitionsFor(topic);
@@ -202,7 +207,4 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         }
     }
 
-    boolean isClosed() {
-        return closed.get();
-    }
 }

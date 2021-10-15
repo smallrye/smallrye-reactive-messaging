@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -129,8 +130,8 @@ public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
     }
 
     private void waitFoPartitionAssignment() throws InterruptedException {
-        assertTrue("Partitions not assigned",
-                assignSemaphore.tryAcquire(sessionTimeoutMillis + 1000, TimeUnit.MILLISECONDS));
+        Assertions.assertTrue(
+                assignSemaphore.tryAcquire(sessionTimeoutMillis + 1000, TimeUnit.MILLISECONDS), "Partitions not assigned");
     }
 
 }

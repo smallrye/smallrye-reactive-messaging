@@ -9,6 +9,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 
 /**
@@ -35,6 +36,7 @@ public interface KafkaConsumer<K, V> {
      * @param <R> the type of result, can be {@code Void}
      * @return the Uni emitting the result or the failure when the action completes.
      */
+    @CheckReturnValue
     <R> Uni<R> runOnPollingThread(Function<Consumer<K, V>, R> action);
 
     /**
@@ -47,6 +49,7 @@ public interface KafkaConsumer<K, V> {
      * @param action the action, must not be {@code null}
      * @return the Uni emitting {@code null} or the failure when the action completes.
      */
+    @CheckReturnValue
     Uni<Void> runOnPollingThread(java.util.function.Consumer<Consumer<K, V>> action);
 
     /**
@@ -55,6 +58,7 @@ public interface KafkaConsumer<K, V> {
      *
      * @return the Uni emitting when the action completes, the set of topic/partition paused by this call.
      */
+    @CheckReturnValue
     Uni<Set<TopicPartition>> pause();
 
     /**
@@ -62,6 +66,7 @@ public interface KafkaConsumer<K, V> {
      *
      * @return the Uni emitting the set of topic/partition paused.
      */
+    @CheckReturnValue
     Uni<Set<TopicPartition>> paused();
 
     /**
@@ -70,6 +75,7 @@ public interface KafkaConsumer<K, V> {
      * @param tps the set of topic/partition to query, must not be {@code null}, must not be empty.
      * @return the Uni emitting the offset for the underlying consumer for each of the passed topic/partition.
      */
+    @CheckReturnValue
     Uni<Map<TopicPartition, OffsetAndMetadata>> committed(TopicPartition... tps);
 
     /**
@@ -78,6 +84,7 @@ public interface KafkaConsumer<K, V> {
      *
      * @return the Uni indicating when the resume action completes.
      */
+    @CheckReturnValue
     Uni<Void> resume();
 
     /**
@@ -91,6 +98,7 @@ public interface KafkaConsumer<K, V> {
      * @param map the map of topic/partition -> offset to commit
      * @return the Uni emitting {@code null} when the commit has been executed.
      */
+    @CheckReturnValue
     Uni<Void> commit(
             Map<TopicPartition, OffsetAndMetadata> map);
 
@@ -99,6 +107,7 @@ public interface KafkaConsumer<K, V> {
      *
      * @return the Uni emitting the map of topic/partition -> position.
      */
+    @CheckReturnValue
     Uni<Map<TopicPartition, Long>> getPositions();
 
     /**
@@ -106,6 +115,7 @@ public interface KafkaConsumer<K, V> {
      *
      * @return the Uni emitting the set of topic/partition currently assigned to the consumer
      */
+    @CheckReturnValue
     Uni<Set<TopicPartition>> getAssignments();
 
     /**
@@ -119,6 +129,7 @@ public interface KafkaConsumer<K, V> {
      *         it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this
      *         consumer
      */
+    @CheckReturnValue
     Uni<Void> seek(TopicPartition partition, long offset);
 
     /**
@@ -133,6 +144,7 @@ public interface KafkaConsumer<K, V> {
      *         it completes with {@code IllegalStateException} if the provided {@code TopicPartition} is not assigned to this
      *         consumer
      */
+    @CheckReturnValue
     Uni<Void> seek(TopicPartition partition, OffsetAndMetadata offsetAndMetadata);
 
     /**
@@ -145,6 +157,7 @@ public interface KafkaConsumer<K, V> {
      *         it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently
      *         assigned to this consumer
      */
+    @CheckReturnValue
     Uni<Void> seekToBeginning(Collection<TopicPartition> partitions);
 
     /**
@@ -157,6 +170,7 @@ public interface KafkaConsumer<K, V> {
      *         it completes with {@code IllegalStateException} if any of the provided {@code TopicPartition}s are not currently
      *         assigned to this consumer
      */
+    @CheckReturnValue
     Uni<Void> seekToEnd(Collection<TopicPartition> partitions);
 
 }

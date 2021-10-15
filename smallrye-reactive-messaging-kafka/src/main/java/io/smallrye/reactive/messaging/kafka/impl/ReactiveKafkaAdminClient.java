@@ -7,6 +7,7 @@ import java.util.Set;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 
@@ -19,6 +20,7 @@ public class ReactiveKafkaAdminClient implements KafkaAdmin {
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Set<String>> listTopics() {
         return Uni.createFrom().future(adminClient.listTopics().names());
     }

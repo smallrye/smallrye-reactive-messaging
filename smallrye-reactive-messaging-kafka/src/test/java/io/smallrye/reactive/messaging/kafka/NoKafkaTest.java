@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -190,7 +189,6 @@ public class NoKafkaTest extends KafkaTestBase {
     public static class MyOutgoingBeanWithoutBackPressure {
 
         private final AtomicReference<Throwable> failure = new AtomicReference<>();
-        private final AtomicBoolean subscribed = new AtomicBoolean();
 
         public Throwable failure() {
             return failure.get();
@@ -199,8 +197,6 @@ public class NoKafkaTest extends KafkaTestBase {
         @Outgoing("temperature-values")
         public Multi<String> generate() {
             return Multi.createFrom().ticks().every(Duration.ofMillis(200))
-                    // No overflow management - we want it to fail.
-                    .onSubscribe().invoke(() -> subscribed.set(true))
                     .map(l -> Long.toString(l))
                     .onFailure().invoke(failure::set);
         }

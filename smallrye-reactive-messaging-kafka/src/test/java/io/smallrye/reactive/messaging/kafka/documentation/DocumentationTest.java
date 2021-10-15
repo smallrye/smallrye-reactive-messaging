@@ -32,7 +32,7 @@ public class DocumentationTest extends KafkaTestBase {
     }
 
     @Test
-    public void testMessageKafkaPriceConsumer() throws InterruptedException {
+    public void testMessageKafkaPriceConsumer() {
         KafkaPriceMessageConsumer consumer = runApplication(getConsumerConfiguration(), KafkaPriceMessageConsumer.class);
 
         await().until(this::isReady);

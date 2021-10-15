@@ -37,7 +37,7 @@ public class CamelApi {
         }
 
         @Override
-        public void configure() throws Exception {
+        public void configure() {
             from("seda:camel").process(
                 exchange -> exchange.getMessage().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
                 .to("reactive-streams:my-stream");

@@ -244,7 +244,7 @@ public class UnorderedBlockingTest extends WeldTestBaseWithoutTails {
 
         @Incoming("in")
         @Outgoing("bar")
-        public Multi<String> process(Multi<String> s) throws InterruptedException {
+        public Multi<String> process(Multi<String> s) {
             return s.select().first(100);
         }
 
@@ -284,7 +284,7 @@ public class UnorderedBlockingTest extends WeldTestBaseWithoutTails {
 
         @Incoming("in")
         @Outgoing("bar")
-        public Multi<String> process(Multi<String> s) throws InterruptedException {
+        public Multi<String> process(Multi<String> s) {
             return s.select().first(100);
         }
 

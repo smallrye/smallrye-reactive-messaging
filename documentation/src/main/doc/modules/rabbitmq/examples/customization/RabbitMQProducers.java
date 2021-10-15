@@ -3,7 +3,6 @@ package customization;
 import javax.enterprise.inject.Produces;
 
 import io.smallrye.common.annotation.Identifier;
-import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PemTrustOptions;
 import io.vertx.rabbitmq.RabbitMQOptions;
