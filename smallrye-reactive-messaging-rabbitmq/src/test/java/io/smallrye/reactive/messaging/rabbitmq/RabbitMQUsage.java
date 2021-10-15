@@ -30,9 +30,6 @@ import org.jboss.logging.Logger;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.HeadersMapExtractAdapter;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
@@ -162,29 +159,12 @@ public class RabbitMQUsage {
         LOGGER.infof("Created consumer");
     }
 
-    public void consumeIntegersWithTracing(String exchange, String routingKey, Consumer<Integer> consumer,
-            Consumer<Context> tracingConsumer) {
-        this.consume(exchange, routingKey,
-                (msg) -> {
-                    consumer.accept(msg.body().getInt(0));
-                    tracingConsumer.accept(
-                            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                                    .extract(Context.current(), msg.properties().getHeaders(),
-                                            HeadersMapExtractAdapter.GETTER));
-                });
-    }
-
     public void close() {
         client.stopAndAwait();
     }
 
     void produceTenIntegers(String exchange, String queue, String routingKey, Supplier<Integer> messageSupplier) {
         this.produce(exchange, queue, routingKey, 10, messageSupplier::get);
-    }
-
-    public void consumeStrings(String exchange, String routingKey, Consumer<String> consumerFunction) {
-
-        this.consume(exchange, routingKey, value -> consumerFunction.accept(value.body().toString()));
     }
 
     /**

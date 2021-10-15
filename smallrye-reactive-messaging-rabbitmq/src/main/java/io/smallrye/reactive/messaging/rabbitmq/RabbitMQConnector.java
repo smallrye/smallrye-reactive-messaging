@@ -7,7 +7,10 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static java.time.Duration.ofSeconds;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -18,6 +21,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.Reception;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -46,7 +51,6 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.JksOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.mutiny.rabbitmq.RabbitMQConsumer;
@@ -74,12 +78,13 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "reconnect-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of reconnection attempts", type = "int", alias = "rabbitmq-reconnect-attempts", defaultValue = "100")
 @ConnectorAttribute(name = "reconnect-interval", direction = INCOMING_AND_OUTGOING, description = "The interval (in seconds) between two reconnection attempts", type = "int", alias = "rabbitmq-reconnect-interval", defaultValue = "10")
 @ConnectorAttribute(name = "network-recovery-interval", direction = INCOMING_AND_OUTGOING, description = "How long (ms) will automatic recovery wait before attempting to reconnect", type = "int", defaultValue = "5000")
-@ConnectorAttribute(name = "user", direction = INCOMING_AND_OUTGOING, description = "The AMQP user name to use when connecting to the broker", type = "string", defaultValue = "guest")
+@ConnectorAttribute(name = "user", direction = INCOMING_AND_OUTGOING, description = "The user name to use when connecting to the broker", type = "string", defaultValue = "guest")
 @ConnectorAttribute(name = "include-properties", direction = INCOMING_AND_OUTGOING, description = "Whether to include properties when a broker message is passed on the event bus", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "requested-channel-max", direction = INCOMING_AND_OUTGOING, description = "The initially requested maximum channel number", type = "int", defaultValue = "2047")
 @ConnectorAttribute(name = "requested-heartbeat", direction = INCOMING_AND_OUTGOING, description = "The initially requested heartbeat interval (seconds), zero for none", type = "int", defaultValue = "60")
 @ConnectorAttribute(name = "use-nio", direction = INCOMING_AND_OUTGOING, description = "Whether usage of NIO Sockets is enabled", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "virtual-host", direction = INCOMING_AND_OUTGOING, description = "The virtual host to use when connecting to the broker", type = "string", defaultValue = "/", alias = "rabbitmq-virtual-host")
+@ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Client Option bean used to customize the RabbitMQ client configuration", type = "string", alias = "rabbitmq-client-options-name")
 
 // Exchange
 @ConnectorAttribute(name = "exchange.name", direction = INCOMING_AND_OUTGOING, description = "The exchange that messages are published to or consumed from. If not set, the channel name is used", type = "string")
@@ -144,6 +149,10 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     @Inject
     ExecutionHolder executionHolder;
 
+    @Inject
+    @Any
+    private Instance<RabbitMQOptions> clientOptions;
+
     RabbitMQConnector() {
         // used for proxies
     }
@@ -207,7 +216,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         incomingChannelStatus.put(ic.getChannel(), ChannelStatus.INITIALISING);
 
         // Create a client
-        final RabbitMQClient client = createClient(new RabbitMQConnectorCommonConfiguration(config));
+        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions);
 
         final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
         final RabbitMQFailureHandler onNack = createFailureHandler(ic);
@@ -290,43 +299,6 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                                 .onItem().transform(v -> deadLetterQueueName));
     }
 
-    private RabbitMQClient createClient(final RabbitMQConnectorCommonConfiguration config) {
-        final RabbitMQOptions rabbitMQClientConfig = new RabbitMQOptions()
-                .setHost(config.getHost())
-                .setPort(config.getPort())
-                .setSsl(config.getSsl())
-                .setTrustAll(config.getTrustAll())
-                .setAutomaticRecoveryEnabled(config.getAutomaticRecoveryEnabled())
-                .setAutomaticRecoveryOnInitialConnection(config.getAutomaticRecoveryOnInitialConnection())
-                .setReconnectAttempts(config.getReconnectAttempts())
-                .setReconnectInterval(config.getReconnectInterval())
-                .setUser(config.getUser())
-                .setConnectionTimeout(config.getConnectionTimeout())
-                .setHandshakeTimeout(config.getHandshakeTimeout())
-                .setIncludeProperties(config.getIncludeProperties())
-                .setNetworkRecoveryInterval(config.getNetworkRecoveryInterval())
-                .setRequestedChannelMax(config.getRequestedChannelMax())
-                .setRequestedHeartbeat(config.getRequestedHeartbeat())
-                .setUseNio(config.getUseNio())
-                .setVirtualHost(config.getVirtualHost());
-
-        // JKS TrustStore
-        Optional<String> trustStorePath = config.getTrustStorePath();
-        if (trustStorePath.isPresent()) {
-            JksOptions jks = new JksOptions();
-            jks.setPath(trustStorePath.get());
-            config.getTrustStorePassword().ifPresent(jks::setPassword);
-            rabbitMQClientConfig.setTrustStoreOptions(jks);
-        }
-
-        config.getUsername().ifPresent(rabbitMQClientConfig::setUser);
-        config.getPassword().ifPresent(rabbitMQClientConfig::setPassword);
-
-        final RabbitMQClient client = RabbitMQClient.create(getVertx(), rabbitMQClientConfig);
-        addClient(client);
-        return client;
-    }
-
     /**
      * Creates a <em>channel</em> for the given configuration. The channel's configuration is associated with a
      * specific {@code connector}, using the {@link Connector} qualifier's parameter indicating a key to
@@ -347,23 +319,19 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.INITIALISING);
 
         // Create a client
-        final RabbitMQClient client = createClient(new RabbitMQConnectorCommonConfiguration(config));
+        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, oc, clientOptions);
 
         final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
                 // Once connected, ensure we create the exchange to which messages are to be sent
-                .onItem().call(connection -> {
-                    return establishExchange(connection, oc);
-                })
+                .onItem().call(connection -> establishExchange(connection, oc))
                 // Once exchange exists, create ourselves a publisher
-                .onItem().transformToUni(connection -> {
-                    return Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
-                            new RabbitMQPublisherOptions()
-                                    .setReconnectAttempts(oc.getReconnectAttempts())
-                                    .setReconnectInterval(oc.getReconnectInterval())
-                                    .setMaxInternalQueueSize(
-                                            oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE))));
-                })
+                .onItem().transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
+                        new RabbitMQPublisherOptions()
+                                .setReconnectAttempts(oc.getReconnectAttempts())
+                                .setReconnectInterval(oc.getReconnectInterval())
+                                .setMaxInternalQueueSize(
+                                        oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE)))))
                 // Start the publisher
                 .onItem().call(RabbitMQPublisher::start)
                 .invoke(s -> {
@@ -431,11 +399,11 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         clients.clear();
     }
 
-    private Vertx getVertx() {
+    public Vertx getVertx() {
         return executionHolder.vertx();
     }
 
-    private void addClient(RabbitMQClient client) {
+    public void addClient(RabbitMQClient client) {
         clients.add(client);
     }
 

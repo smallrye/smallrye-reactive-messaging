@@ -111,4 +111,16 @@ public interface RabbitMQLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 17034, value = "A message sent to channel `%s` has not been explicitly ack'd as auto-ack is enabled")
     void ackAutoMessage(String channel);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 17035, value = "Creating RabbitMQ client from bean named '%s'")
+    void createClientFromBean(String optionsBeanName);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 17036, value = "RabbitMQ broker configured to %s:%d for channel %s")
+    void brokerConfigured(String host, int port, String channel);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 17037, value = "Unable to create client")
+    void unableToCreateClient(@Cause Throwable t);
 }

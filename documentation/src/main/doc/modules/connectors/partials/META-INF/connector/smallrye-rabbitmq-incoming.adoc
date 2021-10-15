@@ -83,7 +83,7 @@ Type: _int_ | false | `10`
 
 Type: _int_ | false | `5000`
 
-| [.no-hyphens]#*user*# | The AMQP user name to use when connecting to the broker
+| [.no-hyphens]#*user*# | The user name to use when connecting to the broker
 
 Type: _string_ | false | `guest`
 
@@ -108,6 +108,12 @@ Type: _boolean_ | false | `false`
 [.no-hyphens]#_(rabbitmq-virtual-host)_# | The virtual host to use when connecting to the broker
 
 Type: _string_ | false | `/`
+
+| [.no-hyphens]#*client-options-name*#
+
+[.no-hyphens]#_(rabbitmq-client-options-name)_# | The name of the RabbitMQ Client Option bean used to customize the RabbitMQ client configuration
+
+Type: _string_ | false | 
 
 | [.no-hyphens]#*exchange.name*# | The exchange that messages are published to or consumed from. If not set, the channel name is used
 

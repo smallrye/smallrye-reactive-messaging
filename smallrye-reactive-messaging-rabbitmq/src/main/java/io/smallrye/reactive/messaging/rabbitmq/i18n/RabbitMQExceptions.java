@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.i18n;
 
 import org.jboss.logging.Messages;
+import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
@@ -10,6 +11,9 @@ import org.jboss.logging.annotations.MessageBundle;
 @MessageBundle(projectCode = "SRMSG", length = 5)
 public interface RabbitMQExceptions {
     RabbitMQExceptions ex = Messages.getBundle(RabbitMQExceptions.class);
+
+    @Message(id = 16000, value = "Cannot find a %s bean named %s")
+    IllegalStateException illegalStateFindingBean(String className, String beanName);
 
     @Message(id = 16001, value = "Expecting downstream to consume without back-pressure")
     IllegalStateException illegalStateConsumeWithoutBackPressure();
@@ -34,4 +38,7 @@ public interface RabbitMQExceptions {
 
     @Message(id = 16008, value = "If specified, the value of queue.ttl must be greater than or equal to 0")
     IllegalArgumentException illegalArgumentInvalidQueueTtl();
+
+    @Message(id = 16009, value = "Unable to create a client, probably a config error")
+    IllegalStateException illegalStateUnableToCreateClient(@Cause Throwable t);
 }

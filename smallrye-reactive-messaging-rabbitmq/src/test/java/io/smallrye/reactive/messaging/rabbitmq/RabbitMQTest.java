@@ -328,8 +328,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         final String routingKey = "normal";
 
         CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers(exchangeName, routingKey,
-                v -> latch.countDown());
+        usage.consumeIntegers(exchangeName, routingKey, v -> latch.countDown());
 
         weld.addBeanClass(ProducingBean.class);
 
