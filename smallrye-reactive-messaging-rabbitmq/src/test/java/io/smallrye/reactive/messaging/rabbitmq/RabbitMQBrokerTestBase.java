@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import javax.enterprise.inject.Any;
+import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.util.AnnotationLiteral;
 
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -18,6 +19,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -33,7 +35,7 @@ public class RabbitMQBrokerTestBase {
                     .withExposedPorts(5672, 15672)
                     .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
                     .waitingFor(
-                            Wait.forLogMessage(".*Server startup complete; 3 plugins started.*\\n", 1))
+                            Wait.forLogMessage(".*Server startup complete.*\\n", 1))
                     .withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
                             BindMode.READ_ONLY);
 
@@ -55,6 +57,8 @@ public class RabbitMQBrokerTestBase {
 
         System.setProperty("rabbitmq-host", host);
         System.setProperty("rabbitmq-port", Integer.toString(port));
+        System.setProperty("rabbitmq-username", username);
+        System.setProperty("rabbitmq-password", password);
     }
 
     @AfterAll
@@ -98,4 +102,13 @@ public class RabbitMQBrokerTestBase {
         return connector.getHealth(true).isOk();
     }
 
+    public boolean isRabbitMQConnectorReady(SeContainer container) {
+        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        return health.getReadiness().isOk();
+    }
+
+    public boolean isRabbitMQConnectorAlive(SeContainer container) {
+        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        return health.getLiveness().isOk();
+    }
 }

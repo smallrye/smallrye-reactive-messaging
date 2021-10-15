@@ -11,6 +11,12 @@ Type: _boolean_ | false | `false`
 
 Type: _boolean_ | false | `true`
 
+| [.no-hyphens]#*client-options-name*#
+
+[.no-hyphens]#_(rabbitmq-client-options-name)_# | The name of the RabbitMQ Client Option bean used to customize the RabbitMQ client configuration
+
+Type: _string_ | false | 
+
 | [.no-hyphens]#*connection-timeout*# | The TCP connection timeout (ms); 0 is interpreted as no timeout
 
 Type: _int_ | false | `60000`
@@ -137,7 +143,7 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `false`
 
-| [.no-hyphens]#*user*# | The AMQP user name to use when connecting to the broker
+| [.no-hyphens]#*user*# | The user name to use when connecting to the broker
 
 Type: _string_ | false | `guest`
 
