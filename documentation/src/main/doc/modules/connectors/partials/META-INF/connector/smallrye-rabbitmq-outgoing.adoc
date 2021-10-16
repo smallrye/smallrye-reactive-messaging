@@ -21,6 +21,12 @@ Type: _string_ | false |
 
 Type: _int_ | false | `60000`
 
+| [.no-hyphens]#*credentials-provider-name*#
+
+[.no-hyphens]#_(rabbitmq-credentials-provider-name)_# | The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client
+
+Type: _string_ | false | 
+
 | [.no-hyphens]#*default-routing-key*# | The default routing key to use when sending messages to the exchange
 
 Type: _string_ | false | ``

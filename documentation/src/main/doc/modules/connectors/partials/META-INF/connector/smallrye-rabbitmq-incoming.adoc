@@ -33,6 +33,12 @@ Type: _string_ | false |
 
 Type: _int_ | false | `60000`
 
+| [.no-hyphens]#*credentials-provider-name*#
+
+[.no-hyphens]#_(rabbitmq-credentials-provider-name)_# | The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client
+
+Type: _string_ | false | 
+
 | [.no-hyphens]#*dead-letter-exchange*# | A DLX to assign to the queue. Relevant only if auto-bind-dlq is true
 
 Type: _string_ | false | `DLX`
