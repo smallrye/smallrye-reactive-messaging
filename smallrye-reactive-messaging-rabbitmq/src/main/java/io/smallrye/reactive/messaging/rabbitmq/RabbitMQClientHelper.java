@@ -71,7 +71,6 @@ public class RabbitMQClientHelper {
                     .setAutomaticRecoveryOnInitialConnection(config.getAutomaticRecoveryOnInitialConnection())
                     .setReconnectAttempts(config.getReconnectAttempts())
                     .setReconnectInterval(config.getReconnectInterval())
-                    .setUser(config.getUser())
                     .setConnectionTimeout(config.getConnectionTimeout())
                     .setHandshakeTimeout(config.getHandshakeTimeout())
                     .setIncludeProperties(config.getIncludeProperties())
