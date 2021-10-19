@@ -12,13 +12,11 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 
 @ApplicationScoped
 public class KafkaRecordBatchExample {
 
-    @SuppressWarnings("unchecked")
     // tag::code[]
     @Incoming("prices")
     public CompletionStage<Void> consumeMessage(KafkaRecordBatch<String, Double> records) {

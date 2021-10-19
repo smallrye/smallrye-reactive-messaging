@@ -22,6 +22,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -102,12 +103,14 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public <T> Uni<T> runOnPollingThread(Function<Consumer<K, V>, T> action) {
         return Uni.createFrom().item(() -> action.apply(consumer))
                 .runSubscriptionOn(kafkaWorker);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> runOnPollingThread(java.util.function.Consumer<Consumer<K, V>> action) {
         return Uni.createFrom().<Void> item(() -> {
             action.accept(consumer);
@@ -154,6 +157,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Set<TopicPartition>> pause() {
         if (paused.compareAndSet(false, true)) {
             return runOnPollingThread(c -> {
@@ -167,17 +171,20 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Set<TopicPartition>> paused() {
         return runOnPollingThread((Function<Consumer<K, V>, Set<TopicPartition>>) Consumer::paused);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Map<TopicPartition, OffsetAndMetadata>> committed(TopicPartition... tps) {
         return runOnPollingThread(c -> {
             return c.committed(new LinkedHashSet<>(Arrays.asList(tps)));
         });
     }
 
+    @CheckReturnValue
     public Multi<ConsumerRecord<K, V>> subscribe(Set<String> topics) {
         return runOnPollingThread(c -> {
             c.subscribe(topics, rebalanceListener);
@@ -185,6 +192,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
                 .onItem().transformToMulti(v -> stream);
     }
 
+    @CheckReturnValue
     public Multi<ConsumerRecord<K, V>> subscribe(Pattern topics) {
         return runOnPollingThread(c -> {
             c.subscribe(topics, rebalanceListener);
@@ -192,6 +200,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
                 .onItem().transformToMulti(v -> stream);
     }
 
+    @CheckReturnValue
     Multi<ConsumerRecords<K, V>> subscribeBatch(Set<String> topics) {
         return runOnPollingThread(c -> {
             c.subscribe(topics, rebalanceListener);
@@ -199,6 +208,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
                 .onItem().transformToMulti(v -> batchStream);
     }
 
+    @CheckReturnValue
     Multi<ConsumerRecords<K, V>> subscribeBatch(Pattern topics) {
         return runOnPollingThread(c -> {
             c.subscribe(topics, rebalanceListener);
@@ -207,6 +217,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> resume() {
         if (paused.get()) {
             return runOnPollingThread(c -> {
@@ -324,6 +335,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> commit(
             Map<TopicPartition, OffsetAndMetadata> map) {
         return runOnPollingThread(c -> {
@@ -369,6 +381,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Map<TopicPartition, Long>> getPositions() {
         return runOnPollingThread(c -> {
             Map<TopicPartition, Long> map = new HashMap<>();
@@ -379,11 +392,13 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Set<TopicPartition>> getAssignments() {
         return runOnPollingThread((Function<Consumer<K, V>, Set<TopicPartition>>) Consumer::assignment);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> seek(TopicPartition partition, long offset) {
         return runOnPollingThread(c -> {
             c.seek(partition, offset);
@@ -391,6 +406,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> seek(TopicPartition partition, OffsetAndMetadata offsetAndMetadata) {
         return runOnPollingThread(c -> {
             c.seek(partition, offsetAndMetadata);
@@ -398,6 +414,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> seekToBeginning(Collection<TopicPartition> partitions) {
         return runOnPollingThread(c -> {
             c.seekToBeginning(partitions);
@@ -405,6 +422,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> seekToEnd(Collection<TopicPartition> partitions) {
         return runOnPollingThread(c -> {
             c.seekToEnd(partitions);

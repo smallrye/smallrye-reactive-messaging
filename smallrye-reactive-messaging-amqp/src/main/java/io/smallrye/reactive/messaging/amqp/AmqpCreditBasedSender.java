@@ -22,6 +22,7 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
@@ -86,6 +87,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                 });
     }
 
+    @CheckReturnValue
     public Uni<Boolean> isConnected() {
         return isConnected(true);
     }

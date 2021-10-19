@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.serde;
 
+import static io.smallrye.reactive.messaging.kafka.Record.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
@@ -18,7 +19,6 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.*;
-import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.base.*;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -50,8 +50,8 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().items(
-                Message.of(Record.of("key", "value")), Message.of(Record.of(null, "value")),
-                Message.of(Record.of("key", null)), Message.of(Record.of(null, null)))
+                Message.of(of("key", "value")), Message.of(of(null, "value")),
+                Message.of(of("key", null)), Message.of(of(null, null)))
                 .subscribe((Subscriber<? super Message<?>>) subscriber);
 
         await().until(() -> list.size() == 4);
@@ -79,7 +79,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
-                Message.of(Record.of(125.25, new JsonObject().put("k", "v"))).withNack(t -> {
+                Message.of(of(125.25, new JsonObject().put("k", "v"))).withNack(t -> {
                     nacked.set(true);
                     return CompletableFuture.completedFuture(null);
                 })).subscribe((Subscriber<? super Message<?>>) subscriber);
@@ -97,7 +97,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
-                Message.of(Record.of(new JsonObject().put("k", "v"), 125.25)).withNack(t -> {
+                Message.of(of(new JsonObject().put("k", "v"), 125.25)).withNack(t -> {
                     nacked.set(true);
                     return CompletableFuture.completedFuture(null);
                 })).subscribe((Subscriber<? super Message<?>>) subscriber);

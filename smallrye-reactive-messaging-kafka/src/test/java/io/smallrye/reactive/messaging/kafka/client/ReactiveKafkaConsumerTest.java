@@ -1043,8 +1043,8 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
     }
 
     private void waitFoPartitionAssignment() throws InterruptedException {
-        assertTrue("Partitions not assigned",
-                assignSemaphore.tryAcquire(sessionTimeoutMillis + 1000, TimeUnit.MILLISECONDS));
+        Assertions.assertTrue(
+                assignSemaphore.tryAcquire(sessionTimeoutMillis + 1000, TimeUnit.MILLISECONDS), "Partitions not assigned");
     }
 
 }

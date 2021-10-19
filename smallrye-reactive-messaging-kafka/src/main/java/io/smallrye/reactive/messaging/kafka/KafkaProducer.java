@@ -8,6 +8,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 
 /**
@@ -41,6 +42,7 @@ public interface KafkaProducer<K, V> {
      * @param <R> the type of result, can be {@code Void}
      * @return the Uni emitting the result or the failure when the action completes.
      */
+    @CheckReturnValue
     <R> Uni<R> runOnSendingThread(Function<Producer<K, V>, R> action);
 
     /**
@@ -53,12 +55,14 @@ public interface KafkaProducer<K, V> {
      * @param action the action, must not be {@code null}
      * @return the Uni emitting {@code null} or the failure when the action completes.
      */
+    @CheckReturnValue
     Uni<Void> runOnSendingThread(java.util.function.Consumer<Producer<K, V>> action);
 
     /**
      * Send a record to a topic. The returned {@link Uni} completes with {@link RecordMetadata} when the send
      * has been acknowledged, or with an exception in case of an error.
      */
+    @CheckReturnValue
     Uni<RecordMetadata> send(ProducerRecord<K, V> record);
 
     /**
@@ -67,11 +71,13 @@ public interface KafkaProducer<K, V> {
      * previous {@link #send(ProducerRecord)} operations are known to be complete as well.
      * No guarantee is made about the completion of records sent after {@code flush} was called.
      */
+    @CheckReturnValue
     Uni<Void> flush();
 
     /**
      * Returns a list of partition metadata for given topic.
      */
+    @CheckReturnValue
     Uni<List<PartitionInfo>> partitionsFor(String topic);
 
     /**

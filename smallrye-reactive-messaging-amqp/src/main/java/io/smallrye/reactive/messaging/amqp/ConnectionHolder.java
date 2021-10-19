@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import org.apache.qpid.proton.amqp.Symbol;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.vertx.amqp.impl.AmqpConnectionImpl;
 import io.vertx.mutiny.amqp.AmqpClient;
@@ -47,6 +48,7 @@ public class ConnectionHolder {
         }
     }
 
+    @CheckReturnValue
     public Uni<Boolean> isConnected() {
         CurrentConnection connection = holder.get();
         if (connection == null) {
@@ -106,6 +108,7 @@ public class ConnectionHolder {
         this.callback = callback;
     }
 
+    @CheckReturnValue
     public Uni<AmqpConnection> getOrEstablishConnection() {
         return Uni.createFrom().item(() -> {
             CurrentConnection connection = holder.get();

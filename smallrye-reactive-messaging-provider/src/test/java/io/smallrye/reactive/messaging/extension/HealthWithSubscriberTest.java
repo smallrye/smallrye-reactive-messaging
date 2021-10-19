@@ -14,7 +14,6 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.MyBean;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 /**

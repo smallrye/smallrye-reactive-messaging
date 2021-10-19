@@ -112,7 +112,7 @@ public class Wiring {
             }
 
             resolved.addAll(resolvedDuringThisTurn);
-            unresolved.removeAll(resolvedDuringThisTurn);
+            resolvedDuringThisTurn.forEach(unresolved::remove);
 
             doneOrStale = resolvedDuringThisTurn.isEmpty() || unresolved.isEmpty();
 
@@ -144,7 +144,7 @@ public class Wiring {
             }
         }
         if (!newlyResolved.isEmpty()) {
-            unresolved.removeAll(newlyResolved);
+            newlyResolved.forEach(unresolved::remove);
             resolved.addAll(newlyResolved);
         }
 

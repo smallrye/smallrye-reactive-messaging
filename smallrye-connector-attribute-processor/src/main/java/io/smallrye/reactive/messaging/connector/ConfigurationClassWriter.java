@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.connector;
 
 import static io.smallrye.reactive.messaging.connector.ClassWriter.*;
-import static io.smallrye.reactive.messaging.connector.ClassWriter.generateGetterForAttribute;
 
 import java.io.IOException;
 import java.io.PrintWriter;
