@@ -27,6 +27,8 @@ import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
+import io.smallrye.reactive.messaging.metrics.MetricDecorator;
+import io.smallrye.reactive.messaging.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 
@@ -58,6 +60,8 @@ public class WeldTestBase {
         weld.addBeanClass(KafkaCDIEvents.class);
         weld.addBeanClass(KafkaConnector.class);
         weld.addBeanClass(KafkaClientServiceImpl.class);
+        weld.addBeanClass(MetricDecorator.class);
+        weld.addBeanClass(MicrometerDecorator.class);
         weld.disableDiscovery();
     }
 
