@@ -31,6 +31,7 @@ import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
+import io.smallrye.reactive.messaging.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 
 public class WeldTestBaseWithoutTails {
@@ -100,6 +101,7 @@ public class WeldTestBaseWithoutTails {
                 ChannelProducer.class,
                 ConfiguredChannelFactory.class,
                 ConnectorFactories.class,
+                MicrometerDecorator.class,
                 MetricDecorator.class,
                 HealthCenter.class,
                 // Messaging provider

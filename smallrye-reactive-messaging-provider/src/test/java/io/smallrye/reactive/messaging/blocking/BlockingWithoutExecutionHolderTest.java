@@ -29,6 +29,7 @@ import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.metrics.MetricDecorator;
+import io.smallrye.reactive.messaging.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.wiring.Wiring;
 import io.smallrye.testing.logging.LogCapture;
 
@@ -51,6 +52,7 @@ public class BlockingWithoutExecutionHolderTest extends WeldTestBaseWithoutTails
                 ChannelProducer.class,
                 ConnectorFactories.class,
                 ConfiguredChannelFactory.class,
+                MicrometerDecorator.class,
                 MetricDecorator.class,
                 HealthCenter.class,
                 // Messaging provider
