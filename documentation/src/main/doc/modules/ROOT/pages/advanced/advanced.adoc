@@ -283,3 +283,11 @@ mp.messaging.outgoing.dummy-sink.enabled=false # Disable this channel
 ----
 
 SmallRye Reactive Messaging does not register disabled channels, so make sure the rest of the application does not rely on them.
+
+[#publisher-metrics]
+== Publisher metrics
+
+SmallRye Reactive Messaging integrates MicroProfile Metrics and Micrometer for
+registering counter metrics (named `mp.messaging.message.count`) of published messages per channel.
+
+Both MicroProfile and Micrometer publisher metrics are enabled by default if found on the classpath. They can be disabled with `smallrye.messaging.metrics.mp.enabled` and `smallrye.messaging.metrics.micrometer.enabled` properties respectively.
