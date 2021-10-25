@@ -77,8 +77,7 @@ public class ConnectorAttributeProcessor extends AbstractProcessor {
 
             try {
                 classWriter.generateAllClasses(connector, className, commonAttributes, incomingAttributes, outgoingAttributes);
-                docWriter.generateIncomingDocumentation(connector, commonAttributes, incomingAttributes);
-                docWriter.generateOutgoingDocumentation(connector, commonAttributes, outgoingAttributes);
+                docWriter.generate(connector, commonAttributes, incomingAttributes, outgoingAttributes);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

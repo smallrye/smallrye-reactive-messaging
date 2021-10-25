@@ -3,9 +3,53 @@
 |===
 |Attribute (_alias_) | Description | Mandatory | Default
 
-| [.no-hyphens]#*username*#
+| [.no-hyphens]#*address*# | The AMQP address. If not set, the channel name is used
 
-[.no-hyphens]#_(amqp-username)_# | The username used to authenticate to the broker
+Type: _string_ | false | 
+
+| [.no-hyphens]#*auto-acknowledgement*# | Whether the received AMQP messages must be acknowledged when received
+
+Type: _boolean_ | false | `false`
+
+| [.no-hyphens]#*broadcast*# | Whether the received AMQP messages must be dispatched to multiple _subscribers_
+
+Type: _boolean_ | false | `false`
+
+| [.no-hyphens]#*client-options-name*#
+
+[.no-hyphens]#_(amqp-client-options-name)_# | The name of the AMQP Client Option bean used to customize the AMQP client configuration
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*connect-timeout*#
+
+[.no-hyphens]#_(amqp-connect-timeout)_# | The connection timeout in milliseconds
+
+Type: _int_ | false | `1000`
+
+| [.no-hyphens]#*container-id*# | The AMQP container id
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*durable*# | Whether AMQP subscription is durable
+
+Type: _boolean_ | false | `false`
+
+| [.no-hyphens]#*failure-strategy*# | Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Accepted values are `fail` (default), `accept`, `release`, `reject`, `modified-failed`, `modified-failed-undeliverable-here`
+
+Type: _string_ | false | `fail`
+
+| [.no-hyphens]#*health-timeout*# | The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.
+
+Type: _int_ | false | `3`
+
+| [.no-hyphens]#*host*#
+
+[.no-hyphens]#_(amqp-host)_# | The broker hostname
+
+Type: _string_ | false | `localhost`
+
+| [.no-hyphens]#*link-name*# | The name of the link. If not set, the channel name is used.
 
 Type: _string_ | false | 
 
@@ -15,35 +59,11 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
-| [.no-hyphens]#*host*#
-
-[.no-hyphens]#_(amqp-host)_# | The broker hostname
-
-Type: _string_ | false | `localhost`
-
 | [.no-hyphens]#*port*#
 
 [.no-hyphens]#_(amqp-port)_# | The broker port
 
 Type: _int_ | false | `5672`
-
-| [.no-hyphens]#*use-ssl*#
-
-[.no-hyphens]#_(amqp-use-ssl)_# | Whether the AMQP connection uses SSL/TLS
-
-Type: _boolean_ | false | `false`
-
-| [.no-hyphens]#*virtual-host*#
-
-[.no-hyphens]#_(amqp-virtual-host)_# | If set, configure the hostname value used for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*sni-server-name*#
-
-[.no-hyphens]#_(amqp-sni-server-name)_# | If set, explicitly override the hostname to use for the TLS SNI server name
-
-Type: _string_ | false | 
 
 | [.no-hyphens]#*reconnect-attempts*#
 
@@ -57,27 +77,9 @@ Type: _int_ | false | `100`
 
 Type: _int_ | false | `10`
 
-| [.no-hyphens]#*connect-timeout*#
+| [.no-hyphens]#*sni-server-name*#
 
-[.no-hyphens]#_(amqp-connect-timeout)_# | The connection timeout in milliseconds
-
-Type: _int_ | false | `1000`
-
-| [.no-hyphens]#*container-id*# | The AMQP container id
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*address*# | The AMQP address. If not set, the channel name is used
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*link-name*# | The name of the link. If not set, the channel name is used.
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*client-options-name*#
-
-[.no-hyphens]#_(amqp-client-options-name)_# | The name of the AMQP Client Option bean used to customize the AMQP client configuration
+[.no-hyphens]#_(amqp-sni-server-name)_# | If set, explicitly override the hostname to use for the TLS SNI server name
 
 Type: _string_ | false | 
 
@@ -85,24 +87,22 @@ Type: _string_ | false |
 
 Type: _boolean_ | false | `true`
 
-| [.no-hyphens]#*health-timeout*# | The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.
+| [.no-hyphens]#*use-ssl*#
 
-Type: _int_ | false | `3`
-
-| [.no-hyphens]#*broadcast*# | Whether the received AMQP messages must be dispatched to multiple _subscribers_
+[.no-hyphens]#_(amqp-use-ssl)_# | Whether the AMQP connection uses SSL/TLS
 
 Type: _boolean_ | false | `false`
 
-| [.no-hyphens]#*durable*# | Whether AMQP subscription is durable
+| [.no-hyphens]#*username*#
 
-Type: _boolean_ | false | `false`
+[.no-hyphens]#_(amqp-username)_# | The username used to authenticate to the broker
 
-| [.no-hyphens]#*auto-acknowledgement*# | Whether the received AMQP messages must be acknowledged when received
+Type: _string_ | false | 
 
-Type: _boolean_ | false | `false`
+| [.no-hyphens]#*virtual-host*#
 
-| [.no-hyphens]#*failure-strategy*# | Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Accepted values are `fail` (default), `accept`, `release`, `reject`, `modified-failed`, `modified-failed-undeliverable-here`
+[.no-hyphens]#_(amqp-virtual-host)_# | If set, configure the hostname value used for the connection AMQP Open frame and TLS SNI server name (if TLS is in use)
 
-Type: _string_ | false | `fail`
+Type: _string_ | false | 
 
 |===

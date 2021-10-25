@@ -41,7 +41,7 @@ public class ConfigurationDocWriterTest {
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         try (PrintWriter pw = new PrintWriter(boas)) {
-            writer.generateIncomingDocumentation(connector, attributes, Collections.emptyList(), pw);
+            writer.generateDocumentation(connector, "Incoming", attributes, Collections.emptyList(), pw);
             pw.flush();
         }
         String content = boas.toString("UTF-8");
@@ -49,7 +49,7 @@ public class ConfigurationDocWriterTest {
 
         boas = new ByteArrayOutputStream();
         try (PrintWriter pw = new PrintWriter(boas)) {
-            writer.generateOutgoingDocumentation(connector, attributes, Collections.emptyList(), pw);
+            writer.generateDocumentation(connector, "Outgoing", attributes, Collections.emptyList(), pw);
             pw.flush();
         }
         content = boas.toString("UTF-8");

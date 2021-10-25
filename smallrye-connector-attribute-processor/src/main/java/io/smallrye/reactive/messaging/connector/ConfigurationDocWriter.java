@@ -23,7 +23,14 @@ public class ConfigurationDocWriter {
         this.environment = env;
     }
 
-    public void generateIncomingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
+    public void generate(Connector connector, List<ConnectorAttribute> commonAttributes,
+            List<ConnectorAttribute> incomingAttributes, List<ConnectorAttribute> outgoingAttributes) throws IOException {
+        generateIncomingDocumentation(connector, commonAttributes, incomingAttributes);
+        generateOutgoingDocumentation(connector, commonAttributes, outgoingAttributes);
+
+    }
+
+    private void generateIncomingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
             List<ConnectorAttribute> incomingAttributes)
             throws IOException {
         FileObject resource = environment.getFiler()
@@ -31,29 +38,12 @@ public class ConfigurationDocWriter {
                         "META-INF/connector/" + connector.value() + "-incoming.adoc");
         resource.delete();
         try (PrintWriter writer = new PrintWriter(resource.openWriter())) {
-            generateIncomingDocumentation(connector, commonAttributes, incomingAttributes, writer);
+            generateDocumentation(connector, "Incoming", commonAttributes, incomingAttributes, writer);
         }
     }
 
-    void generateIncomingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
-            List<ConnectorAttribute> incomingAttributes, PrintWriter out) {
-        out.println(".Incoming Attributes of the '" + connector.value() + "' connector");
-        writeTableBegin(out);
-        commonAttributes.forEach(att -> {
-            if (!att.hiddenFromDocumentation()) {
-                generateLine(att, out);
-            }
-        });
-        incomingAttributes.forEach(att -> {
-            if (!att.hiddenFromDocumentation()) {
-                generateLine(att, out);
-            }
-        });
-        out.println("|===");
-    }
-
-    public void generateOutgoingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
-            List<ConnectorAttribute> incomingAttributes)
+    private void generateOutgoingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
+            List<ConnectorAttribute> outgoingAttributes)
             throws IOException {
         FileObject resource = environment.getFiler()
                 .createResource(StandardLocation.CLASS_OUTPUT, "",
@@ -61,19 +51,17 @@ public class ConfigurationDocWriter {
         resource.delete();
 
         try (PrintWriter writer = new PrintWriter(resource.openWriter())) {
-            generateOutgoingDocumentation(connector, commonAttributes, incomingAttributes, writer);
+            generateDocumentation(connector, "Outgoing", commonAttributes, outgoingAttributes, writer);
         }
-
     }
 
-    void generateOutgoingDocumentation(Connector connector, List<ConnectorAttribute> commonAttributes,
-            List<ConnectorAttribute> incomingAttributes, PrintWriter out) {
-        // merge and sort the attributes
+    void generateDocumentation(Connector connector, String direction, List<ConnectorAttribute> commonAttributes,
+            List<ConnectorAttribute> specificAttributes, PrintWriter out) {
         List<ConnectorAttribute> list = new ArrayList<>(commonAttributes);
-        list.addAll(incomingAttributes);
+        list.addAll(specificAttributes);
         list.sort(Comparator.comparing(ConnectorAttribute::name));
 
-        out.println(".Outgoing Attributes of the '" + connector.value() + "' connector");
+        out.println("." + direction + " Attributes of the '" + connector.value() + "' connector");
         writeTableBegin(out);
         list.forEach(att -> {
             if (!att.hiddenFromDocumentation()) {
@@ -81,7 +69,6 @@ public class ConfigurationDocWriter {
             }
         });
         out.println("|===");
-
     }
 
     private void writeTableBegin(PrintWriter out) {

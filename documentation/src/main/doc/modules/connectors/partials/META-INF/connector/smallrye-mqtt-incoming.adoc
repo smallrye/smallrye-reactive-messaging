@@ -3,9 +3,9 @@
 |===
 |Attribute (_alias_) | Description | Mandatory | Default
 
-| [.no-hyphens]#*client-id*# | Set the client identifier
+| [.no-hyphens]#*auto-clean-session*# | Set to start with a clean session (`true` by default)
 
-Type: _string_ | false | 
+Type: _boolean_ | false | `true`
 
 | [.no-hyphens]#*auto-generated-client-id*# | Set if the MQTT client must generate clientId automatically
 
@@ -15,13 +15,61 @@ Type: _boolean_ | false | `true`
 
 Type: _boolean_ | false | `true`
 
-| [.no-hyphens]#*ssl*# | Set whether SSL/TLS is enabled
+| [.no-hyphens]#*broadcast*# | Whether or not the messages should be dispatched to multiple consumers
 
 Type: _boolean_ | false | `false`
 
-| [.no-hyphens]#*ssl.keystore.type*# | Set the keystore type [`pkcs12`, `jks`, `pem`]
+| [.no-hyphens]#*client-id*# | Set the client identifier
 
-Type: _string_ | false | `pkcs12`
+Type: _string_ | false | 
+
+| [.no-hyphens]#*connect-timeout-seconds*# | Set the connect timeout (in seconds)
+
+Type: _int_ | false | `60`
+
+| [.no-hyphens]#*failure-strategy*# | Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`
+
+Type: _string_ | false | `fail`
+
+| [.no-hyphens]#*host*# | Set the MQTT server host name/IP
+
+Type: _string_ | true | 
+
+| [.no-hyphens]#*keep-alive-seconds*# | Set the keep alive timeout in seconds
+
+Type: _int_ | false | `30`
+
+| [.no-hyphens]#*max-inflight-queue*# | Set max count of unacknowledged messages
+
+Type: _int_ | false | `10`
+
+| [.no-hyphens]#*max-message-size*# | Set max MQTT message size in bytes
+
+Type: _int_ | false | `8092`
+
+| [.no-hyphens]#*password*# | Set the password to connect to the server
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*port*# | Set the MQTT server port. Default to 8883 if ssl is enabled, or 1883 without ssl
+
+Type: _int_ | false | 
+
+| [.no-hyphens]#*qos*# | Set the QoS level when subscribing to the topic or when sending a message
+
+Type: _int_ | false | `0`
+
+| [.no-hyphens]#*reconnect-interval-seconds*# | Set the reconnect interval in seconds
+
+Type: _int_ | false | `1`
+
+| [.no-hyphens]#*server-name*# | Set the SNI server name
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*ssl*# | Set whether SSL/TLS is enabled
+
+Type: _boolean_ | false | `false`
 
 | [.no-hyphens]#*ssl.keystore.location*# | Set the keystore location. In case of `pem` type this is the cert path
 
@@ -31,7 +79,7 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
-| [.no-hyphens]#*ssl.truststore.type*# | Set the truststore type
+| [.no-hyphens]#*ssl.keystore.type*# | Set the keystore type [`pkcs12`, `jks`, `pem`]
 
 Type: _string_ | false | `pkcs12`
 
@@ -43,23 +91,23 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
-| [.no-hyphens]#*keep-alive-seconds*# | Set the keep alive timeout in seconds
+| [.no-hyphens]#*ssl.truststore.type*# | Set the truststore type
 
-Type: _int_ | false | `30`
+Type: _string_ | false | `pkcs12`
 
-| [.no-hyphens]#*max-inflight-queue*# | Set max count of unacknowledged messages
+| [.no-hyphens]#*topic*# | Set the MQTT topic. If not set, the channel name is used
 
-Type: _int_ | false | `10`
+Type: _string_ | false | 
 
-| [.no-hyphens]#*auto-clean-session*# | Set to start with a clean session (`true` by default)
-
-Type: _boolean_ | false | `true`
-
-| [.no-hyphens]#*will-flag*# | Set if will information are provided on connection
+| [.no-hyphens]#*trust-all*# | Set whether all server certificates should be trusted
 
 Type: _boolean_ | false | `false`
 
-| [.no-hyphens]#*will-retain*# | Set if the will message must be retained
+| [.no-hyphens]#*username*# | Set the username to connect to the server
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*will-flag*# | Set if will information are provided on connection
 
 Type: _boolean_ | false | `false`
 
@@ -67,56 +115,8 @@ Type: _boolean_ | false | `false`
 
 Type: _int_ | false | `0`
 
-| [.no-hyphens]#*max-message-size*# | Set max MQTT message size in bytes
-
-Type: _int_ | false | `8092`
-
-| [.no-hyphens]#*reconnect-interval-seconds*# | Set the reconnect interval in seconds
-
-Type: _int_ | false | `1`
-
-| [.no-hyphens]#*username*# | Set the username to connect to the server
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*password*# | Set the password to connect to the server
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*connect-timeout-seconds*# | Set the connect timeout (in seconds)
-
-Type: _int_ | false | `60`
-
-| [.no-hyphens]#*trust-all*# | Set whether all server certificates should be trusted
+| [.no-hyphens]#*will-retain*# | Set if the will message must be retained
 
 Type: _boolean_ | false | `false`
-
-| [.no-hyphens]#*host*# | Set the MQTT server host name/IP
-
-Type: _string_ | true | 
-
-| [.no-hyphens]#*port*# | Set the MQTT server port. Default to 8883 if ssl is enabled, or 1883 without ssl
-
-Type: _int_ | false | 
-
-| [.no-hyphens]#*server-name*# | Set the SNI server name
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*topic*# | Set the MQTT topic. If not set, the channel name is used
-
-Type: _string_ | false | 
-
-| [.no-hyphens]#*qos*# | Set the QoS level when subscribing to the topic or when sending a message
-
-Type: _int_ | false | `0`
-
-| [.no-hyphens]#*broadcast*# | Whether or not the messages should be dispatched to multiple consumers
-
-Type: _boolean_ | false | `false`
-
-| [.no-hyphens]#*failure-strategy*# | Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`
-
-Type: _string_ | false | `fail`
 
 |===

@@ -3,23 +3,15 @@
 |===
 |Attribute (_alias_) | Description | Mandatory | Default
 
-| [.no-hyphens]#*connection-factory-name*# | The name of the JMS connection factory  (`javax.jms.ConnectionFactory`) to be used. If not set, it uses any exposed JMS connection factory
+| [.no-hyphens]#*broadcast*# | Whether or not the JMS message should be dispatched to multiple consumers
 
-Type: _String_ | false | 
-
-| [.no-hyphens]#*username*# | The username to connect to to the JMS server
-
-Type: _String_ | false | 
-
-| [.no-hyphens]#*password*# | The password to connect to to the JMS server
-
-Type: _String_ | false | 
-
-| [.no-hyphens]#*session-mode*# | The session mode. Accepted values are AUTO_ACKNOWLEDGE, SESSION_TRANSACTED, CLIENT_ACKNOWLEDGE, DUPS_OK_ACKNOWLEDGE
-
-Type: _String_ | false | `AUTO_ACKNOWLEDGE`
+Type: _boolean_ | false | `false`
 
 | [.no-hyphens]#*client-id*# | The client id
+
+Type: _String_ | false | 
+
+| [.no-hyphens]#*connection-factory-name*# | The name of the JMS connection factory  (`javax.jms.ConnectionFactory`) to be used. If not set, it uses any exposed JMS connection factory
 
 Type: _String_ | false | 
 
@@ -31,20 +23,28 @@ Type: _String_ | false |
 
 Type: _string_ | false | `queue`
 
-| [.no-hyphens]#*selector*# | The JMS selector
+| [.no-hyphens]#*durable*# | Set to `true` to use a durable subscription
 
-Type: _String_ | false | 
+Type: _boolean_ | false | `false`
 
 | [.no-hyphens]#*no-local*# | Enable or disable local delivery
 
 Type: _boolean_ | false | `false`
 
-| [.no-hyphens]#*broadcast*# | Whether or not the JMS message should be dispatched to multiple consumers
+| [.no-hyphens]#*password*# | The password to connect to to the JMS server
 
-Type: _boolean_ | false | `false`
+Type: _String_ | false | 
 
-| [.no-hyphens]#*durable*# | Set to `true` to use a durable subscription
+| [.no-hyphens]#*selector*# | The JMS selector
 
-Type: _boolean_ | false | `false`
+Type: _String_ | false | 
+
+| [.no-hyphens]#*session-mode*# | The session mode. Accepted values are AUTO_ACKNOWLEDGE, SESSION_TRANSACTED, CLIENT_ACKNOWLEDGE, DUPS_OK_ACKNOWLEDGE
+
+Type: _String_ | false | `AUTO_ACKNOWLEDGE`
+
+| [.no-hyphens]#*username*# | The username to connect to to the JMS server
+
+Type: _String_ | false | 
 
 |===
