@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.extension;
 
+import static io.smallrye.reactive.messaging.helpers.ConverterUtils.convert;
 import static io.smallrye.reactive.messaging.i18n.ProviderExceptions.ex;
 
 import java.lang.annotation.Annotation;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.Typed;
 import javax.enterprise.inject.spi.InjectionPoint;
@@ -24,6 +26,7 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.i18n.ProviderExceptions;
@@ -37,6 +40,10 @@ public class ChannelProducer {
 
     @Inject
     ChannelRegistry channelRegistry;
+
+    @Inject
+    // @Any would only be needed if we wanted to allow implementations with qualifiers
+    Instance<MessageConverter> converters;
 
     /**
      * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
@@ -52,9 +59,14 @@ public class ChannelProducer {
     <T> Multi<T> produceMulti(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
         if (TypeUtils.isAssignable(first, Message.class)) {
-            return cast(getPublisher(injectionPoint));
+            Type payloadType = getPayloadParameterFromMessageType(first);
+            if (payloadType == null) {
+                return cast(getPublisher(injectionPoint));
+            } else {
+                return cast(convert(getPublisher(injectionPoint), converters, payloadType));
+            }
         } else {
-            return cast(getPublisher(injectionPoint)
+            return cast(convert(getPublisher(injectionPoint), converters, first)
                     .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
                     .onItem().transform(Message::getPayload)
                     .broadcast().toAllSubscribers());
@@ -208,6 +220,16 @@ public class ChannelProducer {
     private Type getFirstParameter(Type type) {
         if (type instanceof ParameterizedType) {
             return ((ParameterizedType) type).getActualTypeArguments()[0];
+        }
+        return null;
+    }
+
+    private Type getPayloadParameterFromMessageType(Type type) {
+        if (type instanceof ParameterizedType) {
+            Type[] actualTypeArguments = ((ParameterizedType) type).getActualTypeArguments();
+            if (actualTypeArguments.length == 1) {
+                return actualTypeArguments[0];
+            }
         }
         return null;
     }
