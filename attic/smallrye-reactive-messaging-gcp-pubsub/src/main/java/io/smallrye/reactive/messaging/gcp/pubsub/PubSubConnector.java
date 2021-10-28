@@ -29,7 +29,10 @@ import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
 import com.google.cloud.pubsub.v1.TopicAdminClient;
 import com.google.protobuf.ByteString;
-import com.google.pubsub.v1.*;
+import com.google.pubsub.v1.ProjectSubscriptionName;
+import com.google.pubsub.v1.PubsubMessage;
+import com.google.pubsub.v1.PushConfig;
+import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.mutiny.Multi;
 
@@ -78,12 +81,14 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(final Config config) {
-        final PubSubConfig pubSubConfig = new PubSubConfig(projectId, getTopic(config), getCredentialPath(config),
+        final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
                 getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
 
         return ReactiveStreams.fromCompletionStage(CompletableFuture.supplyAsync(() -> {
-            createTopic(pubSubConfig);
-            createSubscription(pubSubConfig);
+            if (isUseAdminClient(config)) {
+                createTopic(pubSubConfig);
+                createSubscription(pubSubConfig);
+            }
             return pubSubConfig;
         }, executorService))
                 .flatMapRsPublisher(
@@ -92,15 +97,26 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(final Config config) {
-        final PubSubConfig pubSubConfig = new PubSubConfig(projectId, getTopic(config), getCredentialPath(config),
+        final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
                 mockPubSubTopics, host.orElse(null), port.orElse(null));
 
         return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(message -> CompletableFuture.supplyAsync(() -> {
-                    createTopic(pubSubConfig);
+                    if (isUseAdminClient(config)) {
+                        createTopic(pubSubConfig);
+                    }
                     return await(pubSubManager.publisher(pubSubConfig).publish(buildMessage(message)));
                 }, executorService))
                 .ignore();
+    }
+
+    private String getProjectId(Config config) {
+        return config.getOptionalValue("project-id", String.class)
+                .orElse(projectId);
+    }
+
+    boolean isUseAdminClient(Config config) {
+        return config.getOptionalValue("use-admin-client", Boolean.class).orElse(true);
     }
 
     private void createTopic(final PubSubConfig config) {
