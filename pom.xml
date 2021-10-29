@@ -11,7 +11,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
-  <version>3.11.0-SNAPSHOT</version>
+  <version>3.12.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>SmallRye Reactive Messaging</name>
@@ -109,6 +109,7 @@
     <module>smallrye-reactive-messaging-kafka</module>
     <module>smallrye-reactive-messaging-kafka-api</module>
     <module>smallrye-reactive-messaging-mqtt</module>
+    <module>smallrye-reactive-messaging-nats</module>
     <module>smallrye-reactive-messaging-camel</module>
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-jms</module>

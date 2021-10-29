@@ -1,3 +1,29 @@
+<!-- to be removed on merge-->
+# PR: NATS Support
+
+[Contributor](https://github.com/LucienBrule): Lucien Brule <lucien@lucienbrule.com>
+
+[Referenced Issue](https://github.com/smallrye/smallrye-reactive-messaging/issues/1158): Add Support for NATS #1158
+
+
+---
+
+Contribution can be found under ```./smallrye-reactive-messaging-nats```
+
+[Readme](./smallrye-reactive-messaging-nats/README.md)
+
+[Development Log](./smallrye-reactive-messaging-nats/devlog.md)
+
+[Implementation Notes](./smallrye-reactive-messaging-nats/notes.md)
+
+
+<div style="height: 50px"></div>
+
+---
+
+<!-- end remove -->
+
+
 [![Maven Central](https://img.shields.io/maven-central/v/io.smallrye.reactive/smallrye-reactive-messaging)](https://search.maven.org/search?q=a:smallrye-reactive-messaging)
 [![Continuous Integration Build](https://github.com/smallrye/smallrye-reactive-messaging/workflows/Continuous%20Integration%20Build/badge.svg)](https://github.com/smallrye/smallrye-reactive-messaging/actions)
 [![License](https://img.shields.io/github/license/smallrye/smallrye-reactive-messaging.svg)](http://www.apache.org/licenses/LICENSE-2.0)
@@ -7,6 +33,7 @@
 This project is an implementation of the (next to be) [Eclipse MicroProfile Reactive Messaging](https://github.com/eclipse/microprofile-reactive-messaging) specification - a CDI
 extension to build event-driven microservices and data streaming applications. It provides support for:
 
+* [NATS](https://nats.io)
 * [Apache Kafka](https://kafka.apache.org/)
 * [MQTT](http://mqtt.org/)
 * [AMQP](https://www.amqp.org/) 1.0
