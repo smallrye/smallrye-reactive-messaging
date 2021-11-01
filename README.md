@@ -1,3 +1,5 @@
+**IMPORTANT**: SmallRye Reactive Messaging 2.x is not under development anymore. Please switch to more recent versions. See http://smallrye.io/smallrye-reactive-messaging.
+
 [![Maven Central](https://img.shields.io/maven-central/v/io.smallrye.reactive/smallrye-reactive-messaging)](https://search.maven.org/search?q=a:smallrye-reactive-messaging)
 [![Continuous Integration Build](https://github.com/smallrye/smallrye-reactive-messaging/workflows/Continuous%20Integration%20Build/badge.svg)](https://github.com/smallrye/smallrye-reactive-messaging/actions)
 [![License](https://img.shields.io/github/license/smallrye/smallrye-reactive-messaging.svg)](http://www.apache.org/licenses/LICENSE-2.0)
