@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import com.google.pubsub.v1.Topic;
 import com.google.pubsub.v1.TopicName;
 
+import io.smallrye.reactive.messaging.impl.ConnectorFactories;
+
 public class PubSubManagerTest extends PubSubTestBase {
 
     private static final String TOPIC = "pubsub-manager-test";
@@ -22,6 +24,7 @@ public class PubSubManagerTest extends PubSubTestBase {
         initConfiguration(TOPIC);
         final Weld weld = baseWeld();
         addConfig(createSourceConfig(TOPIC, SUBSCRIPTION, PUBSUB_CONTAINER.getFirstMappedPort()));
+        weld.addBeanClass(ConnectorFactories.class);
         container = weld.initialize();
     }
 
