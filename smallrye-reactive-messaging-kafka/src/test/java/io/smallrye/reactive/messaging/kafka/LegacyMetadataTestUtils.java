@@ -7,6 +7,7 @@ import org.junit.Assert;
  * Delete once we have got rid of the legacy {@link io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata}
  * and {@link IncomingKafkaRecordMetadata} implementations
  */
+@SuppressWarnings({ "deprecation", "OptionalGetWithoutIsPresent" })
 public class LegacyMetadataTestUtils {
 
     public static void tempCompareLegacyAndApiMetadata(

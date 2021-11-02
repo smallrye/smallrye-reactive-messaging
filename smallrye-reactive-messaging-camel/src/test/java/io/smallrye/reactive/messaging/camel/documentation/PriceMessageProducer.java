@@ -20,7 +20,7 @@ public class PriceMessageProducer {
         // Build an infinite stream of random prices
         return Multi.createFrom().ticks().every(Duration.ofMillis(100))
                 .onOverflow().drop()
-                .onSubscribe().invoke(s -> s.request(Long.MAX_VALUE))
+                .onSubscription().invoke(s -> s.request(Long.MAX_VALUE))
                 .map(x -> random.nextDouble())
                 .map(p -> Double.toString(p))
                 .map(Message::of);

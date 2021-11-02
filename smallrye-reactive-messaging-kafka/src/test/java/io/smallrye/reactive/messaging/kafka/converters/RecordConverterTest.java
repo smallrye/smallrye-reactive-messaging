@@ -54,6 +54,7 @@ class RecordConverterTest extends KafkaTestBase {
     }
 
     // TODO Delete once we got rid of the legacy metadata
+    @SuppressWarnings({ "deprecation", "unchecked" })
     @Test
     public void testConverterLegacy() {
         RecordConverter converter = new RecordConverter();

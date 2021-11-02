@@ -37,7 +37,7 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
     private static final int STATE_CANCELLED = 3;
 
     private final ReactiveKafkaConsumer<K, V> client;
-    private final MultiSubscriber<? super T> downstream;
+    private volatile MultiSubscriber<? super T> downstream;
     private final Context context;
     private final boolean pauseResumeEnabled;
 
@@ -226,6 +226,7 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
                     // nothing was currently dispatched, clearing the queue.
                     client.close();
                     queue.clear();
+                    downstream = null;
                 }
                 break;
             }
@@ -236,6 +237,7 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
         if (state.get() == STATE_CANCELLED) {
             queue.clear();
             client.close();
+            downstream = null;
             return true;
         }
         return false;

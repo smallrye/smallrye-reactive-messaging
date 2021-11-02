@@ -539,8 +539,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
             Thread.sleep(sessionTimeoutMillis + 1000);
         }
 
-        subscriber.await()
-                .assertCompleted();
+        subscriber.awaitCompletion();
     }
 
     @Test

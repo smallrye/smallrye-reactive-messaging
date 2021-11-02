@@ -65,7 +65,7 @@ public class MultiTopicsTest extends KafkaTestBase {
         AtomicInteger top2 = new AtomicInteger();
         AtomicInteger top3 = new AtomicInteger();
         bean.getMessages().forEach(message -> {
-            // TODO Import normally once the deprecateed copy in this package has gone
+            // TODO Import normally once the deprecated copy in this package has gone
             io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata record = message
                     .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class).orElse(null);
             assertThat(record).isNotNull();
@@ -83,9 +83,9 @@ public class MultiTopicsTest extends KafkaTestBase {
             LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
-        assertThat(top1).hasValue(3);
-        assertThat(top2).hasValue(3);
-        assertThat(top3).hasValue(3);
+        assertThat(top1.get()).isGreaterThanOrEqualTo(3);
+        assertThat(top2.get()).isGreaterThanOrEqualTo(3);
+        assertThat(top3.get()).isGreaterThanOrEqualTo(3);
     }
 
     @RepeatedTest(5)

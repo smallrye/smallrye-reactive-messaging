@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeoutException;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -14,7 +16,6 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
@@ -22,10 +23,7 @@ import io.strimzi.StrimziKafkaContainer;
 
 public class KafkaNackOnExpirationTimeFailureTest extends KafkaTestBase {
 
-    private static int port;
     private static String servers;
-
-    private GenericContainer<?> kafka;
 
     @BeforeAll
     public static void getFreePort() {
@@ -33,7 +31,6 @@ public class KafkaNackOnExpirationTimeFailureTest extends KafkaTestBase {
         kafka.start();
         await().until(kafka::isRunning);
         servers = kafka.getBootstrapServers();
-        port = kafka.getMappedPort(KAFKA_PORT);
         kafka.close();
         await().until(() -> !kafka.isRunning());
 
@@ -62,8 +59,9 @@ public class KafkaNackOnExpirationTimeFailureTest extends KafkaTestBase {
 
         CompletionStage<Void> stage = application.emit("hello");
 
-        assertThatThrownBy(() -> stage.toCompletableFuture().join()).hasCauseInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Retries exhausted");
+        assertThatThrownBy(() -> stage.toCompletableFuture().join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(org.apache.kafka.common.errors.TimeoutException.class);
     }
 
     @ApplicationScoped

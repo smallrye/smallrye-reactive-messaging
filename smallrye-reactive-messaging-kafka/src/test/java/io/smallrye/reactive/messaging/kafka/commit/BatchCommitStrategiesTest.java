@@ -249,6 +249,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
                     assertThat(committed.get(p1).offset()).isEqualTo(1500);
                 });
 
+        @SuppressWarnings("unchecked")
         List<String> payloads = list.stream().map(m -> (List<String>) m.getPayload())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
@@ -408,6 +409,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
 
     }
 
+    @SuppressWarnings("unused")
     @ApplicationScoped
     @Identifier("mine")
     public static class SameNameRebalanceListener extends NamedRebalanceListener

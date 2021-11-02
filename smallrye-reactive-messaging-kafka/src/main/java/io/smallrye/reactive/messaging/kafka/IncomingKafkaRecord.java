@@ -28,6 +28,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     private final KafkaFailureHandler onNack;
     private final T payload;
 
+    @SuppressWarnings("deprecation")
     public IncomingKafkaRecord(ConsumerRecord<K, T> record,
             KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack,
