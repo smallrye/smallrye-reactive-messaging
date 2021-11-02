@@ -484,7 +484,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
          * Will use StartFromFifthOffsetFromLatestConsumerRebalanceListener
          */
         ConsumptionBeanWithoutAck bean = runWithoutAck(
-                myKafkaSourceConfigWithoutAck("fail-until-second-rebalance", true));
+                myKafkaSourceConfigWithoutAck("fail-until-second-rebalance", false));
         List<Integer> list = bean.getResults();
 
         await()
