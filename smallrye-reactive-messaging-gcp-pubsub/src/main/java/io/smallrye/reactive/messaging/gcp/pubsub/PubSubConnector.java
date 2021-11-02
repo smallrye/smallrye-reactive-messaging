@@ -86,6 +86,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
 
         return ReactiveStreams.fromCompletionStage(CompletableFuture.supplyAsync(() -> {
             if (isUseAdminClient(config)) {
+                log.adminClientEnabled();
                 createTopic(pubSubConfig);
                 createSubscription(pubSubConfig);
             }
@@ -103,6 +104,7 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
         return ReactiveStreams.<Message<?>> builder()
                 .flatMapCompletionStage(message -> CompletableFuture.supplyAsync(() -> {
                     if (isUseAdminClient(config)) {
+                        log.adminClientEnabled();
                         createTopic(pubSubConfig);
                     }
                     return await(pubSubManager.publisher(pubSubConfig).publish(buildMessage(message)));
