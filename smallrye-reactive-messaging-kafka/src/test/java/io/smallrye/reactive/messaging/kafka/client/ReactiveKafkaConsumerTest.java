@@ -3,19 +3,14 @@ package io.smallrye.reactive.messaging.kafka.client;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.*;
@@ -24,24 +19,16 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
-import io.smallrye.mutiny.subscription.Cancellable;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.strimzi.StrimziKafkaContainer;
 
 public class ReactiveKafkaConsumerTest extends ClientTestBase {
-
-    private final Semaphore assignSemaphore = new Semaphore(partitions);
-    private final List<Cancellable> subscriptions = new ArrayList<>();
-    private KafkaSource<Integer, String> source;
 
     @AfterEach
     public void tearDown() {
@@ -70,7 +57,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                 .onItem().invoke(item -> CompletableFuture.runAsync(item::ack))
                 .subscribe().withSubscriber(AssertSubscriber.create(0));
 
-        waitFoPartitionAssignment();
+        waitForPartitionAssignment();
 
         await().untilAsserted(() -> subscriber.assertSubscribed().assertHasNotReceivedAnyItem());
 
@@ -102,7 +89,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                 .onItem().invoke(item -> CompletableFuture.runAsync(item::ack))
                 .subscribe().withSubscriber(AssertSubscriber.create());
 
-        waitFoPartitionAssignment();
+        waitForPartitionAssignment();
         await()
                 .untilAsserted(() -> subscriber.assertSubscribed().assertHasNotReceivedAnyItem());
 
@@ -127,7 +114,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                 .onItem().invoke(item -> CompletableFuture.runAsync(item::ack))
                 .subscribe().withSubscriber(AssertSubscriber.create(11));
 
-        waitFoPartitionAssignment();
+        waitForPartitionAssignment();
 
         await().untilAsserted(subscriber::assertSubscribed);
         await().until(() -> subscriber.getItems().size() == 10);
@@ -282,31 +269,6 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
     }
 
     @Test
-    public void testAcknowledgementUsingThrottledStrategyEvenAfterBrokerRestart() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
-            kafka.start();
-            await().until(kafka::isRunning);
-
-            String groupId = UUID.randomUUID().toString();
-            MapBasedConfig config = createConsumerConfig(groupId)
-                    .with("topic", topic)
-                    .with("auto.commit.interval.ms", 10);
-
-            Multi<IncomingKafkaRecord<Integer, String>> stream = createSource(config, groupId).getStream()
-                    .invoke(IncomingKafkaRecord::ack);
-
-            CountDownLatch latch = new CountDownLatch(100);
-            subscribe(stream, latch);
-            try (final FixedKafkaContainer ignored = restart(kafka, 3)) {
-                sendMessages(0, 100);
-                waitForMessages(latch);
-                checkConsumedMessages(0, 100);
-                waitForCommits(source, 100);
-            }
-        }
-    }
-
-    @Test
     public void testThrottledAcknowledgementWithDefaultValues() throws Exception {
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = createConsumerConfig(groupId)
@@ -347,7 +309,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         AssertSubscriber<IncomingKafkaRecord<Integer, String>> subscriber = stream
                 .subscribe().withSubscriber(AssertSubscriber.create(0));
 
-        waitFoPartitionAssignment();
+        waitForPartitionAssignment();
 
         sendMessages(0, 100);
         subscriber.request(50);
@@ -393,7 +355,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         restartAndCheck(config, groupId, 1);
     }
 
-    @RepeatedTest(10)
+    @Test
     public void testRebalanceWhilePausedAndPendingCommit() throws Exception {
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = createConsumerConfig(groupId)
@@ -410,7 +372,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                 .invoke(list::add);
         AssertSubscriber<IncomingKafkaRecord<Integer, String>> subscriber = stream
                 .subscribe().withSubscriber(AssertSubscriber.create(0));
-        waitFoPartitionAssignment();
+        waitForPartitionAssignment();
 
         sendMessages(0, 100);
 
@@ -542,27 +504,6 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
     }
 
     @Test
-    public void testWithBrokerRestart() throws Exception {
-        int sendBatchSize = 10;
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
-            kafka.start();
-            String groupId = UUID.randomUUID().toString();
-            MapBasedConfig config = createConsumerConfig(groupId)
-                    .put("topic", topic);
-
-            KafkaSource<Integer, String> source = createSource(config, groupId);
-            CountDownLatch receiveLatch = new CountDownLatch(sendBatchSize * 2);
-            subscribe(source.getStream(), receiveLatch);
-            sendMessages(0, sendBatchSize);
-            try (FixedKafkaContainer ignored = restart(kafka, 5)) {
-                sendMessages(sendBatchSize, sendBatchSize);
-                waitForMessages(receiveLatch);
-                checkConsumedMessages();
-            }
-        }
-    }
-
-    @Test
     public void testThatCloseReleaseTheAssignments() throws Exception {
         int count = 10;
         for (int i = 0; i < 2; i++) {
@@ -688,104 +629,11 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                             inProgressMap.remove(partition);
                         }));
 
-        waitFoPartitionAssignment();
+        waitForPartitionAssignment();
         sendMessages(0, count);
         waitForMessages(latch);
         assertThat(concurrentPartitionExecutions.get()).isEqualTo(0);
         checkConsumedMessages(0, count);
-    }
-
-    @Test
-    @Disabled
-    public void testPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
-            kafka.start();
-            await().until(kafka::isRunning);
-            Integer port = kafka.getMappedPort(KAFKA_PORT);
-            sendMessages(0, 10, kafka.getBootstrapServers());
-            String groupId = UUID.randomUUID().toString();
-            MapBasedConfig config = createConsumerConfig(groupId)
-                    .with("topic", topic)
-                    .with(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers())
-                    .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000);
-            createSource(config, groupId);
-            Multi<IncomingKafkaRecord<Integer, String>> stream = source.getStream();
-
-            AssertSubscriber<IncomingKafkaRecord<Integer, String>> subscriber = stream
-                    .onItem().invoke(item -> CompletableFuture.runAsync(item::ack))
-                    .subscribe().withSubscriber(AssertSubscriber.create(0));
-
-            waitFoPartitionAssignment();
-
-            await().untilAsserted(() -> subscriber.assertSubscribed().assertHasNotReceivedAnyItem());
-
-            subscriber.request(1);
-            await().until(() -> subscriber.getItems().size() == 1);
-            await().until(() -> !source.getConsumer().paused().await().indefinitely().isEmpty());
-
-            sendMessages(0, 10, kafka.getBootstrapServers());
-
-            kafka.stop();
-            await().until(() -> !kafka.isRunning());
-
-            await().until(() -> !source.getConsumer().paused().await().indefinitely().isEmpty());
-            subscriber.request(3);
-            await().until(() -> subscriber.getItems().size() == 4);
-
-            subscriber.request(10);
-            AtomicInteger last = new AtomicInteger(subscriber.getItems().size());
-            // Make sure we can't poll anymore.
-            await()
-                    .pollDelay(Duration.ofMillis(1000))
-                    .until(() -> {
-                        return last.get() == last.getAndSet(subscriber.getItems().size());
-                    });
-
-            try (StrimziKafkaContainer restarted = startKafkaBroker(port)) {
-                await().until(restarted::isRunning);
-
-                subscriber.request(100);
-                await().until(() -> source.getConsumer().paused().await().indefinitely().isEmpty());
-
-                sendMessages(10, 45, restarted.getBootstrapServers());
-                await().until(() -> subscriber.getItems().size() == 55);
-            }
-        }
-    }
-
-    @Test
-    @Disabled
-    public void testResumingPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
-            kafka.start();
-            await().until(kafka::isRunning);
-            Integer port = kafka.getMappedPort(KAFKA_PORT);
-            String groupId = UUID.randomUUID().toString();
-            MapBasedConfig config = createConsumerConfig(groupId)
-                    .with("topic", topic)
-                    .with(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers())
-                    .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000);
-            createSource(config, groupId);
-            source
-                    .getStream().subscribe().withSubscriber(AssertSubscriber.create(1));
-
-            waitFoPartitionAssignment();
-
-            ReactiveKafkaConsumer<Integer, String> consumer = source.getConsumer();
-
-            await().until(() -> !consumer.getAssignments().await().indefinitely().isEmpty());
-            assertThat(consumer.pause().await().indefinitely()).isNotEmpty();
-
-            consumer.resume().await().indefinitely();
-            assertThat(consumer.paused().await().indefinitely()).isEmpty();
-
-            kafka.stop();
-            await().until(() -> !kafka.isRunning());
-
-            assertThat(consumer.pause().await().indefinitely()).isNotEmpty();
-            assertThat(consumer.resume().await().indefinitely());
-            assertThat(consumer.paused().await().indefinitely()).isEmpty();
-        }
     }
 
     private void onCommit(IncomingKafkaRecord<?, ?> record, CountDownLatch commitLatch, long[] committedOffsets) {
@@ -815,13 +663,6 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         for (int i = 0; i < partitions; i++) {
             assertThat(committedOffsets[i]).isEqualTo(receivedMessages.get(i).size());
         }
-    }
-
-    private void waitForCommits(KafkaSource<Integer, String> source, int count) {
-        ReactiveKafkaConsumer<Integer, String> client = source.getConsumer();
-        await()
-                .atMost(Duration.ofMinutes(1))
-                .untilAsserted(() -> assertThat(committedCount(client)).isEqualTo(count));
     }
 
     private void restartAndCheck(MapBasedConfig config, String groupId,
@@ -866,25 +707,6 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         }
     }
 
-    private long committedCount(ReactiveKafkaConsumer<Integer, String> client) {
-        TopicPartition[] tps = IntStream.range(0, partitions)
-                .mapToObj(i -> new TopicPartition(topic, i)).distinct().toArray(TopicPartition[]::new);
-        Map<TopicPartition, OffsetAndMetadata> map = client
-                .committed(tps)
-                .await()
-                .atMost(Duration.ofSeconds(receiveTimeoutMillis));
-
-        return map.values().stream()
-                .filter(offset -> offset != null && offset.offset() > 0)
-                .mapToLong(OffsetAndMetadata::offset)
-                .sum();
-    }
-
-    private void cancelSubscriptions() {
-        subscriptions.forEach(Cancellable::cancel);
-        subscriptions.clear();
-    }
-
     private void sendReceive(Multi<IncomingKafkaRecord<Integer, String>> stream,
             int sendStartIndex, int sendCount,
             int receiveStartIndex, int receiveCount) throws Exception {
@@ -908,141 +730,6 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         sendMessages(startIndex, count);
         waitForMessages(latch);
         checkConsumedMessages(startIndex, count);
-    }
-
-    public KafkaSource<Integer, String> createSource() {
-        String groupId = UUID.randomUUID().toString();
-        MapBasedConfig config = createConsumerConfig(groupId)
-                .put("topic", topic);
-
-        return createSource(config, groupId);
-    }
-
-    public KafkaSource<Integer, String> createSource(MapBasedConfig config, String groupId) {
-        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
-                getKafkaConsumerRebalanceListenerAwaitingAssignation());
-
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
-        return source;
-    }
-
-    public KafkaSource<Integer, String> createSourceSeekToBeginning() {
-        String groupId = UUID.randomUUID().toString();
-        MapBasedConfig config = createConsumerConfig(groupId)
-                .put("topic", topic);
-
-        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
-                getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToBeginning());
-
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
-        return source;
-    }
-
-    public KafkaSource<Integer, String> createSourceSeekToEnd() {
-        String groupId = UUID.randomUUID().toString();
-        MapBasedConfig config = createConsumerConfig(groupId)
-                .put("topic", topic);
-
-        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
-                getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToEnd());
-
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
-        return source;
-    }
-
-    public KafkaSource<Integer, String> createSourceSeekToOffset() {
-        String groupId = UUID.randomUUID().toString();
-        MapBasedConfig config = createConsumerConfig(groupId)
-                .put("topic", topic);
-
-        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
-                getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToOffset());
-
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
-        return source;
-    }
-
-    private KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignation() {
-        return new KafkaConsumerRebalanceListener() {
-            @Override
-            public void onPartitionsAssigned(Consumer<?, ?> consumer,
-                    Collection<TopicPartition> partitions) {
-                ReactiveKafkaConsumerTest.this.onPartitionsAssigned(partitions);
-            }
-        };
-    }
-
-    private KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToBeginning() {
-        return new KafkaConsumerRebalanceListener() {
-            @Override
-            public void onPartitionsAssigned(Consumer<?, ?> consumer,
-                    Collection<TopicPartition> partitions) {
-                consumer.seekToBeginning(partitions);
-                assertThat(topic).isEqualTo(partitions.iterator().next().topic());
-                assignSemaphore.release(partitions.size());
-            }
-        };
-    }
-
-    private KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToEnd() {
-        return new KafkaConsumerRebalanceListener() {
-            @Override
-            public void onPartitionsAssigned(Consumer<?, ?> consumer,
-                    Collection<TopicPartition> partitions) {
-                consumer.seekToEnd(partitions);
-                assertThat(topic).isEqualTo(partitions.iterator().next().topic());
-                assignSemaphore.release(partitions.size());
-            }
-        };
-    }
-
-    private KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToOffset() {
-        return new KafkaConsumerRebalanceListener() {
-            @Override
-            public void onPartitionsAssigned(Consumer<?, ?> consumer,
-                    Collection<TopicPartition> partitions) {
-                partitions.forEach(tp -> consumer.seek(tp, 1));
-                assertThat(topic).isEqualTo(partitions.iterator().next().topic());
-                assignSemaphore.release(partitions.size());
-            }
-        };
-    }
-
-    private void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-        assertThat(topic).isEqualTo(partitions.iterator().next().topic());
-        assignSemaphore.release(partitions.size());
-    }
-
-    private void waitForMessages(CountDownLatch latch) throws InterruptedException {
-        if (!latch.await(receiveTimeoutMillis, TimeUnit.MILLISECONDS)) {
-            fail(latch.getCount() + " messages not received, received=" + count(receivedMessages) + " : "
-                    + receivedMessages);
-        }
-    }
-
-    private void subscribe(Multi<IncomingKafkaRecord<Integer, String>> stream, CountDownLatch... latches)
-            throws Exception {
-        Cancellable cancellable = stream
-                .onItem().invoke(record -> {
-                    onReceive(record);
-                    for (CountDownLatch latch : latches) {
-                        latch.countDown();
-                    }
-                })
-                .subscribe().with(ignored -> {
-                    // Ignored.
-                });
-        subscriptions.add(cancellable);
-        waitFoPartitionAssignment();
-    }
-
-    private void waitFoPartitionAssignment() throws InterruptedException {
-        Assertions.assertTrue(
-                assignSemaphore.tryAcquire(sessionTimeoutMillis + 1000, TimeUnit.MILLISECONDS), "Partitions not assigned");
     }
 
 }

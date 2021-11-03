@@ -12,8 +12,6 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 @Disabled("too long")
 public class HighLatencyTest extends ClientTestBase {
 
-    private KafkaSource<String, Integer> source;
-
     @AfterEach
     public void tearDown() {
         source.closeQuietly();

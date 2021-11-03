@@ -1,31 +1,51 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.Assertions;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.subscription.Cancellable;
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
+import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ClientTestBase extends KafkaTestBase {
@@ -40,6 +60,166 @@ public class ClientTestBase extends KafkaTestBase {
 
     private final List<List<Integer>> expectedMessages = new ArrayList<>(partitions);
     protected final List<List<Integer>> receivedMessages = new ArrayList<>(partitions);
+
+    final Semaphore assignSemaphore = new Semaphore(partitions);
+    final List<Cancellable> subscriptions = new ArrayList<>();
+    KafkaSource<Integer, String> source;
+
+    private long committedCount(ReactiveKafkaConsumer<Integer, String> client) {
+        TopicPartition[] tps = IntStream.range(0, partitions)
+                .mapToObj(i -> new TopicPartition(topic, i)).distinct().toArray(TopicPartition[]::new);
+        Map<TopicPartition, OffsetAndMetadata> map = client
+                .committed(tps)
+                .await()
+                .atMost(Duration.ofSeconds(receiveTimeoutMillis));
+
+        return map.values().stream()
+                .filter(offset -> offset != null && offset.offset() > 0)
+                .mapToLong(OffsetAndMetadata::offset)
+                .sum();
+    }
+
+    void waitForCommits(KafkaSource<Integer, String> source, int count) {
+        ReactiveKafkaConsumer<Integer, String> client = source.getConsumer();
+        await()
+                .atMost(Duration.ofMinutes(1))
+                .untilAsserted(() -> assertThat(committedCount(client)).isEqualTo(count));
+    }
+
+    public KafkaSource<Integer, String> createSource() {
+        String groupId = UUID.randomUUID().toString();
+        MapBasedConfig config = createConsumerConfig(groupId)
+                .put("topic", topic);
+
+        return createSource(config, groupId);
+    }
+
+    public KafkaSource<Integer, String> createSource(MapBasedConfig config, String groupId) {
+        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
+                getKafkaConsumerRebalanceListenerAwaitingAssignation());
+
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        return source;
+    }
+
+    public KafkaSource<Integer, String> createSourceSeekToBeginning() {
+        String groupId = UUID.randomUUID().toString();
+        MapBasedConfig config = createConsumerConfig(groupId)
+                .put("topic", topic);
+
+        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
+                getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToBeginning());
+
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        return source;
+    }
+
+    public KafkaSource<Integer, String> createSourceSeekToEnd() {
+        String groupId = UUID.randomUUID().toString();
+        MapBasedConfig config = createConsumerConfig(groupId)
+                .put("topic", topic);
+
+        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
+                getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToEnd());
+
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        return source;
+    }
+
+    public KafkaSource<Integer, String> createSourceSeekToOffset() {
+        String groupId = UUID.randomUUID().toString();
+        MapBasedConfig config = createConsumerConfig(groupId)
+                .put("topic", topic);
+
+        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
+                getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToOffset());
+
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        return source;
+    }
+
+    KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignation() {
+        return new KafkaConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsAssigned(Consumer<?, ?> consumer,
+                    Collection<TopicPartition> partitions) {
+                ClientTestBase.this.onPartitionsAssigned(partitions);
+            }
+        };
+    }
+
+    KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToBeginning() {
+        return new KafkaConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsAssigned(Consumer<?, ?> consumer,
+                    Collection<TopicPartition> partitions) {
+                consumer.seekToBeginning(partitions);
+                assertThat(topic).isEqualTo(partitions.iterator().next().topic());
+                assignSemaphore.release(partitions.size());
+            }
+        };
+    }
+
+    KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToEnd() {
+        return new KafkaConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsAssigned(Consumer<?, ?> consumer,
+                    Collection<TopicPartition> partitions) {
+                consumer.seekToEnd(partitions);
+                assertThat(topic).isEqualTo(partitions.iterator().next().topic());
+                assignSemaphore.release(partitions.size());
+            }
+        };
+    }
+
+    KafkaConsumerRebalanceListener getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToOffset() {
+        return new KafkaConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsAssigned(Consumer<?, ?> consumer,
+                    Collection<TopicPartition> partitions) {
+                partitions.forEach(tp -> consumer.seek(tp, 1));
+                assertThat(topic).isEqualTo(partitions.iterator().next().topic());
+                assignSemaphore.release(partitions.size());
+            }
+        };
+    }
+
+    void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        assertThat(topic).isEqualTo(partitions.iterator().next().topic());
+        assignSemaphore.release(partitions.size());
+    }
+
+    void waitForMessages(CountDownLatch latch) throws InterruptedException {
+        if (!latch.await(receiveTimeoutMillis, TimeUnit.MILLISECONDS)) {
+            fail(latch.getCount() + " messages not received, received=" + count(receivedMessages) + " : "
+                    + receivedMessages);
+        }
+    }
+
+    void subscribe(Multi<IncomingKafkaRecord<Integer, String>> stream, CountDownLatch... latches)
+            throws Exception {
+        Cancellable cancellable = stream
+                .onItem().invoke(record -> {
+                    onReceive(record);
+                    for (CountDownLatch latch : latches) {
+                        latch.countDown();
+                    }
+                })
+                .subscribe().with(ignored -> {
+                    // Ignored.
+                });
+        subscriptions.add(cancellable);
+        waitForPartitionAssignment();
+    }
+
+    void waitForPartitionAssignment() throws InterruptedException {
+        Assertions.assertTrue(
+                assignSemaphore.tryAcquire(sessionTimeoutMillis + 1000, TimeUnit.MILLISECONDS), "Partitions not assigned");
+    }
 
     void sendMessages(int startIndex, int count) throws Exception {
         sendMessages(IntStream.range(0, count).mapToObj(i -> createProducerRecord(startIndex + i, true)));
@@ -63,6 +243,7 @@ public class ClientTestBase extends KafkaTestBase {
         Map<String, Object> configs = producerProps();
         System.out.println("Sending to broker " + broker);
         configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, broker);
+        ConfigurationCleaner.cleanupProducerConfiguration(configs);
         try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(configs)) {
             List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
             for (Future<?> future : futures) {
@@ -163,5 +344,10 @@ public class ClientTestBase extends KafkaTestBase {
 
     protected void clearReceivedMessages() {
         receivedMessages.forEach(List::clear);
+    }
+
+    protected void cancelSubscriptions() {
+        subscriptions.forEach(Cancellable::cancel);
+        subscriptions.clear();
     }
 }
