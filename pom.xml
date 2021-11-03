@@ -57,7 +57,7 @@
 
 
   <properties>
-    <vertx.version>4.1.5</vertx.version>
+    <vertx.version>4.2.1</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>3.1.8.Final</weld.version>
@@ -88,7 +88,7 @@
     <opentelemetry.version>1.7.0</opentelemetry.version>
     <opentelemetry-semver.version>1.7.0-alpha</opentelemetry-semver.version>
 
-    <smallrye-vertx-mutiny-clients.version>2.14.2</smallrye-vertx-mutiny-clients.version>
+    <smallrye-vertx-mutiny-clients.version>2.15.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>2.6.0</smallrye-reactive-converters.version>
 
     <testcontainers.version>1.16.2</testcontainers.version>
