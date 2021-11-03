@@ -23,6 +23,7 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     // TODO Use a normal import once OutgoingKafkaRecordMetadata in this package has been removed
     private final io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> kafkaMetadata;
 
+    @SuppressWarnings("deprecation")
     public OutgoingKafkaRecord(String topic, K key, T value, Instant timestamp, int partition, Headers headers,
             Supplier<CompletionStage<Void>> ack, Function<Throwable, CompletionStage<Void>> nack, Metadata existingMetadata) {
         kafkaMetadata = io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.<K> builder()
@@ -49,7 +50,7 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         this.nack = nack;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "deprecation", "rawtypes" })
     public static <K, T> OutgoingKafkaRecord<K, T> from(Message<T> message) {
         // TODO Use a normal import once we've removed the legacy version of OutgoingKafkaRecordMetadata in this package
         // Also this block should work to obtain the metadata once we've removed the legacy version

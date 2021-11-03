@@ -98,6 +98,7 @@ public class ProducerRecordWithLegacyMetadataTest extends KafkaTestBase {
     public static class MyApp {
         private final List<ConsumerRecord<String, String>> received = new CopyOnWriteArrayList<>();
 
+        @SuppressWarnings("deprecation")
         @Outgoing("generated-producer")
         public Multi<Message<ProducerRecord<String, String>>> produce() {
             return Multi.createFrom().ticks().every(Duration.ofMillis(10)).map(tick -> {

@@ -76,6 +76,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         producer = new KafkaProducer<>(kafkaConfiguration, keySerializer, valueSerializer);
     }
 
+    @SuppressWarnings("unchecked")
     private static <T> Serializer<T> createSerializer(String clazz) {
         try {
             return (Serializer<T>) Utils.newInstance(clazz, Serializer.class);
@@ -111,20 +112,18 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     @Override
     @CheckReturnValue
     public Uni<RecordMetadata> send(ProducerRecord<K, V> record) {
-        return Uni.createFrom().<RecordMetadata> emitter(em -> {
-            producer.send(record, (metadata, exception) -> {
-                if (exception != null) {
-                    if (record.topic() != null) {
-                        log.unableToWrite(this.channel, record.topic(), exception);
-                    } else {
-                        log.unableToWrite(this.channel, exception);
-                    }
-                    em.fail(exception);
+        return Uni.createFrom().<RecordMetadata> emitter(em -> producer.send(record, (metadata, exception) -> {
+            if (exception != null) {
+                if (record.topic() != null) {
+                    log.unableToWrite(this.channel, record.topic(), exception);
                 } else {
-                    em.complete(metadata);
+                    log.unableToWrite(this.channel, exception);
                 }
-            });
-        }).runSubscriptionOn(kafkaWorker);
+                em.fail(exception);
+            } else {
+                em.complete(metadata);
+            }
+        })).runSubscriptionOn(kafkaWorker);
     }
 
     @Override

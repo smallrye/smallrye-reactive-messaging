@@ -165,6 +165,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     private MockServer setupMockServerForTypeTest(List<org.apache.qpid.proton.message.Message> messages,
             CountDownLatch latch)
             throws Exception {
+        //noinspection Convert2Diamond
         return setupMockServerForTypeTest(messages, latch, new AtomicReference<String>());
     }
 
@@ -256,6 +257,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     /**
      * Extension of Person that cannot be serialized to JSON.
      */
+    @SuppressWarnings("unused")
     public static class Bad extends Person {
 
         public Person getPerson() {
@@ -564,11 +566,11 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(ProducingBean.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", address)
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", "localhost")
-                .put("mp.messaging.outgoing.sink.port", server.actualPort())
-                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
+                .with("mp.messaging.outgoing.sink.address", address)
+                .with("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.host", "localhost")
+                .with("mp.messaging.outgoing.sink.port", server.actualPort())
+                .with("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();
@@ -606,11 +608,11 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", "not-used")
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", "localhost")
-                .put("mp.messaging.outgoing.sink.port", server.actualPort())
-                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
+                .with("mp.messaging.outgoing.sink.address", "not-used")
+                .with("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.host", "localhost")
+                .with("mp.messaging.outgoing.sink.port", server.actualPort())
+                .with("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();
@@ -649,12 +651,12 @@ public class AmqpSinkTest extends AmqpTestBase {
         weld.addBeanClass(ProducingBeanUsingOutboundMetadata.class);
 
         new MapBasedConfig()
-                .put("mp.messaging.outgoing.sink.address", address)
-                .put("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.sink.host", "localhost")
-                .put("mp.messaging.outgoing.sink.port", server.actualPort())
-                .put("mp.messaging.outgoing.sink.use-anonymous-sender", false)
-                .put("mp.messaging.outgoing.sink.tracing-enabled", false)
+                .with("mp.messaging.outgoing.sink.address", address)
+                .with("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.host", "localhost")
+                .with("mp.messaging.outgoing.sink.port", server.actualPort())
+                .with("mp.messaging.outgoing.sink.use-anonymous-sender", false)
+                .with("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();
@@ -1286,6 +1288,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         return getSubscriberBuilder(config);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkWithConnectorTtl(String topic, int port,
             long ttl) {
         Map<String, Object> config = createBaseConfig(topic, port);
@@ -1306,7 +1309,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkUsingChannelName(String topic,
             int port) {
         Map<String, Object> config = createBaseConfig(topic, port);
-        // We dont add the address config element, relying on the channel name instead
+        // We don't add the address config element, relying on the channel name instead
 
         return getSubscriberBuilder(config);
     }

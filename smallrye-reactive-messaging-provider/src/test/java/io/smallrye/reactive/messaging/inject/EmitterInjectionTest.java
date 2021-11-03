@@ -30,7 +30,6 @@ import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
 import io.smallrye.reactive.messaging.extension.EmitterImpl;
 
-@SuppressWarnings("ConstantConditions")
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
     @Test
@@ -726,6 +725,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             emitter.send(Message.of(s));
         }
 
+        @SuppressWarnings("unused")
         @Incoming("foo")
         public void consume(String s) {
             // Do nothing - just here to close the graph
@@ -739,10 +739,12 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         @Channel("foo")
         Emitter emitter;
 
+        @SuppressWarnings("unchecked")
         public void emit(String s) {
             emitter.send(Message.of(s));
         }
 
+        @SuppressWarnings("unused")
         @Incoming("foo")
         public void consume(String s) {
             // Do nothing - just here to close the graph
@@ -760,6 +762,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             emitter.send(Message.of(s));
         }
 
+        @SuppressWarnings("unused")
         @Incoming("foo")
         public void consume(String s) {
             // Do nothing - just here to close the graph

@@ -215,6 +215,7 @@ public class KafkaSink {
         return !NOT_RECOVERABLE.contains(f.getClass());
     }
 
+    @SuppressWarnings("deprecation")
     private Optional<OutgoingKafkaRecordMetadata<?>> getOutgoingKafkaRecordMetadata(Message<?> message) {
         Optional<OutgoingKafkaRecordMetadata<?>> metadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
                 .map(x -> (OutgoingKafkaRecordMetadata<?>) x);

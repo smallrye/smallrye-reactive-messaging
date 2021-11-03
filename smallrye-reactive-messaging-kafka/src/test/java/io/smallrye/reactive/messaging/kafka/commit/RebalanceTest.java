@@ -89,6 +89,7 @@ public class RebalanceTest extends WeldTestBase {
 
         list.forEach(m -> {
             // Only commit one partition
+            //noinspection deprecation
             if (m.getMetadata(IncomingKafkaRecordMetadata.class).map(IncomingKafkaRecordMetadata::getPartition)
                     .orElse(-1) == 0) {
                 m.ack().toCompletableFuture().join();
