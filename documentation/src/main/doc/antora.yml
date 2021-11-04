@@ -1,17 +1,17 @@
 name: smallrye-reactive-messaging
 title: SmallRye Reactive Messaging
-version: 3.11
+version: 3.12
 nav:
     - modules/ROOT/nav.adoc
 
 asciidoc:
     attributes:
-        version: '3.11'
-        project-version: '3.11.0-SNAPSHOT'
+        version: '3.12'
+        project-version: '3.12.0-SNAPSHOT'
         weld-version: '3.1.8.Final'
         smallrye-config-version: '2.6.0'
         mutiny-version: '1.1.2'
         camel-version: '3.12.0'
         spec-version: '2.0.1'
-        javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/3.11.0-SNAPSHOT/apidocs'
+        javadoc-base: 'https://smallrye.io/smallrye-reactive-messaging/3.12.0-SNAPSHOT/apidocs'
 
