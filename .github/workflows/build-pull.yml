@@ -20,7 +20,7 @@ jobs:
                         'opts': '--illegal-access=permit' # required for kotlin
                     },
                     {
-                        'version': '17-ea',
+                        'version': '17',
                         'opts': '--illegal-access=permit' # required for kotlin
                     }
                 ]
