@@ -34,16 +34,22 @@ class JsonHelperTest {
                 .put("boolean.t", true)
                 .put("boolean.f", false)
                 .put("FOO_BAR", "value")
+                .put("dataFormat", "DF")
+                .put("UP", "up")
                 .build();
 
         JsonObject object = JsonHelper.asJsonObject(config);
         assertThat(object.getString("key")).isEqualTo("value");
+        assertThat(object.getString("dataFormat")).isEqualTo("DF");
         assertThat(object.getInteger("int")).isEqualTo(10);
         assertThat(object.getDouble("double")).isEqualTo(23.4);
         assertThat(object.getBoolean("trueasstring")).isTrue();
         assertThat(object.getBoolean("falseasstring")).isFalse();
-        assertThat(object.getString("foo.bar")).isNull();
+        assertThat(object.getString("foo.bar")).isEqualTo("value");
         assertThat(object.getString("FOO_BAR")).isNull();
+        assertThat(object.getString("UP")).isNull();
+        assertThat(object.getString("up")).isEqualTo("up");
+
         assertThat(object.getString("bootstrap.servers")).isEqualTo("not-important");
 
         assertThat(object.getBoolean("boolean.t")).isTrue();
