@@ -6,7 +6,6 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.smallrye.common.annotation.CheckReturnValue;
@@ -110,11 +109,6 @@ public class ConnectionHolder {
 
     public Vertx getVertx() {
         return vertx;
-    }
-
-    @SuppressWarnings("unused")
-    public synchronized void onFailure(Consumer<Throwable> callback) {
-        // As RabbitMQClient doesn't have a failure callback mechanism, there isn't much we can do here
     }
 
     @CheckReturnValue

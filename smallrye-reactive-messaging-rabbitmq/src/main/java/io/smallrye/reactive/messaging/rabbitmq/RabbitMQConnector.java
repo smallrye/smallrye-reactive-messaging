@@ -184,7 +184,6 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             log.receiverError(t);
             processor.onError(t);
         });
-        holder.onFailure(processor::onError);
 
         return Multi.createFrom().deferred(
                 () -> {
