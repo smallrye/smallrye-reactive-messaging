@@ -35,6 +35,8 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscription;
 
+import com.rabbitmq.client.impl.CredentialsProvider;
+
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
@@ -85,6 +87,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "use-nio", direction = INCOMING_AND_OUTGOING, description = "Whether usage of NIO Sockets is enabled", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "virtual-host", direction = INCOMING_AND_OUTGOING, description = "The virtual host to use when connecting to the broker", type = "string", defaultValue = "/", alias = "rabbitmq-virtual-host")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Client Option bean used to customize the RabbitMQ client configuration", type = "string", alias = "rabbitmq-client-options-name")
+@ConnectorAttribute(name = "credentials-provider-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client", type = "string", alias = "rabbitmq-credentials-provider-name")
 
 // Exchange
 @ConnectorAttribute(name = "exchange.name", direction = INCOMING_AND_OUTGOING, description = "The exchange that messages are published to or consumed from. If not set, the channel name is used", type = "string")
@@ -153,6 +156,10 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     @Any
     private Instance<RabbitMQOptions> clientOptions;
 
+    @Inject
+    @Any
+    private Instance<CredentialsProvider> credentialsProviders;
+
     RabbitMQConnector() {
         // used for proxies
     }
@@ -184,7 +191,6 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             log.receiverError(t);
             processor.onError(t);
         });
-        holder.onFailure(processor::onError);
 
         return Multi.createFrom().deferred(
                 () -> {
@@ -216,7 +222,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         incomingChannelStatus.put(ic.getChannel(), ChannelStatus.INITIALISING);
 
         // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions);
+        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions, credentialsProviders);
 
         final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
         final RabbitMQFailureHandler onNack = createFailureHandler(ic);
@@ -319,7 +325,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.INITIALISING);
 
         // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, oc, clientOptions);
+        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, oc, clientOptions, credentialsProviders);
 
         final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
