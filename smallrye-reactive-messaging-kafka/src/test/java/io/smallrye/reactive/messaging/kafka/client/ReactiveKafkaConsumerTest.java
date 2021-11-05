@@ -23,6 +23,7 @@ import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -593,7 +594,8 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
     }
 
     @Test
-    @Disabled("to be investigated - seems to fail on CI once in a while")
+    // seems to fail on CI once in a while
+    @Tag(TestTags.FLAKY)
     public void testGroupingRecordsByPartition() throws Exception {
         int count = 10000;
 

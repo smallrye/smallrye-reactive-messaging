@@ -10,6 +10,7 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
+        continue-on-error: ${{ matrix.java.continue-on-error == true }}
         strategy:
             matrix:
                 java: [
@@ -22,9 +23,15 @@ jobs:
                     {
                         'version': '17',
                         'opts': '--illegal-access=permit' # required for kotlin
+                    },
+                    {
+                        'version': '11',
+                        'build_opts': '-Pslow-flaky-tests',
+                        'name': 'Slow and Flaky tests',
+                        'continue-on-error': true
                     }
                 ]
-        name: Build with Java ${{ matrix.java.version }}
+        name: Build with Java ${{ matrix.java.version }} ${{ matrix.java.name }}
         steps:
             - uses: actions/cache@v2
               with:
@@ -42,7 +49,7 @@ jobs:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
               run: |
                  mvn -s .github/ci-maven-settings.xml \
-                    -B clean verify -Dtest-containers=true
+                    -B clean verify -Dtest-containers=true ${{ matrix.java.build_opts }}
 
 
     up_to_date_antora:

@@ -30,7 +30,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testng.Assert;
 
@@ -213,7 +213,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @SuppressWarnings({ "rawtypes" })
     @Test
-    @Disabled("working locally, but long")
+    @Tag(TestTags.SLOW)
     public void testRetry() {
         // This test need an individual Kafka container
         try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {

@@ -18,13 +18,14 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.strimzi.StrimziKafkaContainer;
 
-@Tag("LongRunningTests")
+@Tag(TestTags.SLOW)
 // TODO should not extend ClientTestBase, it uses KafkaBrokerExtension which creates a broker for tests
 public class BrokerRestartTest extends ClientTestBase {
 

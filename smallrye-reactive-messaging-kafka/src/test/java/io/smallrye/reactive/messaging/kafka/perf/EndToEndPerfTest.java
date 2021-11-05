@@ -19,12 +19,14 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
@@ -36,6 +38,8 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
  * Then, the application read from this topic and write to another one.
  * The test stops when an external consumers has received all the records written by the application.
  */
+@Tag(TestTags.PERFORMANCE)
+@Tag(TestTags.SLOW)
 @Disabled
 public class EndToEndPerfTest extends KafkaTestBase {
 

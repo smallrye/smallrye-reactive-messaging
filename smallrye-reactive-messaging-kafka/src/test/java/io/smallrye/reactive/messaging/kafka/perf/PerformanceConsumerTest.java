@@ -18,12 +18,14 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
+@Tag(TestTags.PERFORMANCE)
 public class PerformanceConsumerTest extends KafkaTestBase {
 
     public static final int TIMEOUT_IN_SECONDS = 400;
@@ -61,7 +63,8 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     }
 
     @Test
-    @Disabled("too long - ~ 1.29 minutes")
+    // too long - ~ 1.29 minutes
+    @Tag(TestTags.SLOW)
     public void testWithPostAckLatest() {
         // To speed up a bit this test we reduce the polling timeout, the 1 second by default means that the commit
         // are all delayed by 1 second. So we set the poll-timeout to 10ms

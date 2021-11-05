@@ -553,5 +553,26 @@
         <argLine>--illegal-access=permit</argLine>
       </properties>
     </profile>
+    <profile>
+      <id>ci-tests</id>
+      <activation>
+        <property>
+          <name>!excludedGroups</name>
+        </property>
+      </activation>
+      <properties>
+        <excludedGroups>slow,flaky</excludedGroups>
+      </properties>
+    </profile>
+    <profile>
+      <id>slow-flaky-tests</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <excludedGroups></excludedGroups>
+        <groups>slow,flaky</groups>
+      </properties>
+    </profile>
   </profiles>
 </project>
