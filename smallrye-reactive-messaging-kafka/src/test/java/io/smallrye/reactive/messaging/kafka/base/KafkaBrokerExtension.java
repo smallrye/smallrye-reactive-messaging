@@ -3,6 +3,10 @@ package io.smallrye.reactive.messaging.kafka.base;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -22,7 +26,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
     public static final String KAFKA_VERSION = "latest-kafka-2.8.0";
 
     private static boolean started = false;
-    private static StrimziKafkaContainer kafka;
+    static StrimziKafkaContainer kafka;
 
     @Override
     public void beforeAll(ExtensionContext context) {
@@ -71,9 +75,17 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
             throws ParameterResolutionException {
-        if (kafka != null) {
-            return kafka.getBootstrapServers();
+        if (parameterContext.isAnnotated(KafkaBootstrapServers.class)) {
+            if (kafka != null) {
+                return kafka.getBootstrapServers();
+            }
         }
         return null;
     }
+
+    @Target({ ElementType.FIELD, ElementType.PARAMETER })
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface KafkaBootstrapServers {
+    }
+
 }

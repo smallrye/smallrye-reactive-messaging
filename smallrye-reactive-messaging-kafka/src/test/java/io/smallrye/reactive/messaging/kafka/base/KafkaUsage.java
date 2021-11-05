@@ -1,7 +1,9 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +32,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.DoubleDeserializer;
@@ -44,17 +47,72 @@ import org.jboss.logging.Logger;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
+import io.strimzi.StrimziKafkaContainer;
 
 /**
  * Simplify the usage of a Kafka client.
  */
 public class KafkaUsage {
+    public static final int KAFKA_PORT = 9092;
 
     private final static Logger LOGGER = Logger.getLogger(KafkaUsage.class);
-    private String brokers;
+    private final String brokers;
 
     public KafkaUsage(String bootstrapServers) {
         this.brokers = bootstrapServers;
+    }
+
+    /**
+     * We need to restart the broker on the same exposed port.
+     * Test Containers makes this unnecessarily complicated, but well, let's go for a hack.
+     * See https://github.com/testcontainers/testcontainers-java/issues/256.
+     *
+     * @param kafka the broker that will be closed
+     * @param gracePeriodInSecond number of seconds to wait before restarting
+     * @return the new broker
+     */
+    public static FixedKafkaContainer restart(StrimziKafkaContainer kafka, int gracePeriodInSecond) {
+        int port = kafka.getMappedPort(KAFKA_PORT);
+        try {
+            kafka.close();
+        } catch (Exception e) {
+            // Ignore me.
+        }
+        await().until(() -> !kafka.isRunning());
+        sleep(Duration.ofSeconds(gracePeriodInSecond));
+
+        return startKafkaBroker(port);
+    }
+
+    public static FixedKafkaContainer startKafkaBroker(int port) {
+        FixedKafkaContainer kafka = new FixedKafkaContainer(port);
+        kafka.start();
+        await().until(kafka::isRunning);
+        return kafka;
+    }
+
+    private static void sleep(Duration duration) {
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Specialization of {@link StrimziKafkaContainer} but exposing the Kafka port to a specific host port.
+     * Useful when you need to restart Kafka on the same port.
+     */
+    public static class FixedKafkaContainer extends StrimziKafkaContainer {
+        public FixedKafkaContainer(int port) {
+            super(KafkaBrokerExtension.KAFKA_VERSION);
+            super.addFixedExposedPort(port, KAFKA_PORT);
+        }
+
+    }
+
+    public static String getHeader(Headers headers, String key) {
+        return new String(headers.lastHeader(key).value(), StandardCharsets.UTF_8);
     }
 
     public Properties getConsumerProperties(String groupId, String clientId, OffsetResetStrategy autoOffsetReset) {
@@ -303,7 +361,4 @@ public class KafkaUsage {
         return this.brokers;
     }
 
-    public void setBootstrapServers(String bootstrapServers) {
-        this.brokers = bootstrapServers;
-    }
 }

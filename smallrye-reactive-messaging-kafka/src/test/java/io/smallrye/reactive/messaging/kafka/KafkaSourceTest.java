@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.restart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -42,6 +43,8 @@ import io.smallrye.reactive.messaging.kafka.api.KafkaMetadataUtil;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
+import io.smallrye.reactive.messaging.kafka.base.KafkaUsage.FixedKafkaContainer;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -226,7 +229,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                     .with("retry-attempts", 100)
                     .with("retry-max-wait", 30);
 
-            usage.setBootstrapServers(kafka.getBootstrapServers());
+            KafkaUsage kafkaUsage = new KafkaUsage(kafka.getBootstrapServers());
 
             KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
             source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -236,14 +239,14 @@ public class KafkaSourceTest extends KafkaTestBase {
             source.getStream().subscribe().with(messages1::add);
 
             AtomicInteger counter = new AtomicInteger();
-            new Thread(() -> usage.produceIntegers(10, null,
+            new Thread(() -> kafkaUsage.produceIntegers(10, null,
                     () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
             await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
             try (@SuppressWarnings("unused")
             FixedKafkaContainer container = restart(kafka, 2)) {
-                new Thread(() -> usage.produceIntegers(10, null,
+                new Thread(() -> kafkaUsage.produceIntegers(10, null,
                         () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
 
                 await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);

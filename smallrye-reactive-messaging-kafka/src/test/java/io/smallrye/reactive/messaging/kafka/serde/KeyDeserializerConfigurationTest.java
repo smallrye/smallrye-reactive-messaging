@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.serde;
 
+import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.getHeader;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 

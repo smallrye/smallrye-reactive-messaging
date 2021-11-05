@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
+import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.restart;
+import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.startKafkaBroker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -20,6 +22,7 @@ import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
+import io.smallrye.reactive.messaging.kafka.base.KafkaUsage.FixedKafkaContainer;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;

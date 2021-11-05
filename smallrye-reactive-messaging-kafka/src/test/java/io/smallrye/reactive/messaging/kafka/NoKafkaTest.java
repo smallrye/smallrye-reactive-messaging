@@ -20,45 +20,24 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.jupiter.api.*;
-import org.testcontainers.containers.GenericContainer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureFailure;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.strimzi.StrimziKafkaContainer;
+import io.smallrye.reactive.messaging.kafka.base.KafkaToxiproxyTestBase;
 
-@Disabled("to be checked")
-public class NoKafkaTest extends KafkaTestBase {
+public class NoKafkaTest extends KafkaToxiproxyTestBase {
 
-    private static int port;
-    private static String servers;
-
-    private GenericContainer<?> kafka;
-
-    @BeforeAll
-    public static void getFreePort() {
-        StrimziKafkaContainer kafka = new StrimziKafkaContainer();
-        kafka.start();
-        await().until(kafka::isRunning);
-        servers = kafka.getBootstrapServers();
-        port = kafka.getMappedPort(KAFKA_PORT);
-        kafka.close();
-        await().until(() -> !kafka.isRunning());
-    }
-
-    @AfterEach
-    public void close() {
-        if (kafka != null) {
-            kafka.close();
-        }
+    @BeforeEach
+    void setUp() {
+        disableProxy();
     }
 
     @Test
     public void testOutgoingWithoutKafkaCluster() throws InterruptedException {
-        usage.setBootstrapServers(servers);
         List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
@@ -78,7 +57,7 @@ public class NoKafkaTest extends KafkaTestBase {
             return liveness.isOk();
         });
 
-        kafka = startKafkaBroker(port);
+        enableProxy();
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -97,14 +76,13 @@ public class NoKafkaTest extends KafkaTestBase {
 
     @Test
     public void testIncomingWithoutKafkaCluster() {
-        usage.setBootstrapServers(servers);
         MyIncomingBean bean = runApplication(myKafkaSourceConfig(), MyIncomingBean.class);
         assertThat(bean.received()).hasSize(0);
 
         await().until(() -> !isReady());
         await().until(this::isAlive);
 
-        kafka = startKafkaBroker(port);
+        enableProxy();
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -121,15 +99,15 @@ public class NoKafkaTest extends KafkaTestBase {
 
     @Test
     public void testIncomingWithoutKafkaClusterUsingAdminHealthCheck() {
-        usage.setBootstrapServers(servers);
-        MyIncomingBean bean = runApplication(myKafkaSourceConfig().with("health-readiness-topic-verification", true),
+        MyIncomingBean bean = runApplication(myKafkaSourceConfig()
+                .with("health-topic-verification-enabled", true),
                 MyIncomingBean.class);
         assertThat(bean.received()).hasSize(0);
 
         await().until(() -> !isReady());
         await().until(this::isAlive);
 
-        kafka = startKafkaBroker(port);
+        enableProxy();
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -207,7 +185,6 @@ public class NoKafkaTest extends KafkaTestBase {
                 .build(
                         "value.deserializer", IntegerDeserializer.class.getName(),
                         "topic", topic,
-                        "bootstrap.servers", servers,
                         "auto.offset.reset", "earliest");
     }
 
@@ -221,17 +198,14 @@ public class NoKafkaTest extends KafkaTestBase {
 
                         // Speed up kafka admin failure
                         "default.api.timeout.ms", 250,
-                        "request.timeout.ms", 200,
-
-                        "bootstrap.servers", servers);
+                        "request.timeout.ms", 200);
     }
 
     private KafkaMapBasedConfig myKafkaSinkConfigWithoutBlockLimit(String topic) {
         return kafkaConfig("mp.messaging.outgoing.temperature-values")
                 .build(
                         "value.serializer", StringSerializer.class.getName(),
-                        "topic", topic,
-                        "bootstrap.servers", servers);
+                        "topic", topic);
     }
 
 }
