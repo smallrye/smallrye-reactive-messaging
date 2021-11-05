@@ -21,8 +21,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -52,18 +50,14 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     }
 
     private MapBasedConfig commonConfig(String commitStrategy) {
-        return new KafkaMapBasedConfig()
-                .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.data.topic", topic)
-                .with("mp.messaging.incoming.data.graceful-shutdown", false)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
-                .with("mp.messaging.incoming.data.cloud-events", false)
-                .with("mp.messaging.incoming.data.pause-if-no-requests", false)
-                .with("mp.messaging.incoming.data.commit-strategy", commitStrategy)
-                .with("mp.messaging.incoming.data.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.data.auto.offset.reset", "earliest")
-                .with("mp.messaging.incoming.data.value.deserializer", StringDeserializer.class.getName())
-                .with("mp.messaging.incoming.data.key.deserializer", StringDeserializer.class.getName());
+        return kafkaConfig("mp.messaging.incoming.data")
+                .put("topic", topic)
+                .put("cloud-events", false)
+                .put("pause-if-no-requests", false)
+                .put("commit-strategy", commitStrategy)
+                .put("auto.offset.reset", "earliest")
+                .put("value.deserializer", StringDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName());
     }
 
     @Test
@@ -73,7 +67,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
         // are all delayed by 1 second. So we set the poll-timeout to 10ms
 
         MyConsumerUsingPostAck application = runApplication(commonConfig("latest")
-                .with("mp.messaging.incoming.data.poll-timeout", 5),
+                .with("poll-timeout", 5),
                 MyConsumerUsingPostAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -106,7 +100,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     @Test
     public void testWithNoAck() {
         MyConsumerUsingNoAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.enable.auto.commit", true),
+                .with("enable.auto.commit", true),
                 MyConsumerUsingNoAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -123,7 +117,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     @Test
     public void testWithAutoCommitWithPostAck() {
         MyConsumerUsingPostAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.enable.auto.commit", true),
+                .with("enable.auto.commit", true),
                 MyConsumerUsingPostAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -138,10 +132,10 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     @Test
     public void testWithIgnoreAck() {
         MyConsumerUsingPostAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.pattern", true)
-                .with("mp.messaging.incoming.data.auto.commit.interval.ms", 1000)
-                .with("mp.messaging.incoming.data.metadata.max.age.ms", 30000)
-                .with("mp.messaging.incoming.data.enable.auto.commit", true),
+                .with("pattern", true)
+                .with("auto.commit.interval.ms", 1000)
+                .with("metadata.max.age.ms", 30000)
+                .with("enable.auto.commit", true),
                 MyConsumerUsingPostAck.class);
         long start = System.currentTimeMillis();
         await()

@@ -66,17 +66,17 @@ public class KafkaNackPropagationTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getDoubleNackConfig() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("topic", "double-topic");
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka");
+        config.put("value.serializer", IntegerSerializer.class.getName());
+        config.put("topic", "double-topic");
+        return config;
     }
 
     private KafkaMapBasedConfig getPassedNackConfig(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("topic", topic);
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka");
+        config.put("value.serializer", IntegerSerializer.class.getName());
+        config.put("topic", topic);
+        return config;
     }
 
     @ApplicationScoped

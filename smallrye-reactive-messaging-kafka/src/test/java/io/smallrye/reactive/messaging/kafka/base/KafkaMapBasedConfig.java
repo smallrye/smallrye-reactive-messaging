@@ -1,8 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.microprofile.config.Config;
+import org.jetbrains.annotations.NotNull;
 
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -15,88 +17,76 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
  */
 public class KafkaMapBasedConfig extends MapBasedConfig {
 
-    public KafkaMapBasedConfig(Map<String, Object> map) {
-        super(map);
+    private String prefix;
+    private boolean tracing;
+
+    KafkaMapBasedConfig(String prefix, boolean tracing) {
+        this.tracing = tracing;
+        withPrefix(prefix);
     }
 
-    public KafkaMapBasedConfig() {
-        super();
-    }
-
-    public static Builder builder() {
-        return builder("");
-    }
-
-    public static Builder builder(String prefix) {
-        return builder(prefix, false);
-    }
-
-    public static Builder builder(String prefix, boolean tracing) {
-        return new KafkaMapBasedConfig.Builder(prefix, tracing);
-    }
-
-    public static class Builder {
-        private final String prefix;
-        private final Boolean withTracing;
-        private final Map<String, Object> configValues = new HashMap<>();
-
-        private Builder(String prefix, Boolean withTracing) {
-            this.prefix = prefix;
-            this.withTracing = withTracing;
+    public KafkaMapBasedConfig withPrefix(String prefix) {
+        Objects.requireNonNull(prefix);
+        Object bootstrapServers = null;
+        if (this.prefix != null) {
+            bootstrapServers = this.get(getFullKey("bootstrap.servers"));
+        }
+        this.prefix = prefix;
+        if (bootstrapServers != null) {
+            this.put("bootstrap.servers", bootstrapServers);
+        }
+        this.put("connector", KafkaConnector.CONNECTOR_NAME);
+        this.put("graceful-shutdown", false);
+        if (!tracing) {
+            this.put("tracing-enabled", false);
         }
 
-        public Builder put(String key, Object value) {
-            configValues.put(key, value);
-            return this;
-        }
+        return this;
+    }
 
-        public Builder put(Object... keyOrValue) {
-            String k = null;
-            for (Object o : keyOrValue) {
-                if (k == null) {
-                    if (o instanceof String) {
-                        k = o.toString();
-                    } else {
-                        throw new IllegalArgumentException("Expected " + o + " to be a String");
-                    }
+    public KafkaMapBasedConfig withTracing(boolean tracing) {
+        this.tracing = tracing;
+        this.put("tracing-enabled", tracing);
+        return this;
+    }
+
+    @NotNull
+    public KafkaMapBasedConfig put(String key, Object value) {
+        super.put(getFullKey(key), value);
+        return this;
+    }
+
+    public KafkaMapBasedConfig with(String key, Object value) {
+        this.put(key, value);
+        return this;
+    }
+
+    private String getFullKey(String shortKey) {
+        if (prefix.length() > 0) {
+            return prefix + "." + shortKey;
+        } else {
+            return shortKey;
+        }
+    }
+
+    public KafkaMapBasedConfig build(Object... keyOrValue) {
+        String k = null;
+        for (Object o : keyOrValue) {
+            if (k == null) {
+                if (o instanceof String) {
+                    k = o.toString();
                 } else {
-                    put(k, o);
-                    k = null;
+                    throw new IllegalArgumentException("Expected " + o + " to be a String");
                 }
-            }
-            if (k != null) {
-                throw new IllegalArgumentException("Invalid number of parameters, last key " + k + " has no value");
-            }
-            return this;
-        }
-
-        private String getFullKey(String shortKey) {
-            if (prefix.length() > 0) {
-                return prefix + "." + shortKey;
             } else {
-                return shortKey;
+                put(k, o);
+                k = null;
             }
         }
-
-        public KafkaMapBasedConfig build() {
-            Map<String, Object> inner = new HashMap<>();
-
-            if (!configValues.containsKey("connector")) {
-                inner.put(getFullKey("connector"), KafkaConnector.CONNECTOR_NAME);
-            }
-
-            if (!configValues.containsKey("graceful-shutdown")) {
-                inner.put(getFullKey("graceful-shutdown"), false);
-            }
-
-            if (!withTracing && !configValues.containsKey("tracing-enabled")) {
-                inner.put(getFullKey("tracing-enabled"), false);
-            }
-            if (!configValues.containsKey("bootstrap.servers")) {
-                inner.put(getFullKey("bootstrap.servers"), KafkaTestBase.getBootstrapServers());
-            }
-            configValues.forEach((key, value) -> inner.put(getFullKey(key), value));
-            return new KafkaMapBasedConfig(inner);
+        if (k != null) {
+            throw new IllegalArgumentException("Invalid number of parameters, last key " + k + " has no value");
         }
+        return this;
     }
+
 }

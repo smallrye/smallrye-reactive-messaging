@@ -256,7 +256,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     //    @Test
     //    public void testRecoveryAfterMissedHeartbeat() throws InterruptedException {
     //        MapBasedConfig config = newCommonConfigForSource()
-    //                .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
+    //                .with("bootstrap.servers", KafkaBrokerExtension.usage.getBootstrapServers())
     //                .with("value.deserializer", IntegerDeserializer.class.getName())
     //                .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000)
     //                .with(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 100)
@@ -264,7 +264,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     //                .with("retry-attempts", 100)
     //                .with("retry-max-wait", 30);
     //
-    //        usage.setBootstrapServers(KafkaBrokerExtension.getBootstrapServers());
+    //        usage.setBootstrapServers(KafkaBrokerExtension.usage.getBootstrapServers());
     //
     //        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
     //        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -292,37 +292,37 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener,
             String group) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
         if (group != null) {
-            builder.put("group.id", group);
+            config.put("group.id", group);
         }
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", "data");
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("topic", "data");
         if (partitions > 0) {
-            builder.put("partitions", Integer.toString(partitions));
-            builder.put("topic", "data-" + partitions);
+            config.put("partitions", Integer.toString(partitions));
+            config.put("topic", "data-" + partitions);
         }
         if (withConsumerRebalanceListener != null) {
-            builder.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
+            config.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
         }
 
-        return builder.build();
+        return config;
     }
 
     private KafkaMapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
-        builder.put("group.id", "my-group-starting-on-fifth-" + suffix);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", "data-starting-on-fifth-" + suffix);
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
+        config.put("group.id", "my-group-starting-on-fifth-" + suffix);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("topic", "data-starting-on-fifth-" + suffix);
         if (shorterTimeouts) {
-            builder.put("max.poll.interval.ms", "2000");
+            config.put("max.poll.interval.ms", "2000");
         }
 
-        return builder.build();
+        return config;
     }
 
     @Test
@@ -363,7 +363,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @Test
     public void testABeanConsumingTheKafkaMessagesMultiThread() {
         MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, "my-group")
-                .with("mp.messaging.incoming.data.topic", topic), MultiThreadConsumer.class);
+                .with("topic", topic), MultiThreadConsumer.class);
         List<Integer> list = bean.getItems();
         assertThat(list).isEmpty();
         bean.run();

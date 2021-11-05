@@ -69,10 +69,21 @@ public class KafkaTestBase extends WeldTestBase {
         }
     }
 
+    public KafkaMapBasedConfig kafkaConfig() {
+        return kafkaConfig("");
+    }
+
+    public KafkaMapBasedConfig kafkaConfig(String prefix) {
+        return kafkaConfig(prefix, false);
+    }
+
+    public KafkaMapBasedConfig kafkaConfig(String prefix, boolean tracing) {
+        return new KafkaMapBasedConfig(prefix, tracing).put("bootstrap.servers", usage.getBootstrapServers());
+    }
+
     public KafkaMapBasedConfig newCommonConfigForSource() {
         String randomId = UUID.randomUUID().toString();
-        return KafkaMapBasedConfig.builder().put(
-                "bootstrap.servers", getBootstrapServers(),
+        return kafkaConfig().build(
                 "group.id", randomId,
                 "key.deserializer", StringDeserializer.class.getName(),
                 "enable.auto.commit", "false",
@@ -80,14 +91,7 @@ public class KafkaTestBase extends WeldTestBase {
                 "tracing-enabled", false,
                 "topic", topic,
                 "graceful-shutdown", false,
-                "channel-name", topic).build();
-    }
-
-    public static String getBootstrapServers() {
-        if (usage != null) {
-            return usage.getBootstrapServers();
-        }
-        return null;
+                "channel-name", topic);
     }
 
     public void createTopic(String topic, int partition) {
@@ -119,7 +123,7 @@ public class KafkaTestBase extends WeldTestBase {
 
     AdminClient getOrCreateAdminClient() {
         if (adminClient == null) {
-            adminClient = AdminClient.create(Collections.singletonMap(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers()));
+            adminClient = AdminClient.create(Collections.singletonMap(BOOTSTRAP_SERVERS_CONFIG, usage.getBootstrapServers()));
         }
         return adminClient;
     }

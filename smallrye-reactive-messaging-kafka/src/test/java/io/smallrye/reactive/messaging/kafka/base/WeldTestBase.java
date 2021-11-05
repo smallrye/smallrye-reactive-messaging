@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
-import java.util.HashMap;
-
 import javax.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -80,7 +78,7 @@ public class WeldTestBase {
 
     public BeanManager getBeanManager() {
         if (container == null) {
-            runApplication(new KafkaMapBasedConfig(new HashMap<>()));
+            runApplication(new MapBasedConfig());
         }
         return container.getBeanManager();
     }

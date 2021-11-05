@@ -115,15 +115,15 @@ public class RetryTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getConfig(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
-        builder.put("group.id", "my-group");
-        builder.put("topic", topic);
-        builder.put("value.deserializer", StringDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("failure-strategy", "ignore");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
+        config.put("group.id", "my-group");
+        config.put("topic", topic);
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("failure-strategy", "ignore");
 
-        return builder.build();
+        return config;
     }
 
     @ApplicationScoped

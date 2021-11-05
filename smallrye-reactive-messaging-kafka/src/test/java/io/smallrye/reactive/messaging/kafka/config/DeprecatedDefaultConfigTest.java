@@ -30,8 +30,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 // this entire file should be removed when support for the `@Named` annotation is removed
 
@@ -60,23 +60,23 @@ public class DeprecatedDefaultConfigTest extends KafkaTestBase {
         });
     }
 
-    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
-        builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
+    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
+        MapBasedConfig config = new MapBasedConfig();
+        config.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
+        config.put("mp.messaging.outgoing.kafka.topic", topicOut);
 
-        builder.put("mp.messaging.incoming.source.topic", topicIn);
-        builder.put("mp.messaging.incoming.source.graceful-shutdown", false);
-        builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
-        builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
+        config.put("mp.messaging.incoming.source.topic", topicIn);
+        config.put("mp.messaging.incoming.source.graceful-shutdown", false);
+        config.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
+        config.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
+        config.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        builder.put("kafka.bootstrap.servers", getBootstrapServers());
-        builder.put("kafka.value.serializer", StringSerializer.class.getName());
-        builder.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("kafka.key.deserializer", StringDeserializer.class.getName());
+        config.put("kafka.bootstrap.servers", usage.getBootstrapServers());
+        config.put("kafka.value.serializer", StringSerializer.class.getName());
+        config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
+        config.put("kafka.key.deserializer", StringDeserializer.class.getName());
 
-        return builder.build();
+        return config;
     }
 
     @ApplicationScoped

@@ -24,22 +24,14 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 public class ChannelNameConflictTest extends KafkaTestBase {
 
     KafkaMapBasedConfig conflictingConfig() {
-        return KafkaMapBasedConfig.builder()
+        return kafkaConfig("mp.messaging.incoming.my-topic")
                 // incoming my-topic
-                .put("mp.messaging.incoming.my-topic.connector", "smallrye-kafka")
-                .put("mp.messaging.incoming.my-topic.bootstrap.servers", usage.getBootstrapServers())
-                .put("mp.messaging.incoming.my-topic.topic", "my-topic-1")
-                .put("mp.messaging.incoming.my-topic.value.deserializer",
-                        "org.apache.kafka.common.serialization.StringDeserializer")
-                .put("mp.messaging.incoming.my-topic.tracing-enabled", false)
+                .put("topic", "my-topic-1")
+                .put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
                 // outgoing my-topic
-                .put("mp.messaging.outgoing.my-topic.connector", "smallrye-kafka")
-                .put("mp.messaging.outgoing.my-topic.bootstrap.servers", usage.getBootstrapServers())
-                .put("mp.messaging.outgoing.my-topic.topic", "my-topic-1")
-                .put("mp.messaging.outgoing.my-topic.value.serializer",
-                        "org.apache.kafka.common.serialization.StringSerializer")
-                .put("mp.messaging.outgoing.my-topic.tracing-enabled", false)
-                .build();
+                .withPrefix("mp.messaging.outgoing.my-topic")
+                .put("topic", "my-topic-1")
+                .put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     }
 
     @Test

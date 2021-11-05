@@ -131,7 +131,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     private MapBasedConfig commonConsumerConfiguration() {
         return new MapBasedConfig()
-                .with("bootstrap.servers", getBootstrapServers())
+                .with("bootstrap.servers", usage.getBootstrapServers())
                 .with("channel-name", "channel")
                 .with("topic", topic)
                 .with("health-enabled", false)

@@ -17,26 +17,25 @@ import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import io.smallrye.reactive.messaging.impl.ConnectorConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 
 class JsonHelperTest {
 
     @Test
     public void test() {
-        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder()
-                .put("bootstrap.servers", "not-important")
-                .put("key", "value")
-                .put("int", 10)
-                .put("double", 23.4)
-                .put("trueasstring", "true")
-                .put("falseasstring", "false")
-                .put("boolean.t", true)
-                .put("boolean.f", false)
-                .put("FOO_BAR", "value")
-                .put("dataFormat", "DF")
-                .put("UP", "up")
-                .build();
+        MapBasedConfig config = new MapBasedConfig()
+                .with("bootstrap.servers", "not-important")
+                .with("key", "value")
+                .with("int", 10)
+                .with("double", 23.4)
+                .with("trueasstring", "true")
+                .with("falseasstring", "false")
+                .with("boolean.t", true)
+                .with("boolean.f", false)
+                .with("FOO_BAR", "value")
+                .with("dataFormat", "DF")
+                .with("UP", "up");
 
         JsonObject object = JsonHelper.asJsonObject(config);
         assertThat(object.getString("key")).isEqualTo("value");

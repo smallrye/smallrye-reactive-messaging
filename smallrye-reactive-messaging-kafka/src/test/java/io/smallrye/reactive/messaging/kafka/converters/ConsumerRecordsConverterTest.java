@@ -25,14 +25,14 @@ class ConsumerRecordsConverterTest extends KafkaTestBase {
 
     @Test
     public void testBeanUsingConverter() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig builder = kafkaConfig("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
         builder.put("batch", true);
 
         addBeans(ConsumerRecordsConverter.class);
-        MyBean bean = runApplication(builder.build(), MyBean.class);
+        MyBean bean = runApplication(builder, MyBean.class);
 
         AtomicInteger counter = new AtomicInteger();
         usage.produceStrings(10, null,
@@ -55,14 +55,14 @@ class ConsumerRecordsConverterTest extends KafkaTestBase {
 
     @Test
     public void testBeanUsingConverterWithNullKeyAndValue() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig builder = kafkaConfig("mp.messaging.incoming.data");
         builder.put("value.deserializer", StringDeserializer.class.getName());
         builder.put("auto.offset.reset", "earliest");
         builder.put("topic", topic);
         builder.put("batch", true);
 
         addBeans(ConsumerRecordsConverter.class);
-        MyBean bean = runApplication(builder.build(), MyBean.class);
+        MyBean bean = runApplication(builder, MyBean.class);
 
         usage.produceStrings(10, null,
                 () -> new ProducerRecord<>(topic, null, null));

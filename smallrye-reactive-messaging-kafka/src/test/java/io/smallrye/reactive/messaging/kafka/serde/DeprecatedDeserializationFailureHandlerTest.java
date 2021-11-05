@@ -17,7 +17,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
@@ -35,17 +34,14 @@ public class DeprecatedDeserializationFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testWhenBothValueAndKeyFailureHandlerAreSetToTheSameHandler() {
-        MapBasedConfig config = new MapBasedConfig()
-                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.kafka.graceful-shutdown", false)
-                .with("mp.messaging.incoming.kafka.topic", topic)
-                .with("mp.messaging.incoming.kafka.auto.offset.reset", "earliest")
-                .with("mp.messaging.incoming.kafka.health-enabled", false)
-                .with("mp.messaging.incoming.kafka.value.deserializer", JsonObjectDeserializer.class.getName())
-                .with("mp.messaging.incoming.kafka.key.deserializer", JsonObjectDeserializer.class.getName())
-                .with("mp.messaging.incoming.kafka.value-deserialization-failure-handler", "value-fallback")
-                .with("mp.messaging.incoming.kafka.key-deserialization-failure-handler", "key-fallback");
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
+                .with("topic", topic)
+                .with("auto.offset.reset", "earliest")
+                .with("health-enabled", false)
+                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value-deserialization-failure-handler", "value-fallback")
+                .with("key-deserialization-failure-handler", "key-fallback");
 
         addBeans(MyKeyDeserializationFailureHandler.class, MyValueDeserializationFailureHandler.class, RecordConverter.class);
         MySink sink = runApplication(config, MySink.class);

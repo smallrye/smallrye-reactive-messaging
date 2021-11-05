@@ -387,7 +387,7 @@ public class KeyDeserializerConfigurationTest extends KafkaTestBase {
 
     private MapBasedConfig commonConsumerConfiguration() {
         return new MapBasedConfig()
-                .with("bootstrap.servers", getBootstrapServers())
+                .with("bootstrap.servers", usage.getBootstrapServers())
                 .with("channel-name", "channel")
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")

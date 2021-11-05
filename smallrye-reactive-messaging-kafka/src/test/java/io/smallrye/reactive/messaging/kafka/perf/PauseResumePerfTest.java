@@ -23,11 +23,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.annotations.Blocking;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
-import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @Disabled
 public class PauseResumePerfTest extends KafkaTestBase {
@@ -51,24 +49,19 @@ public class PauseResumePerfTest extends KafkaTestBase {
         latch.await();
     }
 
-    private MapBasedConfig commonConfig() {
-        return new KafkaMapBasedConfig()
-                .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.data.topic", topic)
-                .with("mp.messaging.incoming.data.graceful-shutdown", false)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
-                .with("mp.messaging.incoming.data.cloud-events", false)
-                .with("mp.messaging.incoming.data.commit-strategy", "throttled")
-                .with("mp.messaging.incoming.data.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.data.auto.offset.reset", "earliest")
-                .with("mp.messaging.incoming.data.value.deserializer", StringDeserializer.class.getName())
-                .with("mp.messaging.incoming.data.key.deserializer", StringDeserializer.class.getName());
+    private KafkaMapBasedConfig commonConfig() {
+        return kafkaConfig("mp.messaging.incoming.data")
+                .put("topic", topic)
+                .put("cloud-events", false)
+                .put("commit-strategy", "throttled")
+                .put("auto.offset.reset", "earliest")
+                .put("value.deserializer", StringDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName());
     }
 
     @Test
     public void test_noop_consumer() {
-        NoopConsumer application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.pause-if-no-requests", false),
+        NoopConsumer application = runApplication(commonConfig().put("pause-if-no-requests", false),
                 NoopConsumer.class);
         long start = System.currentTimeMillis();
         await()
@@ -84,8 +77,7 @@ public class PauseResumePerfTest extends KafkaTestBase {
 
     @Test
     public void test_noop_consumer_pause_resume() {
-        NoopConsumer application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.pause-if-no-requests", true),
+        NoopConsumer application = runApplication(commonConfig().put("pause-if-no-requests", true),
                 NoopConsumer.class);
         long start = System.currentTimeMillis();
         await()
@@ -102,7 +94,7 @@ public class PauseResumePerfTest extends KafkaTestBase {
     @Test
     public void test_hard_working_consumer() {
         HardWorkingConsumerWithAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.pause-if-no-requests", false),
+                .put("pause-if-no-requests", false),
                 HardWorkingConsumerWithAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -119,7 +111,7 @@ public class PauseResumePerfTest extends KafkaTestBase {
     @Test
     public void test_hard_working_consumer_pause_resume() {
         HardWorkingConsumerWithAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.pause-if-no-requests", true),
+                .put("pause-if-no-requests", true),
                 HardWorkingConsumerWithAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -136,8 +128,8 @@ public class PauseResumePerfTest extends KafkaTestBase {
     @Test
     public void test_hard_working_consumer_without_ack() {
         HardWorkingConsumerWithoutAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.enable.auto.commit", true)
-                .with("mp.messaging.incoming.data.pause-if-no-requests", false),
+                .put("enable.auto.commit", true)
+                .put("pause-if-no-requests", false),
                 HardWorkingConsumerWithoutAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -154,8 +146,8 @@ public class PauseResumePerfTest extends KafkaTestBase {
     @Test
     public void test_hard_working_consumer_without_ack_pause_resume() {
         HardWorkingConsumerWithoutAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.enable.auto.commit", true)
-                .with("mp.messaging.incoming.data.pause-if-no-requests", true),
+                .put("enable.auto.commit", true)
+                .put("pause-if-no-requests", true),
                 HardWorkingConsumerWithoutAck.class);
         long start = System.currentTimeMillis();
         await()

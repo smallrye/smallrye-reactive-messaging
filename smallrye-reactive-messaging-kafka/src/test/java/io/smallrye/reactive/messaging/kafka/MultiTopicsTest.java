@@ -22,7 +22,6 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
 /**
@@ -37,12 +36,11 @@ public class MultiTopicsTest extends KafkaTestBase {
         String topic2 = UUID.randomUUID().toString();
         String topic3 = UUID.randomUUID().toString();
 
-        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
-                .put(
-                        "value.deserializer", StringDeserializer.class.getName(),
-                        "topics", topic1 + ", " + topic2 + ", " + topic3,
-                        "auto.offset.reset", "earliest")
-                .build(), KafkaConsumer.class);
+        KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("topics", topic1 + ", " + topic2 + ", " + topic3)
+                .with("auto.offset.reset", "earliest"),
+                KafkaConsumer.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -94,13 +92,12 @@ public class MultiTopicsTest extends KafkaTestBase {
         String topic2 = UUID.randomUUID().toString();
         String topic3 = UUID.randomUUID().toString();
 
-        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
-                .put(
-                        "value.deserializer", StringDeserializer.class.getName(),
-                        "topics", topic1 + ", " + topic2 + ", " + topic3,
-                        "graceful-shutdown", false,
-                        "auto.offset.reset", "earliest")
-                .build(), KafkaConsumer.class);
+        KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("topics", topic1 + ", " + topic2 + ", " + topic3)
+                .with("graceful-shutdown", false)
+                .with("auto.offset.reset", "earliest"),
+                KafkaConsumer.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -151,13 +148,12 @@ public class MultiTopicsTest extends KafkaTestBase {
         createTopic(topic2, 1);
         createTopic(topic3, 1);
 
-        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
-                .put(
-                        "value.deserializer", StringDeserializer.class.getName(),
-                        "topic", "greetings-.+",
-                        "pattern", true,
-                        "auto.offset.reset", "earliest")
-                .build(), KafkaConsumer.class);
+        KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("topic", "greetings-.+")
+                .with("pattern", true)
+                .with("auto.offset.reset", "earliest"),
+                KafkaConsumer.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -205,14 +201,13 @@ public class MultiTopicsTest extends KafkaTestBase {
 
     @Test
     public void testNonReadinessWithPatternIfTopicsAreNotCreated() {
-        runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
-                .put(
-                        "value.deserializer", StringDeserializer.class.getName(),
-                        "topic", "greetings-.+",
-                        "pattern", true,
-                        "auto.offset.reset", "earliest",
-                        "health-readiness-topic-verification", true)
-                .build(), KafkaConsumer.class);
+        runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("topic", "greetings-.+")
+                .with("pattern", true)
+                .with("auto.offset.reset", "earliest")
+                .with("health-readiness-topic-verification", true),
+                KafkaConsumer.class);
 
         await().until(this::isAlive);
         await()
@@ -224,31 +219,26 @@ public class MultiTopicsTest extends KafkaTestBase {
     @Test
     public void testInvalidConfigurations() {
         // Pattern and no topic
-        assertThatThrownBy(() -> runApplication(new KafkaMapBasedConfig()
-                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
-                .with("mp.messaging.incoming.kafka.pattern", true), KafkaConsumer.class))
+        assertThatThrownBy(() -> runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("pattern", true),
+                KafkaConsumer.class))
                         .isInstanceOf(DeploymentException.class)
                         .hasCauseInstanceOf(IllegalArgumentException.class);
 
         // topics and no topic
-        assertThatThrownBy(() -> runApplication(new KafkaMapBasedConfig()
-                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
-                .with("mp.messaging.incoming.kafka.topic", "my-topic")
-                .with("mp.messaging.incoming.kafka.topics", "a, b, c"), KafkaConsumer.class))
+        assertThatThrownBy(() -> runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("topic", "my-topic")
+                .with("topics", "a, b, c"), KafkaConsumer.class))
                         .isInstanceOf(DeploymentException.class)
                         .hasCauseInstanceOf(IllegalArgumentException.class);
 
         // topics and pattern
-        assertThatThrownBy(() -> runApplication(new KafkaMapBasedConfig()
-                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName())
-                .with("mp.messaging.incoming.kafka.pattern", true)
-                .with("mp.messaging.incoming.kafka.topics", "a, b, c"), KafkaConsumer.class))
+        assertThatThrownBy(() -> runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("pattern", true)
+                .with("topics", "a, b, c"), KafkaConsumer.class))
                         .isInstanceOf(DeploymentException.class)
                         .hasCauseInstanceOf(IllegalArgumentException.class);
     }

@@ -48,12 +48,10 @@ public class MissingBackPressureTest extends KafkaTestBase {
     }
 
     public KafkaMapBasedConfig myKafkaSinkConfig() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.temperature-values");
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", topic);
-        builder.put("waitForWriteCompletion", false);
-
-        return builder.build();
+        return kafkaConfig("mp.messaging.outgoing.temperature-values")
+                .put("value.serializer", StringSerializer.class.getName())
+                .put("topic", topic)
+                .put("waitForWriteCompletion", false);
     }
 
     @Test

@@ -708,25 +708,24 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getConfig(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
-        builder.put("value.deserializer", StringDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", topic);
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("topic", topic);
+        return config;
     }
 
     private KafkaMapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
-        KafkaMapBasedConfig config = new KafkaMapBasedConfig();
-        config.put("bootstrap.servers", getBootstrapServers());
-        config.put("group.id", randomId);
-        config.put("key.deserializer", StringDeserializer.class.getName());
-        config.put("graceful-shutdown", false);
-        config.put("enable.auto.commit", "false");
-        config.put("auto.offset.reset", "earliest");
-        config.put("tracing-enabled", false);
-        return config;
+        return kafkaConfig()
+                .put("bootstrap.servers", usage.getBootstrapServers())
+                .put("group.id", randomId)
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("graceful-shutdown", false)
+                .put("enable.auto.commit", "false")
+                .put("auto.offset.reset", "earliest")
+                .put("tracing-enabled", false);
     }
 
     @ApplicationScoped

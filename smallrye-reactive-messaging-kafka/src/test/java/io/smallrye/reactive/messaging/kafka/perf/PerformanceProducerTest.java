@@ -22,7 +22,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
@@ -41,11 +40,9 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
-                .put("connector", KafkaConnector.CONNECTOR_NAME)
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
-                .put("value.serializer", IntegerSerializer.class.getName())
-                .build();
+                .put("value.serializer", IntegerSerializer.class.getName());
 
         GeneratorBean bean = runApplication(config, GeneratorBean.class);
         await().until(this::isReady);
@@ -76,12 +73,11 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
-                .put("connector", KafkaConnector.CONNECTOR_NAME)
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
-                .put("value.serializer", IntegerSerializer.class.getName())
-                .build();
+                .put("value.serializer", IntegerSerializer.class.getName());
+
         GeneratorBean bean = runApplication(config, GeneratorBean.class);
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -111,13 +107,12 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
-                .put("connector", KafkaConnector.CONNECTOR_NAME)
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
                 .put("waitForWriteCompletion", false)
-                .put("value.serializer", IntegerSerializer.class.getName())
-                .build();
+                .put("value.serializer", IntegerSerializer.class.getName());
+
         GeneratorBean bean = runApplication(config, GeneratorBean.class);
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -147,14 +142,13 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
-                .put("connector", KafkaConnector.CONNECTOR_NAME)
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
                 .put("enable.idempotence", true)
                 .put("acks", "all")
-                .put("value.serializer", IntegerSerializer.class.getName())
-                .build();
+                .put("value.serializer", IntegerSerializer.class.getName());
+
         GeneratorBean bean = runApplication(config, GeneratorBean.class);
         await().until(this::isReady);
         await().until(this::isAlive);
@@ -184,13 +178,12 @@ public class PerformanceProducerTest extends KafkaTestBase {
             received.add(v);
         });
 
-        KafkaMapBasedConfig config = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka")
-                .put("connector", KafkaConnector.CONNECTOR_NAME)
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
                 .put("max.in.flight.requests.per.connection", 100)
-                .put("value.serializer", IntegerSerializer.class.getName())
-                .build();
+                .put("value.serializer", IntegerSerializer.class.getName());
+
         GeneratorBean bean = runApplication(config, GeneratorBean.class);
         await().until(this::isReady);
         await().until(this::isAlive);

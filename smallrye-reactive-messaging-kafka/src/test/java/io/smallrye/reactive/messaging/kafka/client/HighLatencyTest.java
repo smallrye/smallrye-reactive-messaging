@@ -27,8 +27,8 @@ public class HighLatencyTest extends ClientTestBase {
 
     public KafkaMapBasedConfig newCommonConfigForSource() {
         String randomId = UUID.randomUUID().toString();
-        return KafkaMapBasedConfig.builder().put(
-                "bootstrap.servers", getBootstrapServers(),
+        return kafkaConfig().build(
+                "bootstrap.servers", usage.getBootstrapServers(),
                 "group.id", randomId,
                 "key.deserializer", StringDeserializer.class.getName(),
                 "enable.auto.commit", "false",
@@ -36,13 +36,13 @@ public class HighLatencyTest extends ClientTestBase {
                 "tracing-enabled", false,
                 "topic", topic,
                 "graceful-shutdown", false,
-                "channel-name", topic).build();
+                "channel-name", topic);
     }
 
     //    @Test
     //    public void testHighLatency() throws InterruptedException, IOException {
     //        MapBasedConfig config = newCommonConfigForSource()
-    //                .with("bootstrap.servers", getBootstrapServers())
+    //                .with("bootstrap.servers", usage.getBootstrapServers())
     //                .with("value.deserializer", IntegerDeserializer.class.getName())
     //                .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000)
     //                .with(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 100)
@@ -50,7 +50,7 @@ public class HighLatencyTest extends ClientTestBase {
     //                .with("retry-attempts", 100)
     //                .with("retry-max-wait", 30);
     //
-    //        usage.setBootstrapServers(KafkaBrokerExtension.getBootstrapServers());
+    //        usage.setBootstrapServers(KafkaBrokerExtension.usage.getBootstrapServers());
     //
     //        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
     //        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,

@@ -30,13 +30,13 @@ public class BatchConsumerTest extends KafkaTestBase {
 
     @Test
     void testIncomingConsumingListPayload() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .put("value.deserializer", StringDeserializer.class.getName())
                 .put("auto.offset.reset", "earliest")
                 .put("topic", topic)
                 .put("batch", true);
 
-        BeanConsumingListPayload bean = runApplication(builder.build(), BeanConsumingListPayload.class);
+        BeanConsumingListPayload bean = runApplication(config, BeanConsumingListPayload.class);
 
         AtomicInteger count = new AtomicInteger();
         usage.produceStrings(10, null, () -> new ProducerRecord<>(topic, null, "v-" + count.get()));
@@ -48,12 +48,12 @@ public class BatchConsumerTest extends KafkaTestBase {
 
     @Test
     void testIncomingConsumingKafkaBatchRecords() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .put("value.deserializer", StringDeserializer.class.getName())
                 .put("auto.offset.reset", "earliest")
                 .put("topic", topic)
                 .put("batch", true);
-        BeanConsumingKafkaRecordBatch bean = runApplication(builder.build(), BeanConsumingKafkaRecordBatch.class);
+        BeanConsumingKafkaRecordBatch bean = runApplication(config, BeanConsumingKafkaRecordBatch.class);
 
         AtomicInteger count = new AtomicInteger();
         usage.produceStrings(10, null, () -> new ProducerRecord<>(topic, "k-" + count.getAndIncrement(), "v-" + count.get()));
@@ -71,12 +71,12 @@ public class BatchConsumerTest extends KafkaTestBase {
         String newTopic = UUID.randomUUID().toString();
         createTopic(newTopic, 3);
 
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .put("value.deserializer", StringDeserializer.class.getName())
                 .put("auto.offset.reset", "earliest")
                 .put("topic", newTopic)
                 .put("batch", true);
-        BeanConsumingMessageWithBatchMetadata bean = runApplication(builder.build(),
+        BeanConsumingMessageWithBatchMetadata bean = runApplication(config,
                 BeanConsumingMessageWithBatchMetadata.class);
 
         AtomicInteger count = new AtomicInteger();

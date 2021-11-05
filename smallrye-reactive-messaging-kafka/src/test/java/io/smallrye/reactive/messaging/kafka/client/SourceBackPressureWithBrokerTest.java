@@ -109,15 +109,15 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig myKafkaSourceConfig(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
 
-        builder.put("value.deserializer", StringDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", topic);
-        builder.put("max.poll.records", 1);
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("topic", topic);
+        config.put("max.poll.records", 1);
 
-        return builder.build();
+        return config;
     }
 
     private <T> T run(KafkaMapBasedConfig config, Class<T> bean) {

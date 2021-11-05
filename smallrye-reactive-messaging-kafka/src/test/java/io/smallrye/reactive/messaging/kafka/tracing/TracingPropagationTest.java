@@ -53,6 +53,7 @@ import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class TracingPropagationTest extends KafkaTestBase {
 
@@ -327,37 +328,28 @@ public class TracingPropagationTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("topic", topic);
-        return builder.build();
+        return kafkaConfig("mp.messaging.outgoing.kafka", true)
+                .put("value.serializer", IntegerSerializer.class.getName())
+                .put("topic", topic);
     }
 
-    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String resultTopic, String parentTopic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("topic", resultTopic);
-
-        Map<String, Object> config = builder.build().getMap();
-
-        builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.source", true);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("key.deserializer", StringDeserializer.class.getName());
-        builder.put("topic", parentTopic);
-        builder.put("auto.offset.reset", "earliest");
-
-        config.putAll(builder.build().getMap());
-        return new KafkaMapBasedConfig(config);
+    private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String resultTopic, String parentTopic) {
+        return kafkaConfig("mp.messaging.outgoing.kafka", true)
+                .put("value.serializer", IntegerSerializer.class.getName())
+                .put("topic", resultTopic)
+                .withPrefix("mp.messaging.incoming.source")
+                .put("value.deserializer", IntegerDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("topic", parentTopic)
+                .put("auto.offset.reset", "earliest");
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForMyAppReceivingData(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.stuff", true);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("key.deserializer", StringDeserializer.class.getName());
-        builder.put("topic", topic);
-        builder.put("auto.offset.reset", "earliest");
-
-        return builder.build();
+        return kafkaConfig("mp.messaging.incoming.stuff", true)
+                .put("value.deserializer", IntegerDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("topic", topic)
+                .put("auto.offset.reset", "earliest");
     }
 
     @ApplicationScoped

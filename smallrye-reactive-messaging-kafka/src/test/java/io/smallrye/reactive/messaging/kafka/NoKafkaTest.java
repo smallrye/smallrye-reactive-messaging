@@ -203,18 +203,17 @@ public class NoKafkaTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig myKafkaSourceConfig() {
-        return KafkaMapBasedConfig.builder("mp.messaging.incoming.temperature-values")
-                .put(
+        return kafkaConfig("mp.messaging.incoming.temperature-values")
+                .build(
                         "value.deserializer", IntegerDeserializer.class.getName(),
                         "topic", topic,
                         "bootstrap.servers", servers,
-                        "auto.offset.reset", "earliest")
-                .build();
+                        "auto.offset.reset", "earliest");
     }
 
     private KafkaMapBasedConfig myKafkaSinkConfig(String topic) {
-        return KafkaMapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
-                .put(
+        return kafkaConfig("mp.messaging.outgoing.temperature-values")
+                .build(
                         "value.serializer", StringSerializer.class.getName(),
                         "max-inflight-messages", "2",
                         "max.block.ms", 1000,
@@ -224,17 +223,15 @@ public class NoKafkaTest extends KafkaTestBase {
                         "default.api.timeout.ms", 250,
                         "request.timeout.ms", 200,
 
-                        "bootstrap.servers", servers)
-                .build();
+                        "bootstrap.servers", servers);
     }
 
     private KafkaMapBasedConfig myKafkaSinkConfigWithoutBlockLimit(String topic) {
-        return KafkaMapBasedConfig.builder("mp.messaging.outgoing.temperature-values")
-                .put(
+        return kafkaConfig("mp.messaging.outgoing.temperature-values")
+                .build(
                         "value.serializer", StringSerializer.class.getName(),
                         "topic", topic,
-                        "bootstrap.servers", servers)
-                .build();
+                        "bootstrap.servers", servers);
     }
 
 }

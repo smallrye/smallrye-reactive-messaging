@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
-import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -29,7 +28,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 public class KafkaNackWithMetadataTest extends KafkaTestBase {
     @Test
     public void test() {
-        runApplication(kafkaConfig(), MyApp.class);
+        runApplication(config(), MyApp.class);
 
         MyApp bean = get(MyApp.class);
 
@@ -52,34 +51,28 @@ public class KafkaNackWithMetadataTest extends KafkaTestBase {
         });
     }
 
-    private KafkaMapBasedConfig kafkaConfig() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
+    private KafkaMapBasedConfig config() {
+        KafkaMapBasedConfig builder = kafkaConfig("mp.messaging.outgoing.main-producer");
 
-        builder.put("mp.messaging.outgoing.main-producer.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.outgoing.main-producer.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.outgoing.main-producer.topic", topic);
-        builder.put("mp.messaging.outgoing.main-producer.key.serializer", StringSerializer.class.getName());
-        builder.put("mp.messaging.outgoing.main-producer.value.serializer", StringSerializer.class.getName());
+        builder.put("topic", topic);
+        builder.put("key.serializer", StringSerializer.class.getName());
+        builder.put("value.serializer", StringSerializer.class.getName());
+        builder.withPrefix("mp.messaging.incoming.main-consumer");
+        builder.put("topic", topic);
+        builder.put("key.deserializer", StringDeserializer.class.getName());
+        builder.put("value.deserializer", StringDeserializer.class.getName());
+        builder.put("auto.offset.reset", "earliest");
+        builder.put("failure-strategy", "dead-letter-queue");
+        builder.put("dead-letter-queue.topic", topic + "-dlt");
+        builder.put("dead-letter-queue.key.serializer", StringSerializer.class.getName());
+        builder.put("dead-letter-queue.value.serializer", StringSerializer.class.getName());
+        builder.withPrefix("mp.messaging.incoming.dlt-consumer");
+        builder.put("topic", topic + "-dlt");
+        builder.put("key.deserializer", StringDeserializer.class.getName());
+        builder.put("value.deserializer", StringDeserializer.class.getName());
+        builder.put("auto.offset.reset", "earliest");
 
-        builder.put("mp.messaging.incoming.main-consumer.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.incoming.main-consumer.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.incoming.main-consumer.topic", topic);
-        builder.put("mp.messaging.incoming.main-consumer.key.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.main-consumer.value.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.main-consumer.auto.offset.reset", "earliest");
-        builder.put("mp.messaging.incoming.main-consumer.failure-strategy", "dead-letter-queue");
-        builder.put("mp.messaging.incoming.main-consumer.dead-letter-queue.topic", topic + "-dlt");
-        builder.put("mp.messaging.incoming.main-consumer.dead-letter-queue.key.serializer", StringSerializer.class.getName());
-        builder.put("mp.messaging.incoming.main-consumer.dead-letter-queue.value.serializer", StringSerializer.class.getName());
-
-        builder.put("mp.messaging.incoming.dlt-consumer.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.incoming.dlt-consumer.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.incoming.dlt-consumer.topic", topic + "-dlt");
-        builder.put("mp.messaging.incoming.dlt-consumer.key.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.dlt-consumer.value.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.dlt-consumer.auto.offset.reset", "earliest");
-
-        return builder.build();
+        return builder;
     }
 
     @ApplicationScoped
