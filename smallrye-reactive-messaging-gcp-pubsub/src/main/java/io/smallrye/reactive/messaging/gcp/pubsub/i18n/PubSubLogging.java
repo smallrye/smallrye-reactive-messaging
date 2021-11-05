@@ -27,4 +27,7 @@ public interface PubSubLogging extends BasicLogger {
     @Message(id = 14801, value = "Received pub/sub message %s")
     void receivedMessage(PubsubMessage message);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 14802, value = "Admin client is enabled. The GCP Connector is trying to create topics / subscriptions")
+    void adminClientEnabled();
 }
