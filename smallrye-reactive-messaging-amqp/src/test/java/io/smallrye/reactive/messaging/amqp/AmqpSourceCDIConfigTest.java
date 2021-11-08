@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
-import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.CHANNEL_NAME_ATTRIBUTE;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -15,7 +14,6 @@ import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.common.constraint.NotNull;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -198,29 +196,40 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .isInstanceOf(DeploymentException.class);
     }
 
-    @NotNull
-    private Map<String, Object> getConfig(String topic) {
-        Map<String, Object> config = new HashMap<>();
-        config.put("address", topic);
-        config.put(CHANNEL_NAME_ATTRIBUTE, UUID.randomUUID().toString());
-        config.put("host", host);
-        config.put("port", port);
-        config.put("name", "some name");
-        config.put("username", username);
-        config.put("password", password);
-        return config;
-    }
+    /**
+     * Reproduce https://github.com/smallrye/smallrye-reactive-messaging/issues/1491.
+     */
+    @Test
+    public void testClientConfigWithHostSet() {
+        Weld weld = new Weld();
 
-    @NotNull
-    private Map<String, Object> getConfigUsingChannelName(String topic) {
-        Map<String, Object> config = new HashMap<>();
-        config.put(CHANNEL_NAME_ATTRIBUTE, topic);
-        config.put("host", host);
-        config.put("port", port);
-        config.put("name", "some name");
-        config.put("username", username);
-        config.put("password", password);
-        return config;
+        String address = UUID.randomUUID().toString();
+        weld.addBeanClass(ClientConfigurationBean.class);
+        weld.addBeanClass(ConsumptionBean.class);
+
+        new MapBasedConfig()
+                .with("mp.messaging.incoming.data.address", address)
+                .with("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.host", host)
+                .with("mp.messaging.incoming.data.port", port)
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
+                .with("amqp-client-options-name", "myclientoptions2")
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isAmqpConnectorAlive(container));
+        await().until(() -> isAmqpConnectorReady(container));
+        List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
+        assertThat(list).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers(address, counter::getAndIncrement);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
     }
 
 }
