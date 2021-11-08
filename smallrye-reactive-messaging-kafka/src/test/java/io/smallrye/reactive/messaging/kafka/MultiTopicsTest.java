@@ -144,9 +144,9 @@ public class MultiTopicsTest extends KafkaTestBase {
         String topic2 = "greetings-" + UUID.randomUUID().toString();
         String topic3 = "greetings-" + UUID.randomUUID().toString();
 
-        createTopic(topic1, 1);
-        createTopic(topic2, 1);
-        createTopic(topic3, 1);
+        usage.createTopic(topic1, 1);
+        usage.createTopic(topic2, 1);
+        usage.createTopic(topic3, 1);
 
         KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
                 .with("value.deserializer", StringDeserializer.class.getName())

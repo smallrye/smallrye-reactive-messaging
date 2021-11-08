@@ -69,7 +69,7 @@ public class BatchConsumerTest extends KafkaTestBase {
     @Test
     void testIncomingConsumingMessageWithMetadata() {
         String newTopic = UUID.randomUUID().toString();
-        createTopic(newTopic, 3);
+        usage.createTopic(newTopic, 3);
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .put("value.deserializer", StringDeserializer.class.getName())

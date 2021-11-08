@@ -1,20 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
-import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
-
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +20,6 @@ public class KafkaTestBase extends WeldTestBase {
 
     public Vertx vertx;
     public static KafkaUsage usage;
-    public AdminClient adminClient;
 
     public String topic;
 
@@ -58,11 +47,9 @@ public class KafkaTestBase extends WeldTestBase {
         }
     }
 
-    @AfterEach
-    public void closeAdminClient() {
-        if (adminClient != null) {
-            adminClient.close();
-        }
+    @AfterAll
+    static void closeUsage() {
+        usage.close();
     }
 
     public KafkaMapBasedConfig kafkaConfig() {
@@ -88,40 +75,6 @@ public class KafkaTestBase extends WeldTestBase {
                 "topic", topic,
                 "graceful-shutdown", false,
                 "channel-name", topic);
-    }
-
-    public void createTopic(String topic, int partition) {
-        try {
-            getOrCreateAdminClient().createTopics(Collections.singletonList(new NewTopic(topic, partition, (short) 1)))
-                    .all().get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void alterConsumerGroupOffsets(String groupId, Map<TopicPartition, OffsetAndMetadata> topicPartitionOffsets) {
-        try {
-            getOrCreateAdminClient().alterConsumerGroupOffsets(groupId, topicPartitionOffsets).all().get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(String groupId,
-            List<TopicPartition> topicPartitions) {
-        try {
-            return getOrCreateAdminClient().listConsumerGroupOffsets(groupId, new ListConsumerGroupOffsetsOptions()
-                    .topicPartitions(topicPartitions)).partitionsToOffsetAndMetadata().get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    AdminClient getOrCreateAdminClient() {
-        if (adminClient == null) {
-            adminClient = AdminClient.create(Collections.singletonMap(BOOTSTRAP_SERVERS_CONFIG, usage.getBootstrapServers()));
-        }
-        return adminClient;
     }
 
 }

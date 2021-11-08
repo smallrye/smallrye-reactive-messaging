@@ -63,7 +63,7 @@ public class HealthCheckTest extends KafkaTestBase {
     @Test
     void testHealthOfApplicationWithOutgoingTopicUsingTopicVerification() {
         String outputTopic = UUID.randomUUID().toString();
-        createTopic(outputTopic, 1);
+        usage.createTopic(outputTopic, 1);
         MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
                 .put("health-topic-verification-enabled", true)
                 .put("topic", outputTopic));

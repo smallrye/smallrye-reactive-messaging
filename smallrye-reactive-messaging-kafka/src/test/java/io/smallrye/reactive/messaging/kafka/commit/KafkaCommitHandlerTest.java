@@ -255,7 +255,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     public void testSourceWithThrottledAndRebalance() {
-        createTopic(topic, 2);
+        usage.createTopic(topic, 2);
         MapBasedConfig config1 = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
@@ -316,7 +316,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .untilAsserted(() -> {
                     TopicPartition tp1 = new TopicPartition(topic, 0);
                     TopicPartition tp2 = new TopicPartition(topic, 1);
-                    Map<TopicPartition, OffsetAndMetadata> result = listConsumerGroupOffsets(
+                    Map<TopicPartition, OffsetAndMetadata> result = usage.listConsumerGroupOffsets(
                             "test-source-with-throttled-latest-processed-commit", Arrays.asList(tp1, tp2));
                     assertNotNull(result.get(tp1));
                     assertNotNull(result.get(tp2));
@@ -340,7 +340,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     void testSourceWithThrottledAndRebalanceWithPartitionsConfig() {
-        createTopic(topic, 4);
+        usage.createTopic(topic, 4);
 
         AtomicInteger counter = new AtomicInteger();
         usage.produceIntegers(10000, null,
@@ -414,7 +414,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         Set<TopicPartition> source2Partitions = source2.getConsumer().getAssignments().await().indefinitely();
         await().untilAsserted(() -> {
-            Map<TopicPartition, OffsetAndMetadata> offsets = listConsumerGroupOffsets(
+            Map<TopicPartition, OffsetAndMetadata> offsets = usage.listConsumerGroupOffsets(
                     "test-source-with-throttled-latest-processed-commit", new ArrayList<>(source2Partitions));
             assertThat(offsets).isNotNull();
         });

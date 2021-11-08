@@ -98,7 +98,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
-        createTopic(topic, 3);
+        usage.createTopic(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -183,7 +183,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcastWithPartitions() {
-        createTopic(topic, 2);
+        usage.createTopic(topic, 2);
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true)
@@ -380,7 +380,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
-        createTopic("legacy-data-2", 2);
+        usage.createTopic("legacy-data-2", 2);
         ConsumptionBean bean = run(
                 myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         List<Integer> list = bean.getResults();

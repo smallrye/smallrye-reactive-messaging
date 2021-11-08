@@ -33,7 +33,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
     @Test
     public void testDefault() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, 10);
+        usage.createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
         usage.consumeIntegers(topic, COUNT, 1, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
@@ -66,7 +66,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
     @Test
     public void testWithoutBackPressure() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, 10);
+        usage.createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
         usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
@@ -100,7 +100,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
     @Test
     public void testWithoutBackPressureAndNoWait() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, 10);
+        usage.createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
         usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
@@ -135,7 +135,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
     @Test
     public void testWithoutBackPressureAndIdempotence() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, 10);
+        usage.createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
         usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
@@ -171,7 +171,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
     @Test
     public void testWithoutBackPressureAndIncreaseKafkaRequests() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, 10);
+        usage.createTopic(topic, 10);
         CountDownLatch receptionDone = new CountDownLatch(1);
         List<Integer> received = Collections.synchronizedList(new ArrayList<>());
         usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {

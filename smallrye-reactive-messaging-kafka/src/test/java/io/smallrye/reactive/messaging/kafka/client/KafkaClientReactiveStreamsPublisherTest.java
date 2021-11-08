@@ -74,6 +74,9 @@ public class KafkaClientReactiveStreamsPublisherTest
         if (vertx != null) {
             vertx.closeAndAwait();
         }
+        if (usage != null) {
+            usage.close();
+        }
     }
 
     @AfterEach

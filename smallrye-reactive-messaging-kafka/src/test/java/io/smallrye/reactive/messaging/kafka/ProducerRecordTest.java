@@ -36,7 +36,7 @@ public class ProducerRecordTest extends KafkaTestBase {
     @Test
     public void test() {
         for (int i = 0; i < 10; i++) {
-            createTopic(TOPIC_NAME_BASE + i, 1);
+            usage.createTopic(TOPIC_NAME_BASE + i, 1);
         }
 
         addBeans(ConsumerRecordConverter.class);

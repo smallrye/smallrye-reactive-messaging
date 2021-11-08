@@ -93,7 +93,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
-        createTopic(topic, 3);
+        usage.createTopic(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -179,7 +179,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcastWithPartitions() {
-        createTopic(topic, 2);
+        usage.createTopic(topic, 2);
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true)
@@ -219,7 +219,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @Tag(TestTags.SLOW)
     public void testRetry() {
         // This test need an individual Kafka container
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION);) {
             kafka.start();
             await().until(kafka::isRunning);
             MapBasedConfig config = newCommonConfigForSource()
@@ -379,7 +379,7 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
-        createTopic("data-2", 2);
+        usage.createTopic("data-2", 2);
         ConsumptionBean bean = run(
                 myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         List<Integer> list = bean.getResults();
