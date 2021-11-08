@@ -5,7 +5,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.health.*;
 
-import io.smallrye.reactive.messaging.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 
 @ApplicationScoped
 @Liveness

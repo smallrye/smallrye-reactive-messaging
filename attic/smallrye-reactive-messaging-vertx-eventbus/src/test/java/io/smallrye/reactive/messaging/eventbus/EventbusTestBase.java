@@ -9,15 +9,15 @@ import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
-import io.smallrye.reactive.messaging.extension.HealthCenter;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
-import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
-import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
+import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.smallrye.reactive.messaging.wiring.Wiring;
+import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.vertx.mutiny.core.Vertx;
 
 public class EventbusTestBase {

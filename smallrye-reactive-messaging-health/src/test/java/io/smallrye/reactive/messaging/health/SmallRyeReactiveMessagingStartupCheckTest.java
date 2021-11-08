@@ -13,7 +13,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 
 public class SmallRyeReactiveMessagingStartupCheckTest {
 

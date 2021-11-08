@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.helpers.NoStackTraceException;
+import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
 
 public class InjectionWithoutSubscriberTest extends WeldTestBaseWithoutTails {
 

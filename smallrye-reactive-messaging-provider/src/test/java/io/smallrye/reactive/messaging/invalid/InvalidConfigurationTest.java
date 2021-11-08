@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.invalid;
 
-import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
+import static io.smallrye.reactive.messaging.providers.extension.MediatorManager.STRICT_MODE_PROPERTY;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import javax.enterprise.context.ApplicationScoped;

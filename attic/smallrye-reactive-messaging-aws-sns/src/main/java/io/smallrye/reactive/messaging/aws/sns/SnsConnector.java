@@ -26,7 +26,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.core.Vertx;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;

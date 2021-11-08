@@ -26,9 +26,9 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.metrics.setup.MetricCdiInjectionExtension;
-import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
-import io.smallrye.reactive.messaging.metrics.MetricDecorator;
+import io.smallrye.reactive.messaging.providers.PublisherDecorator;
+import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class SmallRyeMetricDecoratorTest extends WeldTestBase {

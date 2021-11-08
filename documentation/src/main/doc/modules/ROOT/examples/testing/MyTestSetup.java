@@ -1,6 +1,6 @@
 package testing;
 
-import io.smallrye.reactive.messaging.connectors.InMemoryConnector;
+import io.smallrye.reactive.messaging.providers.connectors.InMemoryConnector;
 
 import java.util.HashMap;
 import java.util.Map;

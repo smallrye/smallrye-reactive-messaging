@@ -16,7 +16,7 @@ import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
-import io.smallrye.reactive.messaging.impl.ConnectorConfig;
+import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 

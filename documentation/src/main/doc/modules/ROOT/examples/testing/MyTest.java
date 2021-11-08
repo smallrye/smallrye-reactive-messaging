@@ -1,8 +1,8 @@
 package testing;
 
-import io.smallrye.reactive.messaging.connectors.InMemoryConnector;
-import io.smallrye.reactive.messaging.connectors.InMemorySource;
-import io.smallrye.reactive.messaging.connectors.InMemorySink;
+import io.smallrye.reactive.messaging.providers.connectors.InMemoryConnector;
+import io.smallrye.reactive.messaging.providers.connectors.InMemorySource;
+import io.smallrye.reactive.messaging.providers.connectors.InMemorySink;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
