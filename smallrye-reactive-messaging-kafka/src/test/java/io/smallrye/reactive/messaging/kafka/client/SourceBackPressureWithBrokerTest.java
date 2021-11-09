@@ -44,8 +44,8 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         List<String> list = bean.list();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()));
 
         await().until(() -> bean.request(2));
         await().until(() -> list.size() >= 2);

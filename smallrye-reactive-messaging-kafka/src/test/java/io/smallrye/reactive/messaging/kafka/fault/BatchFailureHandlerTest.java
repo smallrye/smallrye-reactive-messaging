@@ -52,8 +52,8 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -73,8 +73,8 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -92,8 +92,8 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -111,8 +111,8 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -138,8 +138,8 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().until(() -> bean.list().size() == 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -179,8 +179,8 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().until(() -> bean.list().size() == 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);

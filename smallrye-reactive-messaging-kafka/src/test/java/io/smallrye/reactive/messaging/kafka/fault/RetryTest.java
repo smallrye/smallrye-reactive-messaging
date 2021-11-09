@@ -37,8 +37,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -55,8 +55,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -73,8 +73,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -91,8 +91,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.nacks() == 10);
         assertThat(bean.acks()).isEqualTo(0);
@@ -107,8 +107,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.nacks() == 10);
         assertThat(bean.acks()).isEqualTo(0);

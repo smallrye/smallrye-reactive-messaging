@@ -48,14 +48,14 @@ public class MultiTopicsTest extends KafkaTestBase {
         assertThat(bean.getMessages()).isEmpty();
 
         AtomicInteger key = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic1, Integer.toString(key.getAndIncrement()), "hello"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic1, Integer.toString(key.getAndIncrement()), "hello"));
 
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic2, Integer.toString(key.getAndIncrement()), "hallo"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic2, Integer.toString(key.getAndIncrement()), "hallo"));
 
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic3, Integer.toString(key.getAndIncrement()), "bonjour"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic3, Integer.toString(key.getAndIncrement()), "bonjour"));
 
         await().until(() -> bean.getMessages().size() >= 9);
 
@@ -105,11 +105,11 @@ public class MultiTopicsTest extends KafkaTestBase {
         assertThat(bean.getMessages()).isEmpty();
 
         AtomicInteger key = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic1, Integer.toString(key.incrementAndGet()), "hello"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic1, Integer.toString(key.incrementAndGet()), "hello"));
 
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic3, Integer.toString(key.incrementAndGet()), "bonjour"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic3, Integer.toString(key.incrementAndGet()), "bonjour"));
 
         await().until(() -> bean.getMessages().size() >= 6);
 
@@ -160,17 +160,17 @@ public class MultiTopicsTest extends KafkaTestBase {
 
         assertThat(bean.getMessages()).isEmpty();
 
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic1, "hello"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic1, "hello"));
 
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic2, "hallo"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic2, "hallo"));
 
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic3, "bonjour"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>(topic3, "bonjour"));
 
-        new Thread(() -> usage.produceStrings(3, null,
-                () -> new ProducerRecord<>("do-not-match", "Bahh!"))).start();
+        usage.produceStrings(3, null,
+                () -> new ProducerRecord<>("do-not-match", "Bahh!"));
 
         await().until(() -> bean.getMessages().size() >= 9);
 

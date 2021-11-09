@@ -121,7 +121,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
 
-        new Thread(() -> usage
+        usage
                 .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(), null,
                         () -> {
                             JsonObject json = new JsonObject()
@@ -136,7 +136,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
                                     Collections.singletonList(
                                             new RecordHeader("content-type",
                                                     "application/cloudevents+json; charset=utf-8".getBytes())));
-                        })).start();
+                        });
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
@@ -179,7 +179,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
 
-        new Thread(() -> usage
+        usage
                 .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(), null,
                         () -> {
                             JsonObject json = new JsonObject()
@@ -194,7 +194,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
                                     Collections.singletonList(
                                             new RecordHeader("content-type",
                                                     "application/cloudevents+json; charset=utf-8".getBytes())));
-                        })).start();
+                        });
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
@@ -234,7 +234,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
 
-        new Thread(() -> usage
+        usage
                 .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(), null,
                         () -> {
                             JsonObject json = new JsonObject()
@@ -248,7 +248,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
                                     Collections.singletonList(
                                             new RecordHeader("content-type",
                                                     "application/cloudevents+json; charset=utf-8".getBytes())));
-                        })).start();
+                        });
 
         await()
                 .pollDelay(Duration.ofSeconds(1))
@@ -270,7 +270,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
 
-        new Thread(() -> usage
+        usage
                 .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(), null,
                         () -> {
                             JsonObject json = new JsonObject()
@@ -284,7 +284,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaTestBase {
                                     Collections.singletonList(
                                             new RecordHeader("content-type",
                                                     "application/cloudevents+json; charset=utf-8".getBytes())));
-                        })).start();
+                        });
 
         await()
                 .pollDelay(Duration.ofSeconds(1))
