@@ -19,4 +19,14 @@ public class ClientConfigurationBean {
                 .setPassword(System.getProperty("amqp-pwd"));
     }
 
+    @Produces
+    @Identifier("myclientoptions2")
+    public AmqpClientOptions options2() {
+        return new AmqpClientOptions()
+                .setContainerId("bla bla")
+                .setVirtualHost("foo bar")
+                .setUsername(System.getProperty("amqp-user"))
+                .setPassword(System.getProperty("amqp-pwd"));
+    }
+
 }
