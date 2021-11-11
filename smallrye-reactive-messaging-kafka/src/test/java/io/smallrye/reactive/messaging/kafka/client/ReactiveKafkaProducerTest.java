@@ -24,7 +24,6 @@ import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.TopicHelpers;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -34,7 +33,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
     @BeforeEach
     public void init() {
         sinks = new ConcurrentLinkedQueue<>();
-        topic = TopicHelpers.createNewTopic("test-" + UUID.randomUUID(), partitions);
+        topic = usage.createNewTopic("test-" + UUID.randomUUID(), partitions);
         resetMessages();
     }
 

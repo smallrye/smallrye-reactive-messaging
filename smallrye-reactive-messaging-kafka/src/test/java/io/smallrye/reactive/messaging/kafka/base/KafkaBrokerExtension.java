@@ -3,22 +3,30 @@ package io.smallrye.reactive.messaging.kafka.base;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
 
 import io.strimzi.StrimziKafkaContainer;
 
-public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
+public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
     public static final String KAFKA_VERSION = "latest-kafka-2.8.0";
 
     private static boolean started = false;
-    private static StrimziKafkaContainer kafka;
+    static StrimziKafkaContainer kafka;
 
     @Override
     public void beforeAll(ExtensionContext context) {
@@ -34,13 +42,6 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext
     public void close() {
         LogManager.getLogManager().getLogger(KafkaBrokerExtension.class.getName()).info("Stopping Kafka broker");
         stopKafkaBroker();
-    }
-
-    public static String getBootstrapServers() {
-        if (kafka != null) {
-            return kafka.getBootstrapServers();
-        }
-        return null;
     }
 
     public static void startKafkaBroker() {
@@ -62,6 +63,29 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ExtensionContext
             }
             await().until(() -> !kafka.isRunning());
         }
+    }
+
+    @Override
+    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
+            throws ParameterResolutionException {
+        return parameterContext.isAnnotated(KafkaBootstrapServers.class)
+                && parameterContext.getParameter().getType().equals(String.class);
+    }
+
+    @Override
+    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
+            throws ParameterResolutionException {
+        if (parameterContext.isAnnotated(KafkaBootstrapServers.class)) {
+            if (kafka != null) {
+                return kafka.getBootstrapServers();
+            }
+        }
+        return null;
+    }
+
+    @Target({ ElementType.FIELD, ElementType.PARAMETER })
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface KafkaBootstrapServers {
     }
 
 }

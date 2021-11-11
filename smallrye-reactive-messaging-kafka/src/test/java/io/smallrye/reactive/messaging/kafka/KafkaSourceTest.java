@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.restart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -30,7 +31,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testng.Assert;
 
@@ -42,6 +43,8 @@ import io.smallrye.reactive.messaging.kafka.api.KafkaMetadataUtil;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
+import io.smallrye.reactive.messaging.kafka.base.KafkaUsage.FixedKafkaContainer;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -75,8 +78,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         source.getStream().subscribe().with(messages::add);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, "hello", counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, "hello", counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -90,7 +93,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
-        createTopic(topic, 3);
+        usage.createTopic(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -99,8 +102,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         source.getStream().subscribe().with(messages::add);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(1000, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(1000, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1000);
 
@@ -123,8 +126,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         source.getStream().subscribe().with(messages::add);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
@@ -158,8 +161,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         builder.forEach(messages2::add).run();
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
@@ -176,7 +179,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcastWithPartitions() {
-        createTopic(topic, 2);
+        usage.createTopic(topic, 2);
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true)
@@ -199,8 +202,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         builder.forEach(messages2::add).run();
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
@@ -213,10 +216,10 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     @SuppressWarnings({ "rawtypes" })
     @Test
-    @Disabled("working locally, but long")
+    @Tag(TestTags.SLOW)
     public void testRetry() {
         // This test need an individual Kafka container
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION);) {
             kafka.start();
             await().until(kafka::isRunning);
             MapBasedConfig config = newCommonConfigForSource()
@@ -226,7 +229,7 @@ public class KafkaSourceTest extends KafkaTestBase {
                     .with("retry-attempts", 100)
                     .with("retry-max-wait", 30);
 
-            usage.setBootstrapServers(kafka.getBootstrapServers());
+            KafkaUsage kafkaUsage = new KafkaUsage(kafka.getBootstrapServers());
 
             KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
             source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -236,15 +239,15 @@ public class KafkaSourceTest extends KafkaTestBase {
             source.getStream().subscribe().with(messages1::add);
 
             AtomicInteger counter = new AtomicInteger();
-            new Thread(() -> usage.produceIntegers(10, null,
-                    () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+            kafkaUsage.produceIntegers(10, null,
+                    () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
             await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
             try (@SuppressWarnings("unused")
             FixedKafkaContainer container = restart(kafka, 2)) {
-                new Thread(() -> usage.produceIntegers(10, null,
-                        () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+                kafkaUsage.produceIntegers(10, null,
+                        () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
                 await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
                 assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
@@ -256,7 +259,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     //    @Test
     //    public void testRecoveryAfterMissedHeartbeat() throws InterruptedException {
     //        MapBasedConfig config = newCommonConfigForSource()
-    //                .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
+    //                .with("bootstrap.servers", KafkaBrokerExtension.usage.getBootstrapServers())
     //                .with("value.deserializer", IntegerDeserializer.class.getName())
     //                .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000)
     //                .with(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 100)
@@ -264,7 +267,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     //                .with("retry-attempts", 100)
     //                .with("retry-max-wait", 30);
     //
-    //        usage.setBootstrapServers(KafkaBrokerExtension.getBootstrapServers());
+    //        usage.setBootstrapServers(KafkaBrokerExtension.usage.getBootstrapServers());
     //
     //        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
     //        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -274,7 +277,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     //        source.getStream().subscribe().with(messages1::add);
     //
     //        AtomicInteger counter = new AtomicInteger();
-    //        new Thread(() -> usage.produceIntegers(10, null,
+    //        usage.produceIntegers(10, null,
     //                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
     //
     //        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
@@ -283,7 +286,7 @@ public class KafkaSourceTest extends KafkaTestBase {
     //        Thread.sleep(6000 + 500); // session timeout + a bit more just in case.
     //        KafkaBrokerExtension.getProxy().setConnectionCut(false);
     //
-    //        new Thread(() -> usage.produceIntegers(10, null,
+    //        usage.produceIntegers(10, null,
     //                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
     //
     //        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
@@ -292,37 +295,37 @@ public class KafkaSourceTest extends KafkaTestBase {
 
     private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener,
             String group) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
         if (group != null) {
-            builder.put("group.id", group);
+            config.put("group.id", group);
         }
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", "data");
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("topic", "data");
         if (partitions > 0) {
-            builder.put("partitions", Integer.toString(partitions));
-            builder.put("topic", "data-" + partitions);
+            config.put("partitions", Integer.toString(partitions));
+            config.put("topic", "data-" + partitions);
         }
         if (withConsumerRebalanceListener != null) {
-            builder.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
+            config.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
         }
 
-        return builder.build();
+        return config;
     }
 
     private KafkaMapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.data");
-        builder.put("group.id", "my-group-starting-on-fifth-" + suffix);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", "data-starting-on-fifth-" + suffix);
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
+        config.put("group.id", "my-group-starting-on-fifth-" + suffix);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("topic", "data-starting-on-fifth-" + suffix);
         if (shorterTimeouts) {
-            builder.put("max.poll.interval.ms", "2000");
+            config.put("max.poll.interval.ms", "2000");
         }
 
-        return builder.build();
+        return config;
     }
 
     @Test
@@ -331,8 +334,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("data", counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>("data", counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -363,27 +366,27 @@ public class KafkaSourceTest extends KafkaTestBase {
     @Test
     public void testABeanConsumingTheKafkaMessagesMultiThread() {
         MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, "my-group")
-                .with("mp.messaging.incoming.data.topic", topic), MultiThreadConsumer.class);
+                .with("topic", topic), MultiThreadConsumer.class);
         List<Integer> list = bean.getItems();
         assertThat(list).isEmpty();
         bean.run();
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(100, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(100, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 100);
     }
 
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
-        createTopic("data-2", 2);
+        usage.createTopic("data-2", 2);
         ConsumptionBean bean = run(
                 myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("data-2", counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>("data-2", counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsOnly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -415,8 +418,8 @@ public class KafkaSourceTest extends KafkaTestBase {
     public void testABeanConsumingTheKafkaMessagesStartingOnFifthOffsetFromLatest() {
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
-        new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
-                () -> new ProducerRecord<>("data-starting-on-fifth-happy-path", counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, () -> callback.set(true),
+                () -> new ProducerRecord<>("data-starting-on-fifth-happy-path", counter.getAndIncrement()));
 
         await()
                 .atMost(2, TimeUnit.MINUTES)
@@ -439,9 +442,8 @@ public class KafkaSourceTest extends KafkaTestBase {
     public void testABeanConsumingTheKafkaMessagesStartingOnFifthOffsetFromLatestThatFailsOnTheFirstAttempt() {
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
-        new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
-                () -> new ProducerRecord<>("data-starting-on-fifth-fail-on-first-attempt", counter.getAndIncrement())))
-                        .start();
+        usage.produceIntegers(10, () -> callback.set(true),
+                () -> new ProducerRecord<>("data-starting-on-fifth-fail-on-first-attempt", counter.getAndIncrement()));
 
         await()
                 .atMost(2, TimeUnit.MINUTES)
@@ -469,10 +471,9 @@ public class KafkaSourceTest extends KafkaTestBase {
     public void testABeanConsumingTheKafkaMessagesStartingOnFifthOffsetFromLatestThatFailsUntilSecondRebalance() {
         AtomicInteger counter = new AtomicInteger();
         AtomicBoolean callback = new AtomicBoolean(false);
-        new Thread(() -> usage.produceIntegers(10, () -> callback.set(true),
+        usage.produceIntegers(10, () -> callback.set(true),
                 () -> new ProducerRecord<>("data-starting-on-fifth-fail-until-second-rebalance",
-                        counter.getAndIncrement())))
-                                .start();
+                        counter.getAndIncrement()));
 
         await()
                 .atMost(2, TimeUnit.MINUTES)
@@ -509,17 +510,17 @@ public class KafkaSourceTest extends KafkaTestBase {
         source.getStream().subscribe().with(messages::add);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(2, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(2, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 2);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
                 .collect(Collectors.toList())).containsExactly(0, 1);
 
-        new Thread(() -> usage.produceStrings(1, null, () -> new ProducerRecord<>(topic, "hello"))).start();
+        usage.produceStrings(1, null, () -> new ProducerRecord<>(topic, "hello"));
 
-        new Thread(() -> usage.produceIntegers(2, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(2, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         // no other message received
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -534,8 +535,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("data", counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>("data", counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -579,8 +580,8 @@ public class KafkaSourceTest extends KafkaTestBase {
         source.getStream().subscribe().with(messages::add);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())

@@ -19,7 +19,6 @@ import org.junit.jupiter.api.condition.JRE;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.junitpioneer.jupiter.SetSystemProperty;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
 public class EnvAndSysConfigTest extends KafkaTestBase {
@@ -32,10 +31,8 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_TOPIC", value = TOPIC_1)
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_VALUE_DESERIALIZER", value = "org.apache.kafka.common.serialization.StringDeserializer")
     public void testConsumerConfigurationComingFromEnv() throws InterruptedException {
-        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
-                .put(
-                        "auto.offset.reset", "earliest")
-                .build(), KafkaConsumer.class);
+        KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .put("auto.offset.reset", "earliest"), KafkaConsumer.class);
 
         verify(bean, TOPIC_1);
     }
@@ -44,10 +41,8 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
     @SetSystemProperty(key = "mp.messaging.incoming.kafka.topic", value = TOPIC_2)
     @SetSystemProperty(key = "mp.messaging.incoming.kafka.value.deserializer", value = "org.apache.kafka.common.serialization.StringDeserializer")
     public void testConsumerConfigurationComingFromSys() throws InterruptedException {
-        KafkaConsumer bean = runApplication(KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka")
-                .put(
-                        "auto.offset.reset", "earliest")
-                .build(), KafkaConsumer.class);
+        KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
+                .put("auto.offset.reset", "earliest"), KafkaConsumer.class);
 
         verify(bean, TOPIC_2);
     }

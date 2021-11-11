@@ -26,12 +26,13 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class HealthCheckTest extends KafkaTestBase {
 
     @Test
     public void testHealthOfApplicationWithoutOutgoingTopic() {
-        KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean().build();
+        MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean());
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
@@ -62,11 +63,10 @@ public class HealthCheckTest extends KafkaTestBase {
     @Test
     void testHealthOfApplicationWithOutgoingTopicUsingTopicVerification() {
         String outputTopic = UUID.randomUUID().toString();
-        createTopic(outputTopic, 1);
-        KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean()
+        usage.createTopic(outputTopic, 1);
+        MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
                 .put("health-topic-verification-enabled", true)
-                .put("topic", outputTopic)
-                .build();
+                .put("topic", outputTopic));
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
@@ -96,9 +96,8 @@ public class HealthCheckTest extends KafkaTestBase {
 
     @Test
     public void testHealthOfApplicationWithoutOutgoingTopicReadinessDisabled() {
-        KafkaMapBasedConfig config = getKafkaSinkConfigForProducingBean()
-                .put("health-readiness-enabled", false)
-                .build();
+        MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
+                .put("health-readiness-enabled", false));
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
@@ -126,13 +125,13 @@ public class HealthCheckTest extends KafkaTestBase {
         assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
     }
 
-    private KafkaMapBasedConfig.Builder getKafkaSinkConfigForProducingBean() {
-        return KafkaMapBasedConfig.builder("mp.messaging.outgoing.output")
+    private KafkaMapBasedConfig getKafkaSinkConfigForProducingBean() {
+        return kafkaConfig("mp.messaging.outgoing.output")
                 .put("value.serializer", IntegerSerializer.class.getName());
     }
 
-    private KafkaMapBasedConfig.Builder getKafkaSourceConfig(String topic) {
-        return KafkaMapBasedConfig.builder("mp.messaging.incoming.input")
+    private KafkaMapBasedConfig getKafkaSourceConfig(String topic) {
+        return kafkaConfig("mp.messaging.incoming.input")
                 .put("value.deserializer", IntegerDeserializer.class.getName())
                 .put("topic", topic)
                 .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -141,8 +140,7 @@ public class HealthCheckTest extends KafkaTestBase {
     @Test
     public void testHealthOfApplicationWithChannelUsingTopicVerification() {
         KafkaMapBasedConfig config = getKafkaSourceConfig(topic)
-                .put("health-readiness-topic-verification", true)
-                .build();
+                .put("health-readiness-topic-verification", true);
         LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
 
         AtomicInteger expected = new AtomicInteger(0);
@@ -176,7 +174,7 @@ public class HealthCheckTest extends KafkaTestBase {
 
     @Test
     public void testHealthOfApplicationWithChannel() throws InterruptedException {
-        KafkaMapBasedConfig config = getKafkaSourceConfig(topic).build();
+        KafkaMapBasedConfig config = getKafkaSourceConfig(topic);
         LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
 
         AtomicInteger expected = new AtomicInteger(0);

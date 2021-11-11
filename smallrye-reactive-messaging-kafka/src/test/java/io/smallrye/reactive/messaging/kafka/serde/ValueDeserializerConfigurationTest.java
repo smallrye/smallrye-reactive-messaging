@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.serde;
 
+import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.getHeader;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
@@ -460,8 +461,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
     }
 
     private MapBasedConfig commonConsumerConfiguration() {
-        return new KafkaMapBasedConfig()
-                .with("bootstrap.servers", getBootstrapServers())
+        return new MapBasedConfig()
+                .with("bootstrap.servers", usage.getBootstrapServers())
                 .with("channel-name", "channel")
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")

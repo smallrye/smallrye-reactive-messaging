@@ -2,9 +2,7 @@ package io.smallrye.reactive.messaging.kafka.conflict;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -25,29 +23,20 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
  */
 public class ChannelNameConflictTest extends KafkaTestBase {
 
-    private final static Map<String, Object> CONFLICT = new HashMap<>();
-
-    static {
-        CONFLICT.put("mp.messaging.incoming.my-topic.connector", "smallrye-kafka");
-        CONFLICT.put("mp.messaging.incoming.my-topic.bootstrap.servers", getBootstrapServers());
-        CONFLICT.put("mp.messaging.incoming.my-topic.topic", "my-topic-1");
-        CONFLICT.put("mp.messaging.incoming.my-topic.value.deserializer",
-                "org.apache.kafka.common.serialization.StringDeserializer");
-        CONFLICT.put("mp.messaging.incoming.my-topic.tracing-enabled", false);
-
-        CONFLICT.put("mp.messaging.outgoing.my-topic.connector", "smallrye-kafka");
-        CONFLICT.put("mp.messaging.outgoing.my-topic.bootstrap.servers", getBootstrapServers());
-        CONFLICT.put("mp.messaging.outgoing.my-topic.topic", "my-topic-1");
-        CONFLICT.put("mp.messaging.outgoing.my-topic.value.serializer",
-                "org.apache.kafka.common.serialization.StringSerializer");
-        CONFLICT.put("mp.messaging.outgoing.my-topic.tracing-enabled", false);
+    KafkaMapBasedConfig conflictingConfig() {
+        return kafkaConfig("mp.messaging.incoming.my-topic")
+                // incoming my-topic
+                .put("topic", "my-topic-1")
+                .put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+                // outgoing my-topic
+                .withPrefix("mp.messaging.outgoing.my-topic")
+                .put("topic", "my-topic-1")
+                .put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     }
 
     @Test
     public void testWhenBothIncomingAndOutgoingUseTheSameName() {
-        new KafkaMapBasedConfig(CONFLICT).write();
-        weld.addBeanClass(Bean.class);
-        assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
+        assertThatThrownBy(() -> runApplication(conflictingConfig(), Bean.class)).isInstanceOf(DeploymentException.class);
     }
 
     @ApplicationScoped

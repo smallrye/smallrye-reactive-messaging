@@ -129,47 +129,43 @@ public class KafkaSinkTest extends KafkaTestBase {
     }
 
     private MapBasedConfig getBaseConfig() {
-        return new KafkaMapBasedConfig()
-                .with("bootstrap.servers", getBootstrapServers())
-                .with("key.serializer", StringSerializer.class.getName())
-                .with("acks", "1")
-                .with("tracing-enabled", false);
+        return kafkaConfig()
+                .put("key.serializer", StringSerializer.class.getName())
+                .put("acks", "1");
     }
 
     private MapBasedConfig getKafkaSinkConfigForProducingBean() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output")
+        return kafkaConfig("mp.messaging.outgoing.output")
                 .put("value.serializer", IntegerSerializer.class.getName());
-        return builder.build();
     }
 
     private MapBasedConfig getKafkaSinkConfigForMessageProducingBean() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output-2")
+        return kafkaConfig("mp.messaging.outgoing.output-2")
                 .put("value.serializer", IntegerSerializer.class.getName())
                 .put("topic", topic);
-        return builder.build();
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForRecordProducingBean(String t) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.output-record");
-        builder.put("key.serializer", IntegerSerializer.class.getName());
-        builder.put("value.serializer", StringSerializer.class.getName());
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.output-record");
+        config.put("key.serializer", IntegerSerializer.class.getName());
+        config.put("value.serializer", StringSerializer.class.getName());
         if (t != null) {
-            builder.put("topic", t);
+            config.put("topic", t);
         }
 
-        return builder.build();
+        return config;
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigWithMultipleUpstreams(String t) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.data");
-        builder.put("key.serializer", StringSerializer.class.getName());
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("merge", true);
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.data");
+        config.put("key.serializer", StringSerializer.class.getName());
+        config.put("value.serializer", IntegerSerializer.class.getName());
+        config.put("merge", true);
         if (t != null) {
-            builder.put("topic", t);
+            config.put("topic", t);
         }
 
-        return builder.build();
+        return config;
     }
 
     @Test
@@ -246,7 +242,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 });
 
         runApplication(getKafkaSinkConfigForMessageProducingBean()
-                .with("mp.messaging.outgoing.output-2.health-readiness-topic-verification", true),
+                .with("health-readiness-topic-verification", true),
                 ProducingKafkaMessageBean.class);
 
         await().until(this::isReady);

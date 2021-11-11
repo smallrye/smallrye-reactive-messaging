@@ -39,8 +39,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -60,8 +60,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -79,8 +79,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -98,8 +98,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -124,8 +124,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("dead-letter-default", counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>("dead-letter-default", counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -164,8 +164,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -204,8 +204,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -239,13 +239,13 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
         MyReceiverBeanUsingPayload bean = runApplication(
                 getDeadLetterQueueWithCustomConfig(topic, dqTopic)
-                        .with("mp.messaging.incoming.kafka.interceptor.classes", IdentityInterceptor.class.getName()),
+                        .with("interceptor.classes", IdentityInterceptor.class.getName()),
                 MyReceiverBeanUsingPayload.class);
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -282,8 +282,8 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()))).start();
+        usage.produceIntegers(10, null,
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -306,54 +306,54 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getFailConfig(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
-        builder.put("group.id", "my-group");
-        builder.put("topic", topic);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("failure-strategy", "fail");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
+        config.put("group.id", "my-group");
+        config.put("topic", topic);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("failure-strategy", "fail");
 
-        return builder.build();
+        return config;
     }
 
     private KafkaMapBasedConfig getIgnoreConfig(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
-        builder.put("topic", topic);
-        builder.put("group.id", "my-group");
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("failure-strategy", "ignore");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
+        config.put("topic", topic);
+        config.put("group.id", "my-group");
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("failure-strategy", "ignore");
 
-        return builder.build();
+        return config;
     }
 
     private KafkaMapBasedConfig getDeadLetterQueueConfig() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
-        builder.put("topic", "dead-letter-default");
-        builder.put("group.id", "my-group");
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("failure-strategy", "dead-letter-queue");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
+        config.put("topic", "dead-letter-default");
+        config.put("group.id", "my-group");
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("failure-strategy", "dead-letter-queue");
 
-        return builder.build();
+        return config;
     }
 
     private KafkaMapBasedConfig getDeadLetterQueueWithCustomConfig(String topic, String dq) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
-        builder.put("group.id", "my-group");
-        builder.put("topic", topic);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("failure-strategy", "dead-letter-queue");
-        builder.put("dead-letter-queue.topic", dq);
-        builder.put("dead-letter-queue.key.serializer", IntegerSerializer.class.getName());
-        builder.put("dead-letter-queue.value.serializer", IntegerSerializer.class.getName());
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
+        config.put("group.id", "my-group");
+        config.put("topic", topic);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("failure-strategy", "dead-letter-queue");
+        config.put("dead-letter-queue.topic", dq);
+        config.put("dead-letter-queue.key.serializer", IntegerSerializer.class.getName());
+        config.put("dead-letter-queue.value.serializer", IntegerSerializer.class.getName());
 
-        return builder.build();
+        return config;
     }
 
     @ApplicationScoped

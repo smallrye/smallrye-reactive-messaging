@@ -14,7 +14,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -33,7 +32,7 @@ public class SourceCloseTest extends KafkaTestBase {
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config1 = new MapBasedConfig()
                 .with("channel-name", "data1")
-                .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
+                .with("bootstrap.servers", usage.getBootstrapServers())
                 .with("topic", topic)
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("max.poll.records", 4)
@@ -43,7 +42,7 @@ public class SourceCloseTest extends KafkaTestBase {
 
         MapBasedConfig config2 = new MapBasedConfig()
                 .with("channel-name", "data2")
-                .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
+                .with("bootstrap.servers", usage.getBootstrapServers())
                 .with("topic", topic)
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("max.poll.records", 4)

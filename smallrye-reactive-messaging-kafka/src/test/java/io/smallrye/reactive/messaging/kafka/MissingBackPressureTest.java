@@ -23,7 +23,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
@@ -33,7 +33,8 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 public class MissingBackPressureTest extends KafkaTestBase {
 
     @Test
-    @Disabled("to be investigated - fail on CI")
+    // to be investigated - fail on CI
+    @Tag(TestTags.FLAKY)
     public void testWithInterval() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
@@ -48,12 +49,10 @@ public class MissingBackPressureTest extends KafkaTestBase {
     }
 
     public KafkaMapBasedConfig myKafkaSinkConfig() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.temperature-values");
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", topic);
-        builder.put("waitForWriteCompletion", false);
-
-        return builder.build();
+        return kafkaConfig("mp.messaging.outgoing.temperature-values")
+                .put("value.serializer", StringSerializer.class.getName())
+                .put("topic", topic)
+                .put("waitForWriteCompletion", false);
     }
 
     @Test

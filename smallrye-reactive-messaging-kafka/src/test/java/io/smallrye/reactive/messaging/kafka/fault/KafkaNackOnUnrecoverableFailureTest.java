@@ -15,20 +15,17 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
 public class KafkaNackOnUnrecoverableFailureTest extends KafkaTestBase {
 
     @Test
     public void testNoRetryOnUnrecoverableExceptions() {
-        MyEmitter application = runApplication(KafkaMapBasedConfig.builder()
-                .put("mp.messaging.outgoing.out.connector", "smallrye-kafka")
-                .put("mp.messaging.outgoing.out.bootstrap.servers", getBootstrapServers())
-                .put("mp.messaging.outgoing.out.topic", topic)
-                .put("mp.messaging.outgoing.out.value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-                .put("mp.messaging.outgoing.out.max.request.size", 1) // Force the failure.
-                .build(), MyEmitter.class);
+        MyEmitter application = runApplication(kafkaConfig("mp.messaging.outgoing.out")
+                .put("topic", topic)
+                .put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+                .put("max.request.size", 1) // Force the failure.
+                , MyEmitter.class);
 
         CompletionStage<Void> stage = application.emit("hello");
 
@@ -38,12 +35,9 @@ public class KafkaNackOnUnrecoverableFailureTest extends KafkaTestBase {
 
     @Test
     public void testNoRetryOnSerializationFailure() {
-        MyEmitter application = runApplication(KafkaMapBasedConfig.builder()
-                .put("mp.messaging.outgoing.out.connector", "smallrye-kafka")
-                .put("mp.messaging.outgoing.out.bootstrap.servers", getBootstrapServers())
-                .put("mp.messaging.outgoing.out.topic", topic)
-                .put("mp.messaging.outgoing.out.value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-                .build(), MyEmitter.class);
+        MyEmitter application = runApplication(kafkaConfig("mp.messaging.outgoing.out")
+                .put("topic", topic)
+                .put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer"), MyEmitter.class);
 
         CompletionStage<Void> stage = application.emitBrokenPayload();
 

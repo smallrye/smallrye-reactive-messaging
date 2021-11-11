@@ -240,22 +240,19 @@ public class BatchTracingPropagationTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka", true);
-        builder.put("value.serializer", IntegerSerializer.class.getName());
-        builder.put("topic", topic);
-        builder.put("batch", true);
-        return builder.build();
+        return kafkaConfig("mp.messaging.outgoing.kafka", true)
+                .put("value.serializer", IntegerSerializer.class.getName())
+                .put("topic", topic)
+                .put("batch", true);
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForMyAppReceivingData(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.stuff", true);
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("key.deserializer", StringDeserializer.class.getName());
-        builder.put("topic", topic);
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("batch", true);
-
-        return builder.build();
+        return kafkaConfig("mp.messaging.incoming.stuff", true)
+                .put("value.deserializer", IntegerDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("topic", topic)
+                .put("auto.offset.reset", "earliest")
+                .put("batch", true);
     }
 
     @ApplicationScoped

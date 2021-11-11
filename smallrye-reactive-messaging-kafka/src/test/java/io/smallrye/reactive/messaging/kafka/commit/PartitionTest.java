@@ -22,7 +22,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -30,17 +29,15 @@ public class PartitionTest extends KafkaTestBase {
 
     @Test
     public void testWithPartitions() throws InterruptedException {
-        createTopic(topic, 3);
+        usage.createTopic(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
-        MapBasedConfig config = new MapBasedConfig()
-                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.kafka.group.id", groupId)
-                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.kafka.topic", topic)
-                .with("mp.messaging.incoming.kafka.partitions", 3)
-                .with("mp.messaging.incoming.kafka.auto.offset.reset", "earliest")
-                .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName());
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
+                .with("group.id", groupId)
+                .with("topic", topic)
+                .with("partitions", 3)
+                .with("auto.offset.reset", "earliest")
+                .with("value.deserializer", StringDeserializer.class.getName());
 
         MyApplication application = runApplication(config, MyApplication.class);
 
@@ -62,7 +59,7 @@ public class PartitionTest extends KafkaTestBase {
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", getBootstrapServers());
+        properties.put("bootstrap.servers", usage.getBootstrapServers());
         Admin admin = Admin.create(properties);
 
         await().until(() -> {
@@ -75,16 +72,14 @@ public class PartitionTest extends KafkaTestBase {
 
     @Test
     public void testWithMoreConsumersThanPartitions() throws InterruptedException {
-        createTopic(topic, 3);
+        usage.createTopic(topic, 3);
         String groupId = UUID.randomUUID().toString();
-        MapBasedConfig config = new MapBasedConfig()
-                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.kafka.group.id", groupId)
-                .with("mp.messaging.incoming.kafka.topic", topic)
-                .with("mp.messaging.incoming.kafka.partitions", 5) // 2 idles
-                .with("mp.messaging.incoming.kafka.auto.offset.reset", "earliest")
-                .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName());
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
+                .with("group.id", groupId)
+                .with("topic", topic)
+                .with("partitions", 5) // 2 idles
+                .with("auto.offset.reset", "earliest")
+                .with("value.deserializer", StringDeserializer.class.getName());
 
         MyApplication application = runApplication(config, MyApplication.class);
 
@@ -106,7 +101,7 @@ public class PartitionTest extends KafkaTestBase {
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", getBootstrapServers());
+        properties.put("bootstrap.servers", usage.getBootstrapServers());
         Admin admin = Admin.create(properties);
 
         await().until(() -> {
@@ -119,17 +114,15 @@ public class PartitionTest extends KafkaTestBase {
 
     @Test
     public void testWithMorePartitionsThanConsumers() throws InterruptedException {
-        createTopic(topic, 3);
+        usage.createTopic(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
-        MapBasedConfig config = new MapBasedConfig()
-                .with("mp.messaging.incoming.kafka.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.kafka.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.kafka.group.id", groupId)
-                .with("mp.messaging.incoming.kafka.topic", topic)
-                .with("mp.messaging.incoming.kafka.partitions", 2) // one consumer will get 2 partitions
-                .with("mp.messaging.incoming.kafka.auto.offset.reset", "earliest")
-                .with("mp.messaging.incoming.kafka.value.deserializer", StringDeserializer.class.getName());
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
+                .with("group.id", groupId)
+                .with("topic", topic)
+                .with("partitions", 2) // one consumer will get 2 partitions
+                .with("auto.offset.reset", "earliest")
+                .with("value.deserializer", StringDeserializer.class.getName());
 
         MyApplication application = runApplication(config, MyApplication.class);
 
@@ -151,7 +144,7 @@ public class PartitionTest extends KafkaTestBase {
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(2));
 
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", getBootstrapServers());
+        properties.put("bootstrap.servers", usage.getBootstrapServers());
         Admin admin = Admin.create(properties);
 
         await().until(() -> {

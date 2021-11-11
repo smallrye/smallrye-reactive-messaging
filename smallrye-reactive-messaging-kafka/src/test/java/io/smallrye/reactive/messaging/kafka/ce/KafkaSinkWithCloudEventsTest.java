@@ -831,51 +831,50 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getConfigToSendStructuredCloudEvents() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("cloud-events-mode", "structured");
-        builder.put("topic", topic);
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka");
+        config.put("value.serializer", StringSerializer.class.getName());
+        config.put("cloud-events-mode", "structured");
+        config.put("topic", topic);
+        return config;
     }
 
     private KafkaMapBasedConfig getConfigToSendBinaryCloudEvents() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", topic);
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka");
+        config.put("value.serializer", StringSerializer.class.getName());
+        config.put("topic", topic);
+        return config;
     }
 
     private KafkaMapBasedConfig getConfigToSendBinaryCloudEventsWithDefault() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.source");
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", topic);
-        builder.put("cloud-events-type", "greetings");
-        builder.put("cloud-events-source", "source://me");
-        builder.put("cloud-events-subject", "test");
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.source");
+        config.put("value.serializer", StringSerializer.class.getName());
+        config.put("topic", topic);
+        config.put("cloud-events-type", "greetings");
+        config.put("cloud-events-source", "source://me");
+        config.put("cloud-events-subject", "test");
+        return config;
     }
 
     private KafkaMapBasedConfig getConfigToSendStructuredCloudEventsWithDefault() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.source");
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", topic);
-        builder.put("cloud-events-type", "greetings");
-        builder.put("cloud-events-source", "source://me");
-        builder.put("cloud-events-subject", "test");
-        builder.put("cloud-events-mode", "structured");
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.source");
+        config.put("value.serializer", StringSerializer.class.getName());
+        config.put("topic", topic);
+        config.put("cloud-events-type", "greetings");
+        config.put("cloud-events-source", "source://me");
+        config.put("cloud-events-subject", "test");
+        config.put("cloud-events-mode", "structured");
+        return config;
     }
 
     private KafkaMapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
-        KafkaMapBasedConfig config = new KafkaMapBasedConfig();
-        config.put("bootstrap.servers", getBootstrapServers());
-        config.put("group.id", randomId);
-        config.put("key.serializer", StringSerializer.class.getName());
-        config.put("enable.auto.commit", "false");
-        config.put("auto.offset.reset", "earliest");
-        config.put("tracing-enabled", false);
-        return config;
+        return kafkaConfig()
+                .put("bootstrap.servers", usage.getBootstrapServers())
+                .put("group.id", randomId)
+                .put("key.serializer", StringSerializer.class.getName())
+                .put("enable.auto.commit", "false")
+                .put("auto.offset.reset", "earliest")
+                .put("tracing-enabled", false);
     }
 
     @ApplicationScoped

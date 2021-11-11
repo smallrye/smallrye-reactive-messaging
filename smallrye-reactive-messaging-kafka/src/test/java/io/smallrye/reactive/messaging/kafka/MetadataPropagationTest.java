@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
@@ -161,61 +160,47 @@ public class MetadataPropagationTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForMyAppGeneratingData() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.kafka");
-        builder.put("value.serializer", StringSerializer.class.getName());
-        builder.put("topic", "should-not-be-used");
-        return builder.build();
+        return kafkaConfig("mp.messaging.outgoing.kafka")
+                .put("value.serializer", StringSerializer.class.getName())
+                .put("topic", "should-not-be-used");
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String topicOut, String topicIn) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
-        builder.put("mp.messaging.outgoing.kafka.value.serializer", StringSerializer.class.getName());
-        builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.outgoing.kafka.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
-
-        builder.put("mp.messaging.incoming.source.value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.source.key.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
-        builder.put("mp.messaging.incoming.source.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.incoming.source.graceful-shutdown", false);
-        builder.put("mp.messaging.incoming.source.topic", topicIn);
-        builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
-
-        return builder.build();
+        return kafkaConfig("mp.messaging.outgoing.kafka")
+                .put("value.serializer", StringSerializer.class.getName())
+                .put("topic", topicOut)
+                .withPrefix("mp.messaging.incoming.source")
+                .put("value.deserializer", IntegerDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("auto.offset.reset", "earliest")
+                .put("graceful-shutdown", false)
+                .put("topic", topicIn)
+                .put("commit-strategy", "latest");
     }
 
     private KafkaMapBasedConfig getKafkaSinkConfigForAppProcessingDataForwardKey(String topicOut, String topicIn) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
-        builder.put("mp.messaging.outgoing.kafka.value.serializer", StringSerializer.class.getName());
-        builder.put("mp.messaging.outgoing.kafka.key.serializer", StringSerializer.class.getName());
-        builder.put("mp.messaging.outgoing.kafka.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.outgoing.kafka.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.outgoing.kafka.topic", topicOut);
-        builder.put("mp.messaging.outgoing.kafka.propagate-record-key", true);
-        builder.put("mp.messaging.outgoing.kafka.key", "even");
-
-        builder.put("mp.messaging.incoming.source.value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.source.key.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
-        builder.put("mp.messaging.incoming.source.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.incoming.source.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.incoming.source.graceful-shutdown", false);
-        builder.put("mp.messaging.incoming.source.topic", topicIn);
-        builder.put("mp.messaging.incoming.source.commit-strategy", "latest");
-
-        return builder.build();
+        return kafkaConfig("mp.messaging.outgoing.kafka")
+                .put("value.serializer", StringSerializer.class.getName())
+                .put("key.serializer", StringSerializer.class.getName())
+                .put("topic", topicOut)
+                .put("propagate-record-key", true)
+                .put("key", "even")
+                .withPrefix("mp.messaging.incoming.source")
+                .put("value.deserializer", IntegerDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("auto.offset.reset", "earliest")
+                .put("graceful-shutdown", false)
+                .put("topic", topicIn)
+                .put("commit-strategy", "latest");
     }
 
     private KafkaMapBasedConfig getKafkaSourceConfigForMyAppWithKafkaMetadata(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
-        builder.put("value.deserializer", IntegerDeserializer.class.getName());
-        builder.put("key.deserializer", StringDeserializer.class.getName());
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("topic", topic);
-        builder.put("commit-strategy", "latest");
-        return builder.build();
+        return kafkaConfig("mp.messaging.incoming.kafka")
+                .put("value.deserializer", IntegerDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("auto.offset.reset", "earliest")
+                .put("topic", topic)
+                .put("commit-strategy", "latest");
     }
 
     @SuppressWarnings("deprecation")

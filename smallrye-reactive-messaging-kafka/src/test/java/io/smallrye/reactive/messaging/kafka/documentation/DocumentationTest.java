@@ -72,17 +72,17 @@ public class DocumentationTest extends KafkaTestBase {
     }
 
     private KafkaMapBasedConfig getConsumerConfiguration() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.prices");
-        builder.put("connector", "smallrye-kafka");
-        builder.put("value.deserializer", "org.apache.kafka.common.serialization.DoubleDeserializer");
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.prices");
+        config.put("connector", "smallrye-kafka");
+        config.put("value.deserializer", "org.apache.kafka.common.serialization.DoubleDeserializer");
+        return config;
     }
 
     private KafkaMapBasedConfig getProducerConfiguration() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.outgoing.prices");
-        builder.put("connector", "smallrye-kafka");
-        builder.put("value.serializer", "org.apache.kafka.common.serialization.DoubleSerializer");
-        return builder.build();
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.prices");
+        config.put("connector", "smallrye-kafka");
+        config.put("value.serializer", "org.apache.kafka.common.serialization.DoubleSerializer");
+        return config;
     }
 
 }

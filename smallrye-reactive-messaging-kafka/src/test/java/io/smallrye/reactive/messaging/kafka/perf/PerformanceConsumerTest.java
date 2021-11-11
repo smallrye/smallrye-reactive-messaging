@@ -18,15 +18,14 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
+@Tag(TestTags.PERFORMANCE)
 public class PerformanceConsumerTest extends KafkaTestBase {
 
     public static final int TIMEOUT_IN_SECONDS = 400;
@@ -39,7 +38,6 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     static void insertRecords() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicLong count = new AtomicLong();
-        KafkaUsage usage = new KafkaUsage();
         usage.produceStrings(COUNT, latch::countDown,
                 () -> new ProducerRecord<>(topic, "key", Long.toString(count.getAndIncrement())));
         expected = new ArrayList<>();
@@ -54,28 +52,25 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     }
 
     private MapBasedConfig commonConfig(String commitStrategy) {
-        return new KafkaMapBasedConfig()
-                .with("mp.messaging.incoming.data.connector", KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.data.topic", topic)
-                .with("mp.messaging.incoming.data.graceful-shutdown", false)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
-                .with("mp.messaging.incoming.data.cloud-events", false)
-                .with("mp.messaging.incoming.data.pause-if-no-requests", false)
-                .with("mp.messaging.incoming.data.commit-strategy", commitStrategy)
-                .with("mp.messaging.incoming.data.bootstrap.servers", getBootstrapServers())
-                .with("mp.messaging.incoming.data.auto.offset.reset", "earliest")
-                .with("mp.messaging.incoming.data.value.deserializer", StringDeserializer.class.getName())
-                .with("mp.messaging.incoming.data.key.deserializer", StringDeserializer.class.getName());
+        return kafkaConfig("mp.messaging.incoming.data")
+                .put("topic", topic)
+                .put("cloud-events", false)
+                .put("pause-if-no-requests", false)
+                .put("commit-strategy", commitStrategy)
+                .put("auto.offset.reset", "earliest")
+                .put("value.deserializer", StringDeserializer.class.getName())
+                .put("key.deserializer", StringDeserializer.class.getName());
     }
 
     @Test
-    @Disabled("too long - ~ 1.29 minutes")
+    // too long - ~ 1.29 minutes
+    @Tag(TestTags.SLOW)
     public void testWithPostAckLatest() {
         // To speed up a bit this test we reduce the polling timeout, the 1 second by default means that the commit
         // are all delayed by 1 second. So we set the poll-timeout to 10ms
 
         MyConsumerUsingPostAck application = runApplication(commonConfig("latest")
-                .with("mp.messaging.incoming.data.poll-timeout", 5),
+                .with("poll-timeout", 5),
                 MyConsumerUsingPostAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -108,7 +103,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     @Test
     public void testWithNoAck() {
         MyConsumerUsingNoAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.enable.auto.commit", true),
+                .with("enable.auto.commit", true),
                 MyConsumerUsingNoAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -125,7 +120,7 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     @Test
     public void testWithAutoCommitWithPostAck() {
         MyConsumerUsingPostAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.enable.auto.commit", true),
+                .with("enable.auto.commit", true),
                 MyConsumerUsingPostAck.class);
         long start = System.currentTimeMillis();
         await()
@@ -140,10 +135,10 @@ public class PerformanceConsumerTest extends KafkaTestBase {
     @Test
     public void testWithIgnoreAck() {
         MyConsumerUsingPostAck application = runApplication(commonConfig()
-                .with("mp.messaging.incoming.data.pattern", true)
-                .with("mp.messaging.incoming.data.auto.commit.interval.ms", 1000)
-                .with("mp.messaging.incoming.data.metadata.max.age.ms", 30000)
-                .with("mp.messaging.incoming.data.enable.auto.commit", true),
+                .with("pattern", true)
+                .with("auto.commit.interval.ms", 1000)
+                .with("metadata.max.age.ms", 30000)
+                .with("enable.auto.commit", true),
                 MyConsumerUsingPostAck.class);
         long start = System.currentTimeMillis();
         await()

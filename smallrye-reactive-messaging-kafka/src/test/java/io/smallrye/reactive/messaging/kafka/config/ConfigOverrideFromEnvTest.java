@@ -20,8 +20,6 @@ import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -33,16 +31,11 @@ public class ConfigOverrideFromEnvTest extends KafkaTestBase {
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_MY_CHANNEL_TOPIC", value = TOPIC)
     @DisabledOnJre(value = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     public void testOverridingTopicFromEnv() throws InterruptedException {
-        MapBasedConfig config = new MapBasedConfig()
-                .with("mp.messaging.incoming.my-channel.graceful-shutdown", false)
-                .with("mp.messaging.incoming.my-channel.topic", "should not be used")
-                .with("mp.messaging.incoming.my-channel.bootstrap.servers", KafkaBrokerExtension.getBootstrapServers())
-                .with("mp.messaging.incoming.my-channel.connector",
-                        KafkaConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.my-channel.value.deserializer",
-                        StringDeserializer.class.getName())
-                .with("mp.messaging.incoming.my-channel."
-                        + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.my-channel")
+                .with("graceful-shutdown", false)
+                .with("topic", "should not be used")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         Consumer consumer = runApplication(config, Consumer.class);
         await().until(() -> isReady() && isAlive());

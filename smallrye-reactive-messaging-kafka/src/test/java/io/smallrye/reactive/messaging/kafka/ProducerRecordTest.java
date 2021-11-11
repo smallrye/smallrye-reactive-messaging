@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -37,11 +36,11 @@ public class ProducerRecordTest extends KafkaTestBase {
     @Test
     public void test() {
         for (int i = 0; i < 10; i++) {
-            createTopic(TOPIC_NAME_BASE + i, 1);
+            usage.createTopic(TOPIC_NAME_BASE + i, 1);
         }
 
         addBeans(ConsumerRecordConverter.class);
-        runApplication(kafkaConfig(), MyApp.class);
+        runApplication(config(), MyApp.class);
 
         MyApp bean = get(MyApp.class);
 
@@ -71,24 +70,18 @@ public class ProducerRecordTest extends KafkaTestBase {
         }
     }
 
-    private KafkaMapBasedConfig kafkaConfig() {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder();
+    private KafkaMapBasedConfig config() {
+        return kafkaConfig("mp.messaging.outgoing.generated-producer")
+                .put("topic", "nonexistent-topic")
+                .put("key.serializer", StringSerializer.class.getName())
+                .put("value.serializer", StringSerializer.class.getName())
 
-        builder.put("mp.messaging.outgoing.generated-producer.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.outgoing.generated-producer.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.outgoing.generated-producer.topic", "nonexistent-topic");
-        builder.put("mp.messaging.outgoing.generated-producer.key.serializer", StringSerializer.class.getName());
-        builder.put("mp.messaging.outgoing.generated-producer.value.serializer", StringSerializer.class.getName());
-
-        builder.put("mp.messaging.incoming.generated-consumer.connector", CONNECTOR_NAME);
-        builder.put("mp.messaging.incoming.generated-consumer.bootstrap.servers", getBootstrapServers());
-        builder.put("mp.messaging.incoming.generated-consumer.topic", TOPIC_NAME_BASE + ".+");
-        builder.put("mp.messaging.incoming.generated-consumer.pattern", true);
-        builder.put("mp.messaging.incoming.generated-consumer.key.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.generated-consumer.value.deserializer", StringDeserializer.class.getName());
-        builder.put("mp.messaging.incoming.generated-consumer.auto.offset.reset", "earliest");
-
-        return builder.build();
+                .withPrefix("mp.messaging.incoming.generated-consumer")
+                .put("topic", TOPIC_NAME_BASE + ".+")
+                .put("pattern", true)
+                .put("key.deserializer", StringDeserializer.class.getName())
+                .put("value.deserializer", StringDeserializer.class.getName())
+                .put("auto.offset.reset", "earliest");
     }
 
     @ApplicationScoped

@@ -37,8 +37,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -55,8 +55,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -73,8 +73,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -91,8 +91,8 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.nacks() == 10);
         assertThat(bean.acks()).isEqualTo(0);
@@ -107,23 +107,23 @@ public class RetryTest extends KafkaTestBase {
         await().until(this::isReady);
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())))).start();
+        usage.produceStrings(10, null,
+                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.nacks() == 10);
         assertThat(bean.acks()).isEqualTo(0);
     }
 
     private KafkaMapBasedConfig getConfig(String topic) {
-        KafkaMapBasedConfig.Builder builder = KafkaMapBasedConfig.builder("mp.messaging.incoming.kafka");
-        builder.put("group.id", "my-group");
-        builder.put("topic", topic);
-        builder.put("value.deserializer", StringDeserializer.class.getName());
-        builder.put("enable.auto.commit", "false");
-        builder.put("auto.offset.reset", "earliest");
-        builder.put("failure-strategy", "ignore");
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
+        config.put("group.id", "my-group");
+        config.put("topic", topic);
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("failure-strategy", "ignore");
 
-        return builder.build();
+        return config;
     }
 
     @ApplicationScoped
