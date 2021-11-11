@@ -1,13 +1,14 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging;
@@ -20,48 +21,15 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
  */
 public class DeserializerWrapper<T> implements Deserializer<T> {
 
-    /**
-     * Header name for deserialization failure message.
-     */
-    public static final String DESERIALIZATION_FAILURE_REASON = "deserialization-failure-reason";
-
-    /**
-     * Header name for deserialization failure cause if any.
-     */
-    public static final String DESERIALIZATION_FAILURE_CAUSE = "deserialization-failure-cause";
-
-    /**
-     * Header name used when the deserialization failure happened on a key. The value is {@code "true"} in this case,
-     * absent otherwise.
-     */
-    public static final String DESERIALIZATION_FAILURE_IS_KEY = "deserialization-failure-key";
-
-    /**
-     * Header name for the topic of the incoming message when a deserialization failure happen.
-     */
-    public static final String DESERIALIZATION_FAILURE_TOPIC = "deserialization-failure-topic";
-
-    /**
-     * Header name passing the data that was not able to be deserialized.
-     */
-    public static final String DESERIALIZATION_FAILURE_DATA = "deserialization-failure-data";
-
-    /**
-     * Header name passing the class name of the underlying deserializer.
-     */
-    public static final String DESERIALIZATION_FAILURE_DESERIALIZER = "deserialization-failure-deserializer";
-
-    private static final byte[] TRUE_VALUE = "true".getBytes(StandardCharsets.UTF_8);
-
     private final Deserializer<T> delegate;
 
     private final boolean handleKeys;
 
-    private final DeserializationFailureHandler<?> deserializationFailureHandler;
+    private final DeserializationFailureHandler<T> deserializationFailureHandler;
     private final KafkaSource<?, ?> source;
     private final boolean failOnDeserializationErrorWithoutHandler;
 
-    public DeserializerWrapper(String className, boolean key, DeserializationFailureHandler<?> failureHandler,
+    public DeserializerWrapper(String className, boolean key, DeserializationFailureHandler<T> failureHandler,
             KafkaSource<?, ?> source, boolean failByDefault) {
         this.delegate = createDelegateDeserializer(className);
         this.handleKeys = key;
@@ -98,58 +66,55 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
 
     @Override
     public T deserialize(String topic, byte[] data) {
-        try {
-            return this.delegate.deserialize(topic, data);
-        } catch (Exception e) {
-            return tryToRecover(topic, null, data, e);
-        }
+        return wrapDeserialize(() -> this.delegate.deserialize(topic, data), topic, null, data);
     }
 
     @Override
     public T deserialize(String topic, Headers headers, byte[] data) {
-        try {
-            return this.delegate.deserialize(topic, headers, data);
-        } catch (Exception e) {
-            return tryToRecover(topic,
-                    addFailureDetailsToHeaders(topic, headers, data, e),
-                    data, e);
-        }
+        return wrapDeserialize(() -> this.delegate.deserialize(topic, headers, data), topic, headers, data);
     }
 
     /**
-     * If the user has specified a handler function - use it.
-     * Otherwise, the outcome depends on the {@code fail-on-deserialization-failure} attribute.
+     * If the user has specified a decorator function - use it.
+     * Otherwise, call the deserializer, in case of failure the outcome depends on the {@code fail-on-deserialization-failure}
+     * attribute.
      * If {@code fail-on-deserialization-failure} is set to {@code true} (default), this method throws a {@link KafkaException}.
      * If set to {@code false}, it recovers with {@code null}.
      *
+     * @param deserialize the delegated deserialize function to call
      * @param topic the topic
      * @param headers the header, can be {@code null}
      * @param data the data that was not deserialized
-     * @param exception the exception thrown by the underlying deserializer.
      * @return an instance of {@code <T>}, {@code null} if the user didn't specify a function (or if the function returned
      *         {@code null}).
      */
-    @SuppressWarnings("unchecked")
-    private T tryToRecover(String topic, Headers headers, byte[] data, Exception exception) {
+    private T wrapDeserialize(Supplier<T> deserialize, String topic, Headers headers, byte[] data) {
         if (deserializationFailureHandler != null) {
             try {
-                return (T) deserializationFailureHandler.handleDeserializationFailure(topic, this.handleKeys,
-                        delegate.getClass().getName(), data, exception, headers);
+                return deserializationFailureHandler.decorateDeserialization(Uni.createFrom().item(deserialize),
+                        topic, this.handleKeys, delegate.getClass().getName(), data, headers);
             } catch (Exception e) {
                 KafkaLogging.log.deserializationFailureHandlerFailure(deserializationFailureHandler.toString(), e);
                 source.reportFailure(e, true);
+                if (e instanceof KafkaException) {
+                    throw (KafkaException) e;
+                }
+                throw new KafkaException(e);
             }
         } else {
-            KafkaLogging.log.unableToDeserializeMessage(topic, exception);
-            if (failOnDeserializationErrorWithoutHandler) {
-                source.reportFailure(exception, true);
-                if (exception instanceof KafkaException) {
-                    throw (KafkaException) exception;
+            try {
+                return deserialize.get();
+            } catch (Exception e) {
+                if (failOnDeserializationErrorWithoutHandler) {
+                    source.reportFailure(e, true);
+                    if (e instanceof KafkaException) {
+                        throw (KafkaException) e;
+                    }
+                    throw new KafkaException(e);
                 }
-                throw new KafkaException(exception);
+                return null;
             }
         }
-        return null;
     }
 
     @Override
@@ -158,32 +123,6 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
         if (this.delegate != null) {
             this.delegate.close();
         }
-    }
-
-    private Headers addFailureDetailsToHeaders(String topic, Headers headers, byte[] data, Exception e) {
-        String message = e.getMessage();
-        String cause = e.getCause() != null ? e.getCause().getMessage() : null;
-
-        headers.add(DESERIALIZATION_FAILURE_DESERIALIZER, delegate.getClass().getName()
-                .getBytes(StandardCharsets.UTF_8));
-        headers.add(DESERIALIZATION_FAILURE_TOPIC, topic.getBytes(StandardCharsets.UTF_8));
-
-        if (this.handleKeys) {
-            headers.add(DESERIALIZATION_FAILURE_IS_KEY, TRUE_VALUE);
-        }
-
-        if (message != null) {
-            headers.add(DESERIALIZATION_FAILURE_REASON, message.getBytes(StandardCharsets.UTF_8));
-        }
-        if (cause != null) {
-            headers.add(DESERIALIZATION_FAILURE_CAUSE, cause.getBytes(StandardCharsets.UTF_8));
-        }
-        if (data != null) {
-            headers.add(DESERIALIZATION_FAILURE_DATA, data);
-        }
-
-        return headers;
-
     }
 
 }

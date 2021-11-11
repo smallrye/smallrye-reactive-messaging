@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -16,6 +17,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
@@ -141,6 +143,30 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
                 });
     }
 
+    @Test
+    void testWhenFailureHandlerRetriesTwice() {
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
+                .with("topic", topic)
+                .with("auto.offset.reset", "earliest")
+                .with("health-enabled", true)
+                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value-deserialization-failure-handler", "retry-on-failure");
+
+        addBeans(RetryingFailureHandler.class, RecordConverter.class);
+        addBeans(RecordConverter.class);
+        MySink sink = runApplication(config, MySink.class);
+
+        // Fail for value
+        JsonObject key = new JsonObject().put("key", "key");
+        usage
+                .produce(UUID.randomUUID().toString(), 1, new JsonObjectSerializer(), new DoubleSerializer(),
+                        null, () -> new ProducerRecord<>(topic, key, 698745231.56));
+
+        await().until(() -> sink.list().size() == 1);
+        assertThat(sink.list().get(0).value().getInteger("retry")).isEqualTo(2);
+    }
+
     @ApplicationScoped
     public static class MySink {
         List<Record<JsonObject, JsonObject>> list = new ArrayList<>();
@@ -173,6 +199,26 @@ public class DeserializationFailureHandlerTest extends KafkaTestBase {
         public JsonObject handleDeserializationFailure(String topic, boolean isKey, String deserializer, byte[] data,
                 Exception exception, Headers headers) {
             return fallbackForValue;
+        }
+    }
+
+    @ApplicationScoped
+    @Identifier("retry-on-failure")
+    public static class RetryingFailureHandler implements DeserializationFailureHandler<JsonObject> {
+
+        final AtomicInteger retryCount = new AtomicInteger();
+
+        @Override
+        public JsonObject decorateDeserialization(Uni<JsonObject> deserialization, String topic, boolean isKey,
+                String deserializer, byte[] data, Headers headers) {
+            return deserialization
+                    .onFailure(throwable -> {
+                        retryCount.incrementAndGet();
+                        return true;
+                    }).retry().atMost(1)
+                    .onFailure(throwable -> retryCount.get() > 1)
+                    .recoverWithItem(() -> new JsonObject().put("retry", retryCount.get()))
+                    .await().indefinitely();
         }
     }
 }
