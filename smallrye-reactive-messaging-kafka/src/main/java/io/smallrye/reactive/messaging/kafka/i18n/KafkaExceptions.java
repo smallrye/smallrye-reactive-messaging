@@ -66,4 +66,11 @@ public interface KafkaExceptions {
 
     @Message(id = 18015, value = "Cannot convert property '%s' of type %s to %s")
     NoSuchElementException cannotConvertProperty(String propertyName, Class<?> type, Class<?> targetType);
+
+    @Message(id = 18016, value = "Unable to find the SerializationFailureHandler named `%s` for channel `%s`")
+    UnsatisfiedResolutionException unableToFindSerializationFailureHandler(String name, String channel);
+
+    @Message(id = 18017, value = "Unable to select the SerializationFailureHandler named `%s` for channel `%s` - too many matches (%d)")
+    AmbiguousResolutionException unableToFindSerializationFailureHandler(String name, String channel, int count);
+
 }

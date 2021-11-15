@@ -105,6 +105,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "close-timeout", type = "int", direction = Direction.OUTGOING, description = "The amount of milliseconds waiting for a graceful shutdown of the Kafka producer", defaultValue = "10000")
 @ConnectorAttribute(name = "merge", direction = Direction.OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "propagate-record-key", direction = Direction.OUTGOING, description = "Propagate incoming record key to the outgoing record", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "key-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing keys are delegated to this handler which may provide a fallback value.")
+@ConnectorAttribute(name = "value-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing values are delegated to this handler which may provide a fallback value.")
 public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
@@ -121,6 +123,10 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     @Inject
     @Any
     Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
+
+    @Inject
+    @Any
+    Instance<SerializationFailureHandler<?>> serializationFailureHandlers;
 
     @Inject
     KafkaCDIEvents kafkaCDIEvents;
@@ -226,7 +232,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         if (oc.getHealthReadinessTimeout().isPresent()) {
             log.deprecatedConfig("health-readiness-timeout", "health-topic-verification-timeout");
         }
-        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents);
+        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, serializationFailureHandlers);
         sinks.add(sink);
         return sink.getSink();
     }

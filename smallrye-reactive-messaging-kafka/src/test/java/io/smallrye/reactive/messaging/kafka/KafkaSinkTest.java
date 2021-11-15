@@ -36,6 +36,7 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -65,7 +66,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents);
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 10)
@@ -90,7 +91,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents);
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 10)
@@ -116,7 +117,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents);
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 10)
@@ -272,7 +273,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
-        sink = new KafkaSink(oc, testCdiEvents);
+        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance());
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -326,7 +327,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents);
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
         Subscriber subscriber = sink.getSink().build();
         Multi.createFrom().range(0, 5)
