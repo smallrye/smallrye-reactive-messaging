@@ -125,6 +125,10 @@ Type: _boolean_ | false | `true`
 
 Type: _int_ | false | `1000`
 
+| [.no-hyphens]#*requests*# | When `partitions` is greater than 1, this attribute allows configuring how many records are requested by each consumers every time.
+
+Type: _int_ | false | `128`
+
 | [.no-hyphens]#*retry*# | Whether or not the connection to the broker is re-attempted in case of failure
 
 Type: _boolean_ | false | `true`
