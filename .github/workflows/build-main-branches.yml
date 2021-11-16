@@ -19,6 +19,11 @@ jobs:
                     {'version': '8'},
                     {'version': '11'},
                     {
+                        'version': '11',
+                        'build_opts': '-Dkafka-container-version=latest-kafka-2.8.0 -pl smallrye-reactive-messaging-kafka --also-make',
+                        'name': 'Kafka tests against Kafka Broker 2.8.0'
+                    },
+                    {
                         'version': '16',
                         'opts': '--illegal-access=permit' # required for kotlin
                     },
