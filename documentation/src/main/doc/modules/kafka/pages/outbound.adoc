@@ -134,6 +134,41 @@ Be sure to configure Kafka's `batch.size` and `linger.ms` accordingly.
 You can also remove the limit of inflight messages by setting `max-inflight-messages` to `0`.
 However, note that the Kafka Producer may block if the number of requests reaches `max.in.flight.requests.per.connection`.
 
+=== Handling serialization failures
+
+For Kafka producer client serialization failures are not recoverable, thus the message dispatch is not retried.
+However, using schema registries, serialization may intermittently fail to contact the registry.
+In these cases you may need to apply a failure strategy for the serializer.
+To achieve this, create a CDI bean implementing the {javadoc-base}/io/smallrye/reactive/messaging/kafka/SerializationFailureHandler.html[SerializationFailureHandler<T>] interface:
+
+[source, java]
+----
+@ApplicationScoped
+@Identifier("failure-fallback") // Set the name of the failure handler
+public class MySerializationFailureHandler
+    implements SerializationFailureHandler<JsonObject> { // Specify the expected type
+
+    @Override
+    public byte[] decorateSerialization(Uni<byte[]> serialization, String topic, boolean isKey, String serializer,
+                Object data, Headers headers) {
+        return serialization
+                    .onFailure().retry().atMost(3)
+                    .await().atMost(Duration.ofMillis(200));
+    }
+}
+----
+
+The bean must be exposed with the `@Identifier` qualifier specifying the name of the bean.
+Then, in the connector configuration, specify the following attribute:
+
+* `mp.messaging.incoming.$channel.key-serialization-failure-handler`: name of the bean handling serialization failures happening for the record's key
+* `mp.messaging.incoming.$channel.value-serialization-failure-handler`: name of the bean handling serialization failures happening for the record's value,
+
+The handler is called with the serialization action as a `Uni`, the record's topic, a boolean indicating whether the failure happened on a key, the class name of the deserializer that throws the exception, the corrupted data, the exception, and the records headers.
+Failure strategies like retry, providing a fallback value or applying timeout can be implemented.
+Note that the method must await on the result and return the serialized byte array.
+Alternatively, the handler can implement `decorateSerialization` method which can return a fallback value.
+
 === Sending Cloud Events
 
 The Kafka connector supports https://cloudevents.io/[Cloud Events].

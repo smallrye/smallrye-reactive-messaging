@@ -206,15 +206,16 @@ To achieve this, create a CDI bean implementing the {javadoc-base}/io/smallrye/r
 [source, java]
 ----
 @ApplicationScoped
-@Identifier("failure-fallback") // Set the name of the failure handler
+@Identifier("failure-retry") // Set the name of the failure handler
 public class MyDeserializationFailureHandler
     implements DeserializationFailureHandler<JsonObject> { // Specify the expected type
 
     @Override
-    public JsonObject handleDeserializationFailure(String topic, boolean isKey,
-            String deserializer, byte[] data,
-            Exception exception, Headers headers) {
-        return fallback;
+    public JsonObject decorateDeserialization(Uni<JsonObject> deserialization, String topic, boolean isKey,
+            String deserializer, byte[] data, Headers headers) {
+        return deserialization
+                    .onFailure().retry().atMost(3)
+                    .await().atMost(Duration.ofMillis(200));
     }
 }
 ----
@@ -225,8 +226,10 @@ Then, in the connector configuration, specify the following attribute:
 * `mp.messaging.incoming.$channel.key-deserialization-failure-handler`: name of the bean handling deserialization failures happening for the record's key
 * `mp.messaging.incoming.$channel.value-deserialization-failure-handler`: name of the bean handling deserialization failures happening for the record's value,
 
-The handler is called with the record's topic, a boolean indicating whether the failure happened on a key, the class name of the deserializer that throws the exception, the corrupted data, the exception, and the records headers augmented with headers describing the failure (which ease the write to a dead letter).
-The handler can return `null`.
+The handler is called with the deserialization action as a `Uni<T>`, the record's topic, a boolean indicating whether the failure happened on a key, the class name of the deserializer that throws the exception, the corrupted data, the exception, and the records headers augmented with headers describing the failure (which ease the write to a dead letter).
+On the deserialization `Uni` failure strategies like retry, providing a fallback value or applying timeout can be implemented.
+Note that the method must await on the result and return the deserialized object.
+Alternatively, the handler can only implement `handleDeserializationFailure` method and provide a fallback value, which may be `null`.
 
 If you don't configure a deserialization failure handlers and a deserialization failure happens, the application is marked unhealthy.
 You can also ignore the failure, which will log the exception and produce a `null` value.
