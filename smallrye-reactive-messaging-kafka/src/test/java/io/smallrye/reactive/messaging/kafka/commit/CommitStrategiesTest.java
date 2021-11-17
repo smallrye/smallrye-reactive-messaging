@@ -88,8 +88,10 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         list.get(0).ack().toCompletableFuture().join();
 
-        Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(1);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(1);
+        });
 
         consumer.schedulePollTask(() -> {
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 1, "k", "v1"));
@@ -101,25 +103,31 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         Message<?> message = list.get(1);
         message.ack().toCompletableFuture().join();
-        committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(2);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(2);
+        });
 
         // latest commit strategy, 3 is not acked, but offset 4 got committed.
 
         list.get(3).ack().toCompletableFuture().join();
-        committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        });
 
         // Do not change anything.
         list.get(2).ack().toCompletableFuture().join();
-        committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
-
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        });
         // Do not change anything.
         list.get(1).ack().toCompletableFuture().join();
-        committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
-
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        });
         consumer.schedulePollTask(() -> {
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, 0, "k", "v4"));
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 2, 0, "k", "v5"));
@@ -131,18 +139,21 @@ public class CommitStrategiesTest extends WeldTestBase {
         Message<?> v6 = list.stream().filter(m -> m.getPayload().equals("v6")).findFirst().orElse(null);
         assertThat(v6).isNotNull();
         v6.ack().toCompletableFuture().join();
-        committed = consumer.committed(new HashSet<>(Arrays.asList(tp0, tp1, tp2)));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
-        assertThat(committed.get(tp1).offset()).isEqualTo(2);
-        assertThat(committed.get(tp2)).isNull();
-
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(new HashSet<>(Arrays.asList(tp0, tp1, tp2)));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+            assertThat(committed.get(tp1).offset()).isEqualTo(2);
+            assertThat(committed.get(tp2)).isNull();
+        });
         Message<?> v5 = list.stream().filter(m -> m.getPayload().equals("v5")).findFirst().orElse(null);
         assertThat(v5).isNotNull();
         v5.ack().toCompletableFuture().join();
-        committed = consumer.committed(new HashSet<>(Arrays.asList(tp0, tp1, tp2)));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
-        assertThat(committed.get(tp1).offset()).isEqualTo(2);
-        assertThat(committed.get(tp2).offset()).isEqualTo(1);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(new HashSet<>(Arrays.asList(tp0, tp1, tp2)));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+            assertThat(committed.get(tp1).offset()).isEqualTo(2);
+            assertThat(committed.get(tp2).offset()).isEqualTo(1);
+        });
     }
 
     @Test

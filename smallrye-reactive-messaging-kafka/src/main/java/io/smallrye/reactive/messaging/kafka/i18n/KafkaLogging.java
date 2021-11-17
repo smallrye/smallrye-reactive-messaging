@@ -248,4 +248,9 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18258, value = "Kafka producer %s, connected to Kafka brokers '%s', is configured to write records to '%s'")
     void connectedToKafka(String id, String bootstrapServers, String topic);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18259, value = "Kafka latest commit strategy failed to commit record from topic-partition '%s' at offset %d")
+    void failedToCommitAsync(TopicPartition topicPartition, long offset);
+
 }

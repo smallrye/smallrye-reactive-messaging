@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +47,6 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
 
     @Override
     public <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
         runOnContext(() -> {
             Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
             TopicPartition key = new TopicPartition(record.getTopic(), record.getPartition());
@@ -54,13 +55,11 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
             if (last == null || last < record.getOffset() + 1) {
                 offsets.put(key, record.getOffset() + 1);
                 map.put(key, new OffsetAndMetadata(record.getOffset() + 1, null));
-                consumer.commit(map)
-                        .subscribe().with(x -> future.complete(null), future::completeExceptionally);
-            } else {
-                future.complete(null);
+                consumer.commitAsync(map)
+                        .subscribe().with(ignored -> {
+                        }, throwable -> log.failedToCommitAsync(key, record.getOffset() + 1));
             }
         });
-
-        return future;
+        return CompletableFuture.completedFuture(null);
     }
 }

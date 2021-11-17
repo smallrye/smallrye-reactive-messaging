@@ -336,11 +336,24 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
 
     @Override
     @CheckReturnValue
-    public Uni<Void> commit(
-            Map<TopicPartition, OffsetAndMetadata> map) {
+    public Uni<Void> commit(Map<TopicPartition, OffsetAndMetadata> map) {
         return runOnPollingThread(c -> {
             c.commitSync(map);
         });
+    }
+
+    @CheckReturnValue
+    public Uni<Void> commitAsync(Map<TopicPartition, OffsetAndMetadata> map) {
+        return Uni.createFrom().<Void> emitter(e -> {
+            consumer.commitAsync(map, (offsets, exception) -> {
+                if (exception != null) {
+                    e.fail(exception);
+                } else {
+                    e.complete(null);
+                }
+            });
+        })
+                .runSubscriptionOn(kafkaWorker);
     }
 
     public Map<String, ?> configuration() {
