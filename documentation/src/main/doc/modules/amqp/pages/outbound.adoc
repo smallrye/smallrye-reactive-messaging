@@ -101,7 +101,6 @@ include::connectors:partial$META-INF/connector/smallrye-amqp-outgoing.adoc[]
 
 You can also pass any property supported by the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP client] as attribute.
 
-
 === Using existing destinations
 
 To use an existing _address_ or _queue_, you need to configure the `address`, `container-id` and, optionally, the `link-name` attributes.
@@ -156,3 +155,36 @@ mp.messaging.incoming.people-out.link-name=people
 ----
 
 More details about the AMQP Address model can be found on https://activemq.apache.org/components/artemis/documentation/2.0.0/address-model.html[the Artemis documentation].
+
+
+=== Sending Cloud Events
+
+The AMQP connector supports https://cloudevents.io/[Cloud Events].
+The connector sends the outbound record as Cloud Events if:
+
+* the message metadata contains an `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instance,
+* the channel configuration defines the `cloud-events-type` and `cloud-events-source` attributes.
+
+You can create `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instances using:
+
+[source, java]
+----
+include::example$outbound/AmqpCloudEventProcessor.java[]
+----
+
+If the metadata does not contain an id, the connector generates one (random UUID).
+The `type` and `source` can be configured per message or at the channel level using the `cloud-events-type` and `cloud-events-source` attributes.
+Other attributes are also configurable.
+
+The metadata can be contributed by multiple methods, however, you must always retrieve the already existing metadata to avoid overriding the values:
+
+[source, java]
+----
+include::example$outbound/AmqpCloudEventMultipleProcessors.java[]
+----
+
+By default, the connector sends the Cloud Events using the _binary_ format.
+You can write _structured_ Cloud Events by setting the `cloud-events-mode` to `structured`.
+Only JSON is supported, so the created records had its `content-type` header set to `application/cloudevents+json; charset=UTF-8`
+
+NOTE: you can disable the Cloud Event support by setting the `cloud-events` attribute to `false`

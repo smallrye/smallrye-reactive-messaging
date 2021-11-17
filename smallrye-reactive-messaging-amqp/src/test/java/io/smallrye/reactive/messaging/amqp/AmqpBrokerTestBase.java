@@ -18,12 +18,12 @@ public class AmqpBrokerTestBase {
 
     public static final AmqpBroker broker = new AmqpBroker();
 
-    ExecutionHolder executionHolder;
-    final static String host = "127.0.0.1";
-    final static int port = 5672;
-    final static String username = "artemis";
-    final static String password = "artemis";
-    AmqpUsage usage;
+    protected ExecutionHolder executionHolder;
+    protected final static String host = "127.0.0.1";
+    protected final static int port = 5672;
+    protected final static String username = "artemis";
+    protected final static String password = "artemis";
+    protected AmqpUsage usage;
 
     @BeforeAll
     public static void startBroker() {

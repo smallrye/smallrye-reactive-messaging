@@ -53,7 +53,7 @@ public class AmqpUsage {
      * @param messageCount the number of messages to produce; must be positive
      * @param messageSupplier the function to produce messages; may not be null
      */
-    void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
+    public void produce(String topic, int messageCount, Supplier<Object> messageSupplier) {
         CountDownLatch done = new CountDownLatch(messageCount);
         client.createSender(topic).subscribe().with(sender -> {
             Thread t = new Thread(() -> {
