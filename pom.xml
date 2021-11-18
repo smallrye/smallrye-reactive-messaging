@@ -67,7 +67,7 @@
     <microprofile-reactive-streams.version>2.0</microprofile-reactive-streams.version>
     <microprofile-config.version>2.0</microprofile-config.version>
     <microprofile-metrics-api.version>3.0</microprofile-metrics-api.version>
-    <microprofile-health-api.version>3.1</microprofile-health-api.version>
+    <microprofile-health-api.version>4.0</microprofile-health-api.version>
 
     <smallrye-config.version>2.6.0</smallrye-config.version>
     <smallrye-metrics.version>3.0.4</smallrye-metrics.version>
