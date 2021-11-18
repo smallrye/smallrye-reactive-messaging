@@ -30,7 +30,9 @@ public class ContextHolder {
     }
 
     public void runOnContext(Runnable runnable) {
-        if (Vertx.currentContext() == context) {
+        // Directly run the task if current thread is an event loop thread and have the captured context
+        // Otherwise run the task on event loop
+        if (Vertx.currentContext() == context && Context.isOnEventLoopThread()) {
             runnable.run();
         } else {
             context.runOnContext(x -> runnable.run());
@@ -39,7 +41,7 @@ public class ContextHolder {
 
     public <T> T runOnContextAndAwait(Callable<T> action) {
         FutureTask<T> task = new FutureTask<>(action);
-        context.runOnContext(x -> task.run());
+        runOnContext(task);
 
         try {
             return task.get(timeout, TimeUnit.MILLISECONDS);
