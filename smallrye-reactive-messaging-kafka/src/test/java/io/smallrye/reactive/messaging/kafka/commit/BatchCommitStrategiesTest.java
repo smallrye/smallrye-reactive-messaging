@@ -85,8 +85,10 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
 
         list.get(0).ack().toCompletableFuture().join();
 
-        Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(1);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(1);
+        });
 
         consumer.schedulePollTask(() -> {
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 1, "k", "v1"));
@@ -98,15 +100,19 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
 
         Message<?> message = list.get(1);
         message.ack().toCompletableFuture().join();
-        committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        });
 
         // latest commit strategy, 3 is not acked, but offset 4 got committed.
 
         // Do not change anything.
         list.get(1).ack().toCompletableFuture().join();
-        committed = consumer.committed(Collections.singleton(tp0));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+        });
 
         consumer.schedulePollTask(() -> {
             consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, 0, "k", "v4"));
@@ -117,10 +123,12 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         await().until(() -> list.size() == 3);
 
         list.get(2).ack().toCompletableFuture().join();
-        committed = consumer.committed(new HashSet<>(Arrays.asList(tp0, tp1, tp2)));
-        assertThat(committed.get(tp0).offset()).isEqualTo(4);
-        assertThat(committed.get(tp1).offset()).isEqualTo(2);
-        assertThat(committed.get(tp2).offset()).isEqualTo(1);
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(new HashSet<>(Arrays.asList(tp0, tp1, tp2)));
+            assertThat(committed.get(tp0).offset()).isEqualTo(4);
+            assertThat(committed.get(tp1).offset()).isEqualTo(2);
+            assertThat(committed.get(tp2).offset()).isEqualTo(1);
+        });
     }
 
     @Test

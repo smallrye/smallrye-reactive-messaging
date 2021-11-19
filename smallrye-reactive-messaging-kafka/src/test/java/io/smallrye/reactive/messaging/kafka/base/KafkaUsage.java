@@ -60,7 +60,7 @@ public class KafkaUsage implements AutoCloseable {
 
     private final static Logger LOGGER = Logger.getLogger(KafkaUsage.class);
     private final String brokers;
-    public AdminClient adminClient;
+    private AdminClient adminClient;
 
     public KafkaUsage(String bootstrapServers) {
         this.brokers = bootstrapServers;
@@ -364,7 +364,7 @@ public class KafkaUsage implements AutoCloseable {
         return this.brokers;
     }
 
-    AdminClient getOrCreateAdminClient() {
+    public AdminClient getOrCreateAdminClient() {
         if (adminClient == null) {
             adminClient = AdminClient.create(Collections.singletonMap(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers()));
         }
