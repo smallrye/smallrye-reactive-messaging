@@ -171,3 +171,29 @@ mp.messaging.incoming.people-in.address=people
 mp.messaging.incoming.people-in.container-id=people
 mp.messaging.incoming.people-in.link-name=people
 ----
+
+=== Receiving Cloud Events
+
+The AMQP connector supports https://cloudevents.io/[Cloud Events].
+When the connector detects a _structured_ or _binary_ Cloud Events, it adds a  {javadoc-base}/io/smallrye/reactive/messaging/ce/IncomingCloudEventMetadata.html[IncomingCloudEventMetadata<T>] into the metadata of the `Message`.
+`IncomingCloudEventMetadata` contains accessors to the mandatory and optional Cloud Event attributes.
+
+If the connector cannot extract the Cloud Event metadata, it sends the Message without the metadata.
+
+==== Binary Cloud Events
+
+For `binary` Cloud Events, **all** mandatory Cloud Event attributes must be set in the AMQP application properties, prefixed by `cloudEvents:` (as mandated by the https://github.com/cloudevents/spec/blob/v1.0.1/amqp-protocol-binding.md[protocol binding]).
+The connector considers headers starting with the `cloudEvents:` prefix but not listed in the specification as extensions.
+You can access them using the `getExtension` method from `IncomingCloudEventMetadata`.
+
+The `datacontenttype` attribute is mapped to the `content-type` header of the record.
+
+==== Structured Cloud Events
+
+For `structured` Cloud Events, the event is encoded in the record's value.
+Only JSON is supported, so your event must be encoded as JSON in the record's value.
+
+Structured Cloud Event must set the `content-type` header of the record to `application/cloudevents+json; charset=UTF-8`.
+The message body must be a valid JSON object containing at least all the mandatory Cloud Events attributes.
+
+If the record is a structured Cloud Event, the created Message's payload is the Cloud Event `data`.

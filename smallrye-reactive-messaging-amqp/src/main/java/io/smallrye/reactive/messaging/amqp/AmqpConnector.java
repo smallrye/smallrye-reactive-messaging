@@ -74,6 +74,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
 @ConnectorAttribute(name = "tracing-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "health-timeout", direction = INCOMING_AND_OUTGOING, description = "The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.", type = "int", defaultValue = "3")
+@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
 
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
@@ -85,10 +86,17 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "credit-retrieval-period", direction = OUTGOING, description = "The period (in milliseconds) between two attempts to retrieve the credits granted by the broker. This time is used when the sender run out of credits.", type = "int", defaultValue = "2000")
 @ConnectorAttribute(name = "use-anonymous-sender", direction = OUTGOING, description = "Whether or not the connector should use an anonymous sender. Default value is `true` if the broker supports it, `false` otherwise. If not supported, it is not possible to dynamically change the destination address.", type = "boolean")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "cloud-events-source", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself", alias = "cloud-events-default-source")
+@ConnectorAttribute(name = "cloud-events-type", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself", alias = "cloud-events-default-type")
+@ConnectorAttribute(name = "cloud-events-subject", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself", alias = "cloud-events-default-subject")
+@ConnectorAttribute(name = "cloud-events-data-content-type", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `datacontenttype` attribute itself", alias = "cloud-events-default-data-content-type")
+@ConnectorAttribute(name = "cloud-events-data-schema", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself", alias = "cloud-events-default-data-schema")
+@ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = ConnectorAttribute.Direction.OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
+@ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
 
 public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
 
-    static final String CONNECTOR_NAME = "smallrye-amqp";
+    public static final String CONNECTOR_NAME = "smallrye-amqp";
 
     static Tracer TRACER;
 
@@ -117,7 +125,6 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
      * <li>liveness: failed if opened is set to false for a channel</li>
      * </li>readiness: failed if opened is set to false for a channel</li>
      * </ul>
-     *
      */
     private final Map<String, Boolean> opened = new ConcurrentHashMap<>();
 
@@ -144,7 +151,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver,
             ConnectionHolder holder,
             String address,
+            String channel,
             AmqpFailureHandler onNack,
+            boolean cloudEventEnabled,
             Boolean tracingEnabled) {
         log.receiverListeningAddress(address);
 
@@ -159,7 +168,15 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         return Multi.createFrom().deferred(
                 () -> {
                     Multi<AmqpMessage<?>> stream = receiver.toMulti()
-                            .map(m -> new AmqpMessage<>(m, holder.getContext(), onNack, tracingEnabled));
+                            .onItem().transformToUniAndConcatenate(m -> {
+                                try {
+                                    return Uni.createFrom().item(new AmqpMessage<>(m, holder.getContext(), onNack,
+                                            cloudEventEnabled, tracingEnabled));
+                                } catch (Exception e) {
+                                    log.unableToCreateMessage(channel, e);
+                                    return Uni.createFrom().nullItem();
+                                }
+                            });
 
                     if (tracingEnabled) {
                         stream = stream.onItem().invoke(this::incomingTrace);
@@ -193,7 +210,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                         .setDurable(durable)
                         .setLinkName(link)))
                 .onItem().invoke(r -> opened.put(ic.getChannel(), true))
-                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, onNack, ic.getTracingEnabled()));
+                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, ic.getChannel(), onNack,
+                        ic.getCloudEvents(), ic.getTracingEnabled()));
 
         Integer interval = ic.getReconnectInterval();
         Integer attempts = ic.getReconnectAttempts();

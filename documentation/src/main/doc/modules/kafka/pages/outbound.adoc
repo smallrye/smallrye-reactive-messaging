@@ -140,7 +140,7 @@ The Kafka connector supports https://cloudevents.io/[Cloud Events].
 The connector sends the outbound record as Cloud Events if:
 
 * the message metadata contains an `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instance,
-* the channel configuration defines the `cloud-events-type` and `cloud-events-source` attribute.
+* the channel configuration defines the `cloud-events-type` and `cloud-events-source` attributes.
 
 You can create `io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata` instances using:
 
@@ -162,7 +162,7 @@ include::example$outbound/KafkaCloudEventMultipleProcessors.java[]
 
 By default, the connector sends the Cloud Events using the _binary_ format.
 You can write _structured_ Cloud Events by setting the `cloud-events-mode` to `structured`.
-Only JSON is supported, so the created records had it's `content-type` header set to `application/cloudevents+json; charset=UTF-8`
+Only JSON is supported, so the created records had its `content-type` header set to `application/cloudevents+json; charset=UTF-8`
 When using the _structured_ mode, the value serializer must be set to `org.apache.kafka.common.serialization.StringSerializer`, otherwise the connector reports the error.
 In addition, in _structured_, the connector maps the message's payload to JSON, except for `String` passed directly.
 

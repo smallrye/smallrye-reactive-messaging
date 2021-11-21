@@ -17,8 +17,10 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
 import io.smallrye.reactive.messaging.amqp.tracing.HeaderExtractAdapter;
+import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -32,24 +34,51 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
     private final Context context;
     protected final AmqpFailureHandler onNack;
 
+    private final T payload;
+
     @Deprecated
     public static <T> AmqpMessageBuilder<T> builder() {
         return new AmqpMessageBuilder<>();
     }
 
     public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate, Context context, AmqpFailureHandler onNack,
-            Boolean tracingEnabled) {
-        this(delegate.getDelegate(), context, onNack, tracingEnabled);
+            boolean cloudEventEnabled, Boolean tracingEnabled) {
+        this(delegate.getDelegate(), context, onNack, cloudEventEnabled, tracingEnabled);
     }
 
-    public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack, Boolean tracingEnabled) {
+    @SuppressWarnings("unchecked")
+    public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack,
+            boolean cloudEventEnabled, Boolean tracingEnabled) {
         this.message = msg;
         this.context = context;
         this.amqpMetadata = new IncomingAmqpMetadata(this.message);
         this.onNack = onNack;
 
         ArrayList<Object> meta = new ArrayList<>();
-        meta.add(amqpMetadata);
+        meta.add(this.amqpMetadata);
+        if (cloudEventEnabled) {
+            // Cloud Event detection
+            AmqpCloudEventHelper.CloudEventMode mode = AmqpCloudEventHelper.getCloudEventMode(msg);
+            switch (mode) {
+                case NOT_A_CLOUD_EVENT:
+                    payload = (T) convert(message);
+                    break;
+                case STRUCTURED:
+                    CloudEventMetadata<T> event = AmqpCloudEventHelper
+                            .createFromStructuredCloudEvent(msg);
+                    meta.add(event);
+                    payload = event.getData();
+                    break;
+                case BINARY:
+                    payload = (T) convert(message);
+                    meta.add(AmqpCloudEventHelper.createFromBinaryCloudEvent(msg, this));
+                    break;
+                default:
+                    payload = (T) convert(message);
+            }
+        } else {
+            payload = (T) convert(message);
+        }
 
         if (tracingEnabled) {
             TracingMetadata tracingMetadata = TracingMetadata.empty();
@@ -85,11 +114,9 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         return onNack.handle(this, context, reason);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public T getPayload() {
-        // Throw a class cass exception if it cannot be converted.
-        return (T) convert(message);
+        return payload;
     }
 
     @Override

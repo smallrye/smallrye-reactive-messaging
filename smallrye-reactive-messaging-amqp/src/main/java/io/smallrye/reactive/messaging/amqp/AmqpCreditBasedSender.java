@@ -27,7 +27,9 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
 import io.smallrye.reactive.messaging.amqp.tracing.HeaderInjectAdapter;
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
@@ -46,6 +48,11 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final long ttl;
     private final String configuredAddress;
     private final boolean tracingEnabled;
+    private final boolean mandatoryCloudEventAttributeSet;
+    private final boolean writeCloudEvents;
+    private final boolean writeAsBinaryCloudEvent;
+    private final int retryAttempts;
+    private final int retryInterval;
 
     private volatile boolean isAnonymous;
 
@@ -59,6 +66,13 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         this.ttl = configuration.getTtl();
         this.configuredAddress = configuration.getAddress().orElseGet(configuration::getChannel);
         this.tracingEnabled = configuration.getTracingEnabled();
+        this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
+                && configuration.getCloudEventsSource().isPresent();
+        this.writeCloudEvents = configuration.getCloudEvents();
+        this.writeAsBinaryCloudEvent = configuration.getCloudEventsMode().equalsIgnoreCase("binary");
+
+        this.retryAttempts = configuration.getReconnectAttempts();
+        this.retryInterval = configuration.getReconnectInterval();
     }
 
     @Override
@@ -152,7 +166,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         retrieveSender
                 .onItem().transformToUni(sender -> {
                     try {
-                        return send(sender, message, durable, ttl, configuredAddress, isAnonymous, configuration)
+                        return send(sender, message, durable, ttl, configuredAddress, isAnonymous)
                                 .onItem().transform(m -> Tuple2.of(sender, m));
                     } catch (Exception e) {
                         // Message can be sent - nacking and skipping.
@@ -235,10 +249,10 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     }
 
     private Uni<Message<?>> send(AmqpSender sender, Message<?> msg, boolean durable, long ttl, String configuredAddress,
-            boolean isAnonymousSender, AmqpConnectorCommonConfiguration configuration) {
-        int retryAttempts = configuration.getReconnectAttempts();
-        int retryInterval = configuration.getReconnectInterval();
+            boolean isAnonymousSender) {
         io.vertx.mutiny.amqp.AmqpMessage amqp;
+        OutgoingCloudEventMetadata<?> ceMetadata = msg.getMetadata(OutgoingCloudEventMetadata.class)
+                .orElse(null);
 
         if (msg instanceof AmqpMessage) {
             amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
@@ -252,6 +266,18 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             amqp = new io.vertx.mutiny.amqp.AmqpMessage(vertxMessage);
         } else {
             amqp = AmqpMessageConverter.convertToAmqpMessage(msg, durable, ttl);
+        }
+
+        if (writeCloudEvents && (ceMetadata != null || mandatoryCloudEventAttributeSet)) {
+            // We encode the outbound record as Cloud Events if:
+            // - cloud events are enabled -> writeCloudEvents
+            // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
+            // - or if the message does not contain this metadata, the type and source are configured on the channel
+            if (writeAsBinaryCloudEvent) {
+                amqp = AmqpCloudEventHelper.createBinaryCloudEventMessage(amqp, ceMetadata, this.configuration);
+            } else {
+                amqp = AmqpCloudEventHelper.createStructuredEventMessage(amqp, ceMetadata, this.configuration);
+            }
         }
 
         String actualAddress = getActualAddress(msg, amqp, configuredAddress, isAnonymousSender);

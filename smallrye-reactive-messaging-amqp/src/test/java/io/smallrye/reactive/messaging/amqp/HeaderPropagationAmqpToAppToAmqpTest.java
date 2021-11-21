@@ -50,20 +50,20 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
         usage.consume(address, messages::add);
 
         new MapBasedConfig()
-                .put("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.outgoing.amqp.address", address)
-                .put("mp.messaging.outgoing.amqp.durable", true)
-                .put("mp.messaging.outgoing.amqp.host", host)
-                .put("mp.messaging.outgoing.amqp.port", port)
-                .put("mp.messaging.outgoing.amqp.tracing-enabled", false)
-                .put("amqp-username", username)
-                .put("amqp-password", password)
+                .with("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.amqp.address", address)
+                .with("mp.messaging.outgoing.amqp.durable", true)
+                .with("mp.messaging.outgoing.amqp.host", host)
+                .with("mp.messaging.outgoing.amqp.port", port)
+                .with("mp.messaging.outgoing.amqp.tracing-enabled", false)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
 
-                .put("mp.messaging.incoming.source.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.source.address", source)
-                .put("mp.messaging.incoming.source.host", host)
-                .put("mp.messaging.incoming.source.port", port)
-                .put("mp.messaging.incoming.source.tracing-enabled", false)
+                .with("mp.messaging.incoming.source.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.source.address", source)
+                .with("mp.messaging.incoming.source.host", host)
+                .with("mp.messaging.incoming.source.port", port)
+                .with("mp.messaging.incoming.source.tracing-enabled", false)
                 .write();
 
         container = weld.initialize();

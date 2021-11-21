@@ -13,6 +13,50 @@ Type: _string_ | false |
 
 Type: _string_ | false | 
 
+| [.no-hyphens]#*cloud-events*# | Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.
+
+Type: _boolean_ | false | `true`
+
+| [.no-hyphens]#*cloud-events-data-content-type*#
+
+[.no-hyphens]#_(cloud-events-default-data-content-type)_# | Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `datacontenttype` attribute itself
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*cloud-events-data-schema*#
+
+[.no-hyphens]#_(cloud-events-default-data-schema)_# | Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*cloud-events-insert-timestamp*#
+
+[.no-hyphens]#_(cloud-events-default-timestamp)_# | Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself
+
+Type: _boolean_ | false | `true`
+
+| [.no-hyphens]#*cloud-events-mode*# | The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record
+
+Type: _string_ | false | `binary`
+
+| [.no-hyphens]#*cloud-events-source*#
+
+[.no-hyphens]#_(cloud-events-default-source)_# | Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*cloud-events-subject*#
+
+[.no-hyphens]#_(cloud-events-default-subject)_# | Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself
+
+Type: _string_ | false | 
+
+| [.no-hyphens]#*cloud-events-type*#
+
+[.no-hyphens]#_(cloud-events-default-type)_# | Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself
+
+Type: _string_ | false | 
+
 | [.no-hyphens]#*connect-timeout*#
 
 [.no-hyphens]#_(amqp-connect-timeout)_# | The connection timeout in milliseconds
