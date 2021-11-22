@@ -19,6 +19,7 @@ URI format and parameters are listed on the component documentation, such as the
 include::installation.adoc[]
 include::inbound.adoc[]
 include::outbound.adoc[]
+include::processor.adoc[]
 include::use-camel-api.adoc[]
 
 

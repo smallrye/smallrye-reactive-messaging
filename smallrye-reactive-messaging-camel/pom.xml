@@ -59,6 +59,18 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.camel</groupId>
+      <artifactId>camel-nats</artifactId>
+      <version>${camel.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>np.com.madanpokharel.embed</groupId>
+      <artifactId>nats-embedded</artifactId>
+      <version>${nats-embedded.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-connector-attribute-processor</artifactId>
       <version>${project.version}</version>
