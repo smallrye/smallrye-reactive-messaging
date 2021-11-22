@@ -128,15 +128,21 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
             return (Exchange) message.getPayload();
         }
 
-        OutgoingExchangeMetadata metadata = message.getMetadata(OutgoingExchangeMetadata.class).orElse(null);
+        OutgoingExchangeMetadata outGoingMetadata = message.getMetadata(OutgoingExchangeMetadata.class).orElse(null);
+        IncomingExchangeMetadata incomingMetadata = message.getMetadata(IncomingExchangeMetadata.class).orElse(null);
         DefaultExchange exchange = new DefaultExchange(camel);
-        if (metadata != null) {
-            metadata.getProperties().forEach(exchange::setProperty);
-            if (metadata.getExchangePattern() != null) {
-                exchange.setPattern(metadata.getExchangePattern());
+        if (outGoingMetadata != null) {
+            outGoingMetadata.getProperties().forEach(exchange::setProperty);
+            if (outGoingMetadata.getExchangePattern() != null) {
+                exchange.setPattern(outGoingMetadata.getExchangePattern());
             }
 
-            metadata.getHeaders().forEach(exchange.getIn()::setHeader);
+            outGoingMetadata.getHeaders().forEach(exchange.getIn()::setHeader);
+        }
+        // In case of message processor pattern, the incoming headers should be forwarded too
+        if (incomingMetadata != null && incomingMetadata.getExchange().getIn() != null
+                && incomingMetadata.getExchange().getIn().getHeaders() != null) {
+            incomingMetadata.getExchange().getIn().getHeaders().forEach(exchange.getIn()::setHeader);
         }
 
         exchange.getIn().setBody(message.getPayload());
