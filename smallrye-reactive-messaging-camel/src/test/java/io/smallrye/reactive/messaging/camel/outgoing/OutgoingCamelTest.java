@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.Exchange;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.RetryingTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +122,7 @@ public class OutgoingCamelTest extends CamelTestBase {
         assertThat(bean.values()).contains("a", "b", "c", "d");
     }
 
-    @Test
+    @RetryingTest(3)
     void testWithBeanDeclaringASimpleProcessorThatForwardIncomingHeaders() throws Exception {
         addClasses(BeanWithSimpleCamelProcessor.class);
 
@@ -132,9 +133,11 @@ public class OutgoingCamelTest extends CamelTestBase {
 
             final CompletableFuture<Exchange> completableFuture = CompletableFuture
                     .supplyAsync(
-                            () -> camelContext().createConsumerTemplate().receive("nats:out?servers=127.0.0.1:7656&connectionTimeout=60000", 5000));
+                            () -> camelContext().createConsumerTemplate()
+                                    .receive("nats:out?servers=127.0.0.1:7656&connectionTimeout=60000", 60000));
             camelContext().createProducerTemplate()
-                    .asyncRequestBodyAndHeader("nats:in?servers=127.0.0.1:7656&connectionTimeout=60000", "a", HEADER_KEY, HEADER_VALUE);
+                    .asyncRequestBodyAndHeader("nats:in?servers=127.0.0.1:7656&connectionTimeout=60000", "a", HEADER_KEY,
+                            HEADER_VALUE);
 
             final Exchange exchange = completableFuture.get(60, TimeUnit.SECONDS);
 
