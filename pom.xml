@@ -103,7 +103,7 @@
 
     <jandex-maven-plugin.version>1.2.1</jandex-maven-plugin.version>
 
-    <nats-embedded.version>1.1.0</nats-embedded.version>
+    <nats-embedded.version>1.1.2</nats-embedded.version>
   </properties>
 
   <modules>
