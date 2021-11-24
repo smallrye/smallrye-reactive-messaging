@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.ProcessingException;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import io.smallrye.reactive.messaging.providers.ProcessingException;
 import io.vertx.core.impl.ConcurrentHashSet;
 
 public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails {

@@ -18,8 +18,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -88,7 +88,7 @@ public class RabbitMQBrokerTestBase {
     /**
      * Indicates whether the connector has completed startup (including establishment of exchanges, queues
      * and so forth)
-     * 
+     *
      * @param container the {@link WeldContainer}
      * @return true if the connector is ready, false otherwise
      */

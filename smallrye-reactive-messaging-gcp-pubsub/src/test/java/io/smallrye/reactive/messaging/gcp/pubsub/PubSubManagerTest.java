@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.google.pubsub.v1.Topic;
 import com.google.pubsub.v1.TopicName;
 
-import io.smallrye.reactive.messaging.impl.ConnectorFactories;
+import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 
 public class PubSubManagerTest extends PubSubTestBase {
 

@@ -27,8 +27,8 @@ import org.reactivestreams.Subscription;
 import io.reactivex.subscribers.TestSubscriber;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.extension.EmitterConfiguration;
-import io.smallrye.reactive.messaging.extension.EmitterImpl;
+import io.smallrye.reactive.messaging.providers.extension.EmitterConfiguration;
+import io.smallrye.reactive.messaging.providers.extension.EmitterImpl;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 

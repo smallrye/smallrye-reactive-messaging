@@ -7,7 +7,7 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.PublisherDecorator;
+import io.smallrye.reactive.messaging.providers.PublisherDecorator;
 
 @ApplicationScoped
 public class CountingDecorator implements PublisherDecorator {

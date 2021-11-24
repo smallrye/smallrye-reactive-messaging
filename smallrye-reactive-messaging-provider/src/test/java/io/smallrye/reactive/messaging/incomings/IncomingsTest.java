@@ -20,7 +20,7 @@ import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
+import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 
 public class IncomingsTest extends WeldTestBaseWithoutTails {
 

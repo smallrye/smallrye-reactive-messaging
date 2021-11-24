@@ -9,7 +9,7 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.core.Vertx;

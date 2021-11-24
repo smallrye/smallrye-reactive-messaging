@@ -15,7 +15,7 @@ import com.rabbitmq.client.impl.CredentialsProvider;
 import com.rabbitmq.client.impl.DefaultCredentialsRefreshService;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.core.net.JksOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;

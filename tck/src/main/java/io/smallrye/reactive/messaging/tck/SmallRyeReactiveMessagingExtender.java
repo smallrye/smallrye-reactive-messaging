@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.tck;
 
-import static io.smallrye.reactive.messaging.extension.MediatorManager.STRICT_MODE_PROPERTY;
+import static io.smallrye.reactive.messaging.providers.extension.MediatorManager.STRICT_MODE_PROPERTY;
 
 import javax.enterprise.inject.spi.Extension;
 
@@ -9,7 +9,7 @@ import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
-import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 
 public class SmallRyeReactiveMessagingExtender implements ArchiveExtender {
     @Override

@@ -30,8 +30,8 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 
 @ApplicationScoped
 @Connector(JmsConnector.CONNECTOR_NAME)

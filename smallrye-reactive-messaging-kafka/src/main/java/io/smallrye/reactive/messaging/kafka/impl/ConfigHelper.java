@@ -13,8 +13,8 @@ import org.eclipse.microprofile.config.spi.Converter;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
+import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 
 public class ConfigHelper {
 

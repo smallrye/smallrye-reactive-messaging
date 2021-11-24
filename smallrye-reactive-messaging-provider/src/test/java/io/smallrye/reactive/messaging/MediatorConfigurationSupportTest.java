@@ -22,6 +22,8 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.providers.DefaultMediatorConfiguration;
+import io.smallrye.reactive.messaging.providers.MediatorConfigurationSupport;
 
 @SuppressWarnings("ConstantConditions")
 public class MediatorConfigurationSupportTest {

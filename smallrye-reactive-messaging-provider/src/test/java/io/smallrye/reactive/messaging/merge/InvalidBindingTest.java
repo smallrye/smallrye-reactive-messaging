@@ -20,7 +20,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.wiring.TooManyUpstreamCandidatesException;
+import io.smallrye.reactive.messaging.providers.wiring.TooManyUpstreamCandidatesException;
 
 /**
  * Checks that the deployment fails when a subscriber has 2 many potential publishers and does not use the

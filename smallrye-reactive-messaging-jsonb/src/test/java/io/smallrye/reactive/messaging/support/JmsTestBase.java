@@ -8,21 +8,21 @@ import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
-import io.smallrye.reactive.messaging.MediatorFactory;
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry;
-import io.smallrye.reactive.messaging.extension.ChannelProducer;
-import io.smallrye.reactive.messaging.extension.HealthCenter;
-import io.smallrye.reactive.messaging.extension.MediatorManager;
-import io.smallrye.reactive.messaging.extension.ReactiveMessagingExtension;
-import io.smallrye.reactive.messaging.impl.ConfiguredChannelFactory;
-import io.smallrye.reactive.messaging.impl.ConnectorFactories;
-import io.smallrye.reactive.messaging.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.json.JsonBMapping;
 import io.smallrye.reactive.messaging.json.JsonBProvider;
+import io.smallrye.reactive.messaging.providers.MediatorFactory;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
+import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
+import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.smallrye.reactive.messaging.wiring.Wiring;
 
 /**
  * FIXME?: make the original class reusable?

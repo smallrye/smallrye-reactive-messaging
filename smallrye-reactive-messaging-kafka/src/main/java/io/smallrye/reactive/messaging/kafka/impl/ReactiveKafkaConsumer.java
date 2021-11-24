@@ -26,10 +26,10 @@ import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.fault.DeserializerWrapper;
+import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.core.Context;
 
 public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V> {

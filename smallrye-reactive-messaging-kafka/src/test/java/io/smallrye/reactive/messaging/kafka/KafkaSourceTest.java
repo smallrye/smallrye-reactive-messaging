@@ -37,7 +37,6 @@ import org.testng.Assert;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMetadataUtil;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
@@ -47,6 +46,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import io.smallrye.reactive.messaging.kafka.base.KafkaUsage.FixedKafkaContainer;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.strimzi.StrimziKafkaContainer;
 
