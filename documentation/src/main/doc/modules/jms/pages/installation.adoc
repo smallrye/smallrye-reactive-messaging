@@ -53,7 +53,3 @@ public class ConnectionFactoryBean {
 ----
 
 The factory class may depends on your JMS connector/server.
-
-The connector uses JSON-B to serialize and deserialize objects.
-You need to have an implementation of JSON-B available.
-Check http://json-b.net/ for more details.
