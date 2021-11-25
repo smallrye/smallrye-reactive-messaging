@@ -253,4 +253,8 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18259, value = "Kafka latest commit strategy failed to commit record from topic-partition '%s' at offset %d")
     void failedToCommitAsync(TopicPartition topicPartition, long offset);
 
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18260, value = "Unable to recover from the serialization failure (topic: %s), configure a SerializationFailureHandler to recover from errors.")
+    void unableToSerializeMessage(String topic, @Cause Throwable t);
+
 }

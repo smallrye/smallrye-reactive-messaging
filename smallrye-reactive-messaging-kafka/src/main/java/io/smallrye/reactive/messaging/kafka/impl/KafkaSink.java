@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.enterprise.inject.Instance;
+
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -44,6 +46,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
@@ -71,10 +74,11 @@ public class KafkaSink {
     private final KafkaSinkHealth health;
     private final boolean isHealthEnabled;
 
-    public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents) {
+    public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents,
+            Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
         isTracingEnabled = config.getTracingEnabled();
 
-        this.client = new ReactiveKafkaProducer<>(config);
+        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers);
 
         // fire producer event (e.g. bind metrics)
         kafkaCDIEvents.producer().fire(client.unwrap());

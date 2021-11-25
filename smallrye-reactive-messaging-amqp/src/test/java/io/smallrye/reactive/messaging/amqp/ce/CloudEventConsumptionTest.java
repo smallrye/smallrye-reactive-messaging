@@ -101,7 +101,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
         assertThat(message.getPayload().getString("name")).isEqualTo("neo");
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithStringPayload() {
         String address = UUID.randomUUID().toString();
@@ -158,7 +158,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
         assertThat(message.getPayload().getString("name")).isEqualTo("neo");
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings("unchecked")
     @Test
     public void testReceivingStructuredCloudEventsWithBinaryPayload() {
         String address = UUID.randomUUID().toString();
@@ -254,7 +254,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
         // Nothing has been received because the deserializer is not supported.
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEventsUsingJsonPayload() {
         String address = UUID.randomUUID().toString();
@@ -312,7 +312,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
         assertThat(message.getPayload().getString("name")).isEqualTo("neo");
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings("unchecked")
     @Test
     public void testReceivingBinaryCloudEventsUsingStringPayload() {
         String address = UUID.randomUUID().toString();

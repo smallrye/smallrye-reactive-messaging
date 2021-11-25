@@ -15,20 +15,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import javax.enterprise.inject.Instance;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.utils.Utils;
 
 import io.smallrye.common.annotation.CheckReturnValue;
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
-import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
+import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
+import io.smallrye.reactive.messaging.kafka.fault.SerializerWrapper;
 import io.vertx.core.Context;
 
 public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V> {
@@ -36,7 +38,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final String clientId;
 
-    private Producer<K, V> producer;
+    private final Producer<K, V> producer;
 
     private final ExecutorService kafkaWorker;
 
@@ -44,15 +46,24 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private final String channel;
     private final int closetimeout;
 
-    public ReactiveKafkaProducer(KafkaConnectorOutgoingConfiguration config) {
-        this(getKafkaProducerConfiguration(config), config.getChannel(), config.getCloseTimeout());
+    public ReactiveKafkaProducer(KafkaConnectorOutgoingConfiguration config,
+            Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
+        this(getKafkaProducerConfiguration(config), config.getChannel(), config.getCloseTimeout(),
+                createSerializationFailureHandler(config.getChannel(),
+                        config.getKeySerializationFailureHandler().orElse(null),
+                        serializationFailureHandlers),
+                createSerializationFailureHandler(config.getChannel(),
+                        config.getValueSerializationFailureHandler().orElse(null),
+                        serializationFailureHandlers));
     }
 
     public String getClientId() {
         return clientId;
     }
 
-    public ReactiveKafkaProducer(Map<String, Object> kafkaConfiguration, String channel, int closeTimeout) {
+    public ReactiveKafkaProducer(Map<String, Object> kafkaConfiguration, String channel, int closeTimeout,
+            SerializationFailureHandler<K> keySerializationFailureHandler,
+            SerializationFailureHandler<V> valueSerializationFailureHandler) {
         this.kafkaConfiguration = kafkaConfiguration;
         this.channel = channel;
         this.closetimeout = closeTimeout;
@@ -65,32 +76,17 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
             throw ex.missingValueSerializer(this.channel, this.channel);
         }
 
-        Serializer<K> keySerializer = createSerializer(keySerializerCN);
-        Serializer<V> valueSerializer = createSerializer(valueSerializerCN);
+        Serializer<K> keySerializer = new SerializerWrapper<>(keySerializerCN, true,
+                keySerializationFailureHandler);
+        Serializer<V> valueSerializer = new SerializerWrapper<>(valueSerializerCN, false,
+                valueSerializationFailureHandler);
 
         // Configure the underlying serializers
-        configureSerializer(keySerializer, kafkaConfiguration, true);
-        configureSerializer(valueSerializer, kafkaConfiguration, false);
+        keySerializer.configure(kafkaConfiguration, true);
+        valueSerializer.configure(kafkaConfiguration, true);
 
         kafkaWorker = Executors.newSingleThreadExecutor(KafkaSendingThread::new);
         producer = new KafkaProducer<>(kafkaConfiguration, keySerializer, valueSerializer);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Serializer<T> createSerializer(String clazz) {
-        try {
-            return (Serializer<T>) Utils.newInstance(clazz, Serializer.class);
-        } catch (ClassNotFoundException e) {
-            throw KafkaExceptions.ex.unableToCreateInstance(clazz, e);
-        }
-    }
-
-    private static void configureSerializer(Serializer<?> serializer, Map<String, Object> config, boolean isKey) {
-        try {
-            serializer.configure(config, isKey);
-        } catch (Exception e) {
-            throw new KafkaException(e);
-        }
     }
 
     @Override
@@ -138,6 +134,28 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         return runOnSendingThread(producer -> {
             return producer.partitionsFor(topic);
         });
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    private static <T> SerializationFailureHandler<T> createSerializationFailureHandler(String channelName,
+            String failureHandlerName, Instance<SerializationFailureHandler<?>> deserializationFailureHandlers) {
+        if (failureHandlerName == null) {
+            return null;
+        }
+
+        Instance<SerializationFailureHandler<?>> matching = deserializationFailureHandlers
+                .select(Identifier.Literal.of(failureHandlerName));
+
+        if (matching.isUnsatisfied()) {
+            throw ex.unableToFindSerializationFailureHandler(failureHandlerName, channelName);
+        } else if (matching.stream().count() > 1) {
+            throw ex.unableToFindSerializationFailureHandler(failureHandlerName, channelName,
+                    (int) matching.stream().count());
+        } else if (matching.stream().count() == 1) {
+            return (SerializationFailureHandler<T>) matching.get();
+        } else {
+            return null;
+        }
     }
 
     private static Map<String, Object> getKafkaProducerConfiguration(KafkaConnectorOutgoingConfiguration configuration) {

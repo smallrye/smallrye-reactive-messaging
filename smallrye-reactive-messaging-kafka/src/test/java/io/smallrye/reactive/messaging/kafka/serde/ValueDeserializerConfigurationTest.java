@@ -25,7 +25,6 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.*;
-import io.smallrye.reactive.messaging.kafka.fault.DeserializerWrapper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
@@ -223,14 +222,16 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
                                 assertThat(deserializer).isEqualTo(JsonObjectDeserializer.class.getName());
                                 assertThat(data).isNotEmpty();
                                 assertThat(isKey).isFalse();
-                                assertThat(getHeader(headers, DeserializerWrapper.DESERIALIZATION_FAILURE_TOPIC))
+                                assertThat(getHeader(headers, DeserializationFailureHandler.DESERIALIZATION_FAILURE_TOPIC))
                                         .isEqualTo(topic);
-                                assertThat(getHeader(headers, DeserializerWrapper.DESERIALIZATION_FAILURE_REASON))
+                                assertThat(getHeader(headers, DeserializationFailureHandler.DESERIALIZATION_FAILURE_REASON))
                                         .isEqualTo(exception.getMessage());
-                                assertThat(headers.lastHeader(DeserializerWrapper.DESERIALIZATION_FAILURE_DATA).value())
-                                        .isEqualTo(data);
-                                assertThat(getHeader(headers, DeserializerWrapper.DESERIALIZATION_FAILURE_DESERIALIZER))
-                                        .isEqualTo(deserializer);
+                                assertThat(
+                                        headers.lastHeader(DeserializationFailureHandler.DESERIALIZATION_FAILURE_DATA).value())
+                                                .isEqualTo(data);
+                                assertThat(
+                                        getHeader(headers, DeserializationFailureHandler.DESERIALIZATION_FAILURE_DESERIALIZER))
+                                                .isEqualTo(deserializer);
 
                                 return fallback;
                             }
