@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SmallRye Reactive Messaging</title>
+    <meta name="generator" content="Antora 2.3.4">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../..">SmallRye Reactive Messaging</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Project</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging">Source Code</a>
+            <a class="navbar-item" href="https://github.com/smallrye/smallrye-reactive-messaging/issues">Issue Tracker</a>
+          </div>
+        </div>
+        <a class="navbar-item" href="https://smallrye.io/" alt=>A SmallRye.io Project</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="smallrye-reactive-messaging" data-version="3.12">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">SmallRye Reactive Messaging</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../concepts.html">Concepts</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#messages">Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#channels">Channels</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../concepts.html#connectors">Connectors</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../model/model.html">Development Model</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#overview">Incoming and Outgoing</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#messages">Creating Messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-messages">Generating messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#generating-payloads">Generating payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-messages">Consuming messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#consuming-payloads">Consuming payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-messages">Processing messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-payloads">Processing payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#processing-streams">Processing streams</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#skipping">Skipping messages or payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../model/model.html#converters">Converting messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../acknowledgement/acknowledgement.html">Acknowledgement</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/broadcast.html">Broadcasting</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/merge.html">Merging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/incomings.html">Multiple @Incoming</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/blocking.html">Handling blocking execution</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../signatures/signatures.html">Method signatures</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../connectors/connectors.html">Connectors</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../kafka/kafka.html">Apache Kafka</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-inbound">Receiving Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-outbound">Writing Kafka Records</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-avro-configuration">Using Avro</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-client-service">Accessing the Kafka client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../kafka/kafka.html#kafka-kerberos">Kerberos authentication</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../amqp/amqp.html">AMQP</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-inbound">Receiving AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-outbound">Sending AMQP Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-customization">Configuring the client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../amqp/amqp.html#amqp-rabbitmq">Connecting with RabbitMQ</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../camel/camel.html">Apache Camel</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-inbound">Receiving data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-outbound">Sending data using Camel</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../camel/camel.html#camel-api">Using existing routes</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../jms/jms.html">JMS</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-inbound">Receiving JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-outbound">Sending JMS Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../jms/jms.html#jms-configuration">Advanced configuration</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="mqtt.html">MQTT</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="mqtt.html#mqtt-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="mqtt.html#mqtt-inbound">Receiving MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="mqtt.html#mqtt-outbound">Sending MQTT Messages</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="#mqtt-server:mqtt-server.adoc">Exposing an MQTT server</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html">RabbitMQ</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-installation">Using the connector</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-inbound">Receiving Messages from RabbitMQ</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-outbound">Sending Messages to RabbitMQ</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-health">Health Check</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="../rabbitmq/rabbitmq.html#rabbitmq-cloud">Connecting to managed instances</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../emitter/emitter.html">Emitters and Channels</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-payloads">Sending payloads</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-messages">Sending messages</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#emitter-overflow">Managing overflow</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../emitter/emitter.html#streams">Injecting channels</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../testing/testing.html">Testing applications</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../advanced/advanced.html">Advanced topics</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#logging">Logging</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../advanced/advanced.html#strict">Strict mode</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<!-- This is the default navigation panel in the bottom left corner. We aren't using it, but let's keep it commented out
+    should we change our minds about it -->
+<!--
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">SmallRye Reactive Messaging</span>
+    <span class="version">3.12</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">SmallRye Reactive Messaging</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">3.12</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+-->
+    </div>
+  </aside>
+</div>
+<main>
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+</nav>
+</div>
+<article class="doc">
+<div class="sect1">
+<h2 id="mqtt-inbound"><a class="anchor" href="#mqtt-inbound"></a>Receiving messages from MQTT</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The MQTT Connector connects to a MQTT broker or router, and forward the messages to the Reactive Messaging application.
+It maps each of them into Reactive Messaging <code>Messages</code>.</p>
+</div>
+<div class="sect2">
+<h3 id="_example"><a class="anchor" href="#_example"></a>Example</h3>
+<div class="paragraph">
+<p>Let&#8217;s imagine you have a MQTT server/broker running, and accessible using the <code>mqtt:1883</code> address (by default it would use <code>localhost:1883</code>).
+Configure your application to receive MQTT messages on the <code>prices</code> channel as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>mp.messaging.incoming.prices.connector=smallrye-mqtt       <i class="conum" data-value="1"></i><b>(1)</b>
+mp.messaging.incoming.prices.host=mqtt                     <i class="conum" data-value="2"></i><b>(2)</b>
+mp.messaging.incoming.prices.port=1883                     <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Sets the connector for the <code>prices</code> channel</p>
+</li>
+<li>
+<p>Configure the broker/server host name.</p>
+</li>
+<li>
+<p>Configure the broker/server port. 1883 is the default.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You don&#8217;t need to set the MQTT topic. By default, it uses the channel name (<code>prices</code>). You can configure the <code>topic</code> attribute to override it.
+NOTE: It is generally recommended to set the <code>client-id</code>. By default, the connector is generating a unique <code>client-id</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+Message coming from MQTT have a <code>byte[]</code> payload.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Then, your application receives <code>Message&lt;byte[]&gt;</code>.
+You can consumes the payload directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class MqttPriceConsumer {
+
+    @Incoming("prices")
+    public void consume(byte[] raw) {
+        double price = Double.parseDouble(new String(raw));
+
+        // process your price.
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or, you can retrieve the <code>Message&lt;byte[]&gt;</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package inbound;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.concurrent.CompletionStage;
+
+@ApplicationScoped
+public class MqttPriceMessageConsumer {
+
+    @Incoming("prices")
+    public CompletionStage&lt;Void&gt; consume(Message&lt;byte[]&gt; price) {
+        // process your price.
+
+        // Acknowledge the incoming message
+        return price.ack();
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The inbound topic can use the <a href="https://mosquitto.org/man/mqtt-7.html">MQTT wildcards</a> (<code>+</code> and <code>#</code>).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deserialization"><a class="anchor" href="#_deserialization"></a>Deserialization</h3>
+<div class="paragraph">
+<p>The MQTT Connector does not handle the deserialization and creates a <code>Message&lt;byte[]&gt;</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
+<div class="paragraph">
+<p>The MQTT connector does not provide inbound metadata.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_failure_management"><a class="anchor" href="#_failure_management"></a>Failure Management</h3>
+<div class="paragraph">
+<p>If a message produced from a MQTT message is <em>nacked</em>, a failure strategy is applied.
+The MQTT connector supports 3 strategies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>fail</code> - fail the application, no more MQTT messages will be processed. (default)
+The offset of the record that has not been processed correctly is not committed.</p>
+</li>
+<li>
+<p><code>ignore</code> - the failure is logged, but the processing continue.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuration_reference"><a class="anchor" href="#_configuration_reference"></a>Configuration Reference</h3>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Incoming Attributes of the 'smallrye-mqtt' connector</caption>
+<colgroup>
+<col style="width: 27.7777%;">
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 22.2224%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Attribute (<em>alias</em>)</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Mandatory</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>auto-clean-session</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set to start with a clean session (<code>true</code> by default)</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>auto-generated-client-id</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set if the MQTT client must generate clientId automatically</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>auto-keep-alive</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set if the MQTT client must handle <code>PINGREQ</code> automatically</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>broadcast</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Whether or not the messages should be dispatched to multiple consumers</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>client-id</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the client identifier</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>connect-timeout-seconds</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the connect timeout (in seconds)</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>60</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>failure-strategy</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be <code>fail</code> (default), or <code>ignore</code></p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fail</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>host</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the MQTT server host name/IP</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>keep-alive-seconds</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the keep alive timeout in seconds</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>30</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>max-inflight-queue</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set max count of unacknowledged messages</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>max-message-size</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set max MQTT message size in bytes</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>8092</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>password</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the password to connect to the server</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>port</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the MQTT server port. Default to 8883 if ssl is enabled, or 1883 without ssl</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>qos</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the QoS level when subscribing to the topic or when sending a message</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>reconnect-interval-seconds</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the reconnect interval in seconds</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>server-name</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the SNI server name</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>ssl</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set whether SSL/TLS is enabled</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>ssl.keystore.location</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the keystore location. In case of <code>pem</code> type this is the cert path</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>ssl.keystore.password</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the keystore password. In case of <code>pem</code> type this is the key path</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>ssl.keystore.type</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the keystore type [<code>pkcs12</code>, <code>jks</code>, <code>pem</code>]</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pkcs12</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>ssl.truststore.location</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the truststore location. In case of <code>pem</code> type this is the cert path</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>ssl.truststore.password</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the truststore password. In case of <code>pem</code> type this is not necessary</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>ssl.truststore.type</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the truststore type</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pkcs12</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>topic</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the MQTT topic. If not set, the channel name is used</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>trust-all</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set whether all server certificates should be trusted</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>username</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the username to connect to the server</p>
+<p class="tableblock">Type: <em>string</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>will-flag</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set if will information are provided on connection</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>will-qos</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set the QoS level for the will message</p>
+<p class="tableblock">Type: <em>int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="no-hyphens"><strong>will-retain</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set if the will message must be retained</p>
+<p class="tableblock">Type: <em>boolean</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The MQTT connector is based on the <a href="https://vertx.io/docs/vertx-mqtt/java/#_vert_x_mqtt_client">Vert.x MQTT client</a>.
+So you can pass any attribute supported by this client.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+A single instance of <code>MqttClient</code> and a single connection is used for each <code>host</code> / <code>port</code> / <code>server-name</code> / <code>client-id</code>.
+This client is reused for both the inbound and outbound connectors.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+</div>
+<footer class="footer">
+  <p>SmallRye Reactive Messaging is licensed until the terms of the Apache Software License 2.0</p>
+  <p>Access the source code from the <a href="https://github.com/smallrye/smallrye-reactive-messaging">GitHub repository</a>.</p>
+</footer>
+<script src="../../../_/js/site.js"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
