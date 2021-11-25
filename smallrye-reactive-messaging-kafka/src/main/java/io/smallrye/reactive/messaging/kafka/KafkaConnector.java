@@ -75,6 +75,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "dead-letter-queue.key.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the key serializer to use. If not set the serializer associated to the key deserializer is used")
 @ConnectorAttribute(name = "dead-letter-queue.value.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the value serializer to use. If not set the serializer associated to the value deserializer is used")
 @ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic", defaultValue = "1")
+@ConnectorAttribute(name = "requests", type = "int", direction = Direction.INCOMING, description = "When `partitions` is greater than 1, this attribute allows configuring how many records are requested by each consumers every time.", defaultValue = "128")
 @ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
 @ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may provide a fallback value.")
@@ -200,9 +201,11 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             }
         }
 
-        // TODO MultiMerge#streams should also accept list, change this after the signature is added
         @SuppressWarnings("unchecked")
-        Multi<? extends Message<?>> multi = Multi.createBy().merging().streams(streams.toArray(new Publisher[0]));
+        Multi<? extends Message<?>> multi = Multi.createBy().merging()
+                .withRequests(ic.getRequests())
+                .withConcurrency(partitions)
+                .streams(streams.toArray(new Publisher[0]));
         boolean broadcast = ic.getBroadcast();
         if (broadcast) {
             return ReactiveStreams.fromPublisher(multi.broadcast().toAllSubscribers());

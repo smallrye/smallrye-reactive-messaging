@@ -86,6 +86,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
     @Target({ ElementType.FIELD, ElementType.PARAMETER })
     @Retention(RetentionPolicy.RUNTIME)
     public @interface KafkaBootstrapServers {
+
     }
 
 }
