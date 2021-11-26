@@ -83,7 +83,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
 
         // Configure the underlying serializers
         keySerializer.configure(kafkaConfiguration, true);
-        valueSerializer.configure(kafkaConfiguration, true);
+        valueSerializer.configure(kafkaConfiguration, false);
 
         kafkaWorker = Executors.newSingleThreadExecutor(KafkaSendingThread::new);
         producer = new KafkaProducer<>(kafkaConfiguration, keySerializer, valueSerializer);
