@@ -520,7 +520,7 @@ public static class Consumer {
 <div class="sect2">
 <h3 id="_inbound_metadata"><a class="anchor" href="#_inbound_metadata"></a>Inbound Metadata</h3>
 <div class="paragraph">
-<p>Messages coming from AMQP contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.12.0/apidocs/io/smallrye/reactive/messaging/amqp/IncomingAmqpMetadata.html"><code>IncomingAmqpMetadata</code></a> in the metadata.</p>
+<p>Messages coming from AMQP contains an instance of <a href="https://smallrye.io/smallrye-reactive-messaging/3.12.1/apidocs/io/smallrye/reactive/messaging/amqp/IncomingAmqpMetadata.html"><code>IncomingAmqpMetadata</code></a> in the metadata.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -803,7 +803,7 @@ mp.messaging.incoming.people-in.link-name=people</code></pre>
 <h3 id="_receiving_cloud_events"><a class="anchor" href="#_receiving_cloud_events"></a>Receiving Cloud Events</h3>
 <div class="paragraph">
 <p>The AMQP connector supports <a href="https://cloudevents.io/">Cloud Events</a>.
-When the connector detects a <em>structured</em> or <em>binary</em> Cloud Events, it adds a  <a href="https://smallrye.io/smallrye-reactive-messaging/3.12.0/apidocs/io/smallrye/reactive/messaging/ce/IncomingCloudEventMetadata.html">IncomingCloudEventMetadata&lt;T&gt;</a> into the metadata of the <code>Message</code>.
+When the connector detects a <em>structured</em> or <em>binary</em> Cloud Events, it adds a  <a href="https://smallrye.io/smallrye-reactive-messaging/3.12.1/apidocs/io/smallrye/reactive/messaging/ce/IncomingCloudEventMetadata.html">IncomingCloudEventMetadata&lt;T&gt;</a> into the metadata of the <code>Message</code>.
 <code>IncomingCloudEventMetadata</code> contains accessors to the mandatory and optional Cloud Event attributes.</p>
 </div>
 <div class="paragraph">
