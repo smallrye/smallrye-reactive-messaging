@@ -63,10 +63,10 @@ public class ChannelProducer {
             if (payloadType == null) {
                 return cast(getPublisher(injectionPoint));
             } else {
-                return cast(convert(getPublisher(injectionPoint), converters, payloadType));
+                return cast(convert(getPublisher(injectionPoint), converters, getRawTypeIfParameterized(payloadType)));
             }
         } else {
-            return cast(convert(getPublisher(injectionPoint), converters, first)
+            return cast(convert(getPublisher(injectionPoint), converters, getRawTypeIfParameterized(first))
                     .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
                     .onItem().transform(Message::getPayload)
                     .broadcast().toAllSubscribers());
@@ -232,6 +232,13 @@ public class ChannelProducer {
             }
         }
         return null;
+    }
+
+    private Type getRawTypeIfParameterized(Type type) {
+        if (type instanceof ParameterizedType) {
+            return ((ParameterizedType) type).getRawType();
+        }
+        return type;
     }
 
     @SuppressWarnings("deprecation")
