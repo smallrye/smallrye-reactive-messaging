@@ -116,7 +116,7 @@ public class KafkaUsage implements AutoCloseable {
      */
     public static class FixedKafkaContainer extends StrimziKafkaContainer {
         public FixedKafkaContainer(int port) {
-            super(KafkaBrokerExtension.KAFKA_VERSION);
+            super(KafkaBrokerExtension.getKafkaContainerVersion());
             super.addFixedExposedPort(port, KAFKA_PORT);
         }
 

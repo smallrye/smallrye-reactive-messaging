@@ -67,7 +67,7 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
     }
 
     static void startKafkaBroker(Network network, int proxyPort) {
-        kafka = new ProxiedStrimziKafkaContainer(KAFKA_VERSION, proxyPort)
+        kafka = new ProxiedStrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion(), proxyPort)
                 .withNetwork(network)
                 .withNetworkAliases(KAFKA_NETWORK_ALIAS)
                 .withExposedPorts(KAFKA_PORT);

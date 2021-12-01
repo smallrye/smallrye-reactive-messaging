@@ -46,7 +46,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testAcknowledgementUsingThrottledStrategyEvenAfterBrokerRestart() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
             kafka.start();
             await().until(kafka::isRunning);
 
@@ -71,7 +71,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testResumingPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
             kafka.start();
             await().until(kafka::isRunning);
             Integer port = kafka.getMappedPort(KAFKA_PORT);
@@ -105,7 +105,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
             kafka.start();
             await().until(kafka::isRunning);
             Integer port = kafka.getMappedPort(KAFKA_PORT);
@@ -163,7 +163,7 @@ public class BrokerRestartTest extends ClientTestBase {
     @Test
     public void testWithBrokerRestart() throws Exception {
         int sendBatchSize = 10;
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.KAFKA_VERSION)) {
+        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
             kafka.start();
             String groupId = UUID.randomUUID().toString();
             MapBasedConfig config = createConsumerConfig(groupId)

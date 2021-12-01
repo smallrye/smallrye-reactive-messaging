@@ -23,7 +23,7 @@ import io.strimzi.StrimziKafkaContainer;
 public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
-    public static final String KAFKA_VERSION = "latest-kafka-2.8.0";
+    public static final String KAFKA_VERSION = "latest-kafka-3.0.0";
 
     private static boolean started = false;
     static StrimziKafkaContainer kafka;
@@ -44,8 +44,13 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
         stopKafkaBroker();
     }
 
+    public static String getKafkaContainerVersion() {
+        String kafkaContainerVersion = System.getProperty("kafka-container-version");
+        return kafkaContainerVersion != null ? kafkaContainerVersion : KAFKA_VERSION;
+    }
+
     public static void startKafkaBroker() {
-        kafka = new StrimziKafkaContainer(KAFKA_VERSION)
+        kafka = new StrimziKafkaContainer(getKafkaContainerVersion())
                 .withExposedPorts(9092);
         kafka.start();
         LOGGER.info("Kafka broker started: " + kafka.getBootstrapServers() + " (" + kafka.getMappedPort(9092) + ")");
