@@ -22,11 +22,10 @@ import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage.FixedKafkaContainer;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.strimzi.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaContainer;
 
 @Tag(TestTags.SLOW)
 // TODO should not extend ClientTestBase, it uses KafkaBrokerExtension which creates a broker for tests
@@ -46,7 +45,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testAcknowledgementUsingThrottledStrategyEvenAfterBrokerRestart() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
+        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
 
@@ -60,7 +59,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
             CountDownLatch latch = new CountDownLatch(100);
             subscribe(stream, latch);
-            try (final FixedKafkaContainer ignored = restart(kafka, 3)) {
+            try (final StrimziKafkaContainer ignored = restart(kafka, 3)) {
                 sendMessages(0, 100);
                 waitForMessages(latch);
                 checkConsumedMessages(0, 100);
@@ -71,7 +70,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testResumingPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
+        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
             Integer port = kafka.getMappedPort(KAFKA_PORT);
@@ -105,7 +104,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
+        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
             Integer port = kafka.getMappedPort(KAFKA_PORT);
@@ -163,7 +162,7 @@ public class BrokerRestartTest extends ClientTestBase {
     @Test
     public void testWithBrokerRestart() throws Exception {
         int sendBatchSize = 10;
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
+        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             String groupId = UUID.randomUUID().toString();
             MapBasedConfig config = createConsumerConfig(groupId)
@@ -173,7 +172,7 @@ public class BrokerRestartTest extends ClientTestBase {
             CountDownLatch receiveLatch = new CountDownLatch(sendBatchSize * 2);
             subscribe(source.getStream(), receiveLatch);
             sendMessages(0, sendBatchSize);
-            try (FixedKafkaContainer ignored = restart(kafka, 5)) {
+            try (StrimziKafkaContainer ignored = restart(kafka, 5)) {
                 sendMessages(sendBatchSize, sendBatchSize);
                 waitForMessages(receiveLatch);
                 checkConsumedMessages();

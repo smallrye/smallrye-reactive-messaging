@@ -7,6 +7,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -18,12 +20,10 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
-import io.strimzi.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaContainer;
 
 public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
-
-    public static final String KAFKA_VERSION = "latest-kafka-3.0.0";
 
     private static boolean started = false;
     static StrimziKafkaContainer kafka;
@@ -44,18 +44,20 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
         stopKafkaBroker();
     }
 
-    public static String getKafkaContainerVersion() {
-        String kafkaContainerVersion = System.getProperty("kafka-container-version");
-        return kafkaContainerVersion != null ? kafkaContainerVersion : KAFKA_VERSION;
+    public static StrimziKafkaContainer createKafkaContainer() {
+        Map<String, String> config = new HashMap<>();
+        config.put("group.initial.rebalance.delay.ms", "0");
+        return new StrimziKafkaContainer()
+                .withKafkaConfigurationMap(config)
+                .withKraft()
+                .withBrokerId(1);
     }
 
     public static void startKafkaBroker() {
-        kafka = new StrimziKafkaContainer(getKafkaContainerVersion())
-                .withExposedPorts(9092);
+        kafka = createKafkaContainer();
         kafka.start();
         LOGGER.info("Kafka broker started: " + kafka.getBootstrapServers() + " (" + kafka.getMappedPort(9092) + ")");
         await().until(() -> kafka.isRunning());
-
     }
 
     @AfterAll

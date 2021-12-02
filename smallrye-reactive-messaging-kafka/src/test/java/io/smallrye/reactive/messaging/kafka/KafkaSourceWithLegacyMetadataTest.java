@@ -42,12 +42,11 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage.FixedKafkaContainer;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.strimzi.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaContainer;
 
 /**
  * Duplicate of {@link KafkaSourceTest} - delete once we remove the legacy
@@ -222,7 +221,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
     @Tag(TestTags.SLOW)
     public void testRetry() {
         // This test need an individual Kafka container
-        try (StrimziKafkaContainer kafka = new StrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion())) {
+        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
             MapBasedConfig config = newCommonConfigForSource()
@@ -248,7 +247,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
             await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
             try (@SuppressWarnings("unused")
-            FixedKafkaContainer container = restart(kafka, 2)) {
+            StrimziKafkaContainer container = restart(kafka, 2)) {
                 kafkaUsage.produceIntegers(10, null,
                         () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 

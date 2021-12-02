@@ -50,7 +50,7 @@ import org.jboss.logging.Logger;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
-import io.strimzi.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaContainer;
 
 /**
  * Simplify the usage of a Kafka client.
@@ -82,7 +82,7 @@ public class KafkaUsage implements AutoCloseable {
      * @param gracePeriodInSecond number of seconds to wait before restarting
      * @return the new broker
      */
-    public static FixedKafkaContainer restart(StrimziKafkaContainer kafka, int gracePeriodInSecond) {
+    public static StrimziKafkaContainer restart(StrimziKafkaContainer kafka, int gracePeriodInSecond) {
         int port = kafka.getMappedPort(KAFKA_PORT);
         try {
             kafka.close();
@@ -95,8 +95,8 @@ public class KafkaUsage implements AutoCloseable {
         return startKafkaBroker(port);
     }
 
-    public static FixedKafkaContainer startKafkaBroker(int port) {
-        FixedKafkaContainer kafka = new FixedKafkaContainer(port);
+    public static StrimziKafkaContainer startKafkaBroker(int port) {
+        StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer().withPort(port);
         kafka.start();
         await().until(kafka::isRunning);
         return kafka;
@@ -108,18 +108,6 @@ public class KafkaUsage implements AutoCloseable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    /**
-     * Specialization of {@link StrimziKafkaContainer} but exposing the Kafka port to a specific host port.
-     * Useful when you need to restart Kafka on the same port.
-     */
-    public static class FixedKafkaContainer extends StrimziKafkaContainer {
-        public FixedKafkaContainer(int port) {
-            super(KafkaBrokerExtension.getKafkaContainerVersion());
-            super.addFixedExposedPort(port, KAFKA_PORT);
-        }
-
     }
 
     public static String getHeader(Headers headers, String key) {
