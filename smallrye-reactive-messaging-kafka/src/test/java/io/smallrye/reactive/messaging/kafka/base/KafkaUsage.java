@@ -162,19 +162,19 @@ public class KafkaUsage implements AutoCloseable {
             Supplier<ProducerRecord<K, V>> messageSupplier) {
         Properties props = getProducerProperties(producerName);
         Thread t = new Thread(() -> {
-            LOGGER.infof("Starting producer %s to write %s messages", producerName, messageCount);
+            LOGGER.debugf("Starting producer %s to write %s messages", producerName, messageCount);
             try (KafkaProducer<K, V> producer = new KafkaProducer<>(props, keySerializer, valueSerializer)) {
                 for (int i = 0; i != messageCount; ++i) {
                     ProducerRecord<K, V> record = messageSupplier.get();
                     producer.send(record);
                     producer.flush();
-                    LOGGER.infof("Producer %s: sent message %s", producerName, record);
+                    LOGGER.debugf("Producer %s: sent message %s", producerName, record);
                 }
             } finally {
                 if (completionCallback != null) {
                     completionCallback.run();
                 }
-                LOGGER.infof("Stopping producer %s", producerName);
+                LOGGER.debugf("Stopping producer %s", producerName);
             }
         });
         t.setName(producerName + "-thread");
@@ -228,12 +228,12 @@ public class KafkaUsage implements AutoCloseable {
             java.util.function.Consumer<ConsumerRecord<K, V>> consumerFunction) {
         Properties props = getConsumerProperties(groupId, clientId, autoOffsetReset);
         Thread t = new Thread(() -> {
-            LOGGER.infof("Starting consumer %s to read messages", clientId);
+            LOGGER.debugf("Starting consumer %s to read messages", clientId);
             try (KafkaConsumer<K, V> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer)) {
                 consumer.subscribe(new ArrayList<>(topics));
                 while (continuation.getAsBoolean()) {
                     consumer.poll(Duration.ofMillis(10)).forEach(record -> {
-                        LOGGER.infof("Consumer %s: consuming message %s", clientId, record);
+                        LOGGER.debugf("Consumer %s: consuming message %s", clientId, record);
                         consumerFunction.accept(record);
                         if (offsetCommitCallback != null) {
                             consumer.commitAsync(offsetCommitCallback);
