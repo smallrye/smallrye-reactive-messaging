@@ -2,15 +2,20 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static java.time.Duration.ofSeconds;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
@@ -42,7 +47,13 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.reactive.messaging.TracingMetadata;
-import io.smallrye.reactive.messaging.amqp.fault.*;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpAccept;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpFailStop;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailed;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailedAndUndeliverableHere;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpReject;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpRelease;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
@@ -74,7 +85,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
 @ConnectorAttribute(name = "tracing-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "health-timeout", direction = INCOMING_AND_OUTGOING, description = "The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.", type = "int", defaultValue = "3")
-@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
+@ConnectorAttribute(name = "cloud-events", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
+@ConnectorAttribute(name = "capabilities", type = "string", direction = INCOMING_AND_OUTGOING, description = " A comma-separated list of capabilities proposed by the sender or receiver client.")
 
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
@@ -208,7 +220,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .onItem().transformToUni(connection -> connection.createReceiver(address, new AmqpReceiverOptions()
                         .setAutoAcknowledgement(autoAck)
                         .setDurable(durable)
-                        .setLinkName(link)))
+                        .setLinkName(link)
+                        .setCapabilities(getClientCapabilities(ic))))
                 .onItem().invoke(r -> opened.put(ic.getChannel(), true))
                 .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, ic.getChannel(), onNack,
                         ic.getCloudEvents(), ic.getTracingEnabled()));
@@ -261,7 +274,9 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                                     return connection.createAnonymousSender();
                                 } else {
                                     return connection.createSender(configuredAddress,
-                                            new AmqpSenderOptions().setLinkName(link));
+                                            new AmqpSenderOptions()
+                                                    .setLinkName(link)
+                                                    .setCapabilities(getClientCapabilities(oc)));
                                 }
                             })
                             .onItem().invoke(s -> {
@@ -293,6 +308,17 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                     opened.put(oc.getChannel(), false);
                 })
                 .ignore();
+    }
+
+    public List<String> getClientCapabilities(AmqpConnectorCommonConfiguration configuration) {
+        if (configuration.getCapabilities().isPresent()) {
+            String capabilities = configuration.getCapabilities().get();
+            return Arrays.stream(capabilities.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     public void terminate(
