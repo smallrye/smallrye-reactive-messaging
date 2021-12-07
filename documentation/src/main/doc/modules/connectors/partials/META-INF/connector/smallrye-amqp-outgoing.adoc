@@ -7,6 +7,10 @@
 
 Type: _string_ | false | 
 
+| [.no-hyphens]#*capabilities*# |  A comma-separated list of capabilities proposed by the sender or receiver client.
+
+Type: _string_ | false | 
+
 | [.no-hyphens]#*client-options-name*#
 
 [.no-hyphens]#_(amqp-client-options-name)_# | The name of the AMQP Client Option bean used to customize the AMQP client configuration

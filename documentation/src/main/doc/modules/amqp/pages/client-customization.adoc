@@ -15,3 +15,13 @@ You need to indicate the name of the client using the `client-options-name` attr
 mp.messaging.incoming.prices.client-options-name=my-named-options
 ----
 
+=== Client capabilities
+
+Both incoming and outgoing AMQP channels can be configured with a list of capabilities to declare during sender and receiver connections with the AMQP broker. Note that supported capability names are broker specific.
+
+[source]
+----
+mp.messaging.incoming.sink.capabilities=temporary-topic
+...
+mp.messaging.outgoing.source.capabilities=shared
+----
