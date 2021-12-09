@@ -112,6 +112,7 @@
     <module>smallrye-reactive-messaging-in-memory</module>
     <module>smallrye-reactive-messaging-kafka</module>
     <module>smallrye-reactive-messaging-kafka-api</module>
+    <module>smallrye-reactive-messaging-kafka-test-companion</module>
     <module>smallrye-reactive-messaging-mqtt</module>
     <module>smallrye-reactive-messaging-camel</module>
     <module>smallrye-reactive-messaging-amqp</module>
