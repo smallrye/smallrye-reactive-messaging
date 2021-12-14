@@ -58,9 +58,10 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     @Test
     void testLatestCommitStrategy() {
+        String group = UUID.randomUUID().toString();
         MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
                 UUID.randomUUID().toString());
-        source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -161,7 +162,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         MapBasedConfig config = commonConfiguration()
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
-        source = new KafkaSource<>(vertx, "my-group",
+        String group = UUID.randomUUID().toString();
+        source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -225,7 +227,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
                 .with("auto.commit.interval.ms", 100);
-        source = new KafkaSource<>(vertx, "my-group",
+        String group = UUID.randomUUID().toString();
+        source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -305,7 +308,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("health-enabled", true)
                 .with("throttled.unprocessed-record-max-age.ms", 1000)
                 .with("auto.commit.interval.ms", 100);
-        source = new KafkaSource<>(vertx, "my-group",
+        String group = UUID.randomUUID().toString();
+        source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -371,8 +375,9 @@ public class CommitStrategiesTest extends WeldTestBase {
         config
                 .with("client.id", UUID.randomUUID().toString())
                 .with("consumer-rebalance-listener.name", "my-missing-name");
+        String group = UUID.randomUUID().toString();
         assertThatThrownBy(() -> {
-            source = new KafkaSource<>(vertx, "my-group",
+            source = new KafkaSource<>(vertx, group,
                     new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                     CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
@@ -385,7 +390,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         config
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
-        assertThatThrownBy(() -> source = new KafkaSource<>(vertx, "my-group",
+        String group = UUID.randomUUID().toString();
+        assertThatThrownBy(() -> source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
                         .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
@@ -398,7 +404,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         config
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
-        source = new KafkaSource<>(vertx, "my-group",
+        String group = UUID.randomUUID().toString();
+        source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 

@@ -307,7 +307,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
     private KafkaMapBasedConfig getFailConfig(String topic) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
-        config.put("group.id", "my-group");
+        config.put("group.id", UUID.randomUUID().toString());
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
@@ -320,7 +320,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
     private KafkaMapBasedConfig getIgnoreConfig(String topic) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
         config.put("topic", topic);
-        config.put("group.id", "my-group");
+        config.put("group.id", UUID.randomUUID().toString());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
@@ -332,7 +332,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
     private KafkaMapBasedConfig getDeadLetterQueueConfig() {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
         config.put("topic", "dead-letter-default");
-        config.put("group.id", "my-group");
+        config.put("group.id", UUID.randomUUID().toString());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
@@ -343,7 +343,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
     private KafkaMapBasedConfig getDeadLetterQueueWithCustomConfig(String topic, String dq) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
-        config.put("group.id", "my-group");
+        config.put("group.id", UUID.randomUUID().toString());
         config.put("topic", topic);
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("enable.auto.commit", "false");

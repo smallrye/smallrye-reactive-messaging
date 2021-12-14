@@ -48,12 +48,13 @@ public class RebalanceTest extends WeldTestBase {
 
     @RepeatedTest(10)
     void testRebalance() throws InterruptedException {
+        String group = UUID.randomUUID().toString();
         MapBasedConfig config = commonConfiguration()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
                 .with("auto.commit.interval.ms", 100);
-        source = new KafkaSource<>(vertx, "my-group",
+        source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
