@@ -317,6 +317,16 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
         return config;
     }
 
+    private KafkaMapBasedConfig myKafkaSourceConfig(String topic, String group) {
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
+        config.put("group.id", group);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("topic", topic);
+        return config;
+    }
+
     private KafkaMapBasedConfig myKafkaSourceConfigWithoutAck(String suffix, boolean shorterTimeouts) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
         config.put("group.id", "my-group-starting-on-fifth-" + suffix);
@@ -333,19 +343,21 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessages() {
-        ConsumptionBean bean = run(myKafkaSourceConfig(0, null, "my-group"));
+        String topic = UUID.randomUUID().toString();
+        String group = UUID.randomUUID().toString();
+        ConsumptionBean bean = run(myKafkaSourceConfig(topic, group));
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         AtomicInteger counter = new AtomicInteger();
         usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("legacy-data", counter.getAndIncrement()));
+                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         List<KafkaRecord<String, Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            assertThat(m.getTopic()).isEqualTo("legacy-data");
+            assertThat(m.getTopic()).isEqualTo(topic);
             assertThat(m.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(m.getPartition()).isGreaterThan(-1);
         });
@@ -367,8 +379,8 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesMultiThread() {
-        KafkaSourceTest.MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, "my-group")
-                .with("topic", topic), KafkaSourceTest.MultiThreadConsumer.class);
+        String group = UUID.randomUUID().toString();
+        KafkaSourceTest.MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(topic, group), KafkaSourceTest.MultiThreadConsumer.class);
         List<Integer> list = bean.getItems();
         assertThat(list).isEmpty();
         bean.run();
@@ -411,7 +423,8 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
 
     @Test
     public void testABeanConsumingWithMissingRebalanceListenerConfiguredByName() {
-        assertThatThrownBy(() -> run(myKafkaSourceConfig(0, "not exists", "my-group")))
+        String group = UUID.randomUUID().toString();
+        assertThatThrownBy(() -> run(myKafkaSourceConfig(0, "not exists", group)))
                 .isInstanceOf(DeploymentException.class)
                 .hasCauseInstanceOf(UnsatisfiedResolutionException.class);
     }
@@ -532,7 +545,8 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
     @SuppressWarnings("unchecked")
     @Test
     public void testABeanConsumingTheKafkaMessagesWithRawMessage() {
-        ConsumptionBeanUsingRawMessage bean = runApplication(myKafkaSourceConfig(0, null, "my-group"),
+        String group = UUID.randomUUID().toString();
+        ConsumptionBeanUsingRawMessage bean = runApplication(myKafkaSourceConfig(0, null, group),
                 ConsumptionBeanUsingRawMessage.class);
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();

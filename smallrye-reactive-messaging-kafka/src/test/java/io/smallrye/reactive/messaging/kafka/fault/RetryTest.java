@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -116,7 +117,7 @@ public class RetryTest extends KafkaTestBase {
 
     private KafkaMapBasedConfig getConfig(String topic) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
-        config.put("group.id", "my-group");
+        config.put("group.id", UUID.randomUUID().toString());
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
