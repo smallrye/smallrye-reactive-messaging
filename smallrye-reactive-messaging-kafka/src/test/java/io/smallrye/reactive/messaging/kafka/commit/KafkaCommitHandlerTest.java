@@ -2,14 +2,23 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -26,13 +35,13 @@ import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @SuppressWarnings("unchecked")
-public class KafkaCommitHandlerTest extends KafkaTestBase {
+public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
 
     private KafkaSource<String, Integer> source;
 
@@ -61,9 +70,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(10, TimeUnit.SECONDS).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -83,11 +90,10 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .ignoreExceptions()
                 .untilAsserted(() -> {
                     TopicPartition topicPartition = new TopicPartition(topic, 0);
-                    Map<TopicPartition, OffsetAndMetadata> result = usage.listConsumerGroupOffsets(
-                            "test-source-with-auto-commit-enabled",
-                            Collections.singletonList(topicPartition));
-                    assertNotNull(result.get(topicPartition));
-                    assertEquals(10L, result.get(topicPartition).offset());
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(
+                            "test-source-with-auto-commit-enabled", topicPartition);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
                 });
     }
 
@@ -106,9 +112,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -120,11 +124,10 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         await().ignoreExceptions()
                 .untilAsserted(() -> {
                     TopicPartition topicPartition = new TopicPartition(topic, 0);
-                    Map<TopicPartition, OffsetAndMetadata> result = usage.listConsumerGroupOffsets(
-                            "test-source-with-auto-commit-disabled",
-                            Collections.singletonList(topicPartition));
-                    assertNotNull(result.get(topicPartition));
-                    assertEquals(10L, result.get(topicPartition).offset());
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(
+                            "test-source-with-auto-commit-disabled", topicPartition);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
                 });
     }
 
@@ -148,9 +151,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -164,11 +165,10 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                             .forEach(Message::ack);
 
                     TopicPartition topicPartition = new TopicPartition(topic, 0);
-                    Map<TopicPartition, OffsetAndMetadata> result = usage.listConsumerGroupOffsets(
-                            "test-source-with-throttled-latest-processed-commit",
-                            Collections.singletonList(topicPartition));
-                    assertNotNull(result.get(topicPartition));
-                    assertEquals(10L, result.get(topicPartition).offset());
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(
+                            "test-source-with-throttled-latest-processed-commit", topicPartition);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
                 });
 
         await().atMost(2, TimeUnit.MINUTES)
@@ -199,9 +199,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
         assertThat(messages.stream().map(m -> ((KafkaRecord<String, Integer>) m).getPayload())
@@ -214,8 +212,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                     assertTrue(healthReportBuilder.build().isOk());
                 });
 
-        usage.produceIntegers(30, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 30);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 30);
 
@@ -229,7 +226,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     public void testSourceWithThrottledAndRebalance() {
-        usage.createTopic(topic, 2);
+        companion.topics().create(topic, 2);
         MapBasedConfig config1 = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
@@ -266,9 +263,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
         await().until(() -> source.getConsumer().getAssignments().await().indefinitely().size() == 2);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10000, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % 2), i), 10000);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
@@ -281,8 +277,8 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
         await().until(() -> source2.getConsumer().getAssignments().await().indefinitely().size() == 1
                 && source.getConsumer().getAssignments().await().indefinitely().size() == 1);
 
-        usage.produceIntegers(10000, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % 2), i), 10000);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() + messages2.size() >= 10000);
 
@@ -290,7 +286,7 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
                 .untilAsserted(() -> {
                     TopicPartition tp1 = new TopicPartition(topic, 0);
                     TopicPartition tp2 = new TopicPartition(topic, 1);
-                    Map<TopicPartition, OffsetAndMetadata> result = usage.listConsumerGroupOffsets(
+                    Map<TopicPartition, OffsetAndMetadata> result = companion.consumerGroups().offsets(
                             "test-source-with-throttled-latest-processed-commit", Arrays.asList(tp1, tp2));
                     assertNotNull(result.get(tp1));
                     assertNotNull(result.get(tp2));
@@ -314,11 +310,10 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
 
     @Test
     void testSourceWithThrottledAndRebalanceWithPartitionsConfig() {
-        usage.createTopic(topic, 4);
+        companion.topics().create(topic, 4);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10000, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % 2), i), 10000);
 
         MapBasedConfig config1 = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
@@ -380,15 +375,14 @@ public class KafkaCommitHandlerTest extends KafkaTestBase {
             return sourceAssignments >= 1 && source2Assignments >= 1 && sourceAssignments + source2Assignments == 4;
         });
 
-        usage.produceIntegers(10000, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.get() % 2), counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % 2), i), 10000);
 
         // source 2 starts receiving messages
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 4000);
 
         Set<TopicPartition> source2Partitions = source2.getConsumer().getAssignments().await().indefinitely();
         await().untilAsserted(() -> {
-            Map<TopicPartition, OffsetAndMetadata> offsets = usage.listConsumerGroupOffsets(
+            Map<TopicPartition, OffsetAndMetadata> offsets = companion.consumerGroups().offsets(
                     "test-source-with-throttled-latest-processed-commit", new ArrayList<>(source2Partitions));
             assertThat(offsets).isNotNull();
         });

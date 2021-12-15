@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -24,14 +23,14 @@ import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.TestTags;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionProxyTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaToxiproxyTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @Tag(TestTags.SLOW)
-public class HighLatencyTest extends KafkaToxiproxyTestBase {
+public class HighLatencyTest extends KafkaCompanionProxyTestBase {
 
     KafkaSource<Integer, String> source;
 
@@ -42,7 +41,7 @@ public class HighLatencyTest extends KafkaToxiproxyTestBase {
 
     @BeforeEach
     public void init() {
-        topic = usage.createNewTopic("test-" + UUID.randomUUID().toString(), 4);
+        topic = companion.topics().createAndWait("test-" + UUID.randomUUID().toString(), 4);
     }
 
     public KafkaMapBasedConfig newCommonConfigForSource() {
@@ -73,10 +72,7 @@ public class HighLatencyTest extends KafkaToxiproxyTestBase {
         List<KafkaRecord<?, ?>> messages1 = new ArrayList<>();
         source.getStream().subscribe().with(messages1::add);
 
-        AtomicInteger counter = new AtomicInteger();
-
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
@@ -84,8 +80,7 @@ public class HighLatencyTest extends KafkaToxiproxyTestBase {
         Thread.sleep(6000 + 2000); // session timeout + a bit more just in case.
         toxics().get("latency").remove();
 
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, 10 + i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);
         assertThat(messages1.size()).isGreaterThanOrEqualTo(20);

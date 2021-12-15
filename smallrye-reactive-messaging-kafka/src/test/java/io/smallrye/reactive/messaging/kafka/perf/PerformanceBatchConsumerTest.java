@@ -7,8 +7,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -20,10 +18,10 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-public class PerformanceBatchConsumerTest extends KafkaTestBase {
+public class PerformanceBatchConsumerTest extends KafkaCompanionTestBase {
 
     public static final int TIMEOUT_IN_SECONDS = 400;
     public static final int COUNT = 10_000;
@@ -32,16 +30,12 @@ public class PerformanceBatchConsumerTest extends KafkaTestBase {
     private static ArrayList<String> expected;
 
     @BeforeAll
-    static void insertRecords() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicLong count = new AtomicLong();
-        usage.produceStrings(COUNT, latch::countDown,
-                () -> new ProducerRecord<>(topic, "key", Long.toString(count.getAndIncrement())));
+    static void insertRecords() {
         expected = new ArrayList<>();
-        for (int i = 0; i < COUNT; i++) {
+        companion.produceStrings().usingGenerator(i -> {
             expected.add(Long.toString(i));
-        }
-        latch.await();
+            return new ProducerRecord<>(topic, "key", Long.toString(i));
+        }, COUNT).awaitCompletion(Duration.ofMinutes(2));
     }
 
     private KafkaMapBasedConfig commonConfig() {

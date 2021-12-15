@@ -2,17 +2,15 @@ package io.smallrye.reactive.messaging.kafka.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +23,7 @@ import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -34,7 +33,9 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
     @BeforeEach
     public void init() {
         sinks = new ConcurrentLinkedQueue<>();
-        topic = usage.createNewTopic("test-" + UUID.randomUUID(), partitions);
+        String newTopic = "test-" + UUID.randomUUID();
+        companion.topics().create(newTopic, partitions);
+        this.topic = newTopic;
         resetMessages();
     }
 
@@ -63,14 +64,9 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
 
     private void independentProducerTest(int numberOfThreads, int numberOfMessagesPerThread,
             boolean uniqueKeyPerThread) throws InterruptedException {
-        Queue<String> messages = new ConcurrentLinkedQueue<>();
 
-        CountDownLatch doneLatch = new CountDownLatch(1);
-
-        usage.consumeCount(topic, numberOfThreads * numberOfMessagesPerThread, 1, TimeUnit.MINUTES,
-                doneLatch::countDown, new IntegerDeserializer(), new StringDeserializer(), (k, v) -> {
-                    messages.add(v);
-                });
+        ConsumerTask<Integer, String> records = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, (long) numberOfThreads * numberOfMessagesPerThread, Duration.ofMinutes(1));
 
         Queue<Thread> threads = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < numberOfThreads; i++) {
@@ -80,11 +76,12 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
             thread.start();
         }
 
-        boolean done = doneLatch.await(1, TimeUnit.MINUTES);
-        assertThat(done).isTrue();
+        records.awaitCompletion(Duration.ofMinutes(1));
 
         for (int i = 0; i < numberOfThreads; i++) {
-            assertThat(messages).containsAll(expectedMessages("T" + i, numberOfMessagesPerThread));
+            assertThat(records.getRecords())
+                    .extracting(ConsumerRecord::value)
+                    .containsAll(expectedMessages("T" + i, numberOfMessagesPerThread));
         }
 
         for (Thread thread : threads) {
@@ -110,14 +107,8 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
 
     private void sharedProducerTest(int numberOfThreads, int numberOfMessagesPerThread,
             boolean uniqueKeyPerThread) throws InterruptedException {
-        Queue<String> messages = new ConcurrentLinkedQueue<>();
-
-        CountDownLatch doneLatch = new CountDownLatch(1);
-
-        usage.consumeCount(topic, numberOfThreads * numberOfMessagesPerThread, 1, TimeUnit.MINUTES,
-                doneLatch::countDown, new IntegerDeserializer(), new StringDeserializer(), (k, v) -> {
-                    messages.add(v);
-                });
+        ConsumerTask<Integer, String> records = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, (long) numberOfThreads * numberOfMessagesPerThread, Duration.ofMinutes(1));
 
         Queue<Thread> threads = new ConcurrentLinkedQueue<>();
         Queue<Multi<Message<?>>> multis = new ConcurrentLinkedQueue<>();
@@ -140,11 +131,12 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
         threads.add(actualProducer);
         actualProducer.start();
 
-        boolean done = doneLatch.await(1, TimeUnit.MINUTES);
-        assertThat(done).isTrue();
+        records.awaitCompletion(Duration.ofMinutes(1));
 
         for (int i = 0; i < numberOfThreads; i++) {
-            assertThat(messages).containsAll(expectedMessages("T" + i, numberOfMessagesPerThread));
+            assertThat(records.getRecords())
+                    .extracting(ConsumerRecord::value)
+                    .containsAll(expectedMessages("T" + i, numberOfMessagesPerThread));
         }
 
         for (Thread thread : threads) {

@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.serde;
 
-import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.getHeader;
+import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.getHeader;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
@@ -32,13 +32,14 @@ import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
 import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 @SuppressWarnings("unchecked")
-public class ValueDeserializerConfigurationTest extends KafkaTestBase {
+public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
 
     private KafkaSource<String, String> source;
 
     @BeforeAll
     static void initTracer() {
         KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
+        companion.serdeForType(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
     }
 
     @AfterEach
@@ -72,9 +73,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         source.getStream()
                 .subscribe().with(list::add);
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new DoubleSerializer(),
-                        null, () -> new ProducerRecord<>(topic, null, 12545.23));
+        companion.produceDoubles().fromRecords(new ProducerRecord<>(topic, null, 12545.23));
 
         await().until(() -> list.size() == 1);
 
@@ -88,7 +87,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
             m.ack().toCompletableFuture().join();
         });
 
-        usage.produceStrings(1, null, () -> new ProducerRecord<>(topic, "my-key", "hello-2"));
+        companion.produceStrings().fromRecords(new ProducerRecord<>(topic, "my-key", "hello-2"));
 
         await().until(() -> list.size() == 2);
         assertThat(list.get(1)).isInstanceOf(KafkaRecord.class);
@@ -113,9 +112,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         source.getStream()
                 .subscribe().with(list::add);
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new DoubleSerializer(),
-                        null, () -> new ProducerRecord<>(topic, null, 6945231.56));
+        companion.produceDoubles().fromRecords(new ProducerRecord<>(topic, null, 6945231.56));
 
         await().until(() -> list.size() == 1);
 
@@ -128,8 +125,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
             m.ack().toCompletableFuture().join();
         });
 
-        usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(),
-                null, () -> new ProducerRecord<>(topic, "hello-2", new JsonObject().put("k", "my-key")));
+        companion.produce(String.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, "hello-2", new JsonObject().put("k", "my-key")));
 
         await().until(() -> list.size() == 2);
         assertThat(list.get(1)).isInstanceOf(KafkaRecord.class);
@@ -154,9 +151,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         source.getStream()
                 .subscribe().with(list::add);
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new DoubleSerializer(),
-                        null, () -> new ProducerRecord<>(topic, null, 6945231.56));
+        companion.produceDoubles().fromRecords(new ProducerRecord<>(topic, null, 6945231.56));
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -179,9 +174,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         source.getStream()
                 .subscribe().with(list::add);
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(),
-                        null, () -> new ProducerRecord<>(topic, "key", "hello"));
+        companion.produceStrings().fromRecords(new ProducerRecord<>(topic, "key", "hello"));
 
         await().until(() -> list.size() == 1);
 
@@ -194,8 +187,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
             m.ack().toCompletableFuture().join();
         });
 
-        usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(),
-                null, () -> new ProducerRecord<>(topic, "key", new JsonObject().put("k", "my-key")));
+        companion.produce(String.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, "key", new JsonObject().put("k", "my-key")));
 
         await().until(() -> list.size() == 2);
         assertThat(list.get(1)).isInstanceOf(KafkaRecord.class);
@@ -247,9 +240,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         source.getStream()
                 .subscribe().with(list::add);
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new DoubleSerializer(),
-                        null, () -> new ProducerRecord<>(topic, "hello", 698745231.56));
+        companion.produceDoubles().fromRecords(new ProducerRecord<>(topic, "hello", 698745231.56));
 
         await().until(() -> list.size() == 1);
 
@@ -262,8 +253,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
             m.ack().toCompletableFuture().join();
         });
 
-        usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(),
-                null, () -> new ProducerRecord<>(topic, "hello-2", new JsonObject().put("k", "my-key")));
+        companion.produce(String.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, "hello-2", new JsonObject().put("k", "my-key")));
 
         await().until(() -> list.size() == 2);
         assertThat(list.get(1)).isInstanceOf(KafkaRecord.class);
@@ -305,9 +296,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
 
         // Fail for value
         JsonObject key = new JsonObject().put("key", "key");
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new JsonObjectSerializer(), new DoubleSerializer(),
-                        null, () -> new ProducerRecord<>(topic, key, 698745231.56));
+        companion.produce(JsonObject.class, Double.class)
+                .fromRecords(new ProducerRecord<>(topic, key, 698745231.56));
         await().until(() -> list.size() == 1);
 
         assertThat(list).allSatisfy(m -> {
@@ -321,9 +311,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
 
         // Fail for key
         JsonObject value = new JsonObject().put("value", "value");
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new DoubleSerializer(), new JsonObjectSerializer(),
-                        null, () -> new ProducerRecord<>(topic, 698745231.56, value));
+        companion.produce(Double.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, 698745231.56, value));
         await().until(() -> list.size() == 2);
 
         assertThat(list.get(1)).isInstanceOf(KafkaRecord.class);
@@ -334,8 +323,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         record.ack().toCompletableFuture().join();
 
         // Everything ok
-        usage.produce(UUID.randomUUID().toString(), 1, new JsonObjectSerializer(), new JsonObjectSerializer(),
-                null, () -> new ProducerRecord<>(topic, key, value));
+        companion.produce(JsonObject.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, key, value));
 
         await().until(() -> list.size() == 3);
         assertThat(list.get(2)).isInstanceOf(KafkaRecord.class);
@@ -370,9 +359,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
         source.getStream()
                 .subscribe().with(list::add);
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new DoubleSerializer(),
-                        null, () -> new ProducerRecord<>(topic, "hello", 6987451.56));
+        companion.produceDoubles().fromRecords(new ProducerRecord<>(topic, "hello", 6987451.56));
 
         await().until(() -> list.size() == 1);
 
@@ -385,8 +372,8 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
             m.ack().toCompletableFuture().join();
         });
 
-        usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(),
-                null, () -> new ProducerRecord<>(topic, "hello-2", new JsonObject().put("k", "my-key")));
+        companion.produce(String.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, "hello-2", new JsonObject().put("k", "my-key")));
 
         await().until(() -> list.size() == 2);
         assertThat(list.get(1)).isInstanceOf(KafkaRecord.class);
@@ -472,7 +459,7 @@ public class ValueDeserializerConfigurationTest extends KafkaTestBase {
 
     private MapBasedConfig commonConsumerConfiguration() {
         return new MapBasedConfig()
-                .with("bootstrap.servers", usage.getBootstrapServers())
+                .with("bootstrap.servers", companion.getBootstrapServers())
                 .with("channel-name", "channel")
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")

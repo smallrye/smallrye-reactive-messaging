@@ -5,22 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
-import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -34,13 +26,15 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
+import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class KafkaSinkTest extends KafkaTestBase {
+public class KafkaSinkTest extends KafkaCompanionTestBase {
 
     private KafkaSink sink;
 
@@ -53,12 +47,8 @@ public class KafkaSinkTest extends KafkaTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testSinkUsingInteger() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+    public void testSinkUsingInteger() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
@@ -73,18 +63,13 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testSinkUsingIntegerAndChannelName() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+    public void testSinkUsingIntegerAndChannelName() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         MapBasedConfig config = getBaseConfig()
                 .with("channel-name", topic)
@@ -98,18 +83,13 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testSinkUsingString() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+    public void testSinkUsingString() {
+        ConsumerTask<String, String> consumed = companion.consumeStrings().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
@@ -125,8 +105,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<String>>) subscriber);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
     }
 
     private MapBasedConfig getBaseConfig() {
@@ -170,19 +149,15 @@ public class KafkaSinkTest extends KafkaTestBase {
     }
 
     @Test
-    public void testABeanProducingMessagesSentToKafka() throws InterruptedException {
+    public void testABeanProducingMessagesSentToKafka() {
         runApplication(getKafkaSinkConfigForProducingBean(), ProducingBean.class);
 
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers("output", 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics("output", 10,
+                Duration.ofSeconds(10));
 
         await().until(this::isReady);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
 
         HealthReport liveness = getHealth().getLiveness();
         HealthReport readiness = getHealth().getReadiness();
@@ -202,45 +177,26 @@ public class KafkaSinkTest extends KafkaTestBase {
     }
 
     @Test
-    public void testABeanProducingKafkaMessagesSentToKafka() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<String> keys = new ArrayList<>();
-        List<String> headers = new ArrayList<>();
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                record -> {
-                    keys.add(record.key());
-                    String count = new String(record.headers().lastHeader("count").value());
-                    headers.add(count);
-                    expected.getAndIncrement();
-                });
+    public void testABeanProducingKafkaMessagesSentToKafka() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         runApplication(getKafkaSinkConfigForMessageProducingBean(), ProducingKafkaMessageBean.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
-        assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(consumed.getRecords())
+                .extracting(cr -> KafkaCompanion.getHeader(cr.headers(), "count"))
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
     @Test
-    public void testABeanProducingKafkaMessagesSentToKafkaUsingAdminHealthCheck() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<String> keys = new ArrayList<>();
-        List<String> headers = new ArrayList<>();
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                record -> {
-                    keys.add(record.key());
-                    String count = new String(record.headers().lastHeader("count").value());
-                    headers.add(count);
-                    expected.getAndIncrement();
-                });
+    public void testABeanProducingKafkaMessagesSentToKafkaUsingAdminHealthCheck() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         runApplication(getKafkaSinkConfigForMessageProducingBean()
                 .with("health-readiness-topic-verification", true),
@@ -249,20 +205,19 @@ public class KafkaSinkTest extends KafkaTestBase {
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
-        assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(consumed.getRecords())
+                .extracting(cr -> KafkaCompanion.getHeader(cr.headers(), "count"))
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
-    public void testInvalidPayloadType() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 4, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+    public void testInvalidPayloadType() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 4, Duration.ofSeconds(10));
 
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
@@ -300,8 +255,7 @@ public class KafkaSinkTest extends KafkaTestBase {
                 }))
                 .subscribe(subscriber);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(4); // 3 and 5 are ignored.
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(4);
 
         await().until(() -> nacked.size() >= 2);
         assertThat(acked).containsExactly(0, 1, 2, 4);
@@ -314,11 +268,7 @@ public class KafkaSinkTest extends KafkaTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testInvalidTypeWithDefaultInflightMessages() {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         MapBasedConfig config = getBaseConfig()
                 .with("topic", topic)
@@ -340,192 +290,129 @@ public class KafkaSinkTest extends KafkaTestBase {
                 .map(Message::of)
                 .subscribe(subscriber);
 
-        await().until(() -> expected.get() >= 3);
+        await().until(() -> consumed.count() >= 3);
         // Default inflight is 5
         // 1, 2, 3, 4, 5 are sent at the same time.
         // As 3 fails, the stream is stopped, but, 1, 2, and 4 are already sent and potentially 6
-        assertThat(expected).hasValueGreaterThanOrEqualTo(3);
+        assertThat(consumed.count()).isGreaterThanOrEqualTo(3);
     }
 
     @Test
-    public void testABeanProducingMessagesUsingHeadersSentToKafka() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<String> keys = new ArrayList<>();
-        List<String> headers = new ArrayList<>();
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                record -> {
-                    keys.add(record.key());
-                    String count = new String(record.headers().lastHeader("count").value());
-                    headers.add(count);
-                    expected.getAndIncrement();
-                });
+    public void testABeanProducingMessagesUsingHeadersSentToKafka() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         runApplication(getKafkaSinkConfigForMessageProducingBean(), ProducingMessageWithHeaderBean.class);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
-        assertThat(headers).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(consumed.getRecords())
+                .extracting(cr -> KafkaCompanion.getHeader(cr.headers(), "count"))
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
     @Test
-    public void testABeanProducingRecords() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<Integer> keys = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        String clientId = UUID.randomUUID().toString();
-        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
-                new IntegerDeserializer(), new StringDeserializer(),
-                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
-                record -> {
-                    keys.add(record.key());
-                    values.add(record.value());
-                    expected.getAndIncrement();
-                });
+    public void testABeanProducingRecords() {
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
 
         runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecord.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-        assertThat(values)
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
                 .containsExactly("value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8",
                         "value-9", "value-10");
     }
 
     @Test
-    public void testABeanProducingRecordsWithNullKey() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<Integer> keys = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        String clientId = UUID.randomUUID().toString();
-        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
-                new IntegerDeserializer(), new StringDeserializer(),
-                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
-                record -> {
-                    keys.add(record.key());
-                    values.add(record.value());
-                    expected.getAndIncrement();
-                });
+    public void testABeanProducingRecordsWithNullKey() {
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
 
         runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoKey.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly(null, null, null, null, null, null, null, null, null, null);
-        assertThat(values)
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(null, null, null, null, null, null, null, null, null, null);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
                 .containsExactly("value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8",
                         "value-9", "value-10");
     }
 
     @Test
-    public void testABeanProducingRecordsNoValue() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<Integer> keys = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        String clientId = UUID.randomUUID().toString();
-        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
-                new IntegerDeserializer(), new StringDeserializer(),
-                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
-                record -> {
-                    keys.add(record.key());
-                    values.add(record.value());
-                    expected.getAndIncrement();
-                });
+    public void testABeanProducingRecordsNoValue() {
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
 
         runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValue.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-        assertThat(values)
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
                 .containsExactly(null, null, null, null, null, null, null, null, null, null);
     }
 
     @Test
     public void testABeanProducingRecordsNoValueNoKey() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<Integer> keys = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        String clientId = UUID.randomUUID().toString();
-        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
-                new IntegerDeserializer(), new StringDeserializer(),
-                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
-                record -> {
-                    keys.add(record.key());
-                    values.add(record.value());
-                    expected.getAndIncrement();
-                });
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
 
         runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordNoValueNoKey.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly(null, null, null, null, null, null, null, null, null, null);
-        assertThat(values)
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(null, null, null, null, null, null, null, null, null, null);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
                 .containsExactly(null, null, null, null, null, null, null, null, null, null);
     }
 
     @Test
-    public void testABeanProducingRecordsAsMessageWithKeyOverridden() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<Integer> keys = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        String clientId = UUID.randomUUID().toString();
-        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
-                new IntegerDeserializer(), new StringDeserializer(),
-                () -> expected.get() < 10, null, latch::countDown, Collections.singletonList(topic),
-                record -> {
-                    keys.add(record.key());
-                    values.add(record.value());
-                    expected.getAndIncrement();
-                });
+    public void testABeanProducingRecordsAsMessageWithKeyOverridden() {
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
 
         runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaRecordInMessage.class);
 
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(10);
-        assertThat(keys).containsExactly(100, 1, 102, 3, 104, 5, 106, 7, 108, 9);
-        assertThat(values)
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(100, 1, 102, 3, 104, 5, 106, 7, 108, 9);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
                 .containsExactly("value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8",
                         "value-9", "value-10");
     }
 
     @Test
-    public void testConnectorWithMultipleUpstreams() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        List<Integer> values = new ArrayList<>();
-        String clientId = UUID.randomUUID().toString();
-        usage.consume(clientId, clientId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(),
-                () -> expected.get() < 20, null, latch::countDown, Collections.singletonList(topic),
-                record -> {
-                    values.add(record.value());
-                    expected.getAndIncrement();
-                });
+    public void testConnectorWithMultipleUpstreams() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, 20);
 
         KafkaMapBasedConfig config = getKafkaSinkConfigWithMultipleUpstreams(topic);
         runApplication(config, BeanWithMultipleUpstreams.class);
@@ -533,9 +420,9 @@ public class KafkaSinkTest extends KafkaTestBase {
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValue(20);
-        assertThat(values)
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(20);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
                 .contains(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
     }
 

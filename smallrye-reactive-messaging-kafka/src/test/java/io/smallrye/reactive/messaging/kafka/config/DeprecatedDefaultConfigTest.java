@@ -2,16 +2,12 @@ package io.smallrye.reactive.messaging.kafka.config;
 
 import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -30,7 +26,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 // this entire file should be removed when support for the `@Named` annotation is removed
@@ -38,25 +35,21 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 /**
  * Test that the config can be retrieved from a Map produced using the {@code default-kafka-broker} name
  */
-public class DeprecatedDefaultConfigTest extends KafkaTestBase {
+public class DeprecatedDefaultConfigTest extends KafkaCompanionTestBase {
 
     @Test
     public void testFromKafkaToAppToKafka() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaSinkConfigForMyAppProcessingData(topicOut, topicIn), MyAppProcessingData.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -71,7 +64,7 @@ public class DeprecatedDefaultConfigTest extends KafkaTestBase {
         config.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         config.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        config.put("kafka.bootstrap.servers", usage.getBootstrapServers());
+        config.put("kafka.bootstrap.servers", companion.getBootstrapServers());
         config.put("kafka.value.serializer", StringSerializer.class.getName());
         config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
         config.put("kafka.key.deserializer", StringDeserializer.class.getName());

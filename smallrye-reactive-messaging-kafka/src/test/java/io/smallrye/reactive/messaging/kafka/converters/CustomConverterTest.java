@@ -6,7 +6,6 @@ import static org.awaitility.Awaitility.await;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -19,10 +18,10 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.tuples.Tuple3;
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-class CustomConverterTest extends KafkaTestBase {
+class CustomConverterTest extends KafkaCompanionTestBase {
 
     @Test
     public void testBeanUsingCustomConverter() {
@@ -34,9 +33,8 @@ class CustomConverterTest extends KafkaTestBase {
         addBeans(ConsumerRecordConverter.class, RecordConverter.class, MyConverter.class);
         MyBean bean = runApplication(builder, MyBean.class);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, counter.get() % 2 == 0 ? "key" : "k", "v-" + counter.incrementAndGet()));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i % 2 == 0 ? "key" : "k", "v-" + i), 10);
 
         await().until(() -> bean.list().size() == 10);
 

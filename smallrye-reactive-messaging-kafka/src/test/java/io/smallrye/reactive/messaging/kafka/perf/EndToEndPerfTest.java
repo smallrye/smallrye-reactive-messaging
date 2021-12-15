@@ -4,8 +4,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -27,7 +25,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.TestTags;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -41,19 +39,16 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 @Tag(TestTags.PERFORMANCE)
 @Tag(TestTags.SLOW)
 @Disabled
-public class EndToEndPerfTest extends KafkaTestBase {
+public class EndToEndPerfTest extends KafkaCompanionTestBase {
 
     public static final int COUNT = 50_000;
     public static String input_topic = UUID.randomUUID().toString();
     public static String output_topic = UUID.randomUUID().toString();
 
     @BeforeAll
-    static void insertRecords() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicLong count = new AtomicLong();
-        usage.produceStrings(COUNT, latch::countDown,
-                () -> new ProducerRecord<>(input_topic, "key", Long.toString(count.getAndIncrement())));
-        latch.await();
+    static void insertRecords() {
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(input_topic, "key", Long.toString(i)), COUNT)
+                .awaitCompletion(Duration.ofMinutes(5));
     }
 
     private MapBasedConfig commonConfig() {
@@ -72,7 +67,7 @@ public class EndToEndPerfTest extends KafkaTestBase {
 
     private void waitForOutMessages() {
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", usage.getBootstrapServers());
+        properties.put("bootstrap.servers", companion.getBootstrapServers());
         properties.put("group.id", UUID.randomUUID().toString());
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties, new StringDeserializer(),
                 new StringDeserializer());

@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.base;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -11,21 +12,28 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.KafkaBootstrapServers;
+import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KafkaBootstrapServers;
+import io.vertx.core.json.JsonObject;
+import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
+import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 import io.vertx.mutiny.core.Vertx;
 
 @ExtendWith(KafkaBrokerExtension.class)
-public class KafkaTestBase extends WeldTestBase {
+public class KafkaCompanionTestBase extends WeldTestBase {
+
     public static final int KAFKA_PORT = 9092;
 
     public Vertx vertx;
-    public static KafkaUsage usage;
+    public static KafkaCompanion companion;
 
     public String topic;
 
     @BeforeAll
-    static void initUsage(@KafkaBootstrapServers String bootstrapServers) {
-        usage = new KafkaUsage(bootstrapServers);
+    static void initCompanion(@KafkaBootstrapServers String bootstrapServers) {
+        companion = new KafkaCompanion(bootstrapServers);
+        companion.serdeForType(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
     }
 
     @BeforeEach
@@ -48,8 +56,8 @@ public class KafkaTestBase extends WeldTestBase {
     }
 
     @AfterAll
-    static void closeUsage() {
-        usage.close();
+    static void closeCompanion() {
+        companion.close();
     }
 
     public KafkaMapBasedConfig kafkaConfig() {
@@ -61,7 +69,7 @@ public class KafkaTestBase extends WeldTestBase {
     }
 
     public KafkaMapBasedConfig kafkaConfig(String prefix, boolean tracing) {
-        return new KafkaMapBasedConfig(prefix, tracing).put("bootstrap.servers", usage.getBootstrapServers());
+        return new KafkaMapBasedConfig(prefix, tracing).put("bootstrap.servers", companion.getBootstrapServers());
     }
 
     public KafkaMapBasedConfig newCommonConfigForSource() {
@@ -76,5 +84,4 @@ public class KafkaTestBase extends WeldTestBase {
                 "graceful-shutdown", false,
                 "channel-name", topic);
     }
-
 }

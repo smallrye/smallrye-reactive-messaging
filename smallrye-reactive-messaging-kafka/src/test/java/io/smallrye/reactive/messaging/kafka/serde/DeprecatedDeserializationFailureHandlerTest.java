@@ -5,29 +5,26 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.Record;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
-import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 // this entire file should be removed when support for the `@Named` annotation is removed
 
-public class DeprecatedDeserializationFailureHandlerTest extends KafkaTestBase {
+public class DeprecatedDeserializationFailureHandlerTest extends KafkaCompanionTestBase {
 
     static JsonObject fallbackForValue = new JsonObject().put("fallback", "fallback");
     static JsonObject fallbackForKey = new JsonObject().put("fallback", "key");
@@ -48,9 +45,7 @@ public class DeprecatedDeserializationFailureHandlerTest extends KafkaTestBase {
 
         // Fail for value
         JsonObject key = new JsonObject().put("key", "key");
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new JsonObjectSerializer(), new DoubleSerializer(),
-                        null, () -> new ProducerRecord<>(topic, key, 698745231.56));
+        companion.produce(JsonObject.class, Double.class).fromRecords(new ProducerRecord<>(topic, key, 698745231.56));
         await().until(() -> sink.list().size() == 1);
 
         assertThat(sink.list().get(0)).isInstanceOf(Record.class)
@@ -61,9 +56,7 @@ public class DeprecatedDeserializationFailureHandlerTest extends KafkaTestBase {
 
         // Fail for key
         JsonObject value = new JsonObject().put("value", "value");
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new DoubleSerializer(), new JsonObjectSerializer(),
-                        null, () -> new ProducerRecord<>(topic, 698745231.56, value));
+        companion.produce(Double.class, JsonObject.class).fromRecords(new ProducerRecord<>(topic, 698745231.56, value));
         await().until(() -> sink.list().size() == 2);
 
         assertThat(sink.list().get(1)).isInstanceOf(Record.class)
@@ -73,8 +66,7 @@ public class DeprecatedDeserializationFailureHandlerTest extends KafkaTestBase {
                 });
 
         // Everything ok
-        usage.produce(UUID.randomUUID().toString(), 1, new JsonObjectSerializer(), new JsonObjectSerializer(),
-                null, () -> new ProducerRecord<>(topic, key, value));
+        companion.produce(JsonObject.class, JsonObject.class).fromRecords(new ProducerRecord<>(topic, key, value));
 
         await().until(() -> sink.list().size() == 3);
         assertThat(sink.list().get(2)).isInstanceOf(Record.class)
@@ -84,8 +76,7 @@ public class DeprecatedDeserializationFailureHandlerTest extends KafkaTestBase {
                 });
 
         // Fail both
-        usage.produce(UUID.randomUUID().toString(), 1, new DoubleSerializer(), new DoubleSerializer(),
-                null, () -> new ProducerRecord<>(topic, 23.54, 145.56));
+        companion.produce(Double.class, Double.class).fromRecords(new ProducerRecord<>(topic, 23.54, 145.56));
 
         await().until(() -> sink.list().size() == 4);
         assertThat(sink.list().get(3)).isInstanceOf(Record.class)

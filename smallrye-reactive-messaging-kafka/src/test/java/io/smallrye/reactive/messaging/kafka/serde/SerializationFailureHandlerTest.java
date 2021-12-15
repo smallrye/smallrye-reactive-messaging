@@ -3,21 +3,14 @@ package io.smallrye.reactive.messaging.kafka.serde;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
@@ -27,13 +20,14 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
-class SerializationFailureHandlerTest extends KafkaTestBase {
+class SerializationFailureHandlerTest extends KafkaCompanionTestBase {
 
     @Test
     void testWhenNoFailureHandlerIsSet() {
@@ -47,12 +41,9 @@ class SerializationFailureHandlerTest extends KafkaTestBase {
 
         runApplication(config, MySource.class);
 
-        List<ConsumerRecord<String, Double>> records = new CopyOnWriteArrayList<>();
-        usage.consume(UUID.randomUUID().toString(), UUID.randomUUID().toString(), OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new DoubleDeserializer(), () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, Double> consumed = companion.consumeDoubles().fromTopics(topic, 1);
 
-        await().pollDelay(1, TimeUnit.SECONDS).until(() -> records.size() == 0);
+        await().pollDelay(1, TimeUnit.SECONDS).until(() -> consumed.getRecords().size() == 0);
         assertThat(isAlive()).isTrue();
     }
 
@@ -69,14 +60,11 @@ class SerializationFailureHandlerTest extends KafkaTestBase {
 
         runApplication(config, MySource.class);
 
-        List<ConsumerRecord<String, Double>> records = new CopyOnWriteArrayList<>();
-        usage.consume(UUID.randomUUID().toString(), UUID.randomUUID().toString(), OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new DoubleDeserializer(), () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, Double> consumed = companion.consumeDoubles().fromTopics(topic, 1);
 
-        await().pollDelay(1, TimeUnit.SECONDS).until(() -> records.size() == 1);
+        await().pollDelay(1, TimeUnit.SECONDS).until(() -> consumed.getRecords().size() == 1);
         assertThat(isAlive()).isTrue();
-        assertThat(records.get(0)).isInstanceOf(ConsumerRecord.class)
+        assertThat(consumed.getRecords().get(0)).isInstanceOf(ConsumerRecord.class)
                 .satisfies(rec -> assertThat(rec.value()).isEqualTo(0.0));
     }
 
@@ -94,14 +82,11 @@ class SerializationFailureHandlerTest extends KafkaTestBase {
 
         runApplication(config, MySource.class);
 
-        List<ConsumerRecord<String, Double>> records = new CopyOnWriteArrayList<>();
-        usage.consume(UUID.randomUUID().toString(), UUID.randomUUID().toString(), OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new DoubleDeserializer(), () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, Double> consumed = companion.consumeDoubles().fromTopics(topic, 1);
 
-        await().pollDelay(1, TimeUnit.SECONDS).until(() -> records.size() == 1);
+        await().pollDelay(1, TimeUnit.SECONDS).until(() -> consumed.getRecords().size() == 1);
         assertThat(isAlive()).isTrue();
-        assertThat(records.get(0)).isInstanceOf(ConsumerRecord.class)
+        assertThat(consumed.getRecords().get(0)).isInstanceOf(ConsumerRecord.class)
                 .satisfies(rec -> {
                     assertThat(rec.key()).isEqualTo("key");
                     assertThat(rec.value()).isEqualTo(0.0);
@@ -121,14 +106,11 @@ class SerializationFailureHandlerTest extends KafkaTestBase {
 
         runApplication(config, MySource.class);
 
-        List<ConsumerRecord<String, Double>> records = new CopyOnWriteArrayList<>();
-        usage.consume(UUID.randomUUID().toString(), UUID.randomUUID().toString(), OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new DoubleDeserializer(), () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, Double> consumed = companion.consumeDoubles().fromTopics(topic);
 
-        await().pollDelay(1, TimeUnit.SECONDS).until(() -> records.size() == 1);
+        await().pollDelay(1, TimeUnit.SECONDS).until(() -> consumed.getRecords().size() == 1);
         assertThat(isAlive()).isTrue();
-        assertThat(records.get(0)).isInstanceOf(ConsumerRecord.class)
+        assertThat(consumed.getRecords().get(0)).isInstanceOf(ConsumerRecord.class)
                 .satisfies(rec -> {
                     assertThat(rec.value()).isEqualTo(0.0);
                     assertThat(new String(rec.headers().lastHeader("retry-count").value())).isEqualTo("2");

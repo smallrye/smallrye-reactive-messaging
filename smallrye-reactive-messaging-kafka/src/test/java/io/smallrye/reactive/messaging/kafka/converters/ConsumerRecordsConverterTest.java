@@ -5,7 +5,6 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -18,10 +17,10 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-class ConsumerRecordsConverterTest extends KafkaTestBase {
+class ConsumerRecordsConverterTest extends KafkaCompanionTestBase {
 
     @Test
     public void testBeanUsingConverter() {
@@ -34,9 +33,8 @@ class ConsumerRecordsConverterTest extends KafkaTestBase {
         addBeans(ConsumerRecordsConverter.class);
         MyBean bean = runApplication(builder, MyBean.class);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, counter.get() % 2 == 0 ? "key" : "k", "v-" + counter.incrementAndGet()));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i % 2 == 0 ? "key" : "k", "v-" + i), 10);
 
         await().until(() -> bean.list().stream().mapToInt(ConsumerRecords::count).sum() == 10);
 
@@ -64,8 +62,7 @@ class ConsumerRecordsConverterTest extends KafkaTestBase {
         addBeans(ConsumerRecordsConverter.class);
         MyBean bean = runApplication(builder, MyBean.class);
 
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, null, null));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, null, null), 10);
 
         await().until(() -> bean.list().stream().mapToInt(ConsumerRecords::count).sum() == 10);
 

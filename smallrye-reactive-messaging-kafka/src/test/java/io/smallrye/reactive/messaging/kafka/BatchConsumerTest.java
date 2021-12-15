@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -23,10 +22,10 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-public class BatchConsumerTest extends KafkaTestBase {
+public class BatchConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testIncomingConsumingListPayload() {
@@ -38,8 +37,7 @@ public class BatchConsumerTest extends KafkaTestBase {
 
         BeanConsumingListPayload bean = runApplication(config, BeanConsumingListPayload.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceStrings(10, null, () -> new ProducerRecord<>(topic, null, "v-" + count.get()));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, null, "v-" + i), 10);
 
         await().until(() -> bean.messages().size() == 10);
 
@@ -55,8 +53,7 @@ public class BatchConsumerTest extends KafkaTestBase {
                 .put("batch", true);
         BeanConsumingKafkaRecordBatch bean = runApplication(config, BeanConsumingKafkaRecordBatch.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceStrings(10, null, () -> new ProducerRecord<>(topic, "k-" + count.getAndIncrement(), "v-" + count.get()));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "k-" + i, "v-" + i), 10);
 
         await().until(() -> bean.messages().size() == 10);
 
@@ -69,7 +66,7 @@ public class BatchConsumerTest extends KafkaTestBase {
     @Test
     void testIncomingConsumingMessageWithMetadata() {
         String newTopic = UUID.randomUUID().toString();
-        usage.createTopic(newTopic, 3);
+        companion.topics().create(newTopic, 3);
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .put("value.deserializer", StringDeserializer.class.getName())
@@ -79,9 +76,7 @@ public class BatchConsumerTest extends KafkaTestBase {
         BeanConsumingMessageWithBatchMetadata bean = runApplication(config,
                 BeanConsumingMessageWithBatchMetadata.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(newTopic, "k-" + count.getAndIncrement(), "v-" + count.get()));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(newTopic, "k-" + i, "v-" + i), 10);
 
         await().until(() -> bean.metadata().stream().mapToInt(m -> m.getRecords().count()).sum() == 10);
 

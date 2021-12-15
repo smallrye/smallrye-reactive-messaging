@@ -15,13 +15,13 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
 /**
  * Reproducer for https://github.com/smallrye/smallrye-reactive-messaging/issues/373.
  */
-public class ChannelNameConflictTest extends KafkaTestBase {
+public class ChannelNameConflictTest extends KafkaCompanionTestBase {
 
     KafkaMapBasedConfig conflictingConfig() {
         return kafkaConfig("mp.messaging.incoming.my-topic")

@@ -22,13 +22,13 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 
 /**
  * Test the Incoming connector when multiple topics are used either using a pattern or a list of topics.
  */
 @SuppressWarnings("rawtypes")
-public class MultiTopicsTest extends KafkaTestBase {
+public class MultiTopicsTest extends KafkaCompanionTestBase {
 
     @RepeatedTest(5)
     public void testWithThreeTopicsInConfiguration() {
@@ -47,15 +47,14 @@ public class MultiTopicsTest extends KafkaTestBase {
 
         assertThat(bean.getMessages()).isEmpty();
 
-        AtomicInteger key = new AtomicInteger();
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic1, Integer.toString(key.getAndIncrement()), "hello"));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic1, Integer.toString(i), "hello"), 3);
 
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic2, Integer.toString(key.getAndIncrement()), "hallo"));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic2, Integer.toString(i), "hallo"), 3);
 
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic3, Integer.toString(key.getAndIncrement()), "bonjour"));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic3, Integer.toString(i), "bonjour"), 3);
 
         await().until(() -> bean.getMessages().size() >= 9);
 
@@ -104,12 +103,11 @@ public class MultiTopicsTest extends KafkaTestBase {
 
         assertThat(bean.getMessages()).isEmpty();
 
-        AtomicInteger key = new AtomicInteger();
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic1, Integer.toString(key.incrementAndGet()), "hello"));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic1, Integer.toString(i), "hello"), 3);
 
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic3, Integer.toString(key.incrementAndGet()), "bonjour"));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic3, Integer.toString(i), "bonjour"), 3);
 
         await().until(() -> bean.getMessages().size() >= 6);
 
@@ -144,9 +142,9 @@ public class MultiTopicsTest extends KafkaTestBase {
         String topic2 = "greetings-" + UUID.randomUUID().toString();
         String topic3 = "greetings-" + UUID.randomUUID().toString();
 
-        usage.createTopic(topic1, 1);
-        usage.createTopic(topic2, 1);
-        usage.createTopic(topic3, 1);
+        companion.topics().create(topic1, 1);
+        companion.topics().create(topic2, 1);
+        companion.topics().create(topic3, 1);
 
         KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
                 .with("value.deserializer", StringDeserializer.class.getName())
@@ -160,17 +158,13 @@ public class MultiTopicsTest extends KafkaTestBase {
 
         assertThat(bean.getMessages()).isEmpty();
 
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic1, "hello"));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic1, "hello"), 3);
 
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic2, "hallo"));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic2, "hallo"), 3);
 
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>(topic3, "bonjour"));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic3, "bonjour"), 3);
 
-        usage.produceStrings(3, null,
-                () -> new ProducerRecord<>("do-not-match", "Bahh!"));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>("do-not-match", "Bahh!"), 3);
 
         await().until(() -> bean.getMessages().size() >= 9);
 

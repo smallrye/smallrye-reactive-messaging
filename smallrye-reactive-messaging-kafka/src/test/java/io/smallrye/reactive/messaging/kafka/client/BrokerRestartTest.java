@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
-import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.restart;
-import static io.smallrye.reactive.messaging.kafka.base.KafkaUsage.startKafkaBroker;
+import static io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.restart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -21,7 +20,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.TestTags;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -33,7 +32,9 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @BeforeEach
     public void init() {
-        topic = usage.createNewTopic("test-" + UUID.randomUUID(), partitions);
+        String newTopic = "test-" + UUID.randomUUID();
+        companion.topics().create(newTopic, partitions);
+        this.topic = newTopic;
         resetMessages();
     }
 
@@ -73,7 +74,6 @@ public class BrokerRestartTest extends ClientTestBase {
         try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
-            Integer port = kafka.getMappedPort(KAFKA_PORT);
             String groupId = UUID.randomUUID().toString();
             MapBasedConfig config = createConsumerConfig(groupId)
                     .with("topic", topic)
@@ -147,7 +147,7 @@ public class BrokerRestartTest extends ClientTestBase {
                         return last.get() == last.getAndSet(subscriber.getItems().size());
                     });
 
-            try (StrimziKafkaContainer restarted = startKafkaBroker(port)) {
+            try (StrimziKafkaContainer restarted = KafkaBrokerExtension.startKafkaBroker(port)) {
                 await().until(restarted::isRunning);
 
                 subscriber.request(100);

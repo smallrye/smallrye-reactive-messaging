@@ -3,12 +3,11 @@ package io.smallrye.reactive.messaging.kafka.commit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -18,18 +17,17 @@ import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class PartitionTest extends KafkaTestBase {
+public class PartitionTest extends KafkaCompanionTestBase {
 
     @Test
-    public void testWithPartitions() throws InterruptedException {
-        usage.createTopic(topic, 3);
+    public void testWithPartitions() {
+        companion.topics().create(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
@@ -41,17 +39,12 @@ public class PartitionTest extends KafkaTestBase {
 
         MyApplication application = runApplication(config, MyApplication.class);
 
-        AtomicInteger count = new AtomicInteger();
         int expected = 3000;
         Random random = new Random();
-        CountDownLatch latch = new CountDownLatch(1);
-        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), latch::countDown, () -> {
-            int value = count.getAndIncrement();
+        companion.produceStrings().usingGenerator(i -> {
             int p = random.nextInt(3);
-            return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(value));
-        });
-
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+            return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(i));
+        }, expected).awaitCompletion(Duration.ofMinutes(1));
 
         await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -59,7 +52,7 @@ public class PartitionTest extends KafkaTestBase {
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", usage.getBootstrapServers());
+        properties.put("bootstrap.servers", companion.getBootstrapServers());
         Admin admin = Admin.create(properties);
 
         await().until(() -> {
@@ -72,7 +65,7 @@ public class PartitionTest extends KafkaTestBase {
 
     @Test
     public void testWithMoreConsumersThanPartitions() throws InterruptedException {
-        usage.createTopic(topic, 3);
+        companion.topics().create(topic, 3);
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
@@ -83,17 +76,12 @@ public class PartitionTest extends KafkaTestBase {
 
         MyApplication application = runApplication(config, MyApplication.class);
 
-        AtomicInteger count = new AtomicInteger();
         int expected = 3000;
         Random random = new Random();
-        CountDownLatch latch = new CountDownLatch(1);
-        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), latch::countDown, () -> {
-            int value = count.getAndIncrement();
+        companion.produceStrings().usingGenerator(i -> {
             int p = random.nextInt(3);
-            return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(value));
-        });
-
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+            return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(i));
+        }, expected).awaitCompletion(Duration.ofMinutes(1));
 
         await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -101,7 +89,7 @@ public class PartitionTest extends KafkaTestBase {
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", usage.getBootstrapServers());
+        properties.put("bootstrap.servers", companion.getBootstrapServers());
         Admin admin = Admin.create(properties);
 
         await().until(() -> {
@@ -114,7 +102,7 @@ public class PartitionTest extends KafkaTestBase {
 
     @Test
     public void testWithMorePartitionsThanConsumers() throws InterruptedException {
-        usage.createTopic(topic, 3);
+        companion.topics().create(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
@@ -126,17 +114,12 @@ public class PartitionTest extends KafkaTestBase {
 
         MyApplication application = runApplication(config, MyApplication.class);
 
-        AtomicInteger count = new AtomicInteger();
         int expected = 3000;
         Random random = new Random();
-        CountDownLatch latch = new CountDownLatch(1);
-        usage.produce(topic, expected, new StringSerializer(), new StringSerializer(), latch::countDown, () -> {
-            int value = count.getAndIncrement();
+        companion.produceStrings().usingGenerator(i -> {
             int p = random.nextInt(3);
-            return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(value));
-        });
-
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+            return new ProducerRecord<>(topic, p, Integer.toString(p), Integer.toString(i));
+        }, expected).awaitCompletion(Duration.ofMinutes(1));
 
         await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -144,7 +127,7 @@ public class PartitionTest extends KafkaTestBase {
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(2));
 
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", usage.getBootstrapServers());
+        properties.put("bootstrap.servers", companion.getBootstrapServers());
         Admin admin = Admin.create(properties);
 
         await().until(() -> {

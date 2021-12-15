@@ -5,9 +5,6 @@ import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -24,11 +21,13 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
+import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class HealthCheckTest extends KafkaTestBase {
+public class HealthCheckTest extends KafkaCompanionTestBase {
 
     @Test
     public void testHealthOfApplicationWithoutOutgoingTopic() {
@@ -36,17 +35,13 @@ public class HealthCheckTest extends KafkaTestBase {
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         await().until(this::isStarted);
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        await().until(() -> expected.get() == 10);
+        await().until(() -> records.count() == 10);
         HealthReport startup = getHealth().getStartup();
         HealthReport liveness = getHealth().getLiveness();
         HealthReport readiness = getHealth().getReadiness();
@@ -63,24 +58,20 @@ public class HealthCheckTest extends KafkaTestBase {
     @Test
     void testHealthOfApplicationWithOutgoingTopicUsingTopicVerification() {
         String outputTopic = UUID.randomUUID().toString();
-        usage.createTopic(outputTopic, 1);
+        companion.topics().create(outputTopic, 1);
         MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
                 .put("health-topic-verification-enabled", true)
                 .put("topic", outputTopic));
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+        ConsumerTask<String, Integer> consume = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         await().until(this::isStarted);
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        await().until(() -> expected.get() == 10);
+        await().until(() -> consume.count() == 10);
         HealthReport startup = getHealth().getStartup();
         HealthReport liveness = getHealth().getLiveness();
         HealthReport readiness = getHealth().getReadiness();
@@ -101,17 +92,13 @@ public class HealthCheckTest extends KafkaTestBase {
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeIntegers(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         await().until(this::isStarted);
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        await().until(() -> expected.get() == 10);
+        await().until(() -> records.count() == 10);
         HealthReport startup = getHealth().getStartup();
         HealthReport liveness = getHealth().getLiveness();
         HealthReport readiness = getHealth().getReadiness();
@@ -143,9 +130,7 @@ public class HealthCheckTest extends KafkaTestBase {
                 .put("health-readiness-topic-verification", true);
         LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, "key", expected.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
 
         await().until(this::isStarted);
         await().until(this::isReady);
@@ -173,20 +158,17 @@ public class HealthCheckTest extends KafkaTestBase {
     }
 
     @Test
-    public void testHealthOfApplicationWithChannel() throws InterruptedException {
+    public void testHealthOfApplicationWithChannel() {
         KafkaMapBasedConfig config = getKafkaSourceConfig(topic);
         LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
 
-        AtomicInteger expected = new AtomicInteger(0);
-        CountDownLatch latch = new CountDownLatch(1);
-        usage.produceIntegers(10, latch::countDown,
-                () -> new ProducerRecord<>(topic, "key", expected.getAndIncrement()));
+        ProducerTask produced = companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
 
         await().until(this::isStarted);
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        produced.awaitCompletion(Duration.ofMinutes(1));
 
         Multi<Integer> channel = bean.getChannel();
         channel

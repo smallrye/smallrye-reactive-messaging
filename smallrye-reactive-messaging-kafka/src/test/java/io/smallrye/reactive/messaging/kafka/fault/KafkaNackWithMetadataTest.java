@@ -22,10 +22,10 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-public class KafkaNackWithMetadataTest extends KafkaTestBase {
+public class KafkaNackWithMetadataTest extends KafkaCompanionTestBase {
     @Test
     public void test() {
         runApplication(config(), MyApp.class);

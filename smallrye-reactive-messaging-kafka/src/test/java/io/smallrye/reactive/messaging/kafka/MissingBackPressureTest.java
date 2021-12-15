@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -9,16 +8,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -27,25 +23,21 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 
-public class MissingBackPressureTest extends KafkaTestBase {
+public class MissingBackPressureTest extends KafkaCompanionTestBase {
 
     @Test
     // to be investigated - fail on CI
     @Tag(TestTags.FLAKY)
-    public void testWithInterval() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> expected.getAndIncrement());
+    public void testWithInterval() {
+        ConsumerTask<String, String> consume = companion.consumeStrings().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         runApplication(myKafkaSinkConfig(), MyOutgoingBean.class);
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(expected).hasValueGreaterThanOrEqualTo(10);
+        assertThat(consume.awaitCompletion(Duration.ofMinutes(1)).count()).isGreaterThanOrEqualTo(10);
     }
 
     public KafkaMapBasedConfig myKafkaSinkConfig() {
@@ -56,35 +48,27 @@ public class MissingBackPressureTest extends KafkaTestBase {
     }
 
     @Test
-    public void testWithEmitter() throws InterruptedException {
-        List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-        usage.consumeStrings(topic, 10, 10, TimeUnit.SECONDS,
-                latch::countDown,
-                (k, v) -> {
-                    received.add(entry(k, v));
-                    expected.getAndIncrement();
-                });
+    public void testWithEmitter() {
+        ConsumerTask<String, String> consume = companion.consumeStrings().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         runApplication(myKafkaSinkConfig(), MyEmitterBean.class);
 
         MyEmitterBean bean = get(MyEmitterBean.class);
         bean.run();
 
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        consume.awaitCompletion(Duration.ofMinutes(1));
 
         bean.stop();
-        assertThat(expected).hasValueGreaterThanOrEqualTo(10);
+        assertThat(consume.count()).isGreaterThanOrEqualTo(10);
 
         // Check that the 10 first value matches the emitted values.
         List<KafkaRecord<String, String>> messages = bean.emitted();
-        Iterator<Map.Entry<String, String>> iterator = received.iterator();
+        Iterator<ConsumerRecord<String, String>> iterator = consume.getRecords().iterator();
         for (int i = 0; i < 10; i++) {
             KafkaRecord<String, String> message = messages.get(i);
-            Map.Entry<String, String> entry = iterator.next();
-            assertThat(entry.getKey()).isEqualTo(message.getKey());
-            assertThat(entry.getValue()).isEqualTo(message.getPayload());
+            ConsumerRecord<String, String> record = iterator.next();
+            assertThat(record.key()).isEqualTo(message.getKey());
+            assertThat(record.value()).isEqualTo(message.getPayload());
         }
     }
 

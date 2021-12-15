@@ -3,10 +3,7 @@ package io.smallrye.reactive.messaging.kafka.fault;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -18,13 +15,13 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionProxyTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaToxiproxyTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 // TODO this test does not work yet
 @Disabled
-public class ProducerRetryTest extends KafkaToxiproxyTestBase {
+public class ProducerRetryTest extends KafkaCompanionProxyTestBase {
 
     private KafkaMapBasedConfig getBaseConfig() {
         return kafkaConfig("mp.messaging.outgoing.kafka")
@@ -66,12 +63,8 @@ public class ProducerRetryTest extends KafkaToxiproxyTestBase {
 
         enableProxy();
 
-        CountDownLatch latch = new CountDownLatch(1);
-        Set<Integer> expected = new HashSet<>();
-        usage.consumeIntegers(topic, 20, 1, TimeUnit.MINUTES, latch::countDown, (k, v) -> expected.add(v));
-
-        assertThat(latch.await(2, TimeUnit.MINUTES)).isTrue();
-        await().until(() -> expected.size() == 20);
+        assertThat(companion.consumeIntegers().fromTopics(topic, 20, Duration.ofMinutes(1))
+                .awaitCompletion(Duration.ofMinutes(2)).count()).isEqualTo(20);
     }
 
     @ApplicationScoped

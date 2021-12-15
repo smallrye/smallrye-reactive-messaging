@@ -6,7 +6,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -30,7 +29,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.TestTags;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -44,18 +43,17 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 @Tag(TestTags.PERFORMANCE)
 @Tag(TestTags.SLOW)
 @Disabled
-public class EndToEndPayloadPerfTest extends KafkaTestBase {
+public class EndToEndPayloadPerfTest extends KafkaCompanionTestBase {
 
     public static final int COUNT = 10_000;
     public static String input_topic = UUID.randomUUID().toString();
     public static String output_topic = UUID.randomUUID().toString();
 
     @BeforeAll
-    static void insertRecords() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        usage.produce("payload-producer", COUNT, new StringSerializer(), new ByteArraySerializer(), latch::countDown,
-                () -> new ProducerRecord<>(input_topic, "key", generateRandomPayload(10000))); // 10kb
-        latch.await();
+    static void insertRecords() {
+        companion.produce(String.class, byte[].class).withClientId("payload-producer")
+                .usingGenerator(i -> new ProducerRecord<>(input_topic, "key", generateRandomPayload(10000)), COUNT) // 10kb
+                .awaitCompletion(Duration.ofMinutes(5));
     }
 
     private MapBasedConfig commonConfig() {
@@ -76,7 +74,7 @@ public class EndToEndPayloadPerfTest extends KafkaTestBase {
 
     private void waitForOutMessages() {
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", usage.getBootstrapServers());
+        properties.put("bootstrap.servers", companion.getBootstrapServers());
         properties.put("group.id", UUID.randomUUID().toString());
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties, new StringDeserializer(),
                 new ByteArrayDeserializer());

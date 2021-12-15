@@ -1,13 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -20,10 +17,10 @@ import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class ConfigOverrideFromEnvTest extends KafkaTestBase {
+public class ConfigOverrideFromEnvTest extends KafkaCompanionTestBase {
 
     final static String TOPIC = "ConfigOverrideFromEnvTest-Topic";
 
@@ -40,9 +37,8 @@ public class ConfigOverrideFromEnvTest extends KafkaTestBase {
         Consumer consumer = runApplication(config, Consumer.class);
         await().until(() -> isReady() && isAlive());
 
-        CountDownLatch latch = new CountDownLatch(1);
-        usage.produceStrings(5, latch::countDown, () -> new ProducerRecord<>(TOPIC, "key", "hello"));
-        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(TOPIC, "key", "hello"), 5)
+                .awaitCompletion();
 
         await()
                 .atMost(Duration.ofMinutes(1))

@@ -26,17 +26,17 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.ConsumerRecordConverter;
 
-public class ProducerRecordTest extends KafkaTestBase {
+public class ProducerRecordTest extends KafkaCompanionTestBase {
     private static final String TOPIC_NAME_BASE = "ProducerRecord-" + UUID.randomUUID() + "-";
 
     @Test
     public void test() {
         for (int i = 0; i < 10; i++) {
-            usage.createTopic(TOPIC_NAME_BASE + i, 1);
+            companion.topics().create(TOPIC_NAME_BASE + i, 1);
         }
 
         addBeans(ConsumerRecordConverter.class);

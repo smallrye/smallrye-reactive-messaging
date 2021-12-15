@@ -6,33 +6,28 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class SourceCloseTest extends KafkaTestBase {
+public class SourceCloseTest extends KafkaCompanionTestBase {
 
     @Test
-    public void testNoLostMessagesOnClose() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger count = new AtomicInteger();
-        int messageCount = 1000;
-        usage.produceIntegers(messageCount, latch::countDown, () -> new ProducerRecord<>(topic, null, count.getAndIncrement()));
-        latch.await();
+    public void testNoLostMessagesOnClose() {
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, null, i), 1000)
+                .awaitCompletion();
 
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config1 = new MapBasedConfig()
                 .with("channel-name", "data1")
-                .with("bootstrap.servers", usage.getBootstrapServers())
+                .with("bootstrap.servers", companion.getBootstrapServers())
                 .with("topic", topic)
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("max.poll.records", 4)
@@ -42,7 +37,7 @@ public class SourceCloseTest extends KafkaTestBase {
 
         MapBasedConfig config2 = new MapBasedConfig()
                 .with("channel-name", "data2")
-                .with("bootstrap.servers", usage.getBootstrapServers())
+                .with("bootstrap.servers", companion.getBootstrapServers())
                 .with("topic", topic)
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("max.poll.records", 4)

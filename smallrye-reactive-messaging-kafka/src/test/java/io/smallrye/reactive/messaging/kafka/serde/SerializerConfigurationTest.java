@@ -4,9 +4,9 @@ import static io.smallrye.reactive.messaging.kafka.Record.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kafka.common.KafkaException;
@@ -17,16 +17,16 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.*;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 @SuppressWarnings("unchecked")
-public class SerializerConfigurationTest extends KafkaTestBase {
+public class SerializerConfigurationTest extends KafkaCompanionTestBase {
 
     private KafkaSink sink;
 
@@ -43,11 +43,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
         sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance());
 
-        List<Tuple2<String, String>> list = new ArrayList<>();
-        usage.consumeStrings(topic, 4, 10, TimeUnit.SECONDS, () -> {
-        }, (k, v) -> {
-            list.add(Tuple2.of(k, v));
-        });
+        ConsumerTask<String, String> consumed = companion.consumeStrings().fromTopics(topic, 4, Duration.ofSeconds(10));
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
         Multi.createFrom().items(
@@ -55,18 +51,18 @@ public class SerializerConfigurationTest extends KafkaTestBase {
                 Message.of(of("key", null)), Message.of(of(null, null)))
                 .subscribe((Subscriber<? super Message<?>>) subscriber);
 
-        await().until(() -> list.size() == 4);
-        assertThat(list.get(0).getItem1()).isEqualTo("key");
-        assertThat(list.get(0).getItem2()).isEqualTo("value");
+        await().until(() -> consumed.getRecords().size() == 4);
+        assertThat(consumed.getRecords().get(0).key()).isEqualTo("key");
+        assertThat(consumed.getRecords().get(0).value()).isEqualTo("value");
 
-        assertThat(list.get(1).getItem1()).isEqualTo(null);
-        assertThat(list.get(1).getItem2()).isEqualTo("value");
+        assertThat(consumed.getRecords().get(1).key()).isEqualTo(null);
+        assertThat(consumed.getRecords().get(1).value()).isEqualTo("value");
 
-        assertThat(list.get(2).getItem1()).isEqualTo("key");
-        assertThat(list.get(2).getItem2()).isEqualTo(null);
+        assertThat(consumed.getRecords().get(2).key()).isEqualTo("key");
+        assertThat(consumed.getRecords().get(2).value()).isEqualTo(null);
 
-        assertThat(list.get(3).getItem1()).isEqualTo(null);
-        assertThat(list.get(3).getItem2()).isEqualTo(null);
+        assertThat(consumed.getRecords().get(3).key()).isEqualTo(null);
+        assertThat(consumed.getRecords().get(3).value()).isEqualTo(null);
 
     }
 
@@ -136,7 +132,7 @@ public class SerializerConfigurationTest extends KafkaTestBase {
 
     private MapBasedConfig commonConsumerConfiguration() {
         return new MapBasedConfig()
-                .with("bootstrap.servers", usage.getBootstrapServers())
+                .with("bootstrap.servers", companion.getBootstrapServers())
                 .with("channel-name", "channel")
                 .with("topic", topic)
                 .with("health-enabled", false)
