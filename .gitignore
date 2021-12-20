@@ -1,6 +1,10 @@
 # Created by .ignore support plugin (hsz.mobi)
 
 .vertx
+docs/site
+
+__pycache__/
+__pycache__/*
 
 ### Maven template
 target/

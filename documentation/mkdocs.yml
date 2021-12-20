@@ -1,0 +1,132 @@
+site_name: SmallRye Reactive Messaging
+site_url: https://smallrye.io/smallrye-reactive-messaging
+repo_url: https://github.com/smallrye/smallrye-reactive-messaging
+
+docs_dir: src/main/docs
+
+nav:
+  - Home: index.md
+  - Core:
+        - 'Getting Started': getting-started.md
+        - 'Concepts':
+            -  concepts/concepts.md
+            - 'Development Model': concepts/model.md
+            - 'Emitters and Channel' : concepts/emitter.md
+            - 'Connectors' : concepts/connectors.md
+            - 'Acknowledgement': concepts/acknowledgement.md
+            - 'Blocking Processing': concepts/blocking.md
+            - 'Method Signatures': concepts/signatures.md
+            - 'Skipping Messages': concepts/skipping.md
+            - 'Message Converters': concepts/converters.md
+            - 'Broadcast' : concepts/broadcast.md
+            - 'Merge channels' : concepts/merge.md
+            - '@Incomings' : concepts/incomings.md
+            - 'Testing' : concepts/testing.md
+            - 'Logging' : concepts/logging.md
+            - 'Advanced Configuration' : concepts/advanced-config.md
+
+  - Kafka:
+        - kafka/kafka.md
+        - 'Receiving records': kafka/receiving-kafka-records.md
+        - 'Writing records': kafka/writing-kafka-records.md
+        - 'Health Checks': kafka/health.md
+        - 'Using Avro': kafka/avro-configuration.md
+        - 'Using Protobuf': kafka/protobuf-configuration.md
+        - 'Rebalance Listeners': kafka/consumer-rebalance-listener.md
+        - 'Kerberos authentication': kafka/kerberos.md
+        - 'Accessing the client': kafka/client-service.md
+        - 'Customizing Default Kafka Configuration': kafka/default-configuration.md
+
+  - AMQP 1.0:
+        - amqp/amqp.md
+        - 'Receiving messages': amqp/receiving-amqp-messages.md
+        - 'Sending messages': amqp/sending-amqp-messages.md
+        - 'Health Checks': amqp/health.md
+        - 'Client Customization': amqp/client-customization.md
+        - 'Using RabbitMQ': amqp/rabbitmq.md
+  - RabbitMQ:
+        - rabbitmq/rabbitmq.md
+        - 'Receiving messages' : rabbitmq/receiving-messages-from-rabbitmq.md
+        - 'Sending messages' : rabbitmq/sending-messages-to-rabbitmq.md
+        - 'Health Checks' : rabbitmq/rabbitmq-health.md
+        - 'Client Customization' : rabbitmq/rabbitmq-client-customization.md
+        - 'Connecting to managed instances' : rabbitmq/rabbitmq-cloud.md
+
+  - Apache Camel:
+       -  camel/camel.md
+       -  'Receiving messages from Camel': camel/receiving-messages-from-camel.md
+       -  'Sending messages to Camel': camel/sending-messages-to-camel.md
+       -  'Implementing Camel processor': camel/camel-processor.md
+       -  'Using existing Camel routes': camel/using-existing-routes.md
+
+  - JMS:
+        - jms/jms.md
+        - 'Receiving JMS messages' : jms/receiving-jms-messages.md
+        - 'Sending JMS messages' : jms/sending-jms-messages.md
+        - 'Advanced configuration' : jms/advanced-jms.md
+
+  - MQTT:
+        - mqtt/mqtt.md
+        - 'Receiving MQTT messages': mqtt/receiving-mqtt-messages.md
+        - 'Sending MQTT messages': mqtt/sending-messages-to-mqtt.md
+
+plugins:
+  - search
+  - macros:
+      module_name: src/main/macros/docissimo
+      include_dir: src/main/macros
+  - mike:
+        version_selector: true
+        css_dir: css
+        javascript_dir: javascript
+
+copyright: >-
+  Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/>
+  <a href="https://creativecommons.org/licenses/by/3.0/">CC by 3.0</a> |
+  <a href="https://www.redhat.com/en/about/privacy-policy">Privacy Policy</a>
+
+theme:
+  name: material
+  logo: images/logo.png
+  favicon: images/favicon.png
+  palette:
+    primary: blue grey
+    accent: blue
+  font:
+    text: Red Hat Text
+    code: Ubuntu Mono
+  features:
+    - navigation.sections
+    - navigation.tracking
+#    - navigation.expand
+    - navigation.indexes
+
+markdown_extensions:
+  - toc:
+        toc_depth: 3
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.snippets
+  - admonition
+  - abbr
+  - attr_list
+  - def_list
+  - tables
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.highlight:
+        linenums: true
+        anchor_linenums: true
+
+extra_css:
+    - css/smallrye.css
+
+extra:
+  version:
+    provider: mike
+  snippet_dir: src/main/java
+  attributes_path: target/classes/attributes.yaml
+  javadoc_artifact: io.smallrye.reactive/smallrye-reactive-messaging-api

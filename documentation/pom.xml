@@ -18,9 +18,7 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-
-    <output.antora.directory>${project.build.directory}/antora</output.antora.directory>
-    <antora.file>src/main/doc/antora.yml</antora.file>
+    <attribute.file>attributes.yaml</attribute.file>
 
     <sonar.skip>true</sonar.skip>
   </properties>
@@ -102,38 +100,8 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.2.0</version>
-        <executions>
-          <execution>
-            <id>add-source</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <!-- Here we list all the "examples" directory from the modules -->
-              <sources>
-                <source>src/main/doc/modules/ROOT/examples</source>
-                <source>src/main/doc/modules/kafka/examples</source>
-                <source>src/main/doc/modules/amqp/examples</source>
-                <source>src/main/doc/modules/camel/examples</source>
-                <source>src/main/doc/modules/jms/examples</source>
-                <source>src/main/doc/modules/mqtt/examples</source>
-                <source>src/main/doc/modules/rabbitmq/examples</source>
-                <source>src/main/doc/modules/mqtt-server/examples</source>
-                <source>src/main/doc/modules/http/examples</source>
-                <source>src/main/doc/modules/vertx-event-bus/examples</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
         <!-- Unpack the connector config page to a specific modules in the `partials` family. -->
-        <!-- NOTE: this modify the source tree, so every time there is an update, the new file must be committed and pushed -->
+        <!-- NOTE: this modifies the source tree, so every time there is an update, the new file must be committed and pushed -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>3.2.0</version>
@@ -141,13 +109,19 @@
           <execution>
             <id>extract-generated-documentation</id>
             <!-- must happen after packaging -->
-            <phase>pre-integration-test</phase>
+            <phase>process-resources</phase>
             <goals>
               <goal>unpack-dependencies</goal>
             </goals>
             <configuration>
-              <outputDirectory>src/main/doc/modules/connectors/partials</outputDirectory>
-              <includes>**/connector/*.adoc</includes>
+              <outputDirectory>target/connectors</outputDirectory>
+              <includes>**/connector/*.md</includes>
+              <fileMappers>
+                <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                  <pattern>^\QMETA-INF/connector\E</pattern>
+                  <replacement>./</replacement>
+                </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+              </fileMappers>
             </configuration>
           </execution>
         </executions>
@@ -160,59 +134,22 @@
         <version>3.2.0</version>
         <executions>
           <execution>
-            <id>update-antora-file</id>
+            <id>update-attributes</id>
             <phase>initialize</phase>
             <goals>
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>src/main/doc</outputDirectory>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
               <resources>
                 <resource>
-                  <directory>src/main/antora</directory>
+                  <directory>src/main/resources</directory>
                   <filtering>true</filtering>
                   <includes>
-                    <include>antora.yml</include>
+                    <include>attributes.yaml</include>
                   </includes>
                 </resource>
               </resources>
-            </configuration>
-          </execution>
-          <execution>
-            <id>copy-modules</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${output.antora.directory}</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>src/main/doc</directory>
-                  <filtering>false</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-          <execution>
-            <id>copy-bundle-ui</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${output.antora.directory}</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>src/main/antora</directory>
-                  <excludes>
-                    <exclude>*.yml</exclude>
-                  </excludes>
-                </resource>
-              </resources>
-              <nonFilteredFileExtensions>
-                <nonFilteredFileExtension>zip</nonFilteredFileExtension>
-              </nonFilteredFileExtensions>
             </configuration>
           </execution>
         </executions>
