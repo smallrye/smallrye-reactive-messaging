@@ -29,7 +29,7 @@ thread to run the send operations as well.
 
 Sometimes, SmallRye Reactive Messaging provides direct access to the
 Kafka `Producer` or `Consumer`. For example, a
-[`KafkaConsumerRebalanceListener`](#kafka-consumer-rebalance-listener)
+[`KafkaConsumerRebalanceListener`](consumer-rebalance-listener.md)
 methods are always invoked on the polling thread, so they give you
 direct access to `Consumer`. In such case, you should use the
 `Producer`/`Consumer` API directly, instead of the
