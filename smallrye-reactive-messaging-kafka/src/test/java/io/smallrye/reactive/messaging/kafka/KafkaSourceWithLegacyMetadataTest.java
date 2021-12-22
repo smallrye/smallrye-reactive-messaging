@@ -380,7 +380,8 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaTestBase {
     @Test
     public void testABeanConsumingTheKafkaMessagesMultiThread() {
         String group = UUID.randomUUID().toString();
-        KafkaSourceTest.MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(topic, group), KafkaSourceTest.MultiThreadConsumer.class);
+        KafkaSourceTest.MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(topic, group),
+                KafkaSourceTest.MultiThreadConsumer.class);
         List<Integer> list = bean.getItems();
         assertThat(list).isEmpty();
         bean.run();
