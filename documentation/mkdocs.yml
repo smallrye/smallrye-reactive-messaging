@@ -1,6 +1,7 @@
 site_name: SmallRye Reactive Messaging
 site_url: https://smallrye.io/smallrye-reactive-messaging
 repo_url: https://github.com/smallrye/smallrye-reactive-messaging
+edit_uri: edit/main/documentation/src/main/docs
 
 docs_dir: src/main/docs
 
