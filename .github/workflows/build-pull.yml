@@ -55,20 +55,3 @@ jobs:
               run: |
                  mvn -s .github/ci-maven-settings.xml \
                     -B clean verify -Dtest-containers=true ${{ matrix.java.build_opts }}
-
-
-    up_to_date_antora:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/checkout@v2
-            - uses: actions/setup-java@v2
-              with:
-                  java-version: 11
-                  distribution: temurin
-            - name: Build with Maven
-              run: | # Fail the build is the antora.yaml becomes out of date
-                  mvn -s .github/ci-maven-settings.xml -B install -DskipTests
-                  mvn -s .github/ci-maven-settings.xml -B \
-                    -pl documentation scm:check-local-modification \
-                    -Dincludes=src/main/doc/antora.yml
