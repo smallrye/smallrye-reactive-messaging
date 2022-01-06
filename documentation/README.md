@@ -1,4 +1,4 @@
-= Documentation
+# Documentation
 
 This module contains the SmallRye Reactive Messaging documentation.
 The documentation uses:
@@ -6,43 +6,60 @@ The documentation uses:
 - mkdocs
 - markdown
 
-== Prerequisites
+## Prerequisites
 
 * python 3
-* a set of pip modules:
+* pipenv
+
+pipenv can be installed via pip:
 ```shell
-> pip3 install mkdocs mkdocs-macros-plugin pyyaml mike mkdocs-material
+pip3 install pipenv
 ```
 
-== Build
+## Development
 
+Create virtualenv and install requirements:
+```shell
+> pipenv shell
+> pipenv install
+```
+
+Utilities needed for development such as `mkdocs` and `mike` will be available inside created shell.
+
+When finished, you can remove the virtual environment and exit the created sub-shell:
+```shell
+> pipenv --rm
+> exit
+```
+
+## Build
 
 ```shell
 > mvn compile
-> mkddocs serve # Live view on http://127.0.0.1:8000/smallrye-reactive-messaging/
+> mkdocs serve # Live view on http://127.0.0.1:8000/smallrye-reactive-messaging/
 
 # Or build
-> mkddocs build
+> mkdocs build
 ```
 
-== Deploy
+## Deploy
 
 ```shell
 mike deploy $VERSION -p
 mike alias $VERSION "latest"
 ```
 
-== Structure
+## Structure
 
-=== The navigation
+### The navigation
 
 The navigation is described in the `mkdocs.yml` file.
 
-=== The content
+### The content
 
 The documentation sources are in `src/main/docs`.
 
-=== Attributes
+### Attributes
 
 We extended mkdocs with a set of macros (named `docissimo`) which loads versions from Maven.
 The source of the loaded file in `src/main/resources/attributes.yaml`.
@@ -54,7 +71,7 @@ Access the values as follows:
 {{ attributes['project-version'] }}
 ```
 
-=== Snippets
+### Snippets
 
 Code snippets are located in `src/main/java`.
 They are inserted using a docissimo macros:
@@ -66,7 +83,7 @@ They are inserted using a docissimo macros:
 The section to insert (like `named` in the previous example) is delimited with `<named></named>`.
 If you don't set the section, the whole file is included.
 
-=== Connector tables
+### Connector tables
 
 The connector configuration tables are unpacked from each connector in `target/connectors`, and so inserted as follows:
 

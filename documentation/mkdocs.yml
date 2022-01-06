@@ -10,7 +10,7 @@ nav:
   - Core:
         - 'Getting Started': getting-started.md
         - 'Concepts':
-            -  concepts/concepts.md
+            - 'Introduction': concepts/concepts.md
             - 'Development Model': concepts/model.md
             - 'Emitters and Channel' : concepts/emitter.md
             - 'Connectors' : concepts/connectors.md
