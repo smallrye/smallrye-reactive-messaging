@@ -34,6 +34,9 @@ public class ConfigurationCleaner {
             "cloud-events-data-schema",
             "cloud-events-insert-timestamp",
             "cloud-events-mode",
+            "propagate-record-key",
+            "key-serialization-failure-handler",
+            "value-serialization-failure-handler",
 
             // Remove most common attributes, may have been configured from the default config
             "key.deserializer",
