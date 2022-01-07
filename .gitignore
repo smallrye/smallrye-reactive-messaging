@@ -1,7 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 
 .vertx
-docs/site
+documentation/site
 
 __pycache__/
 __pycache__/*

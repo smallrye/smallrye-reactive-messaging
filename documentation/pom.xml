@@ -101,7 +101,6 @@
     <plugins>
       <plugin>
         <!-- Unpack the connector config page to a specific modules in the `partials` family. -->
-        <!-- NOTE: this modifies the source tree, so every time there is an update, the new file must be committed and pushed -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>3.2.0</version>
@@ -127,7 +126,7 @@
         </executions>
       </plugin>
 
-      <!-- This part of the build is generating the Antora structure in `target` for generation purpose -->
+      <!-- This part of the build is generating the attributes for mkdocs -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
