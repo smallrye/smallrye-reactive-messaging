@@ -73,11 +73,13 @@ public class ConnectorAttributeProcessor extends AbstractProcessor {
             validate(outgoingAttributes);
 
             ConfigurationClassWriter classWriter = new ConfigurationClassWriter(processingEnv);
-            ConfigurationDocWriter docWriter = new ConfigurationDocWriter(processingEnv);
+            ConfigurationDocWriter asciidocWriter = new ConfigurationDocWriter(processingEnv);
+            ConfigurationMarkdownDocWriter markdownWriter = new ConfigurationMarkdownDocWriter(processingEnv);
 
             try {
                 classWriter.generateAllClasses(connector, className, commonAttributes, incomingAttributes, outgoingAttributes);
-                docWriter.generate(connector, commonAttributes, incomingAttributes, outgoingAttributes);
+                asciidocWriter.generate(connector, commonAttributes, incomingAttributes, outgoingAttributes);
+                markdownWriter.generate(connector, commonAttributes, incomingAttributes, outgoingAttributes);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

@@ -1,0 +1,9 @@
+attributes:
+    version: ${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}
+    project-version: '${project.version}'
+    weld-version: '${weld.version}'
+    smallrye-config-version: '${smallrye-config.version}'
+    mutiny-version: '${mutiny.version}'
+    camel-version: '${camel.version}'
+    spec-version: '${microprofile-reactive-messaging.version}'
+

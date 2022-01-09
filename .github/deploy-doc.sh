@@ -1,31 +1,19 @@
 #!/usr/bin/env bash
-echo "Cleaning"
-mvn -B clean -pl documentation
+set -e
 
-export VERSION=""
+VERSION=${1:-"$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"}
+REMOTE=${2:-"origin"}
+REMOTE_URL=$(git remote get-url "${REMOTE}")
 
-echo "Building the doc from project root"
+echo "Deploying documentation version ${VERSION} to remote ${REMOTE} (${REMOTE_URL})"
 
-mvn -B javadoc:aggregate -DskipTests
+echo "Configuring environment"
+cd documentation
+pipenv install
 
-echo "Cloning repo"
-cd documentation || exit
-mvn -B verify
-mvn -B scm:check-local-modification -Dincludes=src/main/doc/antora.yml
-VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-antora generate target/antora/antora-playbook.yml --clean
-
-cd target || exit
-git clone -b gh-pages git@github.com:smallrye/smallrye-reactive-messaging.git site
-echo "Copy content"
-yes | cp -R antora/build/site/* site/
-mkdir -p "site/${VERSION}"
-yes | cp -R apidocs "site/${VERSION}"
-
-echo "Pushing"
-cd site  || exit
-git add -A
-git commit -m "update site - version ${VERSION}"
-git push origin gh-pages
+echo "Publishing"
+mvn -B clean compile
+pipenv run mike deploy --update-aliases --push --remote "${REMOTE}" "${VERSION}" "latest"
+pipenv --rm
 
 echo "Done"
