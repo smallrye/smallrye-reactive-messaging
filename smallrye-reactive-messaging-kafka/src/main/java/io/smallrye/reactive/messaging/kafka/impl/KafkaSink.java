@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -24,6 +25,7 @@ import org.apache.kafka.common.errors.RecordBatchTooLargeException;
 import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.UnknownServerException;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -32,6 +34,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.internal.StringUtils;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
@@ -159,12 +162,14 @@ public class KafkaSink {
         return message -> {
             try {
                 Optional<OutgoingKafkaRecordMetadata<?>> om = getOutgoingKafkaRecordMetadata(message);
-                OutgoingKafkaRecordMetadata<?> metadata = om.orElse(null);
-                String actualTopic = metadata == null || metadata.getTopic() == null ? this.topic : metadata.getTopic();
+                OutgoingKafkaRecordMetadata<?> outgoingMetadata = om.orElse(null);
+                String actualTopic = outgoingMetadata == null || outgoingMetadata.getTopic() == null ? this.topic
+                        : outgoingMetadata.getTopic();
 
                 ProducerRecord<?, ?> record;
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
                         .orElse(null);
+                IncomingKafkaRecordMetadata<?, ?> incomingMetadata = getIncomingKafkaRecordMetadata(message).orElse(null);
 
                 if (message.getPayload() instanceof ProducerRecord) {
                     record = (ProducerRecord<?, ?>) message.getPayload();
@@ -174,15 +179,16 @@ public class KafkaSink {
                     // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
                     // - or if the message does not contain this metadata, the type and source are configured on the channel
                     if (writeAsBinaryCloudEvent) {
-                        record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, metadata, ceMetadata,
-                                configuration);
+                        record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, outgoingMetadata,
+                                incomingMetadata,
+                                ceMetadata, configuration);
                     } else {
                         record = KafkaCloudEventHelper
-                                .createStructuredRecord(message, actualTopic, metadata, ceMetadata,
+                                .createStructuredRecord(message, actualTopic, outgoingMetadata, incomingMetadata, ceMetadata,
                                         configuration);
                     }
                 } else {
-                    record = getProducerRecord(message, metadata, actualTopic);
+                    record = getProducerRecord(message, outgoingMetadata, incomingMetadata, actualTopic);
                 }
                 log.sendingMessageToTopic(message, actualTopic);
 
@@ -231,9 +237,20 @@ public class KafkaSink {
         return metadata;
     }
 
+    private Optional<IncomingKafkaRecordMetadata<?, ?>> getIncomingKafkaRecordMetadata(Message<?> message) {
+        Optional<IncomingKafkaRecordMetadata<?, ?>> metadata = message.getMetadata(IncomingKafkaRecordMetadata.class)
+                .map(x -> (IncomingKafkaRecordMetadata<?, ?>) x);
+        if (metadata.isPresent()) {
+            return metadata;
+        }
+        metadata = message.getMetadata(io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata.class)
+                .map(x -> (IncomingKafkaRecordMetadata<?, ?>) x);
+        return metadata;
+    }
+
     @SuppressWarnings("rawtypes")
     private ProducerRecord<?, ?> getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
-            String actualTopic) {
+            IncomingKafkaRecordMetadata<?, ?> im, String actualTopic) {
         int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
 
         Object actualKey = getKey(message, om);
@@ -245,7 +262,22 @@ public class KafkaSink {
             actualTimestamp = (om.getTimestamp() != null) ? om.getTimestamp().toEpochMilli() : -1;
         }
 
-        Headers kafkaHeaders = om == null || om.getHeaders() == null ? new RecordHeaders() : om.getHeaders();
+        Headers kafkaHeaders = new RecordHeaders();
+        if (!StringUtils.isNullOrEmpty(this.configuration.getPropagateHeaders()) && im != null && im.getHeaders() != null) {
+            Set<String> configuredHeaders = Arrays.stream(this.configuration.getPropagateHeaders().split(",")).map(String::trim)
+                    .collect(Collectors.toSet());
+            Iterator<Header> iterator = im.getHeaders().iterator();
+            while (iterator.hasNext()) {
+                Header header = iterator.next();
+                if (configuredHeaders.contains(header.key())) {
+                    kafkaHeaders.add(header);
+                }
+            }
+        }
+        // add outgoing metadata headers, and override incoming headers if needed
+        if (om != null && om.getHeaders() != null) {
+            om.getHeaders().forEach(kafkaHeaders::add);
+        }
         createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
         Object payload = message.getPayload();
         if (payload instanceof Record) {

@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -28,6 +29,7 @@ import io.smallrye.reactive.messaging.ce.impl.DefaultIncomingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.Record;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -200,16 +202,16 @@ public class KafkaCloudEventHelper {
 
     @SuppressWarnings("rawtypes")
     public static ProducerRecord<?, ?> createBinaryRecord(Message<?> message, String topic,
-            OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            OutgoingKafkaRecordMetadata<?> outgoingMetadata, IncomingKafkaRecordMetadata<?, ?> incomingMetadata,
+            OutgoingCloudEventMetadata<?> ceMetadata, KafkaConnectorOutgoingConfiguration configuration) {
 
         if (ceMetadata == null) {
             ceMetadata = OutgoingCloudEventMetadata.builder().build();
         }
-        Integer partition = getPartition(metadata, configuration);
-        Object key = getKey(message, metadata, ceMetadata, configuration);
-        Long timestamp = getTimestamp(metadata);
-        List<Header> headers = getHeaders(metadata);
+        Integer partition = getPartition(outgoingMetadata, configuration);
+        Object key = getKey(message, outgoingMetadata, ceMetadata, configuration);
+        Long timestamp = getTimestamp(outgoingMetadata);
+        List<Header> headers = getHeaders(outgoingMetadata, incomingMetadata, configuration);
         Optional<String> subject = getSubject(ceMetadata, configuration);
         Optional<String> contentType = getDataContentType(ceMetadata, configuration);
         Optional<URI> schema = getDataSchema(ceMetadata, configuration);
@@ -317,10 +319,22 @@ public class KafkaCloudEventHelper {
         return configuration.getCloudEventsDataContentType();
     }
 
-    private static List<Header> getHeaders(OutgoingKafkaRecordMetadata<?> metadata) {
+    private static List<Header> getHeaders(OutgoingKafkaRecordMetadata<?> outGoingMetadata,
+            IncomingKafkaRecordMetadata<?, ?> incomingMetadata, KafkaConnectorOutgoingConfiguration configuration) {
         List<Header> headers = new ArrayList<>();
-        if (metadata != null && metadata.getHeaders() != null) {
-            metadata.getHeaders().forEach(headers::add);
+
+        // First incoming headers, so that they can be overriden by outgoing headers
+        if (!isNotBlank(configuration.getPropagateHeaders()) && incomingMetadata != null
+                && incomingMetadata.getHeaders() != null) {
+            Set<String> incomingHeaders = Arrays.stream(configuration.getPropagateHeaders().split(",")).map(String::trim)
+                    .collect(Collectors.toSet());
+
+            Arrays.stream(incomingMetadata.getHeaders().toArray())
+                    .filter(header -> incomingHeaders.contains(header))
+                    .map(headers::add);
+        }
+        if (outGoingMetadata != null && outGoingMetadata.getHeaders() != null) {
+            outGoingMetadata.getHeaders().forEach(headers::add);
         }
         return headers;
     }
@@ -370,17 +384,17 @@ public class KafkaCloudEventHelper {
 
     @SuppressWarnings("rawtypes")
     public static ProducerRecord<?, ?> createStructuredRecord(Message<?> message, String topic,
-            OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            OutgoingKafkaRecordMetadata<?> outgoingMetadata, IncomingKafkaRecordMetadata<?, ?> incomingMetadata,
+            OutgoingCloudEventMetadata<?> ceMetadata, KafkaConnectorOutgoingConfiguration configuration) {
 
         if (ceMetadata == null) {
             ceMetadata = OutgoingCloudEventMetadata.builder().build();
         }
 
-        Integer partition = getPartition(metadata, configuration);
-        Object key = getKey(message, metadata, ceMetadata, configuration);
-        Long timestamp = getTimestamp(metadata);
-        List<Header> headers = getHeaders(metadata);
+        Integer partition = getPartition(outgoingMetadata, configuration);
+        Object key = getKey(message, outgoingMetadata, ceMetadata, configuration);
+        Long timestamp = getTimestamp(outgoingMetadata);
+        List<Header> headers = getHeaders(outgoingMetadata, incomingMetadata, configuration);
         String source = getSource(ceMetadata, configuration);
         String type = getType(ceMetadata, configuration);
         Optional<String> subject = getSubject(ceMetadata, configuration);
@@ -461,6 +475,10 @@ public class KafkaCloudEventHelper {
         }
         return null;
 
+    }
+
+    public static boolean isNotBlank(String s) {
+        return s != null && !s.trim().isEmpty();
     }
 
 }
