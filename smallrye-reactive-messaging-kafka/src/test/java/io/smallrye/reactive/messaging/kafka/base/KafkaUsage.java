@@ -317,6 +317,15 @@ public class KafkaUsage implements AutoCloseable {
                 });
     }
 
+    public void consumeIntegersWithHeaders(String topicName, int count, long timeout, TimeUnit unit, Runnable completion,
+            BiConsumer<String, Integer> consumer, Consumer<Headers> headersConsumer) {
+        this.consumeIntegers(topicName, count, timeout, unit, completion,
+                (record) -> {
+                    consumer.accept(record.key(), record.value());
+                    headersConsumer.accept(record.headers());
+                });
+    }
+
     protected BooleanSupplier continueIfNotExpired(BooleanSupplier continuation,
             long timeout, TimeUnit unit) {
         return new BooleanSupplier() {

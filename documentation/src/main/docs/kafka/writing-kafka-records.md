@@ -115,6 +115,14 @@ overridden** by the incoming record key. If the incoming record does
 have a *null* key, the `mp.messaging.outgoing.[channel-name].key`
 property is used.
 
+## Propagating Record headers
+
+You can also propagate incoming record headers to the outgoing record, by specifying the list of headers to be considered.
+
+ `mp.messaging.outgoing.[channel-name].propagate-headers=Authorization,Proxy-Authorization`
+
+If the ougoing record already defines a header with the same key, it won't be overriden by the incoming header.
+
 ## Dynamic topic names
 
 Sometimes it is desirable to select the destination of a message
