@@ -139,40 +139,64 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
         return body.getBytes();
     }
 
-    public Optional<Integer> getPriority() {
-        return rabbitMQMetadata.getPriority();
-    }
-
-    public Optional<String> getReplyTo() {
-        return rabbitMQMetadata.getReplyTo();
-    }
-
-    public Optional<String> getUserId() {
-        return rabbitMQMetadata.getUserId();
-    }
-
-    public Optional<String> getMessageId() {
-        return rabbitMQMetadata.getId();
-    }
-
-    public Optional<ZonedDateTime> getCreationTime(final ZoneId zoneId) {
-        return rabbitMQMetadata.getCreationTime(zoneId);
+    public Map<String, Object> getHeaders() {
+        return rabbitMQMetadata.getHeaders();
     }
 
     public Optional<String> getContentType() {
         return rabbitMQMetadata.getContentType();
     }
 
-    public Optional<String> getCorrelationId() {
-        return rabbitMQMetadata.getCorrelationId();
-    }
-
     public Optional<String> getContentEncoding() {
         return rabbitMQMetadata.getContentEncoding();
     }
 
-    public Map<String, Object> getHeaders() {
-        return rabbitMQMetadata.getHeaders();
+    public Optional<Integer> getDeliveryMode() {
+        return rabbitMQMetadata.getDeliveryMode();
+    }
+
+    public Optional<Integer> getPriority() {
+        return rabbitMQMetadata.getPriority();
+    }
+
+    public Optional<String> getCorrelationId() {
+        return rabbitMQMetadata.getCorrelationId();
+    }
+
+    public Optional<String> getReplyTo() {
+        return rabbitMQMetadata.getReplyTo();
+    }
+
+    public Optional<String> getExpiration() {
+        return rabbitMQMetadata.getExpiration();
+    }
+
+    public Optional<String> getMessageId() {
+        return rabbitMQMetadata.getMessageId();
+    }
+
+    public Optional<ZonedDateTime> getTimestamp(final ZoneId zoneId) {
+        return rabbitMQMetadata.getTimestamp(zoneId);
+    }
+
+    public Optional<String> getType() {
+        return rabbitMQMetadata.getType();
+    }
+
+    public Optional<String> getUserId() {
+        return rabbitMQMetadata.getUserId();
+    }
+
+    public Optional<String> getAppId() {
+        return rabbitMQMetadata.getAppId();
+    }
+
+    /**
+     * @deprecated Use getTimestamp()
+     */
+    @Deprecated
+    public Optional<ZonedDateTime> getCreationTime(final ZoneId zoneId) {
+        return rabbitMQMetadata.getTimestamp(zoneId);
     }
 
     public io.vertx.mutiny.rabbitmq.RabbitMQMessage getRabbitMQMessage() {

@@ -123,43 +123,14 @@ public class IncomingRabbitMQMetadata {
     }
 
     /**
-     * The absolute time when this message was created, expressed as a {@link ZonedDateTime}
-     * with respect to the supplied {@link ZoneId}.
+     * The delivery-mode property.
      * <p>
      * Stored in the message properties.
      *
-     * @param zoneId the {@link ZoneId} representing the time zone in which the timestamp is to be interpreted
-     * @return an {@link Optional} containing the date and time, which may be empty if no timestamp was received
+     * @return an {@link Optional} containing the delivery-mode, which may be empty if no delivery-mode was received
      */
-    public Optional<ZonedDateTime> getCreationTime(final ZoneId zoneId) {
-        final Optional<Date> timestamp = Optional.ofNullable(message.properties().getTimestamp());
-        return timestamp.map(t -> ZonedDateTime.ofInstant(t.toInstant(), zoneId));
-    }
-
-    /**
-     * The message-id, if set, uniquely identifies a message within the message system.
-     * The message producer is usually responsible for setting the message-id in such a way that it is assured to be
-     * globally unique. A broker may discard a message as a duplicate if the value of the message-id matches that of a
-     * previously received message sent to the same node.
-     * <p>
-     * Stored in the message properties.
-     *
-     * @return an {@link Optional} containing the message-id, which may be empty if no message-id was received
-     */
-    public Optional<String> getId() {
-        return Optional.ofNullable(message.properties().getMessageId());
-    }
-
-    /**
-     * The identity of the user responsible for producing the message.
-     * The client sets this value, and it may be authenticated by intermediaries.
-     * <p>
-     * Stored in the message properties.
-     *
-     * @return an {@link Optional} containing the user-id, which may be empty if no user-id was received
-     */
-    public Optional<String> getUserId() {
-        return Optional.ofNullable(message.properties().getUserId());
+    public Optional<Integer> getDeliveryMode() {
+        return Optional.ofNullable(message.properties().getDeliveryMode());
     }
 
     /**
@@ -175,6 +146,17 @@ public class IncomingRabbitMQMetadata {
     }
 
     /**
+     * This is a client-specific id that can be used to mark or identify messages between clients.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return an {@link Optional} containing the correlation-id, which may be empty if no correlation-id was received
+     */
+    public Optional<String> getCorrelationId() {
+        return Optional.ofNullable(message.properties().getCorrelationId());
+    }
+
+    /**
      * The address of the node to send replies to.
      * <p>
      * Stored in the message properties.
@@ -186,14 +168,111 @@ public class IncomingRabbitMQMetadata {
     }
 
     /**
-     * This is a client-specific id that can be used to mark or identify messages between clients.
+     * The expiration property.
      * <p>
      * Stored in the message properties.
      *
-     * @return an {@link Optional} containing the correlation-id, which may be empty if no correlation-id was received
+     * @return an {@link Optional} containing the expiration, which may be empty if no expiration was received
      */
-    public Optional<String> getCorrelationId() {
-        return Optional.ofNullable(message.properties().getCorrelationId());
+    public Optional<String> getExpiration() {
+        return Optional.ofNullable(message.properties().getExpiration());
+    }
+
+    /**
+     * The message-id, if set, uniquely identifies a message within the message system.
+     * The message producer is usually responsible for setting the message-id in such a way that it is assured to be
+     * globally unique. A broker may discard a message as a duplicate if the value of the message-id matches that of a
+     * previously received message sent to the same node.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return an {@link Optional} containing the message-id, which may be empty if no message-id was received
+     */
+    public Optional<String> getMessageId() {
+        return Optional.ofNullable(message.properties().getMessageId());
+    }
+
+    /**
+     * The absolute time when this message was created, expressed as a {@link ZonedDateTime}
+     * with respect to the supplied {@link ZoneId}.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @param zoneId the {@link ZoneId} representing the time zone in which the timestamp is to be interpreted
+     * @return an {@link Optional} containing the date and time, which may be empty if no timestamp was received
+     */
+    public Optional<ZonedDateTime> getTimestamp(final ZoneId zoneId) {
+        final Optional<Date> timestamp = Optional.ofNullable(message.properties().getTimestamp());
+        return timestamp.map(t -> ZonedDateTime.ofInstant(t.toInstant(), zoneId));
+    }
+
+    /**
+     * The type property.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return an {@link Optional} containing the type, which may be empty if no type was received
+     */
+    public Optional<String> getType() {
+        return Optional.ofNullable(message.properties().getType());
+    }
+
+    /**
+     * The identity of the user responsible for producing the message.
+     * The client sets this value, and it may be authenticated by intermediaries.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return an {@link Optional} containing the user-id, which may be empty if no user-id was received
+     */
+    public Optional<String> getUserId() {
+        return Optional.ofNullable(message.properties().getUserId());
+    }
+
+    /**
+     * The identity of the application responsible for producing the message.
+     * The client sets this value, and it may be authenticated by intermediaries.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @return an {@link Optional} containing the app-id, which may be empty if no app-id was received
+     */
+    public Optional<String> getAppId() {
+        return Optional.ofNullable(message.properties().getAppId());
+    }
+
+    /**
+     * The absolute time when this message was created, expressed as a {@link ZonedDateTime}
+     * with respect to the supplied {@link ZoneId}.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @deprecated Use getTimestamp()
+     *
+     * @param zoneId the {@link ZoneId} representing the time zone in which the timestamp is to be interpreted
+     * @return an {@link Optional} containing the date and time, which may be empty if no timestamp was received
+     */
+    @Deprecated
+    public Optional<ZonedDateTime> getCreationTime(final ZoneId zoneId) {
+        final Optional<Date> timestamp = Optional.ofNullable(message.properties().getTimestamp());
+        return timestamp.map(t -> ZonedDateTime.ofInstant(t.toInstant(), zoneId));
+    }
+
+    /**
+     * The message-id, if set, uniquely identifies a message within the message system.
+     * The message producer is usually responsible for setting the message-id in such a way that it is assured to be
+     * globally unique. A broker may discard a message as a duplicate if the value of the message-id matches that of a
+     * previously received message sent to the same node.
+     * <p>
+     * Stored in the message properties.
+     *
+     * @deprecated Use getMessageId()
+     *
+     * @return an {@link Optional} containing the message-id, which may be empty if no message-id was received
+     */
+    @Deprecated
+    public Optional<String> getId() {
+        return Optional.ofNullable(message.properties().getMessageId());
     }
 
     /**

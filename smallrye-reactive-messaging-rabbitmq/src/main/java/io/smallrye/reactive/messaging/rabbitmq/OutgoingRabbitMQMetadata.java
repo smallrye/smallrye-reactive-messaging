@@ -25,16 +25,16 @@ public class OutgoingRabbitMQMetadata {
     private String clusterId;
     private String routingKey;
 
+    public Map<String, Object> getHeaders() {
+        return headers;
+    }
+
     public String getContentType() {
         return contentType;
     }
 
     public String getContentEncoding() {
         return contentEncoding;
-    }
-
-    public Map<String, Object> getHeaders() {
-        return headers;
     }
 
     public Integer getDeliveryMode() {
