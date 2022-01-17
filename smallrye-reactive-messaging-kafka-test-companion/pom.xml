@@ -37,6 +37,13 @@
       <artifactId>strimzi-test-container</artifactId>
     </dependency>
 
+    <!-- Optional dependency for EmbeddedKafkaServer -->
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka_2.13</artifactId>
+      <version>${kafka.version}</version>
+      <optional>true</optional>
+    </dependency>
     <!-- Optional dependencies for usage in Tests -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

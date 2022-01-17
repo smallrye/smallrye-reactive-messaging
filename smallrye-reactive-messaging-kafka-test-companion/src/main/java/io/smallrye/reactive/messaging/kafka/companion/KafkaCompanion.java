@@ -8,7 +8,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMI
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -35,10 +34,12 @@ public class KafkaCompanion implements AutoCloseable {
     private final String bootstrapServers;
     private AdminClient adminClient;
     private Duration kafkaApiTimeout;
+    private Map<String, Object> commonClientConfig;
 
     public KafkaCompanion(String bootstrapServers) {
         this.bootstrapServers = bootstrapServers;
         this.kafkaApiTimeout = Duration.ofSeconds(10);
+        this.commonClientConfig = new HashMap<>();
     }
 
     public Duration getKafkaApiTimeout() {
@@ -49,13 +50,23 @@ public class KafkaCompanion implements AutoCloseable {
         this.kafkaApiTimeout = kafkaApiTimeout;
     }
 
+    public Map<String, Object> getCommonClientConfig() {
+        return commonClientConfig;
+    }
+
+    public void setCommonClientConfig(Map<String, Object> properties) {
+        this.commonClientConfig = properties;
+    }
+
     public String getBootstrapServers() {
         return bootstrapServers;
     }
 
     public AdminClient getOrCreateAdminClient() {
         if (adminClient == null) {
-            adminClient = AdminClient.create(Collections.singletonMap(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers()));
+            Map<String, Object> configMap = new HashMap<>(getCommonClientConfig());
+            configMap.put(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
+            adminClient = AdminClient.create(configMap);
         }
         return adminClient;
     }
@@ -165,7 +176,7 @@ public class KafkaCompanion implements AutoCloseable {
      */
 
     public Map<String, Object> getConsumerProperties() {
-        Map<String, Object> config = new HashMap<>();
+        Map<String, Object> config = new HashMap<>(getCommonClientConfig());
         config.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(GROUP_ID_CONFIG, "companion-" + UUID.randomUUID());
         config.put(CLIENT_ID_CONFIG, "companion-" + UUID.randomUUID());
@@ -215,7 +226,7 @@ public class KafkaCompanion implements AutoCloseable {
      */
 
     public Map<String, Object> getProducerProperties() {
-        Map<String, Object> config = new HashMap<>();
+        Map<String, Object> config = new HashMap<>(getCommonClientConfig());
         config.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.CLIENT_ID_CONFIG, "companion-" + UUID.randomUUID());
         return config;
