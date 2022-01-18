@@ -27,10 +27,10 @@ import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.ce.impl.BaseCloudEventMetadata;
 import io.smallrye.reactive.messaging.ce.impl.DefaultIncomingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.impl.RuntimeKafkaSinkConfiguration;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
 
@@ -203,7 +203,7 @@ public class KafkaCloudEventHelper {
     @SuppressWarnings("rawtypes")
     public static ProducerRecord<?, ?> createBinaryRecord(Message<?> message, String topic,
             OutgoingKafkaRecordMetadata<?> outgoingMetadata, IncomingKafkaRecordMetadata<?, ?> incomingMetadata,
-            OutgoingCloudEventMetadata<?> ceMetadata, KafkaConnectorOutgoingConfiguration configuration) {
+            OutgoingCloudEventMetadata<?> ceMetadata, RuntimeKafkaSinkConfiguration configuration) {
 
         if (ceMetadata == null) {
             ceMetadata = OutgoingCloudEventMetadata.builder().build();
@@ -276,7 +276,7 @@ public class KafkaCloudEventHelper {
     }
 
     private static String getSource(OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            RuntimeKafkaSinkConfiguration configuration) {
         String source = ceMetadata.getSource() != null ? ceMetadata.getSource().toString() : null;
         if (source == null) {
             source = configuration.getCloudEventsSource().orElseThrow(() -> new IllegalArgumentException(
@@ -286,7 +286,7 @@ public class KafkaCloudEventHelper {
     }
 
     private static String getType(OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            RuntimeKafkaSinkConfiguration configuration) {
         String type = ceMetadata.getType();
         if (type == null) {
             type = configuration.getCloudEventsType().orElseThrow(
@@ -296,7 +296,7 @@ public class KafkaCloudEventHelper {
     }
 
     private static Optional<String> getSubject(OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            RuntimeKafkaSinkConfiguration configuration) {
         if (ceMetadata.getSubject().isPresent()) {
             return ceMetadata.getSubject();
         }
@@ -304,7 +304,7 @@ public class KafkaCloudEventHelper {
     }
 
     private static Optional<URI> getDataSchema(OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            RuntimeKafkaSinkConfiguration configuration) {
         if (ceMetadata.getDataSchema().isPresent()) {
             return ceMetadata.getDataSchema();
         }
@@ -312,7 +312,7 @@ public class KafkaCloudEventHelper {
     }
 
     private static Optional<String> getDataContentType(OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            RuntimeKafkaSinkConfiguration configuration) {
         if (ceMetadata.getDataContentType().isPresent()) {
             return ceMetadata.getDataContentType();
         }
@@ -320,7 +320,7 @@ public class KafkaCloudEventHelper {
     }
 
     private static List<Header> getHeaders(OutgoingKafkaRecordMetadata<?> outGoingMetadata,
-            IncomingKafkaRecordMetadata<?, ?> incomingMetadata, KafkaConnectorOutgoingConfiguration configuration) {
+            IncomingKafkaRecordMetadata<?, ?> incomingMetadata, RuntimeKafkaSinkConfiguration configuration) {
         List<Header> headers = new ArrayList<>();
 
         // First incoming headers, so that they can be overriden by outgoing headers
@@ -353,7 +353,7 @@ public class KafkaCloudEventHelper {
     @SuppressWarnings({ "rawtypes" })
     private static Object getKey(Message<?> message,
             OutgoingKafkaRecordMetadata<?> metadata, OutgoingCloudEventMetadata<?> ceMetadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            RuntimeKafkaSinkConfiguration configuration) {
 
         // First, the message metadata
         if (metadata != null && metadata.getKey() != null) {
@@ -371,7 +371,7 @@ public class KafkaCloudEventHelper {
     }
 
     private static Integer getPartition(OutgoingKafkaRecordMetadata<?> metadata,
-            KafkaConnectorOutgoingConfiguration configuration) {
+            RuntimeKafkaSinkConfiguration configuration) {
         int partition = configuration.getPartition();
         if (metadata != null && metadata.getPartition() != -1) {
             partition = metadata.getPartition();
@@ -385,7 +385,7 @@ public class KafkaCloudEventHelper {
     @SuppressWarnings("rawtypes")
     public static ProducerRecord<?, ?> createStructuredRecord(Message<?> message, String topic,
             OutgoingKafkaRecordMetadata<?> outgoingMetadata, IncomingKafkaRecordMetadata<?, ?> incomingMetadata,
-            OutgoingCloudEventMetadata<?> ceMetadata, KafkaConnectorOutgoingConfiguration configuration) {
+            OutgoingCloudEventMetadata<?> ceMetadata, RuntimeKafkaSinkConfiguration configuration) {
 
         if (ceMetadata == null) {
             ceMetadata = OutgoingCloudEventMetadata.builder().build();

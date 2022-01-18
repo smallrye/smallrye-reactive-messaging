@@ -67,7 +67,6 @@ public class KafkaSink {
     private final long retries;
     private final int deliveryTimeoutMs;
 
-    private final KafkaConnectorOutgoingConfiguration configuration;
     private final List<Throwable> failures = new ArrayList<>();
     private final KafkaSenderProcessor processor;
     private final boolean writeAsBinaryCloudEvent;
@@ -76,6 +75,10 @@ public class KafkaSink {
     private final boolean isTracingEnabled;
     private final KafkaSinkHealth health;
     private final boolean isHealthEnabled;
+    private final boolean isHealthReadinessEnabled;
+    private final String channel;
+
+    private final RuntimeKafkaSinkConfiguration runtimeConfiguration;
 
     public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
@@ -97,21 +100,24 @@ public class KafkaSink {
         writeCloudEvents = config.getCloudEvents();
         writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
-        this.configuration = config;
-        this.mandatoryCloudEventAttributeSet = configuration.getCloudEventsType().isPresent()
-                && configuration.getCloudEventsSource().isPresent();
+        this.mandatoryCloudEventAttributeSet = config.getCloudEventsType().isPresent()
+                && config.getCloudEventsSource().isPresent();
+        this.channel = config.getChannel();
+
+        this.runtimeConfiguration = RuntimeKafkaSinkConfiguration.buildFromConfiguration(config);
 
         // Validate the serializer for structured Cloud Events
-        if (configuration.getCloudEvents() &&
-                configuration.getCloudEventsMode().equalsIgnoreCase("structured") &&
-                !configuration.getValueSerializer().equalsIgnoreCase(StringSerializer.class.getName())) {
-            log.invalidValueSerializerForStructuredCloudEvent(configuration.getValueSerializer());
+        if (config.getCloudEvents() &&
+                config.getCloudEventsMode().equalsIgnoreCase("structured") &&
+                !config.getValueSerializer().equalsIgnoreCase(StringSerializer.class.getName())) {
+            log.invalidValueSerializerForStructuredCloudEvent(config.getValueSerializer());
             throw new IllegalStateException("Invalid value serializer to write a structured Cloud Event. "
                     + StringSerializer.class.getName() + " must be used, found: "
-                    + configuration.getValueSerializer());
+                    + config.getValueSerializer());
         }
 
-        this.isHealthEnabled = configuration.getHealthEnabled();
+        this.isHealthEnabled = config.getHealthEnabled();
+        this.isHealthReadinessEnabled = config.getHealthReadinessEnabled();
         if (isHealthEnabled) {
             this.health = new KafkaSinkHealth(config, client.configuration(), client.unwrap());
         } else {
@@ -181,11 +187,11 @@ public class KafkaSink {
                     if (writeAsBinaryCloudEvent) {
                         record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, outgoingMetadata,
                                 incomingMetadata,
-                                ceMetadata, configuration);
+                                ceMetadata, runtimeConfiguration);
                     } else {
                         record = KafkaCloudEventHelper
                                 .createStructuredRecord(message, actualTopic, outgoingMetadata, incomingMetadata, ceMetadata,
-                                        configuration);
+                                        runtimeConfiguration);
                     }
                 } else {
                     record = getProducerRecord(message, outgoingMetadata, incomingMetadata, actualTopic);
@@ -263,8 +269,10 @@ public class KafkaSink {
         }
 
         Headers kafkaHeaders = new RecordHeaders();
-        if (!StringUtils.isNullOrEmpty(this.configuration.getPropagateHeaders()) && im != null && im.getHeaders() != null) {
-            Set<String> configuredHeaders = Arrays.stream(this.configuration.getPropagateHeaders().split(",")).map(String::trim)
+        if (!StringUtils.isNullOrEmpty(this.runtimeConfiguration.getPropagateHeaders()) && im != null
+                && im.getHeaders() != null) {
+            Set<String> configuredHeaders = Arrays.stream(this.runtimeConfiguration.getPropagateHeaders().split(","))
+                    .map(String::trim)
                     .collect(Collectors.toSet());
             Iterator<Header> iterator = im.getHeaders().iterator();
             while (iterator.hasNext()) {
@@ -308,7 +316,7 @@ public class KafkaSink {
         }
 
         // Then, check if the message contains incoming metadata from which we can propagate the key
-        if (configuration.getPropagateRecordKey()) {
+        if (runtimeConfiguration.getPropagateRecordKey()) {
             return message.getMetadata(IncomingKafkaRecordMetadata.class)
                     .map(IncomingKafkaRecordMetadata::getKey)
                     .orElse(key);
@@ -367,10 +375,10 @@ public class KafkaSink {
                 actualFailures = new ArrayList<>(failures);
             }
             if (!actualFailures.isEmpty()) {
-                builder.add(configuration.getChannel(), false,
+                builder.add(channel, false,
                         actualFailures.stream().map(Throwable::getMessage).collect(Collectors.joining()));
             } else {
-                builder.add(configuration.getChannel(), true);
+                builder.add(channel, true);
             }
         }
         // If health is disabled, do not add anything to the builder.
@@ -378,7 +386,7 @@ public class KafkaSink {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (health != null && this.configuration.getHealthReadinessEnabled()) {
+        if (health != null && isHealthReadinessEnabled) {
             health.isReady(builder);
         }
         // If health is disabled, do not add anything to the builder.
@@ -409,7 +417,7 @@ public class KafkaSink {
     }
 
     public String getChannel() {
-        return configuration.getChannel();
+        return channel;
     }
 
     public KafkaProducer<?, ?> getProducer() {
