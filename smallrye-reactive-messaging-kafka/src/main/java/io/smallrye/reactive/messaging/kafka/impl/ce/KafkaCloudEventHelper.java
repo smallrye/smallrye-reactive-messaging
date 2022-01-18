@@ -331,7 +331,7 @@ public class KafkaCloudEventHelper {
 
             Arrays.stream(incomingMetadata.getHeaders().toArray())
                     .filter(header -> incomingHeaders.contains(header))
-                    .map(headers::add);
+                    .forEach(headers::add);
         }
         if (outGoingMetadata != null && outGoingMetadata.getHeaders() != null) {
             outGoingMetadata.getHeaders().forEach(headers::add);
