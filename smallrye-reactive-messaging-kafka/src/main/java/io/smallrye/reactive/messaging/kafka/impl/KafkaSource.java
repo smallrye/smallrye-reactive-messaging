@@ -47,6 +47,7 @@ public class KafkaSource<K, V> {
     private final Set<String> topics;
     private final boolean isTracingEnabled;
     private final boolean isHealthEnabled;
+    private final boolean isHealthReadinessEnabled;
     private final boolean isCloudEventEnabled;
     private final String channel;
     private volatile boolean subscribed;
@@ -108,6 +109,7 @@ public class KafkaSource<K, V> {
 
         isTracingEnabled = this.configuration.getTracingEnabled();
         isHealthEnabled = this.configuration.getHealthEnabled();
+        isHealthReadinessEnabled = this.configuration.getHealthReadinessEnabled();
         isCloudEventEnabled = this.configuration.getCloudEvents();
         channel = this.configuration.getChannel();
 
@@ -425,7 +427,7 @@ public class KafkaSource<K, V> {
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
         // This method must not be called from the event loop.
-        if (health != null && configuration.getHealthReadinessEnabled()) {
+        if (health != null && isHealthReadinessEnabled) {
             health.isReady(builder);
         }
         // If health is disabled, do not add anything to the builder.
@@ -473,7 +475,7 @@ public class KafkaSource<K, V> {
     }
 
     public String getChannel() {
-        return configuration.getChannel();
+        return channel;
     }
 
     public boolean hasSubscribers() {
