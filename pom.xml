@@ -91,7 +91,7 @@
     <smallrye-vertx-mutiny-clients.version>2.16.2</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>2.6.0</smallrye-reactive-converters.version>
 
-    <testcontainers.version>1.16.2</testcontainers.version>
+    <testcontainers.version>1.16.3</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>4.2.0</mockito.version>
