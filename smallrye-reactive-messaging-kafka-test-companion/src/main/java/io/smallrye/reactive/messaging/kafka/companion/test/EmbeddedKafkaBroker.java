@@ -39,7 +39,7 @@ import scala.jdk.CollectionConverters;
 import scala.jdk.javaapi.StreamConverters;
 
 /**
- * Embedded Kafka Raft Broker, by default listens on localhost with random broker and controller ports.
+ * Embedded KRaft Broker, by default listens on localhost with random broker and controller ports.
  * <p>
  */
 public class EmbeddedKafkaBroker implements Closeable {

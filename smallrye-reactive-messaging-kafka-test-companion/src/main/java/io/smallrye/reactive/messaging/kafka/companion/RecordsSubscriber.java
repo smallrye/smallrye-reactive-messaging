@@ -448,6 +448,7 @@ public class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>>
             subscription.get().cancel();
         }
         cancelled = true;
+        terminal.countDown();
         Event ev = new Event(null, null, false, true);
         eventListeners.forEach(l -> l.accept(ev));
         return self();

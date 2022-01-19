@@ -140,22 +140,22 @@ public class ProducerTest extends KafkaCompanionTestBase {
     void testTransactional() throws InterruptedException {
         // Start producing 5000 records in a transaction
         ProducerTask produced = companion.produceStrings().withTransactionalId("tx")
-                .usingGenerator(i -> record(topic, "key" + i, "v" + i), 5000);
+                .usingGenerator(i -> record(topic, "key" + i, "v" + i), 1000);
 
         // Start consuming with read committed
         ConsumerTask<String, String> records = companion.consumeStrings()
                 .withIsolationLevel(IsolationLevel.READ_COMMITTED)
-                .fromTopics(topic, 5000);
+                .fromTopics(topic, 1000);
 
-        // Wait 2 seconds and check that no record is consumed
-        Thread.sleep(2000);
+        // Wait and check that no record is consumed
+        Thread.sleep(1000);
         assertThat(records.count()).isEqualTo(0);
 
         // Wait until producer is finished and thus committed transaction
         produced.awaitCompletion(Duration.ofMinutes(1));
 
         // Check that consumer received 5000 records
-        assertThat(records.awaitCompletion().count()).isEqualTo(5000);
+        assertThat(records.awaitCompletion().count()).isEqualTo(1000);
     }
 
     @Test
@@ -169,6 +169,7 @@ public class ProducerTest extends KafkaCompanionTestBase {
 
         long finalProducedCount = produced.awaitCompletion((throwable, cancelled) -> assertThat(cancelled).isTrue())
                 .count();
+        System.out.println("Completed " + finalProducedCount);
 
         // Consume records until produced record
         ConsumerTask<String, Integer> records = companion.consumeIntegers()

@@ -167,7 +167,7 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
 
     private synchronized ScheduledExecutorService getOrCreateExecutor() {
         if (this.consumerExecutor == null) {
-            this.consumerExecutor = Executors.newSingleThreadScheduledExecutor(c -> new Thread(c, clientId() + "-thread"));
+            this.consumerExecutor = Executors.newSingleThreadScheduledExecutor(c -> new Thread(c, "consumer-" + clientId()));
         }
         return this.consumerExecutor;
     }
@@ -201,16 +201,20 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
      * Close the underlying {@link KafkaConsumer}.
      */
     @Override
-    public void close() {
+    public synchronized void close() {
         if (kafkaConsumer != null) {
             kafkaConsumer.wakeup();
-            Uni.createFrom().item(() -> {
+            Uni.createFrom().voidItem().invoke(() -> {
+                LOGGER.infof("Closing consumer %s", clientId());
                 if (kafkaConsumer != null) {
                     polling.compareAndSet(true, false);
-                    kafkaConsumer.close();
+                    kafkaConsumer.close(kafkaApiTimeout);
                     kafkaConsumer = null;
                 }
-                return null;
+                if (consumerExecutor != null) {
+                    consumerExecutor.shutdown();
+                    consumerExecutor = null;
+                }
             }).runSubscriptionOn(getOrCreateExecutor()).subscribeAsCompletionStage();
         }
     }
@@ -522,10 +526,7 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
                             }
                         });
                     }
-                    return multi.onTermination().invoke(() -> {
-                        LOGGER.infof("Closing consumer %s", clientId());
-                        this.close();
-                    });
+                    return multi.onTermination().invoke(this::close);
                 });
     }
 

@@ -225,6 +225,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(199L));
 
         records.stop();
+        await().untilAsserted(() -> assertThat(consumer.currentAssignment()).hasSize(0));
     }
 
     @Test
@@ -235,8 +236,6 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         ConsumerTask<String, String> records = consumer.fromTopics(topic, 100);
 
         companion.produceStrings().usingGenerator(i -> record(topic, "v-" + i), 400);
-
-        consumer.waitForAssignment().await().indefinitely();
 
         assertThat(records.awaitCompletion().count()).isEqualTo(100);
         await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(99L));
@@ -299,10 +298,33 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testCommitAndClose() {
-        companion.consumeIntegers().commitAndClose();
+        // produce records
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
+                .awaitCompletion();
 
+        String groupId = UUID.randomUUID().toString();
+        // consume topics
+        companion.consumeStrings()
+                .withAutoCommit()
+                .withGroupId(groupId)
+                .fromTopics(topic, 100)
+                .awaitCompletion();
+
+        await().untilAsserted(() -> assertThat(companion.consumerGroups().offsets(groupId, tp(topic, 0)))
+                .isNotNull()
+                .extracting(OffsetAndMetadata::offset).isEqualTo(100L));
+
+        // commit offset to zero
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        companion.consumeIntegers().commitAndClose(offsets);
-        // TODO finish test
+        offsets.put(tp(topic, 0), new OffsetAndMetadata(0));
+        companion.consumeIntegers()
+                .withGroupId(groupId)
+                .commitAndClose(offsets);
+
+        await().untilAsserted(() -> assertThat(companion.consumerGroups().offsets(groupId, tp(topic, 0)))
+                .isNotNull()
+                .extracting(OffsetAndMetadata::offset).isEqualTo(0L));
+
     }
 }

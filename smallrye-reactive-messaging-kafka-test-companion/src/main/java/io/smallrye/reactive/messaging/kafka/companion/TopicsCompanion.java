@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
@@ -73,8 +72,7 @@ public class TopicsCompanion {
             int maxRetries = 10;
             boolean done = false;
             for (int i = 0; i < maxRetries && !done; i++) {
-                Set<String> topics = adminClient.listTopics().names().get(10, TimeUnit.SECONDS);
-                done = topics.contains(topic);
+                done = list().contains(topic);
             }
         } catch (Exception e) {
             throw new IllegalStateException("Timed out waiting for topic");
@@ -93,7 +91,7 @@ public class TopicsCompanion {
      */
     public Map<String, TopicDescription> describeAll() {
         return toUni(adminClient.listTopics().names())
-                .onItem().transformToUni(topics -> toUni(adminClient.describeTopics(topics).all()))
+                .onItem().transformToUni(topics -> toUni(adminClient.describeTopics(topics).allTopicNames()))
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -105,7 +103,7 @@ public class TopicsCompanion {
         if (topics.length == 0) {
             return describeAll();
         }
-        return toUni(adminClient.describeTopics(Arrays.asList(topics)).all()).await().atMost(kafkaApiTimeout);
+        return toUni(adminClient.describeTopics(Arrays.asList(topics)).allTopicNames()).await().atMost(kafkaApiTimeout);
     }
 
     /**

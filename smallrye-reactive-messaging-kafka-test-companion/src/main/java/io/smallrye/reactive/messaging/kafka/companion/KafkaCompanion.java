@@ -31,23 +31,22 @@ import io.smallrye.mutiny.Uni;
 public class KafkaCompanion implements AutoCloseable {
 
     private final Map<Class<?>, Serde<?>> serdeMap = new HashMap<>();
+    private final Map<String, Object> commonClientConfig = new HashMap<>();
     private final String bootstrapServers;
+    private final Duration kafkaApiTimeout;
     private AdminClient adminClient;
-    private Duration kafkaApiTimeout;
-    private Map<String, Object> commonClientConfig;
 
     public KafkaCompanion(String bootstrapServers) {
+        this(bootstrapServers, Duration.ofSeconds(10));
+    }
+
+    public KafkaCompanion(String bootstrapServers, Duration kafkaApiTimeout) {
         this.bootstrapServers = bootstrapServers;
-        this.kafkaApiTimeout = Duration.ofSeconds(10);
-        this.commonClientConfig = new HashMap<>();
+        this.kafkaApiTimeout = kafkaApiTimeout;
     }
 
     public Duration getKafkaApiTimeout() {
         return kafkaApiTimeout;
-    }
-
-    public void setKafkaApiTimeout(Duration kafkaApiTimeout) {
-        this.kafkaApiTimeout = kafkaApiTimeout;
     }
 
     public Map<String, Object> getCommonClientConfig() {
@@ -55,14 +54,14 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     public void setCommonClientConfig(Map<String, Object> properties) {
-        this.commonClientConfig = properties;
+        this.commonClientConfig.putAll(properties);
     }
 
     public String getBootstrapServers() {
         return bootstrapServers;
     }
 
-    public AdminClient getOrCreateAdminClient() {
+    public synchronized AdminClient getOrCreateAdminClient() {
         if (adminClient == null) {
             Map<String, Object> configMap = new HashMap<>(getCommonClientConfig());
             configMap.put(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
@@ -72,7 +71,7 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         if (adminClient != null) {
             adminClient.close(kafkaApiTimeout);
         }
@@ -119,28 +118,27 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     protected static <T> Uni<T> toUni(KafkaFuture<T> kafkaFuture) {
-        return Uni.createFrom().future(kafkaFuture);
+        return Uni.createFrom().completionStage(kafkaFuture.toCompletionStage());
     }
 
     /*
      * SERDES
      */
 
-    public <T> void serdeForType(Class<T> type, Serde<T> serde) {
+    public <T> void registerSerde(Class<T> type, Serde<T> serde) {
         serdeMap.put(type, serde);
     }
 
-    public <T> void serdeForType(Class<T> type, Serializer<T> serializer, Deserializer<T> deserializer) {
-        serdeForType(type, Serdes.serdeFrom(serializer, deserializer));
+    public <T> void registerSerde(Class<T> type, Serializer<T> serializer, Deserializer<T> deserializer) {
+        registerSerde(type, Serdes.serdeFrom(serializer, deserializer));
     }
 
     @SuppressWarnings({ "unchecked" })
-    private <T> Serde<T> serdeFromType(Class<T> type) {
+    public <T> Serde<T> getSerdeForType(Class<T> type) {
         Serde<?> serde = serdeMap.get(type);
         if (serde != null) {
             return (Serde<T>) serde;
         }
-        // TODO complete with json avro types
         return Serdes.serdeFrom(type);
     }
 
@@ -176,12 +174,13 @@ public class KafkaCompanion implements AutoCloseable {
      */
 
     public Map<String, Object> getConsumerProperties() {
-        Map<String, Object> config = new HashMap<>(getCommonClientConfig());
+        Map<String, Object> config = new HashMap<>();
         config.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(GROUP_ID_CONFIG, "companion-" + UUID.randomUUID());
         config.put(CLIENT_ID_CONFIG, "companion-" + UUID.randomUUID());
         config.put(ENABLE_AUTO_COMMIT_CONFIG, Boolean.FALSE.toString());
         config.put(AUTO_OFFSET_RESET_CONFIG, OffsetResetStrategy.EARLIEST.toString().toLowerCase());
+        config.putAll(getCommonClientConfig());
         return config;
     }
 
@@ -202,11 +201,11 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     public <K, V> ConsumerBuilder<K, V> consume(Class<K> keyType, Class<V> valueType) {
-        return consume(serdeFromType(keyType), serdeFromType(valueType));
+        return consume(getSerdeForType(keyType), getSerdeForType(valueType));
     }
 
     public <V> ConsumerBuilder<String, V> consume(Class<V> valueType) {
-        return consume(Serdes.String(), serdeFromType(valueType));
+        return consume(Serdes.String(), getSerdeForType(valueType));
     }
 
     public ConsumerBuilder<String, String> consumeStrings() {
@@ -226,34 +225,35 @@ public class KafkaCompanion implements AutoCloseable {
      */
 
     public Map<String, Object> getProducerProperties() {
-        Map<String, Object> config = new HashMap<>(getCommonClientConfig());
+        Map<String, Object> config = new HashMap<>();
         config.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.CLIENT_ID_CONFIG, "companion-" + UUID.randomUUID());
+        config.putAll(getCommonClientConfig());
         return config;
     }
 
     public <K, V> ProducerBuilder<K, V> produceWithSerializers(
             Class<? extends Serializer<K>> keySerializerType,
             Class<? extends Serializer<V>> valueSerializerType) {
-        return new ProducerBuilder<>(getProducerProperties(), keySerializerType, valueSerializerType);
+        return new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializerType, valueSerializerType);
     }
 
     public <K, V> ProducerBuilder<K, V> produceWithSerializers(
             Serializer<K> keySerializer,
             Serializer<V> valueSerializer) {
-        return new ProducerBuilder<>(getProducerProperties(), keySerializer, valueSerializer);
+        return new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializer, valueSerializer);
     }
 
     public <K, V> ProducerBuilder<K, V> produce(Serde<K> keySerde, Serde<V> valueSerde) {
-        return new ProducerBuilder<>(getProducerProperties(), keySerde, valueSerde);
+        return new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerde, valueSerde);
     }
 
     public <K, V> ProducerBuilder<K, V> produce(Class<K> keyType, Class<V> valueType) {
-        return produce(serdeFromType(keyType), serdeFromType(valueType));
+        return produce(getSerdeForType(keyType), getSerdeForType(valueType));
     }
 
     public <V> ProducerBuilder<String, V> produce(Class<V> valueType) {
-        return produce(Serdes.String(), serdeFromType(valueType));
+        return produce(Serdes.String(), getSerdeForType(valueType));
     }
 
     public ProducerBuilder<String, String> produceStrings() {

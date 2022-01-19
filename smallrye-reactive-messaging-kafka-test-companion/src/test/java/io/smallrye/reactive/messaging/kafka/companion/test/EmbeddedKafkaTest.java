@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.kafka.companion;
+package io.smallrye.reactive.messaging.kafka.companion.test;
 
 import static io.smallrye.reactive.messaging.kafka.companion.test.EmbeddedKafkaBroker.endpoint;
 import static org.apache.kafka.common.security.auth.SecurityProtocol.PLAINTEXT;
@@ -18,7 +18,7 @@ import org.apache.kafka.common.config.SslConfigs;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.smallrye.reactive.messaging.kafka.companion.test.EmbeddedKafkaBroker;
+import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import kafka.server.KafkaConfig;
 
 public class EmbeddedKafkaTest {

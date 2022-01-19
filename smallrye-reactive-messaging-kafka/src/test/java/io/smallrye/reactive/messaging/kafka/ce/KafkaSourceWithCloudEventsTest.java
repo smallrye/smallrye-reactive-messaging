@@ -48,7 +48,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
 
     @BeforeAll
     public static void setup() {
-        companion.serdeForType(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
+        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
     }
 
     @AfterEach

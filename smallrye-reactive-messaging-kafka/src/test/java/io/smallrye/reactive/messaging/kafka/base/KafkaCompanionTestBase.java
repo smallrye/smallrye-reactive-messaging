@@ -33,7 +33,7 @@ public class KafkaCompanionTestBase extends WeldTestBase {
     @BeforeAll
     static void initCompanion(@KafkaBootstrapServers String bootstrapServers) {
         companion = new KafkaCompanion(bootstrapServers);
-        companion.serdeForType(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
+        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
     }
 
     @BeforeEach

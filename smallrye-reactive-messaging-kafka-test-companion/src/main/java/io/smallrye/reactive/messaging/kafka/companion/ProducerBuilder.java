@@ -57,6 +57,11 @@ public class ProducerBuilder<K, V> implements Closeable {
     private final Function<Map<String, Object>, KafkaProducer<K, V>> producerCreator;
 
     /**
+     * Duration for default api timeout
+     */
+    private final Duration kafkaApiTimeout;
+
+    /**
      * Serde for key if provided in constructor
      * <p>
      * May be {@code null}
@@ -86,12 +91,15 @@ public class ProducerBuilder<K, V> implements Closeable {
      * On producer creation, key and value serializers will be created and {@link Serializer#configure} methods will be called.
      *
      * @param props the initial properties for producer creation
+     * @param kafkaApiTimeout the timeout for api calls to Kafka
      * @param keySerializerType the serializer class for record keys
      * @param valueSerializerType the serializer class for record values
      */
-    public ProducerBuilder(Map<String, Object> props, Class<? extends Serializer<K>> keySerializerType,
+    public ProducerBuilder(Map<String, Object> props, Duration kafkaApiTimeout,
+            Class<? extends Serializer<K>> keySerializerType,
             Class<? extends Serializer<V>> valueSerializerType) {
         this.props = props;
+        this.kafkaApiTimeout = kafkaApiTimeout;
         this.props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerType.getName());
         this.props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerType.getName());
         this.producerCreator = KafkaProducer::new;
@@ -103,11 +111,14 @@ public class ProducerBuilder<K, V> implements Closeable {
      * Note that on producer creation {@link Serializer#configure} methods will NOT be called.
      *
      * @param props the initial properties for producer creation
+     * @param kafkaApiTimeout the timeout for api calls to Kafka
      * @param keySerializer the serializer for record keys
      * @param valueSerializer the serializer for record values
      */
-    public ProducerBuilder(Map<String, Object> props, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    public ProducerBuilder(Map<String, Object> props, Duration kafkaApiTimeout,
+            Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         this.props = props;
+        this.kafkaApiTimeout = kafkaApiTimeout;
         this.producerCreator = p -> new KafkaProducer<>(p, keySerializer, valueSerializer);
     }
 
@@ -117,11 +128,13 @@ public class ProducerBuilder<K, V> implements Closeable {
      * Note that on producer creation {@link Serializer#configure} methods will NOT be called.
      *
      * @param props the initial properties for producer creation
+     * @param kafkaApiTimeout the timeout for api calls to Kafka
      * @param keySerde the Serde for record keys
      * @param valueSerde the Serde for record values
      */
-    public ProducerBuilder(Map<String, Object> props, Serde<K> keySerde, Serde<V> valueSerde) {
-        this(props, keySerde.serializer(), valueSerde.serializer());
+    public ProducerBuilder(Map<String, Object> props, Duration kafkaApiTimeout,
+            Serde<K> keySerde, Serde<V> valueSerde) {
+        this(props, kafkaApiTimeout, keySerde.serializer(), valueSerde.serializer());
         this.keySerde = keySerde;
         this.valueSerde = valueSerde;
     }
@@ -138,7 +151,7 @@ public class ProducerBuilder<K, V> implements Closeable {
 
     private synchronized ExecutorService getOrCreateExecutor() {
         if (executorService == null) {
-            executorService = Executors.newFixedThreadPool(1, c -> new Thread(c, clientId() + "-thread"));
+            executorService = Executors.newFixedThreadPool(1, c -> new Thread(c, "producer-" + clientId()));
         }
         return executorService;
     }
@@ -154,12 +167,14 @@ public class ProducerBuilder<K, V> implements Closeable {
      * Close the underlying {@link KafkaProducer} and {@link ExecutorService}.
      */
     @Override
-    public void close() {
+    public synchronized void close() {
         if (kafkaProducer != null) {
+            LOGGER.infof("Closing producer %s", clientId());
             // Kafka producer is thread-safe, we can call close on the caller thread
-            kafkaProducer.close();
+            kafkaProducer.close(kafkaApiTimeout);
             kafkaProducer = null;
-            // TODO shutdown the executor service
+            executorService.shutdown();
+            executorService = null;
         }
     }
 
@@ -221,7 +236,14 @@ public class ProducerBuilder<K, V> implements Closeable {
     }
 
     private Uni<RecordMetadata> record(ProducerRecord<K, V> record) {
-        return Uni.createFrom().future(() -> getOrCreateProducer().send(record))
+        return Uni.createFrom().<RecordMetadata> emitter(em -> getOrCreateProducer().send(record,
+                (metadata, exception) -> {
+                    if (exception != null) {
+                        em.fail(exception);
+                    } else {
+                        em.complete(metadata);
+                    }
+                })).emitOn(getOrCreateExecutor())
                 .invoke(() -> LOGGER.debugf("Producer %s: sent message %s", clientId(), record));
     }
 
@@ -240,7 +262,6 @@ public class ProducerBuilder<K, V> implements Closeable {
                                 getOrCreateProducer().abortTransaction();
                             }
                         }
-                        LOGGER.infof("Closing producer %s", clientId());
                         this.close();
                     }));
         });

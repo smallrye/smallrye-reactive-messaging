@@ -39,7 +39,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @BeforeAll
     static void initTracer() {
         KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
-        companion.serdeForType(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
+        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
     }
 
     @AfterEach
