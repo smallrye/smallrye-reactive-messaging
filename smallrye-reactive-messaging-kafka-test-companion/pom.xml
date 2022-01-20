@@ -22,7 +22,6 @@
     <dependency>
       <groupId>com.opencsv</groupId>
       <artifactId>opencsv</artifactId>
-      <version>5.5.2</version>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
@@ -48,55 +47,26 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
+      <scope>compile</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.junit.platform</groupId>
       <artifactId>junit-platform-commons</artifactId>
+      <scope>compile</scope>
       <optional>true</optional>
     </dependency>
 
-    <!-- Test dependency -->
+    <!-- Ensure log4j1 log backend with slf4j -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
-      <version>1.7.32</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-api</artifactId>
-        <version>${version.junit5}</version>
-        <scope>compile</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-platform-commons</artifactId>
-        <version>${junit-platform-commons.version}</version>
-        <scope>compile</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <version>${testcontainers.version}</version>
-        <scope>compile</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.strimzi</groupId>
-        <artifactId>strimzi-test-container</artifactId>
-        <version>0.100.0</version>
-        <scope>compile</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>toxiproxy</artifactId>
-        <version>1.16.2</version>
-        <scope>compile</scope>
-      </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
