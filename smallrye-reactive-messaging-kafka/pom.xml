@@ -91,7 +91,7 @@
     <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>strimzi-test-container</artifactId>
-      <version>0.25.0</version>
+      <version>0.100.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
