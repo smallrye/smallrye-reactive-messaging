@@ -1,5 +1,8 @@
 # Kafka Companion
 
+!!!warning "Experimental"
+    Kafka Companion is experimental and APIs are subject to change in the future.
+
 The **Kafka Companion** is a separate Java library for helping to test Kafka applications.
 It is not intended to mock Kafka, but to the contrary, connect to a Kafka broker and provide high-level features.
 

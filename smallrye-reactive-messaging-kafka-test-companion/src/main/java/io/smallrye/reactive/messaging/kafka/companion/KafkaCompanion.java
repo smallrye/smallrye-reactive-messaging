@@ -14,7 +14,8 @@ import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
-import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -26,8 +27,15 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 
+import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Uni;
 
+/**
+ * KafkaCompanion wraps actions on Kafka admin, producer and consumer, aiming to ease interactions with a Kafka broker.
+ *
+ * It is not intended to be used in production code with long-running actions.
+ */
+@Experimental("Experimental API")
 public class KafkaCompanion implements AutoCloseable {
 
     private final Map<Class<?>, Serde<?>> serdeMap = new HashMap<>();
