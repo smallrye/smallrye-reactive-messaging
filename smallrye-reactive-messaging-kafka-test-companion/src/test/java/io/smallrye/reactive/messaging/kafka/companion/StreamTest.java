@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -50,5 +51,19 @@ public class StreamTest extends KafkaCompanionTestBase {
         assertThat(consumer.awaitRecords(500).count()).isEqualTo(500);
         assertThat(records.awaitRecords(500).count()).isEqualTo(500);
         assertThat(records2.awaitRecords(500).count()).isEqualTo(500);
+    }
+
+    @Test
+    void testProcessTransaction() {
+        String newTopic = topic + "-new";
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 1000)
+                .awaitCompletion();
+
+        ProducerTask txProcess = companion.processTransactional(Collections.singleton(topic),
+                companion.consumeStrings(), companion.produceIntegers().withTransactionalId("tx-producer"),
+                record -> new ProducerRecord<>(newTopic, record.partition(), record.key(),
+                        Integer.parseInt(record.value().substring(1))));
+
+        txProcess.awaitRecords(1000).stop();
     }
 }
