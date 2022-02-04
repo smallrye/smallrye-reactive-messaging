@@ -48,9 +48,8 @@ public class PublisherMediator extends AbstractMediator {
         return true;
     }
 
-    @Override
     protected <T> Uni<T> invokeBlocking(Object... args) {
-        return super.<T> invokeBlocking(args)
+        return super.<T> invokeBlocking(null, args)
                 .onItem().invoke(item -> {
                     // The item must not be null.
                     if (item == null) {

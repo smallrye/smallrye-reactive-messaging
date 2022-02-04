@@ -71,7 +71,7 @@
 
     <smallrye-config.version>2.9.1</smallrye-config.version>
     <smallrye-metrics.version>3.0.4</smallrye-metrics.version>
-    <smallrye-common.version>1.9.0</smallrye-common.version>
+    <smallrye-common.version>1.10.0</smallrye-common.version>
     <smallrye-health.version>3.2.0</smallrye-health.version>
     <smallrye-testing.version>1.0.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>5.3.2</smallrye-fault-tolerance.version>
@@ -192,6 +192,11 @@
       <dependency>
         <groupId>io.smallrye.common</groupId>
         <artifactId>smallrye-common-annotation</artifactId>
+        <version>${smallrye-common.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.common</groupId>
+        <artifactId>smallrye-common-vertx-context</artifactId>
         <version>${smallrye-common.version}</version>
       </dependency>
       <dependency>

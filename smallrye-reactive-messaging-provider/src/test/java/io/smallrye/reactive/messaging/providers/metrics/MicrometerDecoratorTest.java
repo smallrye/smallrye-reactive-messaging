@@ -22,8 +22,9 @@ public class MicrometerDecoratorTest extends WeldTestBase {
     void testMicrometerDecoratorAvailable() {
         initialize();
         Instance<PublisherDecorator> decorators = container.select(PublisherDecorator.class);
-        assertThat(decorators).hasSize(2).allSatisfy(
-                decorator -> assertThat(decorator).isInstanceOfAny(MetricDecorator.class, MicrometerDecorator.class));
+        assertThat(decorators)
+                .anySatisfy(decorator -> assertThat(decorator).isInstanceOfAny(MetricDecorator.class))
+                .anySatisfy(decorator -> assertThat(decorator).isInstanceOfAny(MicrometerDecorator.class));
     }
 
     @BeforeEach

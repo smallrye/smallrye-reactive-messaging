@@ -14,9 +14,7 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
@@ -26,13 +24,13 @@ import io.smallrye.reactive.messaging.blocking.beans.*;
 
 class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
-    @BeforeAll
-    static void setupConfig() {
+    @BeforeEach
+    void setupConfig() {
         installConfig("src/test/resources/config/worker-config.properties");
     }
 
-    @AfterAll
-    static void clear() {
+    @AfterEach
+    void clear() {
         releaseConfig();
     }
 

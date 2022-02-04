@@ -54,6 +54,7 @@ public class MqttSource {
                             }
                             return multi;
                         })
+                        .onOverflow().buffer()
                         .onCancellation().call(() -> {
                             ready.set(false);
                             return Uni

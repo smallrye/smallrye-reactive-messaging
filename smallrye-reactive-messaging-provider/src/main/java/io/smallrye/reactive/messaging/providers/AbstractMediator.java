@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -24,6 +25,7 @@ import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.ConverterUtils;
+import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 
 public abstract class AbstractMediator {
 
@@ -95,11 +97,15 @@ public abstract class AbstractMediator {
         }
     }
 
+    protected <T> Uni<T> invokeOnMessageContext(Message<?> message, Object... args) {
+        return LocalContextMetadata.invokeOnMessageContext(message, x -> invoke(args));
+    }
+
     @SuppressWarnings("unchecked")
-    protected <T> Uni<T> invokeBlocking(Object... args) {
+    protected <T> Uni<T> invokeBlocking(Message<?> message, Object... args) {
         try {
             return workerPoolRegistry.executeWork(
-                    Uni.createFrom().emitter(emitter -> {
+                    LocalContextMetadata.invokeOnMessageContext(message, (m, emitter) -> {
                         try {
                             Object result = this.invoker.invoke(args);
                             if (result instanceof CompletionStage) {

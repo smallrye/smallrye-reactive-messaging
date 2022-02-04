@@ -30,6 +30,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.helpers.Validation;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.WorkerExecutor;
 
 @ApplicationScoped
@@ -71,9 +73,26 @@ public class WorkerPoolRegistry {
         }
         Objects.requireNonNull(uni, msg.actionNotProvided());
 
+        Context currentContext = Vertx.currentContext();
         if (workerName == null) {
+            if (currentContext != null) {
+                return currentContext.executeBlocking(Uni.createFrom().deferred(() -> uni), ordered);
+            }
+            // No current context, use the Vert.x instance.
             return holder.vertx().executeBlocking(uni, ordered);
         } else {
+            if (currentContext != null) {
+                return getWorker(workerName).executeBlocking(uni, ordered)
+                        .onItemOrFailure().transformToUni((item, failure) -> {
+                            return Uni.createFrom().emitter(emitter -> {
+                                if (failure != null) {
+                                    currentContext.runOnContext(() -> emitter.fail(failure));
+                                } else {
+                                    currentContext.runOnContext(() -> emitter.complete(item));
+                                }
+                            });
+                        });
+            }
             return getWorker(workerName).executeBlocking(uni, ordered);
         }
     }

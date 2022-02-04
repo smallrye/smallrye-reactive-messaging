@@ -38,8 +38,7 @@ public class SmallRyeMetricDecoratorTest extends WeldTestBase {
         weld.addExtensions(MetricCdiInjectionExtension.class);
         runApplication(config(), MetricsTestBean.class);
         Instance<PublisherDecorator> decorators = container.select(PublisherDecorator.class);
-        assertThat(decorators).hasSize(1);
-        assertThat(decorators.get()).isInstanceOf(MetricDecorator.class);
+        assertThat(decorators.select(MetricDecorator.class).isResolvable()).isTrue();
     }
 
     @Test

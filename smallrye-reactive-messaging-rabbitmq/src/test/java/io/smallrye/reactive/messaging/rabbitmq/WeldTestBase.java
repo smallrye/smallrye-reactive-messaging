@@ -1,20 +1,18 @@
-package io.smallrye.reactive.messaging.kafka.base;
+package io.smallrye.reactive.messaging.rabbitmq;
+
+import static org.awaitility.Awaitility.await;
+
+import java.util.UUID;
 
 import javax.enterprise.inject.spi.BeanManager;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
-import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
@@ -31,10 +29,15 @@ import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class WeldTestBase {
+public class WeldTestBase extends RabbitMQBrokerTestBase {
 
     protected Weld weld;
+
     protected WeldContainer container;
+
+    protected String exchange;
+    protected String queue;
+    protected String routingKeys;
 
     @BeforeEach
     public void initWeld() {
@@ -56,26 +59,27 @@ public class WeldTestBase {
         weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
-        weld.addBeanClass(KafkaCDIEvents.class);
-        weld.addBeanClass(KafkaConnector.class);
-        weld.addBeanClass(KafkaClientServiceImpl.class);
+        weld.addBeanClass(RabbitMQConnector.class);
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
         weld.addBeanClass(ContextDecorator.class);
         weld.disableDiscovery();
     }
 
+    @BeforeEach
+    public void setupQueues() {
+        exchange = UUID.randomUUID().toString();
+        queue = UUID.randomUUID().toString();
+        routingKeys = "normal";
+    }
+
     @AfterEach
-    public void stopContainer() {
+    public void cleanup() {
         if (container != null) {
-            // Explicitly close the connector
-            getBeanManager().createInstance()
-                    .select(KafkaConnector.class, ConnectorLiteral.of("smallrye-kafka")).get().terminate(new Object());
-            container.close();
+            container.select(RabbitMQConnector.class, ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME)).get()
+                    .terminate(null);
+            container.shutdown();
         }
-        // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        KafkaThrottledLatestProcessedCommit.clearCache();
     }
 
     public BeanManager getBeanManager() {
@@ -107,32 +111,8 @@ public class WeldTestBase {
         }
 
         container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAlive(container));
+        await().until(() -> isRabbitMQConnectorReady(container));
     }
 
-    public static void addConfig(KafkaMapBasedConfig config) {
-        if (config != null) {
-            config.write();
-        } else {
-            KafkaMapBasedConfig.cleanup();
-        }
-    }
-
-    public HealthCenter getHealth() {
-        if (container == null) {
-            throw new IllegalStateException("Application not started");
-        }
-        return container.getBeanManager().createInstance().select(HealthCenter.class).get();
-    }
-
-    public boolean isStarted() {
-        return getHealth().getStartup().isOk();
-    }
-
-    public boolean isReady() {
-        return getHealth().getReadiness().isOk();
-    }
-
-    public boolean isAlive() {
-        return getHealth().getLiveness().isOk();
-    }
 }

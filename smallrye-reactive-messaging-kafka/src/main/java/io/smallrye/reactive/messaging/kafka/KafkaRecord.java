@@ -6,7 +6,9 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-public interface KafkaRecord<K, T> extends Message<T> {
+import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
+
+public interface KafkaRecord<K, T> extends Message<T>, ContextAwareMessage<T> {
 
     static <K, T> OutgoingKafkaRecord<K, T> from(Message<T> message) {
         return OutgoingKafkaRecord.from(message);

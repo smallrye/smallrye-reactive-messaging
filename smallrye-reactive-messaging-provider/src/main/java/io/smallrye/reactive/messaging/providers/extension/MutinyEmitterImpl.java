@@ -5,13 +5,13 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.Cancellable;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 
@@ -30,12 +30,11 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
         // If we are running on a Vert.x I/O thread, we need to capture the context to switch back
         // during the emission.
         Context context = Vertx.currentContext();
-        Uni<Void> uni = Uni.createFrom().emitter(e -> emit(Message.of(payload, Metadata.empty(),
-                () -> {
+        Uni<Void> uni = Uni.createFrom().emitter(e -> emit(ContextAwareMessage.of(payload)
+                .withAck(() -> {
                     e.complete(null);
                     return CompletableFuture.completedFuture(null);
-                },
-                reason -> {
+                }).withNack(reason -> {
                     e.fail(reason);
                     return CompletableFuture.completedFuture(null);
                 })));
