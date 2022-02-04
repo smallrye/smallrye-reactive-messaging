@@ -91,7 +91,7 @@
     <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>strimzi-test-container</artifactId>
-      <version>0.25.0</version>
+      <version>0.100.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -111,6 +111,12 @@
       <groupId>org.reactivestreams</groupId>
       <artifactId>reactive-streams-tck</artifactId>
       <version>1.0.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.32</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -146,6 +152,9 @@
               <!-- Disable TestNG -->
               <testNGArtifactName>none:none</testNGArtifactName>
               <reuseForks>true</reuseForks>
+              <systemPropertyVariables>
+                <org.jboss.logging.provider>slf4j</org.jboss.logging.provider>
+              </systemPropertyVariables>
             </configuration>
           </execution>
         </executions>

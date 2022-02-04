@@ -50,7 +50,7 @@ import org.jboss.logging.Logger;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
-import io.strimzi.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaContainer;
 
 /**
  * Simplify the usage of a Kafka client.
@@ -82,7 +82,7 @@ public class KafkaUsage implements AutoCloseable {
      * @param gracePeriodInSecond number of seconds to wait before restarting
      * @return the new broker
      */
-    public static FixedKafkaContainer restart(StrimziKafkaContainer kafka, int gracePeriodInSecond) {
+    public static StrimziKafkaContainer restart(StrimziKafkaContainer kafka, int gracePeriodInSecond) {
         int port = kafka.getMappedPort(KAFKA_PORT);
         try {
             kafka.close();
@@ -95,8 +95,8 @@ public class KafkaUsage implements AutoCloseable {
         return startKafkaBroker(port);
     }
 
-    public static FixedKafkaContainer startKafkaBroker(int port) {
-        FixedKafkaContainer kafka = new FixedKafkaContainer(port);
+    public static StrimziKafkaContainer startKafkaBroker(int port) {
+        StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer().withPort(port);
         kafka.start();
         await().until(kafka::isRunning);
         return kafka;
@@ -108,18 +108,6 @@ public class KafkaUsage implements AutoCloseable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    /**
-     * Specialization of {@link StrimziKafkaContainer} but exposing the Kafka port to a specific host port.
-     * Useful when you need to restart Kafka on the same port.
-     */
-    public static class FixedKafkaContainer extends StrimziKafkaContainer {
-        public FixedKafkaContainer(int port) {
-            super(KafkaBrokerExtension.getKafkaContainerVersion());
-            super.addFixedExposedPort(port, KAFKA_PORT);
-        }
-
     }
 
     public static String getHeader(Headers headers, String key) {
@@ -174,19 +162,19 @@ public class KafkaUsage implements AutoCloseable {
             Supplier<ProducerRecord<K, V>> messageSupplier) {
         Properties props = getProducerProperties(producerName);
         Thread t = new Thread(() -> {
-            LOGGER.infof("Starting producer %s to write %s messages", producerName, messageCount);
+            LOGGER.debugf("Starting producer %s to write %s messages", producerName, messageCount);
             try (KafkaProducer<K, V> producer = new KafkaProducer<>(props, keySerializer, valueSerializer)) {
                 for (int i = 0; i != messageCount; ++i) {
                     ProducerRecord<K, V> record = messageSupplier.get();
                     producer.send(record);
                     producer.flush();
-                    LOGGER.infof("Producer %s: sent message %s", producerName, record);
+                    LOGGER.debugf("Producer %s: sent message %s", producerName, record);
                 }
             } finally {
                 if (completionCallback != null) {
                     completionCallback.run();
                 }
-                LOGGER.infof("Stopping producer %s", producerName);
+                LOGGER.debugf("Stopping producer %s", producerName);
             }
         });
         t.setName(producerName + "-thread");
@@ -240,12 +228,12 @@ public class KafkaUsage implements AutoCloseable {
             java.util.function.Consumer<ConsumerRecord<K, V>> consumerFunction) {
         Properties props = getConsumerProperties(groupId, clientId, autoOffsetReset);
         Thread t = new Thread(() -> {
-            LOGGER.infof("Starting consumer %s to read messages", clientId);
+            LOGGER.debugf("Starting consumer %s to read messages", clientId);
             try (KafkaConsumer<K, V> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer)) {
                 consumer.subscribe(new ArrayList<>(topics));
                 while (continuation.getAsBoolean()) {
                     consumer.poll(Duration.ofMillis(10)).forEach(record -> {
-                        LOGGER.infof("Consumer %s: consuming message %s", clientId, record);
+                        LOGGER.debugf("Consumer %s: consuming message %s", clientId, record);
                         consumerFunction.accept(record);
                         if (offsetCommitCallback != null) {
                             consumer.commitAsync(offsetCommitCallback);

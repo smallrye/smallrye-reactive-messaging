@@ -152,7 +152,7 @@ public interface KafkaLogging extends BasicLogger {
     void settingCommitInterval(String group, long commitInterval);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 18233, value = "Invalid value serializer to write a structured Cloud Event. Found %d, expected the org.apache.kafka.common.serialization.StringSerializer")
+    @Message(id = 18233, value = "Invalid value serializer to write a structured Cloud Event. Found %s, expected the org.apache.kafka.common.serialization.StringSerializer")
     void invalidValueSerializerForStructuredCloudEvent(String serializer);
 
     @LogMessage(level = Logger.Level.DEBUG)

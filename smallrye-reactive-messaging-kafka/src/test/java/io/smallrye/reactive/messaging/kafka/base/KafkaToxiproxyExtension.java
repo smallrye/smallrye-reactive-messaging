@@ -20,7 +20,6 @@ import org.testcontainers.utility.DockerImageName;
 
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
-import io.strimzi.StrimziKafkaContainer;
 
 public class KafkaToxiproxyExtension extends KafkaBrokerExtension
         implements BeforeAllCallback, ParameterResolver, CloseableResource {
@@ -67,10 +66,10 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
     }
 
     static void startKafkaBroker(Network network, int proxyPort) {
-        kafka = new ProxiedStrimziKafkaContainer(KafkaBrokerExtension.getKafkaContainerVersion(), proxyPort)
+        kafka = KafkaBrokerExtension.createKafkaContainer()
                 .withNetwork(network)
                 .withNetworkAliases(KAFKA_NETWORK_ALIAS)
-                .withExposedPorts(KAFKA_PORT);
+                .withBootstrapServers(c -> String.format("PLAINTEXT://%s:%s", c.getContainerIpAddress(), proxyPort));
         kafka.start();
         LOGGER.info("Kafka broker started: (" + kafka.getMappedPort(9092) + ")");
         await().until(() -> kafka.isRunning());
@@ -117,15 +116,13 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
             throws ParameterResolutionException {
-        Object parameter = super.resolveParameter(parameterContext, extensionContext);
-        if (parameter == null) {
-            if (kafkaproxy != null) {
-                if (parameterContext.getParameter().getType().equals(ContainerProxy.class)) {
-                    return kafkaproxy;
-                }
+        if (kafkaproxy != null) {
+            if (parameterContext.getParameter().getType().equals(ContainerProxy.class)) {
+                return kafkaproxy;
             }
-        } else {
-            return parameter;
+            if (parameterContext.isAnnotated(KafkaBootstrapServers.class)) {
+                return getProxyBootstrapServers(kafkaproxy);
+            }
         }
         return null;
     }
@@ -146,24 +143,6 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
             this.originalProxyPort = originalProxyPort;
         }
 
-    }
-
-    /**
-     * Sets advertised listeners to the proxied port instead of exposed port
-     */
-    public static class ProxiedStrimziKafkaContainer extends StrimziKafkaContainer {
-
-        private final int proxyPort;
-
-        public ProxiedStrimziKafkaContainer(String version, int proxyPort) {
-            super(version);
-            this.proxyPort = proxyPort;
-        }
-
-        @Override
-        public String getBootstrapServers() {
-            return String.format("PLAINTEXT://%s:%s", this.getHost(), proxyPort);
-        }
     }
 
 }

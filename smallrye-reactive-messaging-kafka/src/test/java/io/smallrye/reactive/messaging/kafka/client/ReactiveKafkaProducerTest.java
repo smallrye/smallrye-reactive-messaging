@@ -84,7 +84,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
         assertThat(done).isTrue();
 
         for (int i = 0; i < numberOfThreads; i++) {
-            assertThat(messages).containsSubsequence(expectedMessages("T" + i, numberOfMessagesPerThread));
+            assertThat(messages).containsAll(expectedMessages("T" + i, numberOfMessagesPerThread));
         }
 
         for (Thread thread : threads) {
@@ -144,7 +144,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
         assertThat(done).isTrue();
 
         for (int i = 0; i < numberOfThreads; i++) {
-            assertThat(messages).containsSubsequence(expectedMessages("T" + i, numberOfMessagesPerThread));
+            assertThat(messages).containsAll(expectedMessages("T" + i, numberOfMessagesPerThread));
         }
 
         for (Thread thread : threads) {
