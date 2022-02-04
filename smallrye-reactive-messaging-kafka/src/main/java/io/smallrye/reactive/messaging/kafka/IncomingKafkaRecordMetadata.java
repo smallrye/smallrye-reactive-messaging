@@ -9,8 +9,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 public class IncomingKafkaRecordMetadata<K, T>
         extends io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K> {
 
-    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record) {
-        super(record);
+    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channelName) {
+        super(record, channelName);
     }
 
 }

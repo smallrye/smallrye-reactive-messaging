@@ -17,17 +17,22 @@ import java.util.function.Function;
 
 import javax.enterprise.inject.Instance;
 
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Serializer;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.SerializerWrapper;
@@ -87,6 +92,10 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
 
         kafkaWorker = Executors.newSingleThreadExecutor(KafkaSendingThread::new);
         producer = new KafkaProducer<>(kafkaConfiguration, keySerializer, valueSerializer);
+        if (kafkaConfiguration.containsKey(ProducerConfig.TRANSACTIONAL_ID_CONFIG)) {
+            // TODO is this the right way ?
+            initTransactions().subscribeAsCompletionStage();
+        }
     }
 
     @Override
@@ -134,6 +143,54 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         return runOnSendingThread(producer -> {
             return producer.partitionsFor(topic);
         });
+    }
+
+    public Uni<Void> initTransactions() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::initTransactions);
+    }
+
+    @Override
+    public Uni<Void> beginTransaction() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::beginTransaction);
+    }
+
+    @Override
+    public Uni<Void> commitTransaction() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::commitTransaction);
+    }
+
+    @Override
+    public Uni<Void> abortTransaction() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::abortTransaction);
+    }
+
+    @Override
+    public Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
+            ConsumerGroupMetadata groupMetadata) {
+        return runOnSendingThread(producer -> {
+            producer.sendOffsetsToTransaction(offsets, groupMetadata);
+        });
+    }
+
+    @Override
+    public Uni<Void> withTransaction(Consumer<MultiEmitter<? super ProducerRecord<K, V>>> work) {
+        return beginTransaction()
+                .chain(() -> Multi.createFrom().<ProducerRecord<K, V>> emitter(multiEmitter -> {
+                    try {
+                        work.accept(multiEmitter);
+                    } catch (Throwable throwable) {
+                        multiEmitter.fail(throwable);
+                    } finally {
+                        multiEmitter.complete();
+                    }
+                })
+                        .onItem().transformToUniAndConcatenate(this::send)
+                        .collect().asList())
+                .chain(this::commitTransaction)
+                .onFailure().recoverWithUni(throwable -> {
+                    log.warnf(throwable, "Aborting transaction for producer id &s in channel %s", this.clientId, this.channel);
+                    return this.abortTransaction();
+                });
     }
 
     @SuppressWarnings({ "unchecked" })

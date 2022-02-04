@@ -141,12 +141,19 @@ public class KafkaSource<K, V> {
                 reportFailure(t, false);
             });
 
-            Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi
-                    .onItem().transformToUniAndConcatenate(rec -> {
-                        IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, commitHandler,
-                                failureHandler, isCloudEventEnabled, isTracingEnabled);
-                        return commitHandler.received(record);
-                    });
+            Multi<IncomingKafkaRecord<K, V>> incomingMulti;
+            // TODO ogu hack to avoid buffering items using flatmap -> received is only implemented by throttled strategy
+            if (KafkaCommitHandler.Strategy.from(commitStrategy) != KafkaCommitHandler.Strategy.THROTTLED) {
+                incomingMulti = multi.onItem().transform(rec -> new IncomingKafkaRecord<>(rec, channel, commitHandler,
+                        failureHandler, isCloudEventEnabled, isTracingEnabled));
+            } else {
+                incomingMulti = multi
+                        .onItem().transformToUniAndConcatenate(rec -> {
+                            IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, commitHandler,
+                                    failureHandler, isCloudEventEnabled, isTracingEnabled);
+                            return commitHandler.received(record);
+                        });
+            }
 
             if (config.getTracingEnabled()) {
                 incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
@@ -172,12 +179,20 @@ public class KafkaSource<K, V> {
                 reportFailure(t, false);
             });
 
-            Multi<IncomingKafkaRecordBatch<K, V>> incomingMulti = multi
-                    .onItem().transformToUniAndConcatenate(rec -> {
-                        IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, commitHandler,
-                                failureHandler, isCloudEventEnabled, isTracingEnabled);
-                        return receiveBatchRecord(batch);
-                    });
+            Multi<IncomingKafkaRecordBatch<K, V>> incomingMulti;
+            // TODO ogu hack to avoid buffering items using flatmap -> received is only implemented by throttled strategy
+            if (KafkaCommitHandler.Strategy.from(commitStrategy) != KafkaCommitHandler.Strategy.THROTTLED) {
+                incomingMulti = multi.onItem().transform(rec -> new IncomingKafkaRecordBatch<>(rec, channel,
+                        commitHandler, failureHandler, isCloudEventEnabled, isTracingEnabled));
+            } else {
+                incomingMulti = multi
+                        .onItem().transformToUniAndConcatenate(rec -> {
+                            IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, channel,
+                                    commitHandler, failureHandler, isCloudEventEnabled, isTracingEnabled);
+                            return receiveBatchRecord(batch);
+                        });
+            }
+
             if (config.getTracingEnabled()) {
                 incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
             }

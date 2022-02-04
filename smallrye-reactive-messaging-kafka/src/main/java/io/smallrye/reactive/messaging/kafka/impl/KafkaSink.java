@@ -24,6 +24,7 @@ import org.apache.kafka.common.errors.OffsetMetadataTooLarge;
 import org.apache.kafka.common.errors.RecordBatchTooLargeException;
 import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.apache.kafka.common.errors.UnknownServerException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -162,7 +163,8 @@ public class KafkaSink {
             RecordBatchTooLargeException.class,
             RecordTooLargeException.class,
             UnknownServerException.class,
-            SerializationException.class));
+            SerializationException.class,
+            TransactionAbortedException.class));
 
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
         return message -> {

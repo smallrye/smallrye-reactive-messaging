@@ -31,16 +31,16 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     @SuppressWarnings("deprecation")
     public IncomingKafkaRecord(ConsumerRecord<K, T> record,
+            String channel,
             KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack,
             boolean cloudEventEnabled,
             boolean tracingEnabled) {
         this.commitHandler = commitHandler;
-        this.kafkaMetadata = new io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<>(record);
+        this.kafkaMetadata = new io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<>(record, channel);
         // TODO remove this duplication once we have removed IncomingKafkaRecordMetadata from this package
         // Duplicate the metadata so old and new copies can both be found
-        IncomingKafkaRecordMetadata<K, T> deprecatedKafkaMetadata = new IncomingKafkaRecordMetadata<>(
-                record);
+        IncomingKafkaRecordMetadata<K, T> deprecatedKafkaMetadata = new IncomingKafkaRecordMetadata<>(record, channel);
 
         ArrayList<Object> meta = new ArrayList<>();
         meta.add(this.kafkaMetadata);

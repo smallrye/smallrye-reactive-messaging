@@ -200,3 +200,45 @@ an event, you can `sendAndForget`:
 ``` java
 {{ insert('emitter/MutinyExamples.java', 'uni-forget') }}
 ```
+
+## Custom Emitter Implementations
+
+!!!warning "Experimental"
+    Custom emitter implementations is an experimental feature.
+
+`Emitter` and `MutinyEmitter` are two implementations of the emitter concept,
+where imperative code in your application can send messages to Reactive Messaging channels.
+
+With `EmitterFactory` it is possible to provide custom implementations, and application facing emitter interfaces.
+
+In the following example, the application injectable custom emitter interface is `CustomEmitter`,
+and it is implemented by `CustomEmitterImpl`:
+
+``` java
+{{ insert('emitter/EmitterFactoryExamples.java', 'custom-emitter-declaration') }}
+```
+
+Note that `CustomEmitterImpl` also implements the `MessagePublisherProvider`,
+which is used by the framework to transform this emitter to a channel.
+
+Then we need to provide an implementation of the `EmitterFactory` interface:
+
+``` java
+{{ insert('emitter/EmitterFactoryExamples.java', 'custom-emitter-factory') }}
+```
+
+The `CustomEmitterFactory` is a CDI managed bean, which implements the `EmitterFactory`.
+It is qualified with `EmitterFactoryFor` annotation which is configured with the emitter interface `CustomEmitter` with factory provides.
+
+Smallrye Reactive Messaging discovers the emitter factory during the CDI deployment validation
+and verifies that custom emitters used by the application have corresponding emitter factories.
+It'll use the emitter factory to create the emitter implementation and will register the implementation into the `ChannelRegistry`.
+
+Note that the `CustomEmitterFactory` also uses the `ChannelRegistry` and provides the custom emitter with `@Produces`.
+
+Finally, the application can inject and use the `CustomEmitter` as a normal emitter channel:
+
+``` java
+{{ insert('emitter/EmitterFactoryExamples.java', 'custom-emitter-usage') }}
+```
+

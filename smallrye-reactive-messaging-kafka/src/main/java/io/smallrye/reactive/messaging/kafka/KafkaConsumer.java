@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
@@ -180,5 +181,17 @@ public interface KafkaConsumer<K, V> {
      */
     @CheckReturnValue
     Uni<Void> seekToEnd(Collection<TopicPartition> partitions);
+
+    /**
+     * @return the Uni emitting the group metadata of this consumer
+     */
+    Uni<ConsumerGroupMetadata> consumerGroupMetadata();
+
+    /**
+     * For each assigned topic partition reset to last committed offset or the beginning
+     *
+     * @return the Uni emitting {@code null} when the reset has been executed.
+     */
+    Uni<Void> resetToLastCommittedPositions();
 
 }

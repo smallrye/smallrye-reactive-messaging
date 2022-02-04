@@ -10,7 +10,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +24,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
@@ -163,6 +167,20 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
         return sink;
     }
 
+    public KafkaSink createTransactionalSink() {
+        String channelName = "test-" + ThreadLocalRandom.current().nextInt();
+        MapBasedConfig config = createProducerConfig()
+                .with("channel-name", channelName)
+                .with(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "tx-producer")
+                .with(ProducerConfig.ACKS_CONFIG, "all")
+                .with("topic", topic);
+
+        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        this.sinks.add(sink);
+        return sink;
+    }
+
     private class IndependentProducerThread extends Thread {
         private final String threadId;
         private final int messageKey; // used for all messages produced by this thread, to guarantee ordering
@@ -236,5 +254,22 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
 
             emitter.complete();
         }
+    }
+
+    @Test
+    void transactionProducer() {
+        ConsumerTask<String, String> records = companion.consumeStrings()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, 1000);
+
+        KafkaSink sink = createTransactionalSink();
+        KafkaProducer<Integer, String> producer = (KafkaProducer<Integer, String>) sink.getProducer();
+        producer.withTransaction(emitter -> {
+            for (int i = 0; i < 1000; i++) {
+                emitter.emit(new ProducerRecord<>(topic, i, "" + i));
+            }
+        }).await().atMost(Duration.ofMinutes(1));
+
+        records.awaitCompletion();
     }
 }

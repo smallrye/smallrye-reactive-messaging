@@ -39,6 +39,7 @@ nav:
         - 'Accessing the client': kafka/client-service.md
         - 'Customizing Default Kafka Configuration': kafka/default-configuration.md
         - 'Test Companion for Kafka': kafka/test-companion.md
+        - 'Kafka Transactions and Exactly-Once Processing': kafka/transactions.md
 
   - AMQP 1.0:
         - amqp/amqp.md

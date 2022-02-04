@@ -1,15 +1,21 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.subscription.MultiEmitter;
 
 /**
  * Kafka Producer API.
@@ -79,6 +85,52 @@ public interface KafkaProducer<K, V> {
      */
     @CheckReturnValue
     Uni<List<PartitionInfo>> partitionsFor(String topic);
+
+    /**
+     * @return the Uni emitting {@code null} when the init transactions executes.
+     */
+    Uni<Void> initTransactions();
+
+    /**
+     * @return the Uni emitting {@code null} when the begin transactions executes.
+     */
+    Uni<Void> beginTransaction();
+
+    /**
+     * @return the Uni emitting {@code null} when the commit transactions executes.
+     */
+    Uni<Void> commitTransaction();
+
+    /**
+     * @return the Uni emitting {@code null} when the abort transactions executes.
+     */
+    Uni<Void> abortTransaction();
+
+    /**
+     *
+     * @param offsets topic partition offsets to commit into transaction
+     * @param groupMetadata consumer group metadata of the exactly-once consumer
+     * @return the Uni emitting {@code null} when the init transactions executes.
+     */
+    Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
+            ConsumerGroupMetadata groupMetadata);
+
+    /**
+     * Produce records emitted using the {@link MultiEmitter} inside a Kafka producer transaction.
+     * <p>
+     * The given consumer will be called on the sending thread, after successfully beginning the transaction.
+     * If the consumer method returns successfully, the given {@code MultiEmitter} is completed, and the transaction is
+     * committed.
+     * If the consumer method throws an exception or given {@code MultiEmitter} emits a failure, the transaction is aborted.
+     * <p>
+     * Note that emitted {@link ProducerRecord}s are lazily sent, meaning that returned {@code Uni} will need to be subscribed
+     * for the
+     * whole transaction to execute.
+     *
+     * @param work {@code MultiEmitter} consumer for emitting {@code ProducerRecord}s
+     * @return {@code Uni} representing the transaction execution.
+     */
+    Uni<Void> withTransaction(Consumer<MultiEmitter<? super ProducerRecord<K, V>>> work);
 
     /**
      * @return the underlying producer. Be aware that to use it you needs to be on the sending thread.

@@ -1,8 +1,11 @@
 package io.smallrye.reactive.messaging.kafka.api;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
 /**
@@ -17,9 +20,21 @@ import org.apache.kafka.common.TopicPartition;
 public class IncomingKafkaRecordBatchMetadata<K, T> {
 
     private final ConsumerRecords<K, T> records;
+    private final String channel;
+    private final Map<TopicPartition, OffsetAndMetadata> offsets;
 
-    public IncomingKafkaRecordBatchMetadata(ConsumerRecords<K, T> records) {
+    public IncomingKafkaRecordBatchMetadata(ConsumerRecords<K, T> records, String channel,
+            Map<TopicPartition, OffsetAndMetadata> offsets) {
         this.records = records;
+        this.channel = channel;
+        this.offsets = Collections.unmodifiableMap(offsets);
+    }
+
+    /**
+     * @return channel name from which this message is consumed
+     */
+    public String getChannel() {
+        return channel;
     }
 
     /**
@@ -43,4 +58,7 @@ public class IncomingKafkaRecordBatchMetadata<K, T> {
         return records.partitions();
     }
 
+    public Map<TopicPartition, OffsetAndMetadata> getOffsets() {
+        return offsets;
+    }
 }

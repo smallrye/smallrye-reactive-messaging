@@ -229,6 +229,32 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         }
     }
 
+    @Override
+    public Uni<ConsumerGroupMetadata> consumerGroupMetadata() {
+        return runOnPollingThread((Function<Consumer<K, V>, ConsumerGroupMetadata>) Consumer::groupMetadata);
+    }
+
+    @Override
+    public Uni<Void> resetToLastCommittedPositions() {
+        return runOnPollingThread(c -> {
+            Set<TopicPartition> assignments = c.assignment();
+            c.pause(assignments);
+            Map<TopicPartition, OffsetAndMetadata> committed = c.committed(assignments);
+            for (TopicPartition tp : assignments) {
+                OffsetAndMetadata offsetAndMetadata = committed.get(tp);
+                if (offsetAndMetadata != null) {
+                    // Seek to next offset position
+                    c.seek(tp, offsetAndMetadata.offset());
+                } else {
+                    // Seek to beginning of the topic partition
+                    c.seekToBeginning(Collections.singleton(tp));
+                }
+            }
+            removeFromQueueRecordsFromTopicPartitions(assignments);
+            c.resume(c.assignment());
+        });
+    }
+
     private Map<String, Object> getKafkaConsumerConfiguration(KafkaConnectorIncomingConfiguration configuration,
             String consumerGroup, int index) {
         Map<String, Object> map = new HashMap<>();
