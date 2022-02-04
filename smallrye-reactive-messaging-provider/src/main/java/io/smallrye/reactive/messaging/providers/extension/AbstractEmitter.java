@@ -12,10 +12,12 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
+import io.smallrye.reactive.messaging.EmitterConfiguration;
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
 
-public abstract class AbstractEmitter<T> {
+public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> {
     public static final NoStackTraceException NO_SUBSCRIBER_EXCEPTION = new NoStackTraceException(
             "Unable to process message - no subscriber");
     protected final AtomicReference<MultiEmitter<? super Message<? extends T>>> internal = new AtomicReference<>();
@@ -28,8 +30,8 @@ public abstract class AbstractEmitter<T> {
 
     @SuppressWarnings("unchecked")
     public AbstractEmitter(EmitterConfiguration config, long defaultBufferSize) {
-        this.name = config.name;
-        this.overflow = config.overflowBufferStrategy;
+        this.name = config.name();
+        this.overflow = config.overflowBufferStrategy();
         if (defaultBufferSize <= 0) {
             throw ex.illegalArgumentForDefaultBuffer();
         }
@@ -42,17 +44,17 @@ public abstract class AbstractEmitter<T> {
         };
 
         Multi<Message<? extends T>> tempPublisher;
-        if (config.overflowBufferStrategy == null) {
+        if (config.overflowBufferStrategy() == null) {
             Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
             tempPublisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
         } else {
-            tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy, config.overflowBufferSize,
+            tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(), config.overflowBufferSize(),
                     defaultBufferSize, deferred);
         }
 
-        if (config.broadcast) {
+        if (config.broadcast()) {
             publisher = (Multi<Message<? extends T>>) BroadcastHelper
-                    .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting);
+                    .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting());
         } else {
             publisher = tempPublisher;
         }
@@ -134,6 +136,7 @@ public abstract class AbstractEmitter<T> {
                 .onFailure().invoke(synchronousFailure::set);
     }
 
+    @Override
     public Publisher<Message<? extends T>> getPublisher() {
         return publisher;
     }

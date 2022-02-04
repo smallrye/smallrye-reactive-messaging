@@ -15,8 +15,11 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.EmitterImpl;
+import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
+import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -91,6 +94,9 @@ public class MqttTestBase {
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(MqttConnector.class);
         weld.addBeanClass(ContextDecorator.class);
+        weld.addBeanClass(EmitterFactoryImpl.class);
+        weld.addBeanClass(MutinyEmitterFactoryImpl.class);
+        weld.addBeanClass(LegacyEmitterFactoryImpl.class);
 
         // Add SmallRye Config
         weld.addExtension(new io.smallrye.config.inject.ConfigExtension());

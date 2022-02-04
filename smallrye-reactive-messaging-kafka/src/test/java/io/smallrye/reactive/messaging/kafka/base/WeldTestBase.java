@@ -15,12 +15,16 @@ import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
+import io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactionsFactory;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
+import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
+import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -55,6 +59,11 @@ public class WeldTestBase {
         weld.addBeanClass(HealthCenter.class);
         weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
+
+        weld.addBeanClass(EmitterFactoryImpl.class);
+        weld.addBeanClass(MutinyEmitterFactoryImpl.class);
+        weld.addBeanClass(LegacyEmitterFactoryImpl.class);
+        weld.addBeanClass(KafkaTransactionsFactory.class);
 
         weld.addBeanClass(KafkaCDIEvents.class);
         weld.addBeanClass(KafkaConnector.class);

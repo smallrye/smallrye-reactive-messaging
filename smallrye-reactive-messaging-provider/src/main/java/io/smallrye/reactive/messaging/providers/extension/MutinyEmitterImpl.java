@@ -9,6 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.Cancellable;
+import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;

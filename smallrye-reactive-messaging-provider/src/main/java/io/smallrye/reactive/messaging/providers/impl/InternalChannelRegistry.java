@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.providers.impl;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -23,8 +24,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     private final Map<String, Boolean> outgoing = new HashMap<>();
     private final Map<String, Boolean> incoming = new HashMap<>();
 
-    private final Map<String, Emitter<?>> emitters = new HashMap<>();
-    private final Map<String, MutinyEmitter<?>> mutinyEmitters = new HashMap<>();
+    private final Map<Class<?>, Map<String, Object>> emitters = new HashMap<>();
 
     @Override
     public Publisher<? extends Message<?>> register(String name,
@@ -50,14 +50,22 @@ public class InternalChannelRegistry implements ChannelRegistry {
     public synchronized void register(String name, Emitter<?> emitter) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(emitter, msg.emitterMustBeSet());
-        emitters.put(name, emitter);
+        register(name, Emitter.class, emitter);
     }
 
     @Override
     public synchronized void register(String name, MutinyEmitter<?> emitter) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(emitter, msg.emitterMustBeSet());
-        mutinyEmitters.put(name, emitter);
+        register(name, MutinyEmitter.class, emitter);
+    }
+
+    @Override
+    public synchronized void register(String name, Class<?> emitterType, Object emitter) {
+        Objects.requireNonNull(name, msg.nameMustBeSet());
+        Objects.requireNonNull(emitter, msg.emitterMustBeSet());
+        Map<String, Object> map = emitters.computeIfAbsent(emitterType, key -> new HashMap<>());
+        map.put(name, emitter);
     }
 
     @Override
@@ -69,13 +77,24 @@ public class InternalChannelRegistry implements ChannelRegistry {
     @Override
     public synchronized Emitter<?> getEmitter(String name) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
-        return emitters.get(name);
+        return getEmitter(name, Emitter.class);
     }
 
     @Override
     public synchronized MutinyEmitter<?> getMutinyEmitter(String name) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
-        return mutinyEmitters.get(name);
+        return getEmitter(name, MutinyEmitter.class);
+    }
+
+    @Override
+    public synchronized <T> T getEmitter(String name, Class<? super T> emitterType) {
+        Objects.requireNonNull(name, msg.nameMustBeSet());
+        Map<String, Object> typedEmitters = emitters.get(emitterType);
+        if (typedEmitters == null) {
+            return null;
+        } else {
+            return (T) typedEmitters.get(name);
+        }
     }
 
     @Override
@@ -101,10 +120,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
 
     @Override
     public synchronized Set<String> getEmitterNames() {
-        Set<String> set = new HashSet<>();
-        set.addAll(emitters.keySet());
-        set.addAll(mutinyEmitters.keySet());
-        return set;
+        return emitters.values().stream().flatMap(m -> m.keySet().stream()).collect(Collectors.toSet());
     }
 
     @Override

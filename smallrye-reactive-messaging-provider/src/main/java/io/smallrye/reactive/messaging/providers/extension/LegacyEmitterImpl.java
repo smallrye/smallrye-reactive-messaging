@@ -3,7 +3,9 @@ package io.smallrye.reactive.messaging.providers.extension;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.reactivestreams.Publisher;
 
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.annotations.Emitter;
 
 /**
@@ -13,12 +15,17 @@ import io.smallrye.reactive.messaging.annotations.Emitter;
  * @param <T> the type of payload or message
  */
 @SuppressWarnings("deprecation")
-public class LegacyEmitterImpl<T> implements Emitter<T> {
+public class LegacyEmitterImpl<T> implements Emitter<T>, MessagePublisherProvider<T> {
 
-    private final org.eclipse.microprofile.reactive.messaging.Emitter<T> delegate;
+    private final EmitterImpl<T> delegate;
 
-    LegacyEmitterImpl(org.eclipse.microprofile.reactive.messaging.Emitter<T> delegate) {
+    LegacyEmitterImpl(EmitterImpl<T> delegate) {
         this.delegate = delegate;
+    }
+
+    @Override
+    public Publisher<Message<? extends T>> getPublisher() {
+        return delegate.getPublisher();
     }
 
     @Override

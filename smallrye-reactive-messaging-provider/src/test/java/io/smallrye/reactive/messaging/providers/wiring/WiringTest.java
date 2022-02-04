@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.providers.wiring;
 
+import static io.smallrye.reactive.messaging.providers.wiring.EmitterFactoryForLiteral.EMITTER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -15,9 +16,9 @@ import javax.enterprise.inject.spi.Bean;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.DefaultMediatorConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.ChannelConfiguration;
-import io.smallrye.reactive.messaging.providers.extension.EmitterConfiguration;
 
 @SuppressWarnings("rawtypes")
 class WiringTest {
@@ -329,7 +330,8 @@ class WiringTest {
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
         Wiring wiring = new Wiring();
-        wiring.prepare(false, registry, Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
+        wiring.prepare(false, registry,
+                Collections.singletonList(new DefaultEmitterConfiguration("a", EMITTER, null, null)),
                 Collections.emptyList(),
                 Arrays.asList(subscriber, processor));
         Graph graph = wiring.resolve();
@@ -357,7 +359,7 @@ class WiringTest {
         Wiring wiring = new Wiring();
         wiring.prepare(false,
                 registry,
-                Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
+                Collections.singletonList(new DefaultEmitterConfiguration("a", EMITTER, null, null)),
                 Collections.emptyList(),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
@@ -385,7 +387,7 @@ class WiringTest {
         Wiring wiring = new Wiring();
         wiring.prepare(false,
                 registry,
-                Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
+                Collections.singletonList(new DefaultEmitterConfiguration("a", EMITTER, null, null)),
                 Collections.emptyList(),
                 Collections.singletonList(subscriber));
         Graph graph = wiring.resolve();
@@ -413,7 +415,7 @@ class WiringTest {
         Wiring wiring = new Wiring();
         wiring.prepare(false,
                 registry,
-                Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
+                Collections.singletonList(new DefaultEmitterConfiguration("a", EMITTER, null, null)),
                 Collections.singletonList(new ChannelConfiguration("b")),
                 Collections.singletonList(processor));
         Graph graph = wiring.resolve();
@@ -438,7 +440,7 @@ class WiringTest {
         Wiring wiring = new Wiring();
         wiring.prepare(false,
                 registry,
-                Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
+                Collections.singletonList(new DefaultEmitterConfiguration("a", EMITTER, null, null)),
                 Collections.singletonList(new ChannelConfiguration("b")),
                 Collections.emptyList());
         Graph graph = wiring.resolve();
@@ -463,7 +465,7 @@ class WiringTest {
         Wiring wiring = new Wiring();
         wiring.prepare(false,
                 registry,
-                Collections.singletonList(new EmitterConfiguration("a", false, null, null)),
+                Collections.singletonList(new DefaultEmitterConfiguration("a", EMITTER, null, null)),
                 Collections.singletonList(new ChannelConfiguration("a")),
                 Collections.emptyList());
         Graph graph = wiring.resolve();

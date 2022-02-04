@@ -84,7 +84,9 @@ public class AwsSnsTestBase {
         weld.addBeanClass(HealthCenter.class);
         weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
-
+        weld.addBeanClass(EmitterFactoryImpl.class);
+        weld.addBeanClass(MutinyEmitterFactoryImpl.class);
+        weld.addBeanClass(LegacyEmitterFactoryImpl.class);
         weld.addBeanClass(SnsConnector.class);
         weld.disableDiscovery();
 

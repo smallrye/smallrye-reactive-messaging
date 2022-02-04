@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.inject;
 
+import static io.smallrye.reactive.messaging.providers.wiring.EmitterFactoryForLiteral.MUTINY_EMITTER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -29,10 +30,11 @@ import org.reactivestreams.Subscription;
 
 import io.reactivex.subscribers.TestSubscriber;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.providers.extension.EmitterConfiguration;
+import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -722,7 +724,7 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
                 return 128;
             }
         };
-        EmitterConfiguration config = new EmitterConfiguration("my-channel", true, overflow, null);
+        EmitterConfiguration config = new DefaultEmitterConfiguration("my-channel", MUTINY_EMITTER, overflow, null);
         MutinyEmitterImpl<String> emitter = new MutinyEmitterImpl<>(config, 128);
         Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 

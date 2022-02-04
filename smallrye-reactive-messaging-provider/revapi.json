@@ -30,7 +30,16 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.method.parameterTypeParameterChanged",
+            "old": "parameter void io.smallrye.reactive.messaging.providers.wiring.Wiring::prepare(boolean, io.smallrye.reactive.messaging.ChannelRegistry, ===java.util.List<io.smallrye.reactive.messaging.providers.extension.EmitterConfiguration>===, java.util.List<io.smallrye.reactive.messaging.providers.extension.ChannelConfiguration>, java.util.List<io.smallrye.reactive.messaging.MediatorConfiguration>)",
+            "new": "parameter void io.smallrye.reactive.messaging.providers.wiring.Wiring::prepare(boolean, io.smallrye.reactive.messaging.ChannelRegistry, ===java.util.List<io.smallrye.reactive.messaging.EmitterConfiguration>===, java.util.List<io.smallrye.reactive.messaging.providers.extension.ChannelConfiguration>, java.util.List<io.smallrye.reactive.messaging.MediatorConfiguration>)",
+            "parameterIndex": "2",
+            "justification": "EmitterConfiguration moved to api module"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",
