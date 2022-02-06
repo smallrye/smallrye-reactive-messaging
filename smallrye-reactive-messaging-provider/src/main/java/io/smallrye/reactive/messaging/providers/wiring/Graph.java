@@ -86,21 +86,16 @@ public class Graph {
             for (Wiring.Component cmp : current) {
                 if (!materialized.contains(cmp) && !toBeMaterialized.contains(cmp)
                         && allUpstreamsMaterialized(cmp, materialized)) {
-                    toBeMaterialized.add(cmp);
+                    // Sort the component that can be materialized during this iteration
+                    // Emitter component first.
+                    if (cmp instanceof Wiring.EmitterComponent) {
+                        toBeMaterialized.add(0, cmp);
+                    } else {
+                        toBeMaterialized.add(cmp);
+                    }
                 }
             }
 
-            // Sort the component that can be materialized during this iteration
-            // Emitter connector first.
-            toBeMaterialized.sort((o1, o2) -> {
-                if (o1.equals(o2)) {
-                    return 0;
-                }
-                if (o1 instanceof Wiring.EmitterComponent) {
-                    return -1;
-                }
-                return 1;
-            });
             toBeMaterialized.forEach(c -> {
                 c.materialize(registry);
                 downstreams.addAll(c.downstreams());
