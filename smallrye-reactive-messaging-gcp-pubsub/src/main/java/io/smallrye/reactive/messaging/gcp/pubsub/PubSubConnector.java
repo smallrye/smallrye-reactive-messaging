@@ -181,6 +181,8 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
             return ((PubSubMessage) message).getMessage();
         } else if (message.getPayload() instanceof PubSubMessage) {
             return ((PubSubMessage) message.getPayload()).getMessage();
+        } else if (message.getPayload() instanceof PubsubMessage) {
+            return ((PubsubMessage) message.getPayload());
         } else {
             return PubsubMessage.newBuilder()
                     .setData(ByteString.copyFromUtf8(message.getPayload().toString()))
