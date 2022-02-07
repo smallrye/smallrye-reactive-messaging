@@ -104,7 +104,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "queue.declare", direction = INCOMING, description = "Whether to declare the queue and binding; set to false if these are expected to be set up independently", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "queue.ttl", direction = INCOMING, description = "If specified, the time (ms) for which a message can remain in the queue undelivered before it is dead", type = "long")
 @ConnectorAttribute(name = "max-outgoing-internal-queue-size", direction = OUTGOING, description = "The maximum size of the outgoing internal queue", type = "int")
-@ConnectorAttribute(name = "max-incoming-internal-queue-size", direction = INCOMING, description = "The maximum size of the incoming internal queue", type = "int")
+@ConnectorAttribute(name = "max-incoming-internal-queue-size", direction = INCOMING, description = "The maximum size of the incoming internal queue", type = "int", defaultValue = "500000")
 
 // DLQs
 @ConnectorAttribute(name = "auto-bind-dlq", direction = INCOMING, description = "Whether to automatically declare the DLQ and bind it to the binder DLX", type = "boolean", defaultValue = "false")
@@ -242,7 +242,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         Multi<? extends Message<?>> multi = uniQueue
                 .onItem().transformToUni(connection -> client.basicConsumer(ic.getQueueName(), new QueueOptions()
                         .setAutoAck(ic.getAutoAcknowledgement())
-                        .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize().orElse(Integer.MAX_VALUE))
+                        .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
                         .setKeepMostRecent(ic.getKeepMostRecent())))
                 .onItem().transformToMulti(consumer -> getStreamOfMessages(consumer, holder, ic, onNack, onAck))
                 .plug(m -> {
