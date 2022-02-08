@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -20,10 +19,10 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-class RecordConverterTest extends KafkaTestBase {
+class RecordConverterTest extends KafkaCompanionTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
@@ -93,9 +92,8 @@ class RecordConverterTest extends KafkaTestBase {
         addBeans(ConsumerRecordConverter.class, RecordConverter.class);
         MyBean bean = runApplication(builder, MyBean.class);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, counter.get() % 2 == 0 ? "key" : "k", "v-" + counter.incrementAndGet()));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i % 2 == 0 ? "key" : "k", "v-" + i), 10);
 
         await().until(() -> bean.list().size() == 10);
 
@@ -118,8 +116,7 @@ class RecordConverterTest extends KafkaTestBase {
         addBeans(ConsumerRecordConverter.class, RecordConverter.class);
         MyBean bean = runApplication(builder, MyBean.class);
 
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, null, null));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, null, null), 10);
 
         await().until(() -> bean.list().size() == 10);
 

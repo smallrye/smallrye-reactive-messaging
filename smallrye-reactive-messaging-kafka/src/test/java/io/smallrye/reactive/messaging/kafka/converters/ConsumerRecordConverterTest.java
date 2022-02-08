@@ -5,7 +5,6 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -18,10 +17,10 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-class ConsumerRecordConverterTest extends KafkaTestBase {
+class ConsumerRecordConverterTest extends KafkaCompanionTestBase {
 
     @Test
     public void testBeanUsingConverter() {
@@ -33,9 +32,8 @@ class ConsumerRecordConverterTest extends KafkaTestBase {
         addBeans(ConsumerRecordConverter.class, RecordConverter.class);
         MyBean bean = runApplication(builder, MyBean.class);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, counter.get() % 2 == 0 ? "key" : "k", "v-" + counter.incrementAndGet()));
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i % 2 == 0 ? "key" : "k", "v-" + i), 10);
 
         await().until(() -> bean.list().size() == 10);
 
@@ -60,9 +58,7 @@ class ConsumerRecordConverterTest extends KafkaTestBase {
 
         bean.consume();
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, counter.get() % 2 == 0 ? "key" : "k", "v-" + counter.incrementAndGet()));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, i % 2 == 0 ? "key" : "k", "v-" + i), 10);
 
         await().until(() -> bean.list().size() == 10);
 
@@ -85,8 +81,7 @@ class ConsumerRecordConverterTest extends KafkaTestBase {
         addBeans(ConsumerRecordConverter.class, RecordConverter.class);
         RecordConverterTest.MyBean bean = runApplication(builder, RecordConverterTest.MyBean.class);
 
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, null, null));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, null, null), 10);
 
         await().until(() -> bean.list().size() == 10);
 

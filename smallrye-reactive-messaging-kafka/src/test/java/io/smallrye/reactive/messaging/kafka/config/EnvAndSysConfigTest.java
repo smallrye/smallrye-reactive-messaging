@@ -6,7 +6,6 @@ import static org.awaitility.Awaitility.await;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -19,9 +18,9 @@ import org.junit.jupiter.api.condition.JRE;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.junitpioneer.jupiter.SetSystemProperty;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 
-public class EnvAndSysConfigTest extends KafkaTestBase {
+public class EnvAndSysConfigTest extends KafkaCompanionTestBase {
 
     public static final String TOPIC_1 = "EnvConfigTest-IN-1";
     public static final String TOPIC_2 = "EnvConfigTest-IN-2";
@@ -47,14 +46,12 @@ public class EnvAndSysConfigTest extends KafkaTestBase {
         verify(bean, TOPIC_2);
     }
 
-    private void verify(KafkaConsumer bean, String topic) throws InterruptedException {
+    private void verify(KafkaConsumer bean, String topic) {
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        CountDownLatch latch = new CountDownLatch(1);
-        usage.produceStrings(1, latch::countDown, () -> new ProducerRecord<>(topic, "key", "hello"));
-
-        latch.await();
+        companion.produceStrings().fromRecords(new ProducerRecord<>(topic, "key", "hello"))
+                .awaitCompletion();
 
         await().untilAsserted(() -> {
             assertThat(bean.getMessages()).hasSize(1);

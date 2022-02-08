@@ -1,17 +1,15 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
+import static io.smallrye.reactive.messaging.kafka.companion.RecordQualifiers.until;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -49,10 +47,11 @@ import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 
-public class BatchTracingPropagationTest extends KafkaTestBase {
+public class BatchTracingPropagationTest extends KafkaCompanionTestBase {
 
     private InMemorySpanExporter testExporter;
     private SpanProcessor spanProcessor;
@@ -93,18 +92,20 @@ public class BatchTracingPropagationTest extends KafkaTestBase {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testFromAppToKafka() {
-        List<Map.Entry<String, Integer>> messages = new CopyOnWriteArrayList<>();
         List<Context> contexts = new CopyOnWriteArrayList<>();
-        usage.consumeIntegersWithTracing(topic, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)),
-                contexts::add);
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic,
+                m -> m.plug(until(10L, Duration.ofMinutes(1), null))
+                        .onItem().invoke(record -> {
+                            contexts.add(GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
+                                    .extract(Context.current(), record.headers(), new HeaderExtractAdapter()));
+                        }));
         runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
 
-        await().until(() -> messages.size() >= 10);
+        await().until(() -> consumed.getRecords().size() >= 10);
         List<Integer> values = new ArrayList<>();
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getValue()).isNotNull();
-            values.add(entry.getValue());
+        assertThat(consumed.getRecords()).allSatisfy(record -> {
+            assertThat(record.value()).isNotNull();
+            values.add(record.value());
         });
         assertThat(values).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -136,12 +137,10 @@ public class BatchTracingPropagationTest extends KafkaTestBase {
         MyAppReceivingData bean = runApplication(getKafkaSinkConfigForMyAppReceivingData(parentTopic),
                 MyAppReceivingData.class);
 
-        AtomicInteger count = new AtomicInteger();
         List<SpanContext> producedSpanContexts = new CopyOnWriteArrayList<>();
 
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(parentTopic, null, null, "a-key", count.getAndIncrement(),
-                        createTracingSpan(producedSpanContexts, stuffTopic)));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(parentTopic, null, null, "a-key", i,
+                createTracingSpan(producedSpanContexts, stuffTopic)), 10);
 
         await().until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -198,10 +197,7 @@ public class BatchTracingPropagationTest extends KafkaTestBase {
         MyAppReceivingData bean = runApplication(
                 getKafkaSinkConfigForMyAppReceivingData(topic), MyAppReceivingData.class);
 
-        AtomicInteger count = new AtomicInteger();
-
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, null, null, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, null, null, "a-key", i), 10);
 
         await().until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);

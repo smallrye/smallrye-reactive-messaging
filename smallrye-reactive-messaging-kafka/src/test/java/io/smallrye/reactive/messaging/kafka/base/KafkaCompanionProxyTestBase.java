@@ -13,24 +13,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.ToxicList;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.KafkaBootstrapServers;
+import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaProxy;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaToxiproxyExtension;
 import io.vertx.mutiny.core.Vertx;
 
 @ExtendWith(KafkaToxiproxyExtension.class)
-public class KafkaToxiproxyTestBase extends WeldTestBase {
-
-    public static KafkaToxiproxyExtension.ContainerProxy proxy;
+public class KafkaCompanionProxyTestBase extends WeldTestBase {
+    public static KafkaProxy proxy;
     private static boolean connectionCut = false;
 
     public Vertx vertx;
-    public static KafkaUsage usage;
+    public static KafkaCompanion companion;
 
     public String topic;
 
     @BeforeAll
-    static void initUsage(@KafkaBootstrapServers String bootstrapServers,
-            KafkaToxiproxyExtension.ContainerProxy kafkaProxy) {
-        usage = new KafkaUsage(bootstrapServers);
+    static void initCompanion(@KafkaBrokerExtension.KafkaBootstrapServers String bootstrapServers,
+            KafkaProxy kafkaProxy) {
+        companion = new KafkaCompanion(bootstrapServers);
         proxy = kafkaProxy;
     }
 
@@ -54,8 +56,8 @@ public class KafkaToxiproxyTestBase extends WeldTestBase {
     }
 
     @AfterAll
-    static void closeUsage() {
-        usage.close();
+    static void closeCompanion() {
+        companion.close();
     }
 
     public KafkaMapBasedConfig kafkaConfig() {
@@ -67,7 +69,7 @@ public class KafkaToxiproxyTestBase extends WeldTestBase {
     }
 
     public KafkaMapBasedConfig kafkaConfig(String prefix, boolean tracing) {
-        return new KafkaMapBasedConfig(prefix, tracing).put("bootstrap.servers", usage.getBootstrapServers());
+        return new KafkaMapBasedConfig(prefix, tracing).put("bootstrap.servers", companion.getBootstrapServers());
     }
 
     public ToxicList toxics() {

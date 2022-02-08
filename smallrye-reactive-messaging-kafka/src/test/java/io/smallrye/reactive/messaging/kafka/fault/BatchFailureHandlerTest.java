@@ -9,13 +9,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,22 +24,21 @@ import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 
-public class BatchFailureHandlerTest extends KafkaTestBase {
+public class BatchFailureHandlerTest extends KafkaCompanionTestBase {
 
     @Test
     public void testFailStrategy() {
@@ -51,9 +46,7 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
 
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -72,9 +65,7 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
 
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -91,9 +82,7 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         MyBatchReceiverBean bean = runApplication(getIgnoreConfig(topic), MyBatchReceiverBean.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -110,9 +99,7 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
         MyBatchReceiverBean bean = runApplication(getIgnoreConfig(topic), MyBatchReceiverBean.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -126,28 +113,22 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithBatchRecords() {
-        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
-        String randomId = UUID.randomUUID().toString();
         String dqTopic = topic + "-dead-letter-topic";
 
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(), () -> true, null, null,
-                Collections.singletonList(dqTopic), records::add);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(dqTopic);
 
         MyBatchReceiverBean bean = runApplication(getDeadLetterQueueConfig(topic, dqTopic), MyBatchReceiverBean.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().until(() -> bean.list().size() == 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().until(() -> records.size() == bean.nacked().size());
+        await().until(() -> records.count() == bean.nacked().size());
         List<String> dlqOffsets = bean.nacked().stream().map(String::valueOf).collect(Collectors.toList());
-        assertThat(records).extracting(ConsumerRecord::value).containsExactlyElementsOf(bean.nacked());
-        assertThat(records).allSatisfy(r -> {
+        assertThat(records.getRecords()).extracting(ConsumerRecord::value).containsExactlyElementsOf(bean.nacked());
+        assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(bean.nacked());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack all -");
@@ -165,30 +146,24 @@ public class BatchFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithCustomTopicAndMethodUsingPayload() {
-        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
-        String randomId = UUID.randomUUID().toString();
         String dqTopic = topic + "-dead-letter-topic";
 
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(), () -> true, null, null,
-                Collections.singletonList(dqTopic), records::add);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(dqTopic);
 
         MyBatchReceiverBeanUsingPayload bean = runApplication(
                 getDeadLetterQueueWithCustomConfig(topic, dqTopic),
                 MyBatchReceiverBeanUsingPayload.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().until(() -> bean.list().size() == 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().until(() -> records.size() == bean.nacked().size());
+        await().until(() -> records.getRecords().size() == bean.nacked().size());
         List<String> dlqOffsets = bean.nacked().stream().map(String::valueOf).collect(Collectors.toList());
-        assertThat(records).extracting(ConsumerRecord::value).containsExactlyElementsOf(bean.nacked());
-        assertThat(records).allSatisfy(r -> {
+        assertThat(records.getRecords()).extracting(ConsumerRecord::value).containsExactlyElementsOf(bean.nacked());
+        assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(bean.nacked());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack all -");

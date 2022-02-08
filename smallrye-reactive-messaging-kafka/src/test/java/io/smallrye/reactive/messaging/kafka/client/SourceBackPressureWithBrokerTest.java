@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -28,10 +27,10 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaClientService;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
+public class SourceBackPressureWithBrokerTest extends KafkaCompanionTestBase {
 
     @Test
     void testPauseResume() {
@@ -43,9 +42,7 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         bean.run();
         List<String> list = bean.list();
         assertThat(list).isEmpty();
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "" + i), 10);
 
         await().until(() -> bean.request(2));
         await().until(() -> list.size() >= 2);
@@ -70,9 +67,7 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         bean.run();
         await().until(() -> bean.request(2));
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "" + i), 10);
 
         await().until(() -> list.size() == 2);
         await().until(() -> consumer.paused().await().atMost(Duration.ofSeconds(3)).size() > 0);
@@ -96,9 +91,7 @@ public class SourceBackPressureWithBrokerTest extends KafkaTestBase {
         assertThat(consumer).isNotNull();
         List<String> list = bean.list();
         assertThat(list).isEmpty();
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(5, null,
-                () -> new ProducerRecord<>(topic, "" + counter.getAndIncrement()));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "" + i), 5);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 2);
 

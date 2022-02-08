@@ -1,22 +1,20 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
-import java.util.LinkedHashMap;
+import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -28,106 +26,93 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 
-public class MetadataPropagationTest extends KafkaTestBase {
+public class MetadataPropagationTest extends KafkaCompanionTestBase {
 
     @Test
     public void testFromAppToKafka() {
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings("some-topic-testFromAppToKafka", 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> consume = companion.consumeStrings().fromTopics("some-topic-testFromAppToKafka", 10,
+                Duration.ofMinutes(1));
         runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
 
-        await().until(() -> messages.size() == 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> consume.getRecords().size() == 10);
+        assertThat(consume.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
     @Test
     public void testFromKafkaToAppToKafka() {
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> consume = companion.consumeStrings().fromTopics(topic, 10, Duration.ofMinutes(1));
         runApplication(getKafkaSinkConfigForMyAppProcessingData(topic, topicIn), MyAppProcessingData.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> consume.getRecords().size() >= 10);
+        assertThat(consume.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
     @Test
     public void testFromKafkaToAppToKafkaForwardKey() {
         String topicIn = UUID.randomUUID().toString();
-        LinkedHashMap<String, String> messages = new LinkedHashMap<>();
-        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null, messages::put);
+        ConsumerTask<String, String> consume = companion.consumeStrings().fromTopics(topic, 10, Duration.ofMinutes(1));
         runApplication(getKafkaSinkConfigForAppProcessingDataForwardKey(topic, topicIn), MyAppForwardingKey.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null, () -> {
-            int c = count.getAndIncrement();
-            return new ProducerRecord<>(topicIn, String.valueOf(c), c);
-        });
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, String.valueOf(i), i), 10);
 
-        await().until(() -> messages.size() >= 10);
+        await().until(() -> consume.getRecords().size() >= 10);
 
-        assertThat(messages).containsKeys("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
-        assertThat(messages).containsValues("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(consume.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(consume.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
     @Test
     public void testFromKafkaToAppToKafkaForwardKeyReturningMessage() {
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null,
-                (k, v) -> messages.add(entry(k, v)));
+        ConsumerTask<String, String> consume = companion.consumeStrings().fromTopics(topic, 10, Duration.ofMinutes(1));
         runApplication(getKafkaSinkConfigForAppProcessingDataForwardKey(topic, topicIn),
                 MyAppForwardingKeyReturningMessage.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null, () -> {
-            int c = count.getAndIncrement();
-            return new ProducerRecord<>(topicIn, String.valueOf(c), c);
-        });
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, String.valueOf(i), i), 10);
 
-        await().until(() -> messages.size() >= 10);
+        await().until(() -> consume.getRecords().size() >= 10);
 
-        assertThat(messages).extracting(Map.Entry::getKey)
+        assertThat(consume.getRecords())
+                .extracting(ConsumerRecord::key)
                 .containsExactly("even", "1", "even", "3", "even", "5", "even", "7", "even", "9");
-        assertThat(messages).extracting(Map.Entry::getValue)
+        assertThat(consume.getRecords())
+                .extracting(ConsumerRecord::value)
                 .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
     @Test
     public void testFromKafkaToAppToKafkaForwardKeyIncomingRecordKeyNull() {
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topic, 10, 1, TimeUnit.MINUTES, null,
-                (k, v) -> messages.add(entry(k, v)));
+        ConsumerTask<String, String> consume = companion.consumeStrings().fromTopics(topic, 10, Duration.ofMinutes(1));
         runApplication(getKafkaSinkConfigForAppProcessingDataForwardKey(topic, topicIn),
                 MyAppForwardingKeyReturningMessage.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null, () -> {
-            int c = count.getAndIncrement();
-            return new ProducerRecord<>(topicIn, null, c);
-        });
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, null, i), 10);
 
-        await().until(() -> messages.size() >= 10);
+        await().until(() -> consume.getRecords().size() >= 10);
 
-        assertThat(messages).extracting(Map.Entry::getKey)
+        assertThat(consume.getRecords())
+                .extracting(ConsumerRecord::key)
                 .containsExactly("even", "even", "even", "even", "even", "even", "even", "even", "even", "even");
-        assertThat(messages).extracting(Map.Entry::getValue)
+        assertThat(consume.getRecords())
+                .extracting(ConsumerRecord::value)
                 .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
     }
 
@@ -136,9 +121,7 @@ public class MetadataPropagationTest extends KafkaTestBase {
     public void testFromKafkaToAppWithMetadata() {
         runApplication(getKafkaSourceConfigForMyAppWithKafkaMetadata(topic), MyAppWithKafkaMetadata.class);
 
-        AtomicInteger value = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, "a-key", value.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "a-key", i), 10);
 
         MyAppWithKafkaMetadata bean = get(MyAppWithKafkaMetadata.class);
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);

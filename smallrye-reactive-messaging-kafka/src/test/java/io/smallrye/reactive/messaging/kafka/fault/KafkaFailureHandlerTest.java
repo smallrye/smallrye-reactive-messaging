@@ -6,9 +6,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.*;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
@@ -21,16 +19,16 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 
-public class KafkaFailureHandlerTest extends KafkaTestBase {
+public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
 
     @Test
     public void testFailStrategy() {
@@ -38,9 +36,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -59,9 +55,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 4);
         // Other records should not have been received.
@@ -78,9 +72,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         MyReceiverBean bean = runApplication(getIgnoreConfig(topic), MyReceiverBean.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -97,9 +89,7 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         MyReceiverBean bean = runApplication(getIgnoreConfig(topic), MyReceiverBean.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         // All records should not have been received.
@@ -113,25 +103,19 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithDefaultTopic() {
-        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
-        String randomId = UUID.randomUUID().toString();
 
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
-                Collections.singletonList("dead-letter-topic-kafka"), records::add);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics("dead-letter-topic-kafka", 3);
 
         MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(), MyReceiverBean.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>("dead-letter-default", counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>("dead-letter-default", i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> records.size() == 3);
-        assertThat(records).allSatisfy(r -> {
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 3);
+        assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo("dead-letter-topic-kafka");
             assertThat(r.value()).isIn(3, 6, 9);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
@@ -149,13 +133,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithMessageLessThrowable() {
-        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
-        String randomId = UUID.randomUUID().toString();
         String dqTopic = topic + "-dead-letter-topic";
 
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
-                Collections.singletonList(dqTopic), records::add);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(dqTopic, 3);
 
         MyReceiverBean bean = runApplication(
                 getDeadLetterQueueWithCustomConfig(topic, dqTopic),
@@ -163,15 +143,13 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
         bean.setToThrowable(p -> new IllegalArgumentException());
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> records.size() == 3);
-        assertThat(records).allSatisfy(r -> {
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 3);
+        assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(3, 6, 9);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value()))
@@ -190,28 +168,22 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithCustomTopicAndMethodUsingPayload() {
-        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
-        String randomId = UUID.randomUUID().toString();
         String dqTopic = topic + "-dead-letter-topic";
 
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
-                Collections.singletonList(dqTopic), records::add);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(dqTopic, 3);
 
         MyReceiverBeanUsingPayload bean = runApplication(
                 getDeadLetterQueueWithCustomConfig(topic, dqTopic),
                 MyReceiverBeanUsingPayload.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> records.size() == 3);
-        assertThat(records).allSatisfy(r -> {
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 3);
+        assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(3, 6, 9);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
@@ -229,13 +201,9 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithInterceptor() {
-        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
-        String randomId = UUID.randomUUID().toString();
         String dqTopic = topic + "-dead-letter-topic";
 
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
-                Collections.singletonList(dqTopic), records::add);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(dqTopic, 3);
 
         MyReceiverBeanUsingPayload bean = runApplication(
                 getDeadLetterQueueWithCustomConfig(topic, dqTopic)
@@ -243,15 +211,13 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
                 MyReceiverBeanUsingPayload.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> records.size() == 3);
-        assertThat(records).allSatisfy(r -> {
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 3);
+        assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(3, 6, 9);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
@@ -269,27 +235,21 @@ public class KafkaFailureHandlerTest extends KafkaTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithCustomConfig() {
-        List<ConsumerRecord<String, Integer>> records = new CopyOnWriteArrayList<>();
-        String randomId = UUID.randomUUID().toString();
         String dlTopic = topic + "-missed";
 
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST,
-                new StringDeserializer(), new IntegerDeserializer(), () -> records.size() < 3, null, null,
-                Collections.singletonList(dlTopic), records::add);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(dlTopic, 3);
 
         MyReceiverBean bean = runApplication(getDeadLetterQueueWithCustomConfig(topic, dlTopic),
                 MyReceiverBean.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topic, counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> records.size() == 3);
-        assertThat(records).allSatisfy(r -> {
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 3);
+        assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dlTopic);
             assertThat(r.value()).isIn(3, 6, 9);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");

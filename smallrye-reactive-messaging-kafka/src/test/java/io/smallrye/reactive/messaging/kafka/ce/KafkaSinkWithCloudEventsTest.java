@@ -6,17 +6,13 @@ import static org.awaitility.Awaitility.await;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -28,14 +24,17 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.ConsumptionConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.vertx.core.json.JsonObject;
 
-public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
+public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
 
     KafkaSink sink;
 
@@ -57,12 +56,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -73,9 +67,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -104,12 +98,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Pet neo = new Pet();
         neo.name = "neo";
@@ -123,9 +112,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -150,12 +139,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         ZonedDateTime time = ZonedDateTime.now();
 
@@ -170,9 +154,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -244,12 +228,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -261,9 +240,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isEqualTo("my-key");
         assertThat(record.headers())
@@ -290,12 +269,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withId("some id")
@@ -304,9 +278,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -332,21 +306,16 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello!");
 
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -370,12 +339,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -388,9 +352,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -415,12 +379,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -431,9 +390,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -455,12 +414,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -472,9 +426,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -499,12 +453,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -516,9 +465,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isEqualTo("my-key");
         assertThat(record.headers())
@@ -544,12 +493,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withId("some id")
@@ -558,9 +502,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isEqualTo("my-key");
         assertThat(record.headers())
@@ -585,21 +529,16 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello!");
 
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isEqualTo("my-key");
         assertThat(record.headers())
@@ -655,12 +594,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withId("some id")
@@ -669,9 +603,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isEqualTo("my-key");
         assertThat(record.headers().lastHeader("ce_specversion")).isNull();
@@ -689,12 +623,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 1, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -707,9 +636,9 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
         Multi.createFrom().<Message<?>> item(message)
                 .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.size() == 1);
+        await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.get(0);
+        ConsumerRecord<String, String> record = records.getRecords().get(0);
         assertThat(record.topic()).isEqualTo(topic);
         assertThat(record.key()).isNull();
         assertThat(record.headers())
@@ -725,17 +654,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingStructuredCloudEventFromBean() {
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+
         addBeans(Source.class, Processing.class, Sender.class);
         runApplication(getConfigToSendStructuredCloudEvents());
 
-        await().until(() -> records.size() >= 10);
+        await().until(() -> records.getRecords().size() >= 10);
 
-        assertThat(records).allSatisfy(record -> {
+        assertThat(records.getRecords()).allSatisfy(record -> {
             assertThat(record.topic()).isEqualTo(topic);
             assertThat(record.key()).isNull();
             assertThat(record.headers())
@@ -751,17 +677,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingBinaryCloudEventFromBean() {
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+
         addBeans(Source.class, Processing.class, Sender.class);
         runApplication(getConfigToSendBinaryCloudEvents());
 
-        await().until(() -> records.size() >= 10);
+        await().until(() -> records.getRecords().size() >= 10);
 
-        assertThat(records).allSatisfy(record -> {
+        assertThat(records.getRecords()).allSatisfy(record -> {
             assertThat(record.topic()).isEqualTo(topic);
             assertThat(record.key()).isNull();
             assertThat(record.headers())
@@ -776,18 +699,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingBinaryCloudEventFromBeanWithDefault() {
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
         runApplication(getConfigToSendBinaryCloudEventsWithDefault());
 
-        await().until(() -> records.size() >= 10);
+        await().until(() -> records.getRecords().size() >= 10);
 
-        assertThat(records).allSatisfy(record -> {
+        assertThat(records.getRecords()).allSatisfy(record -> {
             assertThat(record.topic()).isEqualTo(topic);
             assertThat(record.key()).isNull();
             assertThat(record.headers())
@@ -804,18 +723,14 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
 
     @Test
     public void testSendingStructuredCloudEventFromBeanWithDefault() {
-        Deserializer<String> keyDes = new StringDeserializer();
-        String randomId = UUID.randomUUID().toString();
-        List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
-        usage.consume(randomId, randomId, OffsetResetStrategy.EARLIEST, keyDes, keyDes, () -> records.size() < 10, null,
-                null, Collections.singletonList(topic), records::add);
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
 
         addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
         runApplication(getConfigToSendStructuredCloudEventsWithDefault());
 
-        await().until(() -> records.size() >= 10);
+        await().until(() -> records.getRecords().size() >= 10);
 
-        assertThat(records).allSatisfy(record -> {
+        assertThat(records.getRecords()).allSatisfy(record -> {
             assertThat(record.topic()).isEqualTo(topic);
             assertThat(record.key()).isNull();
             assertThat(record.headers())
@@ -870,7 +785,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaTestBase {
     private KafkaMapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
         return kafkaConfig()
-                .put("bootstrap.servers", usage.getBootstrapServers())
+                .put("bootstrap.servers", companion.getBootstrapServers())
                 .put("group.id", randomId)
                 .put("key.serializer", StringSerializer.class.getName())
                 .put("enable.auto.commit", "false")

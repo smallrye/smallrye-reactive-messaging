@@ -18,11 +18,12 @@ import javax.enterprise.context.ApplicationScoped;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
@@ -33,8 +34,8 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.json.JsonObject;
@@ -42,9 +43,14 @@ import io.vertx.kafka.client.serialization.BufferDeserializer;
 import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
 import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
-public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
+public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase {
 
     KafkaSource<String, Integer> source;
+
+    @BeforeAll
+    public static void setup() {
+        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
+    }
 
     @AfterEach
     public void stopping() {
@@ -72,22 +78,18 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(), null,
-                        () -> {
-                            JsonObject json = new JsonObject()
-                                    .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
-                                    .put("type", "type")
-                                    .put("id", "id")
-                                    .put("source", "test://test")
-                                    .put("subject", "foo")
-                                    .put("data", new JsonObject().put("name", "neo"));
-
-                            return new ProducerRecord<>(topic, null, null, "key", json,
-                                    Collections.singletonList(
-                                            new RecordHeader("content-type",
-                                                    "application/cloudevents+json; charset=utf-8".getBytes())));
-                        });
+        companion.produce(String.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, null, null, "key",
+                        new JsonObject()
+                                .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                                .put("type", "type")
+                                .put("id", "id")
+                                .put("source", "test://test")
+                                .put("subject", "foo")
+                                .put("data", new JsonObject().put("name", "neo")),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
@@ -130,21 +132,17 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(messages::add);
 
-        usage
-                .produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new JsonObjectSerializer(), null,
-                        () -> {
-                            JsonObject json = new JsonObject()
-                                    .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
-                                    .put("type", "type")
-                                    .put("id", "id")
-                                    .put("source", "test://test")
-                                    .put("data", new JsonObject().put("name", "neo"));
-
-                            return new ProducerRecord<>(topic, null, null, "key", json,
-                                    Collections.singletonList(
-                                            new RecordHeader("content-type",
-                                                    "application/cloudevents+json; charset=utf-8".getBytes())));
-                        });
+        companion.produce(String.class, JsonObject.class)
+                .fromRecords(new ProducerRecord<>(topic, null, null, "key",
+                        new JsonObject()
+                                .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                                .put("type", "type")
+                                .put("id", "id")
+                                .put("source", "test://test")
+                                .put("data", new JsonObject().put("name", "neo")),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
 
         await()
                 .pollDelay(Duration.ofSeconds(1))
@@ -167,24 +165,19 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
 
-        new Thread(
-                () -> usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(), null,
-                        () -> {
-
-                            List<Header> headers = new ArrayList<>();
-                            headers.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
-                            headers.add(new RecordHeader("ce_type", "type".getBytes()));
-                            headers.add(new RecordHeader("ce_source", "test://test".getBytes()));
-                            headers.add(new RecordHeader("ce_id", "id".getBytes()));
-                            headers.add(new RecordHeader("ce_time", "2020-07-23T07:59:04Z".getBytes()));
-                            headers.add(new RecordHeader("content-type", "text/plain".getBytes()));
-                            headers.add(new RecordHeader("ce_subject", "foo".getBytes()));
-                            headers.add(new RecordHeader("ce_dataschema", "http://schema.io".getBytes()));
-                            headers.add(new RecordHeader("ce_ext", "bar".getBytes()));
-                            headers.add(new RecordHeader("some-header", "baz".getBytes()));
-
-                            return new ProducerRecord<>(topic, null, null, "key", "Hello World", headers);
-                        })).start();
+        List<Header> headers = new ArrayList<>();
+        headers.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
+        headers.add(new RecordHeader("ce_type", "type".getBytes()));
+        headers.add(new RecordHeader("ce_source", "test://test".getBytes()));
+        headers.add(new RecordHeader("ce_id", "id".getBytes()));
+        headers.add(new RecordHeader("ce_time", "2020-07-23T07:59:04Z".getBytes()));
+        headers.add(new RecordHeader("content-type", "text/plain".getBytes()));
+        headers.add(new RecordHeader("ce_subject", "foo".getBytes()));
+        headers.add(new RecordHeader("ce_dataschema", "http://schema.io".getBytes()));
+        headers.add(new RecordHeader("ce_ext", "bar".getBytes()));
+        headers.add(new RecordHeader("some-header", "baz".getBytes()));
+        companion.produceStrings()
+                .fromRecords(new ProducerRecord<>(topic, null, null, "key", "Hello World", headers));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
@@ -227,17 +220,14 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         assertThat(list).isEmpty();
 
         // Send a binary cloud event
-        usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(), null,
-                () -> {
-                    List<Header> headers = new ArrayList<>();
-                    headers.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
-                    headers.add(new RecordHeader("ce_type", "type".getBytes()));
-                    headers.add(new RecordHeader("ce_source", "test://test".getBytes()));
-                    headers.add(new RecordHeader("ce_id", "id".getBytes()));
-                    headers.add(new RecordHeader("content-type", "text/plain".getBytes()));
-                    headers.add(new RecordHeader("ce_subject", "foo".getBytes()));
-                    return new ProducerRecord<>(topic, null, null, "binary", "Hello Binary 1", headers);
-                });
+        List<Header> headers = new ArrayList<>();
+        headers.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
+        headers.add(new RecordHeader("ce_type", "type".getBytes()));
+        headers.add(new RecordHeader("ce_source", "test://test".getBytes()));
+        headers.add(new RecordHeader("ce_id", "id".getBytes()));
+        headers.add(new RecordHeader("content-type", "text/plain".getBytes()));
+        headers.add(new RecordHeader("ce_subject", "foo".getBytes()));
+        companion.produceStrings().fromRecords(new ProducerRecord<>(topic, null, null, "binary", "Hello Binary 1", headers));
 
         await().atMost(10, TimeUnit.SECONDS).until(() -> list.size() >= 1);
         KafkaRecord<String, String> record = list.get(0);
@@ -253,24 +243,21 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         assertThat(record.getPayload()).isEqualTo("Hello Binary 1");
 
         // send a structured event
-        usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(), null,
-                () -> {
-                    JsonObject json = new JsonObject()
-                            .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
-                            .put("type", "type")
-                            .put("id", "id")
-                            .put("source", "test://test")
-                            .put("subject", "bar")
-                            .put("datacontenttype", "application/json")
-                            .put("dataschema", "http://schema.io")
-                            .put("time", "2020-07-23T09:12:34Z")
-                            .put("data", "Hello Structured 1");
-
-                    return new ProducerRecord<>(topic, null, null, "structured", json.encode(),
-                            Collections.singletonList(
-                                    new RecordHeader("content-type",
-                                            "application/cloudevents+json; charset=utf-8".getBytes())));
-                });
+        companion.produceStrings()
+                .fromRecords(new ProducerRecord<>(topic, null, null, "structured",
+                        new JsonObject()
+                                .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                                .put("type", "type")
+                                .put("id", "id")
+                                .put("source", "test://test")
+                                .put("subject", "bar")
+                                .put("datacontenttype", "application/json")
+                                .put("dataschema", "http://schema.io")
+                                .put("time", "2020-07-23T09:12:34Z")
+                                .put("data", "Hello Structured 1").encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
 
         await().atMost(10, TimeUnit.SECONDS).until(() -> list.size() >= 2);
         record = list.get(1);
@@ -286,17 +273,14 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         assertThat(record.getPayload()).contains("Hello Structured 1");
 
         // Send a last binary cloud event
-        usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(), null,
-                () -> {
-                    List<Header> headers = new ArrayList<>();
-                    headers.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
-                    headers.add(new RecordHeader("ce_type", "type".getBytes()));
-                    headers.add(new RecordHeader("ce_source", "test://test".getBytes()));
-                    headers.add(new RecordHeader("ce_id", "id".getBytes()));
-                    headers.add(new RecordHeader("content-type", "text/plain".getBytes()));
-                    headers.add(new RecordHeader("ce_subject", "foo".getBytes()));
-                    return new ProducerRecord<>(topic, null, null, "binary", "Hello Binary 2", headers);
-                });
+        List<Header> headers2 = new ArrayList<>();
+        headers2.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
+        headers2.add(new RecordHeader("ce_type", "type".getBytes()));
+        headers2.add(new RecordHeader("ce_source", "test://test".getBytes()));
+        headers2.add(new RecordHeader("ce_id", "id".getBytes()));
+        headers2.add(new RecordHeader("content-type", "text/plain".getBytes()));
+        headers2.add(new RecordHeader("ce_subject", "foo".getBytes()));
+        companion.produceStrings().fromRecords(new ProducerRecord<>(topic, null, null, "binary", "Hello Binary 2", headers2));
 
         await().atMost(10, TimeUnit.SECONDS).until(() -> list.size() >= 3);
         record = list.get(2);
@@ -327,24 +311,18 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
 
-        new Thread(
-                () -> usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(), null,
-                        () -> {
-
-                            List<Header> headers = new ArrayList<>();
-                            headers.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
-                            headers.add(new RecordHeader("ce_type", "type".getBytes()));
-                            headers.add(new RecordHeader("ce_source", "test://test".getBytes()));
-                            headers.add(new RecordHeader("ce_id", "id".getBytes()));
-                            headers.add(new RecordHeader("ce_time", "2020-07-23T07:59:04Z".getBytes()));
-                            headers.add(new RecordHeader("content-type", "text/plain".getBytes()));
-                            headers.add(new RecordHeader("ce_subject", "foo".getBytes()));
-                            headers.add(new RecordHeader("ce_dataschema", "http://schema.io".getBytes()));
-                            headers.add(new RecordHeader("ce_ext", "bar".getBytes()));
-                            headers.add(new RecordHeader("some-header", "baz".getBytes()));
-
-                            return new ProducerRecord<>(topic, null, null, "key", "Hello World", headers);
-                        })).start();
+        List<Header> headers = new ArrayList<>();
+        headers.add(new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()));
+        headers.add(new RecordHeader("ce_type", "type".getBytes()));
+        headers.add(new RecordHeader("ce_source", "test://test".getBytes()));
+        headers.add(new RecordHeader("ce_id", "id".getBytes()));
+        headers.add(new RecordHeader("ce_time", "2020-07-23T07:59:04Z".getBytes()));
+        headers.add(new RecordHeader("content-type", "text/plain".getBytes()));
+        headers.add(new RecordHeader("ce_subject", "foo".getBytes()));
+        headers.add(new RecordHeader("ce_dataschema", "http://schema.io".getBytes()));
+        headers.add(new RecordHeader("ce_ext", "bar".getBytes()));
+        headers.add(new RecordHeader("some-header", "baz".getBytes()));
+        companion.produceStrings().fromRecords(new ProducerRecord<>(topic, null, null, "key", "Hello World", headers));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
@@ -371,25 +349,21 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
 
-        new Thread(
-                () -> usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(), null,
-                        () -> {
-                            JsonObject json = new JsonObject()
-                                    .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
-                                    .put("type", "type")
-                                    .put("id", "id")
-                                    .put("source", "test://test")
-                                    .put("subject", "foo")
-                                    .put("datacontenttype", "application/json")
-                                    .put("dataschema", "http://schema.io")
-                                    .put("time", "2020-07-23T09:12:34Z")
-                                    .put("data", new JsonObject().put("name", "neo"));
-
-                            return new ProducerRecord<>(topic, null, null, null, json.encode(),
-                                    Collections.singletonList(
-                                            new RecordHeader("content-type",
-                                                    "application/cloudevents+json; charset=utf-8".getBytes())));
-                        })).start();
+        companion.produceStrings()
+                .fromRecords(new ProducerRecord<>(topic, null, null, null,
+                        new JsonObject()
+                                .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                                .put("type", "type")
+                                .put("id", "id")
+                                .put("source", "test://test")
+                                .put("subject", "foo")
+                                .put("datacontenttype", "application/json")
+                                .put("dataschema", "http://schema.io")
+                                .put("time", "2020-07-23T09:12:34Z")
+                                .put("data", new JsonObject().put("name", "neo")).encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
@@ -417,20 +391,16 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
 
-        new Thread(
-                () -> usage.produce(UUID.randomUUID().toString(), 1, new StringSerializer(), new StringSerializer(), null,
-                        () -> {
-                            JsonObject json = new JsonObject()
-                                    .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
-                                    .put("type", "type")
-                                    .put("id", "id")
-                                    .put("source", "test://test");
-
-                            return new ProducerRecord<>(topic, null, null, null, json.encode(),
-                                    Collections.singletonList(
-                                            new RecordHeader("content-type",
-                                                    "application/cloudevents+json; charset=utf-8".getBytes())));
-                        })).start();
+        companion.produceStrings()
+                .fromRecords(new ProducerRecord<>(topic, null, null, null,
+                        new JsonObject()
+                                .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                                .put("type", "type")
+                                .put("id", "id")
+                                .put("source", "test://test").encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
@@ -467,7 +437,7 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaTestBase {
     private KafkaMapBasedConfig newCommonConfig() {
         String randomId = UUID.randomUUID().toString();
         return kafkaConfig()
-                .put("bootstrap.servers", usage.getBootstrapServers())
+                .put("bootstrap.servers", companion.getBootstrapServers())
                 .put("group.id", randomId)
                 .put("key.deserializer", StringDeserializer.class.getName())
                 .put("graceful-shutdown", false)

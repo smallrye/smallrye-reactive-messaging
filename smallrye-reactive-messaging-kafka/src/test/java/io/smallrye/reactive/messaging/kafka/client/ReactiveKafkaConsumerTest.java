@@ -39,7 +39,9 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
     @BeforeEach
     public void init() {
-        topic = usage.createNewTopic("test-" + UUID.randomUUID().toString(), partitions);
+        String newTopic = "test-" + UUID.randomUUID();
+        companion.topics().createAndWait(newTopic, partitions);
+        this.topic = newTopic;
         resetMessages();
     }
 

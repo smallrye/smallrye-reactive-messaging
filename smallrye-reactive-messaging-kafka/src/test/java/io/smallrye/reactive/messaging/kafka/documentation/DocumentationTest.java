@@ -2,22 +2,20 @@ package io.smallrye.reactive.messaging.kafka.documentation;
 
 import static org.awaitility.Awaitility.await;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Duration;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 
 /**
  * Checks the the snippet providing in the documentation are actually working.
  * Changing this tests requires changing the documentation.
  */
-public class DocumentationTest extends KafkaTestBase {
+public class DocumentationTest extends KafkaCompanionTestBase {
 
     @Test
     public void testKafkaPriceConsumer() {
@@ -25,8 +23,7 @@ public class DocumentationTest extends KafkaTestBase {
 
         await().until(this::isReady);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceDoubles(50, null, () -> new ProducerRecord<>("prices", count.incrementAndGet() * 1.0));
+        companion.produceDoubles().usingGenerator(i -> new ProducerRecord<>("prices", i * 1.0), 50);
 
         await().until(() -> consumer.list().size() >= 50);
     }
@@ -37,16 +34,15 @@ public class DocumentationTest extends KafkaTestBase {
 
         await().until(this::isReady);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceDoubles(50, null, () -> new ProducerRecord<>("prices", count.incrementAndGet() * 1.0));
+        companion.produceDoubles().usingGenerator(i -> new ProducerRecord<>("prices", i * 1.0), 50);
 
         await().until(() -> consumer.list().size() >= 50);
     }
 
     @Test
     public void testKafkaPriceProducer() {
-        List<Double> list = new CopyOnWriteArrayList<>();
-        usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
+        ConsumerTask<String, Double> prices = companion.consumeDoubles()
+                .fromTopics("prices", 50, Duration.ofSeconds(60));
 
         KafkaMapBasedConfig config = getProducerConfiguration();
         addConfig(config);
@@ -54,13 +50,13 @@ public class DocumentationTest extends KafkaTestBase {
         weld.disableDiscovery();
         container = weld.initialize();
 
-        await().until(() -> list.size() >= 50);
+        await().until(() -> prices.getRecords().size() >= 50);
     }
 
     @Test
     public void testKafkaPriceMessageProducer() {
-        List<Double> list = new CopyOnWriteArrayList<>();
-        usage.consumeDoubles("prices", 50, 60, TimeUnit.SECONDS, null, (s, v) -> list.add(v));
+        ConsumerTask<String, Double> prices = companion.consumeDoubles()
+                .fromTopics("prices", 50, Duration.ofSeconds(60));
 
         KafkaMapBasedConfig config = getProducerConfiguration();
         addConfig(config);
@@ -68,7 +64,7 @@ public class DocumentationTest extends KafkaTestBase {
         weld.disableDiscovery();
         container = weld.initialize();
 
-        await().until(() -> list.size() >= 50);
+        await().until(() -> prices.getRecords().size() >= 50);
     }
 
     private KafkaMapBasedConfig getConsumerConfiguration() {

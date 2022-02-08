@@ -1,11 +1,9 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -23,10 +21,10 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension;
-import io.smallrye.reactive.messaging.kafka.base.KafkaBrokerExtension.KafkaBootstrapServers;
-import io.smallrye.reactive.messaging.kafka.base.KafkaUsage;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
+import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
+import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KafkaBootstrapServers;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
@@ -44,29 +42,24 @@ public class KafkaClientReactiveStreamsPublisherTest
     }
 
     public static Vertx vertx;
-    public static KafkaUsage usage;
+    public static KafkaCompanion companion;
 
     // A random topic.
     public static String topic;
 
     @BeforeAll
     public static void init(@KafkaBootstrapServers String bootstrapServers) {
-        usage = new KafkaUsage(bootstrapServers);
-        topic = usage.createNewTopic("tck-" + UUID.randomUUID(), partitions);
+        companion = new KafkaCompanion(bootstrapServers);
+        String newTopic = "tck-" + UUID.randomUUID();
+        companion.topics().create(newTopic, partitions);
+        topic = newTopic;
         vertx = Vertx.vertx();
 
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicLong count = new AtomicLong();
-        usage.produceStrings(MESSAGE_COUNT, latch::countDown, () -> {
-            long v = count.getAndIncrement();
-            return new ProducerRecord<>(topic, Long.toString(v % partitions), Long.toString(v));
-        });
+        companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % partitions), Integer.toString(i)),
+                        MESSAGE_COUNT)
+                .awaitCompletion(Duration.ofSeconds(30));
 
-        try {
-            latch.await(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     @AfterAll
@@ -74,8 +67,8 @@ public class KafkaClientReactiveStreamsPublisherTest
         if (vertx != null) {
             vertx.closeAndAwait();
         }
-        if (usage != null) {
-            usage.close();
+        if (companion != null) {
+            companion.close();
         }
     }
 
@@ -106,7 +99,7 @@ public class KafkaClientReactiveStreamsPublisherTest
 
     protected MapBasedConfig createConsumerConfig(String groupId) {
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, usage.getBootstrapServers());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, companion.getBootstrapServers());
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, String.valueOf(12000));
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, String.valueOf(1000));
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());

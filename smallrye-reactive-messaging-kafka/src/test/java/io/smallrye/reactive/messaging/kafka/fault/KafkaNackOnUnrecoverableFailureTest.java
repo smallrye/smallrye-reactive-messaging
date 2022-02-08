@@ -15,9 +15,9 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 
-public class KafkaNackOnUnrecoverableFailureTest extends KafkaTestBase {
+public class KafkaNackOnUnrecoverableFailureTest extends KafkaCompanionTestBase {
 
     @Test
     public void testNoRetryOnUnrecoverableExceptions() {

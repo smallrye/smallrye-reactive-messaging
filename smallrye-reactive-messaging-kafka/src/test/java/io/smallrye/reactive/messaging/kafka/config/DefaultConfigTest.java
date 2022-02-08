@@ -1,15 +1,14 @@
 package io.smallrye.reactive.messaging.kafka.config;
 
 import static io.smallrye.reactive.messaging.kafka.KafkaConnector.CONNECTOR_NAME;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
@@ -31,35 +30,32 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 /**
  * Test that the config can be retrieved from a Map produced using the {@code default-kafka-broker} name as well as
  * channel specific configuration.
  */
-public class DefaultConfigTest extends KafkaTestBase {
+public class DefaultConfigTest extends KafkaCompanionTestBase {
 
     @Test
     public void testFromKafkaToAppToKafkaWithIdentifiedConfig() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaConfigWithNamedConfig(topicOut, topicIn)
                 .with("mp.messaging.incoming.source.kafka-configuration", "my-kafka-broker")
                 .with("mp.messaging.outgoing.kafka.kafka-configuration", "my-kafka-broker"),
                 MyAppProcessingDataWithIdentifiedKafkaConfig.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -97,21 +93,18 @@ public class DefaultConfigTest extends KafkaTestBase {
     public void testFromKafkaToAppToKafkaWithNamedConfigOnConnectorConfig() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaConfigWithNamedConfig(topicOut, topicIn)
                 .with("mp.messaging.connector.smallrye-kafka.kafka-configuration", "my-kafka-broker"),
                 MyAppProcessingDataWithIdentifiedKafkaConfig.class);
 
         AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -119,19 +112,15 @@ public class DefaultConfigTest extends KafkaTestBase {
     public void testFromKafkaToAppToKafka() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaConfigWithDefaultConfig(topicOut, topicIn), MyAppProcessingData.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -139,19 +128,15 @@ public class DefaultConfigTest extends KafkaTestBase {
     public void testFromKafkaToAppToKafkaWithNamed() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaConfigWithDefaultConfig(topicOut, topicIn), MyAppProcessingDataNamed.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -159,22 +144,18 @@ public class DefaultConfigTest extends KafkaTestBase {
     public void testFromKafkaToAppToKafkaWithNamedAndDefaultConfig() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaConfigWithNamedAndDefaultConfig(topicOut, topicIn)
                 .with("mp.messaging.incoming.source.kafka-configuration", "my-kafka-broker")
                 .with("mp.messaging.outgoing.kafka.kafka-configuration", "my-kafka-broker"),
                 MyAppProcessingDataWithNamedAndDefaultConfig.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -182,20 +163,16 @@ public class DefaultConfigTest extends KafkaTestBase {
     public void testFromKafkaToAppToKafkaWithChannelAndDefaultConfig() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaConfigWithChannelAndDefaultConfig(topicOut, topicIn),
                 MyAppProcessingDataWithChannelAndDefaultConfig.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -203,20 +180,16 @@ public class DefaultConfigTest extends KafkaTestBase {
     public void testFromKafkaToAppToKafkaWithChannel() {
         String topicOut = UUID.randomUUID().toString();
         String topicIn = UUID.randomUUID().toString();
-        List<Map.Entry<String, String>> messages = new CopyOnWriteArrayList<>();
-        usage.consumeStrings(topicOut, 10, 1, TimeUnit.MINUTES, null,
-                (key, value) -> messages.add(entry(key, value)));
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topicOut, 10, Duration.ofMinutes(1));
         runApplication(getKafkaConfigWithChannel(topicOut, topicIn),
                 MyAppProcessingDataWithChannel.class);
 
-        AtomicInteger count = new AtomicInteger();
-        usage.produceIntegers(10, null,
-                () -> new ProducerRecord<>(topicIn, "a-key", count.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicIn, "a-key", i), 10);
 
-        await().until(() -> messages.size() >= 10);
-        assertThat(messages).allSatisfy(entry -> {
-            assertThat(entry.getKey()).isEqualTo("my-key");
-            assertThat(entry.getValue()).isNotNull();
+        await().until(() -> records.getRecords().size() >= 10);
+        assertThat(records.getRecords()).allSatisfy(record -> {
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.value()).isNotNull();
         });
     }
 
@@ -231,7 +204,7 @@ public class DefaultConfigTest extends KafkaTestBase {
         config.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         config.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        config.put("kafka.bootstrap.servers", usage.getBootstrapServers());
+        config.put("kafka.bootstrap.servers", companion.getBootstrapServers());
         config.put("kafka.value.serializer", StringSerializer.class.getName());
         config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
         config.put("kafka.key.deserializer", StringDeserializer.class.getName());
@@ -250,7 +223,7 @@ public class DefaultConfigTest extends KafkaTestBase {
         config.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         config.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        config.put("my-kafka-broker.bootstrap.servers", usage.getBootstrapServers());
+        config.put("my-kafka-broker.bootstrap.servers", companion.getBootstrapServers());
         config.put("my-kafka-broker.value.serializer", StringSerializer.class.getName());
         config.put("my-kafka-broker.value.deserializer", IntegerDeserializer.class.getName());
         config.put("my-kafka-broker.key.deserializer", StringDeserializer.class.getName());
@@ -269,7 +242,7 @@ public class DefaultConfigTest extends KafkaTestBase {
         config.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         config.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        config.put("my-kafka-broker.bootstrap.servers", usage.getBootstrapServers());
+        config.put("my-kafka-broker.bootstrap.servers", companion.getBootstrapServers());
         config.put("my-kafka-broker.value.serializer", StringSerializer.class.getName());
         config.put("kafka.value.deserializer", IntegerDeserializer.class.getName());
         config.put("kafka.key.deserializer", StringDeserializer.class.getName());
@@ -290,7 +263,7 @@ public class DefaultConfigTest extends KafkaTestBase {
         config.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         config.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        config.put("kafka.bootstrap.servers", usage.getBootstrapServers());
+        config.put("kafka.bootstrap.servers", companion.getBootstrapServers());
         config.put("kafka.value.serializer", StringSerializer.class.getName());
         config.put("source.value.deserializer", IntegerDeserializer.class.getName());
         config.put("kafka.key.deserializer", StringDeserializer.class.getName());
@@ -311,10 +284,10 @@ public class DefaultConfigTest extends KafkaTestBase {
         config.put("mp.messaging.incoming.source.auto.offset.reset", "earliest");
         config.put("mp.messaging.incoming.source.commit-strategy", "latest");
 
-        config.put("my-kafka.bootstrap.servers", usage.getBootstrapServers());
+        config.put("my-kafka.bootstrap.servers", companion.getBootstrapServers());
         config.put("my-kafka.value.serializer", StringSerializer.class.getName());
         config.put("source.key.deserializer", StringDeserializer.class.getName());
-        config.put("source.bootstrap.servers", usage.getBootstrapServers());
+        config.put("source.bootstrap.servers", companion.getBootstrapServers());
         config.put("source.value.deserializer", IntegerDeserializer.class.getName());
 
         return config;

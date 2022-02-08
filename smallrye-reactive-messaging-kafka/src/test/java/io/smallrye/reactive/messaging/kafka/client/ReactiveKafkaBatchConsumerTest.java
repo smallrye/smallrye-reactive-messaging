@@ -28,7 +28,9 @@ public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
 
     @BeforeEach
     public void init() {
-        topic = usage.createNewTopic("test-" + UUID.randomUUID().toString(), partitions);
+        String newTopic = "test-" + UUID.randomUUID();
+        companion.topics().create(newTopic, partitions);
+        this.topic = newTopic;
         resetMessages();
     }
 

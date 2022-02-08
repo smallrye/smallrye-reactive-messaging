@@ -1,14 +1,11 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,10 +23,10 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureFailure;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionProxyTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaToxiproxyTestBase;
 
-public class NoKafkaTest extends KafkaToxiproxyTestBase {
+public class NoKafkaTest extends KafkaCompanionProxyTestBase {
 
     @BeforeEach
     void setUp() {
@@ -37,14 +34,8 @@ public class NoKafkaTest extends KafkaToxiproxyTestBase {
     }
 
     @Test
-    public void testOutgoingWithoutKafkaCluster() throws InterruptedException {
-        List<Map.Entry<String, String>> received = new CopyOnWriteArrayList<>();
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger expected = new AtomicInteger(0);
-
+    public void testOutgoingWithoutKafkaCluster() {
         runApplication(myKafkaSinkConfigWithoutBlockLimit(topic), MyOutgoingBean.class);
-
-        assertThat(expected).hasValue(0);
 
         await().until(() -> {
             HealthReport readiness = getHealth().getReadiness();
@@ -62,16 +53,8 @@ public class NoKafkaTest extends KafkaToxiproxyTestBase {
         await().until(this::isReady);
         await().until(this::isAlive);
 
-        usage.consumeStrings(topic, 3, 1, TimeUnit.MINUTES,
-                latch::countDown,
-                (k, v) -> {
-                    received.add(entry(k, v));
-                    expected.getAndIncrement();
-                });
-
-        await().until(() -> received.size() == 3);
-
-        latch.await();
+        assertThat(companion.consumeStrings().fromTopics(topic, 3, Duration.ofMinutes(3)).awaitCompletion()
+                .count()).isEqualTo(3);
     }
 
     @Test
@@ -88,7 +71,7 @@ public class NoKafkaTest extends KafkaToxiproxyTestBase {
         await().until(this::isAlive);
 
         AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(5, null, () -> new ProducerRecord<>(topic, "1", counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "1", i), 5);
 
         // Wait a bit longer as we may not have a leader for the topic yet.
         await()
@@ -113,7 +96,7 @@ public class NoKafkaTest extends KafkaToxiproxyTestBase {
         await().until(this::isAlive);
 
         AtomicInteger counter = new AtomicInteger();
-        usage.produceIntegers(5, null, () -> new ProducerRecord<>(topic, "1", counter.getAndIncrement()));
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "1", i), 5);
 
         // Wait a bit longer as we may not have a leader for the topic yet.
         await()

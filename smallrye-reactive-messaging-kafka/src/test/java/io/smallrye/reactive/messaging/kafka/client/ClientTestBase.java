@@ -40,7 +40,7 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
@@ -48,7 +48,7 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class ClientTestBase extends KafkaTestBase {
+public class ClientTestBase extends KafkaCompanionTestBase {
 
     public static final int DEFAULT_TEST_TIMEOUT = 60_000;
 
@@ -255,7 +255,7 @@ public class ClientTestBase extends KafkaTestBase {
     public Map<String, Object> producerProps() {
         Map<String, Object> props = new HashMap<>();
         props.put("tracing-enabled", false);
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, usage.getBootstrapServers());
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, companion.getBootstrapServers());
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(requestTimeoutMillis));
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
@@ -269,7 +269,7 @@ public class ClientTestBase extends KafkaTestBase {
     protected MapBasedConfig createConsumerConfig(String groupId) {
         Map<String, Object> props = new HashMap<>();
         props.put("channel-name", "test");
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, usage.getBootstrapServers());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, companion.getBootstrapServers());
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, String.valueOf(sessionTimeoutMillis));
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, String.valueOf(3000));
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
@@ -337,7 +337,7 @@ public class ClientTestBase extends KafkaTestBase {
 
     protected String createNewTopicWithPrefix(String prefix) {
         String newTopic = prefix + "-" + System.nanoTime();
-        usage.createNewTopic(newTopic, partitions);
+        companion.topics().createAndWait(newTopic, partitions);
         resetMessages();
         return newTopic;
     }

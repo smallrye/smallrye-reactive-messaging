@@ -3,13 +3,8 @@ package io.smallrye.reactive.messaging.kafka.perf;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -22,23 +17,20 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 
-public class PerformanceProducerTest extends KafkaTestBase {
+public class PerformanceProducerTest extends KafkaCompanionTestBase {
 
     private static final int COUNT = 100_000;
     private static final int TIMEOUT_IN_MINUTES = 1;
 
     @Test
-    public void testDefault() throws InterruptedException {
+    public void testDefault() {
         String topic = UUID.randomUUID().toString();
-        usage.createTopic(topic, 10);
-        CountDownLatch receptionDone = new CountDownLatch(1);
-        List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, 1, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
-            received.add(v);
-        });
+        companion.topics().create(topic, 10);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, COUNT, Duration.ofMinutes(1));
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
@@ -55,7 +47,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
+        records.awaitCompletion(Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -64,14 +56,11 @@ public class PerformanceProducerTest extends KafkaTestBase {
     }
 
     @Test
-    public void testWithoutBackPressure() throws InterruptedException {
+    public void testWithoutBackPressure() {
         String topic = UUID.randomUUID().toString();
-        usage.createTopic(topic, 10);
-        CountDownLatch receptionDone = new CountDownLatch(1);
-        List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
-            received.add(v);
-        });
+        companion.topics().create(topic, 10);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, COUNT,
+                Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
@@ -89,7 +78,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
+        records.awaitCompletion(Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -98,14 +87,11 @@ public class PerformanceProducerTest extends KafkaTestBase {
     }
 
     @Test
-    public void testWithoutBackPressureAndNoWait() throws InterruptedException {
+    public void testWithoutBackPressureAndNoWait() {
         String topic = UUID.randomUUID().toString();
-        usage.createTopic(topic, 10);
-        CountDownLatch receptionDone = new CountDownLatch(1);
-        List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
-            received.add(v);
-        });
+        companion.topics().create(topic, 10);
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, COUNT,
+                Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
@@ -124,7 +110,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
+        consumed.awaitCompletion(Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -135,12 +121,9 @@ public class PerformanceProducerTest extends KafkaTestBase {
     @Test
     public void testWithoutBackPressureAndIdempotence() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
-        usage.createTopic(topic, 10);
-        CountDownLatch receptionDone = new CountDownLatch(1);
-        List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
-            received.add(v);
-        });
+        companion.topics().create(topic, 10);
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, COUNT,
+                Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
@@ -160,7 +143,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
+        consumed.awaitCompletion(Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");
@@ -169,14 +152,11 @@ public class PerformanceProducerTest extends KafkaTestBase {
     }
 
     @Test
-    public void testWithoutBackPressureAndIncreaseKafkaRequests() throws InterruptedException {
+    public void testWithoutBackPressureAndIncreaseKafkaRequests() {
         String topic = UUID.randomUUID().toString();
-        usage.createTopic(topic, 10);
-        CountDownLatch receptionDone = new CountDownLatch(1);
-        List<Integer> received = Collections.synchronizedList(new ArrayList<>());
-        usage.consumeIntegers(topic, COUNT, TIMEOUT_IN_MINUTES, TimeUnit.MINUTES, receptionDone::countDown, (s, v) -> {
-            received.add(v);
-        });
+        companion.topics().create(topic, 10);
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, COUNT,
+                Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
@@ -195,7 +175,7 @@ public class PerformanceProducerTest extends KafkaTestBase {
         long end = System.currentTimeMillis();
 
         // Wait until all the messages are read.
-        receptionDone.await(TIMEOUT_IN_MINUTES, TimeUnit.MINUTES);
+        consumed.awaitCompletion(Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
         long duration = end - begin;
         System.out.println("Time " + duration + " ms");

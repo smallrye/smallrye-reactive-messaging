@@ -24,10 +24,10 @@ import io.smallrye.common.annotation.NonBlocking;
 import io.smallrye.faulttolerance.FaultToleranceExtension;
 import io.smallrye.metrics.MetricRegistries;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.KafkaTestBase;
 
-public class RetryTest extends KafkaTestBase {
+public class RetryTest extends KafkaCompanionTestBase {
 
     @Test
     public void testRetry() {
@@ -37,9 +37,7 @@ public class RetryTest extends KafkaTestBase {
         MyHalfBrokenConsumer bean = runApplication(getConfig(topic), MyHalfBrokenConsumer.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i)), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -55,9 +53,7 @@ public class RetryTest extends KafkaTestBase {
         MyHalfBrokenProcessor bean = runApplication(getConfig(topic), MyHalfBrokenProcessor.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i)), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -73,9 +69,7 @@ public class RetryTest extends KafkaTestBase {
         MyHalfBrokenConsumerUni bean = runApplication(getConfig(topic), MyHalfBrokenConsumerUni.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i)), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.received().size() >= 10);
         assertThat(bean.received()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
@@ -91,9 +85,7 @@ public class RetryTest extends KafkaTestBase {
         MyBrokenConsumer bean = runApplication(getConfig(topic), MyBrokenConsumer.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i)), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.nacks() == 10);
         assertThat(bean.acks()).isEqualTo(0);
@@ -107,9 +99,7 @@ public class RetryTest extends KafkaTestBase {
         MyBrokenProcessor bean = runApplication(getConfig(topic), MyBrokenProcessor.class);
         await().until(this::isReady);
 
-        AtomicInteger counter = new AtomicInteger();
-        usage.produceStrings(10, null,
-                () -> new ProducerRecord<>(topic, Integer.toString(counter.getAndIncrement())));
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i)), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.nacks() == 10);
         assertThat(bean.acks()).isEqualTo(0);
