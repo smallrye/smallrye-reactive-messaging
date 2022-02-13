@@ -97,7 +97,7 @@ public class BrokerRestartTest extends ClientTestBase {
             await().until(() -> !kafka.isRunning());
 
             assertThat(consumer.pause().await().indefinitely()).isNotEmpty();
-            assertThat(consumer.resume().await().indefinitely());
+            consumer.resume().await().indefinitely();
             assertThat(consumer.paused().await().indefinitely()).isEmpty();
         }
     }

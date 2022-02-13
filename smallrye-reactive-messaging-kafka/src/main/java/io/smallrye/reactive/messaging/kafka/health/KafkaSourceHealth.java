@@ -20,7 +20,6 @@ public class KafkaSourceHealth extends BaseHealth {
 
     private final KafkaAdmin admin;
     private final KafkaConnectorIncomingConfiguration config;
-    private final String channel;
     private final Metric metric;
     private final KafkaSource<?, ?> source;
     private final ReactiveKafkaConsumer<?, ?> client;
@@ -29,7 +28,6 @@ public class KafkaSourceHealth extends BaseHealth {
             ReactiveKafkaConsumer<?, ?> client) {
         super(config.getChannel());
         this.config = config;
-        this.channel = config.getChannel();
         this.source = source;
         this.client = client;
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
