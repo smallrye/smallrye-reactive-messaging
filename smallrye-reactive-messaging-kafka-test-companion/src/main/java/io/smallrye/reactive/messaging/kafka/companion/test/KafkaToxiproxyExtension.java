@@ -20,18 +20,17 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
         implements BeforeAllCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaToxiproxyExtension.class.getName());
 
-    private static boolean started = false;
-
     @Override
     public void beforeAll(ExtensionContext context) {
-        if (!started) {
+        ExtensionContext.Store globalStore = context.getRoot().getStore(GLOBAL);
+        KafkaToxiproxyExtension extension = (KafkaToxiproxyExtension) globalStore.get(KafkaToxiproxyExtension.class);
+        if (extension == null) {
             LOGGER.info("Starting Kafka broker proxy");
-            started = true;
             kafka = configureKafkaContainer(new ProxiedStrimziKafkaContainer());
             kafka.setNetwork(Network.newNetwork());
             kafka.start();
             await().until(() -> kafka.isRunning());
-            context.getRoot().getStore(GLOBAL).put("kafka-proxy-extension", this);
+            globalStore.put(KafkaToxiproxyExtension.class, this);
         }
     }
 
@@ -45,15 +44,17 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
             throws ParameterResolutionException {
-        Object parameter = super.resolveParameter(parameterContext, extensionContext);
-        if (parameter == null) {
-            if (kafka != null) {
+        ExtensionContext.Store globalStore = extensionContext.getRoot().getStore(GLOBAL);
+        KafkaToxiproxyExtension extension = (KafkaToxiproxyExtension) globalStore.get(KafkaToxiproxyExtension.class);
+        if (extension != null) {
+            if (extension.kafka != null) {
+                if (parameterContext.isAnnotated(KafkaBootstrapServers.class)) {
+                    return extension.kafka.getBootstrapServers();
+                }
                 if (parameterContext.getParameter().getType().equals(KafkaProxy.class)) {
-                    return ((ProxiedStrimziKafkaContainer) kafka).getKafkaProxy();
+                    return ((ProxiedStrimziKafkaContainer) extension.kafka).getKafkaProxy();
                 }
             }
-        } else {
-            return parameter;
         }
         return null;
     }
