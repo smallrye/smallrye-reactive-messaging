@@ -536,7 +536,7 @@ public class WiringBroadcastTest {
 
         assertThat(graph.hasWiringErrors()).isFalse();
         assertThat(graph.getWiringErrors()).hasSize(0);
-        assertThat(graph.isClosed());
+        assertThat(graph.isClosed()).isTrue();
 
         assertThat(graph.getInbound()).hasSize(1).allSatisfy(pc -> assertThat(pc.outgoing()).contains("a"));
         assertThat(graph.getOutbound()).hasSize(2);

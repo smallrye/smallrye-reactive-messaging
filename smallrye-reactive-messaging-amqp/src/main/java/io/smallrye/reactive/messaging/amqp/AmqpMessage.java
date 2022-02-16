@@ -46,6 +46,17 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         this(delegate.getDelegate(), context, onNack, cloudEventEnabled, tracingEnabled);
     }
 
+    public AmqpMessage(io.vertx.mutiny.amqp.AmqpMessage delegate, Context context,
+            OutgoingAmqpMetadata amqpMetadata) {
+        this.message = delegate.getDelegate();
+        this.context = context;
+        this.amqpMetadata = null;
+        this.onNack = null;
+        //noinspection unchecked
+        this.payload = (T) convert(message);
+        this.metadata = Metadata.of(amqpMetadata);
+    }
+
     @SuppressWarnings("unchecked")
     public AmqpMessage(io.vertx.amqp.AmqpMessage msg, Context context, AmqpFailureHandler onNack,
             boolean cloudEventEnabled, Boolean tracingEnabled) {

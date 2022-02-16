@@ -12,13 +12,11 @@ import io.vertx.core.json.JsonObject;
 public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
         implements org.eclipse.microprofile.reactive.messaging.Message<T> {
 
-    private final Metadata metadata;
-    private final OutgoingAmqpMetadata amqpMetadata;
+    private final OutgoingAmqpMetadata outgoingAmqpMetadata;
 
     public OutgoingAmqpMessage(io.vertx.mutiny.amqp.AmqpMessage message, OutgoingAmqpMetadata amqpMetadata) {
-        super(message, null, null, false, false);
-        this.amqpMetadata = amqpMetadata;
-        this.metadata = Metadata.of(amqpMetadata);
+        super(message, null, amqpMetadata);
+        this.outgoingAmqpMetadata = amqpMetadata;
     }
 
     @Override
@@ -28,52 +26,72 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
 
     @Override
     public boolean isDurable() {
-        return amqpMetadata.isDurable();
+        return outgoingAmqpMetadata.isDurable();
     }
 
     @Override
     public int getPriority() {
-        return amqpMetadata.getPriority();
+        return outgoingAmqpMetadata.getPriority();
     }
 
     @Override
     public long getTtl() {
-        return amqpMetadata.getTtl();
+        return outgoingAmqpMetadata.getTtl();
     }
 
     @Override
     public Object getMessageId() {
-        return amqpMetadata.getMessageId();
+        return outgoingAmqpMetadata.getMessageId();
     }
 
     @Override
     public String getAddress() {
-        return amqpMetadata.getAddress();
+        return outgoingAmqpMetadata.getAddress();
     }
 
     @Override
     public String getGroupId() {
-        return amqpMetadata.getGroupId();
+        return outgoingAmqpMetadata.getGroupId();
     }
 
     @Override
     public String getContentType() {
-        return amqpMetadata.getContentType();
+        return outgoingAmqpMetadata.getContentType();
     }
 
     @Override
     public Object getCorrelationId() {
-        return amqpMetadata.getCorrelationId();
+        return outgoingAmqpMetadata.getCorrelationId();
     }
 
     @Override
     public String getContentEncoding() {
-        return amqpMetadata.getContentEncoding();
+        return outgoingAmqpMetadata.getContentEncoding();
+    }
+
+    @Override
+    public long getExpiryTime() {
+        return outgoingAmqpMetadata.getExpiryTime();
+    }
+
+    @Override
+    public long getCreationTime() {
+        return outgoingAmqpMetadata.getCreationTime();
+    }
+
+    @Override
+    public long getDeliveryCount() {
+        return 0;
+    }
+
+    @Override
+    public long getGroupSequence() {
+        return outgoingAmqpMetadata.getGroupSequence();
     }
 
     @Override
     public String getSubject() {
-        return amqpMetadata.getSubject();
+        return outgoingAmqpMetadata.getSubject();
     }
 
     @Override
@@ -98,6 +116,6 @@ public class OutgoingAmqpMessage<T> extends AmqpMessage<T>
 
     @Override
     public JsonObject getApplicationProperties() {
-        return amqpMetadata.getProperties();
+        return outgoingAmqpMetadata.getProperties();
     }
 }

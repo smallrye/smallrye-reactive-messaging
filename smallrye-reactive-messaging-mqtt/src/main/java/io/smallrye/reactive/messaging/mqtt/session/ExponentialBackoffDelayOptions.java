@@ -99,7 +99,7 @@ public class ExponentialBackoffDelayOptions implements ReconnectDelayOptions {
 
                 Duration delay = this.minimum;
                 if (this.count > 0) {
-                    delay = delay.plus(this.increment.multipliedBy((long) Math.pow(2, this.count - 1)));
+                    delay = delay.plus(this.increment.multipliedBy((long) Math.pow(2.0, this.count - 1.0)));
                 }
 
                 this.count += 1;

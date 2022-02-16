@@ -319,22 +319,26 @@ public class KafkaCloudEventHelper {
         return configuration.getCloudEventsDataContentType();
     }
 
-    private static List<Header> getHeaders(OutgoingKafkaRecordMetadata<?> outGoingMetadata,
+    private static List<Header> getHeaders(OutgoingKafkaRecordMetadata<?> outgoingMetadata,
             IncomingKafkaRecordMetadata<?, ?> incomingMetadata, RuntimeKafkaSinkConfiguration configuration) {
         List<Header> headers = new ArrayList<>();
 
-        // First incoming headers, so that they can be overriden by outgoing headers
+        // First incoming headers, so that they can be overridden by outgoing headers
         if (!isNotBlank(configuration.getPropagateHeaders()) && incomingMetadata != null
                 && incomingMetadata.getHeaders() != null) {
-            Set<String> incomingHeaders = Arrays.stream(configuration.getPropagateHeaders().split(",")).map(String::trim)
+            Set<String> headersToPropagate = Arrays.stream(configuration.getPropagateHeaders().split(","))
+                    .map(String::trim)
                     .collect(Collectors.toSet());
 
-            Arrays.stream(incomingMetadata.getHeaders().toArray())
-                    .filter(header -> incomingHeaders.contains(header))
-                    .forEach(headers::add);
+            for (Header header : incomingMetadata.getHeaders()) {
+                if (headersToPropagate.contains(header.key())) {
+                    headers.add(header);
+                }
+            }
         }
-        if (outGoingMetadata != null && outGoingMetadata.getHeaders() != null) {
-            outGoingMetadata.getHeaders().forEach(headers::add);
+
+        if (outgoingMetadata != null && outgoingMetadata.getHeaders() != null) {
+            outgoingMetadata.getHeaders().forEach(headers::add);
         }
         return headers;
     }
