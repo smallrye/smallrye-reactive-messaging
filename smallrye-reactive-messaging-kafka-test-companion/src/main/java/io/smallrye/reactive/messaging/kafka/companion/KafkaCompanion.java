@@ -193,8 +193,8 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     public <K, V> ConsumerBuilder<K, V> consumeWithDeserializers(
-            Class<? extends Deserializer<K>> keyDeserType,
-            Class<? extends Deserializer<V>> valueDeserType) {
+            Class<? extends Deserializer<?>> keyDeserType,
+            Class<? extends Deserializer<?>> valueDeserType) {
         return new ConsumerBuilder<>(getConsumerProperties(), kafkaApiTimeout, keyDeserType, valueDeserType);
     }
 
@@ -241,8 +241,8 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     public <K, V> ProducerBuilder<K, V> produceWithSerializers(
-            Class<? extends Serializer<K>> keySerializerType,
-            Class<? extends Serializer<V>> valueSerializerType) {
+            Class<? extends Serializer<?>> keySerializerType,
+            Class<? extends Serializer<?>> valueSerializerType) {
         return new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializerType, valueSerializerType);
     }
 

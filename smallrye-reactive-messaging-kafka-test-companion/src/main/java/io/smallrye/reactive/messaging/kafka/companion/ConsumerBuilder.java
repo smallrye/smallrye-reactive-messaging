@@ -150,7 +150,7 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
      * @param valueDeserType the deserializer class for record values
      */
     public ConsumerBuilder(Map<String, Object> props, Duration kafkaApiTimeout,
-            Class<? extends Deserializer<K>> keyDeserType, Class<? extends Deserializer<V>> valueDeserType) {
+            Class<? extends Deserializer<?>> keyDeserType, Class<? extends Deserializer<?>> valueDeserType) {
         this.props = props;
         this.kafkaApiTimeout = kafkaApiTimeout;
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserType.getName());

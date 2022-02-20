@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
@@ -30,16 +29,16 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
 
     public static final String KAFKA_VERSION = "3.1.0";
 
-    private static boolean started = false;
-    protected static StrimziKafkaContainer kafka;
+    protected StrimziKafkaContainer kafka;
 
     @Override
     public void beforeAll(ExtensionContext context) {
-        if (!started) {
+        ExtensionContext.Store globalStore = context.getRoot().getStore(GLOBAL);
+        KafkaBrokerExtension extension = (KafkaBrokerExtension) globalStore.get(KafkaBrokerExtension.class);
+        if (extension == null) {
             LOGGER.info("Starting Kafka broker");
-            started = true;
             startKafkaBroker();
-            context.getRoot().getStore(GLOBAL).put("kafka-extension", this);
+            globalStore.put(KafkaBrokerExtension.class, this);
         }
     }
 
@@ -64,7 +63,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
         return container;
     }
 
-    public static void startKafkaBroker() {
+    public void startKafkaBroker() {
         kafka = createKafkaContainer();
         kafka.start();
         LOGGER.info("Kafka broker started: " + kafka.getBootstrapServers() + " (" + kafka.getMappedPort(9092) + ")");
@@ -108,8 +107,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
         }
     }
 
-    @AfterAll
-    public static void stopKafkaBroker() {
+    public void stopKafkaBroker() {
         if (kafka != null) {
             try {
                 kafka.stop();
@@ -131,8 +129,10 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
             throws ParameterResolutionException {
         if (parameterContext.isAnnotated(KafkaBootstrapServers.class)) {
-            if (kafka != null) {
-                return kafka.getBootstrapServers();
+            ExtensionContext.Store globalStore = extensionContext.getRoot().getStore(GLOBAL);
+            KafkaBrokerExtension extension = (KafkaBrokerExtension) globalStore.get(KafkaBrokerExtension.class);
+            if (extension.kafka != null) {
+                return extension.kafka.getBootstrapServers();
             }
         }
         return null;
