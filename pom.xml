@@ -105,7 +105,7 @@
 
     <nats-embedded.version>1.1.2</nats-embedded.version>
     <slf4j-log4j12.version>1.7.33</slf4j-log4j12.version>
-    <opencsv.version>5.5.2</opencsv.version>
+    <opencsv.version>5.6</opencsv.version>
     <strimzi-test-container.version>0.100.0</strimzi-test-container.version>
   </properties>
 
