@@ -120,6 +120,17 @@ public class OutgoingRabbitMQMetadata {
             headers.put(header, value);
             return this;
         }
+        
+        /**
+         * Adds the message headers to the metadata.
+         *
+         * @param header the message headers
+         * @return this {@link Builder}
+         */
+        public Builder withHeaders(final Map<String, Object> header) {
+            headers.putAll(header);
+            return this;
+        }
 
         /**
          * Adds an application id property to the metadata
