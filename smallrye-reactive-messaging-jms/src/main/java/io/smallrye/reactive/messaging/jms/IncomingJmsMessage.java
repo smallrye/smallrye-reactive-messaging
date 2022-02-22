@@ -114,7 +114,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
             try {
                 delegate.acknowledge();
             } catch (JMSException e) {
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("Unable to acknowledge message", e);
             }
         }, executor);
     }
