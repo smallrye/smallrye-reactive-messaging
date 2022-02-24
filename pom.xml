@@ -137,6 +137,7 @@
     <module>smallrye-reactive-messaging-health</module>
     <module>smallrye-reactive-messaging-rabbitmq</module>
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
+    <module>smallrye-reactive-messaging-pulsar</module>
     <module>examples/quickstart</module>
     <module>examples/kafka-quickstart</module>
     <module>examples/kafka-quickstart-kotlin</module>
