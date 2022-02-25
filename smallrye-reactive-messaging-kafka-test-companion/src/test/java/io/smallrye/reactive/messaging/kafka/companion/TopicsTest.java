@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.junit.jupiter.api.Test;
@@ -18,19 +19,21 @@ public class TopicsTest extends KafkaCompanionTestBase {
     @Test
     void testCreateTopicAndWait() {
         String topicName = UUID.randomUUID().toString();
-        companion.topics().createAndWait(topicName, 4);
+        companion.topics().createAndWait(topicName, 2);
 
-        await().untilAsserted(() -> assertThat(companion.topics().describe()).containsKey(topicName)
-                .extractingByKey(topicName)
-                .extracting(TopicDescription::partitions)
-                .satisfies(partitions -> assertThat(partitions).hasSize(4)));
+        await().atMost(1, TimeUnit.MINUTES)
+                .untilAsserted(() -> assertThat(companion.topics().describe()).containsKey(topicName)
+                        .extractingByKey(topicName)
+                        .extracting(TopicDescription::partitions)
+                        .satisfies(partitions -> assertThat(partitions).hasSize(2)));
     }
 
     @Test
     void testCreateTopic() {
         String newTopic = UUID.randomUUID().toString();
         companion.topics().create(newTopic, 1);
-        await().until(() -> companion.topics().list().contains(newTopic));
+        await().atMost(1, TimeUnit.MINUTES)
+                .until(() -> companion.topics().list().contains(newTopic));
     }
 
     @Test
@@ -46,7 +49,8 @@ public class TopicsTest extends KafkaCompanionTestBase {
         topics.put(topic3, 1);
         companion.topics().create(topics);
 
-        await().untilAsserted(() -> assertThat(companion.topics().list()).contains(topic1, topic2, topic3));
+        await().atMost(1, TimeUnit.MINUTES)
+                .untilAsserted(() -> assertThat(companion.topics().list()).contains(topic1, topic2, topic3));
 
         assertThat(companion.topics().describe()).containsKeys(topic1, topic2, topic3)
                 .hasEntrySatisfying(topic1, t -> assertThat(t.partitions()).hasSize(3))
