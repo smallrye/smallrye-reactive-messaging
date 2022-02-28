@@ -4,8 +4,8 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -26,6 +26,8 @@ import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.ConverterUtils;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 
 public abstract class AbstractMediator {
 
@@ -104,8 +106,12 @@ public abstract class AbstractMediator {
     @SuppressWarnings("unchecked")
     protected <T> Uni<T> invokeBlocking(Message<?> message, Object... args) {
         try {
-            return workerPoolRegistry.executeWork(
-                    LocalContextMetadata.invokeOnMessageContext(message, (m, emitter) -> {
+            Optional<LocalContextMetadata> metadata = message != null ? message.getMetadata().get(LocalContextMetadata.class)
+                    : Optional.empty();
+            Context currentContext = metadata.map(m -> Context.newInstance(m.context()))
+                    .orElseGet(Vertx::currentContext);
+            return workerPoolRegistry.executeWork(currentContext,
+                    Uni.createFrom().emitter(emitter -> {
                         try {
                             Object result = this.invoker.invoke(args);
                             if (result instanceof CompletionStage) {

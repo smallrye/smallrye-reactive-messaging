@@ -31,7 +31,6 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.helpers.Validation;
 import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.WorkerExecutor;
 
 @ApplicationScoped
@@ -67,13 +66,12 @@ public class WorkerPoolRegistry {
         }
     }
 
-    public <T> Uni<T> executeWork(Uni<T> uni, String workerName, boolean ordered) {
+    public <T> Uni<T> executeWork(Context currentContext, Uni<T> uni, String workerName, boolean ordered) {
         if (holder == null) {
             throw new UnsupportedOperationException("@Blocking disabled");
         }
         Objects.requireNonNull(uni, msg.actionNotProvided());
 
-        Context currentContext = Vertx.currentContext();
         if (workerName == null) {
             if (currentContext != null) {
                 return currentContext.executeBlocking(Uni.createFrom().deferred(() -> uni), ordered);
