@@ -1,6 +1,10 @@
 ---
 name: Pull Request Build
 
+concurrency:
+    group: "check-pull-request-${{ github.event.ref }}"
+    cancel-in-progress: true
+
 on:
     pull_request:
         branches:
@@ -54,4 +58,6 @@ jobs:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
               run: |
                  mvn -s .github/ci-maven-settings.xml \
-                    -B clean verify -Dtest-containers=true ${{ matrix.java.build_opts }}
+                    -B clean verify -Pcoverage -Dtest-containers=true ${{ matrix.java.build_opts }}
+            - name: Codecov
+              uses: codecov/codecov-action@v1.0.13
