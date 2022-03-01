@@ -118,6 +118,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.queue.auto-delete", queueAutoDelete)
                 .put("mp.messaging.incoming.data.queue.declare", true)
                 .put("mp.messaging.incoming.data.queue.ttl", queueTtl)
+                .put("mp.messaging.incoming.data.queue.single-active-consumer", true)
                 .put("mp.messaging.incoming.data.routing-keys", routingKeys)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
@@ -154,6 +155,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(queueArguments.getString("x-dead-letter-exchange")).isEqualTo("DLX");
         assertThat(queueArguments.getString("x-dead-letter-routing-key")).isEqualTo(queueName);
         assertThat(queueArguments.getLong("x-message-ttl")).isEqualTo(queueTtl);
+        assertThat(queueArguments.getBoolean("x-single-active-consumer")).isEqualTo(true);
 
         final JsonArray queueBindings = usage.getBindings(exchangeName, queueName);
         assertThat(queueBindings.size()).isEqualTo(2);
