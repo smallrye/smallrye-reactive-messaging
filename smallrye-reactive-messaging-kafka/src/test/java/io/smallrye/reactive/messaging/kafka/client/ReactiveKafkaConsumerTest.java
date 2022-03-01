@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.METADATA_MAX_AGE_CONFIG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -243,6 +244,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = createConsumerConfig(groupId)
+                .with(METADATA_MAX_AGE_CONFIG, 10) // Reduce the refresh time.
                 .with("topic", prefix + ".*")
                 .with("pattern", true);
 

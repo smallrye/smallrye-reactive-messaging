@@ -1,6 +1,10 @@
 ---
 name: Pull Request Build
 
+concurrency:
+    group: "check-pull-request-${{ github.event.ref }}"
+    cancel-in-progress: true
+
 on:
     pull_request:
         branches:
@@ -20,10 +24,6 @@ jobs:
                         'version': '11',
                         'build_opts': '-Dkafka-container-version=2.8.1 -pl smallrye-reactive-messaging-kafka --also-make',
                         'name': 'Kafka tests against Kafka Broker 2.8.0'
-                    },
-                    {
-                        'version': '16',
-                        'opts': '--illegal-access=permit' # required for kotlin
                     },
                     {
                         'version': '17',
@@ -54,4 +54,6 @@ jobs:
                   MAVEN_OPTS: ${{ matrix.java.opts }}
               run: |
                  mvn -s .github/ci-maven-settings.xml \
-                    -B clean verify -Dtest-containers=true ${{ matrix.java.build_opts }}
+                    -B clean verify -Pcoverage -Dtest-containers=true ${{ matrix.java.build_opts }}
+            - name: Codecov
+              uses: codecov/codecov-action@v1.0.13
