@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
+
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
@@ -13,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
@@ -24,7 +27,7 @@ import io.vertx.mutiny.core.Context;
  *
  * @param <T> the message body type
  */
-public class IncomingRabbitMQMessage<T> implements Message<T> {
+public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
     protected final io.vertx.rabbitmq.RabbitMQMessage message;
     protected Metadata metadata;
@@ -50,7 +53,7 @@ public class IncomingRabbitMQMessage<T> implements Message<T> {
         this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message);
         this.onNack = onNack;
         this.onAck = onAck;
-        this.metadata = Metadata.of(rabbitMQMetadata);
+        this.metadata = captureContextMetadata(rabbitMQMetadata);
 
         // If tracing is enabled, ensure any tracing metadata in the received msg headers is transferred as metadata.
         if (isTracingEnabled) {
@@ -96,7 +99,7 @@ public class IncomingRabbitMQMessage<T> implements Message<T> {
     /**
      * Rejects the message by nack'ing with requeue=false; this will either discard the message for good or
      * (if a DLQ has been set up) send it to the DLQ.
-     * 
+     *
      * @param reason the cause of the rejection, which must not be null
      */
     public void rejectMessage(Throwable reason) {

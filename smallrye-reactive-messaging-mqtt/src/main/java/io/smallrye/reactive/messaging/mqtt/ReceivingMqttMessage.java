@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
+
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -11,15 +13,22 @@ import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 public class ReceivingMqttMessage implements MqttMessage<byte[]> {
     final MqttPublishMessage message;
     final MqttFailureHandler onNack;
+    final Metadata metadata;
 
     ReceivingMqttMessage(MqttPublishMessage message, MqttFailureHandler onNack) {
         this.message = message;
         this.onNack = onNack;
+        this.metadata = captureContextMetadata();
     }
 
     @Override
     public byte[] getPayload() {
         return this.message.payload().getDelegate().getBytes();
+    }
+
+    @Override
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     public int getMessageId() {

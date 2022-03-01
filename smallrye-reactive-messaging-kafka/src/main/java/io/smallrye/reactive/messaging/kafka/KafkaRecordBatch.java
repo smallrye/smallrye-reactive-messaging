@@ -6,6 +6,8 @@ import java.util.Map;
 import org.apache.kafka.common.TopicPartition;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
+
 /**
  * Represents a batch of Kafka records received by polling the {@link org.apache.kafka.clients.consumer.KafkaConsumer}
  *
@@ -15,7 +17,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
  * @param <K> The record key type
  * @param <T> The record payload type
  */
-public interface KafkaRecordBatch<K, T> extends Message<List<T>>, Iterable<KafkaRecord<K, T>> {
+public interface KafkaRecordBatch<K, T> extends Message<List<T>>, Iterable<KafkaRecord<K, T>>, ContextAwareMessage<List<T>> {
     /**
      * @return list of records contained in this message batch
      */

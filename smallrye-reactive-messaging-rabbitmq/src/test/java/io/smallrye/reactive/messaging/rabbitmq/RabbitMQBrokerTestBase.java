@@ -12,10 +12,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
@@ -34,10 +34,9 @@ public class RabbitMQBrokerTestBase {
             DockerImageName.parse("rabbitmq:3-management"))
                     .withExposedPorts(5672, 15672)
                     .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
-                    .waitingFor(
-                            Wait.forLogMessage(".*Server startup complete.*\\n", 1))
-                    .withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
-                            BindMode.READ_ONLY);
+                    .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1))
+                    .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
+                            "/etc/rabbitmq/enabled_plugins");
 
     protected static String host;
     protected static int port;
@@ -110,5 +109,14 @@ public class RabbitMQBrokerTestBase {
     public boolean isRabbitMQConnectorAlive(SeContainer container) {
         HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
         return health.getLiveness().isOk();
+    }
+
+    public MapBasedConfig commonConfig() {
+        return new MapBasedConfig()
+                .with("rabbitmq-host", host)
+                .with("rabbitmq-port", port)
+                .with("rabbitmq-username", username)
+                .with("rabbitmq-password", password)
+                .with("rabbitmq-reconnect-attempts", 0);
     }
 }

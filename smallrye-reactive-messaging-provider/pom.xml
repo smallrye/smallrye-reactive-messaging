@@ -19,6 +19,10 @@
       <artifactId>smallrye-reactive-messaging-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.smallrye.common</groupId>
+      <artifactId>smallrye-common-vertx-context</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-mutiny-vertx-core</artifactId>
     </dependency>

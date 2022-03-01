@@ -8,11 +8,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
+
+import io.smallrye.mutiny.Uni;
 
 /**
  * Companion for Topics operations on Kafka broker
@@ -63,20 +66,37 @@ public class TopicsCompanion {
      */
     public String createAndWait(String topic, int partition) {
         create(topic, partition);
-        waitForTopic(topic);
+        waitForTopic(topic).await().atMost(kafkaApiTimeout);
         return topic;
     }
 
-    private void waitForTopic(String topic) {
-        try {
-            int maxRetries = 10;
-            boolean done = false;
-            for (int i = 0; i < maxRetries && !done; i++) {
-                done = list().contains(topic);
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Timed out waiting for topic");
-        }
+    /**
+     * Create topic and wait for creation
+     *
+     * @param topic the topic name
+     * @param partition the partition count
+     * @param timeout timeout for topic to be created
+     * @return the description of the created topic
+     */
+    public TopicDescription createAndWait(String topic, int partition, Duration timeout) {
+        create(topic, partition);
+        return waitForTopic(topic).await().atMost(timeout);
+    }
+
+    /**
+     * Wait for topic
+     *
+     * @param topic name
+     * @return the Uni of the {@link TopicDescription} for the created topic
+     */
+    public Uni<TopicDescription> waitForTopic(String topic) {
+        AtomicInteger retries = new AtomicInteger(0);
+        return Uni.createFrom().item(this::describeAll)
+                .repeat()
+                .withDelay(Duration.ofMillis(1000))
+                .whilst(topics -> retries.incrementAndGet() < 10 && !topics.containsKey(topic))
+                .toUni()
+                .map(topics -> topics.get(topic));
     }
 
     /**

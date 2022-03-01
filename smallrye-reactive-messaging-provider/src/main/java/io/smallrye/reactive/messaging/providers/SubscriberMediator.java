@@ -155,21 +155,23 @@ public class SubscriberMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(msg -> invokeBlocking(msg.getPayload())
+                        .onItem().transformToUniAndConcatenate(msg -> invokeBlocking(msg, msg.getPayload())
                                 .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                         .onFailure()
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndMerge(msg -> invokeBlocking(msg.getPayload())
+                        .onItem().transformToUniAndMerge(msg -> invokeBlocking(msg, msg.getPayload())
                                 .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                         .onFailure()
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
             }
         } else {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                    .onItem().transformToUniAndConcatenate(msg -> Uni.createFrom().item(() -> invoke(msg.getPayload()))
-                            .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
+                    .onItem()
+                    .transformToUniAndConcatenate(
+                            msg -> invokeOnMessageContext(msg, msg.getPayload())
+                                    .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                     .onFailure().invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
         }
     }
@@ -213,9 +215,11 @@ public class SubscriberMediator extends AbstractMediator {
                     .onItem().transformToUniAndConcatenate(msg -> {
                         Uni<?> uni;
                         if (invokeWithPayload) {
-                            uni = Uni.createFrom().completionStage(() -> invoke(msg.getPayload()));
+                            uni = invokeOnMessageContext(msg, msg.getPayload())
+                                    .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs));
                         } else {
-                            uni = Uni.createFrom().completionStage(() -> invoke(msg));
+                            uni = invokeOnMessageContext(msg, msg)
+                                    .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs));
                         }
                         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
                     })
@@ -226,9 +230,9 @@ public class SubscriberMediator extends AbstractMediator {
     private Uni<? extends Message<?>> invokeBlockingAndHandleOutcome(boolean invokeWithPayload, Message<?> msg) {
         Uni<?> uni;
         if (invokeWithPayload) {
-            uni = invokeBlocking(msg.getPayload());
+            uni = invokeBlocking(msg, msg.getPayload());
         } else {
-            uni = invokeBlocking(msg);
+            uni = invokeBlocking(msg, msg);
         }
         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
     }
@@ -256,9 +260,11 @@ public class SubscriberMediator extends AbstractMediator {
                     .onItem().transformToUniAndConcatenate(msg -> {
                         Uni<?> uni;
                         if (invokeWithPayload) {
-                            uni = invoke(msg.getPayload());
+                            uni = invokeOnMessageContext(msg, msg.getPayload())
+                                    .onItem().transformToUni(u -> (Uni<?>) u);
                         } else {
-                            uni = invoke(msg);
+                            uni = invokeOnMessageContext(msg, msg)
+                                    .onItem().transformToUni(u -> (Uni<?>) u);
                         }
                         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
                     })

@@ -7,7 +7,8 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
+
+import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
 /**
  * Implementation of the emitter pattern.
@@ -26,11 +27,11 @@ public class EmitterImpl<T> extends AbstractEmitter<T> implements Emitter<T> {
             throw ex.illegalArgumentForNullValue();
         }
         CompletableFuture<Void> future = new CompletableFuture<>();
-        emit(Message.of(payload, Metadata.empty(), () -> {
-            future.complete(null);
-            return CompletableFuture.completedFuture(null);
-        },
-                reason -> {
+        emit(ContextAwareMessage.of(payload)
+                .withAck(() -> {
+                    future.complete(null);
+                    return CompletableFuture.completedFuture(null);
+                }).withNack(reason -> {
                     future.completeExceptionally(reason);
                     return CompletableFuture.completedFuture(null);
                 }));

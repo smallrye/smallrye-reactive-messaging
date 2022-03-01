@@ -30,6 +30,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.helpers.Validation;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.WorkerExecutor;
 
 @ApplicationScoped
@@ -65,15 +66,31 @@ public class WorkerPoolRegistry {
         }
     }
 
-    public <T> Uni<T> executeWork(Uni<T> uni, String workerName, boolean ordered) {
+    public <T> Uni<T> executeWork(Context currentContext, Uni<T> uni, String workerName, boolean ordered) {
         if (holder == null) {
             throw new UnsupportedOperationException("@Blocking disabled");
         }
         Objects.requireNonNull(uni, msg.actionNotProvided());
 
         if (workerName == null) {
+            if (currentContext != null) {
+                return currentContext.executeBlocking(Uni.createFrom().deferred(() -> uni), ordered);
+            }
+            // No current context, use the Vert.x instance.
             return holder.vertx().executeBlocking(uni, ordered);
         } else {
+            if (currentContext != null) {
+                return getWorker(workerName).executeBlocking(uni, ordered)
+                        .onItemOrFailure().transformToUni((item, failure) -> {
+                            return Uni.createFrom().emitter(emitter -> {
+                                if (failure != null) {
+                                    currentContext.runOnContext(() -> emitter.fail(failure));
+                                } else {
+                                    currentContext.runOnContext(() -> emitter.complete(item));
+                                }
+                            });
+                        });
+            }
             return getWorker(workerName).executeBlocking(uni, ordered);
         }
     }

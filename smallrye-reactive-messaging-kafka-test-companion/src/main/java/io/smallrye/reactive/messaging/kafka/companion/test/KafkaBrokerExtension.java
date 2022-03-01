@@ -8,8 +8,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -55,11 +53,6 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
     public static <T extends StrimziKafkaContainer> T configureKafkaContainer(T container) {
         String kafkaVersion = System.getProperty("kafka-container-version", KAFKA_VERSION);
         container.withKafkaVersion(kafkaVersion);
-        if (!kafkaVersion.equals("2.8.1")) {
-            Map<String, String> config = new HashMap<>();
-            config.put("group.initial.rebalance.delay.ms", "0");
-            container.withKraft().withBrokerId(1).withKafkaConfigurationMap(config);
-        }
         return container;
     }
 

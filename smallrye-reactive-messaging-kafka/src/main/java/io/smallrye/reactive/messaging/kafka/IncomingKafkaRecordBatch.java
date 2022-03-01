@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,7 +25,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 
 public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
 
-    private final Metadata metadata;
+    private Metadata metadata;
     private final List<KafkaRecord<K, T>> incomingRecords;
     private final Map<TopicPartition, KafkaRecord<K, T>> latestOffsetRecords;
 
@@ -41,7 +43,7 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         }
         this.incomingRecords = Collections.unmodifiableList(incomingRecords);
         this.latestOffsetRecords = Collections.unmodifiableMap(latestOffsetRecords);
-        this.metadata = Metadata.of(new IncomingKafkaRecordBatchMetadata<>(records));
+        this.metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records));
     }
 
     @Override
@@ -96,4 +98,5 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
                         .collect(Collectors.toList()))
                 .toUni().subscribeAsCompletionStage();
     }
+
 }

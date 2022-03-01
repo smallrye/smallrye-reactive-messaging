@@ -51,7 +51,6 @@ public class ProcessorMediator extends AbstractMediator {
     public void connectToUpstream(Multi<? extends Message<?>> publisher) {
         assert mapper != null;
         this.publisher = decorate(publisher.plug(m -> mapper.apply(convert(m))));
-
     }
 
     @Override
@@ -65,8 +64,8 @@ public class ProcessorMediator extends AbstractMediator {
     }
 
     @Override
-    protected <T> Uni<T> invokeBlocking(Object... args) {
-        return super.invokeBlocking(args);
+    protected <T> Uni<T> invokeBlocking(Message<?> message, Object... args) {
+        return super.invokeBlocking(message, args);
     }
 
     @Override
@@ -257,7 +256,8 @@ public class ProcessorMediator extends AbstractMediator {
                 this.mapper = upstream -> {
                     Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
                     return multi
-                            .onItem().transformToMultiAndConcatenate(message -> invokeBlocking(withPayloadOrMessage(message))
+                            .onItem()
+                            .transformToMultiAndConcatenate(message -> invokeBlocking(message, withPayloadOrMessage(message))
                                     .onItemOrFailure()
                                     .transformToUni((o, t) -> this.handlePostInvocationWithMessage((Message<?>) o, t))
                                     .onItem().transformToMulti(this::handleSkip));
@@ -266,7 +266,7 @@ public class ProcessorMediator extends AbstractMediator {
                 this.mapper = upstream -> {
                     Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
                     return multi
-                            .onItem().transformToMultiAndMerge(message -> invokeBlocking(withPayloadOrMessage(message))
+                            .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, withPayloadOrMessage(message))
                                     .onItemOrFailure()
                                     .transformToUni((o, t) -> this.handlePostInvocationWithMessage((Message<?>) o, t))
                                     .onItem().transformToMulti(this::handleSkip));
@@ -278,7 +278,7 @@ public class ProcessorMediator extends AbstractMediator {
                 Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
                 return multi
                         .onItem().transformToMultiAndConcatenate(
-                                message -> Uni.createFrom().item(() -> invoke(withPayloadOrMessage(message)))
+                                message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
                                         .onItem().transform(o -> (Message<?>) o)
                                         .onItemOrFailure().transformToUni(this::handlePostInvocationWithMessage)
                                         .onItem().transformToMulti(this::handleSkip));
@@ -295,12 +295,13 @@ public class ProcessorMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToMultiAndConcatenate(message -> invokeBlocking(withPayloadOrMessage(message))
+                        .onItem()
+                        .transformToMultiAndConcatenate(message -> invokeBlocking(message, withPayloadOrMessage(message))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
             } else {
                 this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToMultiAndMerge(message -> invokeBlocking(withPayloadOrMessage(message))
+                        .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, withPayloadOrMessage(message))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
             }
@@ -308,7 +309,7 @@ public class ProcessorMediator extends AbstractMediator {
         } else {
             this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transformToMultiAndConcatenate(
-                            message -> Uni.createFrom().item(() -> invoke(withPayloadOrMessage(message)))
+                            message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
                                     .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                     .onItem().transformToMulti(this::handleSkip));
         }
@@ -362,7 +363,8 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> Uni.createFrom().completionStage((CompletionStage<?>) invoke(withPayloadOrMessage(message)))
+                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                                .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocationWithMessage((Message<?>) r, f))
                                 .onItem().transformToMulti(this::handleSkip));
     }
@@ -370,7 +372,8 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningAUniOfMessageAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> Uni.createFrom().deferred(() -> invoke(withPayloadOrMessage(message)))
+                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                                .onItem().transformToUni(u -> (Uni<?>) u)
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocationWithMessage((Message<?>) r, f))
                                 .onItem().transformToMulti(this::handleSkip));
     }
@@ -378,7 +381,8 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> Uni.createFrom().completionStage(() -> invoke(withPayloadOrMessage(message)))
+                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                                .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
     }
@@ -386,7 +390,8 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningAUniOfPayloadAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> Uni.createFrom().deferred(() -> invoke(withPayloadOrMessage(message)))
+                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                                .onItem().transformToUni(u -> (Uni<?>) u)
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
     }

@@ -13,7 +13,7 @@ import io.smallrye.common.annotation.Experimental;
  * Contained instances are not constrained, but should be immutable. Only one instance of each class can be stored,
  * as the class is used to retrieve the metadata.
  * <p>
- * You can creates new instances using the {@link #of(Object...)} and {@link #from(Iterable) }methods.
+ * You can create new instances using the {@link #of(Object...)} and {@link #from(Iterable) }methods.
  * <p>
  * <strong>IMPORTANT:</strong> Experimental.
  */

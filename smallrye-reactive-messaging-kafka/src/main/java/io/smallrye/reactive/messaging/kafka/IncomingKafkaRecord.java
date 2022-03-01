@@ -18,6 +18,7 @@ import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
+import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
@@ -77,7 +78,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             meta.add(tracingMetadata);
         }
 
-        this.metadata = Metadata.from(meta);
+        this.metadata = ContextAwareMessage.captureContextMetadata(meta);
         this.onNack = onNack;
         if (payload == null && !payloadSet) {
             this.payload = record.value();
@@ -148,4 +149,5 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
         metadata = metadata.with(tracingMetadata);
     }
+
 }
