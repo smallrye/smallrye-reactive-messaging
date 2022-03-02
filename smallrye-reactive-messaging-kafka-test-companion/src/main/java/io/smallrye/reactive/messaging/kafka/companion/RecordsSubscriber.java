@@ -27,7 +27,7 @@ import io.smallrye.mutiny.subscription.MultiSubscriber;
  *
  * @param <T> the type of the records
  */
-public class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements MultiSubscriber<T>, Iterable<T> {
+class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements MultiSubscriber<T>, Iterable<T> {
 
     /**
      * The default timeout used by {@code await} method.
