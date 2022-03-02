@@ -77,10 +77,10 @@ public class PulsarBrokerExtension implements BeforeAllCallback, ParameterResolv
     }
 
     public static PulsarContainer startPulsarBroker(int port) {
-        PulsarContainer Pulsar = createPulsarContainer();
-        Pulsar.start();
-        await().until(Pulsar::isRunning);
-        return Pulsar;
+        PulsarContainer pulsar = createPulsarContainer();
+        pulsar.start();
+        await().until(pulsar::isRunning);
+        return pulsar;
     }
 
     private static void sleep(Duration duration) {

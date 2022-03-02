@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @ExtendWith(PulsarBrokerExtension.class)
 public class PulsarBaseTest {
@@ -42,6 +43,10 @@ public class PulsarBaseTest {
                 .serviceUrl(clusterUrl)
                 .build();
         executor = Executors.newFixedThreadPool(1);
+    }
+
+    MapBasedConfig baseConfig() {
+        return new MapBasedConfig().with("service-url", serviceUrl);
     }
 
     @BeforeEach
@@ -66,23 +71,20 @@ public class PulsarBaseTest {
                     }
                 })
                 .indefinitely()
-                .runSubscriptionOn(executor)
-                .onItem().invoke(() -> System.out.println(consumer.getConsumerName() + " " + Thread.currentThread()));
+                .runSubscriptionOn(executor);
     }
 
     public <T> Multi<MessageId> send(Producer<T> producer, Function<Integer, T> generator) {
         return Multi.createFrom().range(0, Integer.MAX_VALUE)
                 .runSubscriptionOn(executor)
                 .onItem().transform(generator)
-                .onItem().transformToUniAndConcatenate(value ->
-                        Uni.createFrom().<MessageId>emitter(e -> {
-                            try {
-                                e.complete(producer.send(value));
-                            } catch (PulsarClientException ex) {
-                                e.fail(ex);
-                            }
-                        }))
-                .onItem().invoke(() -> System.out.println(producer.getProducerName() + " " + Thread.currentThread()));
+                .onItem().transformToUniAndConcatenate(value -> Uni.createFrom().<MessageId> emitter(e -> {
+                    try {
+                        e.complete(producer.send(value));
+                    } catch (PulsarClientException ex) {
+                        e.fail(ex);
+                    }
+                }));
     }
 
     public <T> void receive(Consumer<T> consumer, long numberOfMessages, java.util.function.Consumer<Message<T>> callback) {

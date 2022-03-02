@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.pulsar;
 
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 public class PulsarContainer extends GenericContainer<PulsarContainer> {
 
@@ -11,6 +12,7 @@ public class PulsarContainer extends GenericContainer<PulsarContainer> {
         super(PULSAR_IMAGE);
         withExposedPorts(PULSAR_PORT, 8080);
         withCommand("bin/pulsar", "standalone");
+        waitingFor(Wait.forLogMessage(".*messaging service is ready.*", 2));
     }
 
     public PulsarContainer withPort(final int fixedPort) {
