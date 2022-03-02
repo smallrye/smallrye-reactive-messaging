@@ -102,7 +102,10 @@ public class TopicsCompanion {
                 .map(topics -> topics.get(topic));
     }
 
-    private boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
+    boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
+        if (description == null) {
+            return false;
+        }
         TopicDescription td = description.get(topic);
         if (td == null) {
             return false;
@@ -116,6 +119,14 @@ public class TopicsCompanion {
         }
         return true;
     }
+    //
+    //    boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
+    //        return Optional.ofNullable(description)
+    //                .map(topics -> topics.get(topic))
+    //                .map(td -> td.partitions().stream()
+    //                        .allMatch(partition -> partition.leader() != null && partition.leader().id() >= 0))
+    //                .orElse(false);
+    //    }
 
     /**
      * @return the set of topic names
