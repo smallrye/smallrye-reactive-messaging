@@ -9,10 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.Cancellable;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -44,7 +41,7 @@ public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
             int sendStartIndex, int sendCount,
             int receiveStartIndex, int receiveCount, int batchCount) throws Exception {
 
-        CountDownLatch latch = new CountDownLatch(batchCount);
+        CountDownLatch latch = new CountDownLatch(sendCount);
         subscribeBatch(stream, latch);
         if (sendCount > 0) {
             sendMessages(sendStartIndex, sendCount);
@@ -77,7 +74,9 @@ public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
                 .onItem().invoke(record -> {
                     onReceive(record);
                     for (CountDownLatch latch : latches) {
-                        latch.countDown();
+                        for (KafkaRecord<Integer, String> ignored : record.getRecords()) {
+                            latch.countDown();
+                        }
                     }
                 })
                 .subscribe().with(ignored -> {
