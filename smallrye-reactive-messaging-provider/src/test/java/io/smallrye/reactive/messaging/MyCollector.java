@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -20,11 +21,11 @@ import io.smallrye.mutiny.Multi;
 @ApplicationScoped
 public class MyCollector {
 
-    private final List<Message<String>> result = new ArrayList<>();
-    private AtomicReference<Throwable> error = new AtomicReference<>();
-    private AtomicBoolean completed = new AtomicBoolean();
+    private final List<Message<String>> result = new CopyOnWriteArrayList<>();
+    private final AtomicReference<Throwable> error = new AtomicReference<>();
+    private final AtomicBoolean completed = new AtomicBoolean();
 
-    @SuppressWarnings("SubscriberImplementation")
+    @SuppressWarnings({ "SubscriberImplementation", "ReactiveStreamsSubscriberImplementation" })
     @Incoming("sink")
     public Subscriber<Message<String>> sink() {
         return new Subscriber<Message<String>>() {
@@ -57,15 +58,12 @@ public class MyCollector {
     }
 
     public List<String> payloads() {
-        return result.stream().map(Message::getPayload).collect(Collectors.toList());
+        List<Message<String>> copy = new ArrayList<>(result);
+        return copy.stream().map(Message::getPayload).collect(Collectors.toList());
     }
 
     public List<Message<String>> messages() {
         return result;
-    }
-
-    public boolean hasFailed() {
-        return error.get() != null;
     }
 
     public Throwable getError() {

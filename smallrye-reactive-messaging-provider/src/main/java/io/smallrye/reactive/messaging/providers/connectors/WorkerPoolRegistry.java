@@ -95,7 +95,7 @@ public class WorkerPoolRegistry {
         }
     }
 
-    private WorkerExecutor getWorker(String workerName) {
+    public WorkerExecutor getWorker(String workerName) {
         Objects.requireNonNull(workerName, msg.workerNameNotSpecified());
 
         if (workerExecutors.containsKey(workerName)) {
