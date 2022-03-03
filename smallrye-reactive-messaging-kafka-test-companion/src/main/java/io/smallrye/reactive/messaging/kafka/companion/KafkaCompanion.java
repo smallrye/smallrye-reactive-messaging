@@ -73,6 +73,7 @@ public class KafkaCompanion implements AutoCloseable {
         if (adminClient == null) {
             Map<String, Object> configMap = new HashMap<>(getCommonClientConfig());
             configMap.put(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
+            configMap.put(CLIENT_ID_CONFIG, "companion-admin-for-" + getBootstrapServers());
             adminClient = AdminClient.create(configMap);
         }
         return adminClient;

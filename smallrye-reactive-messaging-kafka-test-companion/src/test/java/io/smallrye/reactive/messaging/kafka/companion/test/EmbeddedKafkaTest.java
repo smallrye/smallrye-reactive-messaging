@@ -31,6 +31,7 @@ public class EmbeddedKafkaTest {
             KafkaCompanion companion = new KafkaCompanion(advertisedListeners);
             assertThat(companion.topics().list()).isEmpty();
             assertFunctionalBroker(companion);
+            companion.close();
         }
     }
 
@@ -90,10 +91,6 @@ public class EmbeddedKafkaTest {
         // produce messages
         companion.produceStrings().usingGenerator(i -> new ProducerRecord<>("messages", i % 3, "k", "" + i), 100);
         // consume messages
-        companion.consumeStrings().fromTopics("messages", 100)
-                .awaitCompletion()
-                .byTopicPartition().entrySet().forEach(e -> {
-                    System.out.println(e.getKey() + " " + e.getValue().size());
-                });
+        companion.consumeStrings().fromTopics("messages", 100).awaitCompletion();
     }
 }
