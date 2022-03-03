@@ -5,19 +5,15 @@ import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import java.util.logging.Logger;
 
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.jupiter.api.extension.ParameterResolver;
 import org.testcontainers.containers.Network;
 
 /**
  * Junit extension for creating Strimzi Kafka broker behind a Toxiproxy
  */
 public class KafkaToxiproxyExtension extends KafkaBrokerExtension
-        implements BeforeAllCallback, ParameterResolver, CloseableResource {
+        implements BeforeAllCallback, BeforeEachCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaToxiproxyExtension.class.getName());
 
     @Override
@@ -32,6 +28,12 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
             await().until(() -> kafka.isRunning());
             globalStore.put(KafkaToxiproxyExtension.class, this);
         }
+    }
+
+    @Override
+    public void beforeEach(ExtensionContext context) throws Exception {
+        // Do nothing for the ToxyProxy
+        // In this case we will not restart unhealthy brokers.
     }
 
     @Override

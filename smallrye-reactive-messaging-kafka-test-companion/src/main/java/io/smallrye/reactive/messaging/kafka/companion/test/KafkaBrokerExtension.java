@@ -8,21 +8,24 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.common.Node;
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.jupiter.api.extension.ParameterResolver;
+import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
 
 import io.strimzi.test.container.StrimziKafkaContainer;
 
 /**
  * Junit extension for creating Strimzi Kafka broker
  */
-public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolver, CloseableResource {
+public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
     public static final String KAFKA_VERSION = "3.1.0";
@@ -129,6 +132,35 @@ public class KafkaBrokerExtension implements BeforeAllCallback, ParameterResolve
             }
         }
         return null;
+    }
+
+    @Override
+    public void beforeEach(ExtensionContext context) throws Exception {
+        if (kafka != null) {
+            for (int i = 0; i < 3; i++) {
+                try {
+                    isBrokerHealthy();
+                    return;
+                } catch (ConditionTimeoutException e) {
+                    LOGGER.warn("The Kafka broker is not healthy, restarting it");
+                    restart(kafka, 0);
+                }
+            }
+            throw new IllegalStateException("The Kafka broker is not unhealthy, despite 3 restarts");
+        }
+    }
+
+    private void isBrokerHealthy() {
+        await().until(() -> kafka.isRunning());
+        await().catchUncaughtExceptions().until(() -> {
+            Map<String, Object> config = new HashMap<>();
+            config.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+            config.put(CommonClientConfigs.CLIENT_ID_CONFIG, "broker-healthy-admin");
+            try (AdminClient admin = AdminClient.create(config)) {
+                Collection<Node> nodes = admin.describeCluster().nodes().get();
+                return nodes.size() == 1 && nodes.iterator().next().id() >= 0;
+            }
+        });
     }
 
     @Target({ ElementType.FIELD, ElementType.PARAMETER })
