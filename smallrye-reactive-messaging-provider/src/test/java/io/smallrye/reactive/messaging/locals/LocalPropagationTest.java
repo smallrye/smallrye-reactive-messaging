@@ -17,8 +17,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.*;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
@@ -38,16 +37,19 @@ import io.vertx.mutiny.core.Vertx;
 
 public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
-    @AfterEach
-    public void cleanup() {
+    @BeforeEach
+    void setup() {
+        installConfig("src/test/resources/config/locals.properties");
+    }
+
+    @AfterAll
+    static void cleanup() {
         releaseConfig();
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testLinearPipeline() {
-        installConfig("src/test/resources/config/locals.properties");
         addBeanClass(ConnectorEmittingOnContext.class);
-        addBeanClass(ConnectorEmittingDirectly.class);
         addBeanClass(LinearPipeline.class);
         initialize();
 
@@ -56,24 +58,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         assertThat(bean.getResults()).containsExactly(2, 3, 4, 5, 6);
     }
 
-    @RepeatedTest(100)
-    public void testLinearPipelineNoContext() {
-        installConfig("src/test/resources/config/locals.properties");
-        addBeanClass(ConnectorEmittingOnContext.class);
-        addBeanClass(ConnectorEmittingDirectly.class);
-        addBeanClass(LinearPipelineNoContext.class);
-        initialize();
-
-        LinearPipelineNoContext bean = get(LinearPipelineNoContext.class);
-        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.getResults().size() >= 5);
-        assertThat(bean.getResults()).containsExactly(2, 3, 4, 5, 6);
-    }
-
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testPipelineWithABlockingStage() {
-        installConfig("src/test/resources/config/locals.properties");
         addBeanClass(ConnectorEmittingOnContext.class);
-        addBeanClass(ConnectorEmittingDirectly.class);
         addBeanClass(PipelineWithABlockingStage.class);
         initialize();
 
@@ -83,11 +70,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testPipelineWithAnUnorderedBlockingStage() {
-        installConfig("src/test/resources/config/locals.properties");
         addBeanClass(ConnectorEmittingOnContext.class);
-        addBeanClass(ConnectorEmittingDirectly.class);
         addBeanClass(PipelineWithAnUnorderedBlockingStage.class);
         initialize();
 
@@ -97,11 +82,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testPipelineWithMultipleBlockingStages() {
-        installConfig("src/test/resources/config/locals.properties");
         addBeanClass(ConnectorEmittingOnContext.class);
-        addBeanClass(ConnectorEmittingDirectly.class);
         addBeanClass(PipelineWithMultipleBlockingStages.class);
         initialize();
 
@@ -110,11 +93,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         assertThat(bean.getResults()).containsExactlyInAnyOrder(2, 3, 4, 5, 6);
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testPipelineWithBroadcastAndMerge() {
-        installConfig("src/test/resources/config/locals.properties");
         addBeanClass(ConnectorEmittingOnContext.class);
-        addBeanClass(ConnectorEmittingDirectly.class);
         addBeanClass(PipelineWithBroadcastAndMerge.class);
         initialize();
 
@@ -123,11 +104,10 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         assertThat(bean.getResults()).hasSize(10).contains(2, 3, 4, 5, 6);
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testLinearPipelineWithAckOnCustomThread() {
         installConfig("src/test/resources/config/locals.properties");
         addBeanClass(ConnectorEmittingOnContext.class);
-        addBeanClass(ConnectorEmittingDirectly.class);
         addBeanClass(LinearPipelineWithAckOnCustomThread.class);
         initialize();
 
@@ -137,8 +117,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testLinearPipelineWithEmitter() {
+        releaseConfig();
         addBeanClass(EmitterOnContext.class);
         addBeanClass(LinearPipeline.class);
         initialize();
@@ -152,8 +133,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         assertThat(bean.getResults()).containsExactly(2, 3, 4, 5, 6);
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(30)
     public void testLinearPipelineWithMutinyEmitter() {
+        releaseConfig();
         addBeanClass(MutinyEmitterOnContext.class);
         addBeanClass(LinearPipeline.class);
         initialize();
@@ -181,17 +163,6 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
                     .transformToUniAndConcatenate(i -> Uni.createFrom().emitter(e -> context.runOnContext(() -> e.complete(i))))
                     .map(Message::of)
                     .map(ContextAwareMessage::withContextMetadata);
-        }
-    }
-
-    @Connector("connector-without-context")
-    public static class ConnectorEmittingDirectly implements InboundConnector {
-
-        @Override
-        public Publisher<? extends Message<?>> getPublisher(Config config) {
-            return Multi.createFrom().items(1, 2, 3, 4, 5)
-                    .map(Message::of)
-                    .onItem().transformToUniAndConcatenate(i -> Uni.createFrom().emitter(e -> e.complete(i)));
         }
     }
 
@@ -271,9 +242,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
             return input.withPayload(input.getPayload() + 1)
                     .withAck(() -> {
                         CompletableFuture<Void> cf = new CompletableFuture<>();
-                        executor.execute(() -> {
-                            cf.complete(null);
-                        });
+                        executor.execute(() -> cf.complete(null));
                         return cf;
                     });
         }
@@ -544,8 +513,6 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
             return input.withPayload(input.getPayload() + 1);
         }
 
-        private final Random random = new Random();
-
         @Incoming("process")
         @Outgoing("after-process")
         public Integer branch1(int payload) {
@@ -598,45 +565,6 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     }
 
     @ApplicationScoped
-    public static class LinearPipelineNoContext {
-
-        private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
-
-        @Incoming("data-no-context")
-        @Outgoing("process")
-        @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-        public Message<Integer> process(Message<Integer> input) {
-            assertThat(Vertx.currentContext()).isNull();
-            return input.withPayload(input.getPayload() + 1);
-        }
-
-        @Incoming("process")
-        @Outgoing("after-process")
-        public Integer handle(int payload) {
-            assertThat(Vertx.currentContext()).isNull();
-            return payload;
-        }
-
-        @Incoming("after-process")
-        @Outgoing("sink")
-        public Integer afterProcess(int payload) {
-            assertThat(Vertx.currentContext()).isNull();
-            return payload;
-        }
-
-        @Incoming("sink")
-        public void sink(int val) {
-            assertThat(Vertx.currentContext()).isNull();
-            list.add(val);
-        }
-
-        public List<Integer> getResults() {
-            return list;
-        }
-    }
-
-    @ApplicationScoped
     public static class EmitterOnContext {
 
         @Inject
@@ -648,9 +576,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
         public void emitMessages(List<Integer> payloads) {
             Context context = executionHolder.vertx().getOrCreateContext();
-            context.runOnContext(() -> {
-                payloads.forEach(p -> emitter.send(p));
-            });
+            context.runOnContext(() -> payloads.forEach(p -> emitter.send(p)));
         }
     }
 
