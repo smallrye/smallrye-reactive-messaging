@@ -373,7 +373,11 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
-        companion.topics().create("data-2", 2);
+        companion.topics().createAndWait("data-2", 2);
+        // Verify the creation of the topic
+        assertThat(companion.topics().describe("data-2").get("data-2").partitions()).hasSize(2)
+                .allSatisfy(tpi -> assertThat(tpi.leader()).isNotNull().satisfies(node -> assertThat(node.id()).isGreaterThanOrEqualTo(0)));
+
         ConsumptionBean bean = run(
                 myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         List<Integer> list = bean.getResults();
