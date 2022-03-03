@@ -3,17 +3,14 @@ package io.smallrye.reactive.messaging.kafka.companion;
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.toUni;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 import io.smallrye.mutiny.Uni;
 
@@ -94,10 +91,42 @@ public class TopicsCompanion {
         return Uni.createFrom().item(this::describeAll)
                 .repeat()
                 .withDelay(Duration.ofMillis(1000))
-                .whilst(topics -> retries.incrementAndGet() < 10 && !topics.containsKey(topic))
+                .until(topics -> {
+                    if (retries.incrementAndGet() >= 10) {
+                        throw new IllegalStateException("Max number of attempts reached, the topic "
+                                + topic + " was not created after 10 attempts");
+                    }
+                    return !checkIfTheTopicIsCreated(topic, topics);
+                })
                 .toUni()
                 .map(topics -> topics.get(topic));
     }
+
+    boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
+        if (description == null) {
+            return false;
+        }
+        TopicDescription td = description.get(topic);
+        if (td == null) {
+            return false;
+        }
+        // The topic is created, check that each partition has a leader
+        List<TopicPartitionInfo> partitions = td.partitions();
+        for (TopicPartitionInfo partition : partitions) {
+            if (partition.leader() == null || partition.leader().id() < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+    //
+    //    boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
+    //        return Optional.ofNullable(description)
+    //                .map(topics -> topics.get(topic))
+    //                .map(td -> td.partitions().stream()
+    //                        .allMatch(partition -> partition.leader() != null && partition.leader().id() >= 0))
+    //                .orElse(false);
+    //    }
 
     /**
      * @return the set of topic names

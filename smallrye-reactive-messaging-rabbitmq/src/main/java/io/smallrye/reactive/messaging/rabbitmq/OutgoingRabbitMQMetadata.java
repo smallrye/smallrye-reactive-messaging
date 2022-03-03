@@ -120,7 +120,7 @@ public class OutgoingRabbitMQMetadata {
             headers.put(header, value);
             return this;
         }
-        
+
         /**
          * Adds the message headers to the metadata.
          *

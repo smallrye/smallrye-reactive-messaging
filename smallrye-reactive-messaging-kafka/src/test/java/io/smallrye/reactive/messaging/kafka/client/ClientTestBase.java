@@ -189,8 +189,10 @@ public class ClientTestBase extends KafkaCompanionTestBase {
     }
 
     void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-        assertThat(topic).isEqualTo(partitions.iterator().next().topic());
-        assignSemaphore.release(partitions.size());
+        if (!partitions.isEmpty()) { // If no assignments, ignore callback
+            assertThat(topic).isEqualTo(partitions.iterator().next().topic());
+            assignSemaphore.release(partitions.size());
+        }
     }
 
     void waitForMessages(CountDownLatch latch) throws InterruptedException {
@@ -241,7 +243,6 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
     void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records, String broker) throws Exception {
         Map<String, Object> configs = producerProps();
-        System.out.println("Sending to broker " + broker);
         configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, broker);
         ConfigurationCleaner.cleanupProducerConfiguration(configs);
         try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(configs)) {
@@ -255,6 +256,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
     public Map<String, Object> producerProps() {
         Map<String, Object> props = new HashMap<>();
         props.put("tracing-enabled", false);
+        props.put(ProducerConfig.METADATA_MAX_AGE_CONFIG, 5);
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, companion.getBootstrapServers());
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(requestTimeoutMillis));
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
