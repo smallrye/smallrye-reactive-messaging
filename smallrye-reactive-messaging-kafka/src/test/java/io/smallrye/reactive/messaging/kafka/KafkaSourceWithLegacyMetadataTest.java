@@ -94,7 +94,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
-        companion.topics().create(topic, 3);
+        companion.topics().createAndWait(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);

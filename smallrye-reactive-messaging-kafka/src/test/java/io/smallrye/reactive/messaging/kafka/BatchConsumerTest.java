@@ -66,7 +66,7 @@ public class BatchConsumerTest extends KafkaCompanionTestBase {
     @Test
     void testIncomingConsumingMessageWithMetadata() {
         String newTopic = UUID.randomUUID().toString();
-        companion.topics().create(newTopic, 3);
+        companion.topics().createAndWait(newTopic, 3);
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .put("value.deserializer", StringDeserializer.class.getName())

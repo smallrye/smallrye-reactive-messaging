@@ -89,7 +89,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
-        companion.topics().create(topic, 3);
+        companion.topics().createAndWait(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -168,7 +168,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcastWithPartitions() {
-        companion.topics().create(topic, 2);
+        companion.topics().createAndWait(topic, 2);
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true)
@@ -376,7 +376,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait("data-2", 2);
         // Verify the creation of the topic
         assertThat(companion.topics().describe("data-2").get("data-2").partitions()).hasSize(2)
-                .allSatisfy(tpi -> assertThat(tpi.leader()).isNotNull().satisfies(node -> assertThat(node.id()).isGreaterThanOrEqualTo(0)));
+                .allSatisfy(tpi -> assertThat(tpi.leader()).isNotNull()
+                        .satisfies(node -> assertThat(node.id()).isGreaterThanOrEqualTo(0)));
 
         ConsumptionBean bean = run(
                 myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));

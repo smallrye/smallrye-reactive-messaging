@@ -34,7 +34,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
     public void init() {
         sinks = new ConcurrentLinkedQueue<>();
         String newTopic = "test-" + UUID.randomUUID();
-        companion.topics().create(newTopic, partitions);
+        companion.topics().createAndWait(newTopic, partitions);
         this.topic = newTopic;
         resetMessages();
     }

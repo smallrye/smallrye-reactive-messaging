@@ -29,7 +29,7 @@ public class PerformanceProducerTest extends KafkaCompanionTestBase {
     @Test
     public void testDefault() {
         String topic = UUID.randomUUID().toString();
-        companion.topics().create(topic, 10);
+        companion.topics().createAndWait(topic, 10);
         ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, COUNT, Duration.ofMinutes(1));
 
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
@@ -58,7 +58,7 @@ public class PerformanceProducerTest extends KafkaCompanionTestBase {
     @Test
     public void testWithoutBackPressure() {
         String topic = UUID.randomUUID().toString();
-        companion.topics().create(topic, 10);
+        companion.topics().createAndWait(topic, 10);
         ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, COUNT,
                 Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
@@ -89,7 +89,7 @@ public class PerformanceProducerTest extends KafkaCompanionTestBase {
     @Test
     public void testWithoutBackPressureAndNoWait() {
         String topic = UUID.randomUUID().toString();
-        companion.topics().create(topic, 10);
+        companion.topics().createAndWait(topic, 10);
         ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, COUNT,
                 Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
@@ -121,7 +121,7 @@ public class PerformanceProducerTest extends KafkaCompanionTestBase {
     @Test
     public void testWithoutBackPressureAndIdempotence() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
-        companion.topics().create(topic, 10);
+        companion.topics().createAndWait(topic, 10);
         ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, COUNT,
                 Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 
@@ -154,7 +154,7 @@ public class PerformanceProducerTest extends KafkaCompanionTestBase {
     @Test
     public void testWithoutBackPressureAndIncreaseKafkaRequests() {
         String topic = UUID.randomUUID().toString();
-        companion.topics().create(topic, 10);
+        companion.topics().createAndWait(topic, 10);
         ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic, COUNT,
                 Duration.ofMinutes(TIMEOUT_IN_MINUTES));
 

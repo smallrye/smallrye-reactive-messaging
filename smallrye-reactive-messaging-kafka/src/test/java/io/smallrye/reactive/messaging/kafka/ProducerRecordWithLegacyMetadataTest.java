@@ -39,7 +39,7 @@ public class ProducerRecordWithLegacyMetadataTest extends KafkaCompanionTestBase
     @Test
     public void test() {
         for (int i = 0; i < 10; i++) {
-            companion.topics().create(TOPIC_NAME_BASE + i, 1);
+            companion.topics().createAndWait(TOPIC_NAME_BASE + i, 1);
         }
 
         addBeans(ConsumerRecordConverter.class);
