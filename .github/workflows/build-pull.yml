@@ -1,10 +1,6 @@
 ---
 name: Pull Request Build
 
-concurrency:
-    group: "check-pull-request-${{ github.event.ref }}"
-    cancel-in-progress: true
-
 on:
     pull_request:
         branches:
