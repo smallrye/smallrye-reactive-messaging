@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
 
+import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -103,12 +104,14 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
 
         assertThat(bean.getMessages()).isEmpty();
 
-        companion.produceStrings()
+        ProducerTask pt1 = companion.produceStrings()
                 .usingGenerator(i -> new ProducerRecord<>(topic1, Integer.toString(i), "hello"), 3);
 
-        companion.produceStrings()
+        ProducerTask pt2 = companion.produceStrings()
                 .usingGenerator(i -> new ProducerRecord<>(topic3, Integer.toString(i), "bonjour"), 3);
 
+
+        await().until(() -> pt1.count() == 3  && pt2.count() == 3);
         await().until(() -> bean.getMessages().size() >= 6);
 
         AtomicInteger top1 = new AtomicInteger();
