@@ -89,7 +89,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("partitions", 4);
 
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, 3, Duration.ofMinutes(1));
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
@@ -168,7 +168,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testBroadcastWithPartitions() {
-        companion.topics().createAndWait(topic, 2);
+        companion.topics().createAndWait(topic, 2, Duration.ofMinutes(1));
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("broadcast", true)
@@ -277,7 +277,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     //        assertThat(messages1.size()).isGreaterThanOrEqualTo(20);
     //    }
 
-    private KafkaMapBasedConfig myKafkaSourceConfig(int partitions, String withConsumerRebalanceListener,
+    private KafkaMapBasedConfig myKafkaSourceConfig(String topic, int partitions, String withConsumerRebalanceListener,
             String group) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
         if (group != null) {
@@ -286,10 +286,9 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("enable.auto.commit", "false");
         config.put("auto.offset.reset", "earliest");
-        config.put("topic", "data");
+        config.put("topic", topic);
         if (partitions > 0) {
             config.put("partitions", Integer.toString(partitions));
-            config.put("topic", "data-" + partitions);
         }
         if (withConsumerRebalanceListener != null) {
             config.put("consumer-rebalance-listener.name", withConsumerRebalanceListener);
@@ -361,8 +360,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     @Test
     public void testABeanConsumingTheKafkaMessagesMultiThread() {
         String group = UUID.randomUUID().toString();
-        MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(0, null, group)
-                .with("topic", topic), MultiThreadConsumer.class);
+        MultiThreadConsumer bean = runApplication(myKafkaSourceConfig(topic, 0, null, group),
+                MultiThreadConsumer.class);
         List<Integer> list = bean.getItems();
         assertThat(list).isEmpty();
         bean.run();
@@ -373,24 +372,24 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
 
     @Test
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
-        companion.topics().createAndWait("data-2", 2);
+        companion.topics().createAndWait(topic, 2, Duration.ofMinutes(1));
         // Verify the creation of the topic
-        assertThat(companion.topics().describe("data-2").get("data-2").partitions()).hasSize(2)
+        assertThat(companion.topics().describe(topic).get(topic).partitions()).hasSize(2)
                 .allSatisfy(tpi -> assertThat(tpi.leader()).isNotNull()
                         .satisfies(node -> assertThat(node.id()).isGreaterThanOrEqualTo(0)));
 
         ConsumptionBean bean = run(
-                myKafkaSourceConfig(2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
+                myKafkaSourceConfig(topic, 2, ConsumptionConsumerRebalanceListener.class.getSimpleName(), null));
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>("data-2", i), 10);
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsOnly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         List<KafkaRecord<String, Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            assertThat(m.getTopic()).isEqualTo("data-2");
+            assertThat(m.getTopic()).isEqualTo(topic);
             assertThat(m.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(m.getPartition()).isGreaterThan(-1);
         });
@@ -400,14 +399,14 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         for (int i = 0; i < 2; i++) {
             TopicPartition partition = consumptionConsumerRebalanceListener.getAssigned().get(i);
             assertThat(partition).isNotNull();
-            assertThat(partition.topic()).isEqualTo("data-2");
+            assertThat(partition.topic()).isEqualTo(topic);
         }
     }
 
     @Test
     public void testABeanConsumingWithMissingRebalanceListenerConfiguredByName() {
         String group = UUID.randomUUID().toString();
-        assertThatThrownBy(() -> run(myKafkaSourceConfig(0, "not exists", group)))
+        assertThatThrownBy(() -> run(myKafkaSourceConfig(topic, 0, "not exists", group)))
                 .isInstanceOf(DeploymentException.class)
                 .hasCauseInstanceOf(UnsatisfiedResolutionException.class);
     }
@@ -510,11 +509,11 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     @Test
     public void testABeanConsumingTheKafkaMessagesWithRawMessage() {
         String group = UUID.randomUUID().toString();
-        ConsumptionBeanUsingRawMessage bean = runApplication(myKafkaSourceConfig(0, null, group),
+        ConsumptionBeanUsingRawMessage bean = runApplication(myKafkaSourceConfig(topic, 0, null, group),
                 ConsumptionBeanUsingRawMessage.class);
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>("data", i), 10);
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -525,7 +524,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
             io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<String, Integer> metadata = m
                     .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class)
                     .orElseThrow(() -> new AssertionError("Metadata expected"));
-            assertThat(metadata.getTopic()).isEqualTo("data");
+            assertThat(metadata.getTopic()).isEqualTo(topic);
             assertThat(metadata.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(metadata.getPartition()).isGreaterThan(-1);
             assertThat(metadata.getOffset()).isGreaterThan(-1);
