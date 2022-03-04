@@ -7,6 +7,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
@@ -136,6 +137,9 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
+        LOGGER.infof("Running test %s (%s#%s)", context.getDisplayName(),
+                context.getTestClass().map(Class::getName).orElse(""),
+                context.getTestMethod().map(Method::getName).orElse(""));
         if (kafka != null) {
             for (int i = 0; i < 3; i++) {
                 try {

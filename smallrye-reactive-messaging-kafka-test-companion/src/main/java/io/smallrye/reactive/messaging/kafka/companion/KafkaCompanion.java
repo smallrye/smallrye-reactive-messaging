@@ -8,9 +8,8 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMI
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
@@ -43,6 +42,7 @@ public class KafkaCompanion implements AutoCloseable {
     private final String bootstrapServers;
     private final Duration kafkaApiTimeout;
     private AdminClient adminClient;
+    private final List<Runnable> onClose = new CopyOnWriteArrayList<>();
 
     public KafkaCompanion(String bootstrapServers) {
         this(bootstrapServers, Duration.ofSeconds(10));
@@ -75,14 +75,15 @@ public class KafkaCompanion implements AutoCloseable {
             configMap.put(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
             configMap.put(CLIENT_ID_CONFIG, "companion-admin-for-" + getBootstrapServers());
             adminClient = AdminClient.create(configMap);
+            registerOnClose(() -> adminClient.close(kafkaApiTimeout));
         }
         return adminClient;
     }
 
     @Override
     public synchronized void close() {
-        if (adminClient != null) {
-            adminClient.close(kafkaApiTimeout);
+        for (Runnable runnable : new ArrayList<>(onClose)) {
+            runnable.run();
         }
     }
 
@@ -196,13 +197,19 @@ public class KafkaCompanion implements AutoCloseable {
     public <K, V> ConsumerBuilder<K, V> consumeWithDeserializers(
             Class<? extends Deserializer<?>> keyDeserType,
             Class<? extends Deserializer<?>> valueDeserType) {
-        return new ConsumerBuilder<>(getConsumerProperties(), kafkaApiTimeout, keyDeserType, valueDeserType);
+        ConsumerBuilder<K, V> builder = new ConsumerBuilder<>(getConsumerProperties(), kafkaApiTimeout, keyDeserType,
+                valueDeserType);
+        registerOnClose(builder::close);
+        return builder;
     }
 
     public <K, V> ConsumerBuilder<K, V> consumeWithDeserializers(
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer) {
-        return new ConsumerBuilder<>(getConsumerProperties(), kafkaApiTimeout, keyDeserializer, valueDeserializer);
+        ConsumerBuilder<K, V> builder = new ConsumerBuilder<>(getConsumerProperties(), kafkaApiTimeout, keyDeserializer,
+                valueDeserializer);
+        registerOnClose(builder::close);
+        return builder;
     }
 
     public <K, V> ConsumerBuilder<K, V> consume(Serde<K> keySerde, Serde<V> valueSerde) {
@@ -244,17 +251,25 @@ public class KafkaCompanion implements AutoCloseable {
     public <K, V> ProducerBuilder<K, V> produceWithSerializers(
             Class<? extends Serializer<?>> keySerializerType,
             Class<? extends Serializer<?>> valueSerializerType) {
-        return new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializerType, valueSerializerType);
+        ProducerBuilder<K, V> builder = new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializerType,
+                valueSerializerType);
+        registerOnClose(builder::close);
+        return builder;
     }
 
     public <K, V> ProducerBuilder<K, V> produceWithSerializers(
             Serializer<K> keySerializer,
             Serializer<V> valueSerializer) {
-        return new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializer, valueSerializer);
+        ProducerBuilder<K, V> builder = new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializer,
+                valueSerializer);
+        registerOnClose(builder::close);
+        return builder;
     }
 
     public <K, V> ProducerBuilder<K, V> produce(Serde<K> keySerde, Serde<V> valueSerde) {
-        return new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerde, valueSerde);
+        ProducerBuilder<K, V> builder = new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerde, valueSerde);
+        registerOnClose(builder::close);
+        return builder;
     }
 
     public <K, V> ProducerBuilder<K, V> produce(Class<K> keyType, Class<V> valueType) {
@@ -277,4 +292,13 @@ public class KafkaCompanion implements AutoCloseable {
         return produce(Serdes.String(), Serdes.Double());
     }
 
+    private <K, V> void registerOnClose(Runnable action) {
+        onClose.add(() -> {
+            try {
+                action.run();
+            } catch (Exception ignored) {
+                // Ignored
+            }
+        });
+    }
 }
