@@ -57,6 +57,9 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     public static <T extends StrimziKafkaContainer> T configureKafkaContainer(T container) {
         String kafkaVersion = System.getProperty("kafka-container-version", KAFKA_VERSION);
         container.withKafkaVersion(kafkaVersion);
+        Map<String, String> config = new HashMap<>();
+        config.put("log.cleaner.enable", "false");
+        container.withKafkaConfigurationMap(config);
         return container;
     }
 
