@@ -469,7 +469,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
 
         await()
                 .atMost(2, TimeUnit.MINUTES)
-                .until(() -> list.size() >= 5);
+                .until(() -> list.size() >= 10);
 
         // The rebalance listener failed, no retry
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
