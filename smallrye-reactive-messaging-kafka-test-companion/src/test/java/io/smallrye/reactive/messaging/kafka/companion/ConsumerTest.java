@@ -53,16 +53,12 @@ public class ConsumerTest extends KafkaCompanionTestBase {
                 .awaitCompletion(Duration.ofSeconds(10));
 
         AtomicInteger records = new AtomicInteger();
-        ConsumerTask<String, Integer> task = companion.consumeIntegers().fromTopics(topic, withCallback(cr -> {
-            records.incrementAndGet();
-        }, 10));
-
-        await().until(() -> task.count() == 1000);
-
-        task.stop();
+        try (ConsumerTask<String, Integer> task = companion.consumeIntegers()
+                .fromTopics(topic, withCallback(cr -> records.incrementAndGet(), 10))) {
+            await().until(() -> task.count() == 1000);
+        }
 
         assertThat(records.get()).isEqualTo(1000);
-        assertThat(task.count()).isEqualTo(1000L);
     }
 
     @Test
@@ -153,14 +149,15 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testWaitForAssignments() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i));
+        try (ProducerTask producer = companion.produceStrings()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i))) {
 
-        ConsumerBuilder<String, String> consumer = companion.consumeStrings();
-        ConsumerTask<String, String> records = consumer.fromTopics(topic);
-
-        assertThat(consumer.waitForAssignment().await().indefinitely()).hasSize(1);
-
-        assertThat(records.awaitNextRecords(100, Duration.ofSeconds(3)).count()).isGreaterThanOrEqualTo(100);
+            ConsumerBuilder<String, String> consumer = companion.consumeStrings();
+            try (ConsumerTask<String, String> records = consumer.fromTopics(topic)) {
+                assertThat(consumer.waitForAssignment().await().indefinitely()).hasSize(1);
+                assertThat(records.awaitNextRecords(100, Duration.ofMinutes(1)).count()).isGreaterThanOrEqualTo(100);
+            }
+        }
     }
 
     @Test
@@ -174,18 +171,15 @@ public class ConsumerTest extends KafkaCompanionTestBase {
                 record(topic3, 3)).awaitCompletion();
 
         ConsumerBuilder<String, String> consumer = companion.consumeStrings();
+        try (ConsumerTask<String, String> records = consumer.fromTopics(topic1, topic2, topic3)) {
+            consumer.waitForAssignment().await().indefinitely();
+            assertThat(consumer.assignment()).hasSize(3);
+            assertThat(consumer.currentAssignment()).hasSize(3);
 
-        ConsumerTask<String, String> records = consumer.fromTopics(topic1, topic2, topic3);
-
-        consumer.waitForAssignment().await().indefinitely();
-        assertThat(consumer.assignment()).hasSize(3);
-        assertThat(consumer.currentAssignment()).hasSize(3);
-
-        records.awaitRecords(3);
-        assertThat(consumer.assignment()).hasSize(3);
-        assertThat(consumer.currentAssignment()).hasSize(3);
-
-        records.stop();
+            records.awaitRecords(3);
+            assertThat(consumer.assignment()).hasSize(3);
+            assertThat(consumer.currentAssignment()).hasSize(3);
+        }
         assertThat(consumer.assignment()).hasSize(0);
         assertThat(consumer.currentAssignment()).hasSize(0);
     }
@@ -194,15 +188,13 @@ public class ConsumerTest extends KafkaCompanionTestBase {
     void testPosition() {
         ConsumerBuilder<String, String> consumer = companion.consumeStrings();
 
-        ConsumerTask<String, String> records = consumer.fromTopics(topic);
+        try (ConsumerTask<String, String> records = consumer.fromTopics(topic)) {
+            companion.produceStrings().usingGenerator(i -> record(topic, "v" + i), 200);
 
-        companion.produceStrings().usingGenerator(i -> record(topic, "v" + i), Duration.ofSeconds(4));
+            records.awaitRecords(100, Duration.ofMinutes(1));
 
-        records.awaitRecords(100);
-
-        assertThat(consumer.position(tp(topic, 0))).isGreaterThanOrEqualTo(100L);
-
-        records.stop();
+            assertThat(consumer.position(tp(topic, 0))).isGreaterThanOrEqualTo(100L);
+        }
         // position after closing consumer
         assertThatThrownBy(() -> consumer.position(tp(topic, 0)))
                 .isInstanceOf(IllegalStateException.class);
@@ -213,19 +205,16 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         ConsumerBuilder<String, String> consumer = companion.consumeStrings()
                 .withCommitSyncWhen(cr -> true);
 
-        ConsumerTask<String, String> records = consumer.fromTopics(topic);
+        try (ConsumerTask<String, String> records = consumer.fromTopics(topic)) {
+            companion.produceStrings().usingGenerator(i -> record(topic, "v" + i), 200);
 
-        companion.produceStrings().usingGenerator(i -> record(topic, "v" + i), 200);
+            records.awaitRecords(100);
+            await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset())
+                    .isGreaterThanOrEqualTo(100L));
 
-        records.awaitRecords(100);
-        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset())
-                .isGreaterThanOrEqualTo(100L));
-
-        records.awaitRecords(200);
-        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(199L));
-
-        records.stop();
-        await().untilAsserted(() -> assertThat(consumer.currentAssignment()).hasSize(0));
+            records.awaitRecords(200);
+            await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(199L));
+        }
     }
 
     @Test
@@ -248,13 +237,10 @@ public class ConsumerTest extends KafkaCompanionTestBase {
     @Test
     void testConsumerReuseFail() {
         ConsumerBuilder<String, String> consumer = companion.consumeStrings();
-
-        ConsumerTask<String, String> records = consumer.fromTopics(topic);
-
-        consumer.fromTopics(topic)
-                .awaitCompletion((failure, cancelled) -> assertThat(failure).isInstanceOf(IllegalStateException.class));
-
-        records.stop();
+        try (ConsumerTask<String, String> records = consumer.fromTopics(topic)) {
+            consumer.fromTopics(topic)
+                    .awaitCompletion((failure, cancelled) -> assertThat(failure).isInstanceOf(IllegalStateException.class));
+        }
     }
 
     @Test
@@ -276,24 +262,22 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
         ConsumerBuilder<String, Integer> consumer = companion.consumeIntegers();
 
-        ConsumerTask<String, Integer> records = consumer.fromTopics(topic);
-        records.awaitRecords(100);
+        try (ConsumerTask<String, Integer> records = consumer.fromTopics(topic)) {
+            records.awaitRecords(100);
 
-        consumer.pause();
+            consumer.pause();
 
-        Thread.sleep(1000);
-        // Consumption does not advance
-        await().untilAsserted(() -> {
-            long count = records.count();
-            Thread.sleep(100);
-            assertThat(records.count()).isEqualTo(count);
-        });
+            Thread.sleep(1000);
+            // Consumption does not advance
+            await().untilAsserted(() -> {
+                long count = records.count();
+                Thread.sleep(100);
+                assertThat(records.count()).isEqualTo(count);
+            });
 
-        consumer.resume();
-        records.awaitRecords(400);
-
-        records.stop();
-        assertThat(records.count()).isGreaterThanOrEqualTo(400L);
+            consumer.resume();
+            records.awaitRecords(400, Duration.ofMinutes(1));
+        }
     }
 
     @Test

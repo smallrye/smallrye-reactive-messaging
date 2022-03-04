@@ -33,16 +33,14 @@ public class OffsetsTest extends KafkaCompanionTestBase {
                 .extracting(OffsetAndMetadata::offset).isEqualTo(500L));
 
         ConsumerBuilder<String, String> consumer = companion.consumeStrings();
-        ConsumerTask<String, String> records = consumer
+        try (ConsumerTask<String, String> records = consumer
                 .withAutoCommit()
                 .withGroupId(groupId)
                 .withOffsetReset(OffsetResetStrategy.LATEST)
-                .fromTopics(topic);
-
-        consumer.waitForAssignment().await().atMost(Duration.ofSeconds(10));
-
-        assertThat(records.count()).isEqualTo(0L);
-        records.stop();
+                .fromTopics(topic)) {
+            consumer.waitForAssignment().await().atMost(Duration.ofSeconds(10));
+            assertThat(records.count()).isEqualTo(0L);
+        }
 
         assertThat(companion.consumerGroups().offsets(groupId, tp(topic, 0)).offset()).isEqualTo(500L);
 
@@ -53,7 +51,5 @@ public class OffsetsTest extends KafkaCompanionTestBase {
 
         await().untilAsserted(
                 () -> assertThat(companion.consumerGroups().offsets(groupId, tp(topic, 0)).offset()).isEqualTo(0L));
-
-        consumer.fromTopics(topic).awaitRecords(500).stop();
     }
 }
