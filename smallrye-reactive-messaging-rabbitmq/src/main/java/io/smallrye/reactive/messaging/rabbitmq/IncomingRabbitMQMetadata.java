@@ -33,9 +33,8 @@ public class IncomingRabbitMQMetadata {
 
         // Ensure the message headers are cast appropriately
         final Map<String, Object> incomingHeaders = message.properties().getHeaders();
-        headers = (incomingHeaders != null) ? incomingHeaders.entrySet().stream().collect(Collectors.toMap(
-                Map.Entry::getKey,
-                e -> mapValue(e.getValue())))
+        headers = (incomingHeaders != null) ? incomingHeaders.entrySet().stream()
+                .collect(HashMap::new, (m,e)->m.put(e.getKey(), mapValue(e.getValue())), HashMap::putAll)
                 : new HashMap<>();
     }
 
