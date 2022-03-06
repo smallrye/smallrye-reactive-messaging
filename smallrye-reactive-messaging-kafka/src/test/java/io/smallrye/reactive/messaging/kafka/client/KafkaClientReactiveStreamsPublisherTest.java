@@ -51,7 +51,7 @@ public class KafkaClientReactiveStreamsPublisherTest
     public static void init(@KafkaBootstrapServers String bootstrapServers) {
         companion = new KafkaCompanion(bootstrapServers);
         String newTopic = "tck-" + UUID.randomUUID();
-        companion.topics().create(newTopic, partitions);
+        companion.topics().createAndWait(newTopic, partitions);
         topic = newTopic;
         vertx = Vertx.vertx();
 

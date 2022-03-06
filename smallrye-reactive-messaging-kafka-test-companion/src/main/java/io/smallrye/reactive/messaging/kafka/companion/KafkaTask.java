@@ -20,7 +20,7 @@ import io.smallrye.mutiny.Multi;
  * @param <T> the type of items
  * @param <SELF> the reference to self type
  */
-public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements Iterable<T> {
+public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements Iterable<T>, AutoCloseable {
 
     /**
      * The {@link Multi} to subscribe
@@ -200,6 +200,11 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     public SELF stop() {
         subscriber.cancel();
         return self();
+    }
+
+    @Override
+    public void close() {
+        stop();
     }
 
     public long firstOffset() {

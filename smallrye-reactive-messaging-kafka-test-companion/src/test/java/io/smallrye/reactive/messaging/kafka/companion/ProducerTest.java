@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
@@ -165,12 +166,11 @@ public class ProducerTest extends KafkaCompanionTestBase {
         ProducerTask produced = companion.produceIntegers()
                 .usingGenerator(i -> record(topic, "key", i));
 
-        await().until(() -> produced.count() >= 1000);
+        await().atMost(1, TimeUnit.MINUTES).until(() -> produced.count() >= 1000);
         produced.stop();
 
         long finalProducedCount = produced.awaitCompletion((throwable, cancelled) -> assertThat(cancelled).isTrue())
                 .count();
-        System.out.println("Completed " + finalProducedCount);
 
         // Consume records until produced record
         ConsumerTask<String, Integer> records = companion.consumeIntegers()

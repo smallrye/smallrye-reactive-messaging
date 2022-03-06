@@ -33,7 +33,7 @@ public class BrokerRestartTest extends ClientTestBase {
     @BeforeEach
     public void init() {
         String newTopic = "test-" + UUID.randomUUID();
-        companion.topics().create(newTopic, partitions);
+        companion.topics().createAndWait(newTopic, partitions);
         this.topic = newTopic;
         resetMessages();
     }

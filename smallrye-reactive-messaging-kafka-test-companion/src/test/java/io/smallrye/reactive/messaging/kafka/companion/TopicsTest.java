@@ -41,8 +41,6 @@ public class TopicsTest extends KafkaCompanionTestBase {
         String topic1 = UUID.randomUUID().toString();
         String topic2 = UUID.randomUUID().toString();
         String topic3 = UUID.randomUUID().toString();
-        Set<String> currentTopics = companion.topics().list();
-        companion.topics().delete(currentTopics);
         Map<String, Integer> topics = new HashMap<>();
         topics.put(topic1, 3);
         topics.put(topic2, 2);

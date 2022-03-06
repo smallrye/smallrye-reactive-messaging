@@ -98,6 +98,7 @@ public class TopicsCompanion {
                     }
                     return !checkIfTheTopicIsCreated(topic, topics);
                 })
+                .select().where(Objects::nonNull)
                 .toUni()
                 .map(topics -> topics.get(topic));
     }
@@ -119,14 +120,6 @@ public class TopicsCompanion {
         }
         return true;
     }
-    //
-    //    boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
-    //        return Optional.ofNullable(description)
-    //                .map(topics -> topics.get(topic))
-    //                .map(td -> td.partitions().stream()
-    //                        .allMatch(partition -> partition.leader() != null && partition.leader().id() >= 0))
-    //                .orElse(false);
-    //    }
 
     /**
      * @return the set of topic names

@@ -469,11 +469,11 @@ public class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> imple
 
     @Override
     public void onSubscribe(Subscription s) {
-        subscription.set(s);
-        if (requested.get() > 0) {
-            s.request(requested.get());
+        if (subscription.compareAndSet(null, s)) {
+            if (requested.get() > 0) {
+                s.request(requested.get());
+            }
         }
-
     }
 
     @Override

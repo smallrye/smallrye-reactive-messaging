@@ -226,7 +226,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
 
     @Test
     public void testSourceWithThrottledAndRebalance() {
-        companion.topics().create(topic, 2);
+        companion.topics().createAndWait(topic, 2);
         MapBasedConfig config1 = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
@@ -310,7 +310,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
 
     @Test
     void testSourceWithThrottledAndRebalanceWithPartitionsConfig() {
-        companion.topics().create(topic, 4);
+        companion.topics().createAndWait(topic, 4);
 
         companion.produceIntegers()
                 .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % 2), i), 10000);

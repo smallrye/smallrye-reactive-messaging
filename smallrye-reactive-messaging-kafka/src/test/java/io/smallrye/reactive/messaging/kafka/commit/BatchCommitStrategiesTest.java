@@ -337,7 +337,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         source.isAlive(builder);
         String message = builder.build().getChannels().get(0).getMessage();
-        assertThat(message).contains("my-topic-0", "my-topic-1");
+        assertThat(message).containsAnyOf("my-topic-0", "my-topic-1");
     }
 
     @Test

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
@@ -238,6 +239,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
             for (Future<?> future : futures) {
                 future.get(5, TimeUnit.SECONDS);
             }
+            producer.flush();
         }
     }
 
@@ -250,6 +252,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
             for (Future<?> future : futures) {
                 future.get(5, TimeUnit.SECONDS);
             }
+            producer.flush();
         }
     }
 
@@ -330,10 +333,10 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         expectedMessages.clear();
         receivedMessages.clear();
         for (int i = 0; i < partitions; i++) {
-            expectedMessages.add(new ArrayList<>());
+            expectedMessages.add(new CopyOnWriteArrayList<>());
         }
         for (int i = 0; i < partitions; i++) {
-            receivedMessages.add(new ArrayList<>());
+            receivedMessages.add(new CopyOnWriteArrayList<>());
         }
     }
 

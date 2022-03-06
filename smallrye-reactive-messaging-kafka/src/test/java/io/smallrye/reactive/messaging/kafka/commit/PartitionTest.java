@@ -27,7 +27,7 @@ public class PartitionTest extends KafkaCompanionTestBase {
 
     @Test
     public void testWithPartitions() {
-        companion.topics().create(topic, 3);
+        companion.topics().createAndWait(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
@@ -65,7 +65,7 @@ public class PartitionTest extends KafkaCompanionTestBase {
 
     @Test
     public void testWithMoreConsumersThanPartitions() throws InterruptedException {
-        companion.topics().create(topic, 3);
+        companion.topics().createAndWait(topic, 3);
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
@@ -102,7 +102,7 @@ public class PartitionTest extends KafkaCompanionTestBase {
 
     @Test
     public void testWithMorePartitionsThanConsumers() throws InterruptedException {
-        companion.topics().create(topic, 3);
+        companion.topics().createAndWait(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")

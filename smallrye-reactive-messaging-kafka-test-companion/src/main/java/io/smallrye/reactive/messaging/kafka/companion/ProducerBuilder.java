@@ -171,6 +171,7 @@ public class ProducerBuilder<K, V> implements Closeable {
         if (kafkaProducer != null) {
             LOGGER.infof("Closing producer %s", clientId());
             // Kafka producer is thread-safe, we can call close on the caller thread
+            kafkaProducer.flush();
             kafkaProducer.close(kafkaApiTimeout);
             kafkaProducer = null;
             executorService.shutdown();

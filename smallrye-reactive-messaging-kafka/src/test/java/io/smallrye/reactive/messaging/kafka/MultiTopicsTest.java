@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 
 /**
  * Test the Incoming connector when multiple topics are used either using a pattern or a list of topics.
@@ -103,12 +104,13 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
 
         assertThat(bean.getMessages()).isEmpty();
 
-        companion.produceStrings()
+        ProducerTask pt1 = companion.produceStrings()
                 .usingGenerator(i -> new ProducerRecord<>(topic1, Integer.toString(i), "hello"), 3);
 
-        companion.produceStrings()
+        ProducerTask pt2 = companion.produceStrings()
                 .usingGenerator(i -> new ProducerRecord<>(topic3, Integer.toString(i), "bonjour"), 3);
 
+        await().until(() -> pt1.count() == 3 && pt2.count() == 3);
         await().until(() -> bean.getMessages().size() >= 6);
 
         AtomicInteger top1 = new AtomicInteger();
@@ -142,9 +144,9 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
         String topic2 = "greetings-" + UUID.randomUUID().toString();
         String topic3 = "greetings-" + UUID.randomUUID().toString();
 
-        companion.topics().create(topic1, 1);
-        companion.topics().create(topic2, 1);
-        companion.topics().create(topic3, 1);
+        companion.topics().createAndWait(topic1, 1);
+        companion.topics().createAndWait(topic2, 1);
+        companion.topics().createAndWait(topic3, 1);
 
         KafkaConsumer bean = runApplication(kafkaConfig("mp.messaging.incoming.kafka")
                 .with("value.deserializer", StringDeserializer.class.getName())

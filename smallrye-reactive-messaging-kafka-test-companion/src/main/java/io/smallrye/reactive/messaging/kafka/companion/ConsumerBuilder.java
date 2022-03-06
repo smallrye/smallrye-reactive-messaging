@@ -207,7 +207,6 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
             Uni.createFrom().voidItem().invoke(() -> {
                 LOGGER.infof("Closing consumer %s", clientId());
                 if (kafkaConsumer != null) {
-                    polling.compareAndSet(true, false);
                     kafkaConsumer.close(kafkaApiTimeout);
                     kafkaConsumer = null;
                 }
@@ -215,6 +214,7 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
                     consumerExecutor.shutdown();
                     consumerExecutor = null;
                 }
+                polling.compareAndSet(true, false);
             }).runSubscriptionOn(getOrCreateExecutor()).subscribeAsCompletionStage();
         }
     }

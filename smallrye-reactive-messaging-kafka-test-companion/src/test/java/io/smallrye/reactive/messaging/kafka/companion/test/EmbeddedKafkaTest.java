@@ -15,12 +15,15 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.config.SslConfigs;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
+import io.smallrye.reactive.messaging.kafka.companion.TestTags;
 import kafka.server.KafkaConfig;
 
+@Tag(TestTags.FLAKY)
 public class EmbeddedKafkaTest {
 
     @Test
@@ -31,6 +34,7 @@ public class EmbeddedKafkaTest {
             KafkaCompanion companion = new KafkaCompanion(advertisedListeners);
             assertThat(companion.topics().list()).isEmpty();
             assertFunctionalBroker(companion);
+            companion.close();
         }
     }
 
@@ -90,10 +94,6 @@ public class EmbeddedKafkaTest {
         // produce messages
         companion.produceStrings().usingGenerator(i -> new ProducerRecord<>("messages", i % 3, "k", "" + i), 100);
         // consume messages
-        companion.consumeStrings().fromTopics("messages", 100)
-                .awaitCompletion()
-                .byTopicPartition().entrySet().forEach(e -> {
-                    System.out.println(e.getKey() + " " + e.getValue().size());
-                });
+        companion.consumeStrings().fromTopics("messages", 100).awaitCompletion();
     }
 }
