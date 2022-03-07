@@ -56,6 +56,10 @@ public interface KafkaConsumer<K, V> {
      * Pauses the consumption of records.
      * The polling will continue, but no records will be received.
      *
+     * <strong>IMPORTANT:</strong> To use this method, you need to disable the auto-pause/resume feature from the connector.
+     * Otherwise, the client will be resumed automatically when there are enough requests. To disable the auto-pause/resume,
+     * set {@code mp.messaging.incoming.[channel].pause-if-no-requests} to {@code false}.
+     *
      * @return the Uni emitting when the action completes, the set of topic/partition paused by this call.
      */
     @CheckReturnValue
@@ -81,6 +85,10 @@ public interface KafkaConsumer<K, V> {
     /**
      * Resumes the consumption of record.
      * It resumes the consumption of all the paused topic/partition.
+     *
+     * <strong>IMPORTANT:</strong> To use this method, you need to disable the auto-pause/resume feature from the connector.
+     * Otherwise, the client will be paused automatically when there are no requests. To disable the auto-pause/resume,
+     * set {@code mp.messaging.incoming.[channel].pause-if-no-requests} to {@code false}.
      *
      * @return the Uni indicating when the resume action completes.
      */
