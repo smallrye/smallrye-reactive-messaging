@@ -6,6 +6,7 @@ on:
         branches:
             - main
             - 2.x
+            - jakarta
         paths-ignore:
             - '.github/**'
 
