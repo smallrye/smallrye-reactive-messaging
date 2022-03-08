@@ -9,6 +9,8 @@ import java.util.concurrent.*;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import io.smallrye.common.vertx.ContextLocals;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -65,6 +67,17 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         initialize();
 
         PipelineWithABlockingStage bean = get(PipelineWithABlockingStage.class);
+        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.getResults().size() >= 5);
+        assertThat(bean.getResults()).containsExactly(2, 3, 4, 5, 6);
+    }
+
+    @RepeatedTest(30)
+    public void testPipelineWithAnAsyncStage() {
+        addBeanClass(ConnectorEmittingOnContext.class);
+        addBeanClass(PipelineWithAnAsyncStage.class);
+        initialize();
+
+        PipelineWithAnAsyncStage bean = get(PipelineWithAnAsyncStage.class);
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.getResults().size() >= 5);
         assertThat(bean.getResults()).containsExactly(2, 3, 4, 5, 6);
 
@@ -177,8 +190,8 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             return input.withPayload(input.getPayload() + 1);
         }
@@ -186,12 +199,12 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("process")
         @Outgoing("after-process")
         public Integer handle(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -199,20 +212,20 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -235,9 +248,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             return input.withPayload(input.getPayload() + 1)
                     .withAck(() -> {
@@ -251,12 +264,12 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("after-process")
         public Integer handle(int payload) {
             try {
-                String uuid = Vertx.currentContext().getLocal("uuid");
+                String uuid = ContextLocals.get("uuid", null);
                 assertThat(uuid).isNotNull();
 
                 assertThat(uuids.add(uuid)).isTrue();
 
-                int p = Vertx.currentContext().getLocal("input");
+                int p = ContextLocals.get("input", null);
                 assertThat(p + 1).isEqualTo(payload);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -268,10 +281,10 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
             try {
-                String uuid = Vertx.currentContext().getLocal("uuid");
+                String uuid = ContextLocals.get("uuid", null);
                 assertThat(uuid).isNotNull();
 
-                int p = Vertx.currentContext().getLocal("input");
+                int p = ContextLocals.get("input", null);
                 assertThat(p + 1).isEqualTo(payload);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -281,10 +294,10 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -305,9 +318,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -318,12 +331,12 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("after-process")
         @Blocking
         public Integer handle(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -331,20 +344,79 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
+            assertThat(p + 1).isEqualTo(val);
+            list.add(val);
+        }
+
+        public List<Integer> getResults() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class PipelineWithAnAsyncStage {
+
+        private final List<Integer> list = new CopyOnWriteArrayList<>();
+        private final Set<String> uuids = new ConcurrentHashSet<>();
+
+        @Incoming("data")
+        @Outgoing("process")
+        @Acknowledgment(Acknowledgment.Strategy.MANUAL)
+        public Message<Integer> process(Message<Integer> input) {
+            String value = UUID.randomUUID().toString();
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
+
+            assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
+
+            return input.withPayload(input.getPayload() + 1);
+        }
+
+        @Incoming("process")
+        @Outgoing("after-process")
+        public Uni<Integer> handle(int payload) {
+            String uuid = ContextLocals.get("uuid", null);
+            assertThat(uuid).isNotNull();
+
+            assertThat(uuids.add(uuid)).isTrue();
+
+            int p = ContextLocals.get("input", null);
+            assertThat(p + 1).isEqualTo(payload);
+            return Uni.createFrom().item(payload).emitOn(Infrastructure.getDefaultExecutor());
+        }
+
+        @Incoming("after-process")
+        @Outgoing("sink")
+        public Integer afterProcess(int payload) {
+            String uuid = ContextLocals.get("uuid", null);
+            assertThat(uuid).isNotNull();
+
+            int p = ContextLocals.get("input", null);
+            assertThat(p + 1).isEqualTo(payload);
+            return payload;
+        }
+
+        @Incoming("sink")
+        public void sink(int val) {
+            String uuid = ContextLocals.get("uuid", null);
+            assertThat(uuid).isNotNull();
+
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -365,9 +437,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -381,11 +453,11 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Blocking(ordered = false)
         public Integer handle(int payload) throws InterruptedException {
             Thread.sleep(random.nextInt(10));
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -393,20 +465,20 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -427,9 +499,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -443,11 +515,11 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Blocking(ordered = false)
         public Integer handle(int payload) throws InterruptedException {
             Thread.sleep(random.nextInt(10));
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -457,10 +529,10 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Blocking
         public Integer handle2(int payload) throws InterruptedException {
             Thread.sleep(random.nextInt(10));
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -468,20 +540,20 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -504,9 +576,9 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Broadcast(2)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -516,11 +588,11 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("process")
         @Outgoing("after-process")
         public Integer branch1(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(branch1.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -528,11 +600,11 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("process")
         @Outgoing("after-process")
         public Integer branch2(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(branch2.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -541,20 +613,20 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Outgoing("sink")
         @Merge
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }

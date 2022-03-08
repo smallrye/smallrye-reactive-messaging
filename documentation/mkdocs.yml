@@ -25,6 +25,7 @@ nav:
             - 'Testing' : concepts/testing.md
             - 'Logging' : concepts/logging.md
             - 'Advanced Configuration' : concepts/advanced-config.md
+            - 'Message Context' : concepts/message-context.md
 
   - Kafka:
         - kafka/kafka.md
