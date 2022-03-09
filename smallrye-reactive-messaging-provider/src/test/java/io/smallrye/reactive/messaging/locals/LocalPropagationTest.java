@@ -9,8 +9,6 @@ import java.util.concurrent.*;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.smallrye.common.vertx.ContextLocals;
-import io.smallrye.mutiny.infrastructure.Infrastructure;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -22,8 +20,10 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.jupiter.api.*;
 import org.reactivestreams.Publisher;
 
+import io.smallrye.common.vertx.ContextLocals;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -35,7 +35,6 @@ import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.Vertx;
 
 public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
