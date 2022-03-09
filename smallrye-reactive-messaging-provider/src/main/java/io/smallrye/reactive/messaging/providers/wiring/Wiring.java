@@ -206,7 +206,7 @@ public class Wiring {
         void materialize(ChannelRegistry registry);
     }
 
-    interface PublishingComponent extends Component {
+    public interface PublishingComponent extends Component {
         boolean broadcast();
 
         int getRequiredNumberOfSubscribers();
@@ -226,7 +226,7 @@ public class Wiring {
         }
     }
 
-    interface ConsumingComponent extends Component {
+    public interface ConsumingComponent extends Component {
 
         @Override
         default boolean isUpstreamResolved() {

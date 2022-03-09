@@ -107,6 +107,12 @@
     <slf4j-log4j12.version>1.7.33</slf4j-log4j12.version>
     <opencsv.version>5.6</opencsv.version>
     <strimzi-test-container.version>0.101.0</strimzi-test-container.version>
+
+    <revapi-maven-plugin.version>0.14.6</revapi-maven-plugin.version>
+    <revapi-java.version>0.26.1</revapi-java.version>
+    <revapi-reporter-json.version>0.4.5</revapi-reporter-json.version>
+    <revapi-reporter-text.version>0.14.5</revapi-reporter-text.version>
+    <revapi.skip>true</revapi.skip>
   </properties>
 
   <modules>
@@ -476,6 +482,42 @@
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>org.revapi</groupId>
+          <artifactId>revapi-maven-plugin</artifactId>
+          <version>${revapi-maven-plugin.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.revapi</groupId>
+              <artifactId>revapi-java</artifactId>
+              <version>${revapi-java.version}</version>
+            </dependency>
+            <dependency>
+              <groupId>org.revapi</groupId>
+              <artifactId>revapi-reporter-json</artifactId>
+              <version>${revapi-reporter-json.version}</version>
+            </dependency>
+            <dependency>
+              <groupId>org.revapi</groupId>
+              <artifactId>revapi-reporter-text</artifactId>
+              <version>${revapi-reporter-text.version}</version>
+            </dependency>
+          </dependencies>
+          <executions>
+            <execution>
+              <id>check-compatibility</id>
+              <goals>
+                <goal>check</goal>
+              </goals>
+              <configuration>
+                <failSeverity>breaking</failSeverity>
+                <analysisConfigurationFiles>
+                  <file>${project.basedir}/revapi.json</file>
+                </analysisConfigurationFiles>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -511,6 +553,14 @@
         </executions>
         <configuration>
           <additionalOptions>-Xdoclint:none</additionalOptions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.revapi</groupId>
+        <artifactId>revapi-maven-plugin</artifactId>
+        <configuration>
+          <!-- Do not compute compatibility on the documentation -->
+          <skip>${revapi.skip}</skip>
         </configuration>
       </plugin>
     </plugins>

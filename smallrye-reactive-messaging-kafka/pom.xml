@@ -13,6 +13,10 @@
 
   <name>SmallRye Reactive Messaging : Connector :: Kafka</name>
 
+  <properties>
+    <revapi.skip>false</revapi.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

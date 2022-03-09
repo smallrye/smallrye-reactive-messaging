@@ -16,6 +16,24 @@ init_git() {
     git update-index --assume-unchanged .github/deploy-doc.sh
 }
 
+compatibility_extract() {
+  echo "Extracting compatibility report"
+  jbang .github/CompatibilityUtils.java extract
+}
+
+compatibility_clear() {
+  echo "Clearing difference justifications"
+  jbang .build/CompatibilityUtils.java clear
+  if [[ $(git diff --stat) != '' ]]; then
+    git add -A
+    git status
+    git commit -m "[POST-RELEASE] - Clearing breaking change justifications"
+    git push origin main
+  else
+    echo "No justifications cleared"
+  fi
+}
+
 deploy_release() {
     export RELEASE_VERSION=""
     export BRANCH="HEAD"
@@ -70,12 +88,14 @@ init_gpg
 if [[ ${TARGET} == "release" ]]; then
     echo "Checking release prerequisites"
     echo "Milestone set to ${MILESTONE}"
-    .github/pre-release.kts "${GITHUB_TOKEN}" "${MILESTONE}"
+    .github/Prelease.java --token="${GITHUB_TOKEN}" --release-version="${MILESTONE}"
 
     deploy_release
 
     echo "Executing post-release"
-    .github/post-release.kts "${GITHUB_TOKEN}"
+    compatibility_extract
+    .github/PostRelease.java --token="${GITHUB_TOKEN}"
+    compatibility_clear
 else
     echo "Unknown environment: ${TARGET}"
 fi

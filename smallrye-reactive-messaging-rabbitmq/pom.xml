@@ -13,6 +13,9 @@
 
   <name>SmallRye Reactive Messaging : Connector :: RabbitMQ</name>
 
+  <properties>
+    <revapi.skip>false</revapi.skip>
+  </properties>
 
   <dependencies>
     <dependency>
