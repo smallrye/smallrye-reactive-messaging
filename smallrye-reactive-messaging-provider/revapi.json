@@ -1,82 +1,52 @@
-[
-    {
-        "extension": "revapi.java",
-        "id": "java",
-        "configuration": {
-            "missing-classes": {
-                "behavior": "report",
-                "ignoreMissingAnnotations": false
-            }
-        }
-    },
-    {
-        "extension": "revapi.filter",
-        "configuration": {
-            "elements": {
-                "include": [
-                    "class io.smallrye.reactive.messaging.providers.PublisherDecorator",
-                    {
-                        "matcher": "java-package",
-                        "match": "io.smallrye.reactive.messaging.providers.connectors"
-                    },
-                    {
-                        "matcher": "java-package",
-                        "match": "io.smallrye.reactive.messaging.providers.locals"
-                    },
-                    {
-                        "matcher": "java-package",
-                        "match": "io.smallrye.reactive.messaging.providers.wiring"
-                    }
-                ]
-            }
-        }
-    },
-    {
-        "extension": "revapi.differences",
-        "id": "breaking-changes",
-        "configuration": {
-            "criticality": "highlight",
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "differences": [
-                {
-                    "code": "java.method.numberOfParametersChanged",
-                    "old": "method <T> io.smallrye.mutiny.Uni<T> io.smallrye.reactive.messaging.providers.AbstractMediator::invokeBlocking(java.lang.Object[])",
-                    "new": "method <T> io.smallrye.mutiny.Uni<T> io.smallrye.reactive.messaging.providers.AbstractMediator::invokeBlocking(org.eclipse.microprofile.reactive.messaging.Message<?>, java.lang.Object[])",
-                    "justification": "Message added to signature for running on duplicated context"
-                },
-                {
-                    "code": "java.method.numberOfParametersChanged",
-                    "old": "method <T> io.smallrye.mutiny.Uni<T> io.smallrye.reactive.messaging.providers.ProcessorMediator::invokeBlocking(java.lang.Object[])",
-                    "new": "method <T> io.smallrye.mutiny.Uni<T> io.smallrye.reactive.messaging.providers.ProcessorMediator::invokeBlocking(org.eclipse.microprofile.reactive.messaging.Message<?>, java.lang.Object[])",
-                    "justification": "Message added to signature for running on duplicated context"
-                },
-                {
-                    "code": "java.method.numberOfParametersChanged",
-                    "old": "method <T> io.smallrye.mutiny.Uni<T> io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry::executeWork(io.smallrye.mutiny.Uni<T>, java.lang.String, boolean)",
-                    "new": "method <T> io.smallrye.mutiny.Uni<T> io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry::executeWork(io.vertx.mutiny.core.Context, io.smallrye.mutiny.Uni<T>, java.lang.String, boolean)",
-                    "justification": "Context added to signature for running on duplicated context"
-                }
-            ]
-        }
-    },
-    {
-        "extension": "revapi.reporter.json",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "target/compatibility.json",
-            "indent": true,
-            "append": false,
-            "keepEmptyFile": true
-        }
-    },
-    {
-        "extension": "revapi.reporter.text",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "out"
-        }
+[ {
+  "extension" : "revapi.java",
+  "id" : "java",
+  "configuration" : {
+    "missing-classes" : {
+      "behavior" : "report",
+      "ignoreMissingAnnotations" : false
     }
-]
+  }
+}, {
+  "extension" : "revapi.filter",
+  "configuration" : {
+    "elements" : {
+      "include" : [ "class io.smallrye.reactive.messaging.providers.PublisherDecorator", {
+        "matcher" : "java-package",
+        "match" : "io.smallrye.reactive.messaging.providers.connectors"
+      }, {
+        "matcher" : "java-package",
+        "match" : "io.smallrye.reactive.messaging.providers.locals"
+      }, {
+        "matcher" : "java-package",
+        "match" : "io.smallrye.reactive.messaging.providers.wiring"
+      } ]
+    }
+  }
+}, {
+  "extension" : "revapi.differences",
+  "id" : "breaking-changes",
+  "configuration" : {
+    "criticality" : "highlight",
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "differences" : [ ]
+  }
+}, {
+  "extension" : "revapi.reporter.json",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "target/compatibility.json",
+    "indent" : true,
+    "append" : false,
+    "keepEmptyFile" : true
+  }
+}, {
+  "extension" : "revapi.reporter.text",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "out"
+  }
+} ]
