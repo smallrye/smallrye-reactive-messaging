@@ -7,7 +7,7 @@ mvn build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.nextMa
 find . -type f -name 'pom.xml' -exec sed -i '' 's/smallrye-parent/smallrye-jakarta-parent/g' {} +
 
 # move versions that support jakarta
-mvn versions:set-property -Dproperty=weld.version -DnewVersion=4.0.1.SP1
+mvn versions:set-property -Dproperty=weld.version -DnewVersion=4.0.3.Final
 mvn versions:set-property -Dproperty=microprofile-reactive-messaging.version -DnewVersion=3.0-RC2
 mvn versions:set-property -Dproperty=microprofile-reactive-streams.version -DnewVersion=3.0-RC1
 mvn versions:set-property -Dproperty=microprofile-config.version -DnewVersion=3.0.1
