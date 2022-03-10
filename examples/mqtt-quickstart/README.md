@@ -12,7 +12,7 @@ First you need a MQTT server. You can follow the instructions from the [Eclipse 
 The application can be started using:
 
 ```bash
-mvn package exec:java
+mvn compile exec:java
 ```
 
 Then, looking at the output you can see messages successfully send to and retrieved from a MQTT topic.

@@ -12,7 +12,7 @@ This example makes no use of an external broker. Reactive messaging is done in m
 The application can be started using:
 
 ```bash
-mvn package exec:java
+mvn compile exec:java
 ```
 
 Then, looking at the output you can see successful incoming en outgoing messages.
