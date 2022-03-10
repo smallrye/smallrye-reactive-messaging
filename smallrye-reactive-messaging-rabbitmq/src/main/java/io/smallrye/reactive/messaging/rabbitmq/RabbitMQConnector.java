@@ -336,9 +336,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                 .onItem().transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
                         new RabbitMQPublisherOptions()
                                 .setReconnectAttempts(oc.getReconnectAttempts())
-                                .setReconnectInterval(oc.getReconnectInterval())
-                                .setMaxInternalQueueSize(
-                                        oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE)))))
+                                .setReconnectInterval(ofSeconds(oc.getReconnectInterval()).toMillis())
+                                .setMaxInternalQueueSize(oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE)))))
                 // Start the publisher
                 .onItem().call(RabbitMQPublisher::start)
                 .invoke(s -> {

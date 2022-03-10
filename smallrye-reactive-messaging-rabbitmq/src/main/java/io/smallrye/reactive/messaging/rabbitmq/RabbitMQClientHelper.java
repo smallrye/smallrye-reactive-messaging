@@ -4,6 +4,7 @@ import static com.rabbitmq.client.impl.DefaultCredentialsRefreshService.fixedTim
 import static com.rabbitmq.client.impl.DefaultCredentialsRefreshService.ratioRefreshDelayStrategy;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
+import static java.time.Duration.ofSeconds;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -24,7 +25,7 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 public class RabbitMQClientHelper {
 
     private static final double CREDENTIALS_PROVIDER_REFRESH_DELAY_RATIO = 0.8;
-    private static final Duration CREDENTIALS_PROVIDER_APPROACH_EXPIRE_TIME = Duration.ofSeconds(1);
+    private static final Duration CREDENTIALS_PROVIDER_APPROACH_EXPIRE_TIME = ofSeconds(1);
 
     private RabbitMQClientHelper() {
         // avoid direct instantiation.
@@ -76,7 +77,7 @@ public class RabbitMQClientHelper {
                     .setAutomaticRecoveryEnabled(config.getAutomaticRecoveryEnabled())
                     .setAutomaticRecoveryOnInitialConnection(config.getAutomaticRecoveryOnInitialConnection())
                     .setReconnectAttempts(config.getReconnectAttempts())
-                    .setReconnectInterval(config.getReconnectInterval())
+                    .setReconnectInterval(ofSeconds(config.getReconnectInterval()).toMillis())
                     .setConnectionTimeout(config.getConnectionTimeout())
                     .setHandshakeTimeout(config.getHandshakeTimeout())
                     .setIncludeProperties(config.getIncludeProperties())
