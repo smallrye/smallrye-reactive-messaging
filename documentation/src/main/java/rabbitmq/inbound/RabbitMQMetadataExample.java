@@ -18,7 +18,7 @@ public class RabbitMQMetadataExample {
             final Optional<String> contentEncoding = meta.getContentEncoding();
             final Optional<String> contentType = meta.getContentType();
             final Optional<String> correlationId = meta.getCorrelationId();
-            final Optional<ZonedDateTime> creationTime = meta.getCreationTime(ZoneId.systemDefault());
+            final Optional<ZonedDateTime> timestamp = meta.getTimestamp(ZoneId.systemDefault());
             final Optional<Integer> priority = meta.getPriority();
             final Optional<String> replyTo = meta.getReplyTo();
             final Optional<String> userId = meta.getUserId();
