@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.kafka;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -13,15 +13,15 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 @ApplicationScoped
 public class ConsumptionBean {
 
-    private final List<Integer> list = new ArrayList<>();
-    private final List<KafkaRecord<String, Integer>> kafka = new ArrayList<>();
+    private final List<Integer> list = new CopyOnWriteArrayList<>();
+    private final List<KafkaRecord<String, Integer>> kafka = new CopyOnWriteArrayList<>();
 
     @Incoming("data")
     @Outgoing("sink")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Message<Integer> process(KafkaRecord<String, Integer> input) {
         kafka.add(input);
-        return Message.of(input.getPayload() + 1, input::ack);
+        return input.withPayload(input.getPayload() + 1);
     }
 
     @Incoming("sink")
