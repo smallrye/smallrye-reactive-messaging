@@ -92,7 +92,7 @@ public class WeldTestBaseWithoutTails {
 
     @BeforeEach
     public void setUp() {
-        clearConfigFile();
+        releaseConfig();
         initializer = SeContainerInitializer.newInstance();
 
         initializer.addBeanClasses(MediatorFactory.class,
