@@ -110,11 +110,12 @@ public class NoKafkaTest extends KafkaCompanionProxyTestBase {
         MyOutgoingBeanWithoutBackPressure bean = runApplication(myKafkaSinkConfig(topic),
                 MyOutgoingBeanWithoutBackPressure.class);
         await().until(() -> !isReady());
-        // Depending if the subscription has been achieve we may have caught a failure or not.
+        // Depending on whether the subscription has been received or not, we may have caught a failure or not.
         Throwable throwable = bean.failure();
         if (throwable != null) {
             assertThat(throwable).isInstanceOf(BackPressureFailure.class);
         }
+        bean.stop();
     }
 
     @ApplicationScoped
@@ -150,6 +151,7 @@ public class NoKafkaTest extends KafkaCompanionProxyTestBase {
     public static class MyOutgoingBeanWithoutBackPressure {
 
         private final AtomicReference<Throwable> failure = new AtomicReference<>();
+        private volatile boolean stopped = false;
 
         public Throwable failure() {
             return failure.get();
@@ -159,7 +161,12 @@ public class NoKafkaTest extends KafkaCompanionProxyTestBase {
         public Multi<String> generate() {
             return Multi.createFrom().ticks().every(Duration.ofMillis(200))
                     .map(l -> Long.toString(l))
-                    .onFailure().invoke(failure::set);
+                    .onFailure().invoke(failure::set)
+                    .select().where(s -> !stopped);
+        }
+
+        public void stop() {
+            stopped = true;
         }
     }
 
