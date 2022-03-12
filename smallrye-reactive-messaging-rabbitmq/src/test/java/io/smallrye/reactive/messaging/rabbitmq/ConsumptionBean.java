@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.rabbitmq;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -19,11 +20,18 @@ public class ConsumptionBean {
 
     private final List<Integer> list = new ArrayList<>();
 
+    private final AtomicInteger typeCastCounter = new AtomicInteger();
+
     @Incoming("data")
     @Outgoing("sink")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Message<Integer> process(IncomingRabbitMQMessage<String> input) {
-        int value = Integer.parseInt(input.getPayload());
+        int value = -1;
+        try {
+            value = Integer.parseInt(input.getPayload());
+        } catch (ClassCastException e) {
+            typeCastCounter.incrementAndGet();
+        }
         return Message.of(value + 1, input::ack);
     }
 
@@ -34,5 +42,9 @@ public class ConsumptionBean {
 
     public List<Integer> getResults() {
         return list;
+    }
+
+    public int getTypeCasts() {
+        return typeCastCounter.get();
     }
 }

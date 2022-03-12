@@ -66,13 +66,26 @@ public class RabbitMQUsage {
     }
 
     /**
-     * Use the supplied function to asynchronously produce messages and write them to the host.
+     * Use the supplied function to asynchronously produce messages with default content_type and write them to the host.
      *
      * @param exchange the exchange, must not be null
      * @param messageCount the number of messages to produce; must be positive
      * @param messageSupplier the function to produce messages; may not be null
      */
-    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier) {
+    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier <Object> messageSupplier) {
+        this.produce(exchange, queue, routingKey, messageCount, messageSupplier, "text/plain");
+    }
+
+    /**
+     * Use the supplied function to asynchronously produce messages and write them to the host.
+     *
+     * @param exchange the exchange, must not be null
+     * @param messageCount the number of messages to produce; must be positive
+     * @param messageSupplier the function to produce messages; may not be null
+     * @param contentType the message's content_type attribute
+     */
+    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier <Object> messageSupplier,
+            String contentType) {
         CountDownLatch done = new CountDownLatch(messageCount);
         // Start the machinery to receive the messages
         client.startAndAwait();
@@ -85,7 +98,7 @@ public class RabbitMQUsage {
                     final Buffer body = Buffer.buffer(payload.toString());
                     final BasicProperties properties = new AMQP.BasicProperties().builder()
                             .expiration("10000")
-                            .contentType("text/plain")
+                            .contentType(contentType)
                             .build();
 
                     client.basicPublish(exchange, routingKey, properties, body)
@@ -163,7 +176,7 @@ public class RabbitMQUsage {
         client.stopAndAwait();
     }
 
-    void produceTenIntegers(String exchange, String queue, String routingKey, Supplier<Integer> messageSupplier) {
+    void produceTenIntegers(String exchange, String queue, String routingKey, Supplier <Integer> messageSupplier) {
         this.produce(exchange, queue, routingKey, 10, messageSupplier::get);
     }
 

@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
+import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -37,19 +38,21 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
     private final long deliveryTag;
     protected final RabbitMQFailureHandler onNack;
     protected final RabbitMQAckHandler onAck;
+    protected final String contentTypeOverride;
 
     IncomingRabbitMQMessage(io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate, ConnectionHolder holder,
             boolean isTracingEnabled, RabbitMQFailureHandler onNack,
-            RabbitMQAckHandler onAck) {
-        this(delegate.getDelegate(), holder, isTracingEnabled, onNack, onAck);
+            RabbitMQAckHandler onAck, String contentTypeOverride) {
+        this(delegate.getDelegate(), holder, isTracingEnabled, onNack, onAck, contentTypeOverride);
     }
 
     IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder, boolean isTracingEnabled,
-            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck) {
+            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();
         this.holder = holder;
         this.context = holder.getContext();
+        this.contentTypeOverride = contentTypeOverride;
         this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message);
         this.onNack = onNack;
         this.onAck = onAck;
@@ -90,7 +93,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
     /**
      * Acknowledges the message.
-     *
      */
     public void acknowledgeMessage() {
         holder.getAck(this.deliveryTag).subscribeAsCompletionStage();
@@ -110,6 +112,7 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
     @Override
     public T getPayload() {
         // Throw a class cast exception if it cannot be converted.
+        // Due to type erasure, the exception will be thrown at the getPayload call, instead of here
         return (T) convertPayload(message);
     }
 
@@ -120,9 +123,13 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
     private Object convertPayload(io.vertx.rabbitmq.RabbitMQMessage msg) {
         // Neither of these are guaranteed to be non-null
-        final String contentType = msg.properties().getContentType();
+        String contentType = msg.properties().getContentType();
         final String contentEncoding = msg.properties().getContentEncoding();
         final Buffer body = msg.body();
+
+        if (this.contentTypeOverride != null) {
+            contentType = contentTypeOverride;
+        }
 
         // If there is a content encoding specified, we don't try to unwrap
         if (contentEncoding == null) {
@@ -135,6 +142,10 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
             }
         }
 
+        // Just silence the warning if we have a binary message
+        if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
+            log.typeConversionFallback();
+        }
         // Otherwise fall back to raw byte array
         return body.getBytes();
     }
