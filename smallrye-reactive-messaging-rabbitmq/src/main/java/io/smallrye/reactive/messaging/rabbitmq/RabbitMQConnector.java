@@ -7,10 +7,7 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static java.time.Duration.ofSeconds;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -121,6 +118,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received RabbitMQ messages must be acknowledged when received; if true then delivery constitutes acknowledgement", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "keep-most-recent", direction = INCOMING, description = "Whether to discard old messages instead of recent ones", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "routing-keys", direction = INCOMING, description = "A comma-separated list of routing keys to bind the queue to the exchange", type = "string", defaultValue = "#")
+@ConnectorAttribute(name = "content-type-override", direction = INCOMING, description = "Override the content_type attribute of the incoming message, should be a valid MINE type", type = "string")
 
 // Message producer
 @ConnectorAttribute(name = "max-inflight-messages", direction = OUTGOING, description = "The maximum number of messages to be written to RabbitMQ concurrently; must be a positive number", type = "long", defaultValue = "1024")
@@ -145,6 +143,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
     // Keyed on channel name, value is the channel connection state
     private final Map<String, ChannelStatus> incomingChannelStatus = new ConcurrentHashMap<>();
+
     private final Map<String, ChannelStatus> outgoingChannelStatus = new ConcurrentHashMap<>();
 
     // The list of RabbitMQMessageSender's currently managed by this connector
@@ -182,6 +181,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             RabbitMQAckHandler onAck) {
         final String queueName = ic.getQueueName();
         final boolean isTracingEnabled = ic.getTracingEnabled();
+        final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
         final List<String> attributeHeaders = Arrays.stream(ic.getTracingAttributeHeaders().split(","))
                 .map(String::trim).collect(Collectors.toList());
         log.receiverListeningAddress(queueName);
@@ -196,7 +196,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         return Multi.createFrom().deferred(
                 () -> {
                     Multi<? extends Message<?>> stream = receiver.toMulti()
-                            .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck))
+                            .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck,
+                                    contentTypeOverride))
                             .map(m -> isTracingEnabled ? TracingUtils.addIncomingTrace(m, queueName, attributeHeaders) : m);
                     return Multi.createBy().merging().streams(stream, processor);
                 });
