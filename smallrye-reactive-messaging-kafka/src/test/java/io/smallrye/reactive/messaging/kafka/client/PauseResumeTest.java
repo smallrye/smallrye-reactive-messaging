@@ -116,6 +116,7 @@ public class PauseResumeTest extends WeldTestBase {
     void testPauseResumeBuffer() {
         MapBasedConfig config = commonConfiguration()
                 .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
+                .with(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
