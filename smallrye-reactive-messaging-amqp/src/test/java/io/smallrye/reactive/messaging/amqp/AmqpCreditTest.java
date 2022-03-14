@@ -60,7 +60,7 @@ public class AmqpCreditTest extends AmqpTestBase {
 
         assertThat(msgsReceived.await(20, TimeUnit.SECONDS))
                 .withFailMessage("Sent %s msgs but %s remain outstanding", msgCount, msgsReceived.getCount()).isTrue();
-        List<Integer> expectedPayloads = IntStream.range(0, msgCount).mapToObj(Integer::valueOf).collect(Collectors.toList());
+        List<Integer> expectedPayloads = IntStream.range(0, msgCount).boxed().collect(Collectors.toList());
         assertThat(payloadsReceived).containsAll(expectedPayloads);
     }
 
