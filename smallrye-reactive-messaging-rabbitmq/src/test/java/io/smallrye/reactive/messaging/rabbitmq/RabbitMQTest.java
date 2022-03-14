@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.Collections;
@@ -12,8 +11,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.smallrye.reactive.messaging.providers.ProcessingException;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
@@ -21,6 +18,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonArray;

@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.companion;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
+import static org.apache.kafka.clients.CommonClientConfigs.METADATA_MAX_AGE_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.CLIENT_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG;
@@ -73,6 +74,7 @@ public class KafkaCompanion implements AutoCloseable {
         if (adminClient == null) {
             Map<String, Object> configMap = new HashMap<>(getCommonClientConfig());
             configMap.put(BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
+            configMap.put(METADATA_MAX_AGE_CONFIG, 1000);
             configMap.put(CLIENT_ID_CONFIG, "companion-admin-for-" + getBootstrapServers());
             adminClient = AdminClient.create(configMap);
             registerOnClose(() -> adminClient.close(kafkaApiTimeout));
