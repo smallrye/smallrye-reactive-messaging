@@ -56,6 +56,12 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
     private volatile boolean isAnonymous;
 
+    /**
+     * A flag tracking if we are retrieving the credits for the sender.
+     * It avoids flooding the broker with credit requests.
+     */
+    private volatile boolean creditRetrievalInProgress = false;
+
     public AmqpCreditBasedSender(AmqpConnector connector, ConnectionHolder holder,
             AmqpConnectorOutgoingConfiguration configuration, Uni<AmqpSender> retrieveSender) {
         this.connector = connector;
@@ -152,6 +158,9 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             subscription.request(credits);
             return credits;
         }
+        if (credits == 0L && subscription != Subscriptions.CANCELLED) {
+            onNoMoreCredit(sender);
+        }
         return 0L;
     }
 
@@ -188,22 +197,28 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     }
 
     private void onNoMoreCredit(AmqpSender sender) {
-        log.noMoreCreditsForChannel(configuration.getChannel());
-        holder.getContext().runOnContext(() -> {
-            if (isCancelled()) {
-                return;
-            }
-            long c = setCreditsAndRequest(sender);
-            if (c == 0L) { // still no credits, schedule a periodic retry
-                holder.getVertx().setPeriodic(configuration.getCreditRetrievalPeriod(), id -> {
-                    if (setCreditsAndRequest(sender) != 0L || isCancelled()) {
-                        // Got our new credits or the application has been terminated,
-                        // we cancel the periodic task.
-                        holder.getVertx().cancelTimer(id);
-                    }
-                });
-            }
-        });
+        if (!creditRetrievalInProgress) {
+            creditRetrievalInProgress = true;
+            log.noMoreCreditsForChannel(configuration.getChannel());
+            holder.getContext().runOnContext(() -> {
+                if (isCancelled()) {
+                    return;
+                }
+                long c = setCreditsAndRequest(sender);
+                if (c == 0L) { // still no credits, schedule a periodic retry
+                    holder.getVertx().setPeriodic(configuration.getCreditRetrievalPeriod(), id -> {
+                        if (setCreditsAndRequest(sender) != 0L || isCancelled()) {
+                            // Got our new credits or the application has been terminated,
+                            // we cancel the periodic task.
+                            holder.getVertx().cancelTimer(id);
+                            creditRetrievalInProgress = false;
+                        }
+                    });
+                } else {
+                    creditRetrievalInProgress = false;
+                }
+            });
+        }
     }
 
     private boolean isCancelled() {
@@ -236,7 +251,9 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             getSenderAndCredits()
                     .onItem().ignore().andContinueWithNull()
                     .subscribe().with(s -> {
-                    }, f -> downstream.get().onError(f));
+                    }, f -> {
+                        downstream.get().onError(f);
+                    });
         }
     }
 
