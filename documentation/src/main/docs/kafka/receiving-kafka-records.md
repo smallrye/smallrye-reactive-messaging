@@ -25,7 +25,7 @@ mp.messaging.incoming.prices.broadcast=true # <4>
 
 3.  Sets the (Kafka) deserializer to read the record’s value
 
-4.  Make sure that we can receive from more that one consumer (see
+4.  Make sure that we can receive from more than one consumer (see
     `KafkaPriceConsumer` and `KafkaPriceMessageConsumer` below)
 
 !!!note
