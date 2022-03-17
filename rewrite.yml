@@ -1,0 +1,114 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.JavaxToJakarta
+recipeList:
+
+  - org.openrewrite.maven.ChangeParentPom:
+      oldGroupId: io.smallrye
+      newGroupId: io.smallrye
+      oldArtifactId: smallrye-parent
+      newArtifactId: smallrye-jakarta-parent
+      newVersion: 35
+      allowVersionDowngrades: true
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: weld.version
+      newValue: 4.0.3.Final
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: microprofile-reactive-messaging.version
+      newValue: 3.0-RC2
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: microprofile-reactive-streams.version
+      newValue: 3.0-RC1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: microprofile-config.version
+      newValue: 3.0.1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: microprofile-metrics-api.version
+      newValue: 4.0.1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: microprofile-health-api.version
+      newValue: 4.0
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: smallrye-config.version
+      newValue: 3.0.0-RC1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: smallrye-metrics.version
+      newValue: 4.0.0-RC1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: smallrye-common.version
+      newValue: 2.0.0-RC2
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: smallrye-health.version
+      newValue: 4.0.0-RC1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: smallrye-testing.version
+      newValue: 2.0.0-RC1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: smallrye-fault-tolerance.version
+      newValue: 6.0.0-RC1
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: yasson.version
+      newValue: 2.0.3
+
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: artemis.version
+      newValue: 2.20.0
+
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: org.apache.activemq
+      oldArtifactId: artemis-jms-client
+      newGroupId: org.apache.activemq
+      newArtifactId: artemis-jakarta-client
+
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: org.apache.activemq
+      oldArtifactId: artemis-server
+      newGroupId: org.apache.activemq
+      newArtifactId: artemis-jakarta-server
+
+  # requires PR that fixes recursive
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: javax.enterprise
+      newPackageName: jakarta.enterprise
+      recursive: true
+
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: javax.inject
+      newPackageName: jakarta.inject
+      recursive: true
+
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: javax.json
+      newPackageName: jakarta.json
+      recursive: true
+
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: javax.jms
+      newPackageName: jakarta.jms
+      recursive: true
+
+  # javax.annotations from jakarta clash with java.compiler, so we need to rename class by class
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: javax.annotation.Priority
+      newFullyQualifiedTypeName: jakarta.annotation.Priority
+
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: javax.annotation.PostConstruct
+      newFullyQualifiedTypeName: jakarta.annotation.PostConstruct
+
+  - org.openrewrite.java.ChangeType:
+       oldFullyQualifiedTypeName: javax.annotation.PreDestroy
+       newFullyQualifiedTypeName: jakarta.annotation.PreDestroy

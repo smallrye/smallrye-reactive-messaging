@@ -563,6 +563,16 @@
           <skip>${revapi.skip}</skip>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.openrewrite.maven</groupId>
+        <artifactId>rewrite-maven-plugin</artifactId>
+        <version>4.21.0-SNAPSHOT</version>
+        <configuration>
+          <activeRecipes>
+            <recipe>io.smallrye.reactive.JavaxToJakarta</recipe>
+          </activeRecipes>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
