@@ -16,19 +16,22 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
-import io.smallrye.reactive.messaging.amqp.tracing.HeaderInjectAdapter;
+import io.smallrye.reactive.messaging.amqp.tracing.AmqpAttributesExtractor;
+import io.smallrye.reactive.messaging.amqp.tracing.AmqpMessageTextMapSetter;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
@@ -53,6 +56,8 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final boolean writeAsBinaryCloudEvent;
     private final int retryAttempts;
     private final int retryInterval;
+
+    private final Instrumenter<AmqpMessage<?>, Void> instrumenter;
 
     private volatile boolean isAnonymous;
 
@@ -79,6 +84,19 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
         this.retryAttempts = configuration.getReconnectAttempts();
         this.retryInterval = configuration.getReconnectInterval();
+
+        AmqpAttributesExtractor amqpAttributesExtractor = new AmqpAttributesExtractor();
+        MessagingAttributesGetter<AmqpMessage<?>, Void> messagingAttributesGetter = amqpAttributesExtractor
+                .getMessagingAttributesGetter();
+        InstrumenterBuilder<AmqpMessage<?>, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+                "io.smallrye.reactive.messaging",
+                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.SEND));
+
+        instrumenter = builder
+                .addAttributesExtractor(
+                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.SEND))
+                .addAttributesExtractor(amqpAttributesExtractor)
+                .buildProducerInstrumenter(AmqpMessageTextMapSetter.INSTANCE);
     }
 
     @Override
@@ -307,7 +325,9 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             amqp.getDelegate().unwrap().setAddress(actualAddress);
         }
 
-        createOutgoingTrace(msg, amqp);
+        if (tracingEnabled) {
+            createOutgoingTrace(msg, amqp);
+        }
 
         log.sendingMessageToAddress(actualAddress);
         return sender.sendWithAck(amqp)
@@ -323,39 +343,25 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     }
 
     private void createOutgoingTrace(Message<?> msg, io.vertx.mutiny.amqp.AmqpMessage amqp) {
-        if (tracingEnabled) {
-            Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(msg);
+        Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(msg);
+        AmqpMessage<?> message = new AmqpMessage<>(amqp, null, null, false, true);
 
-            final SpanBuilder spanBuilder = AmqpConnector.TRACER.spanBuilder(amqp.address() + " send")
-                    .setSpanKind(SpanKind.PRODUCER);
+        Context parentContext = tracingMetadata.map(TracingMetadata::getCurrentContext).orElse(Context.current());
+        Context spanContext;
+        Scope scope = null;
 
-            if (tracingMetadata.isPresent()) {
-                // Handle possible parent span
-                final Context parentSpanContext = tracingMetadata.get().getCurrentContext();
-                if (parentSpanContext != null) {
-                    spanBuilder.setParent(parentSpanContext);
-                } else {
-                    spanBuilder.setNoParent();
+        boolean shouldStart = instrumenter.shouldStart(parentContext, message);
+        if (shouldStart) {
+            try {
+                spanContext = instrumenter.start(parentContext, message);
+                scope = spanContext.makeCurrent();
+                message.injectTracingMetadata(TracingMetadata.with(spanContext, parentContext));
+                instrumenter.end(spanContext, message, null, null);
+            } finally {
+                if (scope != null) {
+                    scope.close();
                 }
-            } else {
-                spanBuilder.setNoParent();
             }
-
-            final Span span = spanBuilder.startSpan();
-            Scope scope = span.makeCurrent();
-
-            // Set Span attributes
-            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "AMQP 1.0");
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, amqp.address());
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "queue");
-            span.setAttribute(SemanticAttributes.MESSAGING_PROTOCOL, "AMQP");
-            span.setAttribute(SemanticAttributes.MESSAGING_PROTOCOL_VERSION, "1.0");
-
-            // Set span onto headers
-            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                    .inject(Context.current(), amqp, HeaderInjectAdapter.SETTER);
-            span.end();
-            scope.close();
         }
     }
 

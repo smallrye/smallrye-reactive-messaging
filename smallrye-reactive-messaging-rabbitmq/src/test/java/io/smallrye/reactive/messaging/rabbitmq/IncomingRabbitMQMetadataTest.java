@@ -1,10 +1,12 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.BasicProperties;
@@ -23,15 +25,15 @@ public class IncomingRabbitMQMetadataTest {
 
         DummyRabbitMQMessage message = new DummyRabbitMQMessage(new DummyBasicProperties(properties));
 
-        IncomingRabbitMQMetadata incomingRabbitMQMetadata = new IncomingRabbitMQMetadata(message);
+        IncomingRabbitMQMetadata incomingRabbitMQMetadata = new IncomingRabbitMQMetadata(message, null);
 
-        Assert.assertEquals("value1", incomingRabbitMQMetadata.getHeaders().get("header1"));
-        Assert.assertTrue(incomingRabbitMQMetadata.getHeaders().containsKey("header2"));
-        Assert.assertNull(incomingRabbitMQMetadata.getHeaders().get("header2"));
+        assertEquals("value1", incomingRabbitMQMetadata.getHeaders().get("header1"));
+        assertTrue(incomingRabbitMQMetadata.getHeaders().containsKey("header2"));
+        assertNull(incomingRabbitMQMetadata.getHeaders().get("header2"));
 
     }
 
-    class DummyRabbitMQMessage implements RabbitMQMessage {
+    static class DummyRabbitMQMessage implements RabbitMQMessage {
         protected BasicProperties properties;
 
         DummyRabbitMQMessage(BasicProperties properties) {
@@ -64,7 +66,7 @@ public class IncomingRabbitMQMetadataTest {
         }
     }
 
-    class DummyBasicProperties implements BasicProperties {
+    static class DummyBasicProperties implements BasicProperties {
         protected Map<String, Object> headers;
 
         DummyBasicProperties(Map<String, Object> headers) {

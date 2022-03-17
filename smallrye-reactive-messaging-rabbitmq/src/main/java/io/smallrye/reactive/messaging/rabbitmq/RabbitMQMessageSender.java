@@ -3,10 +3,8 @@ package io.smallrye.reactive.messaging.rabbitmq;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static java.time.Duration.ofSeconds;
 
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Processor;
@@ -14,11 +12,21 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions;
 import io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTraceAttributesExtractor;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTraceTextMapSetter;
 import io.vertx.mutiny.rabbitmq.RabbitMQPublisher;
 
 /**
@@ -37,6 +45,8 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
 
     private final long inflights;
     private final Optional<Long> defaultTtl;
+
+    private final Instrumenter<RabbitMQTrace, Void> instrumenter;
 
     /**
      * Constructor.
@@ -61,6 +71,17 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
         if (defaultTtl.isPresent() && defaultTtl.get() < 0) {
             throw ex.illegalArgumentInvalidDefaultTtl();
         }
+
+        RabbitMQTraceAttributesExtractor rabbitMQAttributesExtractor = new RabbitMQTraceAttributesExtractor();
+        MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter = rabbitMQAttributesExtractor
+                .getMessagingAttributesGetter();
+        InstrumenterBuilder<RabbitMQTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+                "io.smallrye.reactive.messaging",
+                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.SEND));
+
+        instrumenter = builder.addAttributesExtractor(rabbitMQAttributesExtractor)
+                .addAttributesExtractor(MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.SEND))
+                .buildProducerInstrumenter(RabbitMQTraceTextMapSetter.INSTANCE);
     }
 
     /* ----------------------------------------------------- */
@@ -248,10 +269,8 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
         final int retryInterval = configuration.getReconnectInterval();
         final String defaultRoutingKey = configuration.getDefaultRoutingKey();
 
-        final RabbitMQMessageConverter.OutgoingRabbitMQMessage outgoingRabbitMQMessage = RabbitMQMessageConverter.convert(msg,
-                exchange, defaultRoutingKey, defaultTtl, isTracingEnabled,
-                Arrays.stream(configuration.getTracingAttributeHeaders().split(","))
-                        .map(String::trim).collect(Collectors.toList()));
+        final RabbitMQMessageConverter.OutgoingRabbitMQMessage outgoingRabbitMQMessage = RabbitMQMessageConverter
+                .convert(instrumenter, msg, exchange, defaultRoutingKey, defaultTtl, isTracingEnabled);
 
         RabbitMQLogging.log.sendingMessageToExchange(exchange, outgoingRabbitMQMessage.getRoutingKey());
         return publisher.publish(exchange, outgoingRabbitMQMessage.getRoutingKey(), outgoingRabbitMQMessage.getProperties(),

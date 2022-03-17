@@ -2,8 +2,8 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -16,14 +16,17 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.SpanProcessor;
@@ -31,14 +34,13 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.mutiny.amqp.AmqpMessage;
 
 @Disabled("See https://github.com/smallrye/smallrye-reactive-messaging/issues/1268")
-public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
-
-    private InMemorySpanExporter testExporter;
-    private SpanProcessor spanProcessor;
+public class TracingAmqpToAppTest extends AmqpBrokerTestBase {
+    private SdkTracerProvider tracerProvider;
+    private InMemorySpanExporter spanExporter;
 
     private WeldContainer container;
     private final Weld weld = new Weld();
@@ -48,10 +50,10 @@ public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
         super.setup();
         GlobalOpenTelemetry.resetForTest();
 
-        testExporter = InMemorySpanExporter.create();
-        spanProcessor = SimpleSpanProcessor.create(testExporter);
+        spanExporter = InMemorySpanExporter.create();
+        SpanProcessor spanProcessor = SimpleSpanProcessor.create(spanExporter);
 
-        SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
+        tracerProvider = SdkTracerProvider.builder()
                 .addSpanProcessor(spanProcessor)
                 .setSampler(Sampler.alwaysOn())
                 .build();
@@ -69,13 +71,6 @@ public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
         }
         // Release the config objects
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-
-        if (testExporter != null) {
-            testExporter.shutdown();
-        }
-        if (spanProcessor != null) {
-            spanProcessor.shutdown();
-        }
     }
 
     @AfterAll
@@ -84,68 +79,50 @@ public class TracingAmqpToAppNoParentTest extends AmqpBrokerTestBase {
     }
 
     @Test
-    public void testFromAmqpToAppWithNoParent() {
-        weld.addBeanClass(MyAppReceivingData.class);
-
+    public void testFromAmqpToAppWithParentSpan() {
         new MapBasedConfig()
-                .put("mp.messaging.incoming.stuff.connector", AmqpConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.stuff.host", host)
-                .put("mp.messaging.incoming.stuff.port", port)
-                .put("mp.messaging.incoming.stuff.address", "no-parent-stuff")
-
-                .put("amqp-username", username)
-                .put("amqp-password", password)
+                .with("mp.messaging.incoming.stuff.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.stuff.host", host)
+                .with("mp.messaging.incoming.stuff.port", port)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
                 .write();
 
+        weld.addBeanClass(MyAppReceivingData.class);
         container = weld.initialize();
-        MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
-
         await().until(() -> isAmqpConnectorReady(container));
 
+        MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
+
         AtomicInteger count = new AtomicInteger();
+        usage.produce("stuff", 10, () -> AmqpMessage.create()
+                .durable(false)
+                .ttl(10000)
+                .withIntegerAsBody(count.getAndIncrement())
+                .build());
 
-        usage.produce("no-parent-stuff", 10, count::getAndIncrement);
+        await().until(() -> bean.results().size() >= 10);
+        assertThat(bean.results()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-        await().until(() -> bean.list().size() >= 10);
-        assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-
-        assertThat(bean.tracing()).hasSizeGreaterThanOrEqualTo(10);
-        assertThat(bean.tracing()).doesNotContainNull().doesNotHaveDuplicates();
-        List<String> spanIds = new ArrayList<>();
-
-        for (TracingMetadata tracing : bean.tracing()) {
-            spanIds.add(Span.fromContext(tracing.getCurrentContext()).getSpanContext().getSpanId());
-            assertThat(Span.fromContextOrNull(tracing.getPreviousContext())).isNull();
-        }
-
-        assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSizeGreaterThanOrEqualTo(10);
-
-        for (SpanData data : testExporter.getFinishedSpanItems()) {
-            assertThat(data.getSpanId()).isIn(spanIds);
-            assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
-            assertThat(data.getKind()).isEqualByComparingTo(SpanKind.CONSUMER);
-        }
+        CompletableResultCode completableResultCode = tracerProvider.forceFlush();
+        completableResultCode.whenComplete(() -> {
+            List<SpanData> spans = spanExporter.getFinishedSpanItems();
+            assertEquals(10, spans.size());
+        });
     }
 
     @ApplicationScoped
     public static class MyAppReceivingData {
-        private final List<TracingMetadata> tracingMetadata = new ArrayList<>();
         private final List<Integer> results = new CopyOnWriteArrayList<>();
 
         @Incoming("stuff")
         public CompletionStage<Void> consume(Message<Integer> input) {
             results.add(input.getPayload());
-            tracingMetadata.add(input.getMetadata(TracingMetadata.class).orElse(TracingMetadata.empty()));
             return input.ack();
         }
 
-        public List<Integer> list() {
+        public List<Integer> results() {
             return results;
         }
-
-        public List<TracingMetadata> tracing() {
-            return tracingMetadata;
-        }
     }
-
 }

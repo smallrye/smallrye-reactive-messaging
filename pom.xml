@@ -264,26 +264,13 @@
         <version>${jboss-log-manager.version}</version>
       </dependency>
 
+      <!-- This BOM includes the opentelemetry-bom and the opentelemetry-bom-alpha -->
       <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-api</artifactId>
-        <version>${opentelemetry.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-semconv</artifactId>
-        <version>${opentelemetry-semver.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-sdk-trace</artifactId>
-        <version>${opentelemetry.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-sdk-testing</artifactId>
-        <version>${opentelemetry.version}</version>
-        <scope>test</scope>
+        <groupId>io.opentelemetry.instrumentation</groupId>
+        <artifactId>opentelemetry-instrumentation-bom-alpha</artifactId>
+        <version>${opentelemetry.version}-alpha</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- From this project -->

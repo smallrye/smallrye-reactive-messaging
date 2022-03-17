@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
-import static java.util.Collections.emptyList;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.time.ZonedDateTime;
@@ -15,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Envelope;
 
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQMessageConverter.OutgoingRabbitMQMessage;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.rabbitmq.RabbitMQMessage;
@@ -65,7 +66,7 @@ public class RabbitMQMetadataTest {
             }
         };
 
-        IncomingRabbitMQMetadata incoming = new IncomingRabbitMQMetadata(message);
+        IncomingRabbitMQMetadata incoming = new IncomingRabbitMQMetadata(message, null);
         assertThat(incoming.getUserId()).isEqualTo(Optional.of("test-user"));
         assertThat(incoming.getAppId()).isEqualTo(Optional.of("tests"));
         assertThat(incoming.getContentType()).isEqualTo(Optional.of("text/plain"));
@@ -100,12 +101,12 @@ public class RabbitMQMetadataTest {
                 .build();
 
         OutgoingRabbitMQMessage message = RabbitMQMessageConverter.convert(
+                (Instrumenter) Instrumenter.builder(OpenTelemetry.noop(), "noop", o -> "noop").buildInstrumenter(),
                 Message.of("", Metadata.of(metadata)),
                 "test",
                 "#",
                 Optional.empty(),
-                false,
-                emptyList());
+                false);
 
         com.rabbitmq.client.BasicProperties props = message.getProperties();
 

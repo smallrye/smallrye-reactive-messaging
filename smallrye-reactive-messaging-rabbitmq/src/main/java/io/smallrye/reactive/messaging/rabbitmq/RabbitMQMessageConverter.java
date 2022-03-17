@@ -14,6 +14,8 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -50,17 +52,15 @@ public class RabbitMQMessageConverter {
      * @param exchange the destination exchange
      * @param defaultRoutingKey the fallback routing key to use
      * @param isTracingEnabled whether tracing is enabled
-     * @param attributeHeaders a list (possibly empty) of message header names whose values should be
-     *        included as span attributes
      * @return an {@link OutgoingRabbitMQMessage}
      */
     public static OutgoingRabbitMQMessage convert(
+            final Instrumenter<RabbitMQTrace, Void> instrumenter,
             final Message<?> message,
             final String exchange,
             final String defaultRoutingKey,
             final Optional<Long> defaultTtl,
-            final boolean isTracingEnabled,
-            final List<String> attributeHeaders) {
+            final boolean isTracingEnabled) {
         final Optional<io.vertx.mutiny.rabbitmq.RabbitMQMessage> rabbitMQMessage = getRabbitMQMessage(message);
         final String routingKey = getRoutingKey(message).orElse(defaultRoutingKey);
 
@@ -78,8 +78,7 @@ public class RabbitMQMessageConverter {
             if (isTracingEnabled) {
                 // Create a new span for the outbound message and record updated tracing information in
                 // the headers; this has to be done before we build the properties below
-                TracingUtils.createOutgoingTrace(message, sourceHeaders, exchange, routingKey,
-                        attributeHeaders);
+                TracingUtils.createOutgoingTrace(instrumenter, message, sourceHeaders, exchange);
             }
 
             // Reconstruct the properties from the source, except with the (possibly) modified headers;
@@ -121,8 +120,7 @@ public class RabbitMQMessageConverter {
             if (isTracingEnabled) {
                 // Create a new span for the outbound message and record updated tracing information in
                 // the message headers; this has to be done before we build the properties below
-                TracingUtils.createOutgoingTrace(message, metadata.getHeaders(), exchange, routingKey,
-                        attributeHeaders);
+                TracingUtils.createOutgoingTrace(instrumenter, message, metadata.getHeaders(), exchange);
             }
 
             final Date timestamp = (metadata.getTimestamp() != null) ? Date.from(metadata.getTimestamp().toInstant()) : null;

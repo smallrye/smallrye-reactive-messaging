@@ -38,12 +38,14 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
@@ -55,6 +57,8 @@ import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailed;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailedAndUndeliverableHere;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpReject;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpRelease;
+import io.smallrye.reactive.messaging.amqp.tracing.AmqpAttributesExtractor;
+import io.smallrye.reactive.messaging.amqp.tracing.AmqpMessageTextMapGetter;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
@@ -114,8 +118,6 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     public static final String CONNECTOR_NAME = "smallrye-amqp";
 
-    static Tracer TRACER;
-
     @Inject
     private ExecutionHolder executionHolder;
 
@@ -154,6 +156,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
      */
     private final Map<String, ConnectionHolder> holders = new ConcurrentHashMap<>();
 
+    private Instrumenter<AmqpMessage<?>, Void> instrumenter;
+
     void setup(ExecutionHolder executionHolder) {
         this.executionHolder = executionHolder;
     }
@@ -164,7 +168,19 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @PostConstruct
     void init() {
-        TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.amqp");
+        // TODO - radcortez - We may want to move this to the constructor injection. SR OTel provides CDI Producer for OTel
+        AmqpAttributesExtractor amqpAttributesExtractor = new AmqpAttributesExtractor();
+        MessagingAttributesGetter<AmqpMessage<?>, Void> messagingAttributesGetter = amqpAttributesExtractor
+                .getMessagingAttributesGetter();
+        InstrumenterBuilder<AmqpMessage<?>, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+                "io.smallrye.reactive.messaging",
+                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE));
+
+        instrumenter = builder
+                .addAttributesExtractor(
+                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE))
+                .addAttributesExtractor(amqpAttributesExtractor)
+                .buildConsumerInstrumenter(AmqpMessageTextMapGetter.INSTANCE);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -449,29 +465,25 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     private void incomingTrace(AmqpMessage<?> message) {
         TracingMetadata tracingMetadata = TracingMetadata.fromMessage(message).orElse(TracingMetadata.empty());
 
-        final SpanBuilder spanBuilder = TRACER.spanBuilder(message.getAddress() + " receive")
-                .setSpanKind(SpanKind.CONSUMER);
-
-        // Handle possible parent span
-        final Context parentSpanContext = tracingMetadata.getPreviousContext();
-        if (parentSpanContext != null) {
-            spanBuilder.setParent(parentSpanContext);
-        } else {
-            spanBuilder.setNoParent();
+        Context parentContext = tracingMetadata.getPreviousContext();
+        if (parentContext == null) {
+            parentContext = Context.current();
         }
+        Context spanContext;
+        Scope scope = null;
 
-        final Span span = spanBuilder.startSpan();
-
-        // Set Span attributes
-        span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "AMQP 1.0");
-        span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, message.getAddress());
-        span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "queue");
-
-        // Make available as parent for subsequent spans inside message processing
-        span.makeCurrent();
-
-        message.injectTracingMetadata(tracingMetadata.withSpan(span));
-
-        span.end();
+        boolean shouldStart = instrumenter.shouldStart(parentContext, message);
+        if (shouldStart) {
+            try {
+                spanContext = instrumenter.start(parentContext, message);
+                scope = spanContext.makeCurrent();
+                message.injectTracingMetadata(TracingMetadata.with(spanContext, parentContext));
+                instrumenter.end(spanContext, message, null, null);
+            } finally {
+                if (scope != null) {
+                    scope.close();
+                }
+            }
+        }
     }
 }

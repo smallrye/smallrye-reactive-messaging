@@ -11,9 +11,10 @@ class HeaderExtractAdapterTest {
     public void verifyNullHeaderHandled() {
         Headers headers = new RecordHeaders();
         headers.add("test_null_header", null);
-        HeaderExtractAdapter headerExtractAdapter = new HeaderExtractAdapter();
 
-        final String headerValue = headerExtractAdapter.get(headers, "test_null_header");
+        KafkaTrace kafkaTrace = new KafkaTrace.Builder().withHeaders(headers).build();
+
+        String headerValue = KafkaTraceTextMapGetter.INSTANCE.get(kafkaTrace, "test_null_header");
 
         assertThat(headerValue).isNull();
     }

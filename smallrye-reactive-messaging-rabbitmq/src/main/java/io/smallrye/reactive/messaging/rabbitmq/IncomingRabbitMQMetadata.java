@@ -21,6 +21,7 @@ import io.vertx.rabbitmq.RabbitMQMessage;
 public class IncomingRabbitMQMetadata {
 
     private final RabbitMQMessage message;
+    private final RabbitMQConnectorIncomingConfiguration incomingConfiguration;
     private final Map<String, Object> headers;
 
     /**
@@ -28,8 +29,10 @@ public class IncomingRabbitMQMetadata {
      *
      * @param message the underlying {@link RabbitMQMessage}
      */
-    IncomingRabbitMQMetadata(RabbitMQMessage message) {
+    IncomingRabbitMQMetadata(final RabbitMQMessage message,
+            final RabbitMQConnectorIncomingConfiguration incomingConfiguration) {
         this.message = message;
+        this.incomingConfiguration = incomingConfiguration;
 
         // Ensure the message headers are cast appropriately
         final Map<String, Object> incomingHeaders = message.properties().getHeaders();
@@ -275,6 +278,10 @@ public class IncomingRabbitMQMetadata {
         return Optional.ofNullable(message.properties().getMessageId());
     }
 
+    public String getQueueName() {
+        return incomingConfiguration.getQueueName();
+    }
+
     /**
      * The exchange the message was delivered to.
      * <p>
@@ -308,5 +315,9 @@ public class IncomingRabbitMQMetadata {
      */
     public boolean isRedeliver() {
         return message.envelope().isRedeliver();
+    }
+
+    public boolean isTracingEnabled() {
+        return incomingConfiguration.getTracingEnabled();
     }
 }

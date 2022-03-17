@@ -1,11 +1,14 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
-import static io.smallrye.reactive.messaging.kafka.KafkaConnector.TRACER;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -17,20 +20,34 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
 
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.*;
-import io.smallrye.reactive.messaging.kafka.commit.*;
+import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaAttributesExtractor;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaTraceTextMapGetter;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
@@ -59,6 +76,8 @@ public class KafkaSource<K, V> {
     private final Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
     private final ReactiveKafkaConsumer<K, V> client;
     private final EventLoopContext context;
+
+    private final Instrumenter<KafkaTrace, Void> instrumenter;
 
     public KafkaSource(Vertx vertx,
             String consumerGroup,
@@ -190,10 +209,18 @@ public class KafkaSource<K, V> {
             this.stream = null;
         }
 
-    }
+        KafkaAttributesExtractor kafkaAttributesExtractor = new KafkaAttributesExtractor();
+        MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter = kafkaAttributesExtractor
+                .getMessagingAttributesGetter();
+        InstrumenterBuilder<KafkaTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+                "io.smallrye.reactive.messaging",
+                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE));
 
-    public Set<String> getSubscribedTopics() {
-        return topics;
+        instrumenter = builder
+                .addAttributesExtractor(
+                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE))
+                .addAttributesExtractor(kafkaAttributesExtractor)
+                .buildConsumerInstrumenter(KafkaTraceTextMapGetter.INSTANCE);
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
@@ -243,59 +270,46 @@ public class KafkaSource<K, V> {
     }
 
     public void incomingTrace(IncomingKafkaRecord<K, V> kafkaRecord, boolean insideBatch) {
-        if (isTracingEnabled && TRACER != null) {
+        if (isTracingEnabled) {
+            KafkaTrace kafkaTrace = new KafkaTrace.Builder()
+                    .withPartition(kafkaRecord.getPartition())
+                    .withTopic(kafkaRecord.getTopic())
+                    .withHeaders(kafkaRecord.getHeaders())
+                    .withGroupId(client.get(ConsumerConfig.GROUP_ID_CONFIG))
+                    .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))
+                    .build();
+
             TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
-
-            final SpanBuilder spanBuilder = TRACER.spanBuilder(kafkaRecord.getTopic() + " receive")
-                    .setSpanKind(SpanKind.CONSUMER);
-
-            // Handle possible parent span
-            final Context parentSpanContext = tracingMetadata.getPreviousContext();
-            if (parentSpanContext != null) {
-                spanBuilder.setParent(parentSpanContext);
-            } else {
-                spanBuilder.setNoParent();
+            Context parentContext = tracingMetadata.getPreviousContext();
+            if (parentContext == null) {
+                parentContext = Context.current();
             }
+            Context spanContext;
+            Scope scope = null;
+            boolean shouldStart = instrumenter.shouldStart(parentContext, kafkaTrace);
 
-            final Span span = spanBuilder.startSpan();
+            if (shouldStart) {
+                spanContext = instrumenter.start(parentContext, kafkaTrace);
+                if (!insideBatch) {
+                    scope = spanContext.makeCurrent();
+                }
 
-            // Set Span attributes
-            span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_PARTITION, kafkaRecord.getPartition());
-            span.setAttribute("offset", kafkaRecord.getOffset());
-            span.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, "kafka");
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION, kafkaRecord.getTopic());
-            span.setAttribute(SemanticAttributes.MESSAGING_DESTINATION_KIND, "topic");
+                kafkaRecord.injectMetadata(TracingMetadata.with(spanContext, parentContext));
 
-            final String groupId = client.get(ConsumerConfig.GROUP_ID_CONFIG);
-            final String clientId = client.get(ConsumerConfig.CLIENT_ID_CONFIG);
-            span.setAttribute("messaging.consumer_id", constructConsumerId(groupId, clientId));
-            span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP, groupId);
-            if (!clientId.isEmpty()) {
-                span.setAttribute(SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID, clientId);
+                try {
+                    instrumenter.end(spanContext, kafkaTrace, null, null);
+                } finally {
+                    if (scope != null) {
+                        scope.close();
+                    }
+                }
             }
-
-            if (!insideBatch) {
-                // Make available as parent for subsequent spans inside message processing
-                span.makeCurrent();
-            }
-
-            kafkaRecord.injectMetadata(tracingMetadata.withSpan(span));
-
-            span.end();
         }
-    }
-
-    private String constructConsumerId(String groupId, String clientId) {
-        String consumerId = groupId;
-        if (!clientId.isEmpty()) {
-            consumerId += " - " + clientId;
-        }
-        return consumerId;
     }
 
     @SuppressWarnings("unchecked")
     public void incomingTrace(IncomingKafkaRecordBatch<K, V> kafkaBatchRecord) {
-        if (isTracingEnabled && TRACER != null) {
+        if (isTracingEnabled) {
             for (KafkaRecord<K, V> record : kafkaBatchRecord.getRecords()) {
                 IncomingKafkaRecord<K, V> kafkaRecord = record.unwrap(IncomingKafkaRecord.class);
                 incomingTrace(kafkaRecord, true);

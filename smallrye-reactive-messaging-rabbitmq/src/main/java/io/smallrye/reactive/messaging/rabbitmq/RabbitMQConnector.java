@@ -12,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.BeforeDestroyed;
@@ -49,7 +48,6 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQAccept;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailStop;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
@@ -176,26 +174,16 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         return config.getExchangeName().map(s -> "\"\"".equals(s) ? "" : s).orElse(config.getChannel());
     }
 
-    @PostConstruct
-    void init() {
-        TracingUtils.initialise();
-    }
-
-    private Multi<? extends Message<?>> getStreamOfMessages(RabbitMQConsumer receiver,
+    private Multi<? extends Message<?>> getStreamOfMessages(
+            RabbitMQConsumer receiver,
             ConnectionHolder holder,
             RabbitMQConnectorIncomingConfiguration ic,
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck) {
-        final String queueName = ic.getQueueName();
-        final boolean isTracingEnabled = ic.getTracingEnabled();
-        final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
-        final List<String> attributeHeaders = Arrays.stream(ic.getTracingAttributeHeaders().split(","))
-                .map(String::trim).collect(Collectors.toList());
-        log.receiverListeningAddress(queueName);
 
-        return receiver.toMulti()
-                .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck, contentTypeOverride))
-                .map(m -> isTracingEnabled ? TracingUtils.addIncomingTrace(m, queueName, attributeHeaders) : m);
+        log.receiverListeningAddress(ic.getQueueName());
+
+        return receiver.toMulti().map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, ic));
     }
 
     /**

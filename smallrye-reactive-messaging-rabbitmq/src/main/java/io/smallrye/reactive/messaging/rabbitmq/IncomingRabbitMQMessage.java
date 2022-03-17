@@ -20,7 +20,6 @@ import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Context;
 
@@ -57,33 +56,35 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
     private final long deliveryTag;
     private RabbitMQFailureHandler onNack;
     private RabbitMQAckHandler onAck;
-    private final String contentTypeOverride;
+    private final RabbitMQConnectorIncomingConfiguration incomingConfiguration;
     private final T payload;
 
-    IncomingRabbitMQMessage(io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate, ConnectionHolder holder,
-            boolean isTracingEnabled, RabbitMQFailureHandler onNack,
-            RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(delegate.getDelegate(), holder, isTracingEnabled, onNack, onAck, contentTypeOverride);
+    IncomingRabbitMQMessage(
+            final io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate,
+            final ConnectionHolder holder,
+            final RabbitMQFailureHandler onNack,
+            final RabbitMQAckHandler onAck,
+            final RabbitMQConnectorIncomingConfiguration incomingConfiguration) {
+        this(delegate.getDelegate(), holder, onNack, onAck, incomingConfiguration);
     }
 
-    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder, boolean isTracingEnabled,
-            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
+    IncomingRabbitMQMessage(
+            final io.vertx.rabbitmq.RabbitMQMessage msg,
+            final ConnectionHolder holder,
+            final RabbitMQFailureHandler onNack,
+            final RabbitMQAckHandler onAck,
+            final RabbitMQConnectorIncomingConfiguration incomingConfiguration) {
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();
         this.holder = holder;
         this.context = holder.getContext();
-        this.contentTypeOverride = contentTypeOverride;
-        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message);
+        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(message, incomingConfiguration);
         this.onNack = onNack;
         this.onAck = onAck;
+        this.incomingConfiguration = incomingConfiguration;
         this.metadata = captureContextMetadata(rabbitMQMetadata);
         //noinspection unchecked
         this.payload = (T) convertPayload(message);
-
-        // If tracing is enabled, ensure any tracing metadata in the received msg headers is transferred as metadata.
-        if (isTracingEnabled) {
-            this.metadata = this.metadata.with(TracingUtils.getTracingMetaData(msg));
-        }
     }
 
     @Override
@@ -154,13 +155,9 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
     private Object convertPayload(io.vertx.rabbitmq.RabbitMQMessage msg) {
         // Neither of these are guaranteed to be non-null
-        String contentType = msg.properties().getContentType();
+        final String contentType = incomingConfiguration.getContentTypeOverride().orElse(msg.properties().getContentType());
         final String contentEncoding = msg.properties().getContentEncoding();
         final Buffer body = msg.body();
-
-        if (this.contentTypeOverride != null) {
-            contentType = contentTypeOverride;
-        }
 
         // If there is a content encoding specified, we don't try to unwrap
         if (contentEncoding == null) {

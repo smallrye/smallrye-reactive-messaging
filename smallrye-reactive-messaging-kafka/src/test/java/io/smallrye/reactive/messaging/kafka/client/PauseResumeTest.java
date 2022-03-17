@@ -19,7 +19,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.*;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.*;
@@ -37,10 +36,9 @@ public class PauseResumeTest extends WeldTestBase {
     private KafkaSource<String, String> source;
 
     @BeforeEach
-    public void initializing() {
+    public void setup() {
         vertx = Vertx.vertx();
         consumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
-        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
     }
 
     @AfterEach

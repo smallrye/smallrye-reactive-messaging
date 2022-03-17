@@ -23,11 +23,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.DoubleInstance;
@@ -45,8 +43,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     private KafkaSource<String, String> source;
 
     @BeforeAll
-    static void initTracer() {
-        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
+    static void setup() {
         companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerde.JsonObjectSerializer(),
                 new JsonObjectSerde.JsonObjectDeserializer()));
     }

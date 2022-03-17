@@ -16,11 +16,9 @@ import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
-import io.smallrye.reactive.messaging.amqp.tracing.HeaderExtractAdapter;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
@@ -92,19 +90,6 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
             }
         } else {
             payload = (T) convert(message);
-        }
-
-        if (tracingEnabled) {
-            TracingMetadata tracingMetadata = TracingMetadata.empty();
-            if (msg.applicationProperties() != null) {
-                // Read tracing headers
-                io.opentelemetry.context.Context otelContext = GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                        .extract(io.opentelemetry.context.Context.root(), msg.applicationProperties(),
-                                HeaderExtractAdapter.GETTER);
-                tracingMetadata = TracingMetadata.withPrevious(otelContext);
-            }
-
-            meta.add(tracingMetadata);
         }
 
         this.metadata = captureContextMetadata(meta);

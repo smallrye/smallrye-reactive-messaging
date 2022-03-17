@@ -43,6 +43,14 @@
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-semconv</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-instrumentation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-instrumentation-api-semconv</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.smallrye.config</groupId>

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -30,8 +31,18 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Subscriber;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
+import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
@@ -43,7 +54,9 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
-import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaAttributesExtractor;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaTraceTextMapSetter;
 
 @SuppressWarnings("jol")
 public class KafkaSink {
@@ -69,6 +82,8 @@ public class KafkaSink {
     private final String channel;
 
     private final RuntimeKafkaSinkConfiguration runtimeConfiguration;
+
+    private final Instrumenter<KafkaTrace, Void> instrumenter;
 
     public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
@@ -122,6 +137,18 @@ public class KafkaSink {
             log.unableToDispatch(f);
             reportFailure(f);
         }));
+
+        KafkaAttributesExtractor kafkaAttributesExtractor = new KafkaAttributesExtractor();
+        MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter = kafkaAttributesExtractor
+                .getMessagingAttributesGetter();
+        InstrumenterBuilder<KafkaTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+                "io.smallrye.reactive.messaging",
+                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.SEND));
+
+        instrumenter = builder
+                .addAttributesExtractor(MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.SEND))
+                .addAttributesExtractor(kafkaAttributesExtractor)
+                .buildProducerInstrumenter(KafkaTraceTextMapSetter.INSTANCE);
 
     }
 
@@ -191,6 +218,36 @@ public class KafkaSink {
                 } else {
                     record = getProducerRecord(message, outgoingMetadata, incomingMetadata, actualTopic);
                 }
+
+                if (isTracingEnabled) {
+                    KafkaTrace kafkaTrace = new KafkaTrace.Builder()
+                            .withPartition(record.partition() != null ? record.partition() : -1)
+                            .withTopic(record.topic())
+                            .withHeaders(record.headers())
+                            .withGroupId(client.get(ConsumerConfig.GROUP_ID_CONFIG))
+                            .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))
+                            .build();
+
+                    Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
+
+                    Context parentContext = tracingMetadata.map(TracingMetadata::getCurrentContext).orElse(Context.current());
+                    Context spanContext;
+                    Scope scope = null;
+
+                    boolean shouldStart = instrumenter.shouldStart(parentContext, kafkaTrace);
+                    if (shouldStart) {
+                        try {
+                            spanContext = instrumenter.start(parentContext, kafkaTrace);
+                            scope = spanContext.makeCurrent();
+                            instrumenter.end(spanContext, kafkaTrace, null, null);
+                        } finally {
+                            if (scope != null) {
+                                scope.close();
+                            }
+                        }
+                    }
+                }
+
                 log.sendingMessageToTopic(message, actualTopic);
 
                 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -265,9 +322,6 @@ public class KafkaSink {
         }
 
         Headers kafkaHeaders = KafkaRecordHelper.getHeaders(om, im, runtimeConfiguration);
-        if (isTracingEnabled) {
-            KafkaRecordHelper.createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
-        }
         Object payload = message.getPayload();
         if (payload instanceof Record) {
             payload = ((Record) payload).value();

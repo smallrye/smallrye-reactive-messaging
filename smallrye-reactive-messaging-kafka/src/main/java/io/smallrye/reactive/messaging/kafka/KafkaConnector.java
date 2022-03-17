@@ -23,7 +23,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
@@ -118,7 +118,13 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
-    public static Tracer TRACER;
+    @Deprecated
+    public static Tracer TRACER = new Tracer() {
+        @Override
+        public SpanBuilder spanBuilder(final String spanName) {
+            throw new UnsupportedOperationException();
+        }
+    };
 
     @Inject
     ExecutionHolder executionHolder;
@@ -165,7 +171,6 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     @PostConstruct
     void init() {
         this.vertx = executionHolder.vertx();
-        TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
     }
 
     @Override
