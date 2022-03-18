@@ -60,7 +60,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                 conf.getDeadLetterQueueKeySerializer().orElse(getMirrorSerializer(keyDeserializer)));
         deadQueueProducerConfig.put(VALUE_SERIALIZER_CLASS_CONFIG,
                 conf.getDeadLetterQueueValueSerializer().orElse(getMirrorSerializer(valueDeserializer)));
-        deadQueueProducerConfig.put(CLIENT_ID_CONFIG, "kafka-dead-letter-topic-producer-" + conf.getChannel());
+        deadQueueProducerConfig.put(CLIENT_ID_CONFIG, "kafka-dead-letter-topic-producer-" + kafkaConfiguration.get(CLIENT_ID_CONFIG));
 
         ConfigurationCleaner.cleanupProducerConfiguration(deadQueueProducerConfig);
         String deadQueueTopic = conf.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + conf.getChannel());
