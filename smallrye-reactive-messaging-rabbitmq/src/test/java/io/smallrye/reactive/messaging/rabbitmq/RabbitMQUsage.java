@@ -72,7 +72,7 @@ public class RabbitMQUsage {
      * @param messageCount the number of messages to produce; must be positive
      * @param messageSupplier the function to produce messages; may not be null
      */
-    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier <Object> messageSupplier) {
+    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier) {
         this.produce(exchange, queue, routingKey, messageCount, messageSupplier, "text/plain");
     }
 
@@ -84,7 +84,7 @@ public class RabbitMQUsage {
      * @param messageSupplier the function to produce messages; may not be null
      * @param contentType the message's content_type attribute
      */
-    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier <Object> messageSupplier,
+    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier,
             String contentType) {
         CountDownLatch done = new CountDownLatch(messageCount);
         // Start the machinery to receive the messages
@@ -176,7 +176,7 @@ public class RabbitMQUsage {
         client.stopAndAwait();
     }
 
-    void produceTenIntegers(String exchange, String queue, String routingKey, Supplier <Integer> messageSupplier) {
+    void produceTenIntegers(String exchange, String queue, String routingKey, Supplier<Integer> messageSupplier) {
         this.produce(exchange, queue, routingKey, 10, messageSupplier::get);
     }
 
