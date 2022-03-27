@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.providers.helpers;
 
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
-import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -101,7 +100,6 @@ public class TypeUtils {
             return isAssignable(getRawType((ParameterizedType) type), toClass);
         }
 
-        // *
         if (type instanceof TypeVariable<?>) {
             // if any of the bounds are assignable to the class, then the
             // type is assignable to the class.
@@ -310,16 +308,6 @@ public class TypeUtils {
      */
     private static boolean isAssignable(final Type type, final WildcardType toWildcardType,
             final Map<TypeVariable<?>, Type> typeVarAssigns) {
-        if (type == null) {
-            return true;
-        }
-
-        // only a null type can be assigned to null type which
-        // would have cause the previous to return true
-        if (toWildcardType == null) {
-            return false;
-        }
-
         // all types are assignable to themselves
         if (toWildcardType.equals(type)) {
             return true;
@@ -397,6 +385,7 @@ public class TypeUtils {
      *         {@code toTypeVariable}.
      */
     private static boolean isAssignable(final Type type, final TypeVariable<?> toTypeVariable) {
+        // TODO HERE
         if (type == null) {
             return true;
         }
@@ -417,7 +406,6 @@ public class TypeUtils {
             // and only if the former is the latter, extends the latter, or
             // is otherwise a descendant of the latter.
             final Type[] bounds = getImplicitBounds((TypeVariable<?>) type);
-
             for (final Type bound : bounds) {
                 if (isAssignable(bound, toTypeVariable)) {
                     return true;
@@ -453,24 +441,6 @@ public class TypeUtils {
             return replacementType;
         }
         return type;
-    }
-
-    /**
-     * <p>
-     * Retrieves all the type arguments for this parameterized type
-     * including owner hierarchy arguments such as
-     * {@code Outer<K, V>.Inner<T>.DeepInner<E>} .
-     * The arguments are returned in a
-     * {@link Map} specifying the argument type for each {@link TypeVariable}.
-     * </p>
-     *
-     * @param type specifies the subject parameterized type from which to
-     *        harvest the parameters.
-     * @return a {@code Map} of the type arguments to their respective type
-     *         variables.
-     */
-    private static Map<TypeVariable<?>, Type> getTypeArguments(final ParameterizedType type) {
-        return getTypeArguments(type, getRawType(type), null);
     }
 
     /**
@@ -535,6 +505,7 @@ public class TypeUtils {
             return getTypeArguments((ParameterizedType) type, toClass, subtypeVarAssigns);
         }
 
+        // TODO HERE
         if (type instanceof GenericArrayType) {
             return getTypeArguments(((GenericArrayType) type).getGenericComponentType(), toClass
                     .isArray() ? toClass.getComponentType() : toClass, subtypeVarAssigns);
@@ -612,8 +583,7 @@ public class TypeUtils {
         // map the arguments to their respective type variables
         for (int i = 0; i < typeParams.length; i++) {
             final Type typeArg = typeArgs[i];
-            typeVarAssigns.put(typeParams[i], typeVarAssigns.containsKey(typeArg) ? typeVarAssigns
-                    .get(typeArg) : typeArg);
+            typeVarAssigns.put(typeParams[i], typeVarAssigns.getOrDefault(typeArg, typeArg));
         }
 
         if (toClass.equals(cls)) {
@@ -693,7 +663,7 @@ public class TypeUtils {
 
             // find the interface closest to the super class
             for (final Type midType : interfaceTypes) {
-                Class<?> midClass = null;
+                Class<?> midClass;
 
                 if (midType instanceof ParameterizedType) {
                     midClass = getRawType((ParameterizedType) midType);
@@ -752,7 +722,6 @@ public class TypeUtils {
      *         redundant types.
      */
     public static Type[] normalizeUpperBounds(final Type[] bounds) {
-        Validation.notNull(bounds, msg.nullSpecifiedForBounds());
         // don't bother if there's only one (or none) type
         if (bounds.length < 2) {
             return bounds;
@@ -790,9 +759,7 @@ public class TypeUtils {
      * @return a non-empty array containing the bounds of the type variable.
      */
     private static Type[] getImplicitBounds(final TypeVariable<?> typeVariable) {
-        Validation.notNull(typeVariable, msg.isNull("typeVariable"));
         final Type[] bounds = typeVariable.getBounds();
-
         return bounds.length == 0 ? new Type[] { Object.class } : normalizeUpperBounds(bounds);
     }
 
@@ -809,9 +776,7 @@ public class TypeUtils {
      *         type.
      */
     static Type[] getImplicitUpperBounds(final WildcardType wildcardType) {
-        Validation.notNull(wildcardType, msg.isNull("wildcardType"));
         final Type[] bounds = wildcardType.getUpperBounds();
-
         return bounds.length == 0 ? new Type[] { Object.class } : normalizeUpperBounds(bounds);
     }
 
@@ -827,9 +792,7 @@ public class TypeUtils {
      *         type.
      */
     static Type[] getImplicitLowerBounds(final WildcardType wildcardType) {
-        Validation.notNull(wildcardType, msg.isNull("wildcardType"));
         final Type[] bounds = wildcardType.getLowerBounds();
-
         return bounds.length == 0 ? new Type[] { null } : bounds;
     }
 
@@ -904,195 +867,6 @@ public class TypeUtils {
             return true;
         }
         return false;
-    }
-
-    public static String toString(final Type type) {
-        Validation.notNull(type, "type");
-        if (type instanceof Class<?>) {
-            return classToString((Class<?>) type);
-        }
-        if (type instanceof ParameterizedType) {
-            return parameterizedTypeToString((ParameterizedType) type);
-        }
-        if (type instanceof WildcardType) {
-            return wildcardTypeToString((WildcardType) type);
-        }
-        if (type instanceof TypeVariable<?>) {
-            return typeVariableToString((TypeVariable<?>) type);
-        }
-        if (type instanceof GenericArrayType) {
-            return genericArrayTypeToString((GenericArrayType) type);
-        }
-        throw ex.illegalArgumentTypeToString(type.getTypeName());
-    }
-
-    static String toLongString(final TypeVariable<?> var) {
-        Validation.notNull(var, "var");
-        final StringBuilder buf = new StringBuilder();
-        final GenericDeclaration d = var.getGenericDeclaration();
-        if (d instanceof Class<?>) {
-            Class<?> c = (Class<?>) d;
-            while (true) {
-                if (c.getEnclosingClass() == null) {
-                    buf.insert(0, c.getName());
-                    break;
-                }
-                buf.insert(0, c.getSimpleName()).insert(0, '.');
-                c = c.getEnclosingClass();
-            }
-        } else if (d instanceof Type) {// not possible as of now
-            buf.append(toString((Type) d));
-        } else {
-            buf.append(d);
-        }
-        return buf.append(':').append(typeVariableToString(var)).toString();
-    }
-
-    private static String classToString(final Class<?> c) {
-        if (c.isArray()) {
-            return toString(c.getComponentType()) + "[]";
-        }
-
-        final StringBuilder buf = new StringBuilder();
-
-        if (c.getEnclosingClass() != null) {
-            buf.append(classToString(c.getEnclosingClass())).append('.').append(c.getSimpleName());
-        } else {
-            buf.append(c.getName());
-        }
-        if (c.getTypeParameters().length > 0) {
-            buf.append('<');
-            appendAllTo(buf, ", ", c.getTypeParameters());
-            buf.append('>');
-        }
-        return buf.toString();
-    }
-
-    private static String typeVariableToString(final TypeVariable<?> v) {
-        final StringBuilder buf = new StringBuilder(v.getName());
-        final Type[] bounds = v.getBounds();
-        if (bounds.length > 0 && !(bounds.length == 1 && Object.class.equals(bounds[0]))) {
-            buf.append(" extends ");
-            appendAllTo(buf, " & ", v.getBounds());
-        }
-        return buf.toString();
-    }
-
-    private static String parameterizedTypeToString(final ParameterizedType p) {
-        final StringBuilder buf = new StringBuilder();
-
-        final Type useOwner = p.getOwnerType();
-        final Class<?> raw = (Class<?>) p.getRawType();
-
-        if (useOwner == null) {
-            buf.append(raw.getName());
-        } else {
-            if (useOwner instanceof Class<?>) {
-                buf.append(((Class<?>) useOwner).getName());
-            } else {
-                buf.append(useOwner.toString());
-            }
-            buf.append('.').append(raw.getSimpleName());
-        }
-
-        final int[] recursiveTypeIndexes = findRecursiveTypes(p);
-
-        if (recursiveTypeIndexes.length > 0) {
-            appendRecursiveTypes(buf, recursiveTypeIndexes, p.getActualTypeArguments());
-        } else {
-            appendAllTo(buf.append('<'), ", ", p.getActualTypeArguments()).append('>');
-        }
-
-        return buf.toString();
-    }
-
-    private static void appendRecursiveTypes(final StringBuilder buf, final int[] recursiveTypeIndexes,
-            final Type[] argumentTypes) {
-        for (int i = 0; i < recursiveTypeIndexes.length; i++) {
-            appendAllTo(buf.append('<'), ", ", argumentTypes[i].toString()).append('>');
-        }
-
-        final Type[] argumentsFiltered = removeAll(argumentTypes, recursiveTypeIndexes);
-
-        if (argumentsFiltered.length > 0) {
-            appendAllTo(buf.append('<'), ", ", argumentsFiltered).append('>');
-        }
-    }
-
-    private static Type[] removeAll(Type[] types, final int... indices) {
-        int[] clonedIndices = Arrays.copyOf(indices, indices.length);
-        Arrays.sort(clonedIndices);
-
-        List<Type> list = new ArrayList<>(Arrays.asList(types));
-        for (int i = clonedIndices.length - 1; i >= 0; i--) {
-            list.remove(clonedIndices[i]);
-        }
-
-        return list.toArray(new Type[0]);
-    }
-
-    private static int[] findRecursiveTypes(final ParameterizedType p) {
-        final Type[] filteredArgumentTypes = Arrays.copyOf(p.getActualTypeArguments(), p.getActualTypeArguments().length);
-        int[] indexesToRemove = {};
-        for (int i = 0; i < filteredArgumentTypes.length; i++) {
-            if (filteredArgumentTypes[i] instanceof TypeVariable<?>) {
-                if (containsVariableTypeSameParametrizedTypeBound(((TypeVariable<?>) filteredArgumentTypes[i]), p)) {
-                    indexesToRemove = add(indexesToRemove, i);
-                }
-            }
-        }
-        return indexesToRemove;
-    }
-
-    private static boolean containsVariableTypeSameParametrizedTypeBound(final TypeVariable<?> typeVariable,
-            final ParameterizedType p) {
-        Type[] bounds = typeVariable.getBounds();
-        if (bounds == null) {
-            return false;
-        }
-        if (p == null) {
-            return false;
-        }
-        return Arrays.asList(bounds).contains(p);
-    }
-
-    public static int[] add(int[] array, int element) {
-        ArrayList<Integer> list = new ArrayList<>();
-        Arrays.stream(array).forEach(list::add);
-        list.add(element);
-        return list.stream().mapToInt(i -> i).toArray();
-    }
-
-    private static String wildcardTypeToString(final WildcardType w) {
-        final StringBuilder buf = new StringBuilder().append('?');
-        final Type[] lowerBounds = w.getLowerBounds();
-        final Type[] upperBounds = w.getUpperBounds();
-        if (lowerBounds.length > 1 || lowerBounds.length == 1 && lowerBounds[0] != null) {
-            appendAllTo(buf.append(" super "), " & ", lowerBounds);
-        } else if (upperBounds.length > 1 || upperBounds.length == 1 && !Object.class.equals(upperBounds[0])) {
-            appendAllTo(buf.append(" extends "), " & ", upperBounds);
-        }
-        return buf.toString();
-    }
-
-    private static String genericArrayTypeToString(final GenericArrayType g) {
-        return String.format("%s[]", toString(g.getGenericComponentType()));
-    }
-
-    @SafeVarargs
-    private static <T> StringBuilder appendAllTo(final StringBuilder buf, final String sep, final T... types) {
-        Validation.notEmpty(Validation.noNullElements(types, "types"), "types");
-        if (types.length > 0) {
-            buf.append(toString(types[0]));
-            for (int i = 1; i < types.length; i++) {
-                buf.append(sep).append(toString(types[i]));
-            }
-        }
-        return buf;
-    }
-
-    private static <T> String toString(T object) {
-        return object instanceof Type ? toString((Type) object) : object.toString();
     }
 
 }

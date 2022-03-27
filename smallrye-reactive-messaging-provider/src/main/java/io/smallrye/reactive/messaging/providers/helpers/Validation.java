@@ -1,57 +1,9 @@
 package io.smallrye.reactive.messaging.providers.helpers;
 
-import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
-
 public class Validation {
 
     private Validation() {
         // avoid direct instantiation
-    }
-
-    public static <T> T notNull(T instance, String name) {
-        if (isBlank(name)) {
-            throw ex.nameMustBeSet();
-        }
-
-        if (instance == null) {
-            throw ex.validationForNotNull(name);
-        }
-
-        return instance;
-
-    }
-
-    public static <T> T[] notEmpty(T[] array, String name) {
-        if (isBlank(name)) {
-            throw ex.nameMustBeSet();
-        }
-
-        if (array == null) {
-            throw ex.validationForNotNull(name);
-        }
-        if (array.length == 0) {
-            throw ex.validationForNotEmpty(name);
-        }
-
-        return array;
-    }
-
-    public static <T> T[] noNullElements(T[] array, String name) {
-        if (isBlank(name)) {
-            throw ex.nameMustBeSet();
-        }
-
-        if (array == null) {
-            throw ex.validationForNotNull(name);
-        }
-
-        for (T t : array) {
-            if (t == null) {
-                throw ex.validationForContainsNull(name);
-            }
-        }
-
-        return array;
     }
 
     /**
@@ -72,11 +24,5 @@ public class Validation {
             }
         }
         return true;
-    }
-
-    public static void isTrue(boolean mustBeTrue, String message) {
-        if (!mustBeTrue) {
-            throw ex.validateIsTrue(message);
-        }
     }
 }

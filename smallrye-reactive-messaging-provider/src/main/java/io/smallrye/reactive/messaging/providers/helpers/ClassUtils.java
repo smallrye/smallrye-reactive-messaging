@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * Allows checking if a class can be assigned to a variable from another class.
- *
+ * <p>
  * Code extracted from from Apache Commons Lang 3 - ClassUtils.java
  */
 public class ClassUtils {
@@ -22,20 +22,7 @@ public class ClassUtils {
      * @param toClass the Class to try to assign into, returns {@code false} if null
      * @return {@code true} if assignment possible
      */
-    public static boolean isAssignable(final Class<?> cls, final Class<?> toClass) {
-        return isAssignable(cls, toClass, true);
-    }
-
-    /**
-     * Checks if one {@code cls} can be assigned to a variable of
-     * another {@code toClass}, like: {@code Cls c = ...; ToClass x = c;}
-     *
-     * @param cls the Class to check, may be {@code null}
-     * @param toClass the Class to try to assign into, returns {@code false} if null
-     * @param autoboxing whether to use implicit autoboxing/unboxing between primitives and wrappers
-     * @return {@code true} if assignment possible
-     */
-    private static boolean isAssignable(Class<?> cls, final Class<?> toClass, final boolean autoboxing) {
+    public static boolean isAssignable(Class<?> cls, Class<?> toClass) {
         if (toClass == null) {
             return false;
         }
@@ -43,21 +30,20 @@ public class ClassUtils {
         if (cls == null) {
             return !toClass.isPrimitive();
         }
-        //autoboxing:
-        if (autoboxing) {
-            if (cls.isPrimitive() && !toClass.isPrimitive()) {
-                cls = primitiveToWrapper(cls);
-                if (cls == null) {
-                    return false;
-                }
-            }
-            if (toClass.isPrimitive() && !cls.isPrimitive()) {
-                cls = wrapperToPrimitive(cls);
-                if (cls == null) {
-                    return false;
-                }
+
+        if (cls.isPrimitive() && !toClass.isPrimitive()) {
+            cls = primitiveToWrapper(cls);
+            if (cls == null) {
+                return false;
             }
         }
+        if (toClass.isPrimitive() && !cls.isPrimitive()) {
+            cls = wrapperToPrimitive(cls);
+            if (cls == null) {
+                return false;
+            }
+        }
+
         if (cls.equals(toClass)) {
             return true;
         }

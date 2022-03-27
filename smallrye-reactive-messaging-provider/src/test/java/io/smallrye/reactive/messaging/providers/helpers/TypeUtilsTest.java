@@ -1,6 +1,8 @@
 package io.smallrye.reactive.messaging.providers.helpers;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.Serializable;
 import java.lang.reflect.*;
@@ -9,6 +11,7 @@ import java.sql.Date;
 import java.util.*;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @SuppressWarnings({ "unchecked", "unused", "rawtypes" })
 public class TypeUtilsTest<B> {
@@ -16,6 +19,7 @@ public class TypeUtilsTest<B> {
     public interface This<K, V> {
     }
 
+    @SuppressWarnings("InnerClassMayBeStatic")
     class That<K, V> implements This<K, V> {
     }
 
@@ -25,6 +29,7 @@ public class TypeUtilsTest<B> {
     public class The<K, V> extends That<Number, Number> implements And<String, String> {
     }
 
+    @SuppressWarnings("InnerClassMayBeStatic")
     class Other<T> implements This<String, T> {
     }
 
@@ -303,21 +308,19 @@ public class TypeUtilsTest<B> {
         aClass.eClass = aClass.fClass;
         assertTrue(TypeUtils.isAssignable(fClassType, eClassType));
 
-        assertTrue(TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0], new Type[0])));
-        assertFalse(TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0], new Type[] {
-                TypeUtilsTest.class.getTypeParameters()[0]
-        })));
+        WildcardType unbounded = getWildcardType(null, null);
+        assertTrue(TypeUtils.isAssignable(String.class, unbounded));
+        assertFalse(TypeUtils.isAssignable(String.class, getWildcardType(null, TypeUtilsTest.class.getTypeParameters()[0])));
 
-        assertFalse(TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0],
-                new Type[] { new WildcardTypeImpl(new Type[0], new Type[0]) })));
+        assertFalse(TypeUtils.isAssignable(String.class, getWildcardType(null, unbounded)));
 
-        assertThrows(IllegalStateException.class, () -> TypeUtils.isAssignable(String.class, new WildcardTypeImpl(new Type[0],
-                new Type[] { new Type() {
+        assertThrows(IllegalStateException.class, () -> TypeUtils.isAssignable(String.class, getWildcardType(null,
+                new Type() {
                     @Override
                     public String getTypeName() {
                         return "illegal";
                     }
-                } })));
+                })));
 
         assertFalse(TypeUtils.isAssignable(String.class, TypeUtilsTest.class.getTypeParameters()[0]));
 
@@ -343,12 +346,13 @@ public class TypeUtilsTest<B> {
 
     @Test
     public void testIsAssignableWithParameterizedType() {
-        assertFalse(TypeUtils.isAssignable(String.class,
-                new ParameterizedTypeImpl(List.class, Object.class, Collections.singletonList(String.class)),
-                Collections.emptyMap()));
-        assertTrue(TypeUtils.isAssignable(null,
-                new ParameterizedTypeImpl(List.class, Object.class, Collections.singletonList(String.class)),
-                Collections.emptyMap()));
+        ParameterizedType p1 = mock(ParameterizedType.class);
+        when(p1.getRawType()).thenReturn(List.class);
+        Type[] arg = new Type[] { String.class };
+        when(p1.getActualTypeArguments()).thenReturn(arg);
+
+        assertFalse(TypeUtils.isAssignable(String.class, p1, Collections.emptyMap()));
+        assertTrue(TypeUtils.isAssignable(null, p1, Collections.emptyMap()));
         assertFalse(TypeUtils.isAssignable(String.class, (ParameterizedType) null, Collections.emptyMap()));
 
         assertFalse(TypeUtils.isAssignable(String.class, new GenericArrayType() {
@@ -385,7 +389,7 @@ public class TypeUtilsTest<B> {
 
             @Override
             public Type getGenericComponentType() {
-                return new WildcardTypeImpl(new Type[0], new Type[0]);
+                return getWildcardType(null, null);
             }
         }, Collections.emptyMap()));
 
@@ -413,7 +417,7 @@ public class TypeUtilsTest<B> {
             }
         }, Collections.emptyMap()));
 
-        assertFalse(TypeUtils.isAssignable(new WildcardTypeImpl(new Type[0], new Type[0]), new GenericArrayType() {
+        assertFalse(TypeUtils.isAssignable(getWildcardType(null, null), new GenericArrayType() {
             @Override
             public String getTypeName() {
                 return String.class.getName();
@@ -425,8 +429,7 @@ public class TypeUtilsTest<B> {
             }
         }, Collections.emptyMap()));
 
-        assertFalse(TypeUtils.isAssignable(
-                new ParameterizedTypeImpl(List.class, Object.class, Collections.singletonList(String.class)),
+        assertFalse(TypeUtils.isAssignable(p1,
                 new GenericArrayType() {
                     @Override
                     public String getTypeName() {
@@ -512,32 +515,28 @@ public class TypeUtilsTest<B> {
 
     @Test
     public void testWildcardType() throws Exception {
-        final WildcardType simpleWildcard = new WildcardTypeImpl(new Type[] { String.class }, null);
+        final WildcardType simpleWildcard = getWildcardType(String.class, null);
         final Field cClass = AClass.class.getField("cClass");
         assertTrue(TypeUtils.equals(((ParameterizedType) cClass.getGenericType()).getActualTypeArguments()[0],
                 simpleWildcard));
-        assertEquals(String.format("? extends %s", String.class.getName()), TypeUtils.toString(simpleWildcard));
         assertEquals(String.format("? extends %s", String.class.getName()), simpleWildcard.toString());
     }
 
     @Test
     public void testUnboundedWildcardType() {
-        final WildcardType unbounded = new WildcardTypeImpl(null, null);
+        final WildcardType unbounded = getWildcardType(null, null);
         assertArrayEquals(new Type[] { Object.class }, TypeUtils.getImplicitUpperBounds(unbounded));
         assertArrayEquals(new Type[] { null }, TypeUtils.getImplicitLowerBounds(unbounded));
-        assertEquals("?", TypeUtils.toString(unbounded));
         assertEquals("?", unbounded.toString());
     }
 
     @Test
     public void testLowerBoundedWildcardType() {
-        final WildcardType lowerBounded = new WildcardTypeImpl(null, new Type[] { Date.class });
-        assertEquals(String.format("? super %s", java.sql.Date.class.getName()), TypeUtils.toString(lowerBounded));
+        final WildcardType lowerBounded = getWildcardType(null, Date.class);
         assertEquals(String.format("? super %s", java.sql.Date.class.getName()), lowerBounded.toString());
 
         final TypeVariable<Class<Iterable>> iterableT0 = Iterable.class.getTypeParameters()[0];
-        final WildcardType lowerTypeVariable = new WildcardTypeImpl(null, new Type[] { iterableT0 });
-        assertEquals(String.format("? super %s", iterableT0.getName()), TypeUtils.toString(lowerTypeVariable));
+        final WildcardType lowerTypeVariable = getWildcardType(null, iterableT0);
         assertEquals(String.format("? super %s", iterableT0.getName()), lowerTypeVariable.toString());
     }
 
@@ -548,11 +547,6 @@ public class TypeUtilsTest<B> {
 
         assertFalse(TypeUtils.equals(wildcardType, nonWildcardType));
         assertFalse(TypeUtils.equals(nonWildcardType, wildcardType));
-    }
-
-    @Test
-    public void testToLongString() {
-        assertEquals(getClass().getName() + ":B", TypeUtils.toLongString(getClass().getTypeParameters()[0]));
     }
 
     public static class ClassWithSuperClassWithGenericType extends ArrayList<Object> {
@@ -567,14 +561,68 @@ public class TypeUtilsTest<B> {
     public void testFailingWildcard() throws Exception {
         final Type fromType = ClassWithSuperClassWithGenericType.class.getDeclaredMethod("methodWithGenericReturnType")
                 .getGenericReturnType();
-        final WildcardType failingToType = new WildcardTypeImpl(null, new Type[] { ClassWithSuperClassWithGenericType.class });
+        WildcardType failingToType = getWildcardType(null, ClassWithSuperClassWithGenericType.class);
         assertTrue(TypeUtils.isAssignable(fromType, failingToType));
     }
 
     @Test
-    public void testLANG1348() throws Exception {
-        final Method method = Enum.class.getMethod("valueOf", Class.class, String.class);
-        assertEquals("T extends java.lang.Enum<T>", TypeUtils.toString(method.getGenericReturnType()));
+    void testEquality() {
+        WildcardType wildcardType = getWildcardType(List.class, null);
+        assertTrue(TypeUtils.isAssignable(wildcardType, wildcardType));
+        assertTrue(TypeUtils.equals(wildcardType, wildcardType));
+
+        WildcardType wildcardType2 = getWildcardType(List.class, String.class);
+        WildcardType wildcardType3 = getWildcardType(List.class, String.class);
+        assertTrue(TypeUtils.equals(wildcardType2, wildcardType3));
+
+        ParameterizedType pt = mock(ParameterizedType.class);
+        assertTrue(TypeUtils.isAssignable(pt, pt));
+        assertTrue(TypeUtils.equals(pt, pt));
+
+        when(pt.getRawType()).thenReturn(Map.class);
+        when(pt.getActualTypeArguments()).thenReturn(new Type[] { String.class, Integer.class });
+        ParameterizedType pt2 = mock(ParameterizedType.class);
+        when(pt2.getRawType()).thenReturn(Map.class);
+        when(pt2.getActualTypeArguments()).thenReturn(new Type[] { String.class, Integer.class });
+
+        assertTrue(TypeUtils.equals(pt, pt2));
+
+        when(pt2.getActualTypeArguments()).thenReturn(new Type[] { String.class, Long.class });
+        assertFalse(TypeUtils.equals(pt, pt2));
+
+        when(pt2.getActualTypeArguments()).thenReturn(new Type[] { String.class });
+        assertFalse(TypeUtils.equals(pt, pt2));
+
+        TypeVariable<Class<ClassWithOneTypeVariable>>[] variables = ClassWithOneTypeVariable.class.getTypeParameters();
+        assertEquals(1, variables.length);
+        assertTrue(TypeUtils.isAssignable(variables[0], variables[0]));
+        assertFalse(TypeUtils.isAssignable(variables[0], null));
+        assertFalse(TypeUtils.isAssignable(Object.class, variables[0]));
+        assertTrue(TypeUtils.equals(variables[0], variables[0]));
+
+        TypeUtils.isAssignable(String.class, variables[0]);
+        assertTrue(TypeUtils.isAssignable(null, variables[0]));
+        assertTrue(TypeUtils.isAssignable(variables[0], variables[0]));
+
+        TypeVariable<Class<ClassWithCompositeTypeVariable>>[] vars = ClassWithCompositeTypeVariable.class.getTypeParameters();
+        TypeVariable<Class<ClassWithCompositeTypeVariable2>>[] vars2 = ClassWithCompositeTypeVariable2.class
+                .getTypeParameters();
+
+        assertTrue(TypeUtils.isAssignable(vars[0], vars[0]));
+        assertThrows(IllegalStateException.class, () -> TypeUtils.isAssignable(vars[0], vars2[0]));
+
+    }
+
+    static class ClassWithOneTypeVariable<D> {
+
+    }
+
+    static class ClassWithCompositeTypeVariable<D extends String> {
+
+    }
+
+    static class ClassWithCompositeTypeVariable2<D extends String> {
+
     }
 
     public Iterable<? extends Map<Integer, ? extends Collection<?>>> iterable;
@@ -593,14 +641,41 @@ public class TypeUtilsTest<B> {
 
     @Test
     public void testEquals() {
-        assertFalse(TypeUtils.equals(String.class,
-                new ParameterizedTypeImpl(List.class, List.class, Collections.singletonList(String.class))));
-        assertFalse(TypeUtils.equals(new ParameterizedTypeImpl(List.class, List.class, Collections.singletonList(String.class)),
-                List.class));
+        ParameterizedType p1 = mock(ParameterizedType.class);
+        assertFalse(TypeUtils.equals(String.class, p1));
+        assertFalse(TypeUtils.equals(p1, List.class));
         assertFalse(TypeUtils.equals(String.class, TypeUtilsTest.class.getTypeParameters()[0]));
 
-        assertFalse(TypeUtils.equals(new WildcardTypeImpl(new Type[0], new Type[0]), String.class));
+        WildcardType wildcard = getWildcardType(null, null);
+        assertFalse(TypeUtils.equals(wildcard, String.class));
         assertFalse(TypeUtils.equals((GenericArrayType) () -> String.class, String.class));
+    }
+
+    private WildcardType getWildcardType(Type upper, Type lower) {
+        WildcardType wildcard = mock(WildcardType.class);
+        boolean isLowerAMock = Mockito.mockingDetails(lower).isMock();
+
+        if (upper == null) {
+            when(wildcard.getUpperBounds()).thenReturn(new Type[0]);
+        } else {
+            when(wildcard.getUpperBounds()).thenReturn(new Type[] { upper });
+        }
+
+        if (lower == null) {
+            when(wildcard.getLowerBounds()).thenReturn(new Type[0]);
+        } else {
+            when(wildcard.getLowerBounds()).thenReturn(new Type[] { lower });
+        }
+
+        if (upper == null && lower == null) {
+            when(wildcard.toString()).thenReturn("?");
+        } else if (upper != null && lower == null) {
+            when(wildcard.toString()).thenReturn("? extends " + upper.getTypeName());
+        } else if (upper == null && !isLowerAMock) {
+            when(wildcard.toString()).thenReturn("? super " + lower.getTypeName());
+        }
+
+        return wildcard;
     }
 }
 
@@ -623,22 +698,22 @@ class AClass extends AAClass<String>.BBClass<Number> {
         enclosingInstance.super();
     }
 
-    public class BClass<T> {
+    public static class BClass<T> {
     }
 
-    public class CClass<T> extends BClass {
+    public static class CClass<T> extends BClass {
     }
 
-    public class DClass<T> extends CClass<T> {
+    public static class DClass<T> extends CClass<T> {
     }
 
-    public class EClass<T> extends DClass {
+    public static class EClass<T> extends DClass {
     }
 
-    public class FClass extends EClass<String> {
+    public static class FClass extends EClass<String> {
     }
 
-    public class GClass<T extends BClass<? extends T> & AInterface<AInterface<? super T>>> {
+    public static class GClass<T extends BClass<? extends T> & AInterface<AInterface<? super T>>> {
     }
 
     public BClass<Number> bClass;
