@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.transactions;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.enterprise.inject.Typed;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
 
@@ -31,6 +32,7 @@ public class KafkaTransactionsFactory implements EmitterFactory<KafkaTransaction
     }
 
     @Produces
+    @Typed(KafkaTransactions.class)
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> KafkaTransactions<T> produceEmitter(InjectionPoint injectionPoint) {
         String channelName = ChannelProducer.getChannelName(injectionPoint);
