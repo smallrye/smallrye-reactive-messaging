@@ -85,7 +85,7 @@ public class KafkaSink {
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
         isTracingEnabled = config.getTracingEnabled();
 
-        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers);
+        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers, this::reportFailure);
 
         // fire producer event (e.g. bind metrics)
         kafkaCDIEvents.producer().fire(client.unwrap());

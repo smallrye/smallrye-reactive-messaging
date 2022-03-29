@@ -21,7 +21,7 @@ public interface ChannelRegistry {
 
     void register(String name, MutinyEmitter<?> emitter);
 
-    void register(String name, Class<?> emitterType, Object emitter);
+    <T> void register(String name, Class<T> emitterType, T emitter);
 
     List<Publisher<? extends Message<?>>> getPublishers(String name);
 

@@ -51,8 +51,11 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private final String channel;
     private final int closetimeout;
 
+    private Consumer<Throwable> reportFailure;
+
     public ReactiveKafkaProducer(KafkaConnectorOutgoingConfiguration config,
-            Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
+            Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
+            Consumer<Throwable> reportFailure) {
         this(getKafkaProducerConfiguration(config), config.getChannel(), config.getCloseTimeout(),
                 createSerializationFailureHandler(config.getChannel(),
                         config.getKeySerializationFailureHandler().orElse(null),
@@ -60,6 +63,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
                 createSerializationFailureHandler(config.getChannel(),
                         config.getValueSerializationFailureHandler().orElse(null),
                         serializationFailureHandlers));
+        this.reportFailure = reportFailure;
     }
 
     public String getClientId() {
@@ -93,8 +97,13 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         kafkaWorker = Executors.newSingleThreadExecutor(KafkaSendingThread::new);
         producer = new KafkaProducer<>(kafkaConfiguration, keySerializer, valueSerializer);
         if (kafkaConfiguration.containsKey(ProducerConfig.TRANSACTIONAL_ID_CONFIG)) {
-            // TODO is this the right way ?
-            initTransactions().subscribeAsCompletionStage();
+            initTransactions().subscribe().with(unused -> {
+            }, throwable -> {
+                log.unableToInitializeProducer(channel, throwable);
+                if (reportFailure != null) {
+                    reportFailure.accept(throwable);
+                }
+            });
         }
     }
 
@@ -186,9 +195,10 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
                 })
                         .onItem().transformToUniAndConcatenate(this::send)
                         .collect().asList())
+                .chain(this::flush)
                 .chain(this::commitTransaction)
                 .onFailure().recoverWithUni(throwable -> {
-                    log.warnf(throwable, "Aborting transaction for producer id &s in channel %s", this.clientId, this.channel);
+                    log.transactionAborted(this.clientId, this.channel, throwable);
                     return this.abortTransaction();
                 });
     }

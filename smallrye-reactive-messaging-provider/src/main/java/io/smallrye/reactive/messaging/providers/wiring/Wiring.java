@@ -461,11 +461,16 @@ public class Wiring {
         @Override
         public void materialize(ChannelRegistry registry) {
             int def = getDefaultBufferSize();
+            registerEmitter(registry, def);
+        }
+
+        private <T extends MessagePublisherProvider<?>> void registerEmitter(ChannelRegistry registry, int def) {
             EmitterFactory<?> emitterFactory = getEmitterFactory(configuration.emitterType());
-            MessagePublisherProvider<?> emitter = emitterFactory.createEmitter(configuration, def);
+            T emitter = (T) emitterFactory.createEmitter(configuration, def);
             Publisher<? extends Message<?>> publisher = emitter.getPublisher();
-            Class<?> type = configuration.emitterType().value();
+            Class<T> type = (Class<T>) configuration.emitterType().value();
             registry.register(configuration.name(), type, emitter);
+            //noinspection ReactiveStreamsUnusedPublisher
             registry.register(configuration.name(), publisher, broadcast());
         }
 

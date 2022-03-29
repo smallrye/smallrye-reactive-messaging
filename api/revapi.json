@@ -41,7 +41,7 @@
                 },
                 {
                     "code": "java.method.addedToInterface",
-                    "new": "method void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.Class<?>, java.lang.Object)",
+                    "new": "method <T> void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.Class<T>, T)",
                     "justification": "New method added to register emitter by its type"
                 }
             ]

@@ -87,7 +87,7 @@ public class ProducerBuilder<K, V> implements Closeable {
     private ExecutorService executorService;
 
     /**
-     *
+     * Callback to invoke on producer termination
      */
     private BiConsumer<KafkaProducer<K, V>, Throwable> onTermination = this::terminate;
 

@@ -61,7 +61,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public synchronized void register(String name, Class<?> emitterType, Object emitter) {
+    public synchronized <T> void register(String name, Class<T> emitterType, T emitter) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(emitter, msg.emitterMustBeSet());
         Map<String, Object> map = emitters.computeIfAbsent(emitterType, key -> new HashMap<>());
