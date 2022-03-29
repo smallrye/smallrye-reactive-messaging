@@ -26,11 +26,7 @@ public class MultiUtils {
         return multi.plug(stream -> (Multi) stream
                 .onItem().transformToUniAndConcatenate(message -> {
                     CompletionStage<Void> ack = message.ack();
-                    if (ack != null) {
-                        return Uni.createFrom().completionStage(ack).map(x -> message);
-                    } else {
-                        return Uni.createFrom().item(message);
-                    }
+                    return Uni.createFrom().completionStage(ack).map(x -> message);
                 }));
     }
 

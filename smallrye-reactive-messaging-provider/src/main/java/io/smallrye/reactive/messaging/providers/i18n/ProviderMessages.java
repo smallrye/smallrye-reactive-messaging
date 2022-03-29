@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.providers.i18n;
 
-import java.lang.reflect.Type;
-
 import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
@@ -49,20 +47,8 @@ public interface ProviderMessages {
     @Message(id = 111, value = "AnnotatedType was empty")
     String annotatedTypeWasEmpty();
 
-    @Message(id = 112, value = "null value specified for bounds array")
-    String nullSpecifiedForBounds();
-
     @Message(id = 113, value = "%s is null")
     String isNull(String name);
-
-    @Message(id = 114, value = "no owner allowed for top-level %s")
-    String noOwnerAllowed(Class<?> raw);
-
-    @Message(id = 115, value = "%s is invalid owner type for parameterized %s")
-    String invalidOwnerForParameterized(Type owner, Class<?> raw);
-
-    @Message(id = 116, value = "invalid number of type parameters specified: expected %d, got %d")
-    String invalidNumberOfTypeParameters(int parameterLength, int argumentLength);
 
     @Message(id = 117, value = "the prefix must not be set")
     String prefixMustNotBeSet();

@@ -11,10 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("ConstantConditions")
 public class MessageTest {
 
-    private MyMetadata myMetadata = new MyMetadata("bar");
+    private final MyMetadata myMetadata = new MyMetadata("bar");
 
     @Test
     public void testCreationFromPayloadOnly() {

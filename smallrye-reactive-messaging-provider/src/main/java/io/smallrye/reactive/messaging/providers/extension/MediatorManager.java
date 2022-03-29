@@ -86,6 +86,13 @@ public class MediatorManager {
                 });
     }
 
+    /**
+     * This method is used in the Quarkus extension.
+     * 
+     * @param beanClass the bean class
+     * @param bean the bean instance
+     * @param <T> the type.
+     */
     @SuppressWarnings("unused")
     public <T> void analyze(Class<?> beanClass, Bean<T> bean) {
         Class<?> current = beanClass;
@@ -207,4 +214,8 @@ public class MediatorManager {
         health.markInitialized();
     }
 
+    // Visible for testing purpose only.
+    CollectedMediatorMetadata getCollected() {
+        return collected;
+    }
 }
