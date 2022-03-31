@@ -4,6 +4,7 @@ import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.MutinyEmitter;
@@ -19,7 +20,7 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
  * &#64;Inject @Channel("tx-out-channel") KafkaTransactions&lt;String&gt; txEmitter;
  *
  * // ...
- * Uni&lt;Integer&gt; txWork = txEmitter.withTransactions(emitter -> {
+ * Uni&lt;Integer&gt; txWork = txEmitter.withTransaction(emitter -> {
  *     emitter.send("a");
  *     emitter.send("b");
  *     emitter.send("c");
@@ -39,7 +40,7 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
  *
  * &#64;Incoming("in-channel")
  * Uni&lt;Void&gt; process(KafkaRecordBatch&lt;String, String&gt; batch) {
- * return txEmitter.withTransactions(batch, emitter -> {
+ * return txEmitter.withTransaction(batch, emitter -> {
  * for (KafkaRecord&lt;String, String&gt; rec : batch) {
  * txEmitter.send(KafkaRecord.of(record.getKey(), record.getPayload()));
  * }
@@ -73,6 +74,7 @@ public interface KafkaTransactions<T> extends MutinyEmitter<T> {
      *         If the transaction completes successfully, it will complete with the item returned from the work function.
      *         If the transaction completes with failure, it will fail with the reason.
      */
+    @CheckReturnValue
     <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work);
 
     /**
@@ -91,19 +93,23 @@ public interface KafkaTransactions<T> extends MutinyEmitter<T> {
      *         If the transaction completes successfully, it will complete with the item returned from the work function.
      *         If the transaction completes with failure, it will fail with the reason.
      */
+    @CheckReturnValue
     <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work);
 
     /**
      * Produce records in a Kafka transaction, by processing the given batch message exactly-once.
      * This is a convenience method that ignores the item returned by the transaction and returns the {@code Uni} which
-     * - acks the given message if the transaction is successful.
-     * - nacks the given message if the transaction is aborted.
+     * <ul>
+     * <li>acks the given message if the transaction is successful.</li>
+     * <li>nacks the given message if the transaction is aborted.</li>
+     * </ul>
      *
      * @param batchMessage the batch message expected to contain a metadata of {@code IncomingKafkaRecordBatchMetadata}.
      * @param work function for producing records.
      * @return the {@code Uni} acking or negative acking the message depending on the result of the transaction.
      * @see #withTransaction(Message, Function)
      */
+    @CheckReturnValue
     default Uni<Void> withTransactionAndAck(Message<?> batchMessage, Function<TransactionalEmitter<T>, Uni<Void>> work) {
         return withTransaction(batchMessage, work)
                 .onFailure().recoverWithUni(throwable -> Uni.createFrom().completionStage(batchMessage.nack(throwable)))

@@ -230,11 +230,13 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<ConsumerGroupMetadata> consumerGroupMetadata() {
         return runOnPollingThread((Function<Consumer<K, V>, ConsumerGroupMetadata>) Consumer::groupMetadata);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> resetToLastCommittedPositions() {
         return runOnPollingThread(c -> {
             Set<TopicPartition> assignments = c.assignment();

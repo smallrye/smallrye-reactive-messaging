@@ -8,17 +8,17 @@ Inside a transaction, a producer writes records to the Kafka topic partitions as
 If the transaction completes successfully, all the records previously written to the broker inside that transaction will be _committed_, and will be readable for consumers.
 If an error during the transaction causes it to be _aborted_, none will be readable for consumers.
 
-There are a couple of fundamental things to consider before using transactions are :
+There are a couple of fundamental things to consider before using transactions:
 
 * Each transactional producer is configured with a unique identifier called the `transactional.id`.
 This is used to identify the same producer instance across application restarts.
 By default, it is not configured, and transactions cannot be used.
-When it is configured, the producer is limited to idempotent delivery, therefore the `enable.idempotence=true` is implied.
+When it is configured, the producer is limited to idempotent delivery, therefore `enable.idempotence=true` is implied.
 
-* For __only__ reading transactional messages, a consumer needs to explicitly configure it's `isolation.level` property to `read_committed`.
+* For __only__ reading transactional messages, a consumer needs to explicitly configure its `isolation.level` property to `read_committed`.
 This will make sure that the consumer will deliver only records committed inside a transaction, and filter out messages from aborted transactions.
 
-* It should also be noted that, this does not mean all records atomically written inside a transaction will be read atomically by the consumer.
+* It should also be noted that this does not mean all records atomically written inside a transaction will be read atomically by the consumer.
 Transactional producers can write to multiple topics and partitions inside a transaction, but consumers do not know where the transaction starts or ends.
 Not only multiple consumers inside a consumer group can share those partitions,
 all records which were part of a single transaction can be consumed in different batch of records by a consumer.
@@ -38,7 +38,7 @@ It can be used as a regular emitter `@Channel`:
 !!!note
     When `transactional.id` is provided `KafkaProducer#initTransactions` is called when the underlying Kafka producer is created.
 
-The function given to the `withTransactions` method receives a `TransactionalEmitter` for producing records, and returns a `Uni` that will provide the result for a successful transaction.
+The function given to the `withTransaction` method receives a `TransactionalEmitter` for producing records, and returns a `Uni` that provides the result of the transaction.
 If the processing completes successfully, the producer is flushed and the transaction is committed.
 If the processing throws an exception, returns a failing `Uni`, or marks the `TransactionalEmitter` for abort, the transaction is aborted.
 

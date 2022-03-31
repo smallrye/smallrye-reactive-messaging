@@ -154,26 +154,32 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         });
     }
 
+    @Override
+    @CheckReturnValue
     public Uni<Void> initTransactions() {
         return runOnSendingThread((Consumer<Producer<K, V>>) Producer::initTransactions);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> beginTransaction() {
         return runOnSendingThread((Consumer<Producer<K, V>>) Producer::beginTransaction);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> commitTransaction() {
         return runOnSendingThread((Consumer<Producer<K, V>>) Producer::commitTransaction);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> abortTransaction() {
         return runOnSendingThread((Consumer<Producer<K, V>>) Producer::abortTransaction);
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
             ConsumerGroupMetadata groupMetadata) {
         return runOnSendingThread(producer -> {
@@ -182,6 +188,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @Override
+    @CheckReturnValue
     public Uni<Void> withTransaction(Consumer<MultiEmitter<? super ProducerRecord<K, V>>> work) {
         return beginTransaction()
                 .chain(() -> Multi.createFrom().<ProducerRecord<K, V>> emitter(multiEmitter -> {

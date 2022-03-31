@@ -89,21 +89,25 @@ public interface KafkaProducer<K, V> {
     /**
      * @return the Uni emitting {@code null} when the init transactions executes.
      */
+    @CheckReturnValue
     Uni<Void> initTransactions();
 
     /**
      * @return the Uni emitting {@code null} when the begin transactions executes.
      */
+    @CheckReturnValue
     Uni<Void> beginTransaction();
 
     /**
      * @return the Uni emitting {@code null} when the commit transactions executes.
      */
+    @CheckReturnValue
     Uni<Void> commitTransaction();
 
     /**
      * @return the Uni emitting {@code null} when the abort transactions executes.
      */
+    @CheckReturnValue
     Uni<Void> abortTransaction();
 
     /**
@@ -112,6 +116,7 @@ public interface KafkaProducer<K, V> {
      * @param groupMetadata consumer group metadata of the exactly-once consumer
      * @return the Uni emitting {@code null} when the init transactions executes.
      */
+    @CheckReturnValue
     Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
             ConsumerGroupMetadata groupMetadata);
 
@@ -130,6 +135,7 @@ public interface KafkaProducer<K, V> {
      * @param work {@code MultiEmitter} consumer for emitting {@code ProducerRecord}s
      * @return {@code Uni} representing the transaction execution.
      */
+    @CheckReturnValue
     Uni<Void> withTransaction(Consumer<MultiEmitter<? super ProducerRecord<K, V>>> work);
 
     /**

@@ -12,6 +12,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaClientService;
@@ -39,12 +40,14 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
     }
 
     @Override
+    @CheckReturnValue
     public <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
         return currentTransaction == null ? new Transaction<R>().execute(work) : work.apply(currentTransaction);
     }
 
     @SuppressWarnings("rawtypes")
     @Override
+    @CheckReturnValue
     public <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work) {
         String channel;
         Map<TopicPartition, OffsetAndMetadata> offsets;

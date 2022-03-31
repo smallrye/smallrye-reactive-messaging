@@ -211,7 +211,7 @@ where imperative code in your application can send messages to Reactive Messagin
 
 With `EmitterFactory` it is possible to provide custom implementations, and application facing emitter interfaces.
 
-In the following example, the application injectable custom emitter interface is `CustomEmitter`,
+In the following example, the injectable custom emitter interface is `CustomEmitter`,
 and it is implemented by `CustomEmitterImpl`:
 
 ``` java
@@ -228,7 +228,7 @@ Then we need to provide an implementation of the `EmitterFactory` interface:
 ```
 
 The `CustomEmitterFactory` is a CDI managed bean, which implements the `EmitterFactory`.
-It is qualified with `EmitterFactoryFor` annotation which is configured with the emitter interface `CustomEmitter` with factory provides.
+It is qualified with `EmitterFactoryFor` annotation which is configured with the emitter interface `CustomEmitter` that this factory provides.
 
 Smallrye Reactive Messaging discovers the emitter factory during the CDI deployment validation
 and verifies that custom emitters used by the application have corresponding emitter factories.

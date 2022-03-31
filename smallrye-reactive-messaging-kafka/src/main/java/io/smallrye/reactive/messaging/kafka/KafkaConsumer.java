@@ -185,6 +185,7 @@ public interface KafkaConsumer<K, V> {
     /**
      * @return the Uni emitting the group metadata of this consumer
      */
+    @CheckReturnValue
     Uni<ConsumerGroupMetadata> consumerGroupMetadata();
 
     /**
@@ -192,6 +193,7 @@ public interface KafkaConsumer<K, V> {
      *
      * @return the Uni emitting {@code null} when the reset has been executed.
      */
+    @CheckReturnValue
     Uni<Void> resetToLastCommittedPositions();
 
 }
