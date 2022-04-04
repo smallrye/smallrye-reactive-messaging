@@ -78,4 +78,7 @@ public interface KafkaExceptions {
 
     @Message(id = 18019, value = "Unable to find Kafka metadata in message `%s`")
     IllegalArgumentException noKafkaMetadataFound(org.eclipse.microprofile.reactive.messaging.Message<?> message);
+
+    @Message(id = 18020, value = "A transaction is already in progress for channel `%s`")
+    IllegalStateException transactionInProgress(String channel);
 }

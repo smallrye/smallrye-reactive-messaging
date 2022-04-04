@@ -18,7 +18,6 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
@@ -74,7 +73,7 @@ public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
         }
     }
 
-    @RepeatedTest(10)
+    @Test
     void testExactlyOnceProcessorWithProcessingError() {
         inTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
         outTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);

@@ -40,15 +40,23 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
     }
 
     @Override
+    public synchronized boolean isTransactionInProgress() {
+        return currentTransaction != null;
+    }
+
+    @Override
     @CheckReturnValue
-    public <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
-        return currentTransaction == null ? new Transaction<R>().execute(work) : work.apply(currentTransaction);
+    public synchronized <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
+        if (currentTransaction == null) {
+            return new Transaction<R>().execute(work);
+        }
+        throw KafkaExceptions.ex.transactionInProgress(name);
     }
 
     @SuppressWarnings("rawtypes")
     @Override
     @CheckReturnValue
-    public <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work) {
+    public synchronized <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work) {
         String channel;
         Map<TopicPartition, OffsetAndMetadata> offsets;
 
@@ -84,7 +92,7 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
                     t -> consumer.resetToLastCommittedPositions()
                             .chain(() -> Uni.createFrom().failure(t))).execute(work);
         }
-        return work.apply(currentTransaction);
+        throw KafkaExceptions.ex.transactionInProgress(name);
     }
 
     private static final Uni<Void> VOID_UNI = Uni.createFrom().voidItem();
@@ -121,13 +129,20 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
 
         Uni<R> execute(Function<TransactionalEmitter<T>, Uni<R>> work) {
             currentTransaction = this;
+            // If run on Vert.x context, `work` is called on the same context.
             Context context = Vertx.currentContext();
             Uni<Void> beginTx = producer.beginTransaction();
             if (context != null) {
                 beginTx = beginTx.emitOn(runnable -> context.runOnContext(x -> runnable.run()));
             }
-            //noinspection Convert2MethodRef
             return beginTx
+                    .chain(() -> executeInTransaction(work))
+                    .eventually(() -> currentTransaction = null);
+        }
+
+        private Uni<R> executeInTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
+            //noinspection Convert2MethodRef
+            return Uni.createFrom().nullItem()
                     .chain(() -> work.apply(this))
                     // only flush() if the work completed with no exception
                     .call(() -> producer.flush())
@@ -137,11 +152,10 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
                     .onCancellation().call(() -> abort())
                     // when there was no exception,
                     // commit or rollback the transaction
-                    .onItem().call(() -> abort ? abort() : commit())
+                    .call(() -> abort ? abort() : commit())
                     // finally, call after commit or after abort callbacks
                     .onFailure().recoverWithUni(throwable -> afterAbort.apply(throwable))
-                    .onItem().transformToUni(result -> afterCommit.apply(result))
-                    .eventually(() -> currentTransaction = null);
+                    .onItem().transformToUni(result -> afterCommit.apply(result));
         }
 
         private Uni<Void> commit() {

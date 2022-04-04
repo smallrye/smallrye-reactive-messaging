@@ -70,6 +70,7 @@ public interface KafkaTransactions<T> extends MutinyEmitter<T> {
      *
      * @param work the processing function for producing records.
      * @param <R> the return type
+     * @throws IllegalStateException if a transaction is already in progress.
      * @return the {@code Uni} representing the result of the transaction.
      *         If the transaction completes successfully, it will complete with the item returned from the work function.
      *         If the transaction completes with failure, it will fail with the reason.
@@ -89,6 +90,7 @@ public interface KafkaTransactions<T> extends MutinyEmitter<T> {
      * @param message the incoming Kafka message expected to contain a metadata {@code IncomingKafkaRecordBatchMetadata} or
      *        {@code IncomingKafkaRecordMetadata}.
      * @param work the processing function for producing records.
+     * @throws IllegalStateException if a transaction is already in progress.
      * @return the {@code Uni} representing the result of the transaction.
      *         If the transaction completes successfully, it will complete with the item returned from the work function.
      *         If the transaction completes with failure, it will fail with the reason.
@@ -106,6 +108,7 @@ public interface KafkaTransactions<T> extends MutinyEmitter<T> {
      *
      * @param batchMessage the batch message expected to contain a metadata of {@code IncomingKafkaRecordBatchMetadata}.
      * @param work function for producing records.
+     * @throws IllegalStateException if a transaction is already in progress.
      * @return the {@code Uni} acking or negative acking the message depending on the result of the transaction.
      * @see #withTransaction(Message, Function)
      */
@@ -115,5 +118,10 @@ public interface KafkaTransactions<T> extends MutinyEmitter<T> {
                 .onFailure().recoverWithUni(throwable -> Uni.createFrom().completionStage(batchMessage.nack(throwable)))
                 .onItem().transformToUni(unused -> Uni.createFrom().completionStage(batchMessage.ack()));
     }
+
+    /**
+     * @return {@code true} if a transaction is in progress.
+     */
+    boolean isTransactionInProgress();
 
 }

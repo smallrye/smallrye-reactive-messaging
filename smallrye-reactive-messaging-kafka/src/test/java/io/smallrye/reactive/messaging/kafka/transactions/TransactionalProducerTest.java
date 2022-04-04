@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.transactions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,6 +25,15 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 
 public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
+    private KafkaMapBasedConfig config() {
+        return kafkaConfig("mp.messaging.outgoing.transactional-producer")
+                .put("topic", topic)
+                .put("transactional.id", "tx-producer")
+                .put("acks", "all")
+                .put("key.serializer", StringSerializer.class.getName())
+                .put("value.serializer", IntegerSerializer.class.getName());
+    }
+
     @Test
     void testTransactionInCallerThread() {
         topic = companion.topics().createAndWait(topic, 3);
@@ -34,8 +44,8 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
         companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
-                .fromTopics(topic, numberOfRecords * 2)
-                .awaitCompletion(Duration.ofMinutes(5));
+                .fromTopics(topic, numberOfRecords)
+                .awaitCompletion(Duration.ofMinutes(1));
     }
 
     @Test
@@ -52,17 +62,8 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
         companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
-                .fromTopics(topic, numberOfRecords * 2)
-                .awaitCompletion(Duration.ofMinutes(5));
-    }
-
-    private KafkaMapBasedConfig config() {
-        return kafkaConfig("mp.messaging.outgoing.transactional-producer")
-                .put("topic", topic)
-                .put("transactional.id", "tx-producer")
-                .put("acks", "all")
-                .put("key.serializer", StringSerializer.class.getName())
-                .put("value.serializer", IntegerSerializer.class.getName());
+                .fromTopics(topic, numberOfRecords)
+                .awaitCompletion(Duration.ofMinutes(1));
     }
 
     @ApplicationScoped
@@ -77,12 +78,46 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 for (int i = 0; i < numberOfRecords; i++) {
                     emitter.send(KafkaRecord.of("" + i % 10, i));
                 }
-                return transaction.withTransaction(emitter2 -> {
-                    for (int i = 0; i < numberOfRecords; i++) {
-                        emitter2.send(i);
-                    }
-                    return Uni.createFrom().voidItem();
-                });
+                assertThat(transaction.isTransactionInProgress()).isTrue();
+                return Uni.createFrom().voidItem();
+            });
+        }
+    }
+
+    @Test
+    void testConcurrentCallsNotAllowed() {
+        topic = companion.topics().createAndWait(topic, 3);
+        int numberOfRecords = 100;
+        TransactionalProducerWithNestedCall application = runApplication(config(), TransactionalProducerWithNestedCall.class);
+
+        assertThatThrownBy(() -> {
+            Uni.createFrom().emitter(e -> {
+                application.produceInTransaction(numberOfRecords)
+                        .subscribe().with(unused -> e.complete(null), e::fail);
+            }).runSubscriptionOn(runnable -> vertx.runOnContext(runnable))
+                    .await().indefinitely();
+        }).isInstanceOf(IllegalStateException.class).hasMessageContaining("transactional-producer");
+
+        assertThat(companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, Duration.ofSeconds(5))
+                .awaitCompletion()
+                .count()).isZero();
+    }
+
+    @ApplicationScoped
+    public static class TransactionalProducerWithNestedCall {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> produceInTransaction(final int numberOfRecords) {
+            return transaction.withTransaction(emitter -> {
+                for (int i = 0; i < numberOfRecords; i++) {
+                    emitter.send(KafkaRecord.of("" + i % 10, i));
+                }
+                return transaction.withTransaction(e -> Uni.createFrom().voidItem());
             });
         }
     }
