@@ -12,6 +12,7 @@ import org.reactivestreams.Publisher;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
+import io.smallrye.reactive.messaging.EmitterType;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
@@ -20,7 +21,7 @@ public class EmitterFactoryExamples {
 
     // <custom-emitter-declaration>
 
-    public interface CustomEmitter<T> {
+    public interface CustomEmitter<T> extends EmitterType {
 
         <M extends Message<? extends T>> void sendAndForget(M msg);
 

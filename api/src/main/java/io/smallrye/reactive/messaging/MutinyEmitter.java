@@ -33,7 +33,7 @@ import io.smallrye.mutiny.subscription.Cancellable;
  *
  * @param <T> type of payload
  */
-public interface MutinyEmitter<T> {
+public interface MutinyEmitter<T> extends EmitterType {
 
     /**
      * Sends a payload to the channel.

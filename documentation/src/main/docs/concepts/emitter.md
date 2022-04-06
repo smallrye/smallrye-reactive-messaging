@@ -218,8 +218,8 @@ and it is implemented by `CustomEmitterImpl`:
 {{ insert('emitter/EmitterFactoryExamples.java', 'custom-emitter-declaration') }}
 ```
 
-Note that `CustomEmitterImpl` also implements the `MessagePublisherProvider`,
-which is used by the framework to transform this emitter to a channel.
+Note that `CustomEmitter` interface extends `EmitterType`, which is a marker interface for discovering custom emitter types.
+Also, `CustomEmitterImpl` implements the `MessagePublisherProvider`, which is used by the framework to transform this emitter to a channel.
 
 Then we need to provide an implementation of the `EmitterFactory` interface:
 

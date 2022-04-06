@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.providers.wiring;
 
-import static io.smallrye.reactive.messaging.providers.wiring.EmitterFactoryForLiteral.EMITTER;
+import static io.smallrye.reactive.messaging.annotations.EmitterFactoryFor.Literal.EMITTER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;

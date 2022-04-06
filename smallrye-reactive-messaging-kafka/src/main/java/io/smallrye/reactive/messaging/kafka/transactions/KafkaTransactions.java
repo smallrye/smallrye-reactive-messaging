@@ -7,7 +7,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.EmitterType;
 
 /**
  * Emitter interface for producing records in a Kafka transaction.
@@ -52,7 +52,7 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
  * @param <T> emitted payload type
  */
 @Experimental("Experimental API")
-public interface KafkaTransactions<T> extends MutinyEmitter<T> {
+public interface KafkaTransactions<T> extends EmitterType {
 
     /**
      * Produce records in a Kafka transaction.

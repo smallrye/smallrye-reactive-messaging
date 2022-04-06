@@ -18,6 +18,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
+import io.smallrye.reactive.messaging.EmitterType;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
@@ -65,7 +66,17 @@ public class ReactiveMessagingExtension implements Extension {
         }
     }
 
-    <T> void processStreamEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
+    void processStreamSpecEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, Emitter<?>> pip) {
+        Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
+        if (stream != null) {
+            EmitterFactoryFor emitterType = emitterType(pip.getInjectionPoint(), emitterFactoryBeans);
+            if (emitterType != null) {
+                emitterInjectionPoints.put(pip.getInjectionPoint(), emitterType);
+            }
+        }
+    }
+
+    <T extends EmitterType> void processStreamEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
         Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
         if (stream != null) {
             EmitterFactoryFor emitterType = emitterType(pip.getInjectionPoint(), emitterFactoryBeans);

@@ -3,7 +3,7 @@
 !!!warning "Experimental"
     Kafka Transactions is an experimental feature.
 
-[Kafka transactions](https://docs.google.com/document/d/11Jqy_GjUGtdXJK94XGsEIK7CP1SnQGdp2eF0wSw9ra8/edit) enable atomic writes to multiple Kafka topics and partitions.
+[Kafka transactions](https://cwiki.apache.org/confluence/display/KAFKA/KIP-98+-+Exactly+Once+Delivery+and+Transactional+Messaging) enable atomic writes to multiple Kafka topics and partitions.
 Inside a transaction, a producer writes records to the Kafka topic partitions as it would normally do.
 If the transaction completes successfully, all the records previously written to the broker inside that transaction will be _committed_, and will be readable for consumers.
 If an error during the transaction causes it to be _aborted_, none will be readable for consumers.
@@ -76,6 +76,7 @@ The following example includes a batch of Kafka records inside a transaction.
 If the processing completes successfully, before committing the transaction, the topic partition offsets of the given batch message will be committed to the transaction.
 
 If the processing needs to abort, after aborting the transaction, the consumer's position is reset to the last committed offset, effectively resuming the consumption from that offset.
+If no consumer offset has been committed, the consumer's position is reset to the beginning of the topic, even if the offset reset policy is `latest`.
 
 !!!important
     When using exactly-once processing, consumed message offset commits are handled by the transaction and therefore `commit-strategy` needs to be `ignore`.

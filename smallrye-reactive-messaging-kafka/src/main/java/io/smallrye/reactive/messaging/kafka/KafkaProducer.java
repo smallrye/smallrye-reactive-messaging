@@ -15,7 +15,6 @@ import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.subscription.MultiEmitter;
 
 /**
  * Kafka Producer API.
@@ -119,24 +118,6 @@ public interface KafkaProducer<K, V> {
     @CheckReturnValue
     Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
             ConsumerGroupMetadata groupMetadata);
-
-    /**
-     * Produce records emitted using the {@link MultiEmitter} inside a Kafka producer transaction.
-     * <p>
-     * The given consumer will be called on the sending thread, after successfully beginning the transaction.
-     * If the consumer method returns successfully, the given {@code MultiEmitter} is completed, and the transaction is
-     * committed.
-     * If the consumer method throws an exception or given {@code MultiEmitter} emits a failure, the transaction is aborted.
-     * <p>
-     * Note that emitted {@link ProducerRecord}s are lazily sent, meaning that returned {@code Uni} will need to be subscribed
-     * for the
-     * whole transaction to execute.
-     *
-     * @param work {@code MultiEmitter} consumer for emitting {@code ProducerRecord}s
-     * @return {@code Uni} representing the transaction execution.
-     */
-    @CheckReturnValue
-    Uni<Void> withTransaction(Consumer<MultiEmitter<? super ProducerRecord<K, V>>> work);
 
     /**
      * @return the underlying producer. Be aware that to use it you needs to be on the sending thread.

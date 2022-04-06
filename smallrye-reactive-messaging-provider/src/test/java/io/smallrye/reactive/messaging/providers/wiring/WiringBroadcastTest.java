@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.providers.wiring;
 
-import static io.smallrye.reactive.messaging.providers.wiring.EmitterFactoryForLiteral.EMITTER;
+import static io.smallrye.reactive.messaging.annotations.EmitterFactoryFor.Literal.EMITTER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -12,7 +12,6 @@ import java.util.NoSuchElementException;
 
 import javax.enterprise.inject.spi.Bean;
 
-import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;

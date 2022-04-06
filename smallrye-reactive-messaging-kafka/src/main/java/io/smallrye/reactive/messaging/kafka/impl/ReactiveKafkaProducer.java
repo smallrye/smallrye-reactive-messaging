@@ -30,9 +30,7 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.SerializerWrapper;
@@ -185,29 +183,6 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         return runOnSendingThread(producer -> {
             producer.sendOffsetsToTransaction(offsets, groupMetadata);
         });
-    }
-
-    @Override
-    @CheckReturnValue
-    public Uni<Void> withTransaction(Consumer<MultiEmitter<? super ProducerRecord<K, V>>> work) {
-        return beginTransaction()
-                .chain(() -> Multi.createFrom().<ProducerRecord<K, V>> emitter(multiEmitter -> {
-                    try {
-                        work.accept(multiEmitter);
-                    } catch (Throwable throwable) {
-                        multiEmitter.fail(throwable);
-                    } finally {
-                        multiEmitter.complete();
-                    }
-                })
-                        .onItem().transformToUniAndConcatenate(this::send)
-                        .collect().asList())
-                .chain(this::flush)
-                .chain(this::commitTransaction)
-                .onFailure().recoverWithUni(throwable -> {
-                    log.transactionAborted(this.clientId, this.channel, throwable);
-                    return this.abortTransaction();
-                });
     }
 
     @SuppressWarnings({ "unchecked" })

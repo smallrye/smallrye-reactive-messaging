@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.inject;
 
-import static io.smallrye.reactive.messaging.providers.wiring.EmitterFactoryForLiteral.MUTINY_EMITTER;
+import static io.smallrye.reactive.messaging.annotations.EmitterFactoryFor.Literal.MUTINY_EMITTER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
