@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -11,17 +12,21 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.apache.kafka.common.serialization.IntegerSerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.assertj.core.api.Assertions;
 import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
@@ -221,5 +226,48 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         public int getRetries() {
             return retries.get();
         }
+    }
+
+    @Test
+    void testTransactionalConsumer() {
+        String inTopic = companion.topics().createAndWait(UUID.randomUUID().toString(), 1);
+
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(inTopic, "v-" + i), 10)
+                .awaitCompletion();
+
+        KafkaMapBasedConfig inConfig = kafkaConfig("mp.messaging.incoming.in", false)
+                .with("topic", inTopic)
+                .with("auto.offset.reset", "earliest")
+                .with("value.deserializer", StringDeserializer.class.getName());
+
+        KafkaMapBasedConfig outconfig = config();
+        MapBasedConfig config = new MapBasedConfig(outconfig.getMap());
+        config.putAll(inConfig.getMap());
+
+        runApplication(config, TransactionalProducerFromIncoming.class);
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, 30)
+                .awaitCompletion(Duration.ofMinutes(1));
+    }
+
+    @ApplicationScoped
+    public static class TransactionalProducerFromIncoming {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        @Incoming("in")
+        Uni<Void> produceInTransaction(String msg) {
+            return transaction.withTransaction(emitter -> {
+                emitter.send(KafkaRecord.of(msg, 1));
+                emitter.send(KafkaRecord.of(msg, 2));
+                emitter.send(KafkaRecord.of(msg, 3));
+                return Uni.createFrom().voidItem();
+            });
+        }
+
     }
 }
