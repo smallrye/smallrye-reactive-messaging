@@ -5,15 +5,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
+import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 @ApplicationScoped
 public class BeanUsingAnEmitter {
 
-    // Not sure why this doesn't work - plan to raise a bug
-    //    @Inject
-    //    @Channel("to-rabbitmq-string")
+    @Inject
+    @Channel("to-rabbitmq-string-emitter")
     Emitter<String> emitter;
 
     public void periodicallySendMessage() {
