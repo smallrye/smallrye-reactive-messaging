@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.kafka;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
@@ -86,25 +85,25 @@ public interface KafkaProducer<K, V> {
     Uni<List<PartitionInfo>> partitionsFor(String topic);
 
     /**
-     * @return the Uni emitting {@code null} when the init transactions executes.
+     * @return the Uni emitting {@code null} when the {@link Producer#initTransactions()} executes.
      */
     @CheckReturnValue
     Uni<Void> initTransactions();
 
     /**
-     * @return the Uni emitting {@code null} when the begin transactions executes.
+     * @return the Uni emitting {@code null} when the {@link Producer#beginTransaction()} executes.
      */
     @CheckReturnValue
     Uni<Void> beginTransaction();
 
     /**
-     * @return the Uni emitting {@code null} when the commit transactions executes.
+     * @return the Uni emitting {@code null} when the {@link Producer#commitTransaction()} executes.
      */
     @CheckReturnValue
     Uni<Void> commitTransaction();
 
     /**
-     * @return the Uni emitting {@code null} when the abort transactions executes.
+     * @return the Uni emitting {@code null} when the {@link Producer#abortTransaction()} executes.
      */
     @CheckReturnValue
     Uni<Void> abortTransaction();
@@ -113,7 +112,8 @@ public interface KafkaProducer<K, V> {
      *
      * @param offsets topic partition offsets to commit into transaction
      * @param groupMetadata consumer group metadata of the exactly-once consumer
-     * @return the Uni emitting {@code null} when the init transactions executes.
+     * @return the Uni emitting {@code null} when the {@link Producer#sendOffsetsToTransaction(Map, ConsumerGroupMetadata)}
+     *         executes.
      */
     @CheckReturnValue
     Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,

@@ -113,7 +113,7 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
         private final Uni<Void> beforeAbort;
         private final Function<Throwable, Uni<R>> afterAbort;
 
-        boolean abort;
+        private volatile boolean abort;
 
         public Transaction() {
             this(VOID_UNI, KafkaTransactionsImpl::defaultAfterCommit, VOID_UNI, KafkaTransactionsImpl::defaultAfterAbort);

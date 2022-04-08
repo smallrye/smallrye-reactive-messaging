@@ -14,7 +14,7 @@ public interface TransactionalEmitter<T> {
     /**
      * Sends a message to the Kafka channel.
      * <p>
-     * Immediately returns without waiting the result by dispatches the message to the underlying Emitter.
+     * Immediately returns without waiting for the result by dispatching the message to the underlying Emitter.
      *
      * @param <M> the <em>Message</em> type
      * @param msg the <em>Message</em> to send, must not be {@code null}
@@ -26,10 +26,9 @@ public interface TransactionalEmitter<T> {
     <M extends Message<? extends T>> void send(M msg);
 
     /**
-     * /**
      * Sends a payload to the channel.
      * <p>
-     * Immediately returns without waiting the result by dispatches the message to the underlying Emitter.
+     * Immediately returns without waiting for the result by dispatching the message to the underlying Emitter.
      * <p>
      * A {@link Message} object will be created to hold the payload.
      *

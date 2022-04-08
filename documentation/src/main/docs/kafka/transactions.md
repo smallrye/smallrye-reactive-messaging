@@ -47,8 +47,8 @@ Otherwise, it is called on the sending thread of the producer.
 
 !!!important
     A transaction is considered _in progress_ from the call to the `withTransaction` until the returned `Uni` results in success or failure.
-    While a transaction is in progress subsequent calls to the `withTransaction`, including nested one's inside the given function, will throw `IllegalStateException`.
-    Note that, in Reactive Messaging the execution of processing methods is already serialized, unless `@Blocking(ordered = false)` is used.
+    While a transaction is in progress, subsequent calls to the `withTransaction`, including nested ones inside the given function, will throw `IllegalStateException`.
+    Note that in Reactive Messaging, the execution of processing methods is already serialized, unless `@Blocking(ordered = false)` is used.
     If `withTransaction` can be called concurrently, for example from a REST endpoint, it is recommended to limit the concurrency of the execution.
     This can be done using the `@Bulkhead` annotation from Microprofile Fault Tolerance.
 

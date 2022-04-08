@@ -17,6 +17,7 @@ import io.smallrye.reactive.messaging.EmitterType;
  *
  * <pre>
  * <code>
+ *
  * &#64;Inject @Channel("tx-out-channel") KafkaTransactions&lt;String&gt; txEmitter;
  *
  * // ...
@@ -36,18 +37,20 @@ import io.smallrye.reactive.messaging.EmitterType;
  *
  * <pre>
  * <code>
+ *
  * &#64;Inject @Channel("tx-out-channel") KafkaTransactions&lt;String&gt; txEmitter;
  *
  * &#64;Incoming("in-channel")
  * Uni&lt;Void&gt; process(KafkaRecordBatch&lt;String, String&gt; batch) {
- * return txEmitter.withTransaction(batch, emitter -> {
- * for (KafkaRecord&lt;String, String&gt; rec : batch) {
- * txEmitter.send(KafkaRecord.of(record.getKey(), record.getPayload()));
+ *     return txEmitter.withTransaction(batch, emitter -> {
+ *         for (KafkaRecord&lt;String, String&gt; rec : batch) {
+ *           txEmitter.send(KafkaRecord.of(record.getKey(), record.getPayload()));
+ *         }
+ *         return Uni.createFrom().voidItem();
+ *     });
  * }
- * return Uni.createFrom().voidItem();
- * });
- * }
- *
+ * </code>
+ * </pre>
  *
  * @param <T> emitted payload type
  */
@@ -70,10 +73,10 @@ public interface KafkaTransactions<T> extends EmitterType {
      *
      * @param work the processing function for producing records.
      * @param <R> the return type
-     * @throws IllegalStateException if a transaction is already in progress.
      * @return the {@code Uni} representing the result of the transaction.
      *         If the transaction completes successfully, it will complete with the item returned from the work function.
      *         If the transaction completes with failure, it will fail with the reason.
+     * @throws IllegalStateException if a transaction is already in progress.
      */
     @CheckReturnValue
     <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work);
@@ -90,10 +93,10 @@ public interface KafkaTransactions<T> extends EmitterType {
      * @param message the incoming Kafka message expected to contain a metadata {@code IncomingKafkaRecordBatchMetadata} or
      *        {@code IncomingKafkaRecordMetadata}.
      * @param work the processing function for producing records.
-     * @throws IllegalStateException if a transaction is already in progress.
      * @return the {@code Uni} representing the result of the transaction.
      *         If the transaction completes successfully, it will complete with the item returned from the work function.
      *         If the transaction completes with failure, it will fail with the reason.
+     * @throws IllegalStateException if a transaction is already in progress.
      */
     @CheckReturnValue
     <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work);
@@ -108,8 +111,8 @@ public interface KafkaTransactions<T> extends EmitterType {
      *
      * @param batchMessage the batch message expected to contain a metadata of {@code IncomingKafkaRecordBatchMetadata}.
      * @param work function for producing records.
-     * @throws IllegalStateException if a transaction is already in progress.
      * @return the {@code Uni} acking or negative acking the message depending on the result of the transaction.
+     * @throws IllegalStateException if a transaction is already in progress.
      * @see #withTransaction(Message, Function)
      */
     @CheckReturnValue
