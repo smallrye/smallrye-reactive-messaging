@@ -17,11 +17,14 @@ mvn compile exec:java
 
 Then, looking at the output you can see messages successfully send to and retrieved.
 
+```
+INFO: SRMSG17033: A message sent to channel `from-rabbitmq-jsonobject` has been ack'd
+received string: Price from emitter 0
 INFO: SRMSG17033: A message sent to channel `from-rabbitmq-jsonobject` has been ack'd
 received string: 0
-Apr 07, 2022 10:41:26 AM io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAck handle
 INFO: SRMSG17033: A message sent to channel `from-rabbitmq-string` has been ack'd
 received jsonobject price: 0
+```
 
 ## Anatomy
 
