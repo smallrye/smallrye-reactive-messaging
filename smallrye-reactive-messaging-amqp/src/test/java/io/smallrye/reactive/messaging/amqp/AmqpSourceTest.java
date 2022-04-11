@@ -168,6 +168,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("name", "the name for broadcast");
         config.put("port", server.actualPort());
         config.put("broadcast", true);
+        config.put("tracing-enabled", false);
 
         provider = new AmqpConnector();
         provider.setup(executionHolder);
