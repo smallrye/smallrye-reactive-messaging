@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -84,6 +85,11 @@ public class ProducerBuilder<K, V> implements Closeable {
      * Executor service to use sending records to Kafka
      */
     private ExecutorService executorService;
+
+    /**
+     * Callback to invoke on producer termination
+     */
+    private BiConsumer<KafkaProducer<K, V>, Throwable> onTermination = this::terminate;
 
     /**
      * Creates a new {@link ProducerBuilder}.
@@ -179,6 +185,17 @@ public class ProducerBuilder<K, V> implements Closeable {
         }
     }
 
+    private void terminate(KafkaProducer<K, V> producer, Throwable throwable) {
+        if (isTransactional()) {
+            if (throwable == null) {
+                producer.commitTransaction();
+            } else {
+                producer.abortTransaction();
+            }
+        }
+        this.close();
+    }
+
     /**
      * Add property to the configuration to be used when the producer is created.
      *
@@ -223,6 +240,18 @@ public class ProducerBuilder<K, V> implements Closeable {
     }
 
     /**
+     * Add configuration property for {@code transactional.id} for this producer to be used when the producer is created.
+     *
+     * @param onTermination the transaction consumer group
+     * @return this {@link ProducerBuilder}
+     */
+    public ProducerBuilder<K, V> withOnTermination(BiConsumer<KafkaProducer<K, V>, Throwable> onTermination) {
+        Objects.requireNonNull(props.get(ProducerConfig.TRANSACTIONAL_ID_CONFIG), "transactional id");
+        this.onTermination = onTermination;
+        return this;
+    }
+
+    /**
      * @return the client id
      */
     public String clientId() {
@@ -248,23 +277,15 @@ public class ProducerBuilder<K, V> implements Closeable {
                 .invoke(() -> LOGGER.debugf("Producer %s: sent message %s", clientId(), record));
     }
 
-    private Multi<RecordMetadata> getProduceMulti(Multi<ProducerRecord<K, V>> recordProducer) {
+    Multi<RecordMetadata> getProduceMulti(Multi<ProducerRecord<K, V>> recordProducer) {
         return Multi.createFrom().deferred(() -> {
             if (isTransactional()) {
                 getOrCreateProducer().beginTransaction();
             }
             return recordProducer.onItem().transformToUniAndConcatenate(this::record)
                     .runSubscriptionOn(getOrCreateExecutor())
-                    .plug(m -> m.onTermination().invoke((throwable, cancelled) -> {
-                        if (isTransactional()) {
-                            if (throwable == null) {
-                                getOrCreateProducer().commitTransaction();
-                            } else {
-                                getOrCreateProducer().abortTransaction();
-                            }
-                        }
-                        this.close();
-                    }));
+                    .onTermination()
+                    .invoke((throwable, cancelled) -> onTermination.accept(getOrCreateProducer(), throwable));
         });
     }
 

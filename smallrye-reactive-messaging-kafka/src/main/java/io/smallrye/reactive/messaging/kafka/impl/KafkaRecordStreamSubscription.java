@@ -76,7 +76,7 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
         this.downstream = subscriber;
         this.context = context;
         this.maxQueueSize = maxPollRecords * config.getMaxQueueSizeFactor();
-        this.halfMaxQueueSize = maxPollRecords;
+        this.halfMaxQueueSize = (maxPollRecords == 1 ? 0 : maxPollRecords);
         // we can exceed maxQueueSize by at most 1 maxPollRecords
         this.queue = new RecordQueue<>(maxQueueSize + maxPollRecords);
         this.retries = config.getRetryAttempts() == -1 ? Long.MAX_VALUE : config.getRetryAttempts();

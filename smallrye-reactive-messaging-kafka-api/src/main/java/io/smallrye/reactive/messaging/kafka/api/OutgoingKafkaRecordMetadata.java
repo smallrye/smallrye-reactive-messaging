@@ -108,7 +108,7 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
 
         /**
          * Set the Kafka record key
-         * 
+         *
          * @param recordKey the key
          * @return this builder
          */

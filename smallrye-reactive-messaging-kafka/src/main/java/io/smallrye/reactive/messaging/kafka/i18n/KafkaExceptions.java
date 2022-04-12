@@ -73,4 +73,12 @@ public interface KafkaExceptions {
     @Message(id = 18017, value = "Unable to select the SerializationFailureHandler named `%s` for channel `%s` - too many matches (%d)")
     AmbiguousResolutionException unableToFindSerializationFailureHandler(String name, String channel, int count);
 
+    @Message(id = 18018, value = "Unable to find the Kafka consumer for channel `%s`")
+    IllegalStateException unableToFindConsumerForChannel(String channel);
+
+    @Message(id = 18019, value = "Unable to find Kafka metadata in message `%s`")
+    IllegalArgumentException noKafkaMetadataFound(org.eclipse.microprofile.reactive.messaging.Message<?> message);
+
+    @Message(id = 18020, value = "A transaction is already in progress for channel `%s`")
+    IllegalStateException transactionInProgress(String channel);
 }

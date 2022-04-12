@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.providers.extension;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 
 import javax.enterprise.event.Observes;
@@ -14,18 +16,23 @@ import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.reactivestreams.Publisher;
 
-import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.EmitterConfiguration;
+import io.smallrye.reactive.messaging.EmitterFactory;
+import io.smallrye.reactive.messaging.EmitterType;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.annotations.Incomings;
+import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
 
 public class ReactiveMessagingExtension implements Extension {
 
     private final List<MediatorBean<?>> mediatorBeans = new ArrayList<>();
     private final List<InjectionPoint> streamInjectionPoints = new ArrayList<>();
-    private final List<InjectionPoint> emitterInjectionPoints = new ArrayList<>();
-    private final List<InjectionPoint> mutinyEmitterInjectionPoints = new ArrayList<>();
+    private final Map<InjectionPoint, EmitterFactoryFor> emitterInjectionPoints = new HashMap<InjectionPoint, EmitterFactoryFor>();
+    private final List<EmitterFactoryBean<?>> emitterFactoryBeans = new ArrayList<>();
     private final List<WorkerPoolBean<?>> workerPoolBeans = new ArrayList<>();
 
     @Inject
@@ -41,6 +48,12 @@ public class ReactiveMessagingExtension implements Extension {
         }
     }
 
+    <T extends EmitterFactory<?>> void processEmitterFactories(
+            @Observes @WithAnnotations({ EmitterFactoryFor.class }) ProcessAnnotatedType<T> event) {
+        AnnotatedType<?> annotatedType = event.getAnnotatedType();
+        emitterFactoryBeans.add(new EmitterFactoryBean<>(annotatedType));
+    }
+
     <T> void processBlockingAnnotation(@Observes @WithAnnotations({ Blocking.class }) ProcessAnnotatedType<T> event) {
         AnnotatedType<?> annotatedType = event.getAnnotatedType();
         workerPoolBeans.add(new WorkerPoolBean<>(annotatedType));
@@ -53,26 +66,23 @@ public class ReactiveMessagingExtension implements Extension {
         }
     }
 
-    <T extends Emitter<?>> void processStreamEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
+    void processStreamSpecEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, Emitter<?>> pip) {
         Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
         if (stream != null) {
-            emitterInjectionPoints.add(pip.getInjectionPoint());
+            EmitterFactoryFor emitterType = emitterType(pip.getInjectionPoint(), emitterFactoryBeans);
+            if (emitterType != null) {
+                emitterInjectionPoints.put(pip.getInjectionPoint(), emitterType);
+            }
         }
     }
 
-    <T extends MutinyEmitter<?>> void processStreamMutinyEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
+    <T extends EmitterType> void processStreamEmitterInjectionPoint(@Observes ProcessInjectionPoint<?, T> pip) {
         Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
         if (stream != null) {
-            mutinyEmitterInjectionPoints.add(pip.getInjectionPoint());
-        }
-    }
-
-    @SuppressWarnings("deprecation")
-    <T extends io.smallrye.reactive.messaging.annotations.Emitter<?>> void processStreamLegacyEmitterInjectionPoint(
-            @Observes ProcessInjectionPoint<?, T> pip) {
-        Channel stream = ChannelProducer.getChannelQualifier(pip.getInjectionPoint());
-        if (stream != null) {
-            emitterInjectionPoints.add(pip.getInjectionPoint());
+            EmitterFactoryFor emitterType = emitterType(pip.getInjectionPoint(), emitterFactoryBeans);
+            if (emitterType != null) {
+                emitterInjectionPoints.put(pip.getInjectionPoint(), emitterType);
+            }
         }
     }
 
@@ -123,21 +133,22 @@ public class ReactiveMessagingExtension implements Extension {
 
     private List<EmitterConfiguration> createEmitterConfigurations() {
         List<EmitterConfiguration> emitters = new ArrayList<>();
-        createEmitterConfiguration(emitterInjectionPoints, false, emitters);
-        createEmitterConfiguration(mutinyEmitterInjectionPoints, true, emitters);
+        createEmitterConfiguration(emitterInjectionPoints, emitters);
         return emitters;
     }
 
-    private void createEmitterConfiguration(List<InjectionPoint> emitterInjectionPoints, boolean isMutinyEmitter,
+    private void createEmitterConfiguration(Map<InjectionPoint, EmitterFactoryFor> emitterInjectionPoints,
             List<EmitterConfiguration> emitters) {
-        for (InjectionPoint point : emitterInjectionPoints) {
+        for (Map.Entry<InjectionPoint, EmitterFactoryFor> entry : emitterInjectionPoints.entrySet()) {
+            InjectionPoint point = entry.getKey();
+            EmitterFactoryFor emitterType = entry.getValue();
             String name = ChannelProducer.getChannelName(point);
             OnOverflow onOverflow = point.getAnnotated().getAnnotation(OnOverflow.class);
             if (onOverflow == null) {
                 onOverflow = createOnOverflowForLegacyAnnotation(point);
             }
             Broadcast broadcast = point.getAnnotated().getAnnotation(Broadcast.class);
-            emitters.add(new EmitterConfiguration(name, isMutinyEmitter, onOverflow, broadcast));
+            emitters.add(new DefaultEmitterConfiguration(name, emitterType, onOverflow, broadcast));
         }
     }
 
@@ -167,6 +178,21 @@ public class ReactiveMessagingExtension implements Extension {
         return null;
     }
 
+    private EmitterFactoryFor emitterType(InjectionPoint point, List<EmitterFactoryBean<?>> emitterFactoryBeans) {
+        for (EmitterFactoryBean<?> emitterFactoryBean : emitterFactoryBeans) {
+            EmitterFactoryFor annotation = emitterFactoryBean.emitterFactoryType.getAnnotation(EmitterFactoryFor.class);
+            Type type = point.getType();
+            if (type instanceof ParameterizedType && ((ParameterizedType) type).getActualTypeArguments().length > 0) {
+                if (((ParameterizedType) type).getRawType().equals(annotation.value())) {
+                    return annotation;
+                }
+            } else {
+                throw ProviderExceptions.ex.invalidRawEmitter(point);
+            }
+        }
+        return null;
+    }
+
     static class MediatorBean<T> {
 
         final Bean<T> bean;
@@ -185,6 +211,14 @@ public class ReactiveMessagingExtension implements Extension {
 
         WorkerPoolBean(AnnotatedType<T> annotatedType) {
             this.annotatedType = annotatedType;
+        }
+    }
+
+    static class EmitterFactoryBean<T> {
+        final AnnotatedType<T> emitterFactoryType;
+
+        EmitterFactoryBean(AnnotatedType<T> emitterFactoryType) {
+            this.emitterFactoryType = emitterFactoryType;
         }
     }
 }

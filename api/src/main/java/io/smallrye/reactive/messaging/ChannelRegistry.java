@@ -21,11 +21,15 @@ public interface ChannelRegistry {
 
     void register(String name, MutinyEmitter<?> emitter);
 
+    <T> void register(String name, Class<T> emitterType, T emitter);
+
     List<Publisher<? extends Message<?>>> getPublishers(String name);
 
     Emitter<?> getEmitter(String name);
 
     MutinyEmitter<?> getMutinyEmitter(String name);
+
+    <T> T getEmitter(String name, Class<? super T> emitterType);
 
     List<Subscriber<? extends Message<?>>> getSubscribers(String name);
 

@@ -17,12 +17,15 @@ import java.util.function.Function;
 
 import javax.enterprise.inject.Instance;
 
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Serializer;
 
 import io.smallrye.common.annotation.CheckReturnValue;
@@ -46,8 +49,11 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private final String channel;
     private final int closetimeout;
 
+    private Consumer<Throwable> reportFailure;
+
     public ReactiveKafkaProducer(KafkaConnectorOutgoingConfiguration config,
-            Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
+            Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
+            Consumer<Throwable> reportFailure) {
         this(getKafkaProducerConfiguration(config), config.getChannel(), config.getCloseTimeout(),
                 createSerializationFailureHandler(config.getChannel(),
                         config.getKeySerializationFailureHandler().orElse(null),
@@ -55,6 +61,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
                 createSerializationFailureHandler(config.getChannel(),
                         config.getValueSerializationFailureHandler().orElse(null),
                         serializationFailureHandlers));
+        this.reportFailure = reportFailure;
     }
 
     public String getClientId() {
@@ -87,6 +94,15 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
 
         kafkaWorker = Executors.newSingleThreadExecutor(KafkaSendingThread::new);
         producer = new KafkaProducer<>(kafkaConfiguration, keySerializer, valueSerializer);
+        if (kafkaConfiguration.containsKey(ProducerConfig.TRANSACTIONAL_ID_CONFIG)) {
+            initTransactions().subscribe().with(unused -> {
+            }, throwable -> {
+                log.unableToInitializeProducer(channel, throwable);
+                if (reportFailure != null) {
+                    reportFailure.accept(throwable);
+                }
+            });
+        }
     }
 
     @Override
@@ -133,6 +149,39 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     public Uni<List<PartitionInfo>> partitionsFor(String topic) {
         return runOnSendingThread(producer -> {
             return producer.partitionsFor(topic);
+        });
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Void> initTransactions() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::initTransactions);
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Void> beginTransaction() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::beginTransaction);
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Void> commitTransaction() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::commitTransaction);
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Void> abortTransaction() {
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::abortTransaction);
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
+            ConsumerGroupMetadata groupMetadata) {
+        return runOnSendingThread(producer -> {
+            producer.sendOffsetsToTransaction(offsets, groupMetadata);
         });
     }
 

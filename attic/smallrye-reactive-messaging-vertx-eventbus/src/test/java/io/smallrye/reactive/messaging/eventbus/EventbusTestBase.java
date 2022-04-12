@@ -37,7 +37,9 @@ public class EventbusTestBase {
         weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(VertxEventBusConnector.class);
-
+        weld.addBeanClass(EmitterFactoryImpl.class);
+        weld.addBeanClass(MutinyEmitterFactoryImpl.class);
+        weld.addBeanClass(LegacyEmitterFactoryImpl.class);
         weld.addExtension(new io.smallrye.config.inject.ConfigExtension());
 
         weld.disableDiscovery();

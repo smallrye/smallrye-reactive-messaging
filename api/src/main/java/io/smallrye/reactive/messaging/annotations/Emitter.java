@@ -1,10 +1,12 @@
 package io.smallrye.reactive.messaging.annotations;
 
+import io.smallrye.reactive.messaging.EmitterType;
+
 /**
  * @deprecated Use {@link org.eclipse.microprofile.reactive.messaging.Emitter} instead.
  */
 @Deprecated
-public interface Emitter<T> {
+public interface Emitter<T> extends EmitterType {
 
     /**
      * Sends a payload or a message to the stream.

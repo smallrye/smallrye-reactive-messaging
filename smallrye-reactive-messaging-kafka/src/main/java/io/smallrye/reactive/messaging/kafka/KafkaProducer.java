@@ -1,12 +1,16 @@
 package io.smallrye.reactive.messaging.kafka;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
@@ -79,6 +83,41 @@ public interface KafkaProducer<K, V> {
      */
     @CheckReturnValue
     Uni<List<PartitionInfo>> partitionsFor(String topic);
+
+    /**
+     * @return the Uni emitting {@code null} when the {@link Producer#initTransactions()} executes.
+     */
+    @CheckReturnValue
+    Uni<Void> initTransactions();
+
+    /**
+     * @return the Uni emitting {@code null} when the {@link Producer#beginTransaction()} executes.
+     */
+    @CheckReturnValue
+    Uni<Void> beginTransaction();
+
+    /**
+     * @return the Uni emitting {@code null} when the {@link Producer#commitTransaction()} executes.
+     */
+    @CheckReturnValue
+    Uni<Void> commitTransaction();
+
+    /**
+     * @return the Uni emitting {@code null} when the {@link Producer#abortTransaction()} executes.
+     */
+    @CheckReturnValue
+    Uni<Void> abortTransaction();
+
+    /**
+     *
+     * @param offsets topic partition offsets to commit into transaction
+     * @param groupMetadata consumer group metadata of the exactly-once consumer
+     * @return the Uni emitting {@code null} when the {@link Producer#sendOffsetsToTransaction(Map, ConsumerGroupMetadata)}
+     *         executes.
+     */
+    @CheckReturnValue
+    Uni<Void> sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
+            ConsumerGroupMetadata groupMetadata);
 
     /**
      * @return the underlying producer. Be aware that to use it you needs to be on the sending thread.

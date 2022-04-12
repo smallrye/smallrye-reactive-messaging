@@ -34,6 +34,16 @@
             "minSeverity": "POTENTIALLY_BREAKING",
             "minCriticality": "documented",
             "differences": [
+                {
+                    "code": "java.method.addedToInterface",
+                    "new": "method <T> T io.smallrye.reactive.messaging.ChannelRegistry::getEmitter(java.lang.String, java.lang.Class<? super T>)",
+                    "justification": "New method added to get emitter by its type"
+                },
+                {
+                    "code": "java.method.addedToInterface",
+                    "new": "method <T> void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.Class<T>, T)",
+                    "justification": "New method added to register emitter by its type"
+                }
             ]
         }
     },

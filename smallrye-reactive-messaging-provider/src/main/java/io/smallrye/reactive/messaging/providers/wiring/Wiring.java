@@ -4,6 +4,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -13,7 +15,11 @@ import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.EmitterConfiguration;
+import io.smallrye.reactive.messaging.EmitterFactory;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
+import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.extension.*;
@@ -35,6 +41,10 @@ public class Wiring {
 
     @Inject
     MediatorManager manager;
+
+    @Any
+    @Inject
+    Instance<EmitterFactory<?>> emitterFactories;
 
     private final List<Component> components;
 
@@ -66,7 +76,7 @@ public class Wiring {
         }
 
         for (EmitterConfiguration emitter : emitters) {
-            components.add(new EmitterComponent(emitter, defaultBufferSize, defaultBufferSizeLegacy));
+            components.add(new EmitterComponent(emitter, emitterFactories, defaultBufferSize, defaultBufferSizeLegacy));
         }
 
         // At that point, the registry only contains connectors or managed channels
@@ -409,19 +419,23 @@ public class Wiring {
     static class EmitterComponent implements PublishingComponent, NoUpstreamComponent {
 
         private final EmitterConfiguration configuration;
+        private final Instance<EmitterFactory<?>> emitterFactories;
         private final Set<Component> downstreams = new LinkedHashSet<>();
         private final int defaultBufferSize;
         private final int defaultBufferSizeLegacy;
 
-        public EmitterComponent(EmitterConfiguration configuration, int defaultBufferSize, int defaultBufferSizeLegacy) {
+        public EmitterComponent(EmitterConfiguration configuration, Instance<EmitterFactory<?>> emitterFactories,
+                int defaultBufferSize,
+                int defaultBufferSizeLegacy) {
             this.configuration = configuration;
+            this.emitterFactories = emitterFactories;
             this.defaultBufferSize = defaultBufferSize;
             this.defaultBufferSizeLegacy = defaultBufferSizeLegacy;
         }
 
         @Override
         public Optional<String> outgoing() {
-            return Optional.of(configuration.name);
+            return Optional.of(configuration.name());
         }
 
         @Override
@@ -431,12 +445,12 @@ public class Wiring {
 
         @Override
         public boolean broadcast() {
-            return configuration.broadcast;
+            return configuration.broadcast();
         }
 
         @Override
         public int getRequiredNumberOfSubscribers() {
-            return configuration.numberOfSubscriberBeforeConnecting;
+            return configuration.numberOfSubscriberBeforeConnecting();
         }
 
         @Override
@@ -446,18 +460,22 @@ public class Wiring {
 
         @Override
         public void materialize(ChannelRegistry registry) {
-            Publisher<? extends Message<?>> publisher;
             int def = getDefaultBufferSize();
-            if (configuration.isMutinyEmitter) {
-                MutinyEmitterImpl<?> mutinyEmitter = new MutinyEmitterImpl<>(configuration, def);
-                publisher = mutinyEmitter.getPublisher();
-                registry.register(configuration.name, mutinyEmitter);
-            } else {
-                EmitterImpl<?> emitter = new EmitterImpl<>(configuration, def);
-                publisher = emitter.getPublisher();
-                registry.register(configuration.name, emitter);
-            }
-            registry.register(configuration.name, publisher, broadcast());
+            registerEmitter(registry, def);
+        }
+
+        private <T extends MessagePublisherProvider<?>> void registerEmitter(ChannelRegistry registry, int def) {
+            EmitterFactory<?> emitterFactory = getEmitterFactory(configuration.emitterType());
+            T emitter = (T) emitterFactory.createEmitter(configuration, def);
+            Publisher<? extends Message<?>> publisher = emitter.getPublisher();
+            Class<T> type = (Class<T>) configuration.emitterType().value();
+            registry.register(configuration.name(), type, emitter);
+            //noinspection ReactiveStreamsUnusedPublisher
+            registry.register(configuration.name(), publisher, broadcast());
+        }
+
+        private EmitterFactory<?> getEmitterFactory(EmitterFactoryFor emitterType) {
+            return emitterFactories.select(emitterType).get();
         }
 
         private int getDefaultBufferSize() {
@@ -470,7 +488,7 @@ public class Wiring {
 
         @Override
         public void validate() throws WiringException {
-            if (!configuration.broadcast && downstreams().size() > 1) {
+            if (!configuration.broadcast() && downstreams().size() > 1) {
                 throw new TooManyDownstreamCandidatesException(this);
             }
 

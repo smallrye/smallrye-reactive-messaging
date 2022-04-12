@@ -9,13 +9,20 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMI
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.RecordsToDelete;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -28,11 +35,12 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 
 import io.smallrye.common.annotation.Experimental;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 
 /**
  * KafkaCompanion wraps actions on Kafka admin, producer and consumer, aiming to ease interactions with a Kafka broker.
- *
+ * <p>
  * It is not intended to be used in production code with long-running actions.
  */
 @Experimental("Experimental API")
@@ -292,6 +300,43 @@ public class KafkaCompanion implements AutoCloseable {
 
     public ProducerBuilder<String, Double> produceDoubles() {
         return produce(Serdes.String(), Serdes.Double());
+    }
+
+    /*
+     * PROCESSOR
+     */
+
+    public <K, C, P> ProducerTask process(Set<String> topics, ConsumerBuilder<K, C> consumer,
+            ProducerBuilder<K, P> producer, Function<ConsumerRecord<K, C>, ProducerRecord<K, P>> process) {
+        return producer.fromMulti(consumer.process(topics, m -> m.onItem().transform(process)));
+    }
+
+    public <K, C, P> ProducerTask processTransactional(Set<String> topics, ConsumerBuilder<K, C> consumer,
+            ProducerBuilder<K, P> producer, Function<ConsumerRecord<K, C>, ProducerRecord<K, P>> process) {
+        if (!producer.isTransactional()) {
+            // Otherwise beginTransaction won't be called on start of producing of records
+            throw new IllegalStateException("producer must be transactional");
+        }
+        ProducerBuilder<K, P> builder = producer.withOnTermination((kafkaProducer, throwable) -> {
+            if (throwable == null) {
+                try {
+                    // LOG commit
+                    kafkaProducer.sendOffsetsToTransaction(consumer.position(), consumer.groupMetadata());
+                    kafkaProducer.commitTransaction();
+                } catch (Throwable e) {
+                    // LOG error
+                    kafkaProducer.abortTransaction();
+                    consumer.resetToLastCommittedPositions();
+                }
+            } else {
+                // LOG error
+                kafkaProducer.abortTransaction();
+                consumer.resetToLastCommittedPositions();
+            }
+        });
+        return new ProducerTask(consumer.processBatch(topics,
+                records -> builder.getProduceMulti(Multi.createFrom().iterable(records).onItem().transform(process)))
+                .onTermination().invoke(builder::close));
     }
 
     private <K, V> void registerOnClose(Runnable action) {

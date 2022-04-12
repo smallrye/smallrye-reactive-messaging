@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
@@ -25,17 +26,17 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 
 public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
 
-    private Metadata metadata;
+    private final Metadata metadata;
     private final List<KafkaRecord<K, T>> incomingRecords;
     private final Map<TopicPartition, KafkaRecord<K, T>> latestOffsetRecords;
 
-    public IncomingKafkaRecordBatch(ConsumerRecords<K, T> records, KafkaCommitHandler commitHandler,
+    public IncomingKafkaRecordBatch(ConsumerRecords<K, T> records, String channel, KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack, boolean cloudEventEnabled, boolean tracingEnabled) {
         List<IncomingKafkaRecord<K, T>> incomingRecords = new ArrayList<>();
         Map<TopicPartition, IncomingKafkaRecord<K, T>> latestOffsetRecords = new HashMap<>();
         for (TopicPartition partition : records.partitions()) {
             for (ConsumerRecord<K, T> record : records.records(partition)) {
-                IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, commitHandler, onNack,
+                IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, channel, commitHandler, onNack,
                         cloudEventEnabled, tracingEnabled);
                 incomingRecords.add(rec);
                 latestOffsetRecords.put(partition, rec);
@@ -43,7 +44,9 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         }
         this.incomingRecords = Collections.unmodifiableList(incomingRecords);
         this.latestOffsetRecords = Collections.unmodifiableMap(latestOffsetRecords);
-        this.metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records));
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        latestOffsetRecords.forEach((e, r) -> offsets.put(e, new OffsetAndMetadata(r.getOffset())));
+        this.metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records, channel, offsets));
     }
 
     @Override
@@ -98,5 +101,4 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
                         .collect(Collectors.toList()))
                 .toUni().subscribeAsCompletionStage();
     }
-
 }

@@ -10,7 +10,7 @@ import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
 /**
  * Represents a batch of Kafka records received by polling the {@link org.apache.kafka.clients.consumer.KafkaConsumer}
- *
+ * <p>
  * This type extends the {@code Message<List<T>>} where {@code T} is the type of records' payloads.
  * The complete list of Kafka record payloads are accessible via the {@link Message#getPayload()} method.
  *
@@ -27,4 +27,5 @@ public interface KafkaRecordBatch<K, T> extends Message<List<T>>, Iterable<Kafka
      * @return map of records with latest offset by topic partition
      */
     Map<TopicPartition, KafkaRecord<K, T>> getLatestOffsetRecords();
+
 }

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.providers.wiring;
 
+import static io.smallrye.reactive.messaging.annotations.EmitterFactoryFor.Literal.EMITTER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -14,10 +15,11 @@ import javax.enterprise.inject.spi.Bean;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.DefaultMediatorConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.ChannelConfiguration;
-import io.smallrye.reactive.messaging.providers.extension.EmitterConfiguration;
 
 @SuppressWarnings("rawtypes")
 public class WiringBroadcastTest {
@@ -38,7 +40,7 @@ public class WiringBroadcastTest {
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
-        EmitterConfiguration ec = new EmitterConfiguration("a", false, null, BroadcastLiteral.of(0));
+        EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, BroadcastLiteral.of(0));
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
@@ -71,7 +73,7 @@ public class WiringBroadcastTest {
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
-        EmitterConfiguration ec = new EmitterConfiguration("a", false, null, BroadcastLiteral.of(2));
+        EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, BroadcastLiteral.of(2));
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
@@ -103,7 +105,7 @@ public class WiringBroadcastTest {
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
-        EmitterConfiguration ec = new EmitterConfiguration("a", false, null, BroadcastLiteral.of(1));
+        EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, BroadcastLiteral.of(1));
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
@@ -135,7 +137,7 @@ public class WiringBroadcastTest {
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
-        EmitterConfiguration ec = new EmitterConfiguration("a", false, null, BroadcastLiteral.of(3));
+        EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, BroadcastLiteral.of(3));
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 
@@ -159,7 +161,7 @@ public class WiringBroadcastTest {
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
-        EmitterConfiguration ec = new EmitterConfiguration("a", false, null, null);
+        EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, null);
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
         ChannelConfiguration cc2 = new ChannelConfiguration("a");
 

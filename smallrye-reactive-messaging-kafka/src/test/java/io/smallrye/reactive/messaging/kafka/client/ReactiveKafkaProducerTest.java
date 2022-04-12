@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -163,6 +164,20 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
         return sink;
     }
 
+    public KafkaSink createTransactionalSink() {
+        String channelName = "test-" + ThreadLocalRandom.current().nextInt();
+        MapBasedConfig config = createProducerConfig()
+                .with("channel-name", channelName)
+                .with(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "tx-producer")
+                .with(ProducerConfig.ACKS_CONFIG, "all")
+                .with("topic", topic);
+
+        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        this.sinks.add(sink);
+        return sink;
+    }
+
     private class IndependentProducerThread extends Thread {
         private final String threadId;
         private final int messageKey; // used for all messages produced by this thread, to guarantee ordering
@@ -237,4 +252,5 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
             emitter.complete();
         }
     }
+
 }

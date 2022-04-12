@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -100,6 +102,11 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
      * Callback for partitions revoked
      */
     private Consumer<Collection<TopicPartition>> onPartitionsRevoked;
+
+    /**
+     * Callback to call onTermination
+     */
+    private BiConsumer<KafkaConsumer<K, V>, Throwable> onTermination = this::terminate;
 
     /**
      * Duration for default api timeout
@@ -217,6 +224,10 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
                 polling.compareAndSet(true, false);
             }).runSubscriptionOn(getOrCreateExecutor()).subscribeAsCompletionStage();
         }
+    }
+
+    public void terminate(KafkaConsumer<K, V> consumer, Throwable throwable) {
+        this.close();
     }
 
     /**
@@ -385,11 +396,27 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
         return this;
     }
 
+    /**
+     * @param onTermination the callback to be called on termination
+     * @return this {@link ConsumerBuilder}
+     */
+    public ConsumerBuilder<K, V> withOnTermination(BiConsumer<KafkaConsumer<K, V>, Throwable> onTermination) {
+        this.onTermination = onTermination;
+        return this;
+    }
+
     private Map<TopicPartition, OffsetAndMetadata> getOffsetMapFromConsumerRecord(ConsumerRecord<?, ?> consumerRecord) {
         Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
         map.put(new TopicPartition(consumerRecord.topic(), consumerRecord.partition()),
                 new OffsetAndMetadata(consumerRecord.offset()));
         return map;
+    }
+
+    /**
+     * @return the consumer group metadata
+     */
+    public ConsumerGroupMetadata groupMetadata() {
+        return getOrCreateConsumer().groupMetadata();
     }
 
     /**
@@ -433,11 +460,27 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     /**
      * @return the position of this consumer for all assigned topic partitions
      */
-    public Map<TopicPartition, Long> position() {
+    public Map<TopicPartition, OffsetAndMetadata> position() {
         return assignmentUni().onItem().transform(assignment -> {
             KafkaConsumer<K, V> consumer = getOrCreateConsumer();
-            return assignment.stream().collect(Collectors.toMap(Function.identity(), consumer::position));
+            return assignment.stream().collect(Collectors.toMap(Function.identity(),
+                    tp -> new OffsetAndMetadata(consumer.position(tp))));
         }).await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * Reset to the last committed position
+     */
+    public void resetToLastCommittedPositions() {
+        Map<TopicPartition, OffsetAndMetadata> committed = committed();
+        for (TopicPartition tp : assignment()) {
+            OffsetAndMetadata offsetAndMetadata = committed.get(tp);
+            if (offsetAndMetadata != null) {
+                getOrCreateConsumer().seek(tp, offsetAndMetadata.offset());
+            } else {
+                getOrCreateConsumer().seekToBeginning(Collections.singleton(tp));
+            }
+        }
     }
 
     /**
@@ -458,6 +501,16 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     public Map<TopicPartition, OffsetAndMetadata> committed(TopicPartition... partitions) {
         return Uni.createFrom().item(() -> getOrCreateConsumer()
                 .committed(new HashSet<>(Arrays.asList(partitions))))
+                .runSubscriptionOn(getOrCreateExecutor())
+                .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @return the map of committed offsets for topic partitions assigned to this consumer
+     */
+    public Map<TopicPartition, OffsetAndMetadata> committed() {
+        return assignmentUni().onItem()
+                .transform(partitions -> getOrCreateConsumer().committed(partitions))
                 .runSubscriptionOn(getOrCreateExecutor())
                 .await().atMost(kafkaApiTimeout);
     }
@@ -497,6 +550,32 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
         });
     }
 
+    <T> Multi<T> process(Set<String> topics, Function<Multi<ConsumerRecord<K, V>>, Multi<T>> plugFunction) {
+        return Multi.createFrom().deferred(() -> {
+            getOrCreateConsumer().subscribe(topics, this);
+            return getConsumeMulti().plug(plugFunction);
+        });
+    }
+
+    <T> Multi<T> processBatch(Set<String> topics, Function<ConsumerRecords<K, V>, Multi<T>> consumerRecordFunction) {
+        return Multi.createFrom().deferred(() -> {
+            getOrCreateConsumer().subscribe(topics, this);
+            return getProcessingMulti(consumerRecordFunction);
+        });
+    }
+
+    private <T> Multi<T> getProcessingMulti(Function<ConsumerRecords<K, V>, Multi<T>> consumerRecordFunction) {
+        if (!polling.compareAndSet(false, true)) {
+            return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
+        }
+        return poll().repeat().indefinitely()
+                .onItem().transformToMulti(consumerRecordFunction)
+                .concatenate()
+                .runSubscriptionOn(getOrCreateExecutor())
+                .onTermination()
+                .invoke((throwable, cancelled) -> this.onTermination.accept(kafkaConsumer, throwable));
+    }
+
     private Multi<ConsumerRecord<K, V>> getConsumeMulti() {
         if (!polling.compareAndSet(false, true)) {
             return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
@@ -526,7 +605,8 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
                             }
                         });
                     }
-                    return multi.onTermination().invoke(this::close);
+                    return multi.onTermination()
+                            .invoke((throwable, cancelled) -> this.onTermination.accept(kafkaConsumer, throwable));
                 });
     }
 

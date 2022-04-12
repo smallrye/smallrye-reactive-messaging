@@ -20,14 +20,16 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
 
     private final ConsumerRecord<K, T> record;
     private volatile Headers headers;
+    private final String channel;
 
     /**
      * Constructor
      *
      * @param record the underlying record received from Kafka
      */
-    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record) {
+    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channel) {
         this.record = record;
+        this.channel = channel;
     }
 
     /**
@@ -64,7 +66,7 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
 
     /**
      * Get the timestamp type
-     * 
+     *
      * @return the timestamp type
      */
     public TimestampType getTimestampType() {
@@ -73,7 +75,7 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
 
     /**
      * Get the offset
-     * 
+     *
      * @return the offset
      */
     public long getOffset() {
@@ -108,5 +110,9 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
      */
     public ConsumerRecord<K, T> getRecord() {
         return record;
+    }
+
+    public String getChannel() {
+        return channel;
     }
 }

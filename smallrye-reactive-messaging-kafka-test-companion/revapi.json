@@ -24,7 +24,14 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.method.returnTypeTypeParametersChanged",
+            "old": "method java.util.Map<org.apache.kafka.common.TopicPartition, java.lang.Long> io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::position()",
+            "new": "method java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::position()",
+            "justification": "Returns OffsetMetadata instead of offset"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

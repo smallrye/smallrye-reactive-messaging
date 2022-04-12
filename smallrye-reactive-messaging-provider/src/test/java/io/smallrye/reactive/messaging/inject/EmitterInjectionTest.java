@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.inject;
 
+import static io.smallrye.reactive.messaging.annotations.EmitterFactoryFor.Literal.EMITTER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -25,9 +26,10 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.reactivex.subscribers.TestSubscriber;
+import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
-import io.smallrye.reactive.messaging.providers.extension.EmitterConfiguration;
+import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.EmitterImpl;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
@@ -665,7 +667,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
                 return 128;
             }
         };
-        EmitterConfiguration config = new EmitterConfiguration("my-channel", false, overflow, null);
+        EmitterConfiguration config = new DefaultEmitterConfiguration("my-channel", EMITTER, overflow, null);
         EmitterImpl<String> emitter = new EmitterImpl<>(config, 128);
         Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 
@@ -694,8 +696,8 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
     @Test
     public void injectionOfRawEmitterTest() {
         addBeanClass(EmitterRawComponent.class);
-        initialize();
         assertThatThrownBy(() -> {
+            initialize();
             EmitterRawComponent component = get(EmitterRawComponent.class);
             component.emit("foo");
         })
