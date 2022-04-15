@@ -37,6 +37,7 @@ import com.rabbitmq.client.impl.CredentialsProvider;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
+import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
@@ -103,6 +104,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "queue.single-active-consumer", direction = INCOMING, description = "If set to true, only one consumer can actively consume messages", type = "boolean")
 @ConnectorAttribute(name = "max-outgoing-internal-queue-size", direction = OUTGOING, description = "The maximum size of the outgoing internal queue", type = "int")
 @ConnectorAttribute(name = "max-incoming-internal-queue-size", direction = INCOMING, description = "The maximum size of the incoming internal queue", type = "int", defaultValue = "500000")
+@ConnectorAttribute(name = "connection-count", direction = INCOMING, description = "The number of RabbitMQ connections to create for consuming from this queue. This might be necessary to consume from a sharded queue with a single client.", type = "int", defaultValue = "1")
 
 // DLQs
 @ConnectorAttribute(name = "auto-bind-dlq", direction = INCOMING, description = "Whether to automatically declare the DLQ and bind it to the binder DLX", type = "boolean", defaultValue = "false")
@@ -223,30 +225,30 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
         incomingChannelStatus.put(ic.getChannel(), ChannelStatus.INITIALISING);
 
-        // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions, credentialsProviders);
-
-        final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
         final RabbitMQFailureHandler onNack = createFailureHandler(ic);
         final RabbitMQAckHandler onAck = createAckHandler(ic);
-
-        // Ensure we set the queue up
-        Uni<RabbitMQClient> uniQueue = holder.getOrEstablishConnection()
-                // Once connected, ensure we create the queue from which messages are to be read
-                .onItem().call(connection -> establishQueue(connection, ic))
-                // If directed to do so, create a DLQ
-                .onItem().call(connection -> establishDLQ(connection, ic))
-                .onItem().invoke(connection -> incomingChannelStatus.put(ic.getChannel(), ChannelStatus.CONNECTED));
-
-        // Once the queue is set up, set yp a consumer
         final Integer interval = ic.getReconnectInterval();
         final Integer attempts = ic.getReconnectAttempts();
-        Multi<? extends Message<?>> multi = uniQueue
-                .onItem().transformToUni(connection -> client.basicConsumer(ic.getQueueName(), new QueueOptions()
-                        .setAutoAck(ic.getAutoAcknowledgement())
-                        .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
-                        .setKeepMostRecent(ic.getKeepMostRecent())))
-                .onItem().transformToMulti(consumer -> getStreamOfMessages(consumer, holder, ic, onNack, onAck))
+
+        final Integer connectionCount = ic.getConnectionCount();
+        Multi<? extends Message<?>> multi = Multi.createFrom().range(0, connectionCount)
+                .flatMap(ignore -> {
+                    // Create a client
+                    final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions,
+                            credentialsProviders);
+                    final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
+                    // Ensure we set the queue up
+                    Uni<RabbitMQClient> uniQueue = holder.getOrEstablishConnection()
+                            // Once connected, ensure we create the queue from which messages are to be read
+                            .onItem().call(connection -> establishQueue(connection, ic))
+                            // If directed to do so, create a DLQ
+                            .onItem().call(connection -> establishDLQ(connection, ic))
+                            .onItem().invoke(connection -> incomingChannelStatus.put(ic.getChannel(), ChannelStatus.CONNECTED));
+                    return uniQueue.replaceWith(Tuple2.of(holder, client)).toMulti();
+                })
+                .flatMap(tuple -> createConsumer(ic, tuple.getItem2()).toMulti()
+                        .map(consumer -> Tuple2.of(tuple.getItem1(), consumer)))
+                .flatMap(tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), ic, onNack, onAck))
                 .plug(m -> {
                     if (attempts > 0) {
                         return m
@@ -266,6 +268,13 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         }
 
         return ReactiveStreams.fromPublisher(multi);
+    }
+
+    private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
+        return client.basicConsumer(ic.getQueueName(), new QueueOptions()
+                .setAutoAck(ic.getAutoAcknowledgement())
+                .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
+                .setKeepMostRecent(ic.getKeepMostRecent()));
     }
 
     /**
