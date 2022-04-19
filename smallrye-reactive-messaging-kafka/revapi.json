@@ -87,6 +87,10 @@
                     "code": "java.method.addedToInterface",
                     "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::withTransaction(java.util.function.Consumer<io.smallrye.mutiny.subscription.MultiEmitter<? super org.apache.kafka.clients.producer.ProducerRecord<K, V>>>)",
                     "justification": "Adds method to produce records in transaction"
+                },
+                {
+                    "code": "java.annotation.attributeValueChanged",
+                    "justification": "dead-letter-queue.producer-client-id configuration attribute added to KafkaConnector"
                 }
             ]
         }
