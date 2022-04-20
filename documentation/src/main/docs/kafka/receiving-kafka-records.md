@@ -164,17 +164,23 @@ The strategy is selected using the `failure-strategy` attribute.
 In the case of `dead-letter-queue`, you can configure the following
 attributes:
 
--   `dead-letter-queue.topic`: the topic to use to write the records not
+- `dead-letter-queue.topic`: the topic to use to write the records not
     processed correctly, default is `dead-letter-topic-$channel`, with
     `$channel` being the name of the channel.
+- `dead-letter-queue.producer-client-id`: the client id used by the kafka
+producer when sending records to dead letter queue topic. If not specified
+it will default to `kafka-dead-letter-topic-producer-$client-id`, with $client-id
+being the value obtained from consumer client id.
 
--   `dead-letter-queue.key.serializer`: the serializer used to write the
+
+- `dead-letter-queue.key.serializer`: the serializer used to write the
     record key on the dead letter queue. By default, it deduces the
     serializer from the key deserializer.
 
--   `dead-letter-queue.value.serializer`: the serializer used to write
+- `dead-letter-queue.value.serializer`: the serializer used to write
     the record value on the dead letter queue. By default, it deduces
     the serializer from the value deserializer.
+
 
 The record written on the dead letter topic contains the original
 record’s headers, as well as a set of additional headers about the
