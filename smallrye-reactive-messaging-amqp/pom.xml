@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>3.16.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-amqp</artifactId>
@@ -44,7 +44,7 @@
 
     <dependency>
       <groupId>org.apache.activemq</groupId>
-      <artifactId>artemis-server</artifactId>
+      <artifactId>artemis-jakarta-server</artifactId>
       <version>${artemis.version}</version>
       <scope>test</scope>
       <exclusions>

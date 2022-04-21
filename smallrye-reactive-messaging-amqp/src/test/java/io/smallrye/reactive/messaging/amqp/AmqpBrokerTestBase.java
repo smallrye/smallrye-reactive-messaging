@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import javax.enterprise.inject.se.SeContainer;
+import jakarta.enterprise.inject.se.SeContainer;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;

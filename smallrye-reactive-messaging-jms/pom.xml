@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>3.16.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-jms</artifactId>
@@ -13,7 +13,7 @@
   <name>SmallRye Reactive Messaging : Connector :: JMS</name>
 
   <properties>
-    <artemis.version>2.19.0</artemis.version>
+    <artemis.version>2.20.0</artemis.version>
     <revapi.skip>false</revapi.skip>
   </properties>
 
@@ -41,7 +41,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.activemq</groupId>
-      <artifactId>artemis-jms-client</artifactId>
+      <artifactId>artemis-jakarta-client</artifactId>
       <version>${artemis.version}</version>
       <scope>test</scope>
       <exclusions>
@@ -57,7 +57,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.activemq</groupId>
-      <artifactId>artemis-server</artifactId>
+      <artifactId>artemis-jakarta-server</artifactId>
       <version>${artemis.version}</version>
       <scope>test</scope>
       <exclusions>

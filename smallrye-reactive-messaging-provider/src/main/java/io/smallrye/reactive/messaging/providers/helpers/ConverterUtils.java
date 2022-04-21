@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.Prioritized;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.Prioritized;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 

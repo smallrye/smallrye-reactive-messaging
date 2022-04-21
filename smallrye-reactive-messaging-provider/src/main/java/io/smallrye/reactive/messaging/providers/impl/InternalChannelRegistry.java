@@ -5,7 +5,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg
 import java.util.*;
 import java.util.stream.Collectors;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;

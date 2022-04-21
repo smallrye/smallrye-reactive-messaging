@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
-import javax.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
