@@ -46,11 +46,6 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-reactive-messaging-camel</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-jms</artifactId>
       <version>${project.version}</version>
     </dependency>
