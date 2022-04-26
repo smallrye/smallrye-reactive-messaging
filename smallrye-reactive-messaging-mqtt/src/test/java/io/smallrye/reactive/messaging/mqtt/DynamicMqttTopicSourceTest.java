@@ -51,7 +51,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         await().until(() -> bean.messages().size() >= 3);
 
         assertThat(bean.messages()).allSatisfy(m -> {
-            assertThat(m.getTopic()).matches("/app/hello/mqtt-.*/greeting");
+            assertThat(m.getTopic()).matches("(\\$)?/app/hello/mqtt-.*/greeting");
             assertThat(new String(m.getPayload())).startsWith("hello from dynamic topic ");
         });
     }
@@ -106,6 +106,14 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         awaitAndVerify();
     }
 
+    @Test
+    public void testWithSpecialWord() {
+        Weld weld = baseWeld(getConfig("$/app/#"));
+        weld.addBeanClass(DynamicTopicApp.class);
+        container = weld.initialize();
+        awaitAndVerify();
+    }
+
     private MapBasedConfig getConfig(String pattern) {
         String prefix = "mp.messaging.outgoing.out.";
         Map<String, Object> config = new HashMap<>();
@@ -148,6 +156,15 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
                             MqttQoS.EXACTLY_ONCE));
             emitter.send(MqttMessage
                     .of("/app/hello/mqtt-" + LocalDate.now().toString() + "/greeting", "hello from dynamic topic 3",
+                            MqttQoS.EXACTLY_ONCE));
+            emitter.send(MqttMessage
+                    .of("$/app/hello/mqtt-" + LocalDate.now().toString() + "/greeting", "hello from dynamic topic 4",
+                            MqttQoS.EXACTLY_ONCE));
+            emitter.send(MqttMessage
+                    .of("$/app/hello/mqtt-" + LocalDate.now().toString() + "/greeting", "hello from dynamic topic 5",
+                            MqttQoS.EXACTLY_ONCE));
+            emitter.send(MqttMessage
+                    .of("$/app/hello/mqtt-" + LocalDate.now().toString() + "/greeting", "hello from dynamic topic 6",
                             MqttQoS.EXACTLY_ONCE));
         }
 
