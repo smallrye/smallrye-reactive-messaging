@@ -23,7 +23,7 @@ public class ProxiedStrimziKafkaContainer extends StrimziKafkaContainer {
     public static final String TOXIPROXY_NETWORK_ALIAS = "toxiproxy";
     public static final String KAFKA_NETWORK_ALIAS = "kafka";
 
-    private final ToxiproxyContainer toxiproxy = new ToxiproxyContainer("shopify/toxiproxy:2.1.0")
+    private final ToxiproxyContainer toxiproxy = new ToxiproxyContainer("shopify/toxiproxy:2.1.4")
             .withNetworkAliases(TOXIPROXY_NETWORK_ALIAS);
     private KafkaProxy kafkaProxy;
 
