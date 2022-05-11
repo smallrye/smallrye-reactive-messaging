@@ -15,6 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.amqp.ssl.ClientSslContextBean;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -230,6 +231,39 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
+    }
+
+    @Test
+    public void testSuppliedSslContext() {
+        Weld weld = new Weld();
+
+        String address = UUID.randomUUID().toString();
+        weld.addBeanClass(ClientSslContextBean.class);
+        weld.addBeanClass(ConsumptionBean.class);
+
+        new MapBasedConfig()
+                .with("mp.messaging.incoming.data.address", address)
+                .with("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.host", host)
+                .with("mp.messaging.incoming.data.port", port)
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("amqp-username", username)
+                .with("amqp-password", password)
+                .with("amqp-client-ssl-context-name", "mysslcontext")
+                // Not actually setting ssl to true. The test's main purpose is to check that the SSLContext bean can be found
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isAmqpConnectorAlive(container));
+        await().until(() -> isAmqpConnectorReady(container));
+        List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
+        assertThat(list).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers(address, counter::getAndIncrement);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
 }

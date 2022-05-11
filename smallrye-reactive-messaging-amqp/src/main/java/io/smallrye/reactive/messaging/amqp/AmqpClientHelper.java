@@ -7,10 +7,17 @@ import java.util.Optional;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.literal.NamedLiteral;
+import javax.net.ssl.SSLContext;
 
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.IdentityCipherSuiteFilter;
+import io.netty.handler.ssl.JdkSslContext;
+import io.netty.handler.ssl.SslContext;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.amqp.AmqpClientOptions;
+import io.vertx.core.net.JdkSSLEngineOptions;
+import io.vertx.core.spi.tls.SslContextFactory;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.core.Vertx;
 
@@ -21,14 +28,20 @@ public class AmqpClientHelper {
     }
 
     static AmqpClient createClient(AmqpConnector connector, AmqpConnectorCommonConfiguration config,
-            Instance<AmqpClientOptions> instance) {
+            Instance<AmqpClientOptions> amqpClientOptions, Instance<SSLContext> clientSslContexts) {
         AmqpClient client;
         Optional<String> clientOptionsName = config.getClientOptionsName();
+        Optional<String> clientSslContextName = config.getClientSslContextName();
+        if (clientOptionsName.isPresent() && clientSslContextName.isPresent()) {
+            // TODO i18n
+            throw new IllegalStateException("Cannot specify both client-options-name and client-ssl-context-name");
+        }
         Vertx vertx = connector.getVertx();
         if (clientOptionsName.isPresent()) {
-            client = createClientFromClientOptionsBean(vertx, instance, clientOptionsName.get(), config);
+            client = createClientFromClientOptionsBean(vertx, amqpClientOptions, clientOptionsName.get(), config);
         } else {
-            client = getClient(vertx, config);
+            SSLContext sslContext = getClientSslContext(clientSslContexts, clientSslContextName);
+            client = getClient(vertx, config, sslContext);
         }
         connector.addClient(client);
         return client;
@@ -163,13 +176,49 @@ public class AmqpClientHelper {
         return options;
     }
 
-    static AmqpClient getClient(Vertx vertx, AmqpConnectorCommonConfiguration config) {
+    static AmqpClient getClient(Vertx vertx, AmqpConnectorCommonConfiguration config, SSLContext sslContext) {
         try {
             AmqpClientOptions options = getOptionsFromChannel(config);
+            if (sslContext != null) {
+                options.setSslEngineOptions(new JdkSSLEngineOptions() {
+                    @Override
+                    public SslContextFactory sslContextFactory() {
+                        return new SslContextFactory() {
+                            @Override
+                            public SslContext create() {
+                                return new JdkSslContext(
+                                        sslContext,
+                                        true,
+                                        null,
+                                        IdentityCipherSuiteFilter.INSTANCE,
+                                        ApplicationProtocolConfig.DISABLED,
+                                        io.netty.handler.ssl.ClientAuth.NONE,
+                                        null,
+                                        false);
+                            }
+                        };
+                    }
+                });
+            }
             return AmqpClient.create(vertx, options);
         } catch (Exception e) {
             log.unableToCreateClient(e);
             throw ex.illegalStateUnableToCreateClient(e);
         }
+    }
+
+    private static SSLContext getClientSslContext(Instance<SSLContext> clientSslContexts,
+            Optional<String> clientSslContextName) {
+        if (clientSslContextName.isPresent()) {
+            Instance<SSLContext> context = clientSslContexts
+                    .select(Identifier.Literal.of(clientSslContextName.get()));
+            if (context.isUnsatisfied()) {
+                // TODO i18n
+                throw new IllegalStateException(
+                        "Could not find an SSLContext bean with the @Identifier=" + clientSslContextName.get());
+            }
+            return context.get();
+        }
+        return null;
     }
 }

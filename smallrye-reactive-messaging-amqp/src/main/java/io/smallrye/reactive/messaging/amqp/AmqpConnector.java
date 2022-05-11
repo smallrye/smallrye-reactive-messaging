@@ -26,6 +26,7 @@ import javax.enterprise.event.Reception;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -84,6 +85,7 @@ import io.vertx.proton.ProtonSender;
 @ConnectorAttribute(name = "address", direction = INCOMING_AND_OUTGOING, description = "The AMQP address. If not set, the channel name is used", type = "string")
 @ConnectorAttribute(name = "link-name", direction = INCOMING_AND_OUTGOING, description = "The name of the link. If not set, the channel name is used.", type = "string")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
+@ConnectorAttribute(name = "client-ssl-context-name", direction = INCOMING_AND_OUTGOING, description = "The name of an SSLContext bean to use for connecting to AMQP when SSL is used", type = "string", alias = "amqp-client-ssl-context-name", hiddenFromDocumentation = true)
 @ConnectorAttribute(name = "tracing-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "health-timeout", direction = INCOMING_AND_OUTGOING, description = "The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.", type = "int", defaultValue = "3")
 @ConnectorAttribute(name = "cloud-events", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
@@ -120,6 +122,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     @Inject
     @Any
     private Instance<AmqpClientOptions> clientOptions;
+
+    @Inject
+    @Any
+    private Instance<SSLContext> clientSslContexts;
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
 
@@ -219,7 +225,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 .setCapabilities(getClientCapabilities(ic))
                 .setSelector(ic.getSelector().orElse(null));
 
-        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions);
+        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, clientSslContexts);
+
         ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
         holders.put(ic.getChannel(), holder);
 
@@ -257,7 +264,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         opened.put(oc.getChannel(), false);
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions);
+        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions, clientSslContexts);
         String link = oc.getLinkName().orElseGet(oc::getChannel);
         ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
 

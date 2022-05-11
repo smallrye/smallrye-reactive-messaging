@@ -145,7 +145,7 @@ public class AmqpUsage {
         client.closeAndAwait();
     }
 
-    void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
+    public void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
         this.produce(topic, 10, messageSupplier::get);
     }
 
