@@ -31,7 +31,7 @@ public class MqttSource {
         MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
         if (topic.contains("#") || topic.contains("+")) {
-            String replace = topic.replace("+", "[^/]+")
+            String replace = escapeTopicSpecialWord(topic).replace("+", "[^/]+")
                     .replace("#", ".+");
             pattern = Pattern.compile(replace);
         } else {
@@ -63,6 +63,19 @@ public class MqttSource {
                                             .unsubscribe(topic).toCompletionStage());
                         })
                         .onFailure().invoke(log::unableToConnectToBroker));
+    }
+
+    /**
+     * Escape special words in topic
+     */
+    private String escapeTopicSpecialWord(String topic) {
+        String[] specialWords = { "\\", "$", "(", ")", "*", ".", "[", "]", "?", "^", "{", "}", "|" };
+        for (String word : specialWords) {
+            if (topic.contains(word)) {
+                topic = topic.replace(word, "\\" + word);
+            }
+        }
+        return topic;
     }
 
     private boolean matches(String topic, MqttPublishMessage m) {
