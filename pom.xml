@@ -98,7 +98,7 @@
     <junit-pioneer.version>1.7.0</junit-pioneer.version>
     <junit-platform-commons.version>1.8.2</junit-platform-commons.version>
 
-    <jackson.version>2.13.2</jackson.version>
+    <jackson.version>2.13.3</jackson.version>
     <yasson.version>1.0.8</yasson.version>
 
     <jandex-maven-plugin.version>1.2.2</jandex-maven-plugin.version>
