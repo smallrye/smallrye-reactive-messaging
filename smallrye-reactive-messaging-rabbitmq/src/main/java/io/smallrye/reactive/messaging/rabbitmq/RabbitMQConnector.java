@@ -464,8 +464,6 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                                     .onItem().invoke(() -> log.queueEstablished(queueName))
                                     .onFailure().invoke(ex -> log.unableToEstablishQueue(queueName, ex))
                                     .onItem().transformToMulti(v -> establishBindings(client, ic))
-                                    // What follows is just to "rejoin" the Multi stream into a single Uni emitting the queue name
-                                    .onCompletion().invoke(() -> Multi.createFrom().item("ignore"))
                                     .onItem().ignoreAsUni().onItem().transform(v -> queueName);
                         });
     }
