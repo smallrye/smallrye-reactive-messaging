@@ -22,7 +22,6 @@ import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
-import com.rabbitmq.client.AMQP;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -33,6 +32,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscription;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
 import io.smallrye.mutiny.Multi;
@@ -176,7 +176,6 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         TracingUtils.initialise();
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private Multi<? extends Message<?>> getStreamOfMessages(RabbitMQConsumer receiver,
             ConnectionHolder holder,
             RabbitMQConnectorIncomingConfiguration ic,
@@ -190,7 +189,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         log.receiverListeningAddress(queueName);
 
         // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
-        BroadcastProcessor processor = BroadcastProcessor.create();
+        BroadcastProcessor<Message<?>> processor = BroadcastProcessor.create();
         receiver.exceptionHandler(t -> {
             log.receiverError(t);
             processor.onError(t);
@@ -198,7 +197,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
         return Multi.createFrom().deferred(
                 () -> {
-                    Multi<? extends Message<?>> stream = receiver.toMulti()
+                    Multi<Message<?>> stream = receiver.toMulti()
                             .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck,
                                     contentTypeOverride))
                             .map(m -> isTracingEnabled ? TracingUtils.addIncomingTrace(m, queueName, attributeHeaders) : m);
@@ -237,18 +236,19 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                     // Create a client
                     final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions,
                             credentialsProviders);
+                    client.getDelegate().addConnectionEstablishedCallback(promise -> {
+                        // Ensure we create the queues (and exchanges) from which messages will be read
+                        Uni.createFrom().nullItem()
+                                .onItem().call(() -> establishQueue(client, ic))
+                                .onItem().call(() -> establishDLQ(client, ic))
+                                .subscribe().with(ignored -> promise.complete(), promise::fail);
+                    });
                     final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
-                    // Ensure we set the queue up
-                    Uni<RabbitMQClient> uniQueue = holder.getOrEstablishConnection()
-                            // Once connected, ensure we create the queue from which messages are to be read
-                            .onItem().call(connection -> establishQueue(connection, ic))
-                            // If directed to do so, create a DLQ
-                            .onItem().call(connection -> establishDLQ(connection, ic))
-                            .onItem().invoke(connection -> incomingChannelStatus.put(ic.getChannel(), ChannelStatus.CONNECTED));
-                    return uniQueue.replaceWith(Tuple2.of(holder, client)).toMulti();
+                    return holder.getOrEstablishConnection().replaceWith(Tuple2.of(holder, client)).toMulti();
                 })
                 .flatMap(tuple -> createConsumer(ic, tuple.getItem2()).toMulti()
                         .map(consumer -> Tuple2.of(tuple.getItem1(), consumer)))
+                .onItem().invoke(connection -> incomingChannelStatus.put(ic.getChannel(), ChannelStatus.CONNECTED))
                 .flatMap(tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), ic, onNack, onAck))
                 .plug(m -> {
                     if (attempts > 0) {
@@ -338,12 +338,15 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
         // Create a client
         final RabbitMQClient client = RabbitMQClientHelper.createClient(this, oc, clientOptions, credentialsProviders);
+        client.getDelegate().addConnectionEstablishedCallback(promise -> {
+            // Ensure we create the exchange to which messages are to be sent
+            Uni.createFrom().nullItem()
+                    .onItem().call(ignored -> establishExchange(client, oc))
+                    .subscribe().with((ignored) -> promise.complete(), promise::fail);
+        });
 
         final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
-                // Once connected, ensure we create the exchange to which messages are to be sent
-                .onItem().call(connection -> establishExchange(connection, oc))
-                // Once exchange exists, create ourselves a publisher
                 .onItem().transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
                         new RabbitMQPublisherOptions()
                                 .setReconnectAttempts(oc.getReconnectAttempts())
@@ -482,7 +485,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                                 declare = client.queueDeclare(serverQueueName, false, true, true);
                             } else {
                                 declare = client.queueDeclare(serverQueueName, ic.getQueueDurable(),
-                                                              ic.getQueueExclusive(), ic.getQueueAutoDelete(), queueArgs);
+                                        ic.getQueueExclusive(), ic.getQueueAutoDelete(), queueArgs);
                             }
 
                             return declare
