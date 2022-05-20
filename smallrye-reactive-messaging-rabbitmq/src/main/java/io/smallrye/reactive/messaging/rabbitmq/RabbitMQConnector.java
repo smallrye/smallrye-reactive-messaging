@@ -217,7 +217,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
         final Integer connectionCount = ic.getConnectionCount();
         Multi<? extends Message<?>> multi = Multi.createFrom().range(0, connectionCount)
-                .flatMap(ignore -> {
+                .onItem().transformToUniAndMerge(connectionIdx -> {
                     // Create a client
                     final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions,
                             credentialsProviders);
@@ -229,11 +229,15 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                                 .subscribe().with(ignored -> promise.complete(), promise::fail);
                     });
                     final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
-                    return holder.getOrEstablishConnection().replaceWith(Tuple2.of(holder, client)).toMulti();
+                    return holder.getOrEstablishConnection()
+                            .invoke(() -> log.connectionEstablished(connectionIdx, ic.getChannel()))
+                            .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
                 })
-                .flatMap(tuple -> createConsumer(ic, tuple.getItem2()).toMulti()
-                        .map(consumer -> Tuple2.of(tuple.getItem1(), consumer)))
-                .onItem().invoke(connection -> incomingChannelStatus.put(ic.getChannel(), ChannelStatus.CONNECTED))
+                // Wait for all consumers to be created/connected
+                .collect().asList()
+                .onItem().invoke(() -> incomingChannelStatus.put(ic.getChannel(), ChannelStatus.CONNECTED))
+                // Translate all consumers into a merged stream of messages
+                .onItem().transformToMulti(tuples -> Multi.createFrom().iterable(tuples))
                 .flatMap(tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), ic, onNack, onAck));
 
         if (Boolean.TRUE.equals(ic.getBroadcast())) {
