@@ -438,8 +438,10 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
         // Declare the queue (and its binding(s) to the exchange, and TTL) if we have been asked to do so
         final JsonObject queueArgs = new JsonObject();
-        queueArgs.put("x-dead-letter-exchange", ic.getDeadLetterExchange());
-        queueArgs.put("x-dead-letter-routing-key", ic.getDeadLetterRoutingKey().orElse(queueName));
+        if (ic.getAutoBindDlq()) {
+            queueArgs.put("x-dead-letter-exchange", ic.getDeadLetterExchange());
+            queueArgs.put("x-dead-letter-routing-key", ic.getDeadLetterRoutingKey().orElse(queueName));
+        }
         ic.getQueueSingleActiveConsumer().ifPresent(sac -> queueArgs.put("x-single-active-consumer", sac));
 
         ic.getQueueTtl().ifPresent(queueTtl -> {

@@ -153,8 +153,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         // verify bindings
         final JsonObject queueArguments = queue.getJsonObject("arguments");
         assertThat(queueArguments).isNotNull();
-        assertThat(queueArguments.getString("x-dead-letter-exchange")).isEqualTo("DLX");
-        assertThat(queueArguments.getString("x-dead-letter-routing-key")).isEqualTo(queueName);
+        assertThat(queueArguments.getString("x-dead-letter-exchange")).isNull();
+        assertThat(queueArguments.getString("x-dead-letter-routing-key")).isNull();
         assertThat(queueArguments.getLong("x-message-ttl")).isEqualTo(queueTtl);
         assertThat(queueArguments.getBoolean("x-single-active-consumer")).isEqualTo(true);
 
