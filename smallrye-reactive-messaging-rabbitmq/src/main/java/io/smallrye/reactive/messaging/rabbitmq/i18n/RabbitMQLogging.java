@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.rabbitmq.i18n;
 
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
+import org.jboss.logging.Logger.Level;
 import org.jboss.logging.annotations.*;
 
 @MessageLogger(projectCode = "SRMSG", length = 5)
@@ -125,4 +126,9 @@ public interface RabbitMQLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 17038, value = "No valid content_type set, failing back to byte[]. If that's wanted, set the content type to application/octet-stream with \"content-type-override\"")
     void typeConversionFallback();
+
+    @LogMessage(level = Level.DEBUG)
+    @Message(id = 17039, value = "Connection '%d' with RabbitMQ broker established for channel `%s`")
+    void connectionEstablished(int connectionIndex, String channel);
+
 }

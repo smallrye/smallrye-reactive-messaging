@@ -65,11 +65,15 @@ public class RabbitMQClientHelper {
     static RabbitMQClient getClient(Vertx vertx, RabbitMQConnectorCommonConfiguration config,
             Instance<CredentialsProvider> credentialsProviders) {
         try {
+            String connectionName = String.format("%s (%s)",
+                    config.getChannel(),
+                    config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing");
             String host = config.getHost();
             int port = config.getPort();
             log.brokerConfigured(host, port, config.getChannel());
 
             RabbitMQOptions options = new RabbitMQOptions()
+                    .setConnectionName(connectionName)
                     .setHost(host)
                     .setPort(port)
                     .setSsl(config.getSsl())

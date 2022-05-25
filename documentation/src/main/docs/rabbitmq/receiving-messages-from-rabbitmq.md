@@ -203,6 +203,15 @@ mp.messaging.incoming.people.queue.declare=true
     name of the exchange; if this is not the case you would need to name the
     exchange explicitly using the `exchange.name` property.
 
+!!!note
+    The connector supports RabbitMQ's "Server-named Queues" feature to create
+    an exclusive, auto-deleting, non-durable and randomly named queue. To
+    enable this feature you set the queue name to exactly `(server.auto)`.
+    Using this name not only enables the server named queue feature but also
+    automatically makes ths queue exclusive, auto-deleting, and non-durable;
+    therefore ignoring any values provided for the `exclusive`, `auto-delete`
+    and `durable` options.
+
 If you want RabbitMQ to create the `people` exchange, queue and binding,
 you need the following configuration:
 
