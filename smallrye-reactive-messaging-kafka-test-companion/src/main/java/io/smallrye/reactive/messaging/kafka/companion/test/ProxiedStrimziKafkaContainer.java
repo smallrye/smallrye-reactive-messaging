@@ -7,11 +7,11 @@ import java.util.List;
 
 import org.jboss.logging.Logger;
 import org.testcontainers.containers.ToxiproxyContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import io.strimzi.test.container.StrimziKafkaContainer;
-import org.testcontainers.utility.DockerImageName;
 
 /**
  * Sets advertised listeners to the proxied port instead of exposed port
@@ -25,11 +25,11 @@ public class ProxiedStrimziKafkaContainer extends StrimziKafkaContainer {
     public static final String KAFKA_NETWORK_ALIAS = "kafka";
     public static final String TOXIPROXY_IMAGE_NAME_PROPERTY_KEY = "toxiproxy.image.name";
     public static final String DEFAULT_TOXIPROXY_IMAGE_NAME = "ghcr.io/shopify/toxiproxy:2.4.0";
-    
+
     private final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse(
-                    System.getProperty(TOXIPROXY_IMAGE_NAME_PROPERTY_KEY, DEFAULT_TOXIPROXY_IMAGE_NAME))
+            System.getProperty(TOXIPROXY_IMAGE_NAME_PROPERTY_KEY, DEFAULT_TOXIPROXY_IMAGE_NAME))
             .asCompatibleSubstituteFor("shopify/toxiproxy"))
-            .withNetworkAliases(TOXIPROXY_NETWORK_ALIAS);
+                    .withNetworkAliases(TOXIPROXY_NETWORK_ALIAS);
     private KafkaProxy kafkaProxy;
 
     public ProxiedStrimziKafkaContainer() {
