@@ -22,7 +22,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junitpioneer.jupiter.RetryingTest;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -36,7 +37,8 @@ import io.smallrye.reactive.messaging.kafka.converters.ConsumerRecordConverter;
 public class ProducerRecordWithLegacyMetadataTest extends KafkaCompanionTestBase {
     private static final String TOPIC_NAME_BASE = "ProducerRecord-" + UUID.randomUUID() + "-";
 
-    @Test
+    @RetryingTest(3)
+    @Timeout(60)
     public void test() {
         for (int i = 0; i < 10; i++) {
             companion.topics().createAndWait(TOPIC_NAME_BASE + i, 1);
