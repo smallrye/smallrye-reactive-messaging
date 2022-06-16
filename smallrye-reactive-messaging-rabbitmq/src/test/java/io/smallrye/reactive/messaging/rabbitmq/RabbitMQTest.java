@@ -5,7 +5,9 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -434,6 +436,104 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(bean.getTypeCasts()).isEqualTo(10);
         assertThat(list).containsOnly(0);
+    }
+
+    /**
+     * Verifies that messages can be received from RabbitMQ, after message conversion failures,
+     * when using MANUAL ack.
+     */
+    @Test
+    void testReceivingMessagesFromRabbitMQAfterConversionFailuresWithManualAck() {
+        final String exchangeName = "exchg4";
+        final String queueName = "q4";
+        final String routingKey = "xyzzy";
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.durable", false)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.durable", false)
+                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        weld.addBeanClasses(ConvertedConsumptionWithManualAckBean.class, FailingMessageConverter.class);
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        ConvertedConsumptionWithManualAckBean bean = container.getBeanManager().createInstance()
+                .select(ConvertedConsumptionWithManualAckBean.class)
+                .get();
+
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        List<Integer> list = bean.getResults();
+        assertThat(list).isEmpty();
+
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("should-fail-conversion", "true");
+
+        usage.produce(exchangeName, queueName, routingKey, 2, () -> "-1", "text/plain", 1000, headers);
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
+
+        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    }
+
+    /**
+     * Verifies that messages can be received from RabbitMQ, after message conversion failures,
+     * when using POST_PROCESSING ack.
+     */
+    @Test
+    void testReceivingMessagesFromRabbitMQAfterConversionFailuresWithPostAck() {
+        final String exchangeName = "exchg5";
+        final String queueName = "q5";
+        final String routingKey = "xyzzy";
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.durable", false)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.durable", false)
+                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        weld.addBeanClasses(ConvertedConsumptionWithPostAckBean.class, FailingMessageConverter.class);
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        ConvertedConsumptionWithPostAckBean bean = container.getBeanManager().createInstance()
+                .select(ConvertedConsumptionWithPostAckBean.class)
+                .get();
+
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        List<Integer> list = bean.getResults();
+        assertThat(list).isEmpty();
+
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("should-fail-conversion", "true");
+
+        usage.produce(exchangeName, queueName, routingKey, 2, () -> "-1", "text/plain", 1000, headers);
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::incrementAndGet);
+
+        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     /**

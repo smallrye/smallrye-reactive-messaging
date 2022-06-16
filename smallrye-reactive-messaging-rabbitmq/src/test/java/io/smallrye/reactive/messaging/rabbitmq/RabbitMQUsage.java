@@ -21,6 +21,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -86,6 +88,21 @@ public class RabbitMQUsage {
      */
     void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier,
             String contentType) {
+        this.produce(exchange, queue, routingKey, messageCount, messageSupplier, contentType, 1000, Collections.emptyMap());
+    }
+
+    /**
+     * Use the supplied function to asynchronously produce messages and write them to the host.
+     *
+     * @param exchange the exchange, must not be null
+     * @param messageCount the number of messages to produce; must be positive
+     * @param messageSupplier the function to produce messages; may not be null
+     * @param contentType the message's content_type attribute
+     * @param expiration the messages' expiration
+     * @param headers extra headers to add to the message
+     */
+    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier,
+            String contentType, Integer expiration, Map<String, Object> headers) {
         CountDownLatch done = new CountDownLatch(messageCount);
         // Start the machinery to receive the messages
         client.startAndAwait();
@@ -97,8 +114,9 @@ public class RabbitMQUsage {
                     final Object payload = messageSupplier.get();
                     final Buffer body = Buffer.buffer(payload.toString());
                     final BasicProperties properties = new AMQP.BasicProperties().builder()
-                            .expiration("10000")
+                            .expiration(expiration.toString())
                             .contentType(contentType)
+                            .headers(headers)
                             .build();
 
                     client.basicPublish(exchange, routingKey, properties, body)
