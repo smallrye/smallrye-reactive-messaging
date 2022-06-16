@@ -37,7 +37,6 @@ import com.rabbitmq.client.impl.CredentialsProvider;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -189,21 +188,9 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                 .map(String::trim).collect(Collectors.toList());
         log.receiverListeningAddress(queueName);
 
-        // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
-        BroadcastProcessor<Message<?>> processor = BroadcastProcessor.create();
-        receiver.exceptionHandler(t -> {
-            log.receiverError(t);
-            processor.onError(t);
-        });
-
-        return Multi.createFrom().deferred(
-                () -> {
-                    Multi<Message<?>> stream = receiver.toMulti()
-                            .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck,
-                                    contentTypeOverride))
-                            .map(m -> isTracingEnabled ? TracingUtils.addIncomingTrace(m, queueName, attributeHeaders) : m);
-                    return Multi.createBy().merging().streams(stream, processor);
-                });
+        return receiver.toMulti()
+                .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck, contentTypeOverride))
+                .map(m -> isTracingEnabled ? TracingUtils.addIncomingTrace(m, queueName, attributeHeaders) : m);
     }
 
     /**
