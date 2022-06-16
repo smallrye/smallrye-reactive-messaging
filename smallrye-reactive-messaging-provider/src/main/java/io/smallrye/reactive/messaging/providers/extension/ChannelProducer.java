@@ -25,8 +25,8 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.AnyMessageConverter;
 import io.smallrye.reactive.messaging.ChannelRegistry;
-import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
@@ -42,8 +42,9 @@ public class ChannelProducer {
     ChannelRegistry channelRegistry;
 
     @Inject
+    @SuppressWarnings("deprecation")
     // @Any would only be needed if we wanted to allow implementations with qualifiers
-    Instance<MessageConverter> converters;
+    Instance<AnyMessageConverter> converters;
 
     /**
      * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of

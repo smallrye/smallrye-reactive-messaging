@@ -38,7 +38,7 @@ public class RequestProtocolTest extends WeldTestBaseWithoutTails {
                 .until(() -> app.list().size() == 7);
 
         assertThat(app.list()).containsExactly(1, 2, 3, 4, 5, 6, 7);
-        assertThat(app.count()).isEqualTo(8); // request + 1 (pre-fetch)
+        assertThat(app.count()).isEqualTo(9); // request + 2 (pre-fetch)
     }
 
     @SuppressWarnings("ReactiveStreamsSubscriberImplementation")

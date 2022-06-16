@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.providers.i18n;
 
+import java.lang.reflect.Type;
 import java.util.Set;
 
 import javax.enterprise.inject.spi.Bean;
@@ -129,4 +130,13 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 238, value = "No ExecutionHolder, disabling @Blocking support")
     void noExecutionHolderDisablingBlockingSupport();
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 239, value = "Message conversion failed in converter '%s' (using the deprecated MessageConverter interface), ignoring the failure and rejecting the message")
+    void deprecatedConversionFailed(String deprecatedConverterName, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 240, value = "No converter found for payload type '%s', skipping conversion")
+    @Once
+    void noConverterFound(Type type);
 }

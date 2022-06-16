@@ -49,8 +49,9 @@ public class MediatorManager {
     Instance<PublisherDecorator> decorators;
 
     @Inject
+    @SuppressWarnings("deprecation")
     // @Any would only be needed if we wanted to allow implementations with qualifiers
-    Instance<MessageConverter> converters;
+    Instance<AnyMessageConverter> converters;
 
     private final List<EmitterConfiguration> emitters = new ArrayList<>();
 

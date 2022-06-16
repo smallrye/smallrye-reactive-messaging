@@ -9,11 +9,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
-import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
-import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -23,6 +18,11 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;

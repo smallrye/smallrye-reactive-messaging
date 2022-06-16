@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.converters;
 
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Type;
@@ -33,9 +34,8 @@ public class ErroneousConverterTest extends WeldTestBaseWithoutTails {
     @Test
     public void testConverterThrowingExceptionOnConvert() {
         addBeanClass(Source.class, Sink.class, PayloadProcessor.class, BadConverterThrowingExceptionOnConvert.class);
-        assertThatThrownBy(this::initialize)
-                .isInstanceOf(DeploymentException.class)
-                .hasStackTraceContaining("boom");
+        // Conversion exceptions are logged and nack'd
+        assertThatNoException().isThrownBy(this::initialize);
     }
 
     @ApplicationScoped

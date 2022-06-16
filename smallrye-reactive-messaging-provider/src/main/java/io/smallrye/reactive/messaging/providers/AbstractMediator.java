@@ -18,9 +18,9 @@ import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.AnyMessageConverter;
 import io.smallrye.reactive.messaging.Invoker;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
-import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
@@ -36,7 +36,8 @@ public abstract class AbstractMediator {
     private Invoker invoker;
     private Instance<PublisherDecorator> decorators;
     protected HealthCenter health;
-    private Instance<MessageConverter> converters;
+    @SuppressWarnings("deprecation")
+    private Instance<AnyMessageConverter> converters;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -50,7 +51,8 @@ public abstract class AbstractMediator {
         this.decorators = decorators;
     }
 
-    public void setConverters(Instance<MessageConverter> converters) {
+    @SuppressWarnings("deprecation")
+    public void setConverters(Instance<AnyMessageConverter> converters) {
         this.converters = converters;
     }
 
