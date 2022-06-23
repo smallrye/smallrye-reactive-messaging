@@ -463,24 +463,27 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
         return establishExchange(client, ic)
                 .onItem().transform(v -> Boolean.TRUE.equals(ic.getQueueDeclare()) ? null : queueName)
-                .onItem().ifNull().switchTo(
-                        () -> {
-                            String serverQueueName = serverQueueName(queueName);
+                // Not declaring the queue, so validate its existence...
+                // Ensures RabbitMQClient is notified of invalid queues during connection cycle.
+                .onItem().ifNotNull().call(name -> client.messageCount(name).onFailure().invoke(log::unableToConnectToBroker))
+                // Declare the queue.
+                .onItem().ifNull().switchTo(() -> {
+                    String serverQueueName = serverQueueName(queueName);
 
-                            Uni<AMQP.Queue.DeclareOk> declare;
-                            if (serverQueueName.isEmpty()) {
-                                declare = client.queueDeclare(serverQueueName, false, true, true);
-                            } else {
-                                declare = client.queueDeclare(serverQueueName, ic.getQueueDurable(),
-                                        ic.getQueueExclusive(), ic.getQueueAutoDelete(), queueArgs);
-                            }
+                    Uni<AMQP.Queue.DeclareOk> declare;
+                    if (serverQueueName.isEmpty()) {
+                        declare = client.queueDeclare(serverQueueName, false, true, true);
+                    } else {
+                        declare = client.queueDeclare(serverQueueName, ic.getQueueDurable(),
+                                ic.getQueueExclusive(), ic.getQueueAutoDelete(), queueArgs);
+                    }
 
-                            return declare
-                                    .onItem().invoke(() -> log.queueEstablished(queueName))
-                                    .onFailure().invoke(ex -> log.unableToEstablishQueue(queueName, ex))
-                                    .onItem().transformToMulti(v -> establishBindings(client, ic))
-                                    .onItem().ignoreAsUni().onItem().transform(v -> queueName);
-                        });
+                    return declare
+                            .onItem().invoke(() -> log.queueEstablished(queueName))
+                            .onFailure().invoke(ex -> log.unableToEstablishQueue(queueName, ex))
+                            .onItem().transformToMulti(v -> establishBindings(client, ic))
+                            .onItem().ignoreAsUni().onItem().transform(v -> queueName);
+                });
     }
 
     /**
