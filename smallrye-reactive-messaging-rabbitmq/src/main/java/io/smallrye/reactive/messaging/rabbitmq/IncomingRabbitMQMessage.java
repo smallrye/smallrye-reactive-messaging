@@ -7,6 +7,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -30,15 +31,33 @@ import io.vertx.mutiny.core.Context;
  */
 public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
+    /**
+     * Used to ignore duplicate attempts to ack/nack because RabbitMQ considers this a connection level error.
+     */
+    private static class AlreadyAcknowledgedHandler implements RabbitMQAckHandler, RabbitMQFailureHandler {
+
+        static final AlreadyAcknowledgedHandler INSTANCE = new AlreadyAcknowledgedHandler();
+
+        @Override
+        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context, Throwable reason) {
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
     protected final io.vertx.rabbitmq.RabbitMQMessage message;
     protected Metadata metadata;
     protected final IncomingRabbitMQMetadata rabbitMQMetadata;
     private final ConnectionHolder holder;
     private final Context context;
     private final long deliveryTag;
-    protected final RabbitMQFailureHandler onNack;
-    protected final RabbitMQAckHandler onAck;
-    protected final String contentTypeOverride;
+    private RabbitMQFailureHandler onNack;
+    private RabbitMQAckHandler onAck;
+    private final String contentTypeOverride;
 
     IncomingRabbitMQMessage(io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate, ConnectionHolder holder,
             boolean isTracingEnabled, RabbitMQFailureHandler onNack,
@@ -77,18 +96,30 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
     @Override
     public CompletionStage<Void> ack() {
-        // We must switch to the context having created the message.
-        // This context is passed when this instance of message is created.
-        // It's more a Vert.x RabbitMQ client issue which should ensure calling `accepted` on the right context.
-        return onAck.handle(this, context);
+        try {
+            // We must switch to the context having created the message.
+            // This context is passed when this instance of message is created.
+            // It's more a Vert.x RabbitMQ client issue which should ensure calling `accepted` on the right context.
+            return onAck.handle(this, context);
+        } finally {
+            // Ensure ack/nack are only called once
+            onAck = AlreadyAcknowledgedHandler.INSTANCE;
+            onNack = AlreadyAcknowledgedHandler.INSTANCE;
+        }
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        // We must switch to the context having created the message.
-        // This context is passed when this instance of message is created.
-        // It's more a Vert.x RabbitMQ client issue which should ensure calling `not accepted` on the right context.
-        return onNack.handle(this, context, reason);
+        try {
+            // We must switch to the context having created the message.
+            // This context is passed when this instance of message is created.
+            // It's more a Vert.x RabbitMQ client issue which should ensure calling `not accepted` on the right context.
+            return onNack.handle(this, context, reason);
+        } finally {
+            // Ensure ack/nack are only called once
+            onAck = AlreadyAcknowledgedHandler.INSTANCE;
+            onNack = AlreadyAcknowledgedHandler.INSTANCE;
+        }
     }
 
     /**
