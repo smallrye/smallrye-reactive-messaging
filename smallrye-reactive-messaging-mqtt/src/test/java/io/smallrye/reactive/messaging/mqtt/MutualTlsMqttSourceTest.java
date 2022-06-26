@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,13 +18,8 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
 
-    private WeldContainer container;
-
     @AfterEach
     public void cleanup() {
-        if (container != null) {
-            container.close();
-        }
         Clients.clear();
     }
 

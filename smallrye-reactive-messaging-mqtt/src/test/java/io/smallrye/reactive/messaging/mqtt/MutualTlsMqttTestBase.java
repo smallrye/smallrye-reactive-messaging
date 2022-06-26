@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.MqttTestBase.awaitForMosquittoToBeReady;
+
 import java.util.Properties;
 
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -18,11 +20,12 @@ import io.vertx.mutiny.core.Vertx;
 
 public class MutualTlsMqttTestBase {
 
-    public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:1.6")
+    public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:2.0")
             .withExposedPorts(8883)
             .withFileSystemBind("src/test/resources/mosquitto-tls", "/mosquitto/config", BindMode.READ_WRITE)
             .withCommand("/usr/sbin/mosquitto -c /mosquitto/config/mosquitto-mtls.conf")
-            .waitingFor(Wait.forLogMessage(".*listen socket on port 8883.*\\n", 2));
+            .waitingFor(Wait.forListeningPort())
+            .waitingFor(Wait.forLogMessage(".*mosquitto .* running.*", 1));
 
     Vertx vertx;
     protected String address;
@@ -32,6 +35,7 @@ public class MutualTlsMqttTestBase {
     @BeforeAll
     public static void startBroker() {
         mosquitto.start();
+        awaitForMosquittoToBeReady(mosquitto);
     }
 
     @AfterAll
