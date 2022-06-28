@@ -12,10 +12,22 @@ import java.util.UUID;
 import javax.enterprise.inject.AmbiguousResolutionException;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
+import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.base.DoubleInstance;
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.*;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,13 +35,9 @@ import org.junit.jupiter.api.Test;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.*;
-import io.smallrye.reactive.messaging.kafka.base.*;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
-import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 @SuppressWarnings("unchecked")
 public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
@@ -39,7 +47,8 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @BeforeAll
     static void initTracer() {
         KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
-        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
+        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerde.JsonObjectSerializer(),
+                new JsonObjectSerde.JsonObjectDeserializer()));
     }
 
     @AfterEach
@@ -101,7 +110,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testValueDeserializationFailureWithDeserializerSet() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("fail-on-deserialization-failure", false);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
@@ -140,7 +149,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testValueDeserializationFailureWithDeserializerSetWithFatalFailureOnDeserializationFailure() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("health-enabled", true);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
@@ -202,7 +211,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testValueDeserializationFailureWithMatchingHandler() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "my-deserialization-handler");
 
         JsonObject fallback = new JsonObject().put("fallback", "fallback");
@@ -217,7 +226,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
                                     Exception exception, Headers headers) {
                                 assertThat(exception).isNotNull();
                                 assertThat(ValueDeserializerConfigurationTest.this.topic).isEqualTo(topic);
-                                assertThat(deserializer).isEqualTo(JsonObjectDeserializer.class.getName());
+                                assertThat(deserializer).isEqualTo(JsonObjectSerde.JsonObjectDeserializer.class.getName());
                                 assertThat(data).isNotEmpty();
                                 assertThat(isKey).isFalse();
                                 assertThat(getHeader(headers, DeserializationFailureHandler.DESERIALIZATION_FAILURE_TOPIC))
@@ -269,8 +278,8 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testWhenBothValueAndKeyFailureHandlerAreSetToTheSameHandler() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
-                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "my-deserialization-handler")
                 .with("key-deserialization-failure-handler", "my-deserialization-handler");
 
@@ -338,7 +347,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testValueDeserializationFailureWithMatchingHandlerReturningNull() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "my-deserialization-handler");
 
         String group = UUID.randomUUID().toString();
@@ -388,7 +397,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testValueDeserializationFailureWithNoMatchingHandler() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "my-deserialization-handler");
 
         String group = UUID.randomUUID().toString();
@@ -412,7 +421,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testKeyDeserializationFailureWithMultipleMatchingHandler() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "my-deserialization-handler");
 
         DeserializationFailureHandler<JsonObject> i1 = new DeserializationFailureHandler<JsonObject>() {

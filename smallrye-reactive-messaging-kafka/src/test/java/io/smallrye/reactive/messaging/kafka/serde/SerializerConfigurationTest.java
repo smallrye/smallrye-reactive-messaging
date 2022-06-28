@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.serde;
 
-import static io.smallrye.reactive.messaging.kafka.Record.*;
+import static io.smallrye.reactive.messaging.kafka.Record.of;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
@@ -9,21 +9,24 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.serialization.*;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.kafka.*;
-import io.smallrye.reactive.messaging.kafka.base.*;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 @SuppressWarnings("unchecked")
 public class SerializerConfigurationTest extends KafkaCompanionTestBase {
@@ -69,8 +72,8 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testKeySerializationFailure() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.serializer", JsonObjectSerializer.class.getName())
-                .with("key.serializer", JsonObjectSerializer.class.getName())
+                .with("value.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
+                .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
         sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance());
@@ -88,8 +91,8 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testValueSerializationFailure() {
         MapBasedConfig config = commonConsumerConfiguration()
-                .with("value.serializer", JsonObjectSerializer.class.getName())
-                .with("key.serializer", JsonObjectSerializer.class.getName())
+                .with("value.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
+                .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
         sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance());

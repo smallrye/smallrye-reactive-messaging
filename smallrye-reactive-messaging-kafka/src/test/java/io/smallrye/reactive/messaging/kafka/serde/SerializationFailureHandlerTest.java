@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -25,7 +26,6 @@ import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 class SerializationFailureHandlerTest extends KafkaCompanionTestBase {
 
@@ -73,7 +73,7 @@ class SerializationFailureHandlerTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .with("topic", topic)
                 .with("health-enabled", false)
-                .with("key.serializer", JsonObjectSerializer.class.getName())
+                .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
                 .with("value.serializer", DoubleSerializer.class.getName())
                 .with("value-serialization-failure-handler", "recover-with-item")
                 .with("key-serialization-failure-handler", "recover-with-item");

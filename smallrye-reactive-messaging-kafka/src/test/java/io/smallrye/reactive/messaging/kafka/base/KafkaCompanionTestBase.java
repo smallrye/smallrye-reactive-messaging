@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.base;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
+import io.vertx.core.json.JsonObject;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
@@ -15,9 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KafkaBootstrapServers;
-import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
-import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 import io.vertx.mutiny.core.Vertx;
 
 @ExtendWith(KafkaBrokerExtension.class)
@@ -33,7 +31,8 @@ public class KafkaCompanionTestBase extends WeldTestBase {
     @BeforeAll
     static void initCompanion(@KafkaBootstrapServers String bootstrapServers) {
         companion = new KafkaCompanion(bootstrapServers);
-        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
+        companion.registerSerde(JsonObject.class,
+                Serdes.serdeFrom(new JsonObjectSerde.JsonObjectSerializer(), new JsonObjectSerde.JsonObjectDeserializer()));
     }
 
     @BeforeEach

@@ -9,6 +9,7 @@ import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
 
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -20,7 +21,6 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
 
 // this entire file should be removed when support for the `@Named` annotation is removed
 
@@ -35,8 +35,8 @@ public class DeprecatedDeserializationFailureHandlerTest extends KafkaCompanionT
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")
                 .with("health-enabled", false)
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
-                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "value-fallback")
                 .with("key-deserialization-failure-handler", "key-fallback");
 
