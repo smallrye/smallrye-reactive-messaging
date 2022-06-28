@@ -103,7 +103,7 @@
 
     <jandex-maven-plugin.version>1.2.2</jandex-maven-plugin.version>
 
-    <nats-embedded.version>1.1.2</nats-embedded.version>
+    <nats-embedded.version>2.0.0</nats-embedded.version>
     <slf4j-log4j12.version>1.7.33</slf4j-log4j12.version>
     <opencsv.version>5.6</opencsv.version>
     <strimzi-test-container.version>0.101.0</strimzi-test-container.version>
