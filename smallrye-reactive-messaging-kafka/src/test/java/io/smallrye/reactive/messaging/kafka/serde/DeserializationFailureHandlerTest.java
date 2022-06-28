@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -22,7 +23,6 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
 
 public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
 
@@ -35,8 +35,8 @@ public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")
                 .with("health-enabled", false)
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
-                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("fail-on-deserialization-failure", false);
 
         addBeans(RecordConverter.class);
@@ -60,8 +60,8 @@ public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")
                 .with("health-enabled", true)
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
-                .with("key.deserializer", JsonObjectDeserializer.class.getName());
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
 
         addBeans(RecordConverter.class);
         runApplication(config, MySink.class);
@@ -79,8 +79,8 @@ public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")
                 .with("health-enabled", false)
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
-                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "value-fallback")
                 .with("key-deserialization-failure-handler", "key-fallback");
 
@@ -136,8 +136,8 @@ public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
                 .with("topic", topic)
                 .with("auto.offset.reset", "earliest")
                 .with("health-enabled", true)
-                .with("value.deserializer", JsonObjectDeserializer.class.getName())
-                .with("key.deserializer", JsonObjectDeserializer.class.getName())
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("value-deserialization-failure-handler", "retry-on-failure");
 
         addBeans(RetryingFailureHandler.class, RecordConverter.class);

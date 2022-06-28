@@ -15,6 +15,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import io.smallrye.reactive.messaging.kafka.base.BufferSerde;
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -33,14 +38,8 @@ import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.json.JsonObject;
-import io.vertx.kafka.client.serialization.BufferDeserializer;
-import io.vertx.kafka.client.serialization.JsonObjectDeserializer;
-import io.vertx.kafka.client.serialization.JsonObjectSerializer;
 
 public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
 
@@ -48,7 +47,10 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
 
     @BeforeAll
     public static void setup() {
-        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(new JsonObjectSerializer(), new JsonObjectDeserializer()));
+        companion.registerSerde(JsonObject.class, Serdes.serdeFrom(
+                new JsonObjectSerde.JsonObjectSerializer(),
+                new JsonObjectSerde.JsonObjectDeserializer())
+        );
     }
 
     @AfterEach
@@ -120,7 +122,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
     public void testReceivingStructuredCloudEventsWithJsonObjectDeserializer() {
         KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
-        config.put("value.deserializer", JsonObjectDeserializer.class.getName());
+        config.put("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -223,7 +225,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
         // Unsupported on purpose
-        config.put("value.deserializer", BufferDeserializer.class.getName());
+        config.put("value.deserializer", BufferSerde.BufferDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -255,7 +257,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
     public void testReceivingStructuredCloudEventsWithoutSource() {
         KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
-        config.put("value.deserializer", JsonObjectDeserializer.class.getName());
+        config.put("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -577,7 +579,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
     public void testReceivingStructuredCloudEventsWithSupportDisabled() {
         KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);
-        config.put("value.deserializer", JsonObjectDeserializer.class.getName());
+        config.put("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events", false);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
