@@ -105,6 +105,9 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
 
     public <T> T runApplication(MapBasedConfig config, Class<T> clazz) {
         weld.addBeanClass(clazz);
+        weld.addBeanClasses(IncomingRabbitMQMessageConverter.JSONConverter.class,
+                IncomingRabbitMQMessageConverter.TextConverter.class,
+                IncomingRabbitMQMessageConverter.ByteArrayPayloadConverter.class);
         runApplication(config);
         return get(clazz);
     }

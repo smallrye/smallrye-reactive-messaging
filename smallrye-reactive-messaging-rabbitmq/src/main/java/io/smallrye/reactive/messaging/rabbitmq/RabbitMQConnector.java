@@ -120,7 +120,6 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received RabbitMQ messages must be acknowledged when received; if true then delivery constitutes acknowledgement", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "keep-most-recent", direction = INCOMING, description = "Whether to discard old messages instead of recent ones", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "routing-keys", direction = INCOMING, description = "A comma-separated list of routing keys to bind the queue to the exchange", type = "string", defaultValue = "#")
-@ConnectorAttribute(name = "content-type-override", direction = INCOMING, description = "Override the content_type attribute of the incoming message, should be a valid MINE type", type = "string")
 @ConnectorAttribute(name = "max-outstanding-messages", direction = INCOMING, description = "The maximum number of outstanding/unacknowledged messages being processed by the connector at a time; must be a positive number", type = "int")
 
 // Message producer
@@ -183,13 +182,12 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             RabbitMQAckHandler onAck) {
         final String queueName = ic.getQueueName();
         final boolean isTracingEnabled = ic.getTracingEnabled();
-        final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
         final List<String> attributeHeaders = Arrays.stream(ic.getTracingAttributeHeaders().split(","))
                 .map(String::trim).collect(Collectors.toList());
         log.receiverListeningAddress(queueName);
 
         return receiver.toMulti()
-                .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck, contentTypeOverride))
+                .map(m -> IncomingRabbitMQMessage.create(m, holder, isTracingEnabled, onNack, onAck))
                 .map(m -> isTracingEnabled ? TracingUtils.addIncomingTrace(m, queueName, attributeHeaders) : m);
     }
 

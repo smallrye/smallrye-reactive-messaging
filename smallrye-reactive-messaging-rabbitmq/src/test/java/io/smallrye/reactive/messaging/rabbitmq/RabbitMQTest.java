@@ -20,7 +20,6 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonArray;
@@ -533,48 +532,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::incrementAndGet);
 
         await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
-        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-    }
-
-    /**
-     * Verifies that message's content_type can be overridden
-     */
-    @Test
-    void testReceivingMessagesFromRabbitMQWithOverriddenContentType() {
-        final String exchangeName = "exchg4";
-        final String queueName = "q4";
-        final String routingKey = "xyzzy";
-        new MapBasedConfig()
-                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
-                .put("mp.messaging.incoming.data.exchange.durable", false)
-                .put("mp.messaging.incoming.data.queue.name", queueName)
-                .put("mp.messaging.incoming.data.queue.durable", false)
-                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
-                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.data.host", host)
-                .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing-enabled", false)
-                .put("mp.messaging.incoming.data.content-type-override", HttpHeaderValues.TEXT_PLAIN.toString())
-                .put("rabbitmq-username", username)
-                .put("rabbitmq-password", password)
-                .put("rabbitmq-reconnect-attempts", 0)
-                .write();
-
-        weld.addBeanClass(ConsumptionBean.class);
-
-        container = weld.initialize();
-        await().until(() -> isRabbitMQConnectorAvailable(container));
-        ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
-
-        await().until(() -> isRabbitMQConnectorAvailable(container));
-
-        List<Integer> list = bean.getResults();
-        assertThat(list).isEmpty();
-
-        AtomicInteger counter = new AtomicInteger();
-        usage.produce(exchangeName, queueName, routingKey, 10, counter::getAndIncrement, "application/invalid");
-        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
-        assertThat(bean.getTypeCasts()).isEqualTo(0);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 }

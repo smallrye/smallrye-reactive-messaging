@@ -73,16 +73,16 @@ Or, you can retrieve the `Message<String>`:
 ## Deserialization
 
 The connector converts incoming RabbitMQ Messages into Reactive
-Messaging `Message<T>` instances. The payload type `T` depends on the
-value of the RabbitMQ received message Envelope `content_type` and
-`content_encoding` properties.
+Messaging `Message<Buffer>` instances. A standard set of
+`MessageConverter`s exist that will convert the payload to a matching
+Java type depending on the `content_type` in the received message's envelope.
 
-| content_encoding | content_type       | Type                                                                                                                                                                                                                                                              |
-|------------------|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| *Value present*  | *n/a*              | `byte[]`                                                                                                                                                                                                                                                          |
-| *No value*       | `text/plain`       | `String`                                                                                                                                                                                                                                                          |
-| *No value*       | `application/json` | a JSON element which can be a [`JsonArray`](https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html), [`JsonObject`](https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html), `String`, ... if the buffer contains an array, object, string,... |
-| *No value*       | *Anything else*    | `byte[]`                                                                                                                                                                                                                                                          |
+| content_type       | Type                                                                                                                                                                                              |
+|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `*/*`              | `byte[]`                                                                                                                                                                                          |
+| `text/*`           | `String`                                                                                                                                                                                          |
+| `application/json` | [`JsonArray`](https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html), [`JsonObject`](https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html), `String`, `Number` or `Boolean` |
+| *No value*         | *Anything else*                                                                                                                                                                                   |
 
 If you send objects with this RabbitMQ connector (outbound connector),
 they are encoded as JSON and sent with `content_type` set to

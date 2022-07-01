@@ -14,6 +14,7 @@ import com.rabbitmq.client.Envelope;
 
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
@@ -42,10 +43,9 @@ public class IncomingRabbitMQMessageTest {
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(msg, mock(ConnectionHolder.class), false,
+        IncomingRabbitMQMessage<Buffer> ackMsg = IncomingRabbitMQMessage.create(msg, mock(ConnectionHolder.class), false,
                 doNothingNack,
-                doNothingAck,
-                "text/plain");
+                doNothingAck);
 
         assertDoesNotThrow(() -> ackMsg.ack().toCompletableFuture().get());
         assertDoesNotThrow(() -> ackMsg.ack().toCompletableFuture().get());
@@ -61,10 +61,9 @@ public class IncomingRabbitMQMessageTest {
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(msg, mock(ConnectionHolder.class), false,
+        IncomingRabbitMQMessage<Buffer> nackMsg = IncomingRabbitMQMessage.create(msg, mock(ConnectionHolder.class), false,
                 doNothingNack,
-                doNothingAck,
-                "text/plain");
+                doNothingAck);
 
         assertDoesNotThrow(() -> nackMsg.nack(nackReason).toCompletableFuture().get());
         assertDoesNotThrow(() -> nackMsg.nack(nackReason).toCompletableFuture().get());

@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
-import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -15,7 +14,6 @@ import java.util.function.Supplier;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
@@ -23,6 +21,7 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Context;
+import io.vertx.rabbitmq.RabbitMQMessage;
 
 /**
  * An implementation of {@link Message} suitable for incoming RabbitMQ messages.
@@ -49,7 +48,7 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
         }
     }
 
-    protected final io.vertx.rabbitmq.RabbitMQMessage message;
+    protected final RabbitMQMessage message;
     protected Metadata metadata;
     protected final IncomingRabbitMQMetadata rabbitMQMetadata;
     private final ConnectionHolder holder;
@@ -57,30 +56,43 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
     private final long deliveryTag;
     private RabbitMQFailureHandler onNack;
     private RabbitMQAckHandler onAck;
-    private final String contentTypeOverride;
+    private final T payload;
 
-    IncomingRabbitMQMessage(io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate, ConnectionHolder holder,
-            boolean isTracingEnabled, RabbitMQFailureHandler onNack,
-            RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(delegate.getDelegate(), holder, isTracingEnabled, onNack, onAck, contentTypeOverride);
+    static IncomingRabbitMQMessage<Buffer> create(io.vertx.mutiny.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder,
+            boolean isTracingEnabled,
+            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck) {
+        return create(msg.getDelegate(), holder, isTracingEnabled, onNack, onAck, msg.getDelegate().body());
     }
 
-    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder, boolean isTracingEnabled,
-            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this.message = msg;
-        this.deliveryTag = msg.envelope().getDeliveryTag();
-        this.holder = holder;
-        this.context = holder.getContext();
-        this.contentTypeOverride = contentTypeOverride;
-        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message);
-        this.onNack = onNack;
-        this.onAck = onAck;
-        this.metadata = captureContextMetadata(rabbitMQMetadata);
+    static <T> IncomingRabbitMQMessage<T> create(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder,
+            boolean isTracingEnabled,
+            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, T payload) {
+
+        IncomingRabbitMQMetadata rabbitMQMetadata = new IncomingRabbitMQMetadata(msg);
+        Metadata metadata = captureContextMetadata(rabbitMQMetadata);
 
         // If tracing is enabled, ensure any tracing metadata in the received msg headers is transferred as metadata.
         if (isTracingEnabled) {
-            this.metadata = this.metadata.with(TracingUtils.getTracingMetaData(msg));
+            metadata = metadata.with(TracingUtils.getTracingMetaData(msg));
         }
+
+        return new IncomingRabbitMQMessage<>(msg, metadata, rabbitMQMetadata, holder, holder.getContext(),
+                msg.envelope().getDeliveryTag(), onNack, onAck, payload);
+    }
+
+    private IncomingRabbitMQMessage(RabbitMQMessage message, Metadata metadata,
+            IncomingRabbitMQMetadata rabbitMQMetadata,
+            ConnectionHolder holder, Context context, long deliveryTag,
+            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, T payload) {
+        this.message = message;
+        this.metadata = metadata;
+        this.rabbitMQMetadata = rabbitMQMetadata;
+        this.holder = holder;
+        this.context = context;
+        this.deliveryTag = deliveryTag;
+        this.onNack = onNack;
+        this.onAck = onAck;
+        this.payload = payload;
     }
 
     @Override
@@ -139,46 +151,14 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
         holder.getNack(this.deliveryTag, false).apply(reason);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public T getPayload() {
-        // Throw a class cast exception if it cannot be converted.
-        // Due to type erasure, the exception will be thrown at the getPayload call, instead of here
-        return (T) convertPayload(message);
+        return payload;
     }
 
     @Override
     public Metadata getMetadata() {
         return metadata;
-    }
-
-    private Object convertPayload(io.vertx.rabbitmq.RabbitMQMessage msg) {
-        // Neither of these are guaranteed to be non-null
-        String contentType = msg.properties().getContentType();
-        final String contentEncoding = msg.properties().getContentEncoding();
-        final Buffer body = msg.body();
-
-        if (this.contentTypeOverride != null) {
-            contentType = contentTypeOverride;
-        }
-
-        // If there is a content encoding specified, we don't try to unwrap
-        if (contentEncoding == null) {
-            // Do our best with text and json
-            if (HttpHeaderValues.APPLICATION_JSON.toString().equalsIgnoreCase(contentType)) {
-                // This could be  JsonArray, JsonObject, String etc. depending on buffer contents
-                return body.toJson();
-            } else if (HttpHeaderValues.TEXT_PLAIN.toString().equalsIgnoreCase(contentType)) {
-                return body.toString();
-            }
-        }
-
-        // Just silence the warning if we have a binary message
-        if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
-            log.typeConversionFallback();
-        }
-        // Otherwise fall back to raw byte array
-        return body.getBytes();
     }
 
     public Map<String, Object> getHeaders() {
@@ -247,6 +227,11 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
     public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
         metadata = metadata.with(tracingMetadata);
+    }
+
+    public <U> IncomingRabbitMQMessage<U> withPayload(U payload) {
+        return new IncomingRabbitMQMessage<>(message, metadata, rabbitMQMetadata, holder, context, deliveryTag, onNack, onAck,
+                payload);
     }
 
 }

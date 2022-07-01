@@ -122,13 +122,12 @@ public interface RabbitMQLogging extends BasicLogger {
     @Message(id = 17037, value = "Unable to create client")
     void unableToCreateClient(@Cause Throwable t);
 
-    @Once
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 17038, value = "No valid content_type set, failing back to byte[]. If that's wanted, set the content type to application/octet-stream with \"content-type-override\"")
-    void typeConversionFallback();
+    @Message(id = 17038, value = "Message payload conversion failed")
+    void payloadConversionFailed(@Cause Throwable t);
 
     @LogMessage(level = Level.DEBUG)
-    @Message(id = 17039, value = "Connection '%d' with RabbitMQ broker established for channel `%s`")
+    @Message(id = 17039, value = "Connection '%d' with RabbitMQ broker established for channel '%s'")
     void connectionEstablished(int connectionIndex, String channel);
 
 }
