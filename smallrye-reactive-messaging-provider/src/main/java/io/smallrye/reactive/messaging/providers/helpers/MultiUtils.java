@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.providers.helpers;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -14,7 +13,10 @@ import io.smallrye.reactive.messaging.MediatorConfiguration;
 public class MultiUtils {
 
     public static <T> Multi<T> createFromGenerator(Supplier<T> supplier) {
-        return Multi.createFrom().items(Stream.generate(supplier));
+        return Multi.createFrom().generator(() -> null, (s, g) -> {
+            g.emit(supplier.get());
+            return s;
+        });
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
