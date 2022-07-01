@@ -58,6 +58,7 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
     private RabbitMQFailureHandler onNack;
     private RabbitMQAckHandler onAck;
     private final String contentTypeOverride;
+    private final T payload;
 
     IncomingRabbitMQMessage(io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate, ConnectionHolder holder,
             boolean isTracingEnabled, RabbitMQFailureHandler onNack,
@@ -76,6 +77,8 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
         this.onNack = onNack;
         this.onAck = onAck;
         this.metadata = captureContextMetadata(rabbitMQMetadata);
+        //noinspection unchecked
+        this.payload = (T) convertPayload(message);
 
         // If tracing is enabled, ensure any tracing metadata in the received msg headers is transferred as metadata.
         if (isTracingEnabled) {
@@ -139,12 +142,9 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
         holder.getNack(this.deliveryTag, false).apply(reason);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public T getPayload() {
-        // Throw a class cast exception if it cannot be converted.
-        // Due to type erasure, the exception will be thrown at the getPayload call, instead of here
-        return (T) convertPayload(message);
+        return payload;
     }
 
     @Override
@@ -164,20 +164,24 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
         // If there is a content encoding specified, we don't try to unwrap
         if (contentEncoding == null) {
-            // Do our best with text and json
-            if (HttpHeaderValues.APPLICATION_JSON.toString().equalsIgnoreCase(contentType)) {
-                // This could be  JsonArray, JsonObject, String etc. depending on buffer contents
-                return body.toJson();
-            } else if (HttpHeaderValues.TEXT_PLAIN.toString().equalsIgnoreCase(contentType)) {
-                return body.toString();
+            try {
+                // Do our best with text and json
+                if (HttpHeaderValues.APPLICATION_JSON.toString().equalsIgnoreCase(contentType)) {
+                    // This could be  JsonArray, JsonObject, String etc. depending on buffer contents
+                    return body.toJson();
+                } else if (HttpHeaderValues.TEXT_PLAIN.toString().equalsIgnoreCase(contentType)) {
+                    return body.toString();
+                }
+            } catch (Throwable t) {
+                log.typeConversionFallback();
+            }
+            // Otherwise fall back to raw byte array
+        } else {
+            // Just silence the warning if we have a binary message
+            if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
+                log.typeConversionFallback();
             }
         }
-
-        // Just silence the warning if we have a binary message
-        if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
-            log.typeConversionFallback();
-        }
-        // Otherwise fall back to raw byte array
         return body.getBytes();
     }
 
