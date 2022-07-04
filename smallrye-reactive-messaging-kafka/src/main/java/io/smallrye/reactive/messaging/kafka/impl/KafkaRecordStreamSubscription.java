@@ -143,15 +143,18 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
     }
 
     private void pauseResume() {
-        int size = queue.size();
-        if (size >= maxQueueSize && state.compareAndSet(STATE_POLLING, STATE_PAUSED)) {
+        final int size = queue.size();
+        final boolean clientPaused = client.isPaused();
+        if ((size >= maxQueueSize || clientPaused) && state.compareAndSet(STATE_POLLING, STATE_PAUSED)) {
             log.pausingChannel(channel, size, maxQueueSize);
-            client.pause()
-                    .subscribe().with(this::emptyConsumer, this::report);
-        } else if (size <= halfMaxQueueSize && state.compareAndSet(STATE_PAUSED, STATE_POLLING)) {
+            client.runOnPollingThread(c -> {
+                c.pause(c.assignment());
+            }).subscribe().with(this::emptyConsumer, this::report);
+        } else if (size <= halfMaxQueueSize && !clientPaused && state.compareAndSet(STATE_PAUSED, STATE_POLLING)) {
             log.resumingChannel(channel, size, halfMaxQueueSize);
-            client.resume()
-                    .subscribe().with(this::emptyConsumer, this::report);
+            client.runOnPollingThread(c -> {
+                c.resume(c.paused());
+            }).subscribe().with(this::emptyConsumer, this::report);
         }
     }
 
