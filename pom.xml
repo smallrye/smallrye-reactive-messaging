@@ -90,6 +90,7 @@
 
     <smallrye-vertx-mutiny-clients.version>2.23.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>2.6.0</smallrye-reactive-converters.version>
+    <mutiny-zero-reactive-streams-junit5-tck.version>0.4.1</mutiny-zero-reactive-streams-junit5-tck.version>
 
     <testcontainers.version>1.17.3</testcontainers.version>
 
