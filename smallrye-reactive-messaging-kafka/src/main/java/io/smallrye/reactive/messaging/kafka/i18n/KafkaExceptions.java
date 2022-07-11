@@ -81,4 +81,7 @@ public interface KafkaExceptions {
 
     @Message(id = 18020, value = "A transaction is already in progress for channel `%s`")
     IllegalStateException transactionInProgress(String channel);
+
+    @Message(id = 18021, value = "Exactly-once processing is not supported on channels with multiple partitions `%s`")
+    IllegalStateException exactlyOnceProcessingNotSupported(String channel);
 }

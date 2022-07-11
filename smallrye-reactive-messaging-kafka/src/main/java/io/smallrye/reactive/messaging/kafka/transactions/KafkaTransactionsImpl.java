@@ -59,7 +59,6 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
     @CheckReturnValue
     public synchronized <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work) {
         String channel;
-        int consumerIndex;
         Map<TopicPartition, OffsetAndMetadata> offsets;
 
         Optional<IncomingKafkaRecordBatchMetadata> batchMetadata = message.getMetadata(IncomingKafkaRecordBatchMetadata.class);
@@ -67,13 +66,11 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
         if (batchMetadata.isPresent()) {
             IncomingKafkaRecordBatchMetadata<?, ?> metadata = batchMetadata.get();
             channel = metadata.getChannel();
-            consumerIndex = metadata.getConsumerIndex();
             offsets = metadata.getOffsets().entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue().offset() + 1)));
         } else if (recordMetadata.isPresent()) {
             IncomingKafkaRecordMetadata<?, ?> metadata = recordMetadata.get();
             channel = metadata.getChannel();
-            consumerIndex = metadata.getConsumerIndex();
             offsets = new HashMap<>();
             offsets.put(new TopicPartition(metadata.getTopic(), metadata.getPartition()),
                     new OffsetAndMetadata(metadata.getOffset() + 1));
@@ -82,10 +79,12 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
         }
 
         List<KafkaConsumer<Object, Object>> consumers = clientService.getConsumers(channel);
-        if (consumers.isEmpty() || (consumerIndex != -1 && consumerIndex >= consumers.size())) {
+        if (consumers.isEmpty()) {
             throw KafkaExceptions.ex.unableToFindConsumerForChannel(channel);
+        } else if (consumers.size() > 1) {
+            throw KafkaExceptions.ex.exactlyOnceProcessingNotSupported(channel);
         }
-        KafkaConsumer<Object, Object> consumer = consumers.get(consumerIndex == -1 ? 0 : consumerIndex);
+        KafkaConsumer<Object, Object> consumer = consumers.get(0);
         if (currentTransaction == null) {
             return new Transaction<R>(
                     /* before commit */
