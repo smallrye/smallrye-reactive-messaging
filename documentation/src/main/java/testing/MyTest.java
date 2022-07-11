@@ -45,7 +45,7 @@ public class MyTest {
         prices.send(2);
         prices.send(3);
 
-        // 7. Check you have receives the expected messages
+        // 7. Check you have received the expected messages
         Assertions.assertEquals(3, results.received().size());
     }
 }
