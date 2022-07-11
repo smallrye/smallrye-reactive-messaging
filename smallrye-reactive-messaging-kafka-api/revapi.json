@@ -30,18 +30,6 @@
             "minSeverity": "POTENTIALLY_BREAKING",
             "minCriticality": "documented",
             "differences": [
-                {
-                    "code": "java.method.numberOfParametersChanged",
-                    "old": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>)",
-                    "new": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>)",
-                    "justification": "IncomingKafkaRecordBatchMetadata constructor receives channel name as the second parameter"
-                },
-                {
-                    "code": "java.method.numberOfParametersChanged",
-                    "old": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>)",
-                    "new": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String)",
-                    "justification": "IncomingKafkaRecordMetadata constructor receives channel name as the second parameter"
-                }
             ]
         }
     },

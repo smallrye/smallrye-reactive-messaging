@@ -21,15 +21,21 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
     private final ConsumerRecord<K, T> record;
     private volatile Headers headers;
     private final String channel;
+    private final int index;
 
     /**
      * Constructor
      *
      * @param record the underlying record received from Kafka
      */
-    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channel) {
+    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channel, int index) {
         this.record = record;
         this.channel = channel;
+        this.index = index;
+    }
+
+    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channel) {
+        this(record, channel, -1);
     }
 
     /**
@@ -114,5 +120,9 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
 
     public String getChannel() {
         return channel;
+    }
+
+    public int getConsumerIndex() {
+        return index;
     }
 }

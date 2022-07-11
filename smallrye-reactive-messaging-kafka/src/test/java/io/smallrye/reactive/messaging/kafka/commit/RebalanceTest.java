@@ -110,7 +110,7 @@ public class RebalanceTest extends WeldTestBase {
             for (int i = 501; i < 10000; i++) {
                 IncomingKafkaRecord<String, String> r = new IncomingKafkaRecord<>(
                         new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i),
-                        "channel",
+                        "channel", -1,
                         source.getCommitHandler(),
                         null, false, false);
                 source.getCommitHandler().received(r).subscribeAsCompletionStage();

@@ -144,12 +144,12 @@ public class KafkaSource<K, V> {
             Multi<IncomingKafkaRecord<K, V>> incomingMulti;
             // TODO ogu hack to avoid buffering items using flatmap -> received is only implemented by throttled strategy
             if (KafkaCommitHandler.Strategy.from(commitStrategy) != KafkaCommitHandler.Strategy.THROTTLED) {
-                incomingMulti = multi.onItem().transform(rec -> new IncomingKafkaRecord<>(rec, channel, commitHandler,
+                incomingMulti = multi.onItem().transform(rec -> new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
                         failureHandler, isCloudEventEnabled, isTracingEnabled));
             } else {
                 incomingMulti = multi
                         .onItem().transformToUniAndConcatenate(rec -> {
-                            IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, commitHandler,
+                            IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
                                     failureHandler, isCloudEventEnabled, isTracingEnabled);
                             return commitHandler.received(record);
                         });
@@ -182,12 +182,12 @@ public class KafkaSource<K, V> {
             Multi<IncomingKafkaRecordBatch<K, V>> incomingMulti;
             // TODO ogu hack to avoid buffering items using flatmap -> received is only implemented by throttled strategy
             if (KafkaCommitHandler.Strategy.from(commitStrategy) != KafkaCommitHandler.Strategy.THROTTLED) {
-                incomingMulti = multi.onItem().transform(rec -> new IncomingKafkaRecordBatch<>(rec, channel,
+                incomingMulti = multi.onItem().transform(rec -> new IncomingKafkaRecordBatch<>(rec, channel, index,
                         commitHandler, failureHandler, isCloudEventEnabled, isTracingEnabled));
             } else {
                 incomingMulti = multi
                         .onItem().transformToUniAndConcatenate(rec -> {
-                            IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, channel,
+                            IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, channel, index,
                                     commitHandler, failureHandler, isCloudEventEnabled, isTracingEnabled);
                             return receiveBatchRecord(batch);
                         });

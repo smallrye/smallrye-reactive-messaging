@@ -63,7 +63,7 @@ public class KafkaRecordBatchTest {
 
     @Test
     void testGetPayload() {
-        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test",
+        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
                 commitHandler, onNack, false, false);
 
         List<Integer> batchPayload = batchRecords.getPayload();
@@ -73,7 +73,7 @@ public class KafkaRecordBatchTest {
 
     @Test
     void testGetRecords() {
-        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test",
+        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
                 commitHandler, onNack, false, false);
 
         List<KafkaRecord<String, Integer>> batchIncomingRecords = batchRecords.getRecords();
@@ -87,7 +87,7 @@ public class KafkaRecordBatchTest {
 
     @Test
     void testAckLatestOffsetRecords() {
-        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test",
+        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
                 commitHandler, null, false, false);
 
         batchRecords.ack().toCompletableFuture().join();
@@ -99,7 +99,7 @@ public class KafkaRecordBatchTest {
 
     @Test
     void testNackAllRecords() {
-        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test",
+        IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
                 new KafkaIgnoreCommit(), onNack, false, false);
 
         batchRecords.nack(new IllegalArgumentException()).toCompletableFuture().join();

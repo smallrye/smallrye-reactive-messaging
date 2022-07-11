@@ -285,6 +285,14 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @SuppressWarnings("unchecked")
+    public <K, V> List<KafkaConsumer<K, V>> getConsumers(String channel) {
+        return sources.stream()
+                .filter(ks -> ks.getChannel().equals(channel))
+                .map(kafkaSource -> ((KafkaConsumer<K, V>) kafkaSource.getConsumer()))
+                .collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
     public <K, V> KafkaProducer<K, V> getProducer(String channel) {
         return (KafkaProducer<K, V>) sinks.stream()
                 .filter(ks -> ks.getChannel().equals(channel))

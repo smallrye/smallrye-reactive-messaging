@@ -30,13 +30,13 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
     private final List<KafkaRecord<K, T>> incomingRecords;
     private final Map<TopicPartition, KafkaRecord<K, T>> latestOffsetRecords;
 
-    public IncomingKafkaRecordBatch(ConsumerRecords<K, T> records, String channel, KafkaCommitHandler commitHandler,
+    public IncomingKafkaRecordBatch(ConsumerRecords<K, T> records, String channel, int index, KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack, boolean cloudEventEnabled, boolean tracingEnabled) {
         List<IncomingKafkaRecord<K, T>> incomingRecords = new ArrayList<>();
         Map<TopicPartition, IncomingKafkaRecord<K, T>> latestOffsetRecords = new HashMap<>();
         for (TopicPartition partition : records.partitions()) {
             for (ConsumerRecord<K, T> record : records.records(partition)) {
-                IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, channel, commitHandler, onNack,
+                IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, channel, index, commitHandler, onNack,
                         cloudEventEnabled, tracingEnabled);
                 incomingRecords.add(rec);
                 latestOffsetRecords.put(partition, rec);
@@ -46,7 +46,7 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         this.latestOffsetRecords = Collections.unmodifiableMap(latestOffsetRecords);
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
         latestOffsetRecords.forEach((e, r) -> offsets.put(e, new OffsetAndMetadata(r.getOffset())));
-        this.metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records, channel, offsets));
+        this.metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records, channel, index, offsets));
     }
 
     @Override
