@@ -135,8 +135,8 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
-    public void testWithMessages() {
-        final MyBeanEmittingMessages bean = installInitializeAndGet(MyBeanEmittingMessages.class);
+    public void testWithMessagesDeprecated() {
+        final MyBeanEmittingMessagesDeprecated bean = installInitializeAndGet(MyBeanEmittingMessagesDeprecated.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -145,11 +145,10 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
-    public void testWithMessagesLegacy() {
-        final MyBeanEmittingMessagesUsingStream bean = installInitializeAndGet(MyBeanEmittingMessagesUsingStream.class);
-        bean.run();
+    public void testWithMessages() {
+        final MyBeanEmittingMessages bean = installInitializeAndGet(MyBeanEmittingMessages.class);
+        bean.run().await().indefinitely();
         assertThat(bean.emitter()).isNotNull();
-        await().until(() -> bean.list().size() == 3);
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isFalse();
         assertThat(bean.emitter().hasRequests()).isTrue();
@@ -441,7 +440,7 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     @ApplicationScoped
-    public static class MyBeanEmittingMessages {
+    public static class MyBeanEmittingMessagesDeprecated {
         @Inject
         @Channel("foo")
         MutinyEmitter<String> emitter;
@@ -466,6 +465,35 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         public void consume(final String s) {
             list.add(s);
         }
+    }
+
+    @ApplicationScoped
+    public static class MyBeanEmittingMessages {
+        @Inject
+        @Channel("foo")
+        MutinyEmitter<String> emitter;
+        private final List<String> list = new CopyOnWriteArrayList<>();
+
+        public MutinyEmitter<String> emitter() {
+            return emitter;
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+        public Uni<Void> run() {
+            return Uni.combine().all().unis(
+                    emitter.sendMessage(Message.of("a")),
+                    emitter.sendMessage(Message.of("b")),
+                    emitter.sendMessage(Message.of("c"))).discardItems();
+        }
+
+        @Incoming("foo")
+        public void consume(final String s) {
+            list.add(s);
+        }
+
     }
 
     @ApplicationScoped

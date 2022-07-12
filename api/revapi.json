@@ -36,13 +36,18 @@
             "differences": [
                 {
                     "code": "java.method.addedToInterface",
-                    "new": "method <T> T io.smallrye.reactive.messaging.ChannelRegistry::getEmitter(java.lang.String, java.lang.Class<? super T>)",
-                    "justification": "New method added to get emitter by its type"
+                    "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessage(M)",
+                    "justification": "Added to the MutinyEmitter interface"
                 },
                 {
                     "code": "java.method.addedToInterface",
-                    "new": "method <T> void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.Class<T>, T)",
-                    "justification": "New method added to register emitter by its type"
+                    "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> void io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessageAndAwait(M)",
+                    "justification": "Added to the MutinyEmitter interface"
+                },
+                {
+                    "code": "java.method.addedToInterface",
+                    "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.mutiny.subscription.Cancellable io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessageAndForget(M)",
+                    "justification": "Added to the MutinyEmitter interface"
                 }
             ]
         }

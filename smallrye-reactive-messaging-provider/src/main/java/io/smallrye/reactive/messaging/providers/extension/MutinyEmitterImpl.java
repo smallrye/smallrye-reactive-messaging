@@ -2,8 +2,6 @@ package io.smallrye.reactive.messaging.providers.extension;
 
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.common.annotation.CheckReturnValue;
@@ -28,21 +26,7 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
             throw ex.illegalArgumentForNullValue();
         }
 
-        // If we are running on a Vert.x I/O thread, we need to capture the context to switch back
-        // during the emission.
-        Context context = Vertx.currentContext();
-        Uni<Void> uni = Uni.createFrom().emitter(e -> emit(ContextAwareMessage.of(payload)
-                .withAck(() -> {
-                    e.complete(null);
-                    return CompletableFuture.completedFuture(null);
-                }).withNack(reason -> {
-                    e.fail(reason);
-                    return CompletableFuture.completedFuture(null);
-                })));
-        if (context != null) {
-            uni = uni.emitOn(runnable -> context.runOnContext(x -> runnable.run()));
-        }
-        return uni;
+        return sendMessage(Message.of(payload));
     }
 
     @Override
@@ -58,19 +42,52 @@ public class MutinyEmitterImpl<T> extends AbstractEmitter<T> implements MutinyEm
 
     @Override
     public <M extends Message<? extends T>> void send(M msg) {
+        sendMessageAndForget(msg);
+    }
+
+    @Override
+    public <M extends Message<? extends T>> Cancellable sendMessageAndForget(M msg) {
+        return sendMessage(msg).subscribe().with(x -> {
+            // Do nothing.
+        }, ProviderLogging.log::failureEmittingMessage);
+    }
+
+    @Override
+    public <M extends Message<? extends T>> void sendMessageAndAwait(M msg) {
+        sendMessage(msg).await().indefinitely();
+    }
+
+    @Override
+    @CheckReturnValue
+    public <M extends Message<? extends T>> Uni<Void> sendMessage(M msg) {
         if (msg == null) {
             throw ex.illegalArgumentForNullValue();
         }
-        Uni.createFrom().emitter(e -> {
+
+        // If we are running on a Vert.x I/O thread, we need to capture the context to switch back
+        // during the emission.
+        Context context = Vertx.currentContext();
+        Uni<Void> uni = Uni.createFrom().emitter(e -> {
             try {
-                emit(msg);
+                emit(ContextAwareMessage.withContextMetadata((Message<? extends T>) msg)
+                        .withAck(() -> {
+                            e.complete(null);
+                            return msg.ack();
+                        })
+                        .withNack(t -> {
+                            e.fail(t);
+                            return msg.nack(t);
+                        }));
             } catch (Exception t) {
                 // Capture synchronous exception and nack the message.
                 msg.nack(t);
                 throw t;
             }
-        }).subscribe().with(x -> {
-            // Do nothing.
-        }, ProviderLogging.log::failureEmittingMessage);
+        });
+        if (context != null) {
+            uni = uni.emitOn(runnable -> context.runOnContext(x -> runnable.run()));
+        }
+        return uni;
     }
+
 }

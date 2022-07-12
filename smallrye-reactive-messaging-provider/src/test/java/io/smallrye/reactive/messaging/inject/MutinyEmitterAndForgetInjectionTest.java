@@ -13,6 +13,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logmanager.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,16 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
     @Test
     public void testWithPayloads() {
         final MyBeanEmittingPayloads bean = installInitializeAndGet(MyBeanEmittingPayloads.class);
+        bean.run();
+        assertThat(bean.emitter()).isNotNull();
+        assertThat(bean.list()).containsExactly("a", "b", "c");
+        assertThat(bean.emitter().isCancelled()).isTrue();
+        assertThat(bean.emitter().hasRequests()).isFalse();
+    }
+
+    @Test
+    public void testWithMessages() {
+        final MyBeanEmittingMessages bean = installInitializeAndGet(MyBeanEmittingMessages.class);
         bean.run();
         assertThat(bean.emitter()).isNotNull();
         assertThat(bean.list()).containsExactly("a", "b", "c");
@@ -192,6 +203,34 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
             emitter.sendAndForget("a");
             emitter.sendAndForget("b");
             emitter.sendAndForget("c");
+            emitter.complete();
+        }
+
+        @Incoming("foo")
+        public void consume(final String s) {
+            list.add(s);
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyBeanEmittingMessages {
+        @Inject
+        @Channel("foo")
+        MutinyEmitter<String> emitter;
+        private final List<String> list = new CopyOnWriteArrayList<>();
+
+        public MutinyEmitter<String> emitter() {
+            return emitter;
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+        public void run() {
+            emitter.sendMessageAndForget(Message.of("a"));
+            emitter.sendMessageAndForget(Message.of("b"));
+            emitter.sendMessageAndForget(Message.of("c"));
             emitter.complete();
         }
 
