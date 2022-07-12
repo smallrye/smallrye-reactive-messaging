@@ -15,11 +15,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import io.smallrye.reactive.messaging.kafka.base.BufferSerde;
-import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
-import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
-import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -39,6 +34,11 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.base.BufferSerde;
+import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
+import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.json.JsonObject;
 
