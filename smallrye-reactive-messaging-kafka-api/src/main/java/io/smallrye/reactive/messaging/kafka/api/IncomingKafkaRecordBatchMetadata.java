@@ -21,13 +21,20 @@ public class IncomingKafkaRecordBatchMetadata<K, T> {
 
     private final ConsumerRecords<K, T> records;
     private final String channel;
+    private final int index;
     private final Map<TopicPartition, OffsetAndMetadata> offsets;
 
-    public IncomingKafkaRecordBatchMetadata(ConsumerRecords<K, T> records, String channel,
+    public IncomingKafkaRecordBatchMetadata(ConsumerRecords<K, T> records, String channel, int index,
             Map<TopicPartition, OffsetAndMetadata> offsets) {
         this.records = records;
         this.channel = channel;
+        this.index = index;
         this.offsets = Collections.unmodifiableMap(offsets);
+    }
+
+    public IncomingKafkaRecordBatchMetadata(ConsumerRecords<K, T> records, String channel,
+            Map<TopicPartition, OffsetAndMetadata> offsets) {
+        this(records, channel, -1, offsets);
     }
 
     /**
@@ -60,5 +67,9 @@ public class IncomingKafkaRecordBatchMetadata<K, T> {
 
     public Map<TopicPartition, OffsetAndMetadata> getOffsets() {
         return offsets;
+    }
+
+    public int getConsumerIndex() {
+        return index;
     }
 }

@@ -31,66 +31,24 @@
             "minCriticality": "documented",
             "differences": [
                 {
+                    "ignore": true,
                     "code": "java.method.numberOfParametersChanged",
-                    "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
-                    "new": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
-                    "justification": "Batch record receives channel name in constructor to include it in metadata"
+                    "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
+                    "new": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
+                    "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
                 },
                 {
+                    "ignore": true,
                     "code": "java.method.numberOfParametersChanged",
-                    "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
-                    "new": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
-                    "justification": "Record receives channel name in constructor to include it in metadata"
+                    "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
+                    "new": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
+                    "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
                 },
                 {
-                    "code": "java.method.numberOfParametersChanged",
-                    "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>)",
-                    "new": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String)",
-                    "justification": "Record receives channel name in constructor to include it in metadata"
-                },
-                {
+                    "ignore": true,
                     "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<org.apache.kafka.clients.consumer.ConsumerGroupMetadata> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::consumerGroupMetadata()",
-                    "justification": "Returns consumer group metadata"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::resetToLastCommittedPositions()",
-                    "justification": "Resets consumer to last committed position"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::abortTransaction()",
-                    "justification": "Call abort transaction on underlying producer"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::beginTransaction()",
-                    "justification": "Call begin transaction on underlying producer"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::commitTransaction()",
-                    "justification": "Call commit transaction on underlying producer"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::initTransactions()",
-                    "justification": "Call init transaction on underlying producer"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::sendOffsetsToTransaction(java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>, org.apache.kafka.clients.consumer.ConsumerGroupMetadata)",
-                    "justification": "Call sendOffsetsToTransaction transaction on underlying producer"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::withTransaction(java.util.function.Consumer<io.smallrye.mutiny.subscription.MultiEmitter<? super org.apache.kafka.clients.producer.ProducerRecord<K, V>>>)",
-                    "justification": "Adds method to produce records in transaction"
-                },
-                {
-                    "code": "java.annotation.attributeValueChanged",
-                    "justification": "dead-letter-queue.producer-client-id configuration attribute added to KafkaConnector"
+                    "new": "method <K, V> java.util.List<io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>> io.smallrye.reactive.messaging.kafka.KafkaClientService::getConsumers(java.lang.String)",
+                    "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
                 }
             ]
         }

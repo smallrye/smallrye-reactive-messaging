@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -21,8 +22,8 @@ public class KafkaClientServiceImpl implements KafkaClientService {
     KafkaConnector connector;
 
     @Override
-    public <K, V> KafkaConsumer<K, V> getConsumer(String channel) {
-        return connector.getConsumer(Objects.requireNonNull(channel));
+    public <K, V> List<KafkaConsumer<K, V>> getConsumers(String channel) {
+        return connector.getConsumers(Objects.requireNonNull(channel));
     }
 
     @Override

@@ -1,7 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.transactions;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -14,10 +17,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.assertj.core.api.Assertions;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
@@ -49,7 +52,7 @@ public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
                 .fromTopics(outTopic, numberOfRecords)
                 .awaitCompletion(Duration.ofMinutes(1));
 
-        Assertions.assertThat(records.getRecords())
+        assertThat(records.getRecords())
                 .extracting(ConsumerRecord::value)
                 .containsAll(IntStream.range(0, 1000).boxed().collect(Collectors.toList()))
                 .doesNotHaveDuplicates();
@@ -83,7 +86,7 @@ public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
         ExactlyOnceProcessorWithProcessingError application = runApplication(config,
                 ExactlyOnceProcessorWithProcessingError.class);
 
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(inTopic, i), numberOfRecords);
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(inTopic, i % 3, "k" + i, i), numberOfRecords);
 
         List<ConsumerRecord<String, Integer>> committed = companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -91,8 +94,41 @@ public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
                 .awaitCompletion(Duration.ofMinutes(1))
                 .getRecords();
 
-        Assertions.assertThat(committed)
+        assertThat(committed)
                 .extracting(ConsumerRecord::value)
+                .containsAll(IntStream.range(0, 1000).boxed().collect(Collectors.toList()))
+                .doesNotHaveDuplicates();
+
+        assertThat(application.getProcessed())
+                .containsAll(IntStream.range(0, 1000).boxed().collect(Collectors.toList()))
+                .doesNotHaveDuplicates();
+    }
+
+    @Test
+    @Disabled
+    void testExactlyOnceProcessorWithProcessingErrorWithMultiplePartitions() {
+        inTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
+        outTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
+        int numberOfRecords = 1000;
+        MapBasedConfig config = new MapBasedConfig(producerConfig());
+        config.putAll(consumerConfig().with("partitions", 3));
+        ExactlyOnceProcessorWithProcessingError application = runApplication(config,
+                ExactlyOnceProcessorWithProcessingError.class);
+
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(inTopic, i % 3, "k" + i, i), numberOfRecords);
+
+        List<ConsumerRecord<String, Integer>> committed = companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(outTopic, 1000)
+                .awaitCompletion(Duration.ofMinutes(1))
+                .getRecords();
+
+        assertThat(committed)
+                .extracting(ConsumerRecord::value)
+                .containsAll(IntStream.range(0, 1000).boxed().collect(Collectors.toList()))
+                .doesNotHaveDuplicates();
+
+        assertThat(application.getProcessed())
                 .containsAll(IntStream.range(0, 1000).boxed().collect(Collectors.toList()))
                 .doesNotHaveDuplicates();
     }
@@ -127,6 +163,8 @@ public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
 
         boolean error = true;
 
+        List<Integer> processed = new CopyOnWriteArrayList<>();
+
         @Incoming("exactly-once-consumer")
         Uni<Void> process(KafkaRecordBatch<String, Integer> batch) {
             return transaction.withTransactionAndAck(batch, emitter -> {
@@ -137,8 +175,13 @@ public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
                     }
                     emitter.send(KafkaRecord.of(record.getKey(), record.getPayload()));
                 }
+                processed.addAll(batch.getPayload());
                 return Uni.createFrom().voidItem();
             });
+        }
+
+        public List<Integer> getProcessed() {
+            return processed;
         }
     }
 }

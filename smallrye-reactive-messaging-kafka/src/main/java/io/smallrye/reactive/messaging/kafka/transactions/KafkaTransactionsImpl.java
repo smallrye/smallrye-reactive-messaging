@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.transactions;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -77,10 +78,13 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
             throw KafkaExceptions.ex.noKafkaMetadataFound(message);
         }
 
-        KafkaConsumer<?, ?> consumer = clientService.getConsumer(channel);
-        if (consumer == null) {
+        List<KafkaConsumer<Object, Object>> consumers = clientService.getConsumers(channel);
+        if (consumers.isEmpty()) {
             throw KafkaExceptions.ex.unableToFindConsumerForChannel(channel);
+        } else if (consumers.size() > 1) {
+            throw KafkaExceptions.ex.exactlyOnceProcessingNotSupported(channel);
         }
+        KafkaConsumer<Object, Object> consumer = consumers.get(0);
         if (currentTransaction == null) {
             return new Transaction<R>(
                     /* before commit */
