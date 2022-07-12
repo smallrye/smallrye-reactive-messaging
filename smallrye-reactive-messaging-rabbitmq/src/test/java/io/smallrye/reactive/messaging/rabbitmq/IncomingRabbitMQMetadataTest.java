@@ -40,7 +40,7 @@ public class IncomingRabbitMQMetadataTest {
 
         @Override
         public Buffer body() {
-            return null;
+            return Buffer.buffer();
         }
 
         @Override
