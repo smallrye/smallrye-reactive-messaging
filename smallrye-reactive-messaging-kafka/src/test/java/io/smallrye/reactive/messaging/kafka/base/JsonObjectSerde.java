@@ -1,9 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
-import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+
+import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.buffer.Buffer;
 
 public class JsonObjectSerde {
 

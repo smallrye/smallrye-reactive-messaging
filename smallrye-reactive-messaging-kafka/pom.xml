@@ -60,6 +60,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.microprofile.metrics</groupId>
+      <artifactId>microprofile-metrics-api</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>test-common</artifactId>
       <version>${project.version}</version>
