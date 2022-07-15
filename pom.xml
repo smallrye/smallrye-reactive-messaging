@@ -86,7 +86,7 @@
     <kafka.version>3.2.0</kafka.version>
 
     <opentelemetry.version>1.16.0</opentelemetry.version>
-    <opentelemetry-semver.version>1.15.0-alpha</opentelemetry-semver.version>
+    <opentelemetry-semver.version>1.16.0-alpha</opentelemetry-semver.version>
 
     <smallrye-vertx-mutiny-clients.version>2.23.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>2.6.0</smallrye-reactive-converters.version>
