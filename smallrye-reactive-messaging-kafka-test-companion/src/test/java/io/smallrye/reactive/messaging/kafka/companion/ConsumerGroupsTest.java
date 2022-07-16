@@ -106,8 +106,7 @@ public class ConsumerGroupsTest extends KafkaCompanionTestBase {
         ConsumerTask<String, Integer> task2 = consumer.fromTopics(topic);
 
         // Check that polling has started but no records consumed
-        consumer.waitForAssignment().await().atMost(Duration.ofSeconds(10));
-        task2.awaitNoRecords(Duration.ofSeconds(2));
+        task2.awaitNoRecords(Duration.ofSeconds(5));
 
         // Stop and wait until partitions revoked
         task2.stop();

@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaCompanionTestBase;
@@ -22,8 +20,7 @@ public class SerdesTest extends KafkaCompanionTestBase {
                 new ProducerRecord<>(topic, new Person("2", 25)),
                 new ProducerRecord<>(topic, new Person("3", 18))).awaitCompletion();
 
-        ConsumerBuilder<String, Person> consumer = companion.consumeWithDeserializers(StringDeserializer.class.getName(),
-                PersonDeserializer.class.getName());
+        ConsumerBuilder<String, Person> consumer = companion.consumeWithDeserializers(PersonDeserializer.class.getName());
         ConsumerTask<String, Person> task = consumer.fromTopics(topic, 3).awaitCompletion();
         assertThat(task.getRecords()).hasSize(3);
     }
@@ -32,7 +29,7 @@ public class SerdesTest extends KafkaCompanionTestBase {
     void testProduceWithSerdeNameConsumeWithRegisteredSerde() {
         companion.registerSerde(Person.class, new PersonSerializer(), new PersonDeserializer());
 
-        companion.produceWithSerializers(StringSerializer.class.getName(), PersonSerializer.class.getName())
+        companion.produceWithSerializers(PersonSerializer.class.getName())
                 .fromRecords(
                         new ProducerRecord<>(topic, new Person("1", 30)),
                         new ProducerRecord<>(topic, new Person("2", 25)),
@@ -42,6 +39,32 @@ public class SerdesTest extends KafkaCompanionTestBase {
         ConsumerBuilder<String, Person> consumer = companion.consume(Person.class);
         ConsumerTask<String, Person> task = consumer.fromTopics(topic, 3).awaitCompletion();
         assertThat(task.getRecords()).hasSize(3);
+    }
+
+    @Test
+    void testProduceWithSerdeNameConsumeWithGenericSerde() {
+        companion.registerSerde(Person.class, new GenericSerializer<>(), new GenericDeserializer<>());
+
+        ProducerRecord<String, Person> record = new ProducerRecord<>(topic, new Person("1", 20));
+        companion.produce(Person.class)
+                .fromRecords(record)
+                .awaitCompletion();
+
+        ConsumerBuilder<String, Person> consumer = companion.consume(Person.class);
+        ConsumerTask<String, Person> task = consumer.fromTopics(topic, 1).awaitCompletion();
+        assertThat(task.getRecords()).hasSize(1);
+    }
+
+    @Test
+    void testProduceWithSerdeNameConsumeWithGenericSerdeWithSerdeName() {
+        ProducerRecord<String, Person> record = new ProducerRecord<>(topic, new Person("1", 20));
+        companion.<String, Person> produceWithSerializers(GenericSerializer.class.getName())
+                .fromRecords(record)
+                .awaitCompletion();
+
+        ConsumerBuilder<String, Person> consumer = companion.consumeWithDeserializers(GenericDeserializer.class.getName());
+        ConsumerTask<String, Person> task = consumer.fromTopics(topic, 1).awaitCompletion();
+        assertThat(task.getRecords()).hasSize(1);
     }
 
     public static class Person {
@@ -60,6 +83,21 @@ public class SerdesTest extends KafkaCompanionTestBase {
         @Override
         public byte[] serialize(String s, Person person) {
             return (person.id + "|" + person.age).getBytes();
+        }
+    }
+
+    public static class GenericSerializer<T> implements Serializer<T> {
+
+        @Override
+        public byte[] serialize(String s, T object) {
+            return object.toString().getBytes();
+        }
+    }
+
+    public static class GenericDeserializer<T> implements Deserializer<T> {
+        @Override
+        public T deserialize(String s, byte[] bytes) {
+            return null;
         }
     }
 

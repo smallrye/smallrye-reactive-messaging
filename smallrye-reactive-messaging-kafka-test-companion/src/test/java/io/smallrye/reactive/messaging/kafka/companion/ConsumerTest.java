@@ -296,6 +296,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         ConsumerTask<String, String> records2 = consumer.fromTopics(topic, 300);
 
         assertThat(records2.awaitCompletion().count()).isEqualTo(300);
+        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(400L));
     }
 
     @Test
@@ -375,4 +376,16 @@ public class ConsumerTest extends KafkaCompanionTestBase {
                 .extracting(OffsetAndMetadata::offset).isEqualTo(0L));
 
     }
+
+    @Test
+    void testAwaitNoRecords() {
+        try (ConsumerTask<String, String> task = companion.consumeStrings().fromTopics(topic)) {
+            assertThat(task.awaitNoRecords(Duration.ofSeconds(2)).count()).isZero();
+            companion.produceStrings().fromRecords(new ProducerRecord<>(topic, "value"));
+            assertThatThrownBy(() -> task.awaitNoRecords(Duration.ofSeconds(5)))
+                    .isInstanceOf(AssertionError.class)
+                    .hasMessageContaining("expecting no records");
+        }
+    }
+
 }

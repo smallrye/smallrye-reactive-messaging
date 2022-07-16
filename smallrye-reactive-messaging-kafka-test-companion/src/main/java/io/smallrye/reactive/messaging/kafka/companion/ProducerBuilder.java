@@ -98,16 +98,16 @@ public class ProducerBuilder<K, V> implements Closeable {
      *
      * @param props the initial properties for producer creation
      * @param kafkaApiTimeout the timeout for api calls to Kafka
-     * @param keySerializerType the serializer class for record keys
-     * @param valueSerializerType the serializer class for record values
+     * @param keySerializerClassName the serializer class name for record keys
+     * @param valueSerializerClassName the serializer class name for record values
      */
     public ProducerBuilder(Map<String, Object> props, Duration kafkaApiTimeout,
-            Class<? extends Serializer<?>> keySerializerType,
-            Class<? extends Serializer<?>> valueSerializerType) {
+            String keySerializerClassName,
+            String valueSerializerClassName) {
         this.props = props;
         this.kafkaApiTimeout = kafkaApiTimeout;
-        this.props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerType.getName());
-        this.props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerType.getName());
+        this.props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerClassName);
+        this.props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerClassName);
         this.producerCreator = KafkaProducer::new;
     }
 
