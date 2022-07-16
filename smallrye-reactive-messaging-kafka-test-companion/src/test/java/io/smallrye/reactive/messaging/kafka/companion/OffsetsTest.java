@@ -5,11 +5,16 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.UUID;
 
+import org.apache.kafka.clients.admin.ListOffsetsResult;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaCompanionTestBase;
@@ -51,5 +56,30 @@ public class OffsetsTest extends KafkaCompanionTestBase {
 
         await().untilAsserted(
                 () -> assertThat(companion.consumerGroups().offsets(groupId, tp(topic, 0)).offset()).isEqualTo(0L));
+    }
+
+    @Test
+    void testListOffsets() {
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "" + i), 10)
+                .awaitCompletion();
+
+        String groupId = UUID.randomUUID().toString();
+        companion.consumeStrings()
+                .withGroupId(groupId)
+                .withCommitSyncWhen(r -> true)
+                .fromTopics(topic, 10)
+                .awaitCompletion();
+
+        HashMap<TopicPartition, OffsetSpec> offsetSpecs = new HashMap<>();
+        TopicPartition tp = tp(topic, 0);
+        offsetSpecs.put(tp, OffsetSpec.earliest());
+        ListOffsetsResult.ListOffsetsResultInfo info = companion.offsets().list(offsetSpecs).get(tp);
+        assertThat(info.offset()).isEqualTo(0);
+
+        long offset = companion.offsets().list(Collections.singletonList(tp)).get(tp).offset();
+        assertThat(offset).isEqualTo(10);
+
+        long groupOffset = companion.consumerGroups().offsets(groupId, tp(topic, 0)).offset();
+        assertThat(groupOffset).isEqualTo(10);
     }
 }

@@ -62,9 +62,7 @@ public class TopicsCompanion {
      * @return the name of the created topic
      */
     public String createAndWait(String topic, int partition) {
-        create(topic, partition);
-        waitForTopic(topic).await().atMost(kafkaApiTimeout);
-        return topic;
+        return createAndWait(topic, partition, kafkaApiTimeout).name();
     }
 
     /**

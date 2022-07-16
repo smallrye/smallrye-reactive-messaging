@@ -54,4 +54,11 @@ public class TopicsTest extends KafkaCompanionTestBase {
                 .hasEntrySatisfying(topic2, t -> assertThat(t.partitions()).hasSize(2))
                 .hasEntrySatisfying(topic3, t -> assertThat(t.partitions()).hasSize(1));
     }
+
+    @Test
+    void testCreateAndWaitAndDelete() {
+        companion.topics().createAndWait(topic + "-new", 3);
+        companion.topics().delete(topic + "-new");
+        await().until(() -> !companion.topics().list().contains(topic + "-new"));
+    }
 }

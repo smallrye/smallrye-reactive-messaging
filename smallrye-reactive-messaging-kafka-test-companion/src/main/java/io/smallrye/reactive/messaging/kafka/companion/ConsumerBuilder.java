@@ -408,7 +408,7 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     private Map<TopicPartition, OffsetAndMetadata> getOffsetMapFromConsumerRecord(ConsumerRecord<?, ?> consumerRecord) {
         Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
         map.put(new TopicPartition(consumerRecord.topic(), consumerRecord.partition()),
-                new OffsetAndMetadata(consumerRecord.offset()));
+                new OffsetAndMetadata(consumerRecord.offset() + 1));
         return map;
     }
 

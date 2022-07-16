@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -321,7 +322,8 @@ public class KafkaCompanion implements AutoCloseable {
             if (throwable == null) {
                 try {
                     // LOG commit
-                    kafkaProducer.sendOffsetsToTransaction(consumer.position(), consumer.groupMetadata());
+                    Map<TopicPartition, OffsetAndMetadata> position = consumer.position();
+                    kafkaProducer.sendOffsetsToTransaction(position, consumer.unwrap().groupMetadata());
                     kafkaProducer.commitTransaction();
                 } catch (Throwable e) {
                     // LOG error
@@ -334,9 +336,13 @@ public class KafkaCompanion implements AutoCloseable {
                 consumer.resetToLastCommittedPositions();
             }
         });
-        return new ProducerTask(consumer.processBatch(topics,
-                records -> builder.getProduceMulti(Multi.createFrom().iterable(records).onItem().transform(process)))
-                .onTermination().invoke(builder::close));
+        return new ProducerTask(consumer.processBatch(topics, records -> {
+            if (records.isEmpty()) {
+                return Multi.createFrom().empty();
+            } else {
+                return builder.getProduceMulti(Multi.createFrom().iterable(records).onItem().transform(process));
+            }
+        }).onTermination().invoke(builder::close));
     }
 
     private <K, V> void registerOnClose(Runnable action) {
