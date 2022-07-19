@@ -6,7 +6,7 @@ email (on the SmallRye mailing list), or any other method with the owners of thi
 ## Issues
 
 1. Make sure you provide a reproducer for your issue
-2. Details about your environment matters - don't forget them. This include where is the application deplyed (bare metal,
+2. Details about your environment matters - don't forget them. This include where is the application deployed (bare metal,
  containers...), Java version...
 3. Details about your build environment matters (Maven version, Java version) 
 

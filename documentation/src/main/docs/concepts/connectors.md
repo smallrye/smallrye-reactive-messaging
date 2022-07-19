@@ -22,7 +22,7 @@ Connector can:
 
 1.  retrieve messages from a remote broker (inbound)
 
-2.  send messages to a remove broker (outbound)
+2.  send messages to a remote broker (outbound)
 
 A connector can, of course, implement both directions.
 
