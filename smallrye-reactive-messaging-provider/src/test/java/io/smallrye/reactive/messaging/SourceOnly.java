@@ -1,13 +1,15 @@
 package io.smallrye.reactive.messaging;
 
+import java.util.concurrent.Flow.Publisher;
+
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class SourceOnly {
@@ -18,7 +20,7 @@ public class SourceOnly {
         return Multi.createFrom().range(1, 11)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .concatMap(m -> ReactiveStreams.of(m, m).buildRs());
+                .concatMap(m -> AdaptersToFlow.publisher(ReactiveStreams.of(m, m).buildRs()));
     }
 
 }

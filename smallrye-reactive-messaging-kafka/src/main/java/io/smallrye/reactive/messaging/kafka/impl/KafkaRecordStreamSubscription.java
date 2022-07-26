@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Objects;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
@@ -12,7 +13,6 @@ import java.util.function.UnaryOperator;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -21,7 +21,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.vertx.core.Context;
 
 /**
- * A {@link Subscription} which, on {@link #request(long)}, polls {@link ConsumerRecords} from the given consumer client
+ * A {@link Flow.Subscription} which, on {@link #request(long)}, polls {@link ConsumerRecords} from the given consumer client
  * and emits records downstream.
  * <p>
  * It uses an internal queue to store records received but not yet emitted downstream.
@@ -31,7 +31,7 @@ import io.vertx.core.Context;
  * @param <V> type of incoming record payload
  * @param <T> type of the items to emit downstream
  */
-public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
+public class KafkaRecordStreamSubscription<K, V, T> implements Flow.Subscription {
     private static final int STATE_NEW = 0; // no request yet -- we start polling on the first request
     private static final int STATE_POLLING = 1;
     private static final int STATE_PAUSED = 2;

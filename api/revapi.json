@@ -32,6 +32,92 @@
             "regex": true,
             "code": ".*",
             "ignore": true
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessage(M)",
+            "justification": "Added to the MutinyEmitter interface"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> void io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessageAndAwait(M)",
+            "justification": "Added to the MutinyEmitter interface"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.mutiny.subscription.Cancellable io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessageAndForget(M)",
+            "justification": "Added to the MutinyEmitter interface"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.returnTypeTypeParametersChanged",
+            "old": "method java.util.List<org.reactivestreams.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>> io.smallrye.reactive.messaging.ChannelRegistry::getPublishers(java.lang.String)",
+            "new": "method java.util.List<java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>> io.smallrye.reactive.messaging.ChannelRegistry::getPublishers(java.lang.String)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.returnTypeTypeParametersChanged",
+            "old": "method java.util.List<org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>> io.smallrye.reactive.messaging.ChannelRegistry::getSubscribers(java.lang.String)",
+            "new": "method java.util.List<java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>> io.smallrye.reactive.messaging.ChannelRegistry::getSubscribers(java.lang.String)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter org.reactivestreams.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, ===org.reactivestreams.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>===, boolean)",
+            "new": "parameter java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, ===java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>===, boolean)",
+            "parameterIndex": "1",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, org.reactivestreams.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, boolean)",
+            "new": "method java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, boolean)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, ===org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>===, boolean)",
+            "new": "parameter java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, ===java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>===, boolean)",
+            "parameterIndex": "1",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, boolean)",
+            "new": "method java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, boolean)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Publisher<org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.reactive.messaging.MessagePublisherProvider<T>::getPublisher()",
+            "new": "method java.util.concurrent.Flow.Publisher<org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.reactive.messaging.MessagePublisherProvider<T>::getPublisher()",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.connector.InboundConnector::getPublisher(org.eclipse.microprofile.config.Config)",
+            "new": "method java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.connector.InboundConnector::getPublisher(org.eclipse.microprofile.config.Config)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.connector.OutboundConnector::getSubscriber(org.eclipse.microprofile.config.Config)",
+            "new": "method java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.connector.OutboundConnector::getSubscriber(org.eclipse.microprofile.config.Config)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method boolean io.smallrye.reactive.messaging.MediatorConfiguration::usesReactiveStreams()",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
         }
     ]
   }

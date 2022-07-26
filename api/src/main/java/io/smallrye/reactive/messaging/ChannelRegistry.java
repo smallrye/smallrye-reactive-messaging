@@ -3,11 +3,11 @@ package io.smallrye.reactive.messaging;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 public interface ChannelRegistry {
 

@@ -3,14 +3,13 @@ package io.smallrye.reactive.messaging.providers.impl;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
 import java.util.*;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MutinyEmitter;
@@ -18,8 +17,8 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
 @ApplicationScoped
 public class InternalChannelRegistry implements ChannelRegistry {
 
-    private final Map<String, List<Publisher<? extends Message<?>>>> publishers = new HashMap<>();
-    private final Map<String, List<Subscriber<? extends Message<?>>>> subscribers = new HashMap<>();
+    private final Map<String, List<Flow.Publisher<? extends Message<?>>>> publishers = new HashMap<>();
+    private final Map<String, List<Flow.Subscriber<? extends Message<?>>>> subscribers = new HashMap<>();
 
     private final Map<String, Boolean> outgoing = new HashMap<>();
     private final Map<String, Boolean> incoming = new HashMap<>();
@@ -27,8 +26,8 @@ public class InternalChannelRegistry implements ChannelRegistry {
     private final Map<Class<?>, Map<String, Object>> emitters = new HashMap<>();
 
     @Override
-    public Publisher<? extends Message<?>> register(String name,
-            Publisher<? extends Message<?>> stream, boolean broadcast) {
+    public Flow.Publisher<? extends Message<?>> register(String name,
+            Flow.Publisher<? extends Message<?>> stream, boolean broadcast) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(stream, msg.streamMustBeSet());
         register(publishers, name, stream);
@@ -37,8 +36,8 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public synchronized Subscriber<? extends Message<?>> register(String name,
-            Subscriber<? extends Message<?>> subscriber, boolean merge) {
+    public synchronized Flow.Subscriber<? extends Message<?>> register(String name,
+            Flow.Subscriber<? extends Message<?>> subscriber, boolean merge) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(subscriber, msg.subscriberMustBeSet());
         register(subscribers, name, subscriber);
@@ -69,7 +68,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public synchronized List<Publisher<? extends Message<?>>> getPublishers(String name) {
+    public synchronized List<Flow.Publisher<? extends Message<?>>> getPublishers(String name) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         return publishers.getOrDefault(name, Collections.emptyList());
     }
@@ -98,7 +97,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public synchronized List<Subscriber<? extends Message<?>>> getSubscribers(String name) {
+    public synchronized List<Flow.Subscriber<? extends Message<?>>> getSubscribers(String name) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         return subscribers.getOrDefault(name, Collections.emptyList());
     }

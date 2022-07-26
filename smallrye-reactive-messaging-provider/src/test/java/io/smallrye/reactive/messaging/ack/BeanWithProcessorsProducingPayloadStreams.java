@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -74,7 +75,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToNoAck() {
+    public Flow.Publisher<Message<String>> sourceToNoAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -93,7 +94,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToNoAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToNoAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -113,7 +114,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPreAck() {
+    public Flow.Publisher<Message<String>> sourceToPreAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -132,7 +133,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToPreAckBuilder() {
+    public Flow.Publisher<Message<String>> sourceToPreAckBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -151,7 +152,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToDefaultAck() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -169,7 +170,7 @@ public class BeanWithProcessorsProducingPayloadStreams extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToDefaultAckBuilder() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAckBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();

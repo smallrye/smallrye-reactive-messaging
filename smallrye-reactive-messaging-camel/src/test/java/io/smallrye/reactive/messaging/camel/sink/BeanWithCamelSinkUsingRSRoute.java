@@ -1,22 +1,25 @@
 package io.smallrye.reactive.messaging.camel.sink;
 
+import java.util.concurrent.Flow.Publisher;
+
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
+
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanWithCamelSinkUsingRSRoute extends RouteBuilder {
 
     @Outgoing("data")
     public Publisher<Message<String>> source() {
-        return ReactiveStreams.of("a", "b", "c", "d")
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d")
                 .map(String::toUpperCase)
                 .map(Message::of)
-                .buildRs();
+                .buildRs());
     }
 
     @Override

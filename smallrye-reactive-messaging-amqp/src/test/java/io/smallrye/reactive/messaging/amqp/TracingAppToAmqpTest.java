@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
@@ -106,7 +106,7 @@ public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
     @ApplicationScoped
     public static class MyAppGeneratingData {
         @Outgoing("amqp")
-        public Publisher<Integer> source() {
+        public Flow.Publisher<Integer> source() {
             return Multi.createFrom().range(0, 10);
         }
     }

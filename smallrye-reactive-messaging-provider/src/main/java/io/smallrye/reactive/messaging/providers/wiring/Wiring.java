@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.providers.wiring;
 import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSortedInstances;
 
 import java.util.*;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PreDestroy;
@@ -13,8 +15,6 @@ import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
@@ -380,7 +380,7 @@ public class Wiring {
                 merged = Multi.createBy().merging().streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             }
             // TODO Improve this.
-            Subscriber connector = registry.getSubscribers(name).get(0);
+            Flow.Subscriber connector = registry.getSubscribers(name).get(0);
             for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
                 merged = decorator.decorate(merged, Collections.singletonList(name), true);
             }
@@ -649,7 +649,7 @@ public class Wiring {
 
             mediator.connectToUpstream(aggregates);
 
-            Subscriber<Message<?>> subscriber = mediator.getComputedSubscriber();
+            Flow.Subscriber<Message<?>> subscriber = mediator.getComputedSubscriber();
             incomings().forEach(s -> registry.register(s, subscriber, merge()));
 
             mediator.run();

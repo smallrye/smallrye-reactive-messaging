@@ -7,6 +7,7 @@ import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kafka.common.KafkaException;
@@ -15,7 +16,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
@@ -48,11 +48,11 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
 
         ConsumerTask<String, String> consumed = companion.consumeStrings().fromTopics(topic, 4, Duration.ofSeconds(10));
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink();
+        Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().items(
                 Message.of(of("key", "value")), Message.of(of(null, "value")),
                 Message.of(of("key", null)), Message.of(of(null, null)))
-                .subscribe((Subscriber<? super Message<?>>) subscriber);
+                .subscribe((Flow.Subscriber<? super Message<?>>) subscriber);
 
         await().until(() -> consumed.getRecords().size() == 4);
         assertThat(consumed.getRecords().get(0).key()).isEqualTo("key");
@@ -77,13 +77,13 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("retries", 0L);
         sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
-        Subscriber<? extends Message<?>> subscriber = sink.getSink();
+        Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
                 Message.of(of(125.25, new JsonObject().put("k", "v"))).withNack(t -> {
                     nacked.set(true);
                     return CompletableFuture.completedFuture(null);
-                })).subscribe((Subscriber<? super Message<?>>) subscriber);
+                })).subscribe((Flow.Subscriber<? super Message<?>>) subscriber);
 
         await().until(nacked::get);
     }
@@ -96,13 +96,13 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("retries", 0L);
         sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
-        Subscriber<? extends Message<?>> subscriber = sink.getSink();
+        Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
                 Message.of(of(new JsonObject().put("k", "v"), 125.25)).withNack(t -> {
                     nacked.set(true);
                     return CompletableFuture.completedFuture(null);
-                })).subscribe((Subscriber<? super Message<?>>) subscriber);
+                })).subscribe((Flow.Subscriber<? super Message<?>>) subscriber);
 
         await().until(nacked::get);
     }

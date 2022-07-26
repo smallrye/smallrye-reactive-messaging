@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.spi.DeploymentException;
@@ -11,7 +12,6 @@ import jakarta.enterprise.inject.spi.DeploymentException;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -43,7 +43,7 @@ public class ChannelNameConflictTest extends KafkaCompanionTestBase {
     public static class Bean {
 
         @Outgoing("my-topic")
-        public Publisher<String> publisher() {
+        public Flow.Publisher<String> publisher() {
             return Multi.createFrom().item("0");
         }
 

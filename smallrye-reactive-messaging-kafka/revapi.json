@@ -29,6 +29,24 @@
             "regex": true,
             "code": ".*",
             "ignore": true
+        },
+        {
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.kafka.KafkaConnector::getPublisher(org.eclipse.microprofile.config.Config)",
+            "new": "method java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.kafka.KafkaConnector::getPublisher(org.eclipse.microprofile.config.Config)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.kafka.KafkaConnector::getSubscriber(org.eclipse.microprofile.config.Config)",
+            "new": "method java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.kafka.KafkaConnector::getSubscriber(org.eclipse.microprofile.config.Config)",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
+        },
+        {
+            "code": "java.method.returnTypeChanged",
+            "old": "method org.reactivestreams.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.kafka.impl.KafkaSink::getSink()",
+            "new": "method java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.kafka.impl.KafkaSink::getSink()",
+            "justification": "Switch from the legacy Reactive Streams APIs to java.util.concurrent.Flow"
         }
     ]
   }

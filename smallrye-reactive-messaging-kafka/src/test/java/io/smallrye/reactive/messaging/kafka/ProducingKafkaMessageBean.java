@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -8,7 +9,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 
@@ -29,7 +29,7 @@ public class ProducingKafkaMessageBean {
     }
 
     @Outgoing("data")
-    public Publisher<Integer> source() {
+    public Flow.Publisher<Integer> source() {
         return Multi.createFrom().range(0, 10);
     }
 

@@ -5,15 +5,16 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertThrows;
 
 import java.util.*;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
@@ -45,8 +46,8 @@ public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
                 null);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
-        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
-        stream.forEach(messages::add).run();
+        Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();
+        Multi.createFrom().publisher(stream).subscribe().with(messages::add);
         awaitUntilReady(source);
         pause();
         AtomicInteger counter = new AtomicInteger();

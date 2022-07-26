@@ -82,7 +82,7 @@
 
     <micrometer.version>1.10.3</micrometer.version>
 
-    <mutiny.version>1.7.0</mutiny.version>
+    <mutiny.version>2.0.0</mutiny.version>
     <artemis.version>2.20.0</artemis.version>
     <commons-io.version>2.11.0</commons-io.version>
 
@@ -92,9 +92,9 @@
 
     <opentelemetry.version>1.22.1-alpha</opentelemetry.version>
 
-    <smallrye-vertx-mutiny-clients.version>2.26.0</smallrye-vertx-mutiny-clients.version>
-    <smallrye-reactive-converters.version>2.6.0</smallrye-reactive-converters.version>
-    <mutiny-zero-reactive-streams-junit5-tck.version>0.4.2</mutiny-zero-reactive-streams-junit5-tck.version>
+    <smallrye-vertx-mutiny-clients.version>3.0.0</smallrye-vertx-mutiny-clients.version>
+    <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
+    <mutiny-zero.version>1.0.0</mutiny-zero.version>
 
     <testcontainers.version>1.17.6</testcontainers.version>
 
@@ -338,6 +338,16 @@
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>mutiny</artifactId>
       <version>${mutiny.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-zero</artifactId>
+      <version>${mutiny-zero.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-zero-flow-adapters</artifactId>
+      <version>${mutiny-zero.version}</version>
     </dependency>
 
     <!-- Test -->

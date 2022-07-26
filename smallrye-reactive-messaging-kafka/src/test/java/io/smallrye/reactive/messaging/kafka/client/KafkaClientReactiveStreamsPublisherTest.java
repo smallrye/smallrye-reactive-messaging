@@ -31,6 +31,7 @@ import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ExtendWith(KafkaBrokerExtension.class)
 public class KafkaClientReactiveStreamsPublisherTest
@@ -94,10 +95,10 @@ public class KafkaClientReactiveStreamsPublisherTest
         Multi<IncomingKafkaRecord<String, String>> multi = createSource()
                 .getStream();
 
-        return Multi.createBy().combining().streams(multi, range).asTuple()
+        return AdaptersToReactiveStreams.publisher(Multi.createBy().combining().streams(multi, range).asTuple()
                 .map(Tuple2::getItem1)
                 .invoke(IncomingKafkaRecord::ack)
-                .onFailure().invoke(t -> System.out.println("Failure detected: " + t));
+                .onFailure().invoke(t -> System.out.println("Failure detected: " + t)));
     }
 
     protected MapBasedConfig createConsumerConfig(String groupId) {
@@ -136,6 +137,6 @@ public class KafkaClientReactiveStreamsPublisherTest
     @Override
     public Publisher<IncomingKafkaRecord<String, String>> createFailedPublisher() {
         // TODO Create a source with a deserialization issue.
-        return Multi.createFrom().failure(() -> new Exception("boom"));
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().failure(() -> new Exception("boom")));
     }
 }

@@ -1,7 +1,8 @@
 package io.smallrye.reactive.messaging;
 
+import java.util.concurrent.Flow.Publisher;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
 
 /**
  * Framework-facing interface for the Emitter implementations.

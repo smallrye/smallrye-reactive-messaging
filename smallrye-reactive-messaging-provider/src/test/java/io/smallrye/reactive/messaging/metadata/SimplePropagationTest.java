@@ -10,7 +10,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -84,7 +83,7 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
     public static class Source {
 
         @Outgoing("source")
-        public Publisher<Message<String>> source() {
+        public Multi<Message<String>> source() {
             return Multi.createFrom().range(1, 11)
                     .map(i -> Message.of(Integer.toString(i), Metadata.of(new CounterMetadata(i), new MsgMetadata("foo"))));
         }

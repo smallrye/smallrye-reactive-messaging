@@ -398,7 +398,7 @@ public class KafkaCheckpointCommit extends ContextHolder implements KafkaCommitH
         }
     }
 
-    static class CheckpointState<T> {
+    public static class CheckpointState<T> {
 
         private final TopicPartition topicPartition;
         private final long createdTimestamp;
